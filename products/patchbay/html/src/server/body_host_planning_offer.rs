@@ -132,12 +132,12 @@ impl PatchbayHtmlServer {
             )
             .map_err(|error| ServerError::Interaction(format!("Body initial plan: {error:?}")))?
         };
-        if next_planning.current_plan().presenter_topologies.is_empty() {
-            if let Some(control) = self.presenter_control.as_mut() {
+        if next_planning.current_plan().mask_topologies.is_empty() {
+            if let Some(control) = self.mask_control.as_mut() {
                 control
                     .install_initial_graphical(&mut next_planning)
                     .map_err(|error| {
-                        ServerError::Interaction(format!("Presenter initial plan: {error:?}"))
+                        ServerError::Interaction(format!("Mask initial plan: {error:?}"))
                     })?;
             }
         }

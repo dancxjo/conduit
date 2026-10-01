@@ -1,20 +1,16 @@
 //! Portable chat-state/submit contracts and browser realization offers.
 
-use alloc::{
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+#[cfg(feature = "form-catalog")]
+use alloc::string::{String, ToString};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostCallContractId, HostCallRequirement, ImplementationId, ImplementationOffer, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
+    kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostCallContractId,
+    HostCallRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, ResourceOffer,
 };
 use conduit_presentation::{
-    interaction_offer, presentation_tee_offer, renderer_offer, InteractionRealizationOffer,
-    RendererRealizationOffer, INTERACTION_KIND, MAX_PRESENTATION_INTERACTION_BYTES,
-    MAX_PRESENTATION_TOTAL_BYTES, PRESENTATION_TEE_KIND, PRESENTATION_VALUE_KIND, RENDERER_KIND,
+    MAX_FACE_INTERACTION_BYTES, MAX_PRESENTATION_TOTAL_BYTES, PRESENTATION_VALUE_KIND,
 };
 
 use crate::{CHAT_SEND_ACTION, MAXIMUM_CHAT_HISTORY_ITEMS, MAXIMUM_CHAT_MESSAGE_BYTES};
@@ -35,11 +31,6 @@ pub const CHAT_TO_WEBSOCKET_HOST_CALL: &str = "conduit.chat/to-websocket@1";
 pub const CHAT_CONNECTION_FROM_WEBSOCKET_HOST_CALL: &str =
     "conduit.chat/connection-from-websocket@1";
 pub const CHAT_CURRENT_CONNECTION_HOST_CALL: &str = "conduit.chat/current-connection@1";
-pub const BROWSER_RENDER_HOST_CALL: &str = "conduit.browser/present@1";
-pub const BROWSER_INTERACTION_HOST_CALL: &str = "conduit.browser/interaction@1";
-pub const BROWSER_DOCUMENT_RESOURCE: &str = "conduit.resource/browser-document@1";
-pub const BROWSER_INPUT_RESOURCE: &str = "conduit.resource/browser-human-input@1";
-
 pub const CHAT_CONFIGURATION_FIELDS: [(&str, &str); 7] = [
     ("title", "Text"),
     ("history-label", "Text"),
@@ -52,67 +43,15 @@ pub const CHAT_CONFIGURATION_FIELDS: [(&str, &str); 7] = [
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrowserChatFamily {
-    pub resources: [ResourceOffer; 2],
+    pub resources: Vec<ResourceOffer>,
     pub capabilities: Vec<CapabilityOffer>,
 }
 
 pub fn browser_chat_family() -> BrowserChatFamily {
     BrowserChatFamily {
-        resources: [
-            resource_offer("browser/document-0", BROWSER_DOCUMENT_RESOURCE, 1),
-            resource_offer("browser/human-input-0", BROWSER_INPUT_RESOURCE, 1),
-        ],
+        resources: Vec::new(),
         capabilities: vec![
             chat_state_offer(),
-            presentation_tee_offer(
-                CapabilityId::from("browser/presentation-tee"),
-                ImplementationOffer {
-                    execution_profile_id: ExecutionProfileId::from(
-                        "conduit.presentation/tee-kernel@1",
-                    ),
-                    implementation_id: ImplementationId::from("presentation/kernel-tee@1"),
-                    artifact_id: ArtifactId::from("conduit-browser-runtime/presentation-tee@1"),
-                },
-                limits(8, MAX_PRESENTATION_TOTAL_BYTES as u32 * 8),
-            ),
-            renderer_offer(RendererRealizationOffer {
-                capability_id: CapabilityId::from("browser/presentation-renderer"),
-                execution_profile_id: ExecutionProfileId::from(
-                    "conduit.presentation/browser-renderer@1",
-                ),
-                implementation_id: ImplementationId::from("presentation/browser-semantic-dom@1"),
-                artifact_id: ArtifactId::from("conduit-browser-runtime/semantic-dom@1"),
-                host_call: host_call(
-                    BROWSER_RENDER_HOST_CALL,
-                    MAX_PRESENTATION_TOTAL_BYTES as u32,
-                    16 * 1024,
-                ),
-                resource_requirement: resource_requirement(BROWSER_DOCUMENT_RESOURCE, 1),
-                limits: limits(8, MAX_PRESENTATION_TOTAL_BYTES as u32 * 8),
-            }),
-            interaction_offer(InteractionRealizationOffer {
-                capability_id: CapabilityId::from("browser/presentation-interaction"),
-                execution_profile_id: ExecutionProfileId::from(
-                    "conduit.presentation/browser-interaction@1",
-                ),
-                implementation_id: ImplementationId::from("presentation/browser-human-input@1"),
-                artifact_id: ArtifactId::from("conduit-browser-runtime/human-input@1"),
-                host_call: HostCallRequirement {
-                    contract_id: HostCallContractId::from(BROWSER_INTERACTION_HOST_CALL),
-                    target_kind: Some(kind_id(
-                        conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND,
-                    )),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: 0,
-                    maximum_output_bytes: MAX_PRESENTATION_INTERACTION_BYTES as u32,
-                },
-                resource_requirement: resource_requirement(BROWSER_INPUT_RESOURCE, 1),
-                limits: limits(
-                    conduit_presentation::MAX_QUEUED_PRESENTATION_INTERACTIONS as u16,
-                    MAX_PRESENTATION_INTERACTION_BYTES as u32
-                        * conduit_presentation::MAX_QUEUED_PRESENTATION_INTERACTIONS as u32,
-                ),
-            }),
             chat_submit_offer(),
             chat_transport_adapter_offer(
                 CHAT_FROM_WEBSOCKET_KIND,
@@ -251,9 +190,12 @@ fn chat_state_contract() -> Kind {
             "presentation",
             PRESENTATION_VALUE_KIND,
             PortDirection::Output,
-            PortTemporal::Value,
+            PortTemporal::Flow { closes: true },
         )],
-        configuration: Default::default(),
+        configuration: CHAT_CONFIGURATION_FIELDS
+            .iter()
+            .map(|(name, value_type)| configuration(name, value_type))
+            .collect(),
         semantic_laws: Default::default(),
         limits: limits(
             MAXIMUM_CHAT_HISTORY_ITEMS as u16,
@@ -272,7 +214,7 @@ pub fn chat_submit_offer() -> CapabilityOffer {
             artifact_id: ArtifactId::from("conduit-browser-runtime/chat-submit@1"),
             host_calls: vec![host_call(
                 CHAT_SUBMIT_HOST_CALL,
-                MAX_PRESENTATION_INTERACTION_BYTES as u32,
+                MAX_FACE_INTERACTION_BYTES as u32,
                 MAXIMUM_CHAT_MESSAGE_BYTES,
             )],
             resource_requirements: Vec::new(),
@@ -301,7 +243,7 @@ fn chat_submit_contract() -> Kind {
         kind_contract_revision: KindIdentity::from(CHAT_SUBMIT_REVISION),
         inputs: vec![port(
             "interaction",
-            conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND,
+            conduit_presentation::FACE_INTERACTION_VALUE_KIND,
             PortDirection::Input,
             PortTemporal::Flow { closes: true },
         )],
@@ -311,9 +253,12 @@ fn chat_submit_contract() -> Kind {
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )],
-        configuration: Default::default(),
+        configuration: vec![
+            configuration("action", "Text"),
+            configuration("maximum-message-bytes", "Count"),
+        ],
         semantic_laws: Default::default(),
-        limits: limits(8, MAX_PRESENTATION_INTERACTION_BYTES as u32 * 8),
+        limits: limits(8, MAX_FACE_INTERACTION_BYTES as u32 * 8),
     }
 }
 
@@ -345,6 +290,7 @@ fn port(
         value_kind: kind_id(value_kind),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 
@@ -371,24 +317,9 @@ pub fn install_browser_chat_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
-    for kind in [INTERACTION_KIND, PRESENTATION_TEE_KIND, RENDERER_KIND] {
-        startup.insert(KindSignature {
-            kind: kind.into(),
-            startup_parameters: Vec::new(),
-        })?;
-    }
-    profile
-        .insert(conduit_presentation::interaction_kind_projection())
-        .map_err(|error| error.to_string())?;
-    profile
-        .insert(conduit_presentation::presentation_tee_kind_projection())
-        .map_err(|error| error.to_string())?;
-    profile
-        .insert(conduit_presentation::renderer_kind_projection())
-        .map_err(|error| error.to_string())?;
-
+    conduit_presentation::install_mask_form_value_aliases(startup)?;
     startup.insert(KindSignature {
         kind: CHAT_STATE_KIND.into(),
         startup_parameters: CHAT_CONFIGURATION_FIELDS
@@ -400,19 +331,9 @@ pub fn install_browser_chat_catalogs(
             })
             .collect(),
     })?;
-    let state_contract = chat_state_contract();
     profile
-        .insert(KindProjection {
-            kind_id: state_contract.kind_id,
-            kind_contract_revision: state_contract.kind_contract_revision,
-            inputs: state_contract.inputs,
-            outputs: state_contract.outputs,
-            configuration: CHAT_CONFIGURATION_FIELDS
-                .iter()
-                .map(|(name, value_type)| configuration(name, value_type))
-                .collect(),
-        })
-        .map_err(|error| error.to_string())?;
+        .insert_kind(chat_state_contract())
+        .map_err(|error| alloc::format!("install {CHAT_STATE_KIND}: {error}"))?;
 
     startup.insert(KindSignature {
         kind: CHAT_SUBMIT_KIND.into(),
@@ -429,19 +350,9 @@ pub fn install_browser_chat_catalogs(
             },
         ],
     })?;
-    let submit_contract = chat_submit_contract();
     profile
-        .insert(KindProjection {
-            kind_id: submit_contract.kind_id,
-            kind_contract_revision: submit_contract.kind_contract_revision,
-            inputs: submit_contract.inputs,
-            outputs: submit_contract.outputs,
-            configuration: vec![
-                configuration("action", "Text"),
-                configuration("maximum-message-bytes", "Count"),
-            ],
-        })
-        .map_err(|error| error.to_string())?;
+        .insert_kind(chat_submit_contract())
+        .map_err(|error| alloc::format!("install {CHAT_SUBMIT_KIND}: {error}"))?;
     for (kind, input, output, input_temporal, output_temporal) in [
         (
             CHAT_FROM_WEBSOCKET_KIND,
@@ -479,22 +390,15 @@ pub fn install_browser_chat_catalogs(
         let contract =
             chat_transport_adapter_contract(kind, input, output, input_temporal, output_temporal);
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: Default::default(),
-            })
+            .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
-fn configuration(name: &str, value_type: &str) -> conduit_form::KindConfigurationField {
+fn configuration(name: &str, value_type: &str) -> conduit_core::KindConfigurationField {
     use conduit_core::ConfigurationValue;
-    use conduit_form::{KindConfigurationField, KindConfigurationRule};
+    use conduit_core::{KindConfigurationField, KindConfigurationRule};
     if value_type == "Count" {
         let maximum = if name == "maximum-history-items" {
             MAXIMUM_CHAT_HISTORY_ITEMS as u64
@@ -532,7 +436,6 @@ fn default_source(name: &str) -> String {
     }
 }
 
-#[cfg(feature = "form-catalog")]
 fn default_text(name: &str) -> &'static str {
     match name {
         "title" => "Conduit Webchat",

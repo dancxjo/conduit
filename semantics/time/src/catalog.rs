@@ -10,8 +10,8 @@ use conduit_form::{
 };
 
 use crate::{
-    historical_timeline_kind_projection, replay_control_kind_projection,
-    replay_source_kind_projection, tick_outputs, time_every_outputs, HISTORICAL_TIMELINE_KIND,
+    historical_timeline_semantic_contract, replay_control_kind_projection,
+    replay_source_semantic_contract, tick_outputs, time_every_outputs, HISTORICAL_TIMELINE_KIND,
     MAX_TICK_COUNT, PHASE_SYNCHRONIZE_KIND, PHASE_SYNCHRONIZE_REVISION,
     PULSE_OBSERVATION_VALUE_KIND, PULSE_OBSERVE_KIND, PULSE_OBSERVE_REVISION, REPLAY_SOURCE_KIND,
     RHYTHM_STATE_VALUE_KIND, TICK_CONTRACT_REVISION, TICK_KIND, TICK_VALUE_KIND,
@@ -87,7 +87,7 @@ pub fn install_tick_catalog(
         ],
     })?;
     profile
-        .insert(tick_kind_projection())
+        .insert_kind(crate::tick_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -99,12 +99,12 @@ pub fn install_time_every_catalog(
         kind: TIME_EVERY_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "freq".to_string(),
-            value_type: "Quantity".to_string(),
+            value_type: "Duration".to_string(),
             default: None,
         }],
     })?;
     profile
-        .insert(time_every_kind_projection())
+        .insert_kind(crate::time_every_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -121,14 +121,14 @@ pub fn install_rhythm_catalog(
         }],
     })?;
     profile
-        .insert(pulse_observe_kind_projection())
+        .insert_kind(pulse_observe_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: PHASE_SYNCHRONIZE_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(phase_synchronize_kind_projection())
+        .insert_kind(phase_synchronize_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: crate::RHYTHM_STATE_SOURCE_KIND.into(),
@@ -147,7 +147,7 @@ pub fn install_rhythm_catalog(
         .collect(),
     })?;
     profile
-        .insert(rhythm_state_source_kind_projection())
+        .insert_kind(rhythm_state_source_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -195,7 +195,7 @@ pub fn rhythm_state_source_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -242,7 +242,7 @@ pub fn phase_synchronize_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -288,7 +288,7 @@ pub fn pulse_observe_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -304,6 +304,7 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }
 }
 
@@ -416,7 +417,7 @@ pub fn install_historical_timeline_catalog(
         ],
     })?;
     profile
-        .insert(historical_timeline_kind_projection())
+        .insert_kind(historical_timeline_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -436,7 +437,7 @@ pub fn install_replay_source_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(replay_source_kind_projection())
+        .insert_kind(replay_source_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

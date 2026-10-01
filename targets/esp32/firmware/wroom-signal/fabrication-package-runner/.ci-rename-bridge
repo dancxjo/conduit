@@ -1,0 +1,2 @@
+This inert package exists only for the trusted pre-rename CI controller used by
+pull request #4485. It is not an implementation or supported entrance.

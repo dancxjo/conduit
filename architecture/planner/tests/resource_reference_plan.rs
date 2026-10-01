@@ -26,6 +26,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(RESOURCE_REFERENCE_INFO_ID),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -73,7 +74,8 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
         })
         .into_iter()
         .collect();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("capability/{slug}")),

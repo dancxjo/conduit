@@ -4,9 +4,7 @@ use super::{
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection,
-};
+use conduit_core::{kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection};
 
 pub const TEXT_PRESENTATION_KIND: &str = "presentation/text";
 pub const TEXT_PRESENTATION_VALUE_KIND: &str = "value/text";
@@ -51,30 +49,19 @@ pub fn text_presentation_inputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 
 #[cfg(feature = "form-catalog")]
 pub fn text_presentation_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
-    };
+    use conduit_form::ProfileCatalog;
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(KindProjection {
-            kind_id: kind_id(TEXT_PRESENTATION_KIND),
-            kind_contract_revision: KindIdentity::from(TEXT_PRESENTATION_CONTRACT_REVISION),
-            inputs: text_presentation_inputs(),
-            outputs: Vec::new(),
-            configuration: vec![KindConfigurationField {
-                key: "maximum-values".to_string(),
-                default_value: conduit_core::ConfigurationValue::U64(MAX_TEXT_VALUES),
-                rule: KindConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: MAX_TEXT_VALUES,
-                },
-            }],
-        })
+        .insert_kind(
+            text_presentation_contract()
+                .into_semantic_contract(TEXT_PRESENTATION_CONTRACT_REVISION),
+        )
         .expect("the one-kind text presentation catalog is unique");
     catalog
 }

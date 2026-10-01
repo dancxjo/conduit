@@ -133,7 +133,7 @@ pub fn named_pattern_template_storage_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -164,7 +164,7 @@ pub fn named_pattern_template_initializer_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -218,10 +218,10 @@ pub fn install_template_storage_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(named_pattern_template_storage_definition())
+        .insert_kind(named_pattern_template_storage_semantic_contract())
         .map_err(|error| error.to_string())?;
     profile
-        .insert(named_pattern_template_initializer_definition())
+        .insert_kind(named_pattern_template_initializer_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -332,6 +332,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 

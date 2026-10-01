@@ -1,4 +1,4 @@
-//! Exact bounded PCM conversion between the initialized Piper and ALSA profiles.
+//! Exact bounded PCM conversion between admitted speech and audio profiles.
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
@@ -62,7 +62,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PcmProfileConversionBack {
             if self.pending.is_some() || self.closed {
                 return step_failure(FailureCode::InvalidLifecycle, 3);
             }
-            let Ok(input) = BoundedValueRef::new(value, conduit_std_offers::PIPER_PCM_BLOCK_BYTES)
+            let Ok(input) = BoundedValueRef::new(value, conduit_std_offers::SPEECH_PCM_BLOCK_BYTES)
             else {
                 return step_failure(FailureCode::InvalidInput, 1);
             };
@@ -122,7 +122,7 @@ impl PcmProfileConversionHost {
         if header.representation != PcmSampleRepresentation::Signed16LittleEndian
             || header.sample_rate_hz != SOURCE_RATE as u32
             || header.layout != PcmChannelLayout::Mono
-            || header.frame_count > conduit_std_offers::PIPER_FRAMES_PER_BLOCK
+            || header.frame_count > conduit_std_offers::SPEECH_FRAMES_PER_BLOCK
             || header.discontinuity
             || header.start_frame != self.source_frames
             || self
@@ -208,9 +208,9 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
     Ok(BackBudget {
         value_items: 2,
-        value_bytes: conduit_std_offers::PIPER_PCM_BLOCK_BYTES
+        value_bytes: conduit_std_offers::SPEECH_PCM_BLOCK_BYTES
             + conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
-        host_requests: usize::from(conduit_std_offers::PIPER_MAXIMUM_BLOCKS),
+        host_requests: usize::from(conduit_std_offers::SPEECH_MAXIMUM_BLOCKS),
         sign_items: 64,
         maximum_value_bytes: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
     })

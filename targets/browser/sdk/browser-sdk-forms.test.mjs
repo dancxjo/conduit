@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BrowserForm, birthBrowserBody, reviewBrowserForms } from "./browser-sdk-forms.mjs";
+import { BrowserForm, birthBrowserBody, recoverBrowserBody, reviewBrowserForms } from "./browser-sdk-forms.mjs";
 import { InvalidLifecycleError } from "./browser-sdk.mjs";
 
 const source = 'clock { tick: presentation/tick }.';
@@ -12,7 +12,7 @@ const form = {
   required_kinds: ["presentation/tick"],
 };
 const bodySnapshot = (revision) => ({ schema: "conduit.workspace/body@1", evidence: {
-  schema: "conduit.body/biography-evidence@2", body_id: "body/1", body: { workload_revision: revision },
+  schema: "conduit.body/biography-evidence@2", body_id: "body/1", body: { workload_revision: revision, workset: { forms: [{ source_document_id: "sha256:source", checked_form_id: "sha256:checked" }] } },
   membership: { revision: 0 }, records: [], wakes: [],
 }, current_host_offers: [] });
 
@@ -39,6 +39,35 @@ test("invalid source returns canonical diagnostics and parser spans without pros
   assert.equal(checked.ok, false);
   assert.equal(checked.refusal.code, "FormSyntaxInvalid");
   assert.deepEqual(checked.diagnostics[0], diagnostic);
+});
+
+test("Form Patchbay exposes immutable Rust-checked Front constraints without creating a Body", () => {
+  const calls = [];
+  const form = new BrowserForm(source, { projectPatchbay(input, sequence) {
+    calls.push({ input, sequence });
+    return { status: 0, outputJson: {
+      schema: "conduit.patchbay/checked-form-projection@1",
+      source_document_id: "sha256:source",
+      checked_form_id: "sha256:checked",
+      visible_expanded_form_id: "sha256:expanded",
+      realization_expanded_form_id: "sha256:expanded",
+      source_proposal_id: "proposal/1",
+      sequence: Number(sequence), form_name: "clock", realization: "direct",
+      front_inputs: [{ port_id: "code", info_kind: "value/text", temporal: "value", value_contract: {
+        value_kind: "value/text", maximum_bytes: 8,
+        constraints: [{ CanonicalMembership: { members: [[65, 66, 49, 50]] } }],
+      } }],
+      front_outputs: [], gears: [], cords: [], realization_gears: [], realization_cords: [],
+      realization_backs: [], diagnostics: [],
+    } };
+  } });
+
+  const first = form.patchbay();
+  const second = form.patchbay();
+  assert.deepEqual(calls, [{ input: source, sequence: 1n }, { input: source, sequence: 2n }]);
+  assert.equal(first.front_inputs[0].value_contract.maximum_bytes, 8);
+  assert.equal(second.sequence, 2);
+  assert.equal(Object.isFrozen(first.front_inputs[0].value_contract.constraints[0]), true);
 });
 
 test("Host workload review returns bounded realization requirements without creating a Plan or acquiring resources", async () => {
@@ -83,6 +112,55 @@ test("workset changes send canonical checked identity and exact observed workloa
   assert.equal(change.source, source);
 });
 
+test("Body Patchbay uses the Rust projection and binds it to exact Body and Boot truth", async () => {
+  const snapshot = bodySnapshot(0);
+  let projectedSource;
+  let projectedSequence;
+  const bridge = {
+    crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+    crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    crecheAttachHere: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    workspaceRequest: () => ({ status: 0, outputJson: snapshot }),
+    projectPatchbay(input, sequence) {
+      projectedSource = input;
+      projectedSequence = sequence;
+      return { status: 0, outputJson: {
+        schema: "conduit.patchbay/checked-form-projection@1",
+        sequence: Number(sequence),
+        source_document_id: "sha256:source",
+        checked_form_id: "sha256:checked",
+        visible_expanded_form_id: "sha256:expanded",
+        realization_expanded_form_id: "sha256:expanded",
+        source_proposal_id: "proposal/1",
+        form_name: "clock",
+        realization: "direct",
+        front_inputs: [{ port_id: "count", info_kind: "value/count", temporal: "value", value_contract: {
+          value_kind: "value/count", maximum_bytes: 8, constraints: [{ UnsignedRange: {
+            minimum: 1, maximum: 4, minimum_endpoint: "Exclusive", maximum_endpoint: "Inclusive",
+          } }],
+        } }],
+        front_outputs: [],
+        gears: [{ gear_id: "clock/tick", kind_id: "presentation/tick", inputs: [], outputs: [] }],
+        cords: [], realization_gears: [], realization_cords: [], realization_backs: [], diagnostics: [],
+      } };
+    },
+  };
+  const checked = { schema: "conduit.browser/checked-form@1", name: "clock", source, documentSource: source, sourceDocumentId: "sha256:source", checkedFormId: "sha256:checked" };
+  const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) }, name: "Clock", forms: [checked], sequence: () => 1 });
+
+  const patchbay = await body.patchbay();
+  assert.equal(projectedSource, source);
+  assert.equal(projectedSequence, 1n);
+  assert.equal(patchbay.bodyId, "body/1");
+  assert.equal(patchbay.hostId, "host/1");
+  assert.equal(patchbay.bootId, "boot/1");
+  assert.equal(patchbay.topology.checked_form_id, "sha256:checked");
+  assert.equal(Object.isFrozen(patchbay.topology.gears), true);
+  assert.equal(patchbay.topology.front_inputs[0].value_contract.constraints[0].UnsignedRange.minimum, 1);
+  assert.equal(Object.isFrozen(patchbay.topology.front_inputs), true);
+  assert.equal(Object.isFrozen(patchbay.topology.front_inputs[0].value_contract.constraints), true);
+});
+
 test("workset refusal retains the exact expected revision", async () => {
   const bridge = { workspaceRequest(request) {
     return request.action === "ChangeWorkset"
@@ -97,4 +175,77 @@ test("workset refusal retains the exact expected revision", async () => {
     && error.identities.hostId === "host/1"
     && error.identities.bootId === "boot/1"
     && error.identities.expectedWorkloadRevision === "4");
+});
+
+test("durable birth retains runtime-owned Body truth with its freshly checked source", async () => {
+  const writes = [];
+  const snapshot = bodySnapshot(0);
+  const bridge = {
+    crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+    crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    crecheAttachHere: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    workspaceRequest(request) {
+      if (request.action === "Durable") return { status: 0, outputJson: { ...snapshot, admission: { body_id: "body/1" } } };
+      return { status: 0, outputJson: snapshot };
+    },
+  };
+  const storage = { readJson: async () => null, writeJson: async (key, value) => writes.push({ key, value }) };
+  const checked = { schema: "conduit.browser/checked-form@1", name: "clock", source, documentSource: source, sourceDocumentId: "sha256:source", checkedFormId: "sha256:checked" };
+  const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) }, storage, name: "Clock", forms: [checked], sequence: () => 1 });
+  assert.equal(body.id, "body/1");
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].key, "body-continuity");
+  assert.equal(writes[0].value.schema, "conduit.browser/body-continuity@1");
+  assert.equal(writes[0].value.source, source);
+  assert.equal(writes[0].value.durable.evidence.body_id, "body/1");
+});
+
+test("recover rechecks retained Forms and restores the same Body under the fresh Boot without a Play", async () => {
+  const requests = [];
+  const snapshot = bodySnapshot(3);
+  const durable = { ...snapshot, admission: { body_id: "body/1" } };
+  const bridge = {
+    crecheReviewedInventory(input) {
+      assert.equal(input, source);
+      return { status: 0, outputJson: { source_document_id: "sha256:source", forms: [form] } };
+    },
+    workspaceRequest(request) {
+      requests.push(request);
+      if (request.action === "Restore") return { status: 0, outputJson: snapshot };
+      if (request.action === "Current") return { status: 0, outputJson: snapshot };
+      if (request.action === "Durable") return { status: 0, outputJson: durable };
+      throw new Error(`unexpected ${request.action}`);
+    },
+  };
+  const writes = [];
+  const storage = {
+    readJson: async () => ({ schema: "conduit.browser/body-continuity@1", source, durable }),
+    writeJson: async (key, value) => writes.push({ key, value }),
+  };
+  const body = await recoverBrowserBody({
+    bridge, host: "host/1", boot: "boot/fresh", membership: { advertisement: () => ({ host_id: "host/1", boot_id: "boot/fresh" }) }, storage,
+  });
+  assert.equal(body.id, "body/1");
+  assert.equal(body.receipt.schema, "conduit.browser/body-recovery@1");
+  assert.equal(body.receipt.boot_id, "boot/fresh");
+  await body.current();
+  assert.equal(requests[0].action, "Restore");
+  assert.equal(requests[0].boot_id, "boot/fresh");
+  assert.equal(requests.some(({ action }) => action === "Arrive"), false);
+  assert.equal(writes[0].value.durable.evidence.body_id, "body/1");
+});
+
+test("birth refuses to overwrite a retained Body that requires recovery", async () => {
+  const storage = { readJson: async () => ({ schema: "conduit.browser/body-continuity@1" }) };
+  await assert.rejects(birthBrowserBody({ bridge: {}, host: "host/1", boot: "boot/2", membership: { advertisement: () => ({}) }, storage, name: "Replacement", forms: [{}], sequence: () => 1 }),
+    (error) => error.code === "RetainedBodyRequiresRecovery" && error.identities.hostId === "host/1");
+});
+
+test("recover refuses retained Form identities that no longer match canonical checking", async () => {
+  const snapshot = bodySnapshot(3);
+  snapshot.evidence.body.workset.forms[0].checked_form_id = "sha256:stale";
+  const bridge = { crecheReviewedInventory: () => ({ status: 0, outputJson: { source_document_id: "sha256:source", forms: [form] } }) };
+  const storage = { readJson: async () => ({ schema: "conduit.browser/body-continuity@1", source, durable: { ...snapshot, admission: { body_id: "body/1" } } }) };
+  await assert.rejects(recoverBrowserBody({ bridge, host: "host/1", boot: "boot/fresh", membership: { advertisement: () => ({}) }, storage }),
+    (error) => error.code === "DurableFormIdentityMismatch" && error.identities.bootId === "boot/fresh");
 });

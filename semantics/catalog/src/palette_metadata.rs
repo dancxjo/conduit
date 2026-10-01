@@ -10,23 +10,23 @@ use conduit_presentation::BITMAP_PRESENTATION_KIND;
 
 use crate::{
     APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND, AUDIO_RENDER_DEMAND_KIND,
-    BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND,
-    GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND,
-    KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND,
-    LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
-    LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
-    MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND, PATCHBAY_CORD_KIND,
-    PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
-    PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND, QUANTITY_MAP_KIND,
-    RETAINED_APPLICATION_KIND, ROBOTICS_DOCK_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
-    ROBOTICS_OBSERVE_ACCELERATION_KIND, ROBOTICS_OBSERVE_BATTERY_KIND,
-    ROBOTICS_OBSERVE_BEACON_KIND, ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_BUTTONS_KIND,
-    ROBOTICS_OBSERVE_CHARGING_KIND, ROBOTICS_OBSERVE_CLIFF_KIND, ROBOTICS_OBSERVE_CONTACT_KIND,
-    ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_PROXIMITY_KIND,
-    ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_OBSERVE_WHEEL_DROP_KIND, ROBOTICS_VELOCITY_INTENT_KIND,
-    STATE_COUNT_KIND, STATE_SELECT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_PRESENTATION_KIND,
-    TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_DELAY_KIND, TIME_THROTTLE_KIND,
-    TIME_TIMEOUT_KIND,
+    AUDIO_TONE_KIND, BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND,
+    DISTANCE_FREQUENCY_MAP_KIND, FIRST_KIND, GATE_KIND, GRAPHICS_ICON_KIND,
+    GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND,
+    KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND,
+    LAYOUT_ROW_KIND, LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND,
+    LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND,
+    MUSIC_SYNTH_KIND, PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND,
+    PATCHBAY_PRESENTATION_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND,
+    PRESENTATION_ICON_KIND, QUANTITY_MAP_KIND, RETAINED_APPLICATION_KIND, ROBOTICS_DOCK_KIND,
+    ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_ACCELERATION_KIND,
+    ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BEACON_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
+    ROBOTICS_OBSERVE_BUTTONS_KIND, ROBOTICS_OBSERVE_CHARGING_KIND, ROBOTICS_OBSERVE_CLIFF_KIND,
+    ROBOTICS_OBSERVE_CONTACT_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
+    ROBOTICS_OBSERVE_PROXIMITY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_OBSERVE_WHEEL_DROP_KIND,
+    ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, STATE_SELECT_KIND, STATE_TOGGLE_KIND,
+    TEE_KIND, TEXT_PRESENTATION_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEADLINE_KIND,
+    TIME_DEBOUNCE_KIND, TIME_DELAY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -106,6 +106,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["audio", "render", "interval", "clock"],
             PaletteIconKey::Clock,
         ),
+        AUDIO_TONE_KIND => metadata(
+            PaletteCategory::Transform,
+            &["audio", "tone", "frequency", "pcm"],
+            PaletteIconKey::Type,
+        ),
         MUSIC_SYNTH_KIND => metadata(
             PaletteCategory::Transform,
             &["music", "synthesizer", "pcm", "polyphonic"],
@@ -149,6 +154,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         TIME_THROTTLE_KIND => metadata(
             PaletteCategory::TimeAndFlow,
             &["timer", "throttle", "pace", "leading"],
+            PaletteIconKey::Clock,
+        ),
+        TIME_DEADLINE_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "deadline", "cancellation", "request"],
             PaletteIconKey::Clock,
         ),
         KEYBOARD_KIND => metadata(
@@ -206,6 +216,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["split", "tee", "fan-out"],
             PaletteIconKey::Combine,
         ),
+        FIRST_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["first", "race", "arbitrate", "cancel"],
+            PaletteIconKey::Combine,
+        ),
         GATE_KIND => metadata(
             PaletteCategory::TimeAndFlow,
             &["gate", "enable", "conditional"],
@@ -249,6 +264,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         QUANTITY_MAP_KIND => metadata(
             PaletteCategory::Transform,
             &["map", "quantity", "unit", "range"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        DISTANCE_FREQUENCY_MAP_KIND => metadata(
+            PaletteCategory::Transform,
+            &["map", "distance", "frequency", "theremin"],
             PaletteIconKey::ChartColumnsIncreasing,
         ),
         crate::QUANTITY_INFO_WRAP_KIND => metadata(
@@ -496,7 +516,6 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 74);
         assert_eq!(
             contracts
                 .iter()

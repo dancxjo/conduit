@@ -153,8 +153,9 @@ that all state is durable.
 
 ## Deadline regions
 
-Finite semantic domain, finite resources, known worst-case operation count,
-WCET on an exact realization, and deadline admission are separate facts. A
+Semantic domain, finite representation and resources, known worst-case
+operation count, WCET on an exact realization, and deadline admission are
+separate facts. An open range may use a fixed-width admitted representation. A
 bounded 16 MiB parser may be valid general computation without fitting a
 50-microsecond control deadline.
 

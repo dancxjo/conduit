@@ -24,17 +24,6 @@ mod execution_region;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5",
-    feature = "hosted-tools"
-))]
-pub mod fabrication;
-#[cfg(any(
-    test,
-    target_arch = "x86_64",
-    feature = "ia32-product",
-    feature = "aarch64-product",
-    feature = "riscv64-product",
-    feature = "loongarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod front_door;
@@ -62,6 +51,17 @@ pub mod keyboard_text_play;
 mod keyboard_text_play_tests;
 pub mod local_rescue;
 pub mod machine;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product",
+    feature = "aarch64-orange-pi-5",
+    feature = "hosted-tools"
+))]
+pub mod make;
 mod native_components;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
@@ -77,7 +77,7 @@ pub mod offer;
     feature = "loongarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
-pub mod offer_fabrication;
+pub mod offer_make;
 #[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod opl2_offer;
 #[cfg(target_arch = "x86_64")]
@@ -141,8 +141,6 @@ mod wss_candidate_support;
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod linear_presenter;
-#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
-pub mod presentation_nucleus;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -152,7 +150,29 @@ pub mod presentation_nucleus;
     feature = "loongarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
-mod presenter_control;
+mod mask_control;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
+mod native_mask_journey;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
+mod native_mask_play;
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
+pub mod presentation_nucleus;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod product_bases;
 #[cfg(any(

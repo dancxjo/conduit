@@ -25,6 +25,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(VALUE_KIND),
         direction,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -115,7 +116,11 @@ form welcome {
 
 fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: definition.configuration.clone(),
+            laws: Vec::new(),
+        },
         startup_parameters: definition
             .configuration
             .iter()
@@ -207,6 +212,29 @@ fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
 
     let planned = &plan.fragments[0].placements;
     assert_eq!(planned.len(), expanded.gears.len());
+    for placement in planned {
+        let authored = expanded
+            .provenance
+            .iter()
+            .find(|entry| entry.gear_id == placement.gear_id.as_str())
+            .unwrap();
+        let retained = placement
+            .source_span
+            .expect("canonical planning retains exact authored provenance");
+        assert_eq!(retained.start, authored.source_span.start as u64);
+        assert_eq!(retained.end, authored.source_span.end as u64);
+        assert_eq!(retained.line, authored.source_span.line as u64);
+        assert_eq!(retained.column, authored.source_span.column as u64);
+        assert_eq!(retained.end_line, authored.source_span.end_line as u64);
+        assert_eq!(retained.end_column, authored.source_span.end_column as u64);
+    }
+    let mut tampered = plan.clone();
+    tampered.fragments[0].placements[0]
+        .source_span
+        .as_mut()
+        .unwrap()
+        .start += 1;
+    assert!(!conduit_core::verify_plan(&tampered));
     assert_eq!(
         planned
             .iter()

@@ -131,7 +131,7 @@ export function prepareCheckedBrowserSpore({ host, checked, selection, imageDige
   if (prepared.browser_configuration_id !== checked.configuration_id
     || prepared.browser_profile_id !== checked.profile_id
     || prepared.browser_configuration_source !== checked.canonical_source) {
-    throw new Error("browser fabrication did not consume the exact reviewed configuration");
+    throw new Error("browser make did not consume the exact reviewed configuration");
   }
   return prepared;
 }

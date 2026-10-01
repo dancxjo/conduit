@@ -3,7 +3,7 @@
 use super::invitation::{PendingBodyJoin, PortableAdmissionReceipt};
 use super::{
     bounded_read, digest, observe_current_runtime, read_installation, restrict_directory,
-    write_json_atomic, Installation, RuntimeStatus, RUNTIME_SCHEMA,
+    write_json_atomic, Installation, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
 };
 use conduit_body::MembershipCredential;
 use conduit_core::HostAdvertisement;
@@ -23,6 +23,23 @@ pub(crate) fn complete_body_join(
     state_dir: &Path,
     authorize_membership: bool,
 ) -> Result<(), String> {
+    let receipt: PortableAdmissionReceipt =
+        serde_json::from_slice(&bounded_read(receipt_path, MAXIMUM_BODY_ADMISSION_BYTES)?)
+            .map_err(|error| format!("Body admission receipt: {error}"))?;
+    complete_body_join_document(receipt.clone(), state_dir, authorize_membership)?;
+    println!(
+        "{}",
+        serde_json::to_string(&receipt)
+            .map_err(|error| format!("encode retained admission receipt: {error}"))?
+    );
+    Ok(())
+}
+
+pub(super) fn complete_body_join_document(
+    receipt: PortableAdmissionReceipt,
+    state_dir: &Path,
+    authorize_membership: bool,
+) -> Result<(), String> {
     if !authorize_membership {
         return Err("retaining admitted body membership requires --authorize-membership".into());
     }
@@ -33,14 +50,11 @@ pub(crate) fn complete_body_join(
     }
     let pending_path = state_dir.join("body/pending-join.json");
     let pending: PendingBodyJoin =
-        serde_json::from_slice(&bounded_read(&pending_path, 256 * 1024)?)
+        serde_json::from_slice(&bounded_read(&pending_path, MAXIMUM_BODY_ADMISSION_BYTES)?)
             .map_err(|error| format!("pending Body join: {error}"))?;
     if pending.schema != "conduit.body/pending-join@1" {
         return Err("pending Body join has an unsupported schema".into());
     }
-    let receipt: PortableAdmissionReceipt =
-        serde_json::from_slice(&bounded_read(receipt_path, 256 * 1024)?)
-            .map_err(|error| format!("Body admission receipt: {error}"))?;
     let request = &pending.request;
     if receipt.schema != "conduit.body/spawn-admission-receipt@1"
         || !receipt.membership_admitted
@@ -60,11 +74,6 @@ pub(crate) fn complete_body_join(
     persist_joined_membership(state_dir, &mut installation, &receipt.credential)?;
     fs::remove_file(&pending_path)
         .map_err(|error| format!("consume pending Body join: {error}"))?;
-    println!(
-        "{}",
-        serde_json::to_string(&receipt)
-            .map_err(|error| format!("encode retained admission receipt: {error}"))?
-    );
     Ok(())
 }
 

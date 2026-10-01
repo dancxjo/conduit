@@ -34,11 +34,11 @@ for artifact in "$release_artifacts"/*; do
   cp "$artifact" "$destination/artifacts/"
 done
 generation=$(node -e 'const fs=require("fs"); const value=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(!Number.isSafeInteger(value.generation)||value.generation<1)process.exit(2); process.stdout.write(String(value.generation));' "$release_artifacts/release-catalog.json")
-cargo xtask host release-catalog --root "$destination/artifacts" --generation "$generation"
+cargo xtask make host release-catalog --root "$destination/artifacts" --generation "$generation"
 for asset in browser-host-calls.mjs browser-audio-cue.mjs browser-pcm-audio.mjs browser-remote-fragment.mjs browser-remote-voice.mjs browser-body-host.mjs browser-body-input.mjs browser-body-continuity.mjs browser-human-input.mjs browser-form-effects.mjs browser-runtime-bridge.mjs browser-application-loader.mjs browser-application-storage.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs application-presentation.mjs application-theme.mjs application-syntax-presentation.mjs device-base.mjs usb-device-base.mjs; do
   cp "targets/browser/host/assets/$asset" "$destination/$asset"
 done
-cp products/creche/names/catalog.mjs "$destination/creche-name-catalog.mjs"
+cp forms/birth/names/catalog.mjs "$destination/creche-name-catalog.mjs"
 cp products/shared/browser/conduit.css "$destination/conduit.css"
 cp "$runtime" "$destination/runtime.wasm"
 if test -n "$initial_body_bundle" || test -n "$workspace_catalog"; then
@@ -49,7 +49,7 @@ if test -n "$initial_body_bundle" || test -n "$workspace_catalog"; then
   cp "$initial_body_bundle" "$destination/forms/initial-body.conduit"
   cp "$workspace_catalog" "$destination/forms/workspace-catalog.json"
 else
-  cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
-  cargo xtask forms bundle-workspace-catalog --output "$destination/forms/workspace-catalog.json"
+  cargo xtask check forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+  cargo xtask check forms bundle-workspace-catalog --output "$destination/forms/workspace-catalog.json"
 fi
 node targets/browser/tools/build-browser-application-package.mjs products/workspace/browser/workspace.application.template.json "$destination" workspace.application.json

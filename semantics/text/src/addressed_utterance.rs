@@ -3,7 +3,10 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
-use crate::MAX_TEXT_BYTES;
+use crate::{
+    AddressConfigurationError, AddressDetection, AddressDetectionRefusal, AddressValueError,
+    MAX_TEXT_BYTES,
+};
 
 pub const MAX_ADDRESS_NAMES: usize = 8;
 pub const MAX_ADDRESS_NAME_BYTES: usize = 64;
@@ -16,38 +19,6 @@ const ADDRESS_DETECTION_SCHEMA: &str = "conduit.text/address-detection-value@1";
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AddressSet {
     names: Vec<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AddressConfigurationError {
-    Empty,
-    TooManyNames,
-    EmptyName,
-    NameTooLarge,
-    InvalidName,
-    DuplicateName,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AddressDetectionError {
-    RecognizedTextTooLarge,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AddressValueError {
-    BoundExceeded,
-    Malformed,
-    NonCanonical,
-    InvalidValue,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AddressDetection {
-    NotAddressed,
-    Addressed {
-        matched_name_index: u8,
-        utterance: String,
-    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -102,9 +73,9 @@ impl AddressSet {
         &self.names
     }
 
-    pub fn detect(&self, recognized: &str) -> Result<AddressDetection, AddressDetectionError> {
+    pub fn detect(&self, recognized: &str) -> Result<AddressDetection, AddressDetectionRefusal> {
         if recognized.len() > MAX_TEXT_BYTES as usize {
-            return Err(AddressDetectionError::RecognizedTextTooLarge);
+            return Err(AddressDetectionRefusal::RecognizedTextTooLarge);
         }
         let candidate = recognized.trim_start();
         for (index, name) in self.names.iter().enumerate() {
@@ -122,10 +93,8 @@ impl AddressSet {
             let utterance = String::from(remainder.trim_start_matches(|character: char| {
                 character.is_whitespace() || matches!(character, ',' | ':' | ';' | '-' | '—')
             }));
-            return Ok(AddressDetection::Addressed {
-                matched_name_index: index as u8,
-                utterance,
-            });
+            return Ok(AddressDetection::addressed(index as u8, utterance)
+                .expect("address detection already checked native bounds"));
         }
         Ok(AddressDetection::NotAddressed)
     }
@@ -155,19 +124,11 @@ pub fn encode_address_detection(
 ) -> Result<Vec<u8>, AddressValueError> {
     let (status, matched_name_index, utterance) = match detection {
         AddressDetection::NotAddressed => ("not-addressed", None, None),
-        AddressDetection::Addressed {
-            matched_name_index,
-            utterance,
-        } if usize::from(*matched_name_index) < MAX_ADDRESS_NAMES
-            && utterance.len() <= MAX_TEXT_BYTES as usize =>
-        {
-            (
-                "addressed",
-                Some(*matched_name_index),
-                Some(utterance.clone()),
-            )
-        }
-        AddressDetection::Addressed { .. } => return Err(AddressValueError::InvalidValue),
+        AddressDetection::Addressed(payload) => (
+            "addressed",
+            Some(*payload.matched_name_index()),
+            Some(payload.utterance().clone()),
+        ),
     };
     encode_bounded(
         &AddressDetectionValue {
@@ -195,10 +156,8 @@ pub fn decode_address_detection(bytes: &[u8]) -> Result<AddressDetection, Addres
             if usize::from(matched_name_index) < MAX_ADDRESS_NAMES
                 && utterance.len() <= MAX_TEXT_BYTES as usize =>
         {
-            Ok(AddressDetection::Addressed {
-                matched_name_index,
-                utterance,
-            })
+            AddressDetection::addressed(matched_name_index, utterance)
+                .map_err(|_| AddressValueError::InvalidValue)
         }
         _ => Err(AddressValueError::InvalidValue),
     }

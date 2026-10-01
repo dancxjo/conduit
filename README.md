@@ -27,7 +27,7 @@ Those choices belong to realization.
 
 > **[See ConduitOS running through the current illustrated journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
 
-**[Try the Tour](https://dancxjo.github.io/conduit/tour/)** ·
+**[Open the body Workspace](https://dancxjo.github.io/conduit/workspace/)** ·
 **[Current status](STATUS.md)** ·
 **[Architecture](docs/conduit-canon.md)** ·
 **[Contributing](CONTRIBUTING.md)**
@@ -791,16 +791,17 @@ You need Git and Rust installed through `rustup`.
 ```sh
 git clone --branch dev https://github.com/dancxjo/conduit.git
 cd conduit
-cargo xtask host std
+cargo xtask make host std
 ```
 
 That builds and runs the local example through the repository development tooling.
 
-For the browser Tour, install Node.js and npm and add the WebAssembly target:
+For the browser SDK and workbench proofs, install Node.js and npm and add the
+WebAssembly target:
 
 ```sh
 rustup target add wasm32-unknown-unknown
-cargo xtask demo tour
+cargo xtask prove journey patchbay --on browser
 ```
 
 To inspect your environment:
@@ -819,11 +820,10 @@ See [Try Conduit](docs/try-conduit.md) for additional examples and [the target g
 
 ## Exploring the system
 
-### Tour
+### Resident forms
 
-Tour teaches Conduit through running examples.
-
-**[Open Tour](https://dancxjo.github.io/conduit/tour/)**
+The body Workspace and ConduitOS expose reviewed forms without a separate
+tutorial application runtime.
 
 ### Patchbay
 
@@ -908,7 +908,7 @@ The repository is organized around the same boundaries:
 | `architecture/` | core identities and contracts, form checking and expansion, planning, and kernel execution |
 | `semantics/` | kinds, info types, and domain meaning |
 | `forms/` | reusable authored compositions |
-| `targets/` | hosts, bases, fabrication, and platform realization |
+| `targets/` | hosts, bases, make, and platform realization |
 | `bodies/` | complete durable body compositions such as Pete |
 | `products/` | user-facing tools and projections such as Patchbay |
 | `proof/` | executable evidence and conformance work |

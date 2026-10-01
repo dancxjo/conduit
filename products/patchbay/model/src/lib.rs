@@ -13,11 +13,9 @@ use conduit_observatory::{
 
 mod body_biography;
 mod body_biography_entrance;
-mod body_plan_projection;
 mod body_planning_session;
 mod body_workload_session;
 mod build_birth;
-mod candidate_form;
 mod control;
 mod conversation_request_evidence;
 mod cross_host_renderer;
@@ -37,22 +35,19 @@ mod debugger_watch_tests;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
-mod evidence_lineage;
 mod execution_disposition_explanation;
-mod experience_inspection;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
 mod form_edits;
 mod front_configuration;
-mod front_controls;
 mod front_door;
 mod front_door_projection;
 mod front_door_session;
 mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
-mod graphical_patchbay;
+mod generated_validation_inspection;
 mod host_adapter;
 mod interaction;
 mod layout;
@@ -66,6 +61,19 @@ mod llm_embodiment_presentation;
 mod llm_presentation;
 mod llm_replan_explanation;
 mod maker_environment;
+mod mask_control;
+#[cfg(test)]
+mod mask_control_tests;
+mod mask_inspection;
+mod mask_plans;
+#[cfg(test)]
+mod mask_plans_tests;
+#[cfg(test)]
+mod mask_product_tests;
+mod mask_topology;
+mod mask_topology_projection;
+#[cfg(test)]
+mod mask_topology_tests;
 mod palette;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
@@ -87,20 +95,11 @@ mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;
 mod presentation_layout;
-mod presenter_control;
-#[cfg(test)]
-mod presenter_control_tests;
-mod presenter_plans;
-#[cfg(test)]
-mod presenter_plans_tests;
-mod presenter_topology;
-mod presenter_topology_projection;
-#[cfg(test)]
-mod presenter_topology_tests;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
-mod recursive_form_projection;
+#[cfg(test)]
+mod recursive_form_projection_tests;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
@@ -130,9 +129,6 @@ pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
 };
-pub use body_plan_projection::{
-    project_body_plan, BodyPlanFormProjection, BodyPlanPlacementProjection, BodyPlanProjection,
-};
 pub use body_planning_session::{
     body_planning_requirements, plan_body_workset_on_host, BodyExecutionClaim,
     BodyExecutionClaimError, BodyExecutionPhase, BodyPlanningHost, BodyPlanningRequirements,
@@ -147,13 +143,12 @@ pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
     PatchbayMode, MAX_BUILD_DOCUMENT_LINES,
 };
-pub use candidate_form::PatchbayCandidateForm;
 pub use conduit_body::WakeLifecycle;
-pub use conduit_presentation::{ApplicationTheme, ThemeColor, CONDUIT_APPLICATION_THEME};
-pub use control::{
-    admit_run, ControlError, ControlReceiptProjection, PatchbayRequestId, PlanDocument,
-    PlayDocument, PlayExecutionProjection,
+pub use conduit_presentation::{
+    ApplicationTheme, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError,
+    MaskWardrobeControlEvidence, ThemeColor, CONDUIT_APPLICATION_THEME,
 };
+pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use conversation_request_evidence::ConversationRequestEvidence;
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
@@ -200,16 +195,13 @@ pub use dormant_readmission_explanation::{
     explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
     MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
-pub use evidence_lineage::{PatchbayEvidenceLineage, PatchbayEvidenceLineageRow};
 pub use execution_disposition_explanation::{
     explain_execution_disposition, ExecutionDispositionExplanation,
 };
-pub use experience_inspection::*;
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
-pub use front_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use front_door::{
     EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
     PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
@@ -221,13 +213,7 @@ pub use gear_realization::{
     GearRealizationAlternative, GearRealizationError, GearRealizationInspection,
     LearnedImplementationSelection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
-pub use graphical_patchbay::{
-    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
-    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
-    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
-    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
-};
-pub use host_adapter::{PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile};
+pub use generated_validation_inspection::project_generated_validation_receipt;
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
     PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
@@ -270,12 +256,31 @@ pub use maker_environment::{
     SimulationProvenance, MAKER_ENVIRONMENT_VERSION, MAX_AUTHORED_LINKS, MAX_AUTHORED_PARTS,
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
+pub use mask_control::*;
+pub use mask_inspection::*;
+pub use mask_plans::*;
+pub use mask_topology::*;
+pub use mask_topology_projection::*;
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
 };
 pub use parts_view::*;
 pub use patchbay_backs::*;
+pub use patchbay_graph::{
+    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
+};
+pub use patchbay_graph::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
+pub use patchbay_graph::{
+    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
+    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
+    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
+    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
+};
+pub use patchbay_workbench_host_contract::{
+    ControlReceiptProjection, PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile,
+    PlayExecutionProjection,
+};
 pub use policy_explanation::{
     PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
     PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
@@ -289,7 +294,7 @@ pub use portable_demo::{portable_demonstration, portable_demonstration_with_part
 pub use portable_demo::{
     portable_demonstration_with_adapter, portable_demonstration_with_parts_and_adapter,
 };
-pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
+pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_navigation::PatchbayNavigationProjection;
 pub use portable_projection::PortableProjectionError;
@@ -298,19 +303,12 @@ pub use presentation_layout::{
     PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
     PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
-pub use presenter_control::*;
-pub use presenter_plans::*;
-pub use presenter_topology::*;
-pub use presenter_topology_projection::*;
 pub use prewake::*;
 pub use readable_body_history::{
     BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,
     BodyHistoryManifestation, BodyHistoryMoment, ReadableArchivedBodyHistory, ReadableBodyHistory,
     ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES,
     MAX_BODY_HISTORY_TITLE_BYTES,
-};
-pub use recursive_form_projection::{
-    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
 };
 pub use recursive_recovery_explanation::{
     explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,

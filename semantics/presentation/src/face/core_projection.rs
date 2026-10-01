@@ -1,6 +1,6 @@
 //! Current execution and operator-action truth for the face core.
 
-use alloc::{format, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 use conduit_body::{Body, BodyState, Wake};
 
 use crate::{
@@ -25,8 +25,7 @@ pub(super) fn append_execution_truth(
         subjects.push(PresentationSubject {
             identity: plan_subject.clone(),
             role: PresentationRole::Plan,
-            label: plan.plan_id.as_str().into(),
-            accessibility_name: format!("Current wake Plan {}", plan.plan_id.as_str()),
+            name: format!("Current wake Plan {}", plan.plan_id.as_str()),
         });
         relationships.push(PresentationRelationship {
             source: body_subject.into(),
@@ -50,8 +49,7 @@ pub(super) fn append_execution_truth(
             subjects.push(PresentationSubject {
                 identity: play_subject.clone(),
                 role: PresentationRole::Play,
-                label: active_play_id.as_str().into(),
-                accessibility_name: format!("Active play {}", active_play_id.as_str()),
+                name: format!("Active play {}", active_play_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: plan_subject,
@@ -188,7 +186,8 @@ fn push_action(
         identity: identity.clone(),
         intent: intent.into(),
         target: target.into(),
-        label: label.into(),
+        name: label.into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability,
     });

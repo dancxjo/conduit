@@ -3,7 +3,9 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserBack;
 use conduit_core::{
-    ConfigurationValue, PlannedGear, StructuredInfoValue, TemporalInstant, TemporalScale,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, ConfigurationValue, ExecutionProfileId,
+    HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue, TemporalInstant,
+    TemporalScale,
 };
 use conduit_data::MeasurementSample;
 use conduit_kernel::{
@@ -22,51 +24,27 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> conduit_core::CapabilityOffer {
-    let definition = conduit_data::measurement_observation_definition();
-    conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::StandardKindContract {
-            kind_id: definition.kind_id,
-            plain_name: "Observe an exact measurement".into(),
-            summary: "Bind one exact quantity to an explicit semantic observation instant.".into(),
-            inputs: definition.inputs,
-            outputs: definition.outputs,
-            configuration: vec![
-                conduit_semantic_catalog::KindConfigurationField {
-                    key: "clock-basis".into(),
-                    default_value: ConfigurationValue::Text("control-occurrence".into()),
-                    rule: conduit_semantic_catalog::KindConfigurationRule::TextBytes {
-                        maximum: conduit_data::MAXIMUM_MEASUREMENT_CLOCK_BASIS_BYTES,
-                    },
-                },
-            ],
-            limits: conduit_core::CapabilityLimits {
-                max_active_instances: 8,
-                max_queue_items: 1,
-                max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            },
-            terminal_behavior: conduit_semantic_catalog::KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
-            hosted_implementation_required: true,
-            browser_manifestation_honest: false,
-            pico_manifestation_honest: false,
-            example: "observe: data/measurement-observation".into(),
+    let contract = conduit_data::measurement_observation_semantic_contract();
+    let kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
+            implementation_id: ImplementationId::from(IMPLEMENTATION),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-observation@1"),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
+                target_kind: Some(kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+                maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        conduit_data::MEASUREMENT_OBSERVATION_REVISION,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: IMPLEMENTATION,
-            execution_profile: IMPLEMENTATION,
-            implementation: IMPLEMENTATION,
-            artifact: "conduit-browser-runtime/measurement-observation@1",
-        },
-        vec![conduit_core::HostCallRequirement {
-            contract_id: HOST_CALL.into(),
-            target_kind: Some(conduit_core::kind_id(conduit_data::MEASUREMENT_OBSERVATION_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
-            maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        }],
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 fn prepare(

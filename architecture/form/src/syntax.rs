@@ -9,9 +9,23 @@ use crate::{CstToken, FormDiagnostic, Span};
 pub struct SyntaxDocument {
     source: String,
     pub tokens: Vec<CstToken>,
+    pub uses: Vec<UseDeclaration>,
+    pub standard_glyphs: bool,
+    pub types: Vec<TypeSyntax>,
+    pub codes: Vec<CodeSyntax>,
     pub forms: Vec<FormSyntax>,
     pub constructions: Vec<ConstructionSyntax>,
+    pub packages: Vec<PackageSyntax>,
     pub diagnostics: Vec<FormDiagnostic>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct SyntaxDefinitions {
+    pub types: Vec<TypeSyntax>,
+    pub codes: Vec<CodeSyntax>,
+    pub forms: Vec<FormSyntax>,
+    pub constructions: Vec<ConstructionSyntax>,
+    pub packages: Vec<PackageSyntax>,
 }
 
 impl SyntaxDocument {
@@ -31,21 +45,148 @@ impl SyntaxDocument {
             .map_or(Ok(self.constructions.as_slice()), Err)
     }
 
+    pub fn packages(&self) -> Result<&[PackageSyntax], &FormDiagnostic> {
+        self.diagnostics
+            .first()
+            .map_or(Ok(self.packages.as_slice()), Err)
+    }
+
     pub(crate) fn new(
         source: String,
         tokens: Vec<CstToken>,
-        forms: Vec<FormSyntax>,
-        constructions: Vec<ConstructionSyntax>,
+        uses: Vec<UseDeclaration>,
+        standard_glyphs: bool,
+        definitions: SyntaxDefinitions,
         diagnostics: Vec<FormDiagnostic>,
     ) -> Self {
         Self {
             source,
             tokens,
-            forms,
-            constructions,
+            uses,
+            standard_glyphs,
+            types: definitions.types,
+            codes: definitions.codes,
+            forms: definitions.forms,
+            constructions: definitions.constructions,
+            packages: definitions.packages,
             diagnostics,
         }
     }
+}
+
+/// One named finite code for carrying a nominal semantic Type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeSyntax {
+    pub name: SpannedText,
+    pub value_type: SpannedText,
+    pub storage: CodeStorageSyntax,
+    /// First iota discriminant. Defaults to zero.
+    pub first_discriminant: u8,
+    /// Empty means semantic variant order. Otherwise this is iota order.
+    pub mappings: Vec<CodeMappingSyntax>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CodeStorageSyntax {
+    U8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeMappingSyntax {
+    pub variant: SpannedText,
+    pub span: Span,
+}
+
+/// One authored nominal semantic Type declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeSyntax {
+    pub name: SpannedText,
+    pub definition: TypeDefinitionSyntax,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeDefinitionSyntax {
+    Scalar(TypeExpressionSyntax),
+    Record(Vec<TypeFieldSyntax>),
+    Variant(Vec<TypeVariantCaseSyntax>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeFieldSyntax {
+    pub name: SpannedText,
+    pub value_type: TypeExpressionSyntax,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeVariantCaseSyntax {
+    pub tag: SpannedText,
+    pub payload: TypeVariantPayloadSyntax,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeVariantPayloadSyntax {
+    Unit,
+    Type(TypeExpressionSyntax),
+    Record(Vec<TypeFieldSyntax>),
+}
+
+/// Finite structural representation used inside one nominal Type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeExpressionSyntax {
+    Reference {
+        value_type: SpannedText,
+        maximum_bytes: Option<u64>,
+        refinements: Vec<ValueRefinement>,
+        span: Span,
+    },
+    Optional {
+        value: Box<TypeExpressionSyntax>,
+        span: Span,
+    },
+    DataReference {
+        value: Box<TypeExpressionSyntax>,
+        span: Span,
+    },
+    Sequence {
+        element: Box<TypeExpressionSyntax>,
+        minimum_items: u16,
+        maximum_items: u16,
+        span: Span,
+    },
+}
+
+/// One finite authored `pack.conduit` declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageSyntax {
+    pub path: SpannedText,
+    pub version: SpannedText,
+    pub exports: Vec<SpannedText>,
+    pub requirements: Vec<PackageRequirementSyntax>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageRequirementSyntax {
+    pub path: SpannedText,
+    pub version_requirement: SpannedText,
+    pub span: Span,
+}
+
+/// One explicit source name imported into the document lexical scope.
+///
+/// The authored path and alias disappear during checking. Checked Gears retain
+/// only the exact canonical Kind identity resolved through the supplied source
+/// catalog.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UseDeclaration {
+    pub path: String,
+    pub path_span: Span,
+    pub alias: SpannedText,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +208,11 @@ pub struct FormSyntax {
     pub name: SpannedText,
     pub front: FormFront,
     pub completion: FormCompletionPolicy,
+    /// Lexically private Forms declared in this Form's back.
+    ///
+    /// Checking lowers these to ordinary source Forms with unspellable scoped
+    /// identities before Fore checking and canonical expansion.
+    pub local_forms: Vec<FormSyntax>,
     pub back: Vec<BackStatement>,
     pub span: Span,
 }
@@ -83,10 +229,30 @@ pub enum FormCompletionPolicy {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FormFront {
+    pub type_parameters: Vec<TypeParameter>,
+    pub kind_parameters: Vec<KindParameter>,
     pub startup_parameters: Vec<StartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
     pub shorthand: Option<ShorthandPair>,
     pub span: Option<Span>,
+}
+
+/// One exact compile-time Kind or checked source Form parameter.
+///
+/// The parameter disappears during specialization. Its Fore is a semantic
+/// compatibility constraint, never a runtime callable value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KindParameter {
+    pub name: SpannedText,
+    pub front: FormFront,
+    pub span: Span,
+}
+
+/// One compile-time checked type name. It is never a startup value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeParameter {
+    pub name: SpannedText,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -95,6 +261,7 @@ pub struct StartupParameter {
     pub value_type: SpannedText,
     pub optional: bool,
     pub maximum_bytes: Option<u64>,
+    pub refinements: Vec<ValueRefinement>,
     pub default: Option<Expression>,
     pub span: Span,
 }
@@ -121,7 +288,38 @@ pub struct RuntimePort {
     pub direction: RuntimePortDirection,
     pub temporal: RuntimePortTemporal,
     pub maximum_bytes: Option<u64>,
+    pub refinements: Vec<ValueRefinement>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ValueRefinement {
+    TextPattern {
+        source: SpannedText,
+        case_insensitive: bool,
+        anchored_start: bool,
+        anchored_end: bool,
+        negated: bool,
+        span: Span,
+    },
+    Range {
+        minimum: Option<SpannedText>,
+        maximum: Option<SpannedText>,
+        minimum_endpoint: RefinementIntervalEndpoint,
+        maximum_endpoint: RefinementIntervalEndpoint,
+        span: Span,
+    },
+    Membership {
+        members: Vec<SpannedText>,
+        negated: bool,
+        span: Span,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RefinementIntervalEndpoint {
+    Inclusive,
+    Exclusive,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -164,7 +362,7 @@ pub enum MatchedRoutePattern {
     Guard {
         value_type: SpannedText,
         field: SpannedText,
-        expected: Expression,
+        expected: Box<Expression>,
         span: Span,
     },
     Otherwise(Span),
@@ -220,9 +418,41 @@ pub struct Cord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CordStage {
     Reference(SpannedText),
+    /// A punctuation Gear name awaiting lexical resolution during checking.
+    Glyph(SpannedText),
+    RelationalGlyph {
+        operands: Vec<SpannedText>,
+        glyph: SpannedText,
+        span: Span,
+    },
+    RelationalGear {
+        operands: Vec<SpannedText>,
+        invocation: Invocation,
+        input_ports: Vec<String>,
+        output_port: String,
+        span: Span,
+    },
+    TerminalProjection {
+        endpoint: SpannedText,
+        terminal: TerminalProjection,
+        span: Span,
+    },
+    Cancellation {
+        gear: SpannedText,
+        span: Span,
+    },
+    When(Expression),
     InlineGear(Invocation),
     Literal(Expression),
+    PureExpression(Expression),
     StructuredSelector(StructuredSelectorSyntax),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TerminalProjection {
+    NormalClose,
+    Abnormal,
+    Quiescence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -283,6 +513,33 @@ pub struct Expression {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExpressionSyntax {
     Atomic(SpannedText),
+    Input(Span),
+    Projection {
+        value: Box<ExpressionSyntax>,
+        member: ExpressionProjection,
+        span: Span,
+    },
+    Unary {
+        operator: UnaryOperator,
+        operand: Box<ExpressionSyntax>,
+        span: Span,
+    },
+    Binary {
+        operator: BinaryOperator,
+        left: Box<ExpressionSyntax>,
+        right: Box<ExpressionSyntax>,
+        span: Span,
+    },
+    Conditional {
+        condition: Box<ExpressionSyntax>,
+        when_true: Box<ExpressionSyntax>,
+        when_false: Box<ExpressionSyntax>,
+        span: Span,
+    },
+    Tuple {
+        values: Vec<ExpressionSyntax>,
+        span: Span,
+    },
     Collection {
         values: Vec<ExpressionSyntax>,
         span: Span,
@@ -296,15 +553,61 @@ pub enum ExpressionSyntax {
         payload: Box<ExpressionSyntax>,
         span: Span,
     },
+    SemanticCall {
+        kind: SpannedText,
+        arguments: Vec<ExpressionSyntax>,
+        span: Span,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExpressionProjection {
+    Field(SpannedText),
+    TupleIndex(SpannedText),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOperator {
+    Not,
+    Negate,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOperator {
+    Multiply,
+    Divide,
+    Remainder,
+    Add,
+    Subtract,
+    ShiftLeft,
+    ShiftRight,
+    Less,
+    LessOrEqual,
+    Greater,
+    GreaterOrEqual,
+    Equal,
+    NotEqual,
+    BitAnd,
+    BitXor,
+    BitOr,
+    BooleanAnd,
+    BooleanOr,
 }
 
 impl ExpressionSyntax {
     pub fn span(&self) -> Span {
         match self {
             Self::Atomic(value) => value.span,
-            Self::Collection { span, .. }
+            Self::Input(span) => *span,
+            Self::Projection { span, .. }
+            | Self::Unary { span, .. }
+            | Self::Binary { span, .. }
+            | Self::Conditional { span, .. }
+            | Self::Tuple { span, .. }
+            | Self::Collection { span, .. }
             | Self::Record { span, .. }
-            | Self::Variant { span, .. } => *span,
+            | Self::Variant { span, .. }
+            | Self::SemanticCall { span, .. } => *span,
         }
     }
 }
@@ -313,6 +616,7 @@ impl ExpressionSyntax {
 pub struct StructuredExpressionField {
     pub name: SpannedText,
     pub value: ExpressionSyntax,
+    pub punned: bool,
     pub span: Span,
 }
 

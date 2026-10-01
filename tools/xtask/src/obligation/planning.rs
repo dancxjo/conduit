@@ -134,6 +134,7 @@ fn port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(VALUE_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -152,7 +153,18 @@ fn advertisement() -> HostAdvertisement {
 }
 
 fn source_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: FIELDS
+                .iter()
+                .map(|name| KindConfigurationField {
+                    key: (*name).into(),
+                    default_value: conduit_core::ConfigurationValue::Text(String::new()),
+                    rule: KindConfigurationRule::TextBytes { maximum: 256 },
+                })
+                .collect(),
+            laws: Vec::new(),
+        },
         capability_id: CapabilityId::from("repository-proof-obligation"),
         kind_id: kind_id(SOURCE_KIND),
         kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
@@ -176,7 +188,8 @@ fn source_offer() -> CapabilityOffer {
 }
 
 fn execute_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         capability_id: CapabilityId::from("repository-execute-proof-catalog"),
         kind_id: kind_id(EXECUTE_KIND),
         kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),

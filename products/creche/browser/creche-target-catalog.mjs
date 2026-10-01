@@ -12,12 +12,12 @@ const encoder = new TextEncoder();
 // Finite workflow ceilings shared by the catalog and its existing-computer adapter.
 // The release-ABI conformance test checks advertisement capacity plus join framing.
 export const PHYSICAL_HOST_EVIDENCE_MAXIMA = Object.freeze({
-  maximumOperationEvidenceBytes: 136 * 1024,
-  maximumRetainedEvidenceBytes: 160 * 1024,
+  maximumOperationEvidenceBytes: 200 * 1024,
+  maximumRetainedEvidenceBytes: 224 * 1024,
 });
 
 export const PHYSICAL_HOST_INTENTIONS = Object.freeze([
-  Object.freeze({ id: "fabricate-new", label: "Fabricate new machinery", resultKind: "artifact" }),
+  Object.freeze({ id: "make-new", label: "Make new machinery", resultKind: "artifact" }),
   Object.freeze({ id: "install-existing", label: "Install on an existing computer", resultKind: "installation" }),
   Object.freeze({ id: "attach-running", label: "Attach an already running host", resultKind: "attachment" }),
 ]);
@@ -154,9 +154,9 @@ function requireContribution(contribution, generation) {
     refuse("IncompatibleContribution", "physical Host target contribution identity is missing or outside its finite bound", generation);
   }
   const intentions = requireIntentions(contribution.intentions, generation, target.id);
-  const fabricationStrategies = requireIdentifiedArray(
-    contribution.fabrication_strategies,
-    "fabrication strategy",
+  const makeStrategies = requireIdentifiedArray(
+    contribution.make_strategies,
+    "make strategy",
     MAXIMUM_STRATEGIES_PER_ENTRY,
     generation,
     target.id,
@@ -194,7 +194,7 @@ function requireContribution(contribution, generation) {
       profile_id: target.profile_id,
     }),
     intentions,
-    fabrication_strategies: fabricationStrategies,
+    make_strategies: makeStrategies,
     carriers: Object.freeze(carrierSnapshot),
     bounds: Object.freeze({ ...adapterBounds }),
     expected_join_contract: contribution.expected_join_contract,

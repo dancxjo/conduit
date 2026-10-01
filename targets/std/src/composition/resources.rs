@@ -40,6 +40,13 @@ pub(super) fn offers(
             2,
         ));
     }
+    if composition.data {
+        resources.push(resource_offer(
+            "std/text-data-generations",
+            conduit_std_offers::DATA_TEXT_GENERATION_RESOURCE_CLASS,
+            conduit_std_offers::DATA_TEXT_RESOURCE_BINDING_CAPACITY,
+        ));
+    }
     if composition.external_websocket {
         resources.push(conduit_net::std_external_websocket_family().resource);
     }

@@ -212,13 +212,13 @@ test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
 
-test("target-owned fabrication returns exact attributable bytes through two local strategies", async ({ page }) => {
+test("target-owned make returns exact attributable bytes through two local strategies", async ({ page }) => {
   await page.goto(`${await startEntrance()}creche/`);
   const result = await page.evaluate(async () => {
-    const { createRp2040BrowserFabricationAdapter } = await import(
+    const { createRp2040BrowserMakeAdapter } = await import(
       "/targets/rp2040/browser-deployment/index.mjs"
     );
-    const adapter = createRp2040BrowserFabricationAdapter();
+    const adapter = createRp2040BrowserMakeAdapter();
     const selection = {
       targetId: "conduit-target/rp2040-pico-w@1",
       profileId: "pico-local",
@@ -226,18 +226,18 @@ test("target-owned fabrication returns exact attributable bytes through two loca
       imageId: "conduit-image/pico-w-signal-b7@1",
       manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
     };
-    const packaged = await adapter.fabricate({ strategy: "packaged-exact", selection, configuration: {} });
-    const specialized = await adapter.fabricate({
+    const packaged = await adapter.make({ strategy: "packaged-exact", selection, configuration: {} });
+    const specialized = await adapter.make({
       strategy: "template-specialized",
       selection,
       configuration: { body_label: "field-kit" },
     });
     let unsupported;
-    try { await adapter.fabricate({ strategy: "browser-built", selection, configuration: {} }); }
+    try { await adapter.make({ strategy: "browser-built", selection, configuration: {} }); }
     catch (error) { unsupported = { code: error.code, message: error.message }; }
     let oversized;
     try {
-      await adapter.fabricate({
+      await adapter.make({
         strategy: "template-specialized", selection,
         configuration: { value: "x".repeat(193) },
       });
@@ -250,7 +250,7 @@ test("target-owned fabrication returns exact attributable bytes through two loca
     };
   });
   expect(result.packaged).toMatchObject({
-    schema: "conduit.rp2040/browser-fabrication-result@1",
+    schema: "conduit.rp2040/browser-make-result@1",
     strategy: "packaged-exact",
     bytes: 775168,
     content_id: "sha256:11e92a00aa1e1144faacfd25540426e57dd862b172595ef9197da02daf17ef8e",
@@ -277,10 +277,10 @@ test("one reviewed IMAGE yields distinct directly plantable body-bound UF2 spore
   const result = await page.evaluate(async () => {
     const {
       bindRp2040BodySpore,
-      createRp2040BrowserFabricationAdapter,
+      createRp2040BrowserMakeAdapter,
       readRp2040BodySpore,
     } = await import("/targets/rp2040/browser-deployment/index.mjs");
-    const image = await createRp2040BrowserFabricationAdapter().fabricate({
+    const image = await createRp2040BrowserMakeAdapter().make({
       strategy: "packaged-exact",
       selection: {
         targetId: "conduit-target/rp2040-pico-w@1",

@@ -1,9 +1,10 @@
 //! Portable pulse-observation presentation front.
 
-use alloc::{string::ToString, vec, vec::Vec};
-use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection,
-};
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use conduit_core::KindIdentity;
+use conduit_core::{kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection};
 
 use super::{KindTerminalBehavior, StandardKindContract};
 
@@ -22,6 +23,7 @@ pub fn pulse_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_time::PULSE_OBSERVATION_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: conduit_core::PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),
@@ -36,6 +38,15 @@ pub fn pulse_presentation_contract() -> StandardKindContract {
         pico_manifestation_honest: false,
         example: "light: presentation/pulse".to_string(),
     }
+}
+
+pub fn pulse_presentation_semantic_contract() -> Kind {
+    pulse_presentation_contract().into_semantic_contract(PULSE_PRESENTATION_CONTRACT_REVISION)
+}
+
+pub fn pulse_tone_presentation_semantic_contract() -> Kind {
+    pulse_tone_presentation_contract()
+        .into_semantic_contract(PULSE_TONE_PRESENTATION_CONTRACT_REVISION)
 }
 
 pub fn pulse_tone_presentation_contract() -> StandardKindContract {
@@ -79,11 +90,11 @@ pub fn install_pulse_presentation_catalog(
     for (kind, definition) in [
         (
             PULSE_PRESENTATION_KIND,
-            pulse_presentation_kind_projection(),
+            pulse_presentation_semantic_contract(),
         ),
         (
             PULSE_TONE_PRESENTATION_KIND,
-            pulse_tone_presentation_kind_projection(),
+            pulse_tone_presentation_semantic_contract(),
         ),
     ] {
         startup.insert(KindSignature {
@@ -91,7 +102,7 @@ pub fn install_pulse_presentation_catalog(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(definition)
+            .insert_kind(definition)
             .map_err(|error| error.to_string())?;
     }
     Ok(())

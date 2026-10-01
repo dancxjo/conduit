@@ -33,7 +33,7 @@ fn read_offer() -> CapabilityOffer {
     base_offer(false)
 }
 fn base_offer(publish: bool) -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::resource_snapshot_contract(publish);
+    let contract = conduit_semantic_catalog::resource_snapshot_semantic_contract(publish);
     let kind = contract.kind_id.clone();
     let implementation = if publish { WRITE } else { READ };
     let operation = if publish {
@@ -41,31 +41,29 @@ fn base_offer(publish: bool) -> CapabilityOffer {
     } else {
         READ_OPERATION
     };
-    let mut offer = conduit_semantic_catalog::realization_offer(
+    conduit_core::BackOfferBuilder::new(
         contract,
-        conduit_semantic_catalog::SNAPSHOT_REVISION,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: implementation,
-            execution_profile: "browser/resource-json@1",
-            implementation,
-            artifact: "conduit-browser-runtime/resource-json@1",
+        Back {
+            capability_id: implementation.into(),
+            execution_profile_id: "browser/resource-json@1".into(),
+            implementation_id: implementation.into(),
+            artifact_id: "conduit-browser-runtime/resource-json@1".into(),
+            host_calls: vec![HostCallRequirement {
+                contract_id: operation.into(),
+                target_kind: Some(kind.clone()),
+                maximum_in_flight: 1,
+                maximum_input_bytes: if publish { 4096 } else { 512 },
+                maximum_output_bytes: if publish { 512 } else { 4096 },
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AUTHORITY_CONTRACT.into(),
+                host_call_contract_id: operation.into(),
+                subject_kind: kind,
+            }],
         },
-        vec![HostCallRequirement {
-            contract_id: operation.into(),
-            target_kind: Some(kind.clone()),
-            maximum_in_flight: 1,
-            maximum_input_bytes: if publish { 4096 } else { 512 },
-            maximum_output_bytes: if publish { 512 } else { 4096 },
-        }],
-        Vec::new(),
-        vec![AuthorityRequirement {
-            contract_id: AUTHORITY_CONTRACT.into(),
-            host_call_contract_id: operation.into(),
-            subject_kind: kind,
-        }],
-    );
-    offer.startup_parameters[0].has_default = false;
-    offer
+    )
+    .build()
 }
 
 /// Select one exact local durable generation into the host's planning surface.

@@ -6,7 +6,8 @@ pub fn fragment() -> PlanFragment {
         state_id: StateId::from("retained"),
         gear_id: GearId::from("cell"),
         value_kind: value_kind.clone(),
-        initial_value: vec![7],
+        initial_value: Some(vec![7]),
+        lifetime: StateLifetime::Step,
         retained: None,
         maximum_value_bytes: 1,
         continuation: StateContinuation::ExternallyBounded,
@@ -16,6 +17,7 @@ pub fn fragment() -> PlanFragment {
         value_kind: value_kind.clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     PlanFragment {
         completion_policy: conduit_core::PlanCompletionPolicy::Live,
@@ -28,7 +30,8 @@ pub fn fragment() -> PlanFragment {
         host_id: HostId::from("host"),
         boot_id: BootId::from("boot"),
         offer_generation: OfferGeneration(1),
-        placements: vec![PlannedGear {
+        placements: vec![conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from("placement"),
             gear_id: state.gear_id.clone(),
             kind_id: kind_id("fixture/state"),
@@ -50,6 +53,7 @@ pub fn fragment() -> PlanFragment {
             },
             inputs: vec![port("next", PortDirection::Input)],
             outputs: vec![port("current", PortDirection::Output)],
+            terminal_transductions: Vec::new(),
             host_calls: vec![],
             resources: vec![],
             authority: vec![],
@@ -59,6 +63,7 @@ pub fn fragment() -> PlanFragment {
         execution_fusions: vec![],
         states: vec![state],
         connections: vec![],
+        fore_ports: vec![],
         shared_pools: vec![],
         startup_dependencies: vec![],
         startup_order: vec![PlacementId::from("placement")],

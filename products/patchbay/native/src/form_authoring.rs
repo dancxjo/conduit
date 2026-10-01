@@ -1,9 +1,10 @@
 //! Native dispatch adapter for source-preserving typed Patchbay authoring edits.
 
 use super::PatchbayApplication;
+use patchbay_graph::PatchbaySubjectRef;
 use patchbay_model::{
     PatchbayAction, PatchbayEdit, PatchbayEditBasis, PatchbayInteractionRequest,
-    PatchbayInvocationOutcome, PatchbayRefusal, PatchbaySubjectRef,
+    PatchbayInvocationOutcome, PatchbayRefusal,
 };
 
 impl PatchbayApplication {

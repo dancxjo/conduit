@@ -54,12 +54,15 @@ fn connection() -> PlannedConnection {
         sink_placement_id: conduit_core::PlacementId::from("sink"),
         sink_port_id: PortId::from("in"),
         value_kind: conduit_core::KindId::from("value/test"),
+        resource: None,
+        track: Default::default(),
         temporal: conduit_core::PortTemporal::Value,
         pressure_policy: Default::default(),
         selected_line: Some(line("line-a")),
         admitted_lines: vec![line("line-a"), line("line-b")],
         item_capacity: 1,
         byte_capacity: 64,
+        abnormal_kind: None,
     }
 }
 
@@ -202,6 +205,7 @@ fn unavailable_host_must_be_exactly_sealed_by_the_same_plan() {
             execution_fusions: vec![],
             states: Vec::new(),
             connections: vec![],
+            fore_ports: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],
             startup_order: vec![],

@@ -2,6 +2,17 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkJoinError, NetworkTransport,
+    RecordTranscriptDirection, RecordTranscriptTerminal, RecordTranscriptTerminalFailed,
+    RecordTranscriptTerminalRefused,
+};
+
 #[cfg(feature = "form-catalog")]
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -122,12 +133,14 @@ fn network_join_contract() -> Kind {
             value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: PortId::from("attachment"),
             value_kind: kind_id(NETWORK_ATTACHMENT_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         semantic_laws: Default::default(),
@@ -184,6 +197,7 @@ fn network_credentials_contract() -> Kind {
             value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         semantic_laws: Default::default(),
@@ -232,6 +246,7 @@ fn network_attachment_sign_contract() -> Kind {
             value_kind: kind_id(NETWORK_ATTACHMENT_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![],
         configuration: Default::default(),

@@ -316,24 +316,15 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
-        conduit_presentation::GENERATED_MANIFESTATION_KIND => {
-            let value = serde_json::from_slice::<conduit_presentation::GeneratedManifestation>(
+        conduit_presentation::GENERATED_MANIFESTATION_CANDIDATE_KIND => {
+            serde_json::from_slice::<conduit_presentation::GeneratedManifestationCandidate>(
                 &manifestation.canonical_value,
             )
-            .map_err(|error| format!("decode generated manifestation: {error}"))?;
-            let mut text = String::new();
-            for (index, segment) in value.content.iter().enumerate() {
-                let segment = core::str::from_utf8(&segment.bytes)
-                    .map_err(|_| "generated manifestation content is not UTF-8")?;
-                if index > 0 {
-                    text.push('\n');
-                }
-                text.push_str(segment);
-            }
-            if text.is_empty() {
-                text = format!("Presenter {:?}", value.disposition);
-            }
-            Ok((0, Vec::new(), Some(text)))
+            .map_err(|error| format!("decode generated manifestation candidate: {error}"))?;
+            Err(
+                "generated manifestation candidate requires semantic validation before browser presentation"
+                    .into(),
+            )
         }
         conduit_data::MEASUREMENT_THRESHOLD_PRESENTATION_KIND => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(

@@ -3,9 +3,12 @@ use conduit_core::{
     ObservationKind, Plan, TerminalDisposition,
 };
 use conduit_observatory::{
-    validate_snapshot, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
-    HostReport, LineReport, ObservatorySnapshot, OfferFreshness, OperationalState, PlanLifecycle,
-    PlayConnectionReport, PlayPlacementReport, PlayReport, RetentionReport, SNAPSHOT_SCHEMA,
+    validate_plan_artifact, validate_play_artifact, validate_sign_artifact, validate_snapshot,
+    CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
+    ObservatorySnapshot, OfferFreshness, OperationalState, PlanArtifact, PlanLifecycle,
+    PlayArtifact, PlayConnectionReport, PlayPlacementReport, PlayReport, RetentionReport,
+    SignArtifact, PLAN_ARTIFACT_SCHEMA, PLAY_ARTIFACT_SCHEMA, SIGN_ARTIFACT_SCHEMA,
+    SNAPSHOT_SCHEMA,
 };
 use std::collections::BTreeSet;
 use std::fs;
@@ -265,12 +268,145 @@ pub fn write_report(path: &Path, snapshot: &ObservatorySnapshot) -> Result<(), S
     Ok(())
 }
 
-pub fn read_report(path: &Path) -> Result<ObservatorySnapshot, String> {
-    let encoded = fs::read(path).map_err(|error| error.to_string())?;
-    let snapshot = serde_json::from_slice::<ObservatorySnapshot>(&encoded)
-        .map_err(|error| error.to_string())?;
-    validate_snapshot(&snapshot)?;
-    Ok(snapshot)
+pub fn write_execution_artifacts(
+    directory: &Path,
+    snapshot: &ObservatorySnapshot,
+    active_plays: &[conduit_core::ActivePlayIdentity],
+    sign_identities: &[conduit_core::SignIdentity],
+) -> Result<(), String> {
+    validate_snapshot(snapshot)?;
+    if directory.exists() {
+        return Err(format!(
+            "execution artifact destination already exists: {}",
+            directory.display()
+        ));
+    }
+    let plans = snapshot
+        .plans
+        .iter()
+        .cloned()
+        .map(|plan| PlanArtifact {
+            schema: PLAN_ARTIFACT_SCHEMA.into(),
+            plan,
+        })
+        .collect::<Vec<_>>();
+    for artifact in &plans {
+        validate_plan_artifact(artifact)?;
+    }
+    let plays = active_plays
+        .iter()
+        .map(|identity| {
+            let plan = snapshot
+                .plans
+                .iter()
+                .find(|plan| plan.plan_id == identity.plan_id)
+                .ok_or("retained Play identity lacks its exact Plan")?;
+            let play = snapshot
+                .plays
+                .iter()
+                .find(|play| play.active_play_id == identity.active_play_id)
+                .ok_or("retained Play identity lacks its exact report")?;
+            let artifact = PlayArtifact {
+                schema: PLAY_ARTIFACT_SCHEMA.into(),
+                identity: identity.clone(),
+                plan: plan.clone(),
+                play: play.clone(),
+            };
+            validate_play_artifact(&artifact)?;
+            Ok(artifact)
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let signs = sign_identities
+        .iter()
+        .map(|identity| {
+            let sign = snapshot
+                .observations
+                .iter()
+                .chain(&snapshot.historical_observations)
+                .find(|sign| sign.sign_id == identity.sign_id)
+                .ok_or("retained Sign identity lacks its exact observation")?;
+            let play = identity
+                .active_play_id
+                .as_ref()
+                .map(|active_play_id| {
+                    plays
+                        .iter()
+                        .find(|play| &play.identity.active_play_id == active_play_id)
+                        .cloned()
+                        .ok_or("retained Sign identity lacks its exact Play artifact")
+                })
+                .transpose()?;
+            let plan = if play.is_none() {
+                sign.plan_id
+                    .as_ref()
+                    .map(|plan_id| {
+                        snapshot
+                            .plans
+                            .iter()
+                            .find(|plan| &plan.plan_id == plan_id)
+                            .cloned()
+                            .ok_or("retained Sign identity lacks its exact Plan artifact")
+                    })
+                    .transpose()?
+            } else {
+                None
+            };
+            let artifact = SignArtifact {
+                schema: SIGN_ARTIFACT_SCHEMA.into(),
+                identity: identity.clone(),
+                plan,
+                play,
+                sign: sign.clone(),
+            };
+            validate_sign_artifact(&artifact)?;
+            Ok(artifact)
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    if signs.len()
+        != snapshot
+            .observations
+            .len()
+            .saturating_add(snapshot.historical_observations.len())
+    {
+        return Err("not every retained Sign has an exact standalone identity".into());
+    }
+
+    let temporary = temporary_path(directory);
+    fs::create_dir(&temporary).map_err(|error| error.to_string())?;
+    let result = (|| {
+        for artifact in &plans {
+            write_json_artifact(
+                &temporary.join(format!("plan-{}.json", artifact.plan.plan_id.as_str())),
+                artifact,
+            )?;
+        }
+        for artifact in &plays {
+            write_json_artifact(
+                &temporary.join(format!(
+                    "play-{}.json",
+                    artifact.identity.active_play_id.as_str()
+                )),
+                artifact,
+            )?;
+        }
+        for artifact in &signs {
+            write_json_artifact(
+                &temporary.join(format!("sign-{}.json", artifact.identity.sign_id.as_str())),
+                artifact,
+            )?;
+        }
+        fs::rename(&temporary, directory).map_err(|error| error.to_string())
+    })();
+    if result.is_err() {
+        let _ = fs::remove_dir_all(&temporary);
+    }
+    result
+}
+
+fn write_json_artifact(path: &Path, value: &impl serde::Serialize) -> Result<(), String> {
+    let mut encoded = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
+    encoded.push(b'\n');
+    fs::write(path, encoded).map_err(|error| error.to_string())
 }
 
 fn temporary_path(path: &Path) -> PathBuf {

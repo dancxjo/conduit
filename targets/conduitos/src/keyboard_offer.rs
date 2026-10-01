@@ -154,7 +154,7 @@ pub(crate) fn append_to_advertisement(
             )
         })
         .collect::<Vec<_>>();
-    let contract = conduit_semantic_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_semantic_contract();
     let mut requirements = vec![conduit_core::resource_requirement(
         "conduit.resource/runtime-memory@1",
         4_096,
@@ -171,9 +171,10 @@ pub(crate) fn append_to_advertisement(
         requirements.push(conduit_core::resource_requirement(class, 1));
     }
     requirements.sort();
-    let capability = conduit_core::CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
+    let capability = conduit_core::capability_offer_from_parts! {
+        semantic_contract: contract.semantic_contract(),
+        startup_parameters: contract.startup_parameters.clone(),
+        shorthand: contract.shorthand.clone(),
         capability_id: CapabilityId::from("conduitos/input-keyboard@1"),
         kind_id: contract.kind_id,
         kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),

@@ -12,7 +12,6 @@ pub(super) fn append_routes(
     for route in &presentation.routes {
         let subject = content.subject(
             PresentationRole::Route,
-            route.same_plan.plan.connection_id.as_str(),
             format!(
                 "Route {} under Plan {}",
                 route.same_plan.plan.connection_id.as_str(),
@@ -120,7 +119,6 @@ fn append_line_candidates(
     for candidate in &plan.candidates {
         let subject = content.subject(
             PresentationRole::Cord,
-            candidate.binding_id.as_str(),
             format!(
                 "Route candidate {} in Plan {}",
                 candidate.binding_id.as_str(),

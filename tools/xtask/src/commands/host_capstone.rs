@@ -2,13 +2,15 @@
 
 use conduit_body::{AuthenticatedHostObservation, Body, BodyMembership, MembershipProofId, PartId};
 use conduit_core::{
-    bind_active_play, resource_offer, ArtifactId, BootId, CapabilityId, GearId, HostId,
-    HostProfileId, OfferGeneration, SignId,
+    bind_active_play, resource_offer, ArtifactId, BaseEnforcementClass, BaseImplementationId,
+    BaseInstanceId, BaseLifecycle, BaseProviderEntry, BootId, CapabilityId, GearId, HostBaseId,
+    HostBaseKindId, HostId, HostProfileId, OfferGeneration, SignId,
 };
 use conduit_form::{parse, ProfileCatalog};
-use conduit_host_fabrication::{
-    bind_runtime_offer, build_default_host_image, BoundHostAdvertisement, BuildInputs,
-    FabricationCatalog, HostProfile, RuntimeFacts, RuntimeOfferInputs,
+use conduit_host_make::{
+    bind_runtime_offer, build_default_host_image, check_host_configuration,
+    parse_host_configuration_conduit, BoundHostAdvertisement, BuildInputs, HostProfile,
+    MakeCatalog, RuntimeFacts, RuntimeOfferInputs,
 };
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
@@ -34,14 +36,14 @@ use manifestations::{identity_refusals, manifestation_for, mark_replaced};
 const FORM_SOURCE: &str =
     "form shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 const NATIVE_PROFILE: &str =
-    include_str!("../../../../targets/conduitos/profiles/conduitos-native.profile.json");
+    include_str!("../../../../targets/conduitos/profiles/conduitos-native.host.conduit");
 const BROWSER_PROFILE: &str =
     include_str!("../../../../targets/browser/profiles/browser-page.profile.json");
 const HEADLESS_PROFILE: &str =
-    include_str!("../../../../targets/conduitos/profiles/conduitos-headless.profile.json");
+    include_str!("../../../../targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit");
 
 pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::error::Error>> {
-    let catalog = conduit_workspace_fabrication::catalog();
+    let catalog = conduit_workspace_make::catalog();
     let inputs = BuildInputs {
         source_identity: source_identity.into(),
         toolchain_available: true,
@@ -267,11 +269,22 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
 fn build_profile(
     name: &'static str,
     source: &str,
-    catalog: &FabricationCatalog,
+    catalog: &MakeCatalog,
     inputs: &BuildInputs,
 ) -> Result<BuiltProfile, Box<dyn std::error::Error>> {
-    let profile: HostProfile = serde_json::from_str(source)?;
-    let packages = conduit_workspace_fabrication::package_set();
+    let packages = conduit_workspace_make::package_set();
+    let profile: HostProfile = if source.trim_start().starts_with("host ") {
+        check_host_configuration(
+            parse_host_configuration_conduit(source)
+                .map_err(|error| format!("host source invalid: {error:?}"))?,
+            catalog,
+            &packages,
+        )
+        .map_err(|errors| format!("host source refused: {errors:?}"))?
+        .into_profile()
+    } else {
+        serde_json::from_str(source)?
+    };
     let (image, bytes) =
         build_default_host_image(profile, catalog, &packages, inputs).map_err(debug_error)?;
     Ok(BuiltProfile { name, image, bytes })
@@ -279,22 +292,38 @@ fn build_profile(
 
 fn bind_profile(
     built: &BuiltProfile,
-    catalog: &FabricationCatalog,
+    catalog: &MakeCatalog,
     host: &str,
     boot: &str,
     generation: u64,
     presenter: Option<conduit_core::CapabilityOffer>,
     facts: RuntimeFacts,
 ) -> Result<BoundHostAdvertisement, Box<dyn std::error::Error>> {
-    let candidate_resources = if presenter.is_some() {
-        vec![resource_offer(
-            &format!("{host}/surface"),
-            "presentation/surface",
-            1,
-        )]
-    } else {
-        vec![]
-    };
+    let candidate_bases = presenter
+        .into_iter()
+        .zip(built.image.manifest.base_selections.first())
+        .map(|(presenter, selected)| BaseProviderEntry {
+            base_id: HostBaseId::from(format!("{host}/display/0")),
+            provider_instance_id: BaseInstanceId::from(format!(
+                "{boot}/display/provider/{generation}"
+            )),
+            provider_generation: generation,
+            implementation_id: BaseImplementationId::from(selected.driver.clone()),
+            mechanism_family: HostBaseKindId::from(selected.kind.clone()),
+            enforcement_class: if built.image.manifest.target.starts_with("conduitos/") {
+                BaseEnforcementClass::ConduitOsKernelEnforced
+            } else {
+                BaseEnforcementClass::WasmConfined
+            },
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: vec![presenter],
+            resources: vec![resource_offer(
+                &format!("{host}/surface"),
+                "presentation/surface",
+                1,
+            )],
+        })
+        .collect();
     bind_runtime_offer(
         &built.image.manifest,
         &built.image,
@@ -306,8 +335,8 @@ fn bind_profile(
             offer_generation: OfferGeneration(generation),
             offer_sign_id: SignId::from(format!("{host}/offer/{generation}")),
             host_profile: HostProfileId::from(built.image.manifest.profile_id.clone()),
-            candidate_resources,
-            candidate_capabilities: presenter.into_iter().collect(),
+            candidate_bases,
+            candidate_capabilities: vec![],
             planner_capabilities: vec![],
             facts,
         },
@@ -392,8 +421,7 @@ fn presentation(
         vec![PresentationSubject {
             identity: "front/main".into(),
             role: PresentationRole::Form,
-            label: "Shared front".into(),
-            accessibility_name: "One shared semantic Front".into(),
+            name: "One shared semantic Front".into(),
         }],
         vec![],
         vec![],

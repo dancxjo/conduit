@@ -4,30 +4,13 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::ComputeServiceGuarantee;
 use conduit_data::TensorElement;
 
+use crate::{
+    ModelComputeLifecycle, ModelComputeOperation, ModelComputeRefusal, PortableComputeClass,
+};
+
 pub const MAXIMUM_MODEL_COMPUTE_PROFILES: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_FORMATS: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_DTYPES: usize = 16;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelComputeOperation {
-    Inference,
-    Encode,
-    Decode,
-    Sample,
-    Score,
-    TrainStep,
-    Evaluate,
-    Checkpoint,
-    IntegrateDynamics,
-    RelationQuery,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PortableComputeClass {
-    GeneralCpu,
-    VectorCompute,
-    Accelerator,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ModelCachePolicy {
@@ -111,19 +94,6 @@ pub struct ModelComputeRuntimeIdentity {
     pub precision_profile: String,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelComputeLifecycle {
-    Discovered,
-    Loading,
-    Warming,
-    Ready,
-    Active(ModelComputeOperation),
-    Unloading,
-    Lost,
-    Failed,
-    Shutdown,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelComputeSession {
     offer: ModelComputeOffer,
@@ -133,25 +103,6 @@ pub struct ModelComputeSession {
     loaded_model_bytes: u64,
     queued_items: u16,
     queued_bytes: u64,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelComputeRefusal {
-    InvalidOffer,
-    MissingIdentity,
-    UnsupportedOperation,
-    UnsupportedFormat,
-    UnsupportedElement,
-    UnsupportedShape,
-    UnsupportedComputeClass,
-    UnsupportedSolver,
-    UnsupportedDeterminism,
-    UnsupportedCheckpoint,
-    ResourceBoundExceeded,
-    QueueFull,
-    CancellationUnsupported,
-    InvalidLifecycleTransition,
-    ProviderUnavailable,
 }
 
 impl ModelComputeOffer {

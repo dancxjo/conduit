@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conduit Field Station</title>
+</head>
+<body>
+  <main>
+    <h1>Field Station</h1>
+    <p id="status" aria-live="polite">Preparing the Clock Body…</p>
+    <section id="conduit" aria-label="Clock presentation"></section>
+    <section id="patchbay" aria-label="Clock Patchbay"></section>
+    <dl id="identities" hidden>
+      <dt>Host</dt><dd data-identity="host"></dd>
+      <dt>Boot</dt><dd data-identity="boot"></dd>
+      <dt>Body</dt><dd data-identity="body"></dd>
+      <dt>Wake</dt><dd data-identity="wake"></dd>
+      <dt>Plan</dt><dd data-identity="plan"></dd>
+      <dt>Play</dt><dd data-identity="play"></dd>
+    </dl>
+    <button id="lull" type="button" disabled>Lull Clock Body</button>
+  </main>
+  <script type="module" src="./application.mjs"></script>
+</body>
+</html>

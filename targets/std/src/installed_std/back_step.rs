@@ -1,17 +1,60 @@
 //! Direct finite-Step dispatch for every Back installed in the std profile.
 
 use super::back_kind::InstalledBack;
-use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+use conduit_kernel::scheduler::{
+    AssignedTerminalTransduction, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
 use conduit_kernel::RequestId;
 
 macro_rules! installed_step_dispatch {
     ($( $(#[$attribute:meta])* $variant:ident ),+ $(,)?) => {
         impl<const PORTS: usize> StepBack<PORTS> for InstalledBack {
+            fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
+                match self {
+                    Self::TypedState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    $(
+                        $(#[$attribute])*
+                        Self::$variant(operation) => {
+                            StepBack::<PORTS>::terminal_transductions(operation)
+                        }
+                    )+
+                    Self::Inactive => [None; PORTS],
+                }
+            }
+
+            fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
+                match self {
+                    Self::TypedState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    $(
+                        $(#[$attribute])*
+                        Self::$variant(operation) => {
+                            StepBack::<PORTS>::terminal_transduction(operation)
+                        }
+                    )+
+                    Self::Inactive => None,
+                }
+            }
+
             fn step_committed(&mut self) {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     $(
                         $(#[$attribute])*
@@ -28,8 +71,11 @@ macro_rules! installed_step_dispatch {
             ) -> StepOutcome {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::DurableState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::MidiInput(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     $(
                         $(#[$attribute])*
@@ -42,8 +88,11 @@ macro_rules! installed_step_dispatch {
             fn accepts_input_while_host_call_pending(&self) -> bool {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     $(
                         $(#[$attribute])*
@@ -62,8 +111,11 @@ macro_rules! installed_step_dispatch {
             ) -> bool {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::DurableState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::MidiInput(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     $(
                         $(#[$attribute])*
@@ -76,8 +128,11 @@ macro_rules! installed_step_dispatch {
             fn cancel(&mut self) {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     $(
                         $(#[$attribute])*
@@ -91,6 +146,7 @@ macro_rules! installed_step_dispatch {
 }
 
 installed_step_dispatch!(
+    DistanceFrequency,
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech,
     WhisperSpeech,
@@ -110,6 +166,8 @@ installed_step_dispatch!(
     TimeTimeout,
     TimeDelay,
     TimeThrottle,
+    TimeDeadline,
+    TimeSample,
     Recurrence,
     CalendarProposal,
     CalendarProvider,
@@ -131,7 +189,11 @@ installed_step_dispatch!(
     StateLatestScalar,
     FlowTeeScalar,
     StateSelectScalar,
+    CurrentSample,
+    CombineLatest,
+    FlowZip,
     FlowGateScalar,
+    FlowFirst,
     KeyEventTee,
     InputKeymap,
     InputChords,
@@ -143,6 +205,8 @@ installed_step_dispatch!(
     TimedPattern,
     TimedButtonAttempt,
     TemplateStorage,
+    DataSaveText,
+    DataLoadText,
     LogicCompareScalar,
     LogicNot,
     LogicSelectScalar,
@@ -158,13 +222,21 @@ installed_step_dispatch!(
     RoboticsDrive,
     MusicSynth,
     SpeechSynthesis,
+    SpokenPresentationRequest,
+    GeneratedValidationEnvelope,
+    GeneratedSemanticValidator,
+    RetainGeneratedValidation,
+    SpokenGeneratedSpeech,
+    SpokenArtifact,
+    SpokenArtifactShow,
+    SpokenNoInteraction,
     AudioRenderDemand,
     AudioPlay,
+    AudioTone,
     WavArtifact,
     PcmProfileConversion,
     MidiOutput,
     ExternalWebSocketListener,
-    GenerateText,
     HousePrompt,
     BodyChatPrompt,
     BodyConversationContext,
@@ -188,6 +260,8 @@ installed_step_dispatch!(
     RecordDeliveryStatus,
     RecordTranscript,
     StructuredSelector,
+    PureFilter,
+    PureExpression,
     StructuredLiteral,
     StructuredPresentation,
     #[cfg(test)]
@@ -220,6 +294,24 @@ installed_step_dispatch!(
     TestScalarLiteral,
     #[cfg(test)]
     TestScalarSink,
+    #[cfg(test)]
+    TestFrequencySource,
+    #[cfg(test)]
+    TestDistanceSource,
+    #[cfg(test)]
+    TestTonePcmSink,
+    #[cfg(test)]
+    TestCancellationSource,
+    #[cfg(test)]
+    TestToneTerminalRecovery,
+    #[cfg(test)]
+    TestNormalCloseSink,
+    #[cfg(test)]
+    TestDataTerminalRecovery,
+    #[cfg(test)]
+    TestDataTextSink,
+    #[cfg(test)]
+    TestDataTextSource,
     #[cfg(test)]
     TestGateScript,
     #[cfg(test)]

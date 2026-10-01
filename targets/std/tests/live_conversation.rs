@@ -2,13 +2,12 @@
 
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LineId, LinkBindingId, LinkEndpointId, OfferGeneration, PortTemporal, SignId,
-    PROTOCOL_VERSION,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, Kind, LineId,
+    LinkBindingId, LinkEndpointId, OfferGeneration, PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    KindProjection, ProfileCatalog, StartupCatalog,
+    ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use std::collections::BTreeMap;
@@ -76,7 +75,6 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
     let lower = source.to_ascii_lowercase();
     for forbidden in [
         "whisper",
-        "piper",
         "ollama",
         "alsa",
         "webaudio",
@@ -93,27 +91,12 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
     }
 }
 
-fn synthetic_offer(definition: &KindProjection, host: &str) -> CapabilityOffer {
+fn synthetic_offer(definition: &Kind, host: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
-    CapabilityOffer {
-        startup_parameters: definition
-            .configuration
-            .iter()
-            .map(|field| conduit_core::FrontStartupParameter {
-                name: field.key.clone(),
-                value_type: match field.default_value {
-                    ConfigurationValue::Bool(_) => conduit_core::BOOL_INFO_ID,
-                    ConfigurationValue::I64(_) => conduit_core::SCALAR_INFO_ID,
-                    ConfigurationValue::U64(_) => conduit_core::COUNT_INFO_ID,
-                    ConfigurationValue::Text(_) => conduit_core::TEXT_INFO_ID,
-                    ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                    ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
-                }
-                .into(),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: None,
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: definition.semantic_contract(),
+        startup_parameters: definition.startup_parameters.clone(),
+        shorthand: definition.shorthand.clone(),
         capability_id: CapabilityId::from(format!("proof-{host}-{slug}")),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
@@ -135,7 +118,7 @@ fn synthetic_offer(definition: &KindProjection, host: &str) -> CapabilityOffer {
     }
 }
 
-fn proof_host(name: &str, definitions: &[&KindProjection]) -> HostAdvertisement {
+fn proof_host(name: &str, definitions: &[&Kind]) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("host/live-{name}")),
@@ -187,7 +170,7 @@ fn unchanged_live_conversation_source_plans_across_compatible_hosts() {
         .expanded
         .gears
         .iter()
-        .map(|gear| profile.get(&gear.kind_id).unwrap())
+        .map(|gear| profile.canonical_kind(&gear.kind_id).unwrap())
         .collect::<Vec<_>>();
     let input = proof_host("input", &definitions);
     let response = proof_host("response", &definitions);

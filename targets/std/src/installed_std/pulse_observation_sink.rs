@@ -25,6 +25,7 @@ pub(super) fn offer() -> CapabilityOffer {
     offer.capability_id = CapabilityId::from("conduit-test-pulse-sink");
     offer.implementation.implementation_id = FACTORY.implementation_id.into();
     offer.startup_parameters.clear();
+    offer.semantic_contract = Default::default();
     offer.inputs = core::mem::take(&mut offer.outputs);
     offer.inputs[0].direction = PortDirection::Input;
     offer

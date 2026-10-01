@@ -27,17 +27,17 @@ fn portable_lesson_executes_with_generic_structured_sources() {
     let reference_type = conduit_semantic_catalog::beat_reference_type();
     let feedback_type = conduit_semantic_catalog::timing_feedback_type();
 
-    let performance_offer = installed_std::test_structured_selector::raw_source_offer(
+    let mut performance_offer = installed_std::test_structured_selector::raw_source_offer(
         PERFORMANCE_SOURCE,
         conduit_audio::MUSIC_NOTE_INFO_ID,
     );
-    let reference_offer = installed_std::test_structured_selector::offer_named(
+    let mut reference_offer = installed_std::test_structured_selector::offer_named(
         &reference_type,
         PortDirection::Output,
         REFERENCE_SOURCE,
         FEEDBACK_SINK,
     );
-    let sink_offer = installed_std::test_structured_selector::offer_named(
+    let mut sink_offer = installed_std::test_structured_selector::offer_named(
         &feedback_type,
         PortDirection::Input,
         PERFORMANCE_SOURCE,
@@ -50,23 +50,19 @@ fn portable_lesson_executes_with_generic_structured_sources() {
     conduit_semantic_catalog::install_structured_music_form_catalogs(&mut startup, &mut profile)
         .unwrap();
     for (kind, value) in [(REFERENCE_SOURCE, &reference), (FEEDBACK_SINK, &feedback)] {
-        install_fixture(
-            &mut startup,
-            &mut profile,
-            kind,
-            value,
-            [&performance_offer, &reference_offer, &sink_offer]
-                .into_iter()
-                .find(|offer| offer.kind_id.as_str() == kind)
-                .unwrap(),
-        );
+        let offer = if kind == REFERENCE_SOURCE {
+            &mut reference_offer
+        } else {
+            &mut sink_offer
+        };
+        install_fixture(&mut startup, &mut profile, kind, value, offer);
     }
     install_raw_fixture(
         &mut startup,
         &mut profile,
         PERFORMANCE_SOURCE,
         &performance,
-        &performance_offer,
+        &mut performance_offer,
     );
 
     let source = format!(
@@ -143,7 +139,7 @@ fn install_fixture(
     profile: &mut ProfileCatalog,
     kind: &str,
     value: &StructuredInfoValue,
-    offer: &conduit_core::CapabilityOffer,
+    offer: &mut conduit_core::CapabilityOffer,
 ) {
     let entry = installed_std::test_structured_selector::configuration(value)
         .pop()
@@ -161,6 +157,15 @@ fn install_fixture(
             }],
         })
         .unwrap();
+    installed_std::test_structured_selector::bind_text_configuration(
+        offer,
+        &entry.key,
+        match &entry.value {
+            conduit_core::ConfigurationValue::Text(value) => value.clone(),
+            _ => unreachable!(),
+        },
+        (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+    );
     profile
         .insert(KindProjection {
             kind_id: KindId::from(kind),
@@ -185,7 +190,7 @@ fn install_raw_fixture(
     profile: &mut ProfileCatalog,
     kind: &str,
     value: &[u8],
-    offer: &conduit_core::CapabilityOffer,
+    offer: &mut conduit_core::CapabilityOffer,
 ) {
     let entry = installed_std::test_structured_selector::raw_configuration(value)
         .pop()
@@ -203,6 +208,15 @@ fn install_raw_fixture(
             }],
         })
         .unwrap();
+    installed_std::test_structured_selector::bind_text_configuration(
+        offer,
+        &entry.key,
+        match &entry.value {
+            conduit_core::ConfigurationValue::Text(value) => value.clone(),
+            _ => unreachable!(),
+        },
+        512,
+    );
     profile
         .insert(KindProjection {
             kind_id: KindId::from(kind),

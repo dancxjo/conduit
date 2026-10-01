@@ -211,22 +211,22 @@ impl ProductJourney {
         {
             return Err(JourneyError::WrongTarget);
         }
-        let presenter_control = if self
+        let mask_control = if self
             .forms
             .contains(&Some(native_workset::NativeForm::Patchbay))
         {
-            let control = crate::presenter_control::PresenterControl::graphical(
+            let control = crate::mask_control::MaskControl::graphical(
                 self.host_id.clone(),
                 self.boot_id.clone(),
             )
             .map_err(|_| JourneyError::Kernel)?;
-            let selector = crate::presenter_control::patchbay_selector(prepared.plan())
+            let selector = crate::mask_control::patchbay_selector(prepared.plan())
                 .map_err(|_| JourneyError::Kernel)?;
             let topology = control
                 .topology(selector)
                 .map_err(|_| JourneyError::Kernel)?;
             prepared = prepared
-                .with_presenters(wake, vec![topology])
+                .with_masks(wake, vec![topology])
                 .map_err(JourneyError::Workset)?;
             Some(control)
         } else {
@@ -252,7 +252,7 @@ impl ProductJourney {
         self.loss_sign_id = None;
         self.retained_kernel_sign_gap = None;
         self.application_request = None;
-        self.presenter_control = presenter_control;
+        self.mask_control = mask_control;
         self.planned_play = Some(BodyPlayIdentity::bind(&plan, self.revision));
         self.plan = Some(plan);
         self.input_owners = input_owners;
@@ -280,15 +280,15 @@ impl ProductJourney {
             .ok_or(JourneyError::Kernel)?
             .start()
             .map_err(JourneyError::Play)?;
-        if let Some(control) = self.presenter_control.as_mut() {
+        if let Some(control) = self.mask_control.as_mut() {
             let topology = control
-                .activate(plan, play)
+                .activate(&wake, plan, play)
                 .map_err(|_| JourneyError::Kernel)?;
             self.kernel
                 .as_mut()
                 .ok_or(JourneyError::Kernel)?
-                .set_presenter_topology(&topology)
-                .map_err(JourneyError::Presenter)?;
+                .set_mask_topology(&topology)
+                .map_err(JourneyError::Mask)?;
         }
         self.wake = Some(wake);
         self.play = Some(play.clone());
@@ -298,7 +298,7 @@ impl ProductJourney {
         Ok(())
     }
 
-    pub fn replan_presenters(
+    pub fn replan_masks(
         &mut self,
         request: patchbay_application::PatchbayApplicationRequest,
         identities: &BootIdentities,
@@ -306,7 +306,7 @@ impl ProductJourney {
         build_id: &str,
     ) -> Result<(), JourneyError> {
         let (basis_plan_id, mode) = match request {
-            patchbay_application::PatchbayApplicationRequest::ChangePresenters {
+            patchbay_application::PatchbayApplicationRequest::ChangeMasks {
                 body_plan_id,
                 mode,
             } => (body_plan_id, mode),
@@ -325,29 +325,29 @@ impl ProductJourney {
         wake = wake
             .became_unsatisfied(
                 &current.plan_id,
-                SignId::from(format!("conduitos/presenter/{}/unsatisfied", self.revision)),
+                SignId::from(format!("conduitos/mask/{}/unsatisfied", self.revision)),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
         let mut control = self
-            .presenter_control
+            .mask_control
             .clone()
             .ok_or(JourneyError::InvalidTransition)?;
         control.request(mode).map_err(|_| JourneyError::Kernel)?;
         let mut prepared = native_workset::prepare(&wake, identities, offer, build_id)
             .map_err(JourneyError::Workset)?;
-        let selector = crate::presenter_control::patchbay_selector(prepared.plan())
+        let selector = crate::mask_control::patchbay_selector(prepared.plan())
             .map_err(|_| JourneyError::Kernel)?;
         let topology = control
             .topology(selector)
             .map_err(|_| JourneyError::Kernel)?;
         prepared = prepared
-            .with_presenters(&wake, vec![topology])
+            .with_masks(&wake, vec![topology])
             .map_err(JourneyError::Workset)?;
         let plan = prepared.plan().clone();
         wake = wake
             .body_plan_ready(
                 &plan,
-                SignId::from(format!("conduitos/presenter/{}/planned", self.revision)),
+                SignId::from(format!("conduitos/mask/{}/planned", self.revision)),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
         let play = BodyPlayIdentity::bind(&plan, self.revision);
@@ -355,7 +355,7 @@ impl ProductJourney {
             .body_play_started(
                 &plan,
                 &play,
-                SignId::from(format!("conduitos/presenter/{}/playing", self.revision)),
+                SignId::from(format!("conduitos/mask/{}/playing", self.revision)),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
         let mut kernel = Box::new(
@@ -363,11 +363,11 @@ impl ProductJourney {
         );
         kernel.start().map_err(JourneyError::Play)?;
         let topology = control
-            .activate(&plan, &play)
+            .activate(&wake, &plan, &play)
             .map_err(|_| JourneyError::Kernel)?;
-        if let Err(error) = kernel.set_presenter_topology(&topology) {
+        if let Err(error) = kernel.set_mask_topology(&topology) {
             let _ = kernel.cancel();
-            return Err(JourneyError::Presenter(error));
+            return Err(JourneyError::Mask(error));
         }
         if let Some(prior) = self.kernel.as_mut() {
             if let Err(error) = prior.cancel() {
@@ -381,7 +381,7 @@ impl ProductJourney {
         self.planned_play = Some(play.clone());
         self.play = Some(play);
         self.kernel = Some(kernel);
-        self.presenter_control = Some(control);
+        self.mask_control = Some(control);
         self.application_request = None;
         self.status = JourneyStatus::QuiescentAwaitingInput;
         self.advance()

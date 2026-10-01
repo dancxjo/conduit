@@ -8,17 +8,25 @@ use conduit_core::HostAdvertisement;
 use conduit_core::PlanFragment;
 #[cfg(test)]
 use std::io::Write;
+use std::path::Path;
 
-pub(crate) struct RunLifecycle<'a, 'indicator> {
+pub(crate) struct DurableStateRun<'a> {
+    pub body: &'a conduit_body::BodyId,
+    pub root: &'a Path,
+}
+
+pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub control: &'a super::RunControl,
     pub retained: Option<&'a mut Vec<crate::state_value::RetainedTypedState>>,
     pub indicator: Option<&'indicator mut dyn crate::hosted_indicator::HostedIndicatorAdapter>,
     pub attach_live: bool,
-    pub speech_synthesis: Option<&'a mut crate::hosted_speech::PiperSpeechAdapter>,
     pub speech_recognition: Option<&'a mut crate::hosted_speech_recognition::WhisperSpeechAdapter>,
     pub microphone: Option<&'a mut crate::hosted_microphone::AlsaMicrophoneAdapter>,
     pub wav_artifact: Option<&'a crate::hosted_wav_artifact::WavArtifactSelection>,
     pub vision: Option<&'a mut crate::hosted_vision::FiniteHostedVisionBase>,
+    pub external_fore: Option<crate::host_execution::ExternalForeRun<'external>>,
+    pub spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
+    pub durable_state: Option<DurableStateRun<'a>>,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -57,11 +65,13 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             retained: None,
             indicator: None,
             attach_live: false,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             wav_artifact: None,
             vision: None,
+            external_fore: None,
+            spoken_mask: None,
+            durable_state: None,
         },
     )
     .map(|run| run.report)

@@ -14,9 +14,9 @@ bounded Create operation; the image is no longer a non-executing placeholder.
 Build through the repository entrance:
 
 ```sh
-cargo xtask avr build
+cargo xtask make avr build
 ```
 
-`cargo xtask avr --help` lists release, diagnostic, attended observation, and
+`cargo xtask make avr --help` lists release, diagnostic, attended observation, and
 flash commands with their device and physical prerequisites. Compilation and
 image inspection do not establish execution on the attached robot.

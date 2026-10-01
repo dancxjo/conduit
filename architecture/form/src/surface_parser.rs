@@ -1,23 +1,31 @@
 use crate::prelude::*;
 use crate::surface_lex::{
-    delimiters_are_balanced, is_name, is_operation, is_reference, location, split_declaration,
+    delimiters_are_balanced, is_name, is_reference, is_source_import_path, location,
     split_top_level, split_top_level_token, top_level_positions, top_level_token_positions,
     SourceLine,
 };
 use crate::syntax::{
-    Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
-    FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
-    MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration, RetainedValue, RuntimePort,
-    RuntimePortDirection, RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter,
-    SyntaxDocument,
+    Argument, BackStatement, CodeSyntax, ConstructionRole, ConstructionSyntax, Cord, CordStage,
+    Expression, FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
+    MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration, RetainedValue,
+    RuntimePortDirection, RuntimePortTemporal, SpannedText, SyntaxDefinitions, SyntaxDocument,
+    TypeSyntax, UseDeclaration,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
+    MAXIMUM_USE_DECLARATIONS,
 };
 
+mod code_declaration;
 mod construction;
+pub(crate) mod front;
+mod pack;
 mod shared_pool;
+mod type_declaration;
+use code_declaration::parse_code;
 use construction::parse_construction;
+use front::{canonical_default_bound, parse_finite_bound, parse_port_type};
+use pack::parse_pack;
 use shared_pool::parse_pool_declaration;
 
 pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
@@ -26,7 +34,8 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             String::new(),
             Vec::new(),
             Vec::new(),
-            Vec::new(),
+            true,
+            SyntaxDefinitions::default(),
             vec![diagnostic(
                 FormError::SourceLimitExceeded,
                 crate::whole_source_span(source),
@@ -40,99 +49,58 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
                 source.to_string(),
                 Vec::new(),
                 Vec::new(),
-                Vec::new(),
+                true,
+                SyntaxDefinitions::default(),
                 vec![diagnostic(FormError::TokenLimitExceeded, span)],
             );
         }
     };
     match Parser::new(source).parse_document() {
-        Ok((forms, constructions)) => {
-            SyntaxDocument::new(source.to_string(), tokens, forms, constructions, Vec::new())
-        }
+        Ok(parsed) => SyntaxDocument::new(
+            source.to_string(),
+            tokens,
+            parsed.uses,
+            parsed.standard_glyphs,
+            SyntaxDefinitions {
+                types: parsed.types,
+                codes: parsed.codes,
+                forms: parsed.forms,
+                constructions: parsed.constructions,
+                packages: parsed.packages,
+            },
+            Vec::new(),
+        ),
         Err((error, span)) => SyntaxDocument::new(
             source.to_string(),
             tokens,
             Vec::new(),
-            Vec::new(),
+            true,
+            SyntaxDefinitions::default(),
             vec![diagnostic(error, span)],
         ),
     }
-}
-
-fn parse_port_type(value_type: &str) -> Option<(&str, RuntimePortTemporal)> {
-    let (value_type, temporal) = if let Some(value_type) = value_type
-        .strip_prefix('$')
-        .and_then(|value| value.strip_suffix('?'))
-    {
-        (value_type, RuntimePortTemporal::CurrentOptional)
-    } else if let Some(value_type) = value_type.strip_prefix('$') {
-        (value_type, RuntimePortTemporal::Current)
-    } else if let Some(value_type) = value_type.strip_suffix("...|") {
-        (value_type, RuntimePortTemporal::Flow { closes: true })
-    } else if let Some(value_type) = value_type.strip_suffix("...") {
-        (value_type, RuntimePortTemporal::Flow { closes: false })
-    } else if let Some(value_type) = value_type.strip_suffix('?') {
-        (value_type, RuntimePortTemporal::OptionalValue)
-    } else {
-        (value_type, RuntimePortTemporal::Value)
-    };
-    (!value_type.is_empty()
-        && !value_type.starts_with('$')
-        && !value_type.ends_with("...")
-        && !value_type.ends_with("...|")
-        && !value_type.ends_with('?'))
-    .then_some((value_type, temporal))
-}
-
-fn parse_finite_bound(source: &str) -> Option<u64> {
-    let source = source.trim();
-    let (digits, multiplier) = if let Some(value) = source.strip_suffix("KiB") {
-        (value, 1_024_u64)
-    } else if let Some(value) = source.strip_suffix("MiB") {
-        (value, 1_048_576_u64)
-    } else {
-        (source.strip_suffix('B')?, 1_u64)
-    };
-    digits
-        .trim()
-        .parse::<u64>()
-        .ok()
-        .and_then(|value| value.checked_mul(multiplier))
-        .filter(|value| *value > 0)
-}
-
-fn split_type_bound(value_type: &str) -> Option<(&str, Option<u64>)> {
-    let parts = split_top_level_token(value_type, "<=");
-    match parts.as_slice() {
-        [value_type] => Some((value_type.trim(), None)),
-        [value_type, bound] => Some((value_type.trim(), Some(parse_finite_bound(bound)?))),
-        _ => None,
-    }
-}
-
-fn canonical_default_bound(value_type: &str) -> Option<u64> {
-    match value_type {
-        "Text" => Some(256),
-        "Bytes" => Some(65_536),
-        _ => None,
-    }
-}
-
-fn split_default(text: &str) -> (&str, Option<&str>) {
-    top_level_positions(text, '=')
-        .into_iter()
-        .find(|position| {
-            *position == 0 || !matches!(text.as_bytes()[position - 1], b'<' | b'>' | b'!' | b'=')
-        })
-        .map_or((text, None), |position| {
-            (&text[..position], Some(&text[position + 1..]))
-        })
 }
 
 struct Parser<'a> {
     source: &'a str,
     lines: Vec<SourceLine<'a>>,
     index: usize,
+}
+
+struct ParsedSurface {
+    uses: Vec<UseDeclaration>,
+    standard_glyphs: bool,
+    types: Vec<TypeSyntax>,
+    codes: Vec<CodeSyntax>,
+    forms: Vec<FormSyntax>,
+    constructions: Vec<ConstructionSyntax>,
+    packages: Vec<crate::syntax::PackageSyntax>,
+}
+
+struct ParsedBack {
+    statements: Vec<BackStatement>,
+    local_forms: Vec<FormSyntax>,
+    completion: FormCompletionPolicy,
 }
 
 impl<'a> Parser<'a> {
@@ -154,15 +122,51 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_document(
-        mut self,
-    ) -> Result<(Vec<FormSyntax>, Vec<ConstructionSyntax>), (FormError, Span)> {
+    fn parse_document(mut self) -> Result<ParsedSurface, (FormError, Span)> {
+        let mut uses = Vec::new();
+        let mut standard_glyphs = true;
+        let mut types = Vec::new();
+        let mut codes = Vec::new();
         let mut forms = Vec::new();
         let mut constructions = Vec::new();
+        let mut packages = Vec::new();
         self.skip_empty();
         while self.index < self.lines.len() {
+            let (text, start) = self.lines[self.index].statement();
+            if text == "sans glyphs" {
+                if !standard_glyphs {
+                    return Err((
+                        FormError::InvalidSyntax("duplicate 'sans glyphs' header".into()),
+                        self.line_span(self.lines[self.index]),
+                    ));
+                }
+                standard_glyphs = false;
+                self.index += 1;
+                self.skip_empty();
+                continue;
+            }
+            let Some(import) = text.strip_prefix("with ") else {
+                break;
+            };
+            uses.extend(self.parse_use(import, text, start)?);
+            if uses.len() > MAXIMUM_USE_DECLARATIONS {
+                return Err((
+                    FormError::InvalidSyntax(alloc::format!(
+                        "source exceeds the {MAXIMUM_USE_DECLARATIONS}-import bound"
+                    )),
+                    self.line_span(self.lines[self.index]),
+                ));
+            }
+            self.index += 1;
+            self.skip_empty();
+        }
+        while self.index < self.lines.len() {
             let (text, _) = self.lines[self.index].statement();
-            if text.starts_with("form ") {
+            if text.starts_with("type ") {
+                types.push(self.parse_type_declaration()?);
+            } else if text.starts_with("code ") {
+                codes.push(parse_code(&mut self)?);
+            } else if text.starts_with("form ") {
                 forms.push(self.parse_form()?);
             } else if text.starts_with("host ") {
                 constructions.push(parse_construction(
@@ -176,20 +180,110 @@ impl<'a> Parser<'a> {
                     ConstructionRole::Body,
                     "body",
                 )?);
+            } else if text.starts_with("pack ") {
+                packages.push(parse_pack(&mut self)?);
             } else {
                 return Err((
                     FormError::InvalidSyntax(
-                        "expected 'form NAME', 'host NAME', or 'body NAME' definition".into(),
+                        "expected 'type NAME', 'code ID', 'form NAME', 'host NAME', 'body NAME', or 'pack PATH' definition"
+                            .into(),
                     ),
                     self.line_span(self.lines[self.index]),
                 ));
             }
             self.skip_empty();
         }
-        if forms.is_empty() && constructions.is_empty() {
+        if types.is_empty()
+            && codes.is_empty()
+            && forms.is_empty()
+            && constructions.is_empty()
+            && packages.is_empty()
+        {
             return Err((FormError::IncompleteForm, eof_span(self.source)));
         }
-        Ok((forms, constructions))
+        if !packages.is_empty()
+            && (!types.is_empty()
+                || !codes.is_empty()
+                || !forms.is_empty()
+                || !constructions.is_empty()
+                || !uses.is_empty()
+                || packages.len() != 1)
+        {
+            return Err((
+                FormError::InvalidSyntax(
+                    "pack.conduit contains exactly one pack declaration and no type, code, form, host, body, or with declarations".into(),
+                ),
+                packages[0].span,
+            ));
+        }
+        Ok(ParsedSurface {
+            uses,
+            standard_glyphs,
+            types,
+            codes,
+            forms,
+            constructions,
+            packages,
+        })
+    }
+
+    fn parse_use(
+        &self,
+        import: &str,
+        line: &str,
+        start: usize,
+    ) -> Result<Vec<UseDeclaration>, (FormError, Span)> {
+        let import = import.trim();
+        if import.is_empty() {
+            return Err(self.invalid_statement(line, start));
+        }
+        if let Some(open) = import.find("/{") {
+            let prefix = &import[..open];
+            let members = import[open + 2..].strip_suffix('}').ok_or_else(|| {
+                (
+                    FormError::InvalidSyntax("grouped with requires a final '}'".into()),
+                    self.line_span(self.lines[self.index]),
+                )
+            })?;
+            if !is_source_import_path(prefix) || members.trim().is_empty() {
+                return Err(self.invalid_statement(line, start));
+            }
+            let mut declarations = Vec::new();
+            for member in split_top_level(members, ',') {
+                let member = member.trim();
+                if !is_name(member) {
+                    return Err(self.invalid_statement(line, start));
+                }
+                let path = alloc::format!("{prefix}/{member}");
+                let member_offset = start + line.find(member).unwrap_or(0);
+                declarations.push(UseDeclaration {
+                    path,
+                    path_span: self.span(member_offset, member_offset + member.len()),
+                    alias: self.spanned(member, member_offset),
+                    span: self.line_span(self.lines[self.index]),
+                });
+            }
+            return Ok(declarations);
+        }
+        let (path, alias) = import
+            .split_once(" as ")
+            .map_or((import, None), |(path, alias)| {
+                (path.trim(), Some(alias.trim()))
+            });
+        if !is_source_import_path(path)
+            || alias.is_some_and(|alias| !crate::surface_lex::is_gear_name(alias))
+        {
+            return Err(self.invalid_statement(line, start));
+        }
+        let alias = alias.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path));
+        let path_offset = start + line.find(path).unwrap_or(0);
+        let alias_offset = start + line.rfind(alias).unwrap_or(0);
+        Ok(vec![UseDeclaration {
+            path: path.to_string(),
+            path_span: self.span(path_offset, path_offset + path.len()),
+            alias: self.spanned(alias, alias_offset),
+            span: self.line_span(self.lines[self.index]),
+        }])
     }
 
     fn parse_form(&mut self) -> Result<FormSyntax, (FormError, Span)> {
@@ -231,7 +325,23 @@ impl<'a> Parser<'a> {
             }
             let open = header_start + "form ".len() + boundary;
             self.index += 1;
-            front = self.parse_front(open)?;
+            let (parsed_front, expression_body) = self.parse_front(open)?;
+            front = parsed_front;
+            if let Some(expression) = expression_body {
+                let close = self.lines[self.index - 1];
+                return Ok(FormSyntax {
+                    name,
+                    back: vec![expression_body_cord(
+                        &front,
+                        expression,
+                        self.line_span(close),
+                    )?],
+                    front,
+                    completion: FormCompletionPolicy::Live,
+                    local_forms: Vec::new(),
+                    span: self.span(form_start, close.start + close.text.len()),
+                });
+            }
         } else {
             if !rest[boundary..].trim().starts_with('{') || rest[boundary + 1..].trim() != "" {
                 return Err((
@@ -241,161 +351,25 @@ impl<'a> Parser<'a> {
             }
             self.index += 1;
         }
-        let (back, completion) = self.parse_back()?;
+        let ParsedBack {
+            statements: back,
+            local_forms,
+            completion,
+        } = self.parse_back()?;
         let close = self.lines[self.index - 1];
         Ok(FormSyntax {
             name,
             front,
             completion,
+            local_forms,
             back,
             span: self.span(form_start, close.start + close.text.len()),
         })
     }
 
-    fn parse_front(&mut self, open: usize) -> Result<FormFront, (FormError, Span)> {
-        let mut front = FormFront::default();
-        while self.index < self.lines.len() {
-            let line = self.lines[self.index];
-            let (text, start) = line.statement();
-            if text == ") {" || text == "){" {
-                front.span = Some(self.span(open, start + text.find(')').unwrap() + 1));
-                self.index += 1;
-                return Ok(front);
-            }
-            if text.is_empty() || text.starts_with('#') {
-                self.index += 1;
-                continue;
-            }
-            if text.contains(">>") {
-                self.parse_front_runtime(text, start, &mut front)?;
-            } else if !top_level_positions(text, '>').is_empty() {
-                return Err((
-                    FormError::InvalidSyntax(
-                        "'>' is not a Conduitese cord or fore; use '>>'".into(),
-                    ),
-                    self.span(start, start + text.len()),
-                ));
-            } else {
-                front
-                    .startup_parameters
-                    .push(self.parse_startup(text, start)?);
-            }
-            self.index += 1;
-        }
-        Err((FormError::IncompleteForm, eof_span(self.source)))
-    }
-
-    fn parse_startup(
-        &self,
-        text: &str,
-        start: usize,
-    ) -> Result<StartupParameter, (FormError, Span)> {
-        let (left, default) = split_default(text);
-        let (name, value_type) =
-            split_declaration(left).ok_or_else(|| self.invalid_statement(text, start))?;
-        let span = self.span(start, start + text.len());
-        let (value_type, explicit_bound) =
-            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(text, start))?;
-        let (value_type, temporal) =
-            parse_port_type(value_type).ok_or_else(|| self.invalid_statement(text, start))?;
-        if !matches!(
-            temporal,
-            RuntimePortTemporal::Value | RuntimePortTemporal::OptionalValue
-        ) {
-            return Err(self.invalid_statement(text, start));
-        }
-        Ok(StartupParameter {
-            name: self.spanned_at(name, text, start),
-            value_type: self.spanned_at(value_type, text, start),
-            optional: temporal == RuntimePortTemporal::OptionalValue,
-            maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
-            default: default
-                .map(|value| self.expression_at(value, text, start))
-                .transpose()?,
-            span,
-        })
-    }
-
-    fn parse_front_runtime(
-        &self,
-        text: &str,
-        start: usize,
-        front: &mut FormFront,
-    ) -> Result<(), (FormError, Span)> {
-        let arrows = top_level_token_positions(text, ">>");
-        if arrows.len() != 1 {
-            return Err((
-                FormError::InvalidSyntax("malformed front arrows".into()),
-                self.span(start, start + text.len()),
-            ));
-        }
-        let arrow = arrows[0];
-        let left = text[..arrow].trim();
-        let right = text[arrow + 2..].trim();
-        match (left.is_empty(), right.is_empty()) {
-            (true, false) => front.runtime_ports.push(self.runtime_port(
-                right,
-                text,
-                start,
-                RuntimePortDirection::Input,
-            )?),
-            (false, true) => front.runtime_ports.push(self.runtime_port(
-                left,
-                text,
-                start,
-                RuntimePortDirection::Output,
-            )?),
-            (false, false) => {
-                if front.shorthand.is_some() {
-                    return Err((
-                        FormError::InvalidSyntax("more than one shorthand front pair".into()),
-                        self.span(start, start + text.len()),
-                    ));
-                }
-                let input = self.runtime_port(left, text, start, RuntimePortDirection::Input)?;
-                let output = self.runtime_port(right, text, start, RuntimePortDirection::Output)?;
-                front.shorthand = Some(ShorthandPair {
-                    input_port: input.name.clone(),
-                    output_port: output.name.clone(),
-                    span: self.span(start, start + text.len()),
-                });
-                front.runtime_ports.extend([input, output]);
-            }
-            (true, true) => return Err(self.invalid_statement(text, start)),
-        }
-        Ok(())
-    }
-
-    fn runtime_port(
-        &self,
-        declaration: &str,
-        line: &str,
-        start: usize,
-        direction: RuntimePortDirection,
-    ) -> Result<RuntimePort, (FormError, Span)> {
-        let (name, value_type) =
-            split_declaration(declaration).ok_or_else(|| self.invalid_statement(line, start))?;
-        let (value_type, explicit_bound) =
-            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
-        let (value_type, temporal) =
-            parse_port_type(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
-        Ok(RuntimePort {
-            name: self.spanned_at(name, line, start),
-            value_type: self.spanned_at(value_type, line, start),
-            direction,
-            temporal,
-            maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
-            span: self.span(
-                start + line.find(declaration).unwrap(),
-                start + line.find(declaration).unwrap() + declaration.len(),
-            ),
-        })
-    }
-
-    fn parse_back(
-        &mut self,
-    ) -> Result<(Vec<BackStatement>, FormCompletionPolicy), (FormError, Span)> {
+    fn parse_back(&mut self) -> Result<ParsedBack, (FormError, Span)> {
         let mut statements = Vec::new();
+        let mut local_forms = Vec::new();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
@@ -406,7 +380,11 @@ impl<'a> Parser<'a> {
                     FormCompletionPolicy::Live
                 };
                 self.index += 1;
-                return Ok((statements, completion));
+                return Ok(ParsedBack {
+                    statements,
+                    local_forms,
+                    completion,
+                });
             }
             if text.is_empty() || text.starts_with('#') {
                 self.index += 1;
@@ -433,6 +411,10 @@ impl<'a> Parser<'a> {
                     ),
                     self.span(start, start + text.len()),
                 ));
+            }
+            if text.starts_with("form ") {
+                local_forms.push(self.parse_form()?);
+                continue;
             }
             if let Some(source) = text.strip_suffix(">> ? {").map(str::trim) {
                 statements.push(BackStatement::MatchedRoute(
@@ -549,11 +531,11 @@ impl<'a> Parser<'a> {
                         value_type: self
                             .spanned(value_type, body_offset + body.find(value_type).unwrap()),
                         field: self.spanned(field, body_offset + body.find(field).unwrap()),
-                        expected: Expression {
+                        expected: Box::new(Expression {
                             text: expected.to_string(),
                             syntax,
                             span: self.span(expected_offset, expected_offset + expected.len()),
-                        },
+                        }),
                         span: pattern_span,
                     }
                 } else {
@@ -604,13 +586,34 @@ impl<'a> Parser<'a> {
         if let Some(declaration) = text.strip_prefix("pool ") {
             return parse_pool_declaration(self, declaration, text, start).map(BackStatement::Pool);
         }
-        if !top_level_token_positions(text, ">>").is_empty() {
+        if let Some(cord) = self.parse_unary_glyph_cord(text, start) {
+            return cord.map(BackStatement::Cord);
+        }
+        if has_top_level_cord(text) {
             return self.parse_cord(text, start).map(BackStatement::Cord);
+        }
+        if let Some(equal) = top_level_assignment(text) {
+            let name = text[..equal].trim();
+            let value = text[equal + 1..].trim();
+            if !is_name(name) || value.is_empty() || top_level_assignment(value).is_some() {
+                return Err(self.invalid_statement(text, start));
+            }
+            return Ok(BackStatement::LocalValue(LocalValue {
+                name: self.spanned_at(name, text, start),
+                value: self.expression_at(value, text, start)?,
+                span: self.span(start, start + text.len()),
+            }));
+        }
+        if has_legacy_top_level_cord(text) {
+            return Err((
+                FormError::InvalidSyntax("'>' is not a Conduitese cord; use '>>'".into()),
+                self.span(start, start + text.len()),
+            ));
         }
         if let Some(colon) = top_level_positions(text, ':').first().copied() {
             let name = text[..colon].trim();
             let invoked = text[colon + 1..].trim();
-            if name.is_empty() || invoked.is_empty() {
+            if !crate::surface_lex::is_gear_name(name) || invoked.is_empty() {
                 return Err((
                     FormError::InvalidSyntax("missing Gear Kind after ':'".into()),
                     self.span(start, start + text.len()),
@@ -639,19 +642,39 @@ impl<'a> Parser<'a> {
                 span: self.span(start, start + text.len()),
             }));
         }
-        if let Some(equal) = top_level_positions(text, '=').first().copied() {
-            let name = text[..equal].trim();
-            let value = text[equal + 1..].trim();
-            if !is_name(name) || value.is_empty() {
-                return Err(self.invalid_statement(text, start));
-            }
-            return Ok(BackStatement::LocalValue(LocalValue {
-                name: self.spanned_at(name, text, start),
-                value: self.expression_at(value, text, start)?,
-                span: self.span(start, start + text.len()),
-            }));
-        }
         Err(self.invalid_statement(text, start))
+    }
+
+    /// The fixed unary glyph grammar is `source glyph target`. It is exactly
+    /// sugar for `source >> glyph >> target`; the glyph contributes no
+    /// precedence, fixity, hidden operand, or alternate parsing production.
+    fn parse_unary_glyph_cord(
+        &self,
+        text: &str,
+        start: usize,
+    ) -> Option<Result<Cord, (FormError, Span)>> {
+        let parts = text.split_whitespace().collect::<Vec<_>>();
+        if parts.len() != 3 || !crate::surface_lex::is_glyph(parts[1]) {
+            return None;
+        }
+        if !is_reference(parts[0]) || !is_reference(parts[2]) {
+            return Some(Err(self.invalid_statement(text, start)));
+        }
+        let source_offset = text.find(parts[0]).unwrap_or(0);
+        let glyph_offset = text[source_offset + parts[0].len()..]
+            .find(parts[1])
+            .map_or(0, |offset| source_offset + parts[0].len() + offset);
+        let target_offset = text[glyph_offset + parts[1].len()..]
+            .find(parts[2])
+            .map_or(0, |offset| glyph_offset + parts[1].len() + offset);
+        Some(Ok(Cord {
+            stages: vec![
+                CordStage::Reference(self.spanned(parts[0], start + source_offset)),
+                CordStage::Glyph(self.spanned(parts[1], start + glyph_offset)),
+                CordStage::Reference(self.spanned(parts[2], start + target_offset)),
+            ],
+            span: self.span(start, start + text.len()),
+        }))
     }
 
     fn parse_retained_value(
@@ -746,11 +769,41 @@ impl<'a> Parser<'a> {
             let relative = text[search..].find(part).unwrap() + search;
             let part_start = start + relative;
             search = relative + part.len();
-            if let Some(selector) = crate::structured_selector::parse(self.source, part, part_start)
+            if let Some(expression) = part
+                .strip_prefix("when(")
+                .and_then(|expression| expression.strip_suffix(')'))
+            {
+                let expression_start = part_start + "when(".len();
+                stages.push(CordStage::When(self.expression_at(
+                    expression,
+                    expression,
+                    expression_start,
+                )?));
+            } else if let Some((endpoint, terminal)) = parse_terminal_projection(part) {
+                stages.push(CordStage::TerminalProjection {
+                    endpoint: self.spanned(endpoint, part_start),
+                    terminal,
+                    span: self.span(part_start, part_start + part.len()),
+                });
+            } else if let Some(gear) = part.strip_suffix('~').filter(|gear| is_reference(gear)) {
+                stages.push(CordStage::Cancellation {
+                    gear: self.spanned(gear, part_start),
+                    span: self.span(part_start, part_start + part.len()),
+                });
+            } else if let Some(selector) =
+                crate::structured_selector::parse(self.source, part, part_start)
             {
                 let selector = selector
                     .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
                 stages.push(CordStage::StructuredSelector(selector));
+            } else if part.starts_with('(') && part.ends_with(')') {
+                stages.push(CordStage::PureExpression(
+                    self.expression_at(part, part, part_start)?,
+                ));
+            } else if let Some(relational) = self.parse_relational_glyph(part, part_start)? {
+                stages.push(relational);
+            } else if crate::surface_lex::is_glyph(part) {
+                stages.push(CordStage::Glyph(self.spanned(part, part_start)));
             } else if part.contains('/') || part.contains('(') {
                 stages.push(CordStage::InlineGear(
                     self.parse_invocation(part, part_start)?,
@@ -771,6 +824,52 @@ impl<'a> Parser<'a> {
         Ok(stages)
     }
 
+    fn parse_relational_glyph(
+        &self,
+        text: &str,
+        start: usize,
+    ) -> Result<Option<CordStage>, (FormError, Span)> {
+        let parts = text.split_whitespace().collect::<Vec<_>>();
+        if parts.len() < 3 || parts.len() % 2 == 0 {
+            return Ok(None);
+        }
+        let glyph = parts[1];
+        if !crate::surface_lex::is_glyph(glyph) {
+            return Ok(None);
+        }
+        if parts
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .any(|candidate| *candidate != glyph)
+        {
+            return Err((
+                FormError::InvalidSyntax("mixed adjacent glyphs require explicit grouping".into()),
+                self.span(start, start + text.len()),
+            ));
+        }
+        if parts
+            .iter()
+            .step_by(2)
+            .any(|operand| !is_reference(operand))
+        {
+            return Err(self.invalid_statement(text, start));
+        }
+        let mut search = 0;
+        let mut operands = Vec::new();
+        for operand in parts.iter().step_by(2) {
+            let offset = text[search..].find(operand).unwrap_or(0) + search;
+            operands.push(self.spanned(operand, start + offset));
+            search = offset + operand.len();
+        }
+        let glyph_offset = text.find(glyph).unwrap_or(0);
+        Ok(Some(CordStage::RelationalGlyph {
+            operands,
+            glyph: self.spanned(glyph, start + glyph_offset),
+            span: self.span(start, start + text.len()),
+        }))
+    }
+
     fn parse_invocation(&self, text: &str, start: usize) -> Result<Invocation, (FormError, Span)> {
         if !top_level_positions(text, '{').is_empty() {
             return Err((
@@ -787,7 +886,7 @@ impl<'a> Parser<'a> {
             (text, "", text.len())
         };
         let gear = gear.trim();
-        if gear.is_empty() || !is_operation(gear) {
+        if gear.is_empty() || !crate::surface_lex::is_gear_name(gear) {
             return Err((
                 FormError::InvalidSyntax("invalid gear reference".into()),
                 self.span(start, start + text.len()),
@@ -849,15 +948,11 @@ impl<'a> Parser<'a> {
         start: usize,
     ) -> Result<Expression, (FormError, Span)> {
         let value = value.trim();
-        if value.is_empty()
-            || !delimiters_are_balanced(value)
-            || !top_level_positions(value, '>').is_empty()
-            || !top_level_positions(value, '=').is_empty()
-        {
+        if value.is_empty() || !delimiters_are_balanced(value) {
             return Err(self.invalid_statement(container, start));
         }
         let offset = start + container.find(value).unwrap();
-        let syntax = crate::structured_expression::parse(self.source, value, offset)
+        let syntax = crate::pure_expression::parse(self.source, value, offset)
             .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
         Ok(Expression {
             text: value.to_string(),
@@ -911,4 +1006,75 @@ impl<'a> Parser<'a> {
             end_column,
         }
     }
+}
+
+fn has_top_level_cord(text: &str) -> bool {
+    top_level_token_positions(text, ">>")
+        .into_iter()
+        .any(|position| !text[..position].ends_with('>') && !text[position + 2..].starts_with('>'))
+}
+
+fn expression_body_cord(
+    front: &FormFront,
+    expression: Expression,
+    span: Span,
+) -> Result<BackStatement, (FormError, Span)> {
+    let inputs = front
+        .runtime_ports
+        .iter()
+        .filter(|port| port.direction == RuntimePortDirection::Input)
+        .collect::<Vec<_>>();
+    let outputs = front
+        .runtime_ports
+        .iter()
+        .filter(|port| port.direction == RuntimePortDirection::Output)
+        .collect::<Vec<_>>();
+    if inputs.len() != 1 || outputs.len() != 1 || inputs[0].temporal != outputs[0].temporal {
+        return Err((
+            FormError::InvalidSyntax(
+                "expression-bodied form requires exactly one runtime input and one runtime output with the same temporal contract; write an ordinary explicit Form back"
+                    .into(),
+            ),
+            span,
+        ));
+    }
+    Ok(BackStatement::Cord(Cord {
+        stages: vec![
+            CordStage::Reference(inputs[0].name.clone()),
+            CordStage::PureExpression(expression),
+            CordStage::Reference(outputs[0].name.clone()),
+        ],
+        span,
+    }))
+}
+
+fn has_legacy_top_level_cord(text: &str) -> bool {
+    top_level_positions(text, '>').into_iter().any(|position| {
+        !text[..position]
+            .chars()
+            .next_back()
+            .is_some_and(|character| matches!(character, '>' | '='))
+            && !text[position + 1..].starts_with(['>', '='])
+    })
+}
+
+fn top_level_assignment(text: &str) -> Option<usize> {
+    top_level_positions(text, '=').into_iter().find(|position| {
+        !text[..*position]
+            .chars()
+            .next_back()
+            .is_some_and(|character| matches!(character, '<' | '>' | '!' | '='))
+            && !text[*position + 1..].starts_with('=')
+    })
+}
+
+fn parse_terminal_projection(part: &str) -> Option<(&str, crate::TerminalProjection)> {
+    let (endpoint, terminal) = if let Some(endpoint) = part.strip_suffix('|') {
+        (endpoint, crate::TerminalProjection::NormalClose)
+    } else if let Some(endpoint) = part.strip_suffix(';') {
+        (endpoint, crate::TerminalProjection::Quiescence)
+    } else {
+        (part.strip_suffix('!')?, crate::TerminalProjection::Abnormal)
+    };
+    is_reference(endpoint).then_some((endpoint, terminal))
 }

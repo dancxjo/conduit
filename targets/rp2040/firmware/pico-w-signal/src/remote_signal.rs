@@ -190,6 +190,7 @@ async fn run_remote_signal_sink_for(
                 maximum_frame_bytes: planned.maximum_frame_bytes,
             },
         },
+        abnormal_kind: None,
     }
     .with_observed_boots(
         BootId::from(planned.peer_boot),

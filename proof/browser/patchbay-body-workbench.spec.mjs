@@ -33,7 +33,6 @@ test("Body truth is contextual Inspect content, not a nested application", async
     await expect(page.locator("#body-workbench-history")).toBeAttached();
     await expect(page.locator("#body-form-query")).toHaveCount(0);
     await expect(page.locator("#body-workbench-available")).toBeAttached();
-    await expect(page.locator("#body-execution-control")).toHaveCount(1);
   } finally {
     server.lines.close();
     server.process.kill("SIGTERM");

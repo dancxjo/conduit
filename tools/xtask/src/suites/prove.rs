@@ -41,6 +41,7 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
         "cargo",
         &[
             "xtask",
+            "make",
             "conduitos",
             "emergency-halt-proof",
             "--locked",
@@ -54,7 +55,13 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
         "prove.emergency-control.machine-effect.rescue",
         "Prove recovery remains separate authority and creates an exact fresh Boot",
         "cargo",
-        &["xtask", "conduitos", "rescue-proof", "--locked"],
+        &[
+            "xtask",
+            "make",
+            "conduitos",
+            "rescue-proof",
+            "--locked",
+        ],
         None,
         None,
         Some(ProofClass::FreestandingEmulator),
@@ -222,7 +229,7 @@ pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
 pub const PROVE_LOCAL_MODEL_POOL_STEPS: &[Step] = &[
     Step::typed(
         "prove.local-model-pool.plan-play",
-        "Prove two exact ai/generate-text Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
+        "Prove two exact llm/generate Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
         "cargo",
         &["test", "-p", "conduit-planner", "--test", "local_model_pool"],
         None,
@@ -560,7 +567,7 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
         None,
         None,
         Some(ProofClass::ContractCompile),
-        &["target/debug/conduit"],
+        &["target/debug/conduit", "target/debug/conduit-relay"],
     ),
     Step::typed(
         "prove.std-browser-s4.wasm-build",
@@ -652,7 +659,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         None,
         None,
         Some(ProofClass::ContractCompile),
-        &["target/debug/conduit"],
+        &["target/debug/conduit", "target/debug/conduit-relay"],
     ),
     Step::typed(
         "prove.browser-host.wasm-build",

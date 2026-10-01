@@ -56,7 +56,7 @@ pub fn execute_presentation_source(
     }
     PresentationComposition::icon(
         text_config(placement, super::ICON_KEY)?,
-        text_config(placement, super::ACCESSIBILITY_NAME_KEY)?,
+        text_config(placement, super::NAME_KEY)?,
     )
     .map_err(|error| format!("presentation icon refused: {error:?}"))
 }
@@ -68,11 +68,11 @@ pub fn execute_presentation_transform(
     match placement.kind_id.as_str() {
         super::PRESENTATION_FRAME_KIND => value.frame(
             text_config(placement, super::ROLE_KEY)?,
-            text_config(placement, super::ACCESSIBILITY_NAME_KEY)?,
+            text_config(placement, super::NAME_KEY)?,
         ),
         super::PRESENTATION_BADGE_KIND => value.badge(
             text_config(placement, super::STATE_KEY)?,
-            text_config(placement, super::ACCESSIBILITY_NAME_KEY)?,
+            text_config(placement, super::NAME_KEY)?,
         ),
         _ => return Err("unsupported presentation composition transform".into()),
     }

@@ -1,6 +1,12 @@
 use std::fs;
 use std::path::PathBuf;
 
+fn final_check_job(tail: &str) -> Option<&str> {
+    tail.split_once("\n  browser-tools:\n")
+        .or_else(|| tail.split_once("\n  conduitos-proof-image:\n"))
+        .map(|(job, _)| job)
+}
+
 #[test]
 fn workspace_feedback_does_not_wait_for_emulator_proof() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -32,10 +38,18 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    assert!(
+        !workflow.contains("\n  browser-tools:\n"),
+        "permanently disabled browser-tools job must not return"
+    );
+    assert!(
+        !workflow.contains("\n  browser-host:\n"),
+        "permanently disabled browser-host job must not return"
+    );
     let required_gate = workflow
         .split("\n  check:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  browser-tools:\n").next())
+        .and_then(final_check_job)
         .expect("locate the stable required check job");
 
     let declared_join = required_gate
@@ -48,7 +62,6 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         "local-integration",
         "workspace-check",
         "esp32-firmware",
-        "browser-host",
         "conduitos-limine",
         "conduitos-tools",
         "conduitos-x86",
@@ -62,7 +75,6 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     }
 
     for result in [
-        "BROWSER_HOST_RESULT",
         "LIMINE_RESULT",
         "TOOLS_RESULT",
         "X86_RESULT",
@@ -90,7 +102,7 @@ fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
     let join = workflow
         .split("\n  check:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  browser-tools:\n").next())
+        .and_then(final_check_job)
         .expect("locate final result gate");
     for result in [
         "LIMINE_RESULT",
@@ -113,7 +125,7 @@ fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
 #[test]
 fn required_product_gate_uses_the_standard_runner_pool() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let required_gate = workflow
         .split("\n  products-proof:\n")
@@ -122,12 +134,7 @@ fn required_product_gate_uses_the_standard_runner_pool() {
 
     assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     assert!(required_gate.contains("runs-on: ubuntu-24.04"));
-    for result in [
-        "TOUR_PATCHBAY_RESULT",
-        "STAGE_RESULT",
-        "BROWSER_RESULT",
-        "CARRIER_RESULT",
-    ] {
+    for result in ["STAGE_RESULT", "BROWSER_RESULT", "CARRIER_RESULT"] {
         assert!(
             required_gate.contains(result),
             "product gate does not inspect `{result}`"
@@ -197,7 +204,7 @@ fn full_promotion_suite_builds_and_publishes_classifier_artifacts_for_docs_only_
 #[test]
 fn product_planner_has_no_workspace_cache() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let planner = workflow
         .split("\n  plan:\n")
@@ -210,6 +217,44 @@ fn product_planner_has_no_workspace_cache() {
         !planner.contains("Swatinem/rust-cache"),
         "the dependency-light product planner must not transfer the workspace target cache"
     );
+}
+
+#[test]
+fn browser_runtime_binaries_are_not_recompressed_during_artifact_upload() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
+        .expect("read product workflow");
+    let browser_runtimes = workflow
+        .split("\n  browser-runtimes:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  standalone-locks:\n").next())
+        .expect("locate browser runtime job");
+
+    assert!(browser_runtimes.contains("name: conduit-browser-product-runtimes"));
+    assert!(browser_runtimes.contains("compression-level: 0"));
+}
+
+#[test]
+fn pruned_browser_host_admission_still_carries_its_exact_wasm_runtime() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
+        .expect("read product workflow");
+    let browser_runtimes = workflow
+        .split("\n  browser-runtimes:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  standalone-locks:\n").next())
+        .expect("locate browser runtime job");
+    let browser_stage = workflow
+        .split("\n  browser-admission-stage:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  browser-admission-proof:\n").next())
+        .expect("locate browser admission stage");
+
+    assert!(browser_runtimes.contains("--no-default-features --features protected-line"));
+    assert!(browser_runtimes.contains("browser-host-runtime.wasm"));
+    assert!(browser_stage.contains(
+        "cp target/browser-product-runtimes/browser-host-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm"
+    ));
 }
 
 #[test]
@@ -283,7 +328,7 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
     assert!(registry.contains("environment: \"ubuntu-rust-1.98.1-v1\""));
     assert!(!registry.contains("ubuntu-stable-rust"));
     let host_release = fs::read_to_string(root.join("tools/xtask/src/commands/host_release.rs"))
-        .expect("read Host release fabrication");
+        .expect("read Host release make");
     assert!(
         !host_release.contains("+stable"),
         "Host release must inherit the exact repository toolchain"
@@ -291,7 +336,7 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
 
     let check = fs::read_to_string(workflows.join("check.yml")).expect("read check workflow");
     let products =
-        fs::read_to_string(workflows.join("tour-products.yml")).expect("read product workflow");
+        fs::read_to_string(workflows.join("product-carrier.yml")).expect("read product workflow");
     for workflow in [&check, &products] {
         let setup = workflow
             .find("dtolnay/rust-toolchain@1.98.1")
@@ -325,7 +370,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let check =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
 
     assert!(!check.contains("needs.classify.result != 'success'"));
@@ -356,7 +401,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
 #[test]
 fn product_stage_joins_exact_required_results_after_optional_skips() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let stage = workflow
         .split("\n  products-stage:\n")
@@ -378,10 +423,10 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
     ] {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
-    assert!(stage.contains("cargo +1.98.1 xtask host release-catalog"));
+    assert!(stage.contains("cargo +1.98.1 xtask make host release-catalog"));
     assert!(stage.contains("Build the reviewed Form bundles before release payload assembly"));
-    assert!(stage.contains("cargo +1.98.1 xtask forms bundle-initial-body"));
-    assert!(stage.contains("cargo +1.98.1 xtask forms bundle-workspace-catalog"));
+    assert!(stage.contains("cargo +1.98.1 xtask check forms bundle-initial-body"));
+    assert!(stage.contains("cargo +1.98.1 xtask check forms bundle-workspace-catalog"));
     assert!(stage.contains("target/reviewed-form-bundles/initial-body.conduit"));
     assert!(stage.contains("target/reviewed-form-bundles/workspace-catalog.json"));
     assert!(stage.contains("products/creche/tools/stage-creche-product.sh"));
@@ -398,7 +443,7 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
 #[test]
 fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let export = products
         .split("\n  conduitos-oci-provenance:\n")
@@ -412,61 +457,63 @@ fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
     assert!(export.contains("name: conduit-conduitos-x86_64-oci"));
     assert!(products.contains("target/pages-root/supply-chain/conduitos-x86_64-pc"));
 
-    let deploy = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+    let deploy = fs::read_to_string(root.join(".github/workflows/pages-deploy.yml"))
         .expect("read Pages deployment workflow");
     assert!(deploy.contains("target/pages-site-with-truth/supply-chain/conduitos-x86_64-pc"));
 }
 
 #[test]
-fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
+fn hosted_release_jobs_publish_only_current_host_artifacts() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let releases = workflow
         .split("\n  host-releases:\n")
         .nth(1)
         .and_then(|tail| tail.split("\n  raspberry-pi-release:\n").next())
         .expect("locate host releases job");
-    assert!(
-        workflow.contains("host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true'")
-    );
+    assert!(!workflow.contains("native-host-release"));
     assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
-    assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
-    assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
+    assert!(!releases.contains("conduit-tour"));
     assert!(releases.contains("cargo +1.98.1 xtask setup linux-release"));
-    assert!(releases.contains("rm -rf target/creche-host-releases/home-front-linux-native"));
-    assert!(releases.contains(
-        "xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-front-linux-native"
-    ));
-    assert!(releases.contains(
-        "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-front-windows-native"
-    ));
-    assert!(releases.contains(
-        "conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-front-windows-native"
-    ));
+    assert!(!releases.contains("conduit-home"));
     assert!(releases.contains("name: conduit-existing-computer-releases-${{ matrix.artifact }}"));
 }
 
 #[test]
 fn browser_release_installs_its_exact_wasm_target() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let browser_release = workflow
         .split("\n  browser-release:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  tour-patchbay-proof:\n").next())
+        .and_then(|tail| tail.split("\n  host-releases:\n").next())
         .expect("locate browser release job");
-    assert!(browser_release.contains(
-        "if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'"
-    ));
+    assert!(browser_release.contains("if: needs.plan.outputs.browser_release_required == 'true'"));
     assert!(browser_release.contains("targets: wasm32-unknown-unknown"));
+}
+
+#[test]
+fn browser_development_admission_does_not_make_avr_firmware() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
+        .expect("read product workflow");
+    let avr_release = workflow
+        .split("\n  avr-release:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  browser-release:\n").next())
+        .expect("locate AVR release job");
+
+    assert!(avr_release.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
+    assert!(!avr_release.contains("browser_admission_required"));
+    assert!(avr_release.contains("cargo +1.98.1 xtask make avr release"));
 }
 
 #[test]
 fn product_descendants_use_explicit_direct_result_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let browser = workflow
         .split("\n  browser-proof:\n")
@@ -487,97 +534,48 @@ fn product_descendants_use_explicit_direct_result_admission() {
 }
 
 #[test]
-fn two_fronts_evidence_is_pinned_exact_bounded_and_admitted() {
+fn gallery_only_evidence_is_pinned_to_the_accepted_commit_downstream() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
-    let evidence = workflow
-        .split("\n  journey-evidence:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
-        .expect("locate sibling journey evidence job");
-    let gate = workflow
-        .split("\n  products-proof:\n")
-        .nth(1)
-        .expect("locate stable product gate");
+    let journey = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
+        .expect("read downstream Journey workflow");
 
-    assert!(evidence.contains("mcr.microsoft.com/playwright:v1.62.0-noble"));
-    assert!(evidence.contains(
-        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
-    ));
-    assert!(evidence.contains(
-        "cargo xtask evidence one-form-two-fronts --locked --output \"$RUNNER_TEMP/one-form-two-fronts\""
-    ));
-    assert!(evidence.contains("--root \"$RUNNER_TEMP/one-form-two-fronts\""));
-    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
-    assert!(evidence.contains("--proof journey-one-form-two-fronts"));
-    assert!(evidence.contains("--suite journey-gallery"));
-    assert!(evidence.contains("retention-days: 14"));
-    assert!(gate.contains("JOURNEY_REQUIRED: ${{ needs.plan.outputs.browser_runtime_required }}"));
-    assert!(gate.contains("JOURNEY_RESULT: ${{ needs.journey-evidence.result }}"));
-    assert!(gate.contains("test \"$JOURNEY_RESULT\" = success"));
-}
-
-#[test]
-fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-    let evidence = workflow
-        .split("\n  little-life-evidence:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
-        .expect("locate Little Life evidence job");
-    let gate = workflow
-        .split("\n  products-proof:\n")
-        .nth(1)
-        .expect("locate stable product gate");
-
-    assert!(evidence.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
-    assert!(evidence.contains(
-        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
-    ));
-    assert!(evidence.contains(
-        "cargo xtask evidence little-life --locked --output \"$RUNNER_TEMP/little-life\""
-    ));
-    assert!(evidence.contains("--root \"$RUNNER_TEMP/little-life\""));
-    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
-    assert!(evidence.contains("--proof journey-little-life"));
-    assert!(evidence.contains("--suite journey-gallery"));
-    assert!(evidence.contains("retention-days: 14"));
-    assert!(gate.contains("LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}"));
-    assert!(gate.contains("test \"$LITTLE_LIFE_RESULT\" = success"));
-}
-
-#[test]
-fn sibling_gallery_is_exact_sealed_and_part_of_carrier_admission() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-    let gallery = workflow
-        .split("\n  journey-gallery:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
-        .expect("locate sibling gallery job");
-    let gate = workflow
-        .split("\n  products-proof:\n")
-        .nth(1)
-        .expect("locate stable product gate");
-
-    assert!(gallery.contains("needs: [plan, journey-evidence, little-life-evidence]"));
+    assert!(!products.contains("\n  journey-evidence:\n"));
+    assert!(!products.contains("\n  little-life-evidence:\n"));
+    assert!(!products.contains("JOURNEY_RESULT"));
+    assert!(!products.contains("LITTLE_LIFE_RESULT"));
+    assert!(journey.contains("CONDUIT_CHECKOUT_SHA: ${{ steps.context.outputs.source_commit }}"));
+    assert!(journey.contains("cargo xtask prove one-form-two-fronts --locked"));
+    assert!(journey.contains("--proof journey-one-form-two-fronts --suite journey-gallery"));
+    assert!(journey.contains("cargo xtask prove little-life --locked"));
+    assert!(journey.contains("--proof journey-little-life --suite journey-gallery"));
     assert!(
-        gallery.contains("conduit-journey-one-form-two-fronts-${{ env.CONDUIT_CANDIDATE_SHA }}")
+        journey
+            .matches("--commit \"$CONDUIT_CHECKOUT_SHA\"")
+            .count()
+            >= 2
     );
-    assert!(gallery.contains("conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+}
+
+#[test]
+fn sibling_gallery_is_rendered_only_after_release_admission() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
+        .expect("read product workflow");
+    let gallery = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
+        .expect("read downstream Journey workflow");
+
+    assert!(!products.contains("\n  journey-gallery:\n"));
+    assert!(!products.contains("JOURNEY_GALLERY_RESULT"));
+    assert!(gallery.contains("cargo xtask prove one-form-two-fronts --locked"));
+    assert!(gallery.contains("cargo xtask prove little-life --locked"));
     assert!(gallery.contains("--two-fronts-evidence-root"));
     assert!(gallery.contains("--little-life-evidence-root"));
-    assert!(gallery.contains("$RUNNER_TEMP/journey-gallery-carrier"));
-    assert!(gallery.contains("seal-pages-carrier.mjs"));
+    assert!(gallery.contains("target/journey-gallery-site"));
+    assert!(gallery.contains("target/documentary-pages-carrier"));
     assert!(gallery.contains("verify-pages-carrier.mjs"));
-    assert!(gallery.contains("name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}"));
     assert!(gallery.contains("retention-days: 14"));
-    assert!(gate.contains("JOURNEY_GALLERY_RESULT: ${{ needs.journey-gallery.result }}"));
-    assert!(gate.contains("test \"$JOURNEY_GALLERY_RESULT\" = success"));
 }
 
 #[test]
@@ -603,18 +601,9 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
 }
 
 #[test]
-fn legacy_tour_and_patchbay_product_proofs_are_disabled() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-    assert!(workflow.contains("      tour_required: false"));
-    assert!(workflow.contains("      patchbay_debugger_required: false"));
-}
-
-#[test]
 fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/pages-deploy.yml"))
         .expect("read Pages deployment workflow");
 
     assert!(workflow.contains("refs/pull/$PR_NUMBER/head"));
@@ -622,7 +611,7 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     assert!(workflow.contains("reconcile-product \\"));
     assert!(workflow.contains("products.pages-carrier \"$SOURCE_HEAD\" \"$MERGE_COMMIT\""));
     assert!(workflow.contains("needs.resolve.outputs.disposition == 'execute'"));
-    assert!(workflow.contains("uses: ./.github/workflows/tour-products.yml"));
+    assert!(workflow.contains("uses: ./.github/workflows/product-carrier.yml"));
     assert!(workflow.contains("  pull-requests: read\n"));
     assert!(workflow.contains("main_sha:\n"));
     assert!(workflow.contains("steps.resolve.outputs.direct_main == 'true'"));
@@ -640,7 +629,7 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
         "needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree"
     ));
 
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     assert!(products.contains(
         "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
@@ -710,18 +699,17 @@ fn controller_changes_run_the_dependency_light_planner_test_target() {
 }
 
 #[test]
-fn new_product_proofs_are_attested_by_the_trusted_controller_against_candidate_bytes() {
+fn surviving_pages_carrier_proof_is_attested_by_the_trusted_controller() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
 
-    assert!(workflow.contains("name: Materialize the trusted attestation controller"));
+    assert!(workflow.contains("name: Materialize the trusted carrier attestation controller"));
     assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
-    assert!(workflow.contains(
-        "git -c safe.directory=\"$GITHUB_WORKSPACE\" fetch --no-tags origin \"$CONTROLLER_SHA\""
-    ));
-    assert!(workflow.contains("\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci attest-success \"$CONDUIT_CANDIDATE_SHA\""));
-    assert!(!workflow.contains("cargo xtask ci attest-success \"$CONDUIT_CANDIDATE_SHA\"\n          browser.patchbay-debugger"));
+    assert!(workflow.contains("git fetch --no-tags origin \"$CONTROLLER_SHA\""));
+    assert!(
+        workflow.contains("ci attest-success \"$CONDUIT_CANDIDATE_SHA\" products.pages-carrier")
+    );
 }
 
 #[test]
@@ -782,7 +770,7 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
 
     assert!(!x86.contains("matrix:"));
     assert_eq!(x86.matches("runs-on: ubuntu-24.04").count(), 1);
-    assert!(x86.contains("cargo xtask conduitos prove-many"));
+    assert!(x86.contains("cargo xtask make conduitos prove-many"));
     assert!(x86.contains("--max-parallel 4 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked"));
     assert_eq!(
         x86.matches("CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many")
@@ -799,51 +787,45 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
 }
 
 #[test]
-fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
+fn promotion_is_independent_of_downstream_three_body_documentary() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-
-    assert!(workflow.contains("--no-default-features --features home-surface,form-runner"));
-    assert_eq!(
-        workflow
-            .matches("products/home/tools/stage-home-product.sh")
-            .count(),
-        2
-    );
-    assert!(workflow.matches("target/home-product").count() >= 6);
-    assert!(workflow.matches("proof/browser/home-host.spec.mjs").count() >= 2);
-    assert!(workflow.contains("name: Prove portable Home in pinned Firefox"));
-    assert!(workflow.contains("--project firefox"));
-    assert!(workflow.contains("target/pages-site/home/home.application.json"));
-}
-
-#[test]
-fn promotion_requires_producer_owned_three_body_evidence() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
+    let promotion = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
         .expect("read promotion workflow");
+    let journey = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
+        .expect("read downstream Journey workflow");
 
-    assert!(workflow.contains("\n  generative-body-journey:\n"));
-    assert!(workflow.contains("\n  three-body-journey:\n"));
-    assert!(workflow.contains("conduit-browser-body-journey-"));
-    assert!(workflow.contains("conduit-native-body-journey-"));
-    assert!(workflow.contains("conduit-generative-body-journey-"));
-    assert!(
-        workflow.contains("name: conduitos-x86-batch-${{ github.event.pull_request.head.sha }}")
-    );
-    assert!(workflow
-        .contains("conduitos-x86-batch/runs/product-journey/conduitos/x86_64/body-journey-track"));
-    assert!(workflow.contains("host prove-local-model"));
-    assert!(workflow.contains("evidence stage-three-body-journey"));
-    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance, three-body-journey]"));
-    assert!(!workflow.contains("capture-three-body-track"));
+    assert!(promotion.contains("needs: [boundary, check, products, conduitos-spore-acceptance]"));
+    for documentary in [
+        "generative-body-journey",
+        "three-body-journey",
+        "journey-documentary",
+        "stage-three-body-journey",
+    ] {
+        assert!(!promotion.contains(documentary));
+    }
+    assert!(journey.contains("conduit-browser-body-journey-"));
+    assert!(journey.contains("name: conduitos-x86-batch-"));
+    assert!(journey.contains("host prove-local-model"));
+    assert!(journey.contains("prove stage-three-body-journey"));
+    assert!(journey.contains("Refuse to overwrite a newer accepted release"));
+    assert!(journey.contains("test \"$carrier_run_id\" = \"$PAGES_RUN_ID\""));
+    assert!(journey.contains("name: ${{ steps.context.outputs.carrier_name }}"));
+    assert!(journey.contains("run-id: ${{ steps.context.outputs.carrier_run_id }}"));
+
+    let pages = fs::read_to_string(root.join(".github/workflows/pages-deploy.yml"))
+        .expect("read Pages workflow");
+    assert!(pages.contains("if: needs.resolve.outputs.disposition == 'inherited'"));
+    assert!(pages.contains("if: needs.resolve.outputs.disposition == 'execute'"));
+    assert!(pages
+        .contains("name: conduit-release-pages-carrier-${{ needs.resolve.outputs.source_head }}"));
+    assert!(pages.contains("CARRIER_RUN_ID: ${{ github.run_id }}"));
+    assert!(pages.contains("--arg schema conduit.release-publication-context/v2"));
 }
 
 #[test]
 fn browser_proof_reuses_the_staged_carrier_and_retains_its_own_journey_track() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
 
     assert!(workflow.contains("CONDUIT_BROWSER_PROOF_SHARD: ${{ matrix.shard }}"));

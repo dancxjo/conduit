@@ -62,7 +62,17 @@ fn canonical_bounded_navigation_is_one_checked_form() {
         assert!(!lowercase.contains(forbidden), "Form leaked {forbidden}");
     }
 
-    let host = host(selector_definitions);
+    let mut host = host(selector_definitions);
+    for capability in &mut host.capabilities {
+        if let Some(gear) = authored
+            .expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id == capability.kind_id)
+        {
+            capability.semantic_contract = gear.semantic_contract.clone();
+        }
+    }
     let placements = conduit_planner::default_expanded_placements(
         &authored.expanded,
         core::slice::from_ref(&host),
@@ -369,7 +379,8 @@ fn offer(
     revision: KindIdentity,
     startup_parameters: Vec<FrontStartupParameter>,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{}", kind.as_str())),

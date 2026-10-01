@@ -68,7 +68,7 @@ function requireStatus(status, action) {
   if (status < 0) throw new Error(`CND-CHAT-004 ${action} failed ${status}`);
 }
 
-export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-browser-demo", bodyUrl = null, spawn = null, root }) {
+export async function createWebchatRuntime({ wasmBytes, url, form = "chat/browser-client", bodyUrl = null, spawn = null, root }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   requireApi(api);
@@ -120,7 +120,7 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
   let bodyState = bodyUrl ? "connecting" : "not-configured";
   let closed = false;
   let currentPresentation = null;
-  let currentManifestation = null;
+  let currentShow = null;
   let interactionSequence = 0;
   let chain = Promise.resolve();
   const enqueue = (action) => {
@@ -154,7 +154,7 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
       if (!subject) return null;
       if (subject.role === "Collection") {
         const list = document.createElement("ol");
-        list.setAttribute("aria-label", subject.accessibility_name);
+        list.setAttribute("aria-label", subject.name);
         for (const child of contained(presentation, identity)) {
           const rendered = renderSubject(child);
           if (rendered) list.append(rendered);
@@ -168,24 +168,22 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
         const status = document.createElement("p"); status.setAttribute("role", "status"); status.textContent = textById(presentation, identity).toLowerCase(); return status;
       }
       if (subject.role === "TextEntry") {
-        const contract = presentation.inputs.find((input) => input.target === identity);
-        if (!contract) return null;
-        const label = document.createElement("label"); label.textContent = contract.label;
+        const action = presentation.actions.find((candidate) => candidate.target === identity && candidate.arguments.length === 1);
+        const argument = action?.arguments[0];
+        if (!action || !argument) return null;
+        const label = document.createElement("label"); label.textContent = argument.value_name;
         const input = document.createElement("input");
-        input.setAttribute("aria-label", contract.accessibility_name);
-        input.maxLength = contract.maximum_bytes;
-        input.dataset.inputId = contract.identity;
+        input.setAttribute("aria-label", argument.value_name);
+        input.maxLength = argument.contract.maximum_bytes;
+        input.dataset.inputId = argument.name;
         input.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") enqueue(() => submitInteraction(input, contract));
+          if (event.key === "Enter") enqueue(() => submitInteraction(input, action, argument));
         });
         label.append(input);
-        const action = presentation.actions.find((candidate) => candidate.identity === contract.submit_action);
-        if (action) {
-          const button = document.createElement("button"); button.type = "button"; button.textContent = action.label;
-          button.disabled = action.availability !== "Available";
-          button.addEventListener("click", () => enqueue(() => submitInteraction(input, contract)));
-          label.append(button);
-        }
+        const button = document.createElement("button"); button.type = "button"; button.textContent = action.name;
+        button.disabled = action.availability !== "Available";
+        button.addEventListener("click", () => enqueue(() => submitInteraction(input, action, argument)));
+        label.append(button);
         return label;
       }
       return null;
@@ -239,7 +237,7 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
         currentPresentation = JSON.parse(decoder.decode(effectBytes()));
         renderPresentation(currentPresentation);
         requireStatus(api.conduit_browser_webchat_complete_effect(), "presentation completion");
-        currentManifestation = JSON.parse(decoder.decode(readBytes(
+        currentShow = JSON.parse(decoder.decode(readBytes(
           api, api.conduit_browser_webchat_interaction_ptr(), api.conduit_browser_webchat_interaction_len(),
         )));
         continue;
@@ -253,17 +251,19 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
     }
   }
 
-  async function submitInteraction(input, contract) {
+  async function submitInteraction(input, action, argument) {
     const frame = encoder.encode(JSON.stringify({
       presentation_id: currentPresentation.identity,
       presentation_revision: currentPresentation.revision,
-      manifestation_id: currentManifestation.manifestation_id,
-      input_id: contract.identity,
-      action_id: contract.submit_action,
-      target: contract.target,
-      value_kind: contract.value_kind,
+      show_id: currentShow.show_id,
+      action_id: action.identity,
+      target: action.target,
+      arguments: [{
+        name: argument.name,
+        value_kind: argument.contract.value_kind,
+        value: Array.from(encoder.encode(input.value)),
+      }],
       sequence: interactionSequence++,
-      value: input.value,
     }));
     writeInput(api, frame);
     requireStatus(api.conduit_browser_webchat_submit(frame.length), "interaction");
@@ -385,24 +385,28 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
   }
   return Object.freeze({
     submit: (text) => enqueue(async () => {
-      const contract = currentPresentation.inputs[0];
-      const input = root.querySelector(`[data-input-id="${contract.identity}"]`);
+      const action = currentPresentation.actions.find((candidate) => candidate.arguments.length === 1);
+      const argument = action.arguments[0];
+      const input = root.querySelector(`[data-input-id="${argument.name}"]`);
       input.value = text;
-      await submitInteraction(input, contract);
+      await submitInteraction(input, action, argument);
     }),
     disconnect: () => enqueue(disconnect),
     refusal: (overrides = {}) => {
-      const contract = currentPresentation.inputs[0];
+      const action = currentPresentation.actions.find((candidate) => candidate.arguments.length === 1);
+      const argument = action.arguments[0];
       const frame = encoder.encode(JSON.stringify({
         presentation_id: currentPresentation.identity,
         presentation_revision: currentPresentation.revision,
-        manifestation_id: currentManifestation.manifestation_id,
-        input_id: contract.identity,
-        action_id: contract.submit_action,
-        target: contract.target,
-        value_kind: contract.value_kind,
+        show_id: currentShow.show_id,
+        action_id: action.identity,
+        target: action.target,
+        arguments: [{
+          name: argument.name,
+          value_kind: argument.contract.value_kind,
+          value: Array.from(encoder.encode("refusal-probe")),
+        }],
         sequence: interactionSequence,
-        value: "refusal-probe",
         ...overrides,
       }));
       writeInput(api, frame);
@@ -423,7 +427,8 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
       history: Object.freeze([...root.querySelectorAll("li")].map((item) => item.textContent)),
       presentationId: currentPresentation?.identity,
       presentationRevision: currentPresentation?.revision,
-      manifestationId: currentManifestation?.manifestation_id,
+      manifestationId: currentShow?.manifestation_id,
+      showId: currentShow?.show_id,
       interactionEvidence: api.conduit_browser_webchat_evidence_len() === 0 ? null : JSON.parse(decoder.decode(readBytes(
         api, api.conduit_browser_webchat_evidence_ptr(), api.conduit_browser_webchat_evidence_len(),
       ))),

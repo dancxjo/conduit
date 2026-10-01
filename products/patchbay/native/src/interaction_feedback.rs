@@ -143,8 +143,8 @@ impl PatchbayApplication {
         let source_port = graph.inspect(subject_identity).is_ok_and(|inspection| {
             matches!(
                 inspection.subject_kind,
-                patchbay_model::PatchbaySubjectKind::PortOutput
-                    | patchbay_model::PatchbaySubjectKind::FaceInput
+                patchbay_graph::PatchbaySubjectKind::PortOutput
+                    | patchbay_graph::PatchbaySubjectKind::FaceInput
             )
         });
         if !source_port {
@@ -154,7 +154,7 @@ impl PatchbayApplication {
         let compatible = candidates
             .iter()
             .filter(|candidate| {
-                candidate.compatibility == patchbay_model::PatchbayPortCompatibility::Compatible
+                candidate.compatibility == patchbay_graph::PatchbayPortCompatibility::Compatible
             })
             .count();
         format!(

@@ -114,6 +114,7 @@ pub fn button_indicator_state_contract() -> StandardKindContract {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         limits: button_limits(),
@@ -136,6 +137,7 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),
@@ -253,6 +255,7 @@ fn button_port(name: &str, direction: PortDirection) -> PortDescriptor {
             .clone(),
         direction,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }
 }
 
@@ -270,18 +273,11 @@ pub fn install_button_indicator_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_core::KindIdentity;
-    use conduit_form::{KindProjection, KindSignature};
-    for (contract, revision) in [
-        (button_source_contract(), BUTTON_SOURCE_REVISION),
-        (
-            button_indicator_state_contract(),
-            BUTTON_INDICATOR_STATE_REVISION,
-        ),
-        (
-            indicator_state_presentation_contract(),
-            INDICATOR_STATE_PRESENTATION_REVISION,
-        ),
+    use conduit_form::KindSignature;
+    for contract in [
+        button_source_semantic_contract(),
+        button_indicator_state_semantic_contract(),
+        indicator_state_presentation_semantic_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -296,24 +292,7 @@ pub fn install_button_indicator_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| conduit_form::KindConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        rule: conduit_form::KindConfigurationRule::U64Range {
-                            minimum: 1,
-                            maximum: u64::from(BUTTON_TRANSITION_MAXIMUM_VALUES),
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
     Ok(())

@@ -1,7 +1,7 @@
 //! USB CDC receipt emission for machine-readable Pico W signal proof.
 //!
 //! Emits newline-delimited JSON receipt records over a USB serial port.
-//! The verifier (xtask pico verify) reads these records to confirm the
+//! The verifier (xtask make pico verify) reads these records to confirm the
 //! exact Signal sequence, levels, and terminal disposition.
 
 use core::fmt::Write as _;

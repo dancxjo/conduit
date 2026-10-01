@@ -1,10 +1,12 @@
 //! Portable provider-free `rag/answer` front and reviewed plan configuration.
 
+use crate::RagAnswerOfferInvalidity;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, Kind,
+    KindConfigurationField, KindConfigurationRule, KindId, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 
 pub const RAG_ANSWER_KIND: &str = "rag/answer";
@@ -23,12 +25,6 @@ pub struct RagAnswerContract {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RagAnswerOfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
 }
 
 pub fn rag_answer_contract() -> RagAnswerContract {
@@ -70,7 +66,7 @@ pub fn ordinary_rag_answer_offer(
         return Err(RagAnswerOfferInvalidity::ProcessIdentityTooLarge);
     }
     let contract = rag_answer_contract();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters: startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!("rag/answer/process/{process_identity}")),
@@ -78,6 +74,7 @@ pub fn ordinary_rag_answer_offer(
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        semantic_contract: rag_answer_semantic_contract().semantic_contract(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(RAG_ANSWER_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(RAG_ANSWER_IMPLEMENTATION),
@@ -88,6 +85,42 @@ pub fn ordinary_rag_answer_offer(
         authority_requirements: vec![],
         limits: contract.limits,
     })
+}
+
+fn rag_answer_semantic_contract() -> Kind {
+    let contract = rag_answer_contract();
+    Kind {
+        startup_parameters: startup_parameters(),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: vec![
+            text_choice(
+                "policy",
+                "grounding/exact-context-citations@1",
+                &["grounding/exact-context-citations@1"],
+            ),
+            text_choice(
+                "answer-kind",
+                "value/text-utf8@1",
+                &["value/text-utf8@1", "value/structured-answer@1"],
+            ),
+            count_field(
+                "maximum-output-bytes",
+                crate::MAXIMUM_GROUNDED_ANSWER_BYTES as u64,
+            ),
+            count_field("maximum-claims", crate::MAXIMUM_GROUNDED_CLAIMS as u64),
+            count_field("maximum-citations", crate::MAXIMUM_CITATIONS as u64),
+            count_field(
+                "maximum-work-units",
+                crate::MAXIMUM_GROUNDED_ANSWER_WORK_UNITS,
+            ),
+        ],
+        semantic_laws: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 fn startup_parameters() -> Vec<FrontStartupParameter> {
@@ -118,6 +151,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -127,7 +161,7 @@ pub fn install_rag_answer_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     startup.insert(KindSignature {
         kind: RAG_ANSWER_KIND.to_string(),
@@ -140,36 +174,8 @@ pub fn install_rag_answer_catalog(
             count_parameter("maximum-work-units", 1_000_000),
         ],
     })?;
-    let contract = rag_answer_contract();
     let result = profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![
-                text_choice(
-                    "policy",
-                    "grounding/exact-context-citations@1",
-                    &["grounding/exact-context-citations@1"],
-                ),
-                text_choice(
-                    "answer-kind",
-                    "value/text-utf8@1",
-                    &["value/text-utf8@1", "value/structured-answer@1"],
-                ),
-                count_field(
-                    "maximum-output-bytes",
-                    crate::MAXIMUM_GROUNDED_ANSWER_BYTES as u64,
-                ),
-                count_field("maximum-claims", crate::MAXIMUM_GROUNDED_CLAIMS as u64),
-                count_field("maximum-citations", crate::MAXIMUM_CITATIONS as u64),
-                count_field(
-                    "maximum-work-units",
-                    crate::MAXIMUM_GROUNDED_ANSWER_WORK_UNITS,
-                ),
-            ],
-        })
+        .insert_kind(rag_answer_semantic_contract())
         .map_err(|error| error.to_string());
 
     fn text_parameter(name: &str, default: &str) -> StartupParameterSignature {
@@ -189,23 +195,21 @@ pub fn install_rag_answer_catalog(
     result
 }
 
-#[cfg(feature = "form-catalog")]
-fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::KindConfigurationField {
-    conduit_form::KindConfigurationField {
+fn text_choice(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::Text(default.into()),
-        rule: conduit_form::KindConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn count_field(key: &str, maximum: u64) -> conduit_form::KindConfigurationField {
-    conduit_form::KindConfigurationField {
+fn count_field(key: &str, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::U64(maximum),
-        rule: conduit_form::KindConfigurationRule::U64Range {
+        rule: KindConfigurationRule::U64Range {
             minimum: 1,
             maximum,
         },

@@ -156,5 +156,6 @@ fn binding() -> SessionBinding {
                 maximum_frame_bytes: MAXIMUM_FRAME_BYTES,
             },
         },
+        abnormal_kind: None,
     }
 }

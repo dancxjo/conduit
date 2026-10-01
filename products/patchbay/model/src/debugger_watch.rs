@@ -43,7 +43,7 @@ pub enum DebuggerWatchLifecycle {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DebuggerWatchRate {
-    /// A sequence-domain density, never fabricated wall-clock frequency.
+    /// A sequence-domain density, never made wall-clock frequency.
     pub updates: u64,
     pub sequence_span: u64,
 }

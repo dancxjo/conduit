@@ -5,9 +5,8 @@ use alloc::vec;
 
 use conduit_core::{
     process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
-    PROTOCOL_VERSION,
+    CapabilityLimits, GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
@@ -50,7 +49,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
             .filter(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
             .collect(),
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
             startup_parameters: crate::pulse_front_startup_parameters(),
             shorthand: None,
             capability_id: CapabilityId::from("std-pico-pulse-1"),
@@ -63,6 +62,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
             },
             inputs: vec![],
             outputs: pulse_outputs(),
+            semantic_contract: crate::pulse_semantic_contract().semantic_contract(),
             host_calls: pulse_host_call_requirements(),
             resource_requirements: pulse_resource_requirements(),
             authority_requirements: vec![],
@@ -90,7 +90,7 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
             })
             .collect(),
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
             startup_parameters: vec![],
             shorthand: None,
             capability_id: CapabilityId::from("pico-cyw43-show-1"),
@@ -103,6 +103,7 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
             },
             inputs: show_inputs(),
             outputs: vec![],
+            semantic_contract: crate::show_semantic_contract().semantic_contract(),
             host_calls: show_host_call_requirements(),
             resource_requirements: show_resource_requirements(),
             authority_requirements: vec![],

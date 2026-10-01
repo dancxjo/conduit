@@ -5,6 +5,10 @@ use alloc::vec::Vec;
 
 use crate::{GearId, KindId, SignStorageBudget};
 
+/// Canonical semantic Kind used by typed retained State.
+pub const STATE_VALUE_KIND: &str = "state/value";
+pub const STATE_VALUE_REVISION: &str = "conduit.state/value@1";
+
 mod continuity;
 pub use continuity::RetainedStateProvenance;
 
@@ -38,6 +42,31 @@ pub enum StateContinuation {
     ExternallyBounded,
 }
 
+/// Semantic ownership horizon of one explicit `keep` boundary.
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum StateLifetime {
+    #[default]
+    Step,
+    Play,
+    Wake,
+    Boot,
+    Body,
+}
+
+/// Stable implementation truth for the longest semantic keep duration a Back
+/// can satisfy. This is not authored meaning and does not imply a storage
+/// mechanism; planning compares it with the requested [`StateLifetime`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateRetentionSupport {
+    pub maximum_lifetime: StateLifetime,
+}
+
+impl StateRetentionSupport {
+    pub fn supports(self, required: StateLifetime) -> bool {
+        required <= self.maximum_lifetime
+    }
+}
+
 /// Immutable Plan truth for one explicit delay boundary.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlannedStateBoundary {
@@ -45,7 +74,12 @@ pub struct PlannedStateBoundary {
     pub gear_id: GearId,
     pub value_kind: KindId,
     /// Authored initialization stays distinct from retained execution state.
-    pub initial_value: Vec<u8>,
+    /// Absence is an honestly uninitialized keep, distinct from a present
+    /// zero-byte value such as Unit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initial_value: Option<Vec<u8>>,
+    #[serde(default)]
+    pub lifetime: StateLifetime,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retained: Option<RetainedStateProvenance>,
     pub maximum_value_bytes: u32,
@@ -94,7 +128,11 @@ pub fn state_resource_budget(
         {
             return Err(StatePlanError::InvalidContinuity);
         }
-        if state.initial_value.len() > state.maximum_value_bytes as usize {
+        if state
+            .initial_value
+            .as_ref()
+            .is_some_and(|value| value.len() > state.maximum_value_bytes as usize)
+        {
             return Err(StatePlanError::ResourceOverflow);
         }
         if matches!(state.continuation, StateContinuation::MaximumTransitions(0)) {
@@ -146,8 +184,21 @@ pub(crate) fn push_canonical_state(bytes: &mut Vec<u8>, states: &[PlannedStateBo
         crate::push_string(bytes, state.state_id.as_str());
         crate::push_string(bytes, state.gear_id.as_str());
         crate::push_string(bytes, state.value_kind.as_str());
-        crate::push_u64(bytes, state.initial_value.len() as u64);
-        bytes.extend_from_slice(&state.initial_value);
+        match &state.initial_value {
+            Some(value) => {
+                bytes.push(1);
+                crate::push_u64(bytes, value.len() as u64);
+                bytes.extend_from_slice(value);
+            }
+            None => bytes.push(0),
+        }
+        bytes.push(match state.lifetime {
+            StateLifetime::Step => 0,
+            StateLifetime::Play => 1,
+            StateLifetime::Wake => 2,
+            StateLifetime::Boot => 3,
+            StateLifetime::Body => 4,
+        });
         crate::push_u32(bytes, state.maximum_value_bytes);
         match state.continuation {
             StateContinuation::MaximumTransitions(count) => {
@@ -235,7 +286,8 @@ mod tests {
             state_id: StateId::from(id),
             gear_id: GearId::from(id),
             value_kind: KindId::from("number/u32@1"),
-            initial_value: 0u32.to_le_bytes().to_vec(),
+            initial_value: Some(0u32.to_le_bytes().to_vec()),
+            lifetime: StateLifetime::Step,
             retained: None,
             maximum_value_bytes: bytes,
             continuation: StateContinuation::MaximumTransitions(3),
@@ -252,6 +304,22 @@ mod tests {
     }
 
     #[test]
+    fn lifetime_and_absent_initial_value_are_exact_plan_truth() {
+        let mut uninitialized = state("uninitialized", 4);
+        uninitialized.initial_value = None;
+        uninitialized.lifetime = StateLifetime::Body;
+        assert!(state_resource_budget(core::slice::from_ref(&uninitialized)).is_ok());
+
+        let mut step = uninitialized.clone();
+        step.lifetime = StateLifetime::Step;
+        let mut body_bytes = Vec::new();
+        let mut step_bytes = Vec::new();
+        push_canonical_state(&mut body_bytes, &[uninitialized]);
+        push_canonical_state(&mut step_bytes, &[step]);
+        assert_ne!(body_bytes, step_bytes);
+    }
+
+    #[test]
     fn duplicate_unbounded_and_oversized_initial_state_refuse() {
         assert_eq!(
             state_resource_budget(&[state("same", 4), state("same", 4)]),
@@ -264,7 +332,7 @@ mod tests {
             Err(StatePlanError::ZeroTransitionBound)
         );
         let mut oversized = state("large", 2);
-        oversized.initial_value = vec![0; 3];
+        oversized.initial_value = Some(vec![0; 3]);
         assert_eq!(
             state_resource_budget(&[oversized]),
             Err(StatePlanError::ResourceOverflow)

@@ -2,6 +2,23 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+pub use generated::{
+    AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
+    ClockChangeBehavior, HistoricalEntryOrigin, HistoricalEntryOriginCode,
+    HistoricalOverflowPolicy, HistoricalOverflowPolicyCode, InvitationState,
+    MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, RecurrenceRefusal,
+    ReplayPolicy, ReplayPolicyRate, ScheduleRefusal, ScheduledIntentRefusal,
+    SequenceNormalizationRefusal, SuspendBehavior, TemplateCollectionRefusal, TemporalBoundary,
+    TemporalWindowPosition, TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
+    WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
+};
+
+mod timed_pattern_refusal;
+
 mod tick;
 pub use tick::*;
 
@@ -72,6 +89,26 @@ pub use catalog::*;
 mod button_attempt_back;
 #[cfg(feature = "kernel-step")]
 pub use button_attempt_back::TimedButtonAttemptBack;
+
+#[cfg(feature = "kernel-step")]
+mod debounce_back;
+#[cfg(feature = "kernel-step")]
+pub use debounce_back::{DebouncePreparationError, TrailingDebounceBack};
+
+#[cfg(feature = "kernel-step")]
+mod sample_back;
+#[cfg(feature = "kernel-step")]
+pub use sample_back::CadenceSampleBack;
+
+#[cfg(feature = "kernel-step")]
+mod deadline_back;
+#[cfg(feature = "kernel-step")]
+pub use deadline_back::CancellationDeadlineBack;
+
+#[cfg(feature = "kernel-step")]
+mod window_back;
+#[cfg(feature = "kernel-step")]
+pub use window_back::ProcessingTimeWindowBack;
 
 #[cfg(feature = "kernel-step")]
 mod pulse_observation_back;

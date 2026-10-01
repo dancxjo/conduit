@@ -1,16 +1,14 @@
-pub use crate::commands::audio::cli::{AudioArgs, AudioCommand};
+pub use crate::commands::audio::cli::{AudioPlaybackArgs, StartupCueArgs};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::commands::avr::AvrArgs;
 use crate::commands::body::BodyArgs;
 use crate::commands::body_coordination::BodyCoordinationArgs;
-use crate::commands::catalog::CatalogArgs;
 use crate::commands::check::CheckArgs;
 use crate::commands::ci::CiArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::esp32_firmware::Esp32FirmwareArgs;
-use crate::commands::evidence::EvidenceArgs;
-use crate::commands::forms::FormsArgs;
+use crate::commands::evidence::EvidenceCommand;
 use crate::commands::host::HostArgs;
 use crate::commands::pete_std_observe::PeteArgs;
 use crate::commands::pico::PicoArgs;
@@ -47,56 +45,52 @@ pub struct GlobalOpts {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Build or guardedly flash the Pete Pro Micro Brainstem.
-    Avr(AvrArgs),
-    /// Build and launch one independent browser page/WASM Host.
-    Browser,
-    /// Create, inspect, build, or deploy one whole Body description.
-    Body(BodyArgs),
-    /// Prove bounded Pete forebrain-motherbrain coordination.
-    BodyCoordination(BodyCoordinationArgs),
-    /// Inspect mechanically derived portable kind coverage by Host profile.
-    Catalog(CatalogArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
     /// Run the fast, local end-to-end developer truth loop.
     Integrate,
     /// Plan repository CI obligations from an exact change.
     Ci(CiArgs),
-    /// Execute platform and protocol proof suites.
+    /// Construct repository artifacts for an exact target.
+    Make(MakeArgs),
+    /// Execute proofs and manage their bounded evidence.
     Prove(Box<ProveArgs>),
-    /// Print the versioned machine-readable proof command contract.
-    Proofs(ProofsArgs),
-    /// Verify bounded proof evidence before transport or review.
-    Evidence(EvidenceArgs),
-    /// Check and report the explicit reviewed form inventory.
-    Forms(FormsArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
     /// Install explicit prerequisites for a repository workflow.
     Setup(SetupArgs),
-    /// Check the standalone ESP32 fabrication package without touching hardware.
+}
+
+#[derive(Args, Debug)]
+pub struct MakeArgs {
+    #[command(subcommand)]
+    pub target: MakeTarget,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum MakeTarget {
+    /// Build or guardedly flash the Pete Pro Micro Brainstem.
+    Avr(AvrArgs),
+    /// Build and launch one independent browser page/WASM Host.
+    Browser,
+    /// Create, inspect, build, or deploy one whole Body description.
+    Body(BodyArgs),
+    /// Check the standalone ESP32 make package without touching hardware.
     Esp32Firmware(Esp32FirmwareArgs),
+    /// Target one host lifecycle or manage exact host configuration and make.
+    Host(HostArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
-    /// Target one host lifecycle or manage exact host configuration and fabrication.
-    Host(HostArgs),
     /// Run the complete Pico W local workflow.
     PicoLocal(PicoArgs),
     /// Build and prove the freestanding ConduitOS reference Host.
     Conduitos(ConduitosArgs),
-    /// Inspect and prove one explicit hosted PCM playback resource.
-    Audio(AudioArgs),
-    /// Inspect exact hosted MIDI sequencer endpoints.
-    Midi(MidiArgs),
-    /// Exercise explicit Pete development and hardware proof entrances.
-    Pete(PeteArgs),
-    /// Run interactive demonstrations.
-    Demo(DemoArgs),
-    /// Generate the bounded Patchbay GNU Unifont subset.
+    /// Generate the shared bounded GNU Unifont subset.
     UnifontSubset(UnifontSubsetArgs),
     /// Generate the bounded native masks for canonical palette icons.
     PaletteIcons(PaletteIconsArgs),
+    /// Render the bounded startup cue to a new WAV file without opening audio.
+    StartupCue(StartupCueArgs),
 }
 
 #[derive(Args, Debug)]
@@ -120,7 +114,44 @@ pub struct PaletteIconsArgs {
 #[derive(Args, Debug)]
 pub struct ProveArgs {
     /// Which proof suite to execute.
-    pub proof: ProveTarget,
+    pub proof: Option<ProveTarget>,
+
+    /// Run a structured proof or produce, verify, or publish bounded proof evidence.
+    #[command(subcommand)]
+    pub command: Option<ProveCommand>,
+
+    /// List the versioned proof command contract instead of executing a proof.
+    #[arg(
+        long,
+        conflicts_with_all = ["proof", "verify_record", "run_obligation"]
+    )]
+    pub list: bool,
+
+    /// Verify one JSON proof record against its exact registered command contract.
+    #[arg(
+        long = "verify",
+        conflicts_with_all = ["proof", "list", "run_obligation"]
+    )]
+    pub verify_record: Option<std::path::PathBuf>,
+
+    /// Run the one pinned finite proof-catalog validation obligation.
+    #[arg(
+        long,
+        conflicts_with_all = ["proof", "list", "verify_record"]
+    )]
+    pub run_obligation: bool,
+
+    /// Stop after emitting the reviewed checkpoint and residual obligation.
+    #[arg(long, requires = "run_obligation")]
+    pub interrupt_after_checkpoint: bool,
+
+    /// Resume from one bounded checkpoint JSON file.
+    #[arg(long, requires = "run_obligation")]
+    pub resume: Option<std::path::PathBuf>,
+
+    /// Write the checkpoint or terminal obligation record as bounded JSON.
+    #[arg(long, requires = "run_obligation")]
+    pub obligation_record: Option<std::path::PathBuf>,
 
     /// Override the bounded evidence root for proofs that declare evidence outputs.
     #[arg(long)]
@@ -244,33 +275,25 @@ pub struct ProveArgs {
     pub withhold_lenia_pico: bool,
 }
 
+#[derive(Subcommand, Debug)]
+pub enum ProveCommand {
+    /// Run the bounded audible specimen through one exact selected output.
+    AudioPlayback(AudioPlaybackArgs),
+    /// Prove bounded Pete forebrain-motherbrain coordination.
+    BodyCoordination(BodyCoordinationArgs),
+    /// Exercise explicit Pete hardware proof entrances.
+    Pete(PeteArgs),
+    /// Exercise one reviewed Form or journey through its exact repository proof path.
+    Journey(DemoArgs),
+    /// Produce, verify, or publish bounded proof evidence.
+    #[command(flatten)]
+    Evidence(EvidenceCommand),
+}
+
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BluetoothProofRole {
     Source,
     Sink,
-}
-
-#[derive(Args, Debug)]
-pub struct ProofsArgs {
-    /// Validate one JSON proof record against its exact registered command contract.
-    #[arg(long)]
-    pub validate_record: Option<std::path::PathBuf>,
-
-    /// Run the one pinned finite proof-catalog validation obligation.
-    #[arg(long)]
-    pub run_obligation: bool,
-
-    /// Stop after emitting the reviewed checkpoint and residual obligation.
-    #[arg(long, requires = "run_obligation")]
-    pub interrupt_after_checkpoint: bool,
-
-    /// Resume from one bounded checkpoint JSON file.
-    #[arg(long, requires = "run_obligation")]
-    pub resume: Option<std::path::PathBuf>,
-
-    /// Write the checkpoint or terminal obligation record as bounded JSON.
-    #[arg(long, requires = "run_obligation")]
-    pub obligation_record: Option<std::path::PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -312,18 +335,6 @@ mod demo;
 pub use demo::{DemoArgs, DemoCommand, LightSwitchDemoArgs, PatchbayDemoArgs, PatchbayHost};
 
 #[derive(Args, Debug)]
-pub struct MidiArgs {
-    #[command(subcommand)]
-    pub command: MidiCommand,
-}
-
-#[derive(Subcommand, Debug)]
-pub enum MidiCommand {
-    /// List fresh directional ALSA sequencer metadata without opening a port.
-    List,
-}
-
-#[derive(Args, Debug)]
 pub struct DoctorArgs {
     /// What to inspect (default: all).
     #[arg(default_value = "all")]
@@ -333,7 +344,9 @@ pub struct DoctorArgs {
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DoctorTarget {
     All,
+    Audio,
     Browser,
+    Midi,
     Pico,
     LinuxRelease,
 }
@@ -342,7 +355,9 @@ impl DoctorTarget {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::All => "all",
+            Self::Audio => "audio",
             Self::Browser => "browser",
+            Self::Midi => "midi",
             Self::Pico => "pico",
             Self::LinuxRelease => "linux-release",
         }
@@ -367,13 +382,19 @@ mod tests {
 
     #[test]
     fn doctor_and_pico_commands_parse() {
-        let matrix = Cli::try_parse_from(["xtask", "catalog", "matrix"])
+        let matrix = Cli::try_parse_from(["xtask", "check", "catalog", "matrix"])
             .expect("catalog matrix command parses");
-        assert!(matches!(matrix.command, Command::Catalog(_)));
+        assert!(matches!(matrix.command, Command::Check(_)));
 
-        let gap = Cli::try_parse_from(["xtask", "catalog", "gap", "--host", "pico"])
+        let gap = Cli::try_parse_from(["xtask", "check", "catalog", "gap", "--host", "pico"])
             .expect("catalog gap command parses");
-        assert!(matches!(gap.command, Command::Catalog(_)));
+        assert!(matches!(gap.command, Command::Check(_)));
+
+        let forms = Cli::try_parse_from(["xtask", "check", "forms", "check"])
+            .expect("reviewed forms check parses beneath check");
+        assert!(matches!(forms.command, Command::Check(_)));
+        assert!(Cli::try_parse_from(["xtask", "catalog", "matrix"]).is_err());
+        assert!(Cli::try_parse_from(["xtask", "forms", "check"]).is_err());
 
         let doctor = Cli::try_parse_from(["xtask", "--dry-run", "doctor", "pico"])
             .expect("doctor command parses");
@@ -388,11 +409,18 @@ mod tests {
             .expect("Linux release setup command parses");
         assert!(matches!(setup.command, Command::Setup(_)));
 
-        let pico = Cli::try_parse_from(["xtask", "pico", "build"]).expect("pico command parses");
-        assert!(matches!(pico.command, Command::Pico(_)));
+        let pico =
+            Cli::try_parse_from(["xtask", "make", "pico", "build"]).expect("pico command parses");
+        assert!(matches!(
+            pico.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Pico(_)
+            })
+        ));
 
         let host = Cli::try_parse_from([
             "xtask",
+            "make",
             "host",
             "build",
             "profile.json",
@@ -402,10 +430,16 @@ mod tests {
             "git:abc",
         ])
         .expect("host BUILD command parses");
-        assert!(matches!(host.command, Command::Host(_)));
+        assert!(matches!(
+            host.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Host(_)
+            })
+        ));
 
         let body_new = Cli::try_parse_from([
             "xtask",
+            "make",
             "body",
             "new",
             "pete",
@@ -415,26 +449,57 @@ mod tests {
             "eyes=browser-page",
         ])
         .expect("Body scaffold command parses");
-        assert!(matches!(body_new.command, Command::Body(_)));
-        assert!(
-            Cli::try_parse_from(["xtask", "body", "new", "pete", "--template", "unknown"]).is_err()
-        );
-        let guided_body = Cli::try_parse_from(["xtask", "body", "new"])
+        assert!(matches!(
+            body_new.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Body(_)
+            })
+        ));
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "body",
+            "new",
+            "pete",
+            "--template",
+            "unknown"
+        ])
+        .is_err());
+        let guided_body = Cli::try_parse_from(["xtask", "make", "body", "new"])
             .expect("interactive Body scaffold may prompt for its name");
-        assert!(matches!(guided_body.command, Command::Body(_)));
+        assert!(matches!(
+            guided_body.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Body(_)
+            })
+        ));
         let scripted_body =
-            Cli::try_parse_from(["xtask", "body", "new", "pete", "--no-interactive"])
+            Cli::try_parse_from(["xtask", "make", "body", "new", "pete", "--no-interactive"])
                 .expect("scripted Body scaffold parses");
-        assert!(matches!(scripted_body.command, Command::Body(_)));
+        assert!(matches!(
+            scripted_body.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Body(_)
+            })
+        ));
 
         for command in [
-            vec!["xtask", "host"],
-            vec!["xtask", "host", "std"],
-            vec!["xtask", "host", "browser"],
-            vec!["xtask", "host", "rpi"],
-            vec!["xtask", "host", "rpi", "--board", "rpi-zero-v1", "image"],
+            vec!["xtask", "make", "host"],
+            vec!["xtask", "make", "host", "std"],
+            vec!["xtask", "make", "host", "browser"],
+            vec!["xtask", "make", "host", "rpi"],
             vec![
                 "xtask",
+                "make",
+                "host",
+                "rpi",
+                "--board",
+                "rpi-zero-v1",
+                "image",
+            ],
+            vec![
+                "xtask",
+                "make",
                 "host",
                 "rpi",
                 "flash",
@@ -445,6 +510,7 @@ mod tests {
             ],
             vec![
                 "xtask",
+                "make",
                 "host",
                 "rpi",
                 "physical-proof",
@@ -454,16 +520,24 @@ mod tests {
         ] {
             let parsed = Cli::try_parse_from(command.clone())
                 .unwrap_or_else(|error| panic!("host command {command:?} must parse: {error}"));
-            assert!(matches!(parsed.command, Command::Host(_)));
+            assert!(matches!(
+                parsed.command,
+                Command::Make(MakeArgs {
+                    target: MakeTarget::Host(_)
+                })
+            ));
         }
+        assert!(Cli::try_parse_from([
+            "xtask", "make", "host", "rpi", "flash", "--device", "/dev/sda",
+        ])
+        .is_err());
         assert!(
-            Cli::try_parse_from(["xtask", "host", "rpi", "flash", "--device", "/dev/sda",])
-                .is_err()
+            Cli::try_parse_from(["xtask", "make", "host", "rpi", "--board", "rpi-5",]).is_err()
         );
-        assert!(Cli::try_parse_from(["xtask", "host", "rpi", "--board", "rpi-5",]).is_err());
 
         let pico_body = Cli::try_parse_from([
             "xtask",
+            "make",
             "pico",
             "prove-body-admission",
             "--link-port",
@@ -472,75 +546,120 @@ mod tests {
         .expect("physical Pico Body admission proof parses");
         assert!(matches!(
             pico_body.command,
-            Command::Pico(PicoArgs {
-                subcommand: Some(crate::commands::pico::PicoSubcommand::ProveBodyAdmission),
-                ..
+            Command::Make(MakeArgs {
+                target: MakeTarget::Pico(PicoArgs {
+                    subcommand: Some(crate::commands::pico::PicoSubcommand::ProveBodyAdmission),
+                    ..
+                })
             })
         ));
 
-        let pico_build_remote = Cli::try_parse_from(["xtask", "pico", "build", "--usb-remote"])
-            .expect("pico build --usb-remote parses");
-        if let Command::Pico(args) = pico_build_remote.command {
+        let pico_build_remote =
+            Cli::try_parse_from(["xtask", "make", "pico", "build", "--usb-remote"])
+                .expect("pico build --usb-remote parses");
+        if let Command::Make(MakeArgs {
+            target: MakeTarget::Pico(args),
+        }) = pico_build_remote.command
+        {
             assert!(args.usb_remote);
         } else {
             panic!("expected Command::Pico");
         }
 
-        let pico_flash_remote = Cli::try_parse_from(["xtask", "pico", "flash", "--usb-remote"])
-            .expect("pico flash --usb-remote parses");
-        if let Command::Pico(args) = pico_flash_remote.command {
+        let pico_flash_remote =
+            Cli::try_parse_from(["xtask", "make", "pico", "flash", "--usb-remote"])
+                .expect("pico flash --usb-remote parses");
+        if let Command::Make(MakeArgs {
+            target: MakeTarget::Pico(args),
+        }) = pico_flash_remote.command
+        {
             assert!(args.usb_remote);
         } else {
             panic!("expected Command::Pico");
         }
 
-        let pico_build_control = Cli::try_parse_from(["xtask", "pico", "build", "--r1-control"])
-            .expect("pico build --r1-control parses");
-        if let Command::Pico(args) = pico_build_control.command {
+        let pico_build_control =
+            Cli::try_parse_from(["xtask", "make", "pico", "build", "--r1-control"])
+                .expect("pico build --r1-control parses");
+        if let Command::Make(MakeArgs {
+            target: MakeTarget::Pico(args),
+        }) = pico_build_control.command
+        {
             assert!(args.r1_control);
         } else {
             panic!("expected Command::Pico");
         }
 
-        let toggle =
-            Cli::try_parse_from(["xtask", "demo", "toggle"]).expect("demo toggle command parses");
+        let toggle = Cli::try_parse_from(["xtask", "prove", "journey", "toggle"])
+            .expect("toggle journey command parses");
         assert!(matches!(
             toggle.command,
-            Command::Demo(DemoArgs {
-                command: DemoCommand::Toggle
-            })
+            Command::Prove(args)
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Journey(DemoArgs {
+                        command: DemoCommand::Toggle
+                    }))
+                )
         ));
 
-        for command in ["tour", "std", "triple", "patchbay", "body-membership"] {
-            Cli::try_parse_from(["xtask", "demo", command])
-                .unwrap_or_else(|error| panic!("demo {command} must parse: {error}"));
+        for command in ["std", "triple", "patchbay", "body-membership"] {
+            Cli::try_parse_from(["xtask", "prove", "journey", command])
+                .unwrap_or_else(|error| panic!("journey {command} must parse: {error}"));
         }
-        let browser = Cli::try_parse_from(["xtask", "browser"]).expect("browser Host parses");
-        assert!(matches!(browser.command, Command::Browser));
-        assert!(Cli::try_parse_from(["xtask", "demo", "browser"]).is_err());
+        let browser =
+            Cli::try_parse_from(["xtask", "make", "browser"]).expect("browser Host parses");
+        assert!(matches!(
+            browser.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Browser
+            })
+        ));
+        assert!(Cli::try_parse_from(["xtask", "prove", "journey", "browser"]).is_err());
 
-        let site =
-            Cli::try_parse_from(["xtask", "demo", "site"]).expect("demo site command parses");
+        let site = Cli::try_parse_from(["xtask", "prove", "journey", "site"])
+            .expect("site journey command parses");
         assert!(matches!(
             site.command,
-            Command::Demo(DemoArgs {
-                command: DemoCommand::Site
+            Command::Prove(args)
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Journey(DemoArgs {
+                        command: DemoCommand::Site
+                    }))
+                )
+        ));
+        assert!(Cli::try_parse_from(["xtask", "demo", "site"]).is_err());
+
+        let subset = Cli::try_parse_from([
+            "xtask",
+            "make",
+            "unifont-subset",
+            "unifont.hex.gz",
+            "subset.hex",
+        ])
+        .expect("unifont-subset command parses");
+        assert!(matches!(
+            subset.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::UnifontSubset(_)
             })
         ));
-
-        let subset =
-            Cli::try_parse_from(["xtask", "unifont-subset", "unifont.hex.gz", "subset.hex"])
-                .expect("unifont-subset command parses");
-        assert!(matches!(subset.command, Command::UnifontSubset(_)));
 
         let icons = Cli::try_parse_from([
             "xtask",
+            "make",
             "palette-icons",
-            "products/patchbay/native/assets/icons/lucide/svg",
+            "mechanisms/implementations/bounded-lucide/svg",
             "icons.rs",
         ])
         .expect("palette-icons command parses");
-        assert!(matches!(icons.command, Command::PaletteIcons(_)));
+        assert!(matches!(
+            icons.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::PaletteIcons(_)
+            })
+        ));
 
         let check =
             Cli::try_parse_from(["xtask", "check", "workspace"]).expect("check command parses");
@@ -560,6 +679,35 @@ mod tests {
             .expect("prove command parses");
         assert!(matches!(prove.command, Command::Prove(_)));
 
+        let body_coordination = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "body-coordination",
+            "conformance",
+            "--forebrain-boot",
+            "forebrain-boot",
+            "--motherbrain-boot",
+            "motherbrain-boot",
+            "--admit-parts",
+        ])
+        .expect("body coordination proof parses beneath prove");
+        assert!(matches!(
+            body_coordination.command,
+            Command::Prove(args)
+                if matches!(args.command, Some(ProveCommand::BodyCoordination(_)))
+        ));
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "body-coordination",
+            "conformance",
+            "--forebrain-boot",
+            "forebrain-boot",
+            "--motherbrain-boot",
+            "motherbrain-boot",
+            "--admit-parts",
+        ])
+        .is_err());
+
         let calendar = Cli::try_parse_from([
             "xtask",
             "prove",
@@ -572,7 +720,7 @@ mod tests {
         .expect("calendar live proof command parses");
         assert!(matches!(
             calendar.command,
-            Command::Prove(args) if args.proof == ProveTarget::CalendarGoogle
+            Command::Prove(args) if args.proof == Some(ProveTarget::CalendarGoogle)
         ));
 
         let messaging = Cli::try_parse_from([
@@ -587,7 +735,7 @@ mod tests {
         .expect("GitHub messaging live proof command parses");
         assert!(matches!(
             messaging.command,
-            Command::Prove(args) if args.proof == ProveTarget::MessagingGithub
+            Command::Prove(args) if args.proof == Some(ProveTarget::MessagingGithub)
         ));
 
         let planning_advice = Cli::try_parse_from([
@@ -602,7 +750,7 @@ mod tests {
         .expect("live Ollama planning-advice command parses");
         assert!(matches!(
             planning_advice.command,
-            Command::Prove(args) if args.proof == ProveTarget::LlmPlanningAdvice
+            Command::Prove(args) if args.proof == Some(ProveTarget::LlmPlanningAdvice)
         ));
 
         let embodiment = Cli::try_parse_from([
@@ -617,14 +765,14 @@ mod tests {
         .expect("live Ollama embodiment command parses");
         assert!(matches!(
             embodiment.command,
-            Command::Prove(args) if args.proof == ProveTarget::LlmEmbodiment
+            Command::Prove(args) if args.proof == Some(ProveTarget::LlmEmbodiment)
         ));
 
         let cross_host = Cli::try_parse_from(["xtask", "prove", "llm-cross-host"])
             .expect("cross-host LLM proof command parses");
         assert!(matches!(
             cross_host.command,
-            Command::Prove(args) if args.proof == ProveTarget::LlmCrossHost
+            Command::Prove(args) if args.proof == Some(ProveTarget::LlmCrossHost)
         ));
 
         let local_model_pool = Cli::try_parse_from([
@@ -637,7 +785,7 @@ mod tests {
         .expect("local-model pool proof command parses");
         assert!(matches!(
             local_model_pool.command,
-            Command::Prove(args) if args.proof == ProveTarget::LocalModelPool
+            Command::Prove(args) if args.proof == Some(ProveTarget::LocalModelPool)
                 && args.live_receipt.as_deref() == Some(std::path::Path::new("live.json"))
         ));
 
@@ -645,21 +793,21 @@ mod tests {
             .expect("degraded-profile proof command parses");
         assert!(matches!(
             degraded.command,
-            Command::Prove(args) if args.proof == ProveTarget::DegradedProfiles
+            Command::Prove(args) if args.proof == Some(ProveTarget::DegradedProfiles)
         ));
 
         let diversity =
             Cli::try_parse_from(["xtask", "prove", "diversity"]).expect("diversity proof parses");
         assert!(matches!(
             diversity.command,
-            Command::Prove(args) if args.proof == ProveTarget::Diversity
+            Command::Prove(args) if args.proof == Some(ProveTarget::Diversity)
         ));
 
         let dormant = Cli::try_parse_from(["xtask", "prove", "dormant-readmission"])
             .expect("dormant-readmission proof parses");
         assert!(matches!(
             dormant.command,
-            Command::Prove(args) if args.proof == ProveTarget::DormantReadmission
+            Command::Prove(args) if args.proof == Some(ProveTarget::DormantReadmission)
         ));
 
         let capture_restart = Cli::try_parse_from([
@@ -686,22 +834,61 @@ mod tests {
             Command::Prove(args) if args.induce_pre_capture_failure
         ));
 
-        let proofs = Cli::try_parse_from(["xtask", "--json", "proofs"])
+        let proofs = Cli::try_parse_from(["xtask", "--json", "prove", "--list"])
             .expect("proof catalog command parses");
         assert!(proofs.global.json);
-        assert!(matches!(proofs.command, Command::Proofs(_)));
+        assert!(matches!(
+            proofs.command,
+            Command::Prove(args) if args.list && args.proof.is_none()
+        ));
+        assert!(Cli::try_parse_from(["xtask", "proofs"]).is_err());
 
-        let docs =
-            Cli::try_parse_from(["xtask", "evidence", "docs-verify", "--workspace-root", "."])
-                .expect("evidence docs verifier parses");
-        assert!(matches!(docs.command, Command::Evidence(_)));
+        let docs = Cli::try_parse_from(["xtask", "prove", "docs-verify", "--workspace-root", "."])
+            .expect("proof evidence docs verifier parses");
+        assert!(matches!(
+            docs.command,
+            Command::Prove(args)
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Evidence(EvidenceCommand::DocsVerify(_)))
+                )
+        ));
+        let verify = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "verify",
+            "--root",
+            "target/evidence",
+            "--commit",
+            "0123456789012345678901234567890123456789",
+            "--result",
+            "complete",
+        ])
+        .expect("proof evidence verifier parses without an intermediate noun");
+        assert!(matches!(
+            verify.command,
+            Command::Prove(args)
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Evidence(EvidenceCommand::Verify(_)))
+                )
+        ));
+        assert!(Cli::try_parse_from(["xtask", "prove", "evidence", "verify"]).is_err());
+        assert!(Cli::try_parse_from(["xtask", "evidence", "docs-verify"]).is_err());
 
-        let conduitos = Cli::try_parse_from(["xtask", "conduitos", "prove", "--arch", "x86-64"])
-            .expect("ConduitOS command parses");
-        assert!(matches!(conduitos.command, Command::Conduitos(_)));
+        let conduitos =
+            Cli::try_parse_from(["xtask", "make", "conduitos", "prove", "--arch", "x86-64"])
+                .expect("ConduitOS command parses");
+        assert!(matches!(
+            conduitos.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Conduitos(_)
+            })
+        ));
 
         let conduitos_evidence = Cli::try_parse_from([
             "xtask",
+            "make",
             "conduitos",
             "prove",
             "--arch",
@@ -710,16 +897,34 @@ mod tests {
             "target/conduit-evidence/conduitos-x86_64",
         ])
         .expect("ConduitOS evidence command parses");
-        assert!(matches!(conduitos_evidence.command, Command::Conduitos(_)));
+        assert!(matches!(
+            conduitos_evidence.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Conduitos(_)
+            })
+        ));
 
-        let audio = Cli::try_parse_from(["xtask", "audio", "list"])
-            .expect("audio discovery command parses");
-        assert!(matches!(audio.command, Command::Audio(_)));
+        let audio =
+            Cli::try_parse_from(["xtask", "doctor", "audio"]).expect("audio inspection parses");
+        assert!(matches!(
+            audio.command,
+            Command::Doctor(DoctorArgs {
+                target: DoctorTarget::Audio
+            })
+        ));
         let midi =
-            Cli::try_parse_from(["xtask", "midi", "list"]).expect("MIDI discovery command parses");
-        assert!(matches!(midi.command, Command::Midi(_)));
+            Cli::try_parse_from(["xtask", "doctor", "midi"]).expect("MIDI inspection parses");
+        assert!(matches!(
+            midi.command,
+            Command::Doctor(DoctorArgs {
+                target: DoctorTarget::Midi
+            })
+        ));
+        assert!(Cli::try_parse_from(["xtask", "audio", "list"]).is_err());
+        assert!(Cli::try_parse_from(["xtask", "midi", "list"]).is_err());
         let pete = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-observe",
             "--serial-path",
@@ -734,12 +939,16 @@ mod tests {
             "target/pete-observation.json",
         ])
         .expect("explicit std Create observation entrance parses");
-        assert!(matches!(pete.command, Command::Pete(_)));
-        let pete_workload = Cli::try_parse_from(["xtask", "pete", "workload-check"])
+        assert!(matches!(
+            pete.command,
+            Command::Prove(args) if matches!(args.command, Some(ProveCommand::Pete(_)))
+        ));
+        let pete_workload = Cli::try_parse_from(["xtask", "check", "pete"])
             .expect("non-actuating Pete workload check entrance parses");
-        assert!(matches!(pete_workload.command, Command::Pete(_)));
+        assert!(matches!(pete_workload.command, Command::Check(_)));
         let pete_speaker = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-speaker",
             "--serial-path",
@@ -757,9 +966,10 @@ mod tests {
             "target/pete-speaker.json",
         ])
         .expect("explicit std Create speaker entrance parses");
-        assert!(matches!(pete_speaker.command, Command::Pete(_)));
+        assert!(matches!(pete_speaker.command, Command::Prove(_)));
         let pete_indicator = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-indicator",
             "--serial-path",
@@ -777,9 +987,10 @@ mod tests {
             "target/pete-indicator.json",
         ])
         .expect("explicit std Create indicator entrance parses");
-        assert!(matches!(pete_indicator.command, Command::Pete(_)));
+        assert!(matches!(pete_indicator.command, Command::Prove(_)));
         let pete_drive = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-drive",
             "--serial-path",
@@ -798,11 +1009,12 @@ mod tests {
             "target/pete-drive.json",
         ])
         .expect("explicit std Create bounded drive entrance parses");
-        assert!(matches!(pete_drive.command, Command::Pete(_)));
+        assert!(matches!(pete_drive.command, Command::Prove(_)));
+        assert!(Cli::try_parse_from(["xtask", "pete", "workload-check"]).is_err());
         assert!(Cli::try_parse_from([
             "xtask",
-            "audio",
-            "playback-proof",
+            "prove",
+            "audio-playback",
             "--card-id",
             "PCH",
             "--device",
@@ -811,8 +1023,8 @@ mod tests {
         .is_err());
         Cli::try_parse_from([
             "xtask",
-            "audio",
-            "playback-proof",
+            "prove",
+            "audio-playback",
             "--card-id",
             "PCH",
             "--device",
@@ -820,5 +1032,20 @@ mod tests {
             "--authorize-output",
         ])
         .expect("audio proof requires explicit output authority");
+
+        let cue = Cli::try_parse_from([
+            "xtask",
+            "make",
+            "startup-cue",
+            "--output",
+            "target/startup.wav",
+        ])
+        .expect("startup cue make parses");
+        assert!(matches!(
+            cue.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::StartupCue(_)
+            })
+        ));
     }
 }

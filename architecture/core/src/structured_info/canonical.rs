@@ -11,6 +11,10 @@ use super::{
 pub(super) fn type_extent(value: &StructuredInfoType) -> (usize, usize) {
     match &value.0 {
         StructuredInfoTypeNode::Leaf(_) => (1, 1),
+        StructuredInfoTypeNode::Nominal { representation, .. } => {
+            let (depth, nodes) = type_extent(representation);
+            (depth + 1, nodes + 1)
+        }
         StructuredInfoTypeNode::Collection { element, .. } => {
             let (depth, nodes) = type_extent(element);
             (depth + 1, nodes + 1)
@@ -66,14 +70,27 @@ pub(super) fn encode_type(value: &StructuredInfoType, out: &mut Vec<u8>) {
             out.push(0);
             encode_text(kind.as_str(), out);
         }
+        StructuredInfoTypeNode::Nominal {
+            schema,
+            representation,
+        } => {
+            out.push(5);
+            encode_text(schema.as_str(), out);
+            encode_type(representation, out);
+        }
         StructuredInfoTypeNode::Collection { element, length } => {
             out.push(1);
             out.extend_from_slice(&length.to_le_bytes());
             encode_type(element, out);
         }
-        StructuredInfoTypeNode::Sequence { element, capacity } => {
+        StructuredInfoTypeNode::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+        } => {
             out.push(4);
-            out.extend_from_slice(&capacity.to_le_bytes());
+            out.extend_from_slice(&minimum_items.to_le_bytes());
+            out.extend_from_slice(&maximum_items.to_le_bytes());
             encode_type(element, out);
         }
         StructuredInfoTypeNode::Record { schema, fields } => {
@@ -184,12 +201,18 @@ fn decode_type_node(
             StructuredInfoType::variant(schema, cases)
         }
         4 => {
-            let capacity = cursor.u16()?;
-            StructuredInfoType::sequence(
+            let minimum_items = cursor.u16()?;
+            let maximum_items = cursor.u16()?;
+            StructuredInfoType::bounded_sequence(
                 decode_type_node(cursor, depth + 1, remaining_nodes)?,
-                capacity,
+                minimum_items,
+                maximum_items,
             )
         }
+        5 => StructuredInfoType::nominal(
+            crate::KindId::from(cursor.text()?),
+            decode_type_node(cursor, depth + 1, remaining_nodes)?,
+        ),
         _ => Err(StructuredInfoRefusal::MalformedCanonicalEncoding),
     }
 }
@@ -216,6 +239,9 @@ fn validate_value_node(
     expected: &StructuredInfoType,
     cursor: &mut Cursor<'_>,
 ) -> Result<(), StructuredInfoRefusal> {
+    if let super::StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
+        return validate_value_node(representation, cursor);
+    }
     match (expected.shape(), cursor.byte()?) {
         (super::StructuredInfoTypeShape::Leaf(kind), 0) => {
             crate::validate_primitive_info(kind.as_str(), cursor.bytes()?)
@@ -229,9 +255,16 @@ fn validate_value_node(
                 validate_value_node(element, cursor)?;
             }
         }
-        (super::StructuredInfoTypeShape::Sequence { element, capacity }, 1) => {
+        (
+            super::StructuredInfoTypeShape::Sequence {
+                element,
+                minimum_items,
+                maximum_items,
+            },
+            1,
+        ) => {
             let length = cursor.length()?;
-            if length > usize::from(capacity) {
+            if length < usize::from(minimum_items) || length > usize::from(maximum_items) {
                 return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
             }
             for _ in 0..length {
@@ -266,6 +299,10 @@ fn decode_value_node(
     expected: &StructuredInfoType,
     cursor: &mut Cursor<'_>,
 ) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
+    if let super::StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
+        let representation_value = decode_value_node(representation, cursor)?;
+        return StructuredInfoValue::nominal(expected.clone(), representation_value);
+    }
     match (expected.shape(), cursor.byte()?) {
         (super::StructuredInfoTypeShape::Leaf(_), 0) => {
             StructuredInfoValue::leaf(expected.clone(), cursor.bytes()?.to_vec())
@@ -280,9 +317,16 @@ fn decode_value_node(
             }
             StructuredInfoValue::collection(expected.clone(), values)
         }
-        (super::StructuredInfoTypeShape::Sequence { element, capacity }, 1) => {
+        (
+            super::StructuredInfoTypeShape::Sequence {
+                element,
+                minimum_items,
+                maximum_items,
+            },
+            1,
+        ) => {
             let length = cursor.length()?;
-            if length > usize::from(capacity) {
+            if length < usize::from(minimum_items) || length > usize::from(maximum_items) {
                 return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
             }
             let mut values = Vec::with_capacity(length);

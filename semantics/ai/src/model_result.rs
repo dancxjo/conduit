@@ -1,41 +1,13 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
-use crate::{LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelResultProvenance {
-    ModelDerived,
-}
+use crate::{
+    LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome, ModelResultDisposition,
+    ModelResultInvalidity, ModelResultProvenance,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfidencePermille(pub u16);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelRefusal {
-    UnsupportedRequest,
-    PolicyDenied,
-    ContextUnavailable,
-    CapacityUnavailable,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelFailure {
-    MalformedResult,
-    ImplementationFailure,
-    ResourceExhausted,
-    OutputBoundExceeded,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelResultDisposition {
-    Produced,
-    Truncated,
-    Refused(ModelRefusal),
-    Failed(ModelFailure),
-    Cancelled,
-    ProviderLost,
-}
 
 impl ModelResultDisposition {
     pub const fn terminal_outcome(self) -> LlmTerminalOutcome {
@@ -71,21 +43,6 @@ pub struct ModelDerivedResult {
     pub disposition: ModelResultDisposition,
     pub determinism: LlmDeterminismProfile,
     pub accounting: ModelWorkAccounting,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelResultInvalidity {
-    MissingExactIdentity,
-    UnsupportedPayloadKind,
-    InvalidConfidence,
-    InputBoundExceeded,
-    ContextBoundExceeded,
-    OutputBoundExceeded,
-    WorkBoundExceeded,
-    HistoryBoundExceeded,
-    PayloadLengthMismatch,
-    TerminalPayloadPresent,
-    ProducedPayloadMissing,
 }
 
 impl ModelDerivedResult {

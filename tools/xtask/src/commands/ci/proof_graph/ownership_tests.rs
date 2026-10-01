@@ -25,18 +25,18 @@ fn support_root_moves_invalidate_receipts_without_rejecting_the_new_owners() {
         ),
         (
             "scripts/ci/stage-tour-product.sh",
-            "products/tour/tools/stage-tour-product.sh",
-            "browser.tour",
+            "products/creche/tools/stage-creche-product.sh",
+            "products.pages-carrier",
         ),
         (
             "package.json",
             "proof/browser/package.json",
-            "browser.patchbay-debugger",
+            "products.pages-carrier",
         ),
         (
             "package-lock.json",
             "proof/browser/package-lock.json",
-            "browser.patchbay-debugger",
+            "products.pages-carrier",
         ),
         (
             "profiles/hosts/std.profile.json",
@@ -83,10 +83,10 @@ fn support_root_moves_invalidate_receipts_without_rejecting_the_new_owners() {
 #[test]
 fn deleting_an_implementation_invalidates_evidence_instead_of_inheriting_success() {
     let repo = repository_with_required_domains();
-    let path = "products/tour/tools/stage-tour-product.sh";
+    let path = "products/creche/tools/stage-creche-product.sh";
     repo.write(path, "implementation");
     let before = repo.commit("implementation present");
-    let proof = spec("browser.tour");
+    let proof = spec("products.pages-carrier");
     let before_digest = fingerprint(&repo.root, &before, proof).unwrap();
     fs::remove_file(repo.root.join(path)).unwrap();
     let after = repo.commit("implementation removed");

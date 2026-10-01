@@ -8,3 +8,7 @@ conduit-assigned-plan = { path = "../assigned-plan", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 sha2 = { version = "0.10", default-features = false }
 libm = "0.2"
+
+[dev-dependencies]
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+serde_json = "1"

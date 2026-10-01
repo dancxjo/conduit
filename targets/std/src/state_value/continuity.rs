@@ -1,5 +1,5 @@
 //! Consuming handoff of typed State between exact prepared executions.
-use super::TypedStateBack;
+use super::{StateValueValidator, TypedStateBack};
 use conduit_core::{
     bind_active_play, verify_plan_fragment, ActivePlayIdentity, FormIdentity, PlanFragment,
     PlannedGear, RetainedStateProvenance,
@@ -12,14 +12,14 @@ pub(super) struct StateExecutionBinding {
     play: ActivePlayIdentity,
     state: conduit_core::StateId,
     value_kind: conduit_core::KindId,
-    initial_value: Vec<u8>,
+    initial_value: Option<Vec<u8>>,
 }
 
 /// Private owned cell, never a cloneable serialized checkpoint.
 pub struct RetainedTypedState {
-    cell: StateDelay<64>,
+    cell: StateDelay<100>,
     provenance: RetainedStateProvenance,
-    initial_value: Vec<u8>,
+    initial_value: Option<Vec<u8>>,
 }
 
 /// Refusal preserves ownership; the lifecycle owner decides what happens next.
@@ -94,13 +94,7 @@ impl TypedStateBack {
         state: &LoweredState,
         play: &ActivePlayIdentity,
         source: &RetainedTypedState,
-    ) -> Result<
-        (
-            StateExecutionBinding,
-            conduit_core::PreparedStructuredValueValidator,
-        ),
-        String,
-    > {
+    ) -> Result<(StateExecutionBinding, StateValueValidator), String> {
         let (placement, binding) = bind(fragment, state, play)?;
         if binding.form != source.provenance.source_form
             || state.contract.initial_value != source.initial_value
@@ -132,7 +126,7 @@ impl TypedStateBack {
         };
         let (cell, _) = match source
             .cell
-            .try_transfer::<64>(state.slot, state.contract.maximum_value_bytes as usize)
+            .try_transfer::<100>(state.slot, state.contract.maximum_value_bytes as usize)
         {
             Ok(transferred) => transferred,
             Err(refused) => {
@@ -155,7 +149,7 @@ impl TypedStateBack {
     }
 }
 
-fn bind<'a>(
+pub(super) fn bind<'a>(
     fragment: &'a PlanFragment,
     state: &LoweredState,
     play: &ActivePlayIdentity,

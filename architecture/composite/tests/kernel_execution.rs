@@ -1,12 +1,13 @@
 use conduit_composite::{
+    BoundedActivationAdmission, BoundedActivationHost, BoundedActivationState,
     KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost, KernelCompositeStatus,
     KernelOperationBudget, KernelOperationFactory, KernelOperationRegistry,
 };
 use conduit_core::{
     kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, FailureReason, GearId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor,
-    PortDirection, ValuePayload, PROTOCOL_VERSION,
+    CapabilityLimits, FailureReason, GearId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor, PortDirection,
+    ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
@@ -25,6 +26,7 @@ fn descriptor(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(VALUE_KIND),
         direction,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -52,7 +54,8 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: Default::default(),
             startup_parameters: vec![],
             shorthand: None,
             capability_id: CapabilityId::from("echo"),
@@ -409,4 +412,121 @@ fn cancellation_is_terminal_and_rejects_late_kernel_work() {
         host.admit_input(&conduit_core::port_id("input"), 0, &value(b"late")),
         Err(KernelCompositeError::InvalidLifecycle)
     ));
+}
+
+#[test]
+fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
+    let mut activations = BoundedActivationHost::prepare(
+        definition(),
+        &registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    assert_eq!(activations.contract().maximum_active, 1);
+    assert_eq!(activations.contract().maximum_queue_items, 1);
+    assert_eq!(activations.contract().input_value_kind, kind_id(VALUE_KIND));
+    assert_eq!(activations.contract().input_abnormal_kind, None);
+    assert_eq!(
+        activations.contract().output_value_kind,
+        kind_id(VALUE_KIND)
+    );
+    assert_eq!(activations.contract().output_abnormal_kind, None);
+
+    assert_eq!(
+        activations.activate(7, &value(b"first")).unwrap(),
+        BoundedActivationAdmission::Accepted { sequence: 7 }
+    );
+    assert_eq!(
+        activations.activate(8, &value(b"second")).unwrap(),
+        BoundedActivationAdmission::Full { sequence: 8 }
+    );
+    for _ in 0..64 {
+        activations.step().unwrap();
+        if let Some((sequence, output)) = activations.output().unwrap() {
+            assert_eq!((sequence, output), (7, value(b"first")));
+            activations.complete_output(sequence).unwrap();
+            break;
+        }
+    }
+    for _ in 0..64 {
+        if matches!(
+            activations.step().unwrap(),
+            BoundedActivationState::Succeeded { sequence: 7 }
+        ) {
+            break;
+        }
+    }
+    assert_eq!(
+        activations.activate(8, &value(b"second")).unwrap(),
+        BoundedActivationAdmission::Accepted { sequence: 8 }
+    );
+}
+
+#[test]
+fn bounded_activation_fault_and_cancellation_are_not_success() {
+    let mut failed = BoundedActivationHost::prepare(
+        definition(),
+        &failing_registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    failed.activate(3, &value(b"fault")).unwrap();
+    assert!(matches!(
+        failed.step().unwrap(),
+        BoundedActivationState::Faulted { sequence: 3, .. }
+    ));
+
+    let mut cancelled = BoundedActivationHost::prepare(
+        definition(),
+        &registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    cancelled.activate(4, &value(b"cancel")).unwrap();
+    cancelled.cancel().unwrap();
+    assert_eq!(
+        cancelled.state(),
+        &BoundedActivationState::Cancelled { sequence: Some(4) }
+    );
+}
+
+#[test]
+fn bounded_activation_drains_one_owed_value_before_normal_close() {
+    let mut each = BoundedActivationHost::prepare(
+        definition(),
+        &registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    assert_eq!(
+        each.activate(11, &value(b"owed")).unwrap(),
+        BoundedActivationAdmission::Accepted { sequence: 11 }
+    );
+    each.close_input().unwrap();
+    assert_eq!(
+        each.activate(12, &value(b"late")),
+        Err(conduit_composite::BoundedActivationError::InvalidLifecycle)
+    );
+
+    for _ in 0..64 {
+        each.step().unwrap();
+        if let Some((sequence, output)) = each.output().unwrap() {
+            assert_eq!((sequence, output), (11, value(b"owed")));
+            each.complete_output(sequence).unwrap();
+            break;
+        }
+    }
+    for _ in 0..64 {
+        if matches!(
+            each.step().unwrap(),
+            BoundedActivationState::Succeeded { sequence: 11 }
+        ) {
+            break;
+        }
+    }
+    assert_eq!(each.step().unwrap(), &BoundedActivationState::Drained);
 }

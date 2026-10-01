@@ -72,7 +72,7 @@ fn workload_results(
                     &path,
                     Some(identities),
                     "unavailable",
-                    "declared combined deterministic oracle is available through cargo xtask forms run --deterministic",
+                    "declared combined deterministic oracle is available through cargo xtask check forms run --deterministic",
                 )
             })
             .collect();

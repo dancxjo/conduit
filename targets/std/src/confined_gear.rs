@@ -325,17 +325,20 @@ fn effect_call<P: ConfinedBaseProvider>(
         }
     };
     match caller.data_mut().provider.call(&request[..length]) {
-        Ok(result_bytes) => match caller
-            .data_mut()
-            .authority
-            .as_mut()
-            .expect("authority existed for lease")
-            .table
-            .complete(lease, result_bytes)
-        {
-            Ok(()) => 0,
-            Err(refusal) => fail(caller, ConfinedRefusal::Capability(refusal)),
-        },
+        Ok(result_bytes) => {
+            let authority = caller
+                .data_mut()
+                .authority
+                .as_mut()
+                .expect("authority existed for lease");
+            match authority
+                .table
+                .complete(&mut authority.handle, lease, result_bytes)
+            {
+                Ok(()) => 0,
+                Err(refusal) => fail(caller, ConfinedRefusal::Capability(refusal)),
+            }
+        }
         Err(refusal) => fail(caller, ConfinedRefusal::BaseRefused(refusal)),
     }
 }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const OBLIGATION_SCHEMA_VERSION: u16 = 1;
-pub const SPECIMEN_COMMAND: &str = "cargo xtask proofs --json";
+pub const SPECIMEN_COMMAND: &str = "cargo xtask --json prove --list";
 pub const SPECIMEN_TOOL: &str = "cargo-xtask";
 pub const SPECIMEN_PROFILE: &str = "conduit.repo/proof-catalog-validation@1";
 pub const SPECIMEN_ARTIFACT: &str = "tools/xtask/src/proof.rs";

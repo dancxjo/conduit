@@ -29,14 +29,12 @@ impl Content {
         &mut self,
         identity: String,
         role: PresentationRole,
-        label: impl Into<String>,
-        accessibility_name: impl Into<String>,
+        name: impl Into<String>,
     ) {
         self.subjects.push(PresentationSubject {
             identity,
             role,
-            label: label.into(),
-            accessibility_name: accessibility_name.into(),
+            name: name.into(),
         });
     }
 

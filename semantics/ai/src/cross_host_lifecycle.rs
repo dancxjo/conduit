@@ -7,16 +7,7 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmInterruptionReason {
-    ModelProviderLost,
-    PartOrLineLost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmPlanningRefusal {
-    MissingLlmRealization,
-}
+use crate::{LlmInterruptionReason, LlmPlanningRefusal};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LlmRealizationPart {
@@ -91,7 +82,7 @@ impl CrossHostLlmRun {
         if !plan
             .realization_backs
             .iter()
-            .any(|back| back.kind_id.as_str() == crate::GENERATE_TEXT_KIND)
+            .any(|back| back.kind_id.as_str() == crate::LLM_GENERATE_KIND)
         {
             return Err(CrossHostLlmError::MissingProviderBack);
         }

@@ -71,6 +71,10 @@ pub(crate) fn catalogs_for_presentation(
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
     conduit_presentation::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
+    // Reviewed Forms are checked before realization eligibility is known. Keep
+    // the canonical retained-State contract available to the checker even
+    // though this browser profile does not currently offer its Back.
+    conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timed_button_attempt_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile)?;
@@ -103,7 +107,6 @@ pub(crate) fn catalogs_for_presentation(
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
-    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
@@ -112,6 +115,9 @@ pub(crate) fn catalogs_for_presentation(
         &mut startup,
         &mut profile,
     )?;
+    // This Host has no eligible audio/tone Back, but reviewed Forms must still
+    // check against its portable semantic contract before planning refuses.
+    conduit_semantic_catalog::install_audio_tone_catalog(&mut startup, &mut profile)?;
     startup.insert_value_kind_alias(
         "PcmFrames",
         conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
@@ -170,6 +176,60 @@ pub(crate) fn install_checked_structured_selectors(
         }
     }
     Ok(offers)
+}
+
+pub(crate) fn offers_for_expanded_pure_expressions(
+    expanded: &conduit_form::ExpandedCanonicalForm,
+) -> Result<Vec<CapabilityOffer>, String> {
+    let mut offers = Vec::new();
+    for gear in &expanded.gears {
+        if !matches!(
+            gear.kind_contract_revision.as_str(),
+            conduit_form::PURE_EXPRESSION_REVISION | conduit_form::PURE_FILTER_REVISION
+        ) {
+            continue;
+        }
+        let program = super::pure_expression::program_from_configuration(&gear.configuration)?;
+        let temporal = gear
+            .inputs
+            .first()
+            .map(|port| port.temporal)
+            .ok_or("expanded pure expression input is absent")?;
+        let offer = if gear.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+            super::pure_expression::filter_offer(&program, temporal)?
+        } else {
+            super::pure_expression::offer(&program, temporal)?
+        };
+        if !offers
+            .iter()
+            .any(|current: &CapabilityOffer| current.kind_id == offer.kind_id)
+        {
+            offers.push(offer);
+        }
+    }
+    Ok(offers)
+}
+
+pub(crate) fn offers_for_expanded_time_windows(
+    expanded: &conduit_form::ExpandedCanonicalForm,
+) -> Result<Vec<CapabilityOffer>, String> {
+    expanded
+        .gears
+        .iter()
+        .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::TIME_WINDOW_KIND)
+        .map(super::time_window::offer_for_expanded)
+        .collect()
+}
+
+pub(crate) fn offers_for_expanded_time_samples(
+    expanded: &conduit_form::ExpandedCanonicalForm,
+) -> Result<Vec<CapabilityOffer>, String> {
+    expanded
+        .gears
+        .iter()
+        .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::TIME_SAMPLE_KIND)
+        .map(super::time_sample::offer_for_expanded)
+        .collect()
 }
 
 pub(crate) fn backs(

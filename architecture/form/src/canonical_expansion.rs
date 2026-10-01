@@ -13,6 +13,7 @@ mod entry;
 mod graph;
 mod identity;
 mod literal;
+mod retained;
 mod shared_pool;
 mod structured_selector;
 pub use entry::{
@@ -30,34 +31,72 @@ struct Endpoint {
     port: PortDescriptor,
 }
 
+#[derive(Debug, Clone)]
+struct TrackedEndpoint {
+    endpoint: Endpoint,
+    track: conduit_core::ConnectionTrack,
+}
+
+impl TrackedEndpoint {
+    fn payload(endpoint: Endpoint) -> Self {
+        Self {
+            endpoint,
+            track: conduit_core::ConnectionTrack::Payload,
+        }
+    }
+}
+
+impl core::ops::Deref for TrackedEndpoint {
+    type Target = Endpoint;
+
+    fn deref(&self) -> &Self::Target {
+        &self.endpoint
+    }
+}
+
 #[derive(Debug)]
 struct Fragment {
     gears: Vec<CheckedGear>,
     connections: Vec<CheckedConnection>,
     shared_pools: Vec<ExpandedSharedPool>,
     provenance: Vec<ExpandedGearProvenance>,
-    inputs: BTreeMap<String, Vec<Endpoint>>,
-    outputs: BTreeMap<String, Endpoint>,
+    inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
+    outputs: BTreeMap<String, TrackedEndpoint>,
+    abnormal: Option<TrackedEndpoint>,
     shorthand: Option<(String, String)>,
 }
 
 #[derive(Debug)]
 struct Instance {
-    inputs: BTreeMap<String, Vec<Endpoint>>,
-    outputs: BTreeMap<String, Endpoint>,
+    inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
+    outputs: BTreeMap<String, TrackedEndpoint>,
+    abnormal: Option<TrackedEndpoint>,
     bare_ports: Option<(Option<String>, Option<String>)>,
+    terminal_transductions: Vec<conduit_core::TerminalTransductionProfile>,
 }
 
 #[derive(Debug, Clone)]
 enum StageSource {
-    Internal(Endpoint),
-    FaceInput(String, conduit_core::KindId, conduit_core::PortTemporal),
+    Internal(TrackedEndpoint),
+    FaceInput(
+        String,
+        conduit_core::KindId,
+        conduit_core::PortTemporal,
+        Option<conduit_core::KindId>,
+        conduit_core::ConnectionTrack,
+    ),
 }
 
 #[derive(Debug, Clone)]
 enum StageSink {
-    Internal(Endpoint),
-    FaceOutput(String, conduit_core::KindId, conduit_core::PortTemporal),
+    Internal(TrackedEndpoint),
+    FaceOutput(
+        String,
+        conduit_core::KindId,
+        conduit_core::PortTemporal,
+        Option<conduit_core::KindId>,
+        conduit_core::ConnectionTrack,
+    ),
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +109,7 @@ struct Stage {
 fn expand_instance(
     form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -96,6 +136,7 @@ fn expand_instance(
     let result = expand_instance_inner(
         form,
         forms,
+        structured_types,
         catalog,
         backs,
         environment,
@@ -112,6 +153,7 @@ fn expand_instance(
 fn expand_instance_inner(
     form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -132,9 +174,11 @@ fn expand_instance_inner(
         let name = gear.name.as_deref().expect("named gears were filtered");
         let instance = instantiate_gear(
             gear,
+            None,
             name,
             form,
             forms,
+            structured_types,
             catalog,
             backs,
             environment,
@@ -163,6 +207,108 @@ fn expand_instance_inner(
                 CheckedCordStage::Reference(reference) => structured_selector::PendingStage::Ready(
                     resolve_reference(reference, &instances, &front_ports)?,
                 ),
+                CheckedCordStage::RelationalGear {
+                    operands,
+                    gear,
+                    input_ports,
+                    output_port,
+                } => {
+                    let key = inline_key(gear);
+                    let count = anonymous_counts.entry(key.clone()).or_default();
+                    let name = format!("inline-{}-{count}", &hash_string(&key)[..12]);
+                    *count += 1;
+                    let instance = instantiate_gear(
+                        gear,
+                        Some(operands.len()),
+                        &name,
+                        form,
+                        forms,
+                        structured_types,
+                        catalog,
+                        backs,
+                        environment,
+                        path,
+                        stack,
+                        realization_backs,
+                        depth,
+                        &mut gears,
+                        &mut connections,
+                        &mut shared_pools,
+                        &mut provenance,
+                        &mut gear_ids,
+                    )?;
+                    for (operand, input_port) in operands.iter().zip(input_ports) {
+                        let source = resolve_reference(operand, &instances, &front_ports)?
+                            .output
+                            .ok_or_else(|| {
+                                CanonicalExpansionDiagnostic::new(
+                                    "CND-FRM-036",
+                                    format!("glyph operand '{operand}' has no output"),
+                                )
+                            })?;
+                        let sinks = instance.inputs.get(input_port).ok_or_else(|| {
+                            CanonicalExpansionDiagnostic::new(
+                                "CND-FRM-043",
+                                format!(
+                                    "glyph Gear '{}' has no checked input port '{}'",
+                                    gear.kind, input_port
+                                ),
+                            )
+                        })?;
+                        for sink in sinks {
+                            connect(
+                                source.clone(),
+                                StageSink::Internal(sink.clone()),
+                                &mut connections,
+                                &mut inputs,
+                                &mut outputs,
+                            )?;
+                        }
+                    }
+                    let output = instance.outputs.get(output_port).cloned().ok_or_else(|| {
+                        CanonicalExpansionDiagnostic::new(
+                            "CND-FRM-043",
+                            format!(
+                                "glyph Gear '{}' has no checked output port '{}'",
+                                gear.kind, output_port
+                            ),
+                        )
+                    })?;
+                    structured_selector::PendingStage::Ready(Stage {
+                        input: None,
+                        output: Some(StageSource::Internal(output)),
+                    })
+                }
+                CheckedCordStage::TerminalProjection {
+                    endpoint,
+                    terminal,
+                    source_span,
+                } => structured_selector::PendingStage::Ready(project_terminal(
+                    resolve_terminal_reference(endpoint, *terminal, &instances, &front_ports)?,
+                    *terminal,
+                    *source_span,
+                )?),
+                CheckedCordStage::Cancellation { gear, source_span } => {
+                    structured_selector::PendingStage::Ready(cancellation_sink(
+                        gear,
+                        &instances,
+                        *source_span,
+                    )?)
+                }
+                CheckedCordStage::When {
+                    expression,
+                    source_span,
+                } => structured_selector::PendingStage::When {
+                    expression: expression.clone(),
+                    source_span: *source_span,
+                },
+                CheckedCordStage::PureExpression {
+                    expression,
+                    source_span,
+                } => structured_selector::PendingStage::Expression {
+                    expression: expression.clone(),
+                    source_span: *source_span,
+                },
                 CheckedCordStage::InlineGear(gear) => {
                     let key = inline_key(gear);
                     let count = anonymous_counts.entry(key.clone()).or_default();
@@ -170,9 +316,11 @@ fn expand_instance_inner(
                     *count += 1;
                     let instance = instantiate_gear(
                         gear,
+                        None,
                         &name,
                         form,
                         forms,
+                        structured_types,
                         catalog,
                         backs,
                         environment,
@@ -196,6 +344,7 @@ fn expand_instance_inner(
                         *source_span,
                         form,
                         forms,
+                        structured_types,
                         catalog,
                         backs,
                         environment,
@@ -224,6 +373,7 @@ fn expand_instance_inner(
             pending,
             form,
             forms,
+            structured_types,
             catalog,
             backs,
             environment,
@@ -274,6 +424,7 @@ fn expand_instance_inner(
             ));
         }
     }
+    let abnormal = infer_abnormal_export(&gears, &connections)?;
     Ok(Fragment {
         gears,
         connections,
@@ -281,6 +432,7 @@ fn expand_instance_inner(
         provenance,
         inputs,
         outputs,
+        abnormal,
         shorthand: form.shorthand.clone(),
     })
 }
@@ -288,9 +440,11 @@ fn expand_instance_inner(
 #[allow(clippy::too_many_arguments)]
 fn instantiate_gear(
     gear: &CheckedCanonicalGear,
+    relational_input_arity: Option<usize>,
     instance_name: &str,
     source_form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -311,6 +465,7 @@ fn instantiate_gear(
         let fragment = expand_instance(
             child,
             forms,
+            structured_types,
             catalog,
             backs,
             &child_environment,
@@ -320,6 +475,7 @@ fn instantiate_gear(
             depth + 1,
         )?;
         gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
+        let abnormal = fragment.abnormal;
         gears.extend(fragment.gears);
         connections.extend(fragment.connections);
         shared_pools.extend(fragment.shared_pools);
@@ -327,25 +483,58 @@ fn instantiate_gear(
         return Ok(Instance {
             inputs: fragment.inputs,
             outputs: fragment.outputs,
+            abnormal,
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
+            terminal_transductions: Vec::new(),
         });
     }
 
     if let Some(retained) = gear.retained.as_deref() {
-        let value_kind = crate::value_type::canonical_value_kind(&retained.value_type.text);
+        let gear_id = GearId::from(child_path.join("/"));
+        if let Some((state, input, output)) =
+            retained::initialized_structured_state(retained, gear_id.clone())?
+        {
+            if !gear_ids.insert(gear_id.clone()) {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-038",
+                    format!("expanded gear path '{}' is not unique", gear_id.as_str()),
+                ));
+            }
+            gears.push(state);
+            provenance.push(ExpandedGearProvenance {
+                gear_id: gear_id.as_str().to_string(),
+                form_path: path.to_vec(),
+                source_form: source_form.name.clone(),
+                source_gear: instance_name.to_string(),
+                source_span: gear.source_span,
+            });
+            return Ok(Instance {
+                inputs: BTreeMap::from([(
+                    "next".to_string(),
+                    vec![TrackedEndpoint::payload(Endpoint {
+                        gear_id: gear_id.clone(),
+                        port: input,
+                    })],
+                )]),
+                outputs: BTreeMap::from([(
+                    "current".to_string(),
+                    TrackedEndpoint::payload(Endpoint {
+                        gear_id,
+                        port: output,
+                    }),
+                )]),
+                abnormal: None,
+                bare_ports: Some((Some("next".into()), Some("current".into()))),
+                terminal_transductions: Vec::new(),
+            });
+        }
+        let value_kind = retained.value_kind.clone();
         if matches!(
             value_kind.as_str(),
             conduit_core::DISTANCE_INFO_ID | conduit_core::FREQUENCY_INFO_ID
         ) {
-            if retained.optional {
-                return Err(CanonicalExpansionDiagnostic::new(
-                    "CND-FRM-041",
-                    "dimensioned KEEP optionality is not yet lowered; use a non-optional retained value"
-                        .into(),
-                ));
-            }
             let gear_id = GearId::from(child_path.join("/"));
             if !gear_ids.insert(gear_id.clone()) {
                 return Err(CanonicalExpansionDiagnostic::new(
@@ -389,34 +578,33 @@ fn instantiate_gear(
                     "CND-FRM-041",
                     format!(
                         "KEEP '{}' bound is smaller than its {}-byte canonical quantity encoding",
-                        retained.value_type.text,
+                        value_kind.as_str(),
                         conduit_core::QUANTITY_ENCODED_LEN
                     ),
                 ));
             }
             if let Some(initial) = retained.initial.as_ref() {
-                let quantity =
-                    conduit_core::Quantity::parse_form_literal(&initial.text).map_err(|_| {
-                        CanonicalExpansionDiagnostic::new(
-                            "CND-FRM-041",
-                            format!(
-                                "KEEP '{}' initializer '{}' is not an exact quantity literal",
-                                retained.value_type.text, initial.text
-                            ),
-                        )
-                    })?;
+                let CanonicalStartupValue::Quantity(quantity) = initial else {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        format!(
+                            "KEEP '{}' initializer is not an exact quantity literal",
+                            value_kind.as_str()
+                        ),
+                    ));
+                };
                 if quantity.dimension() != expected_dimension {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-040",
                         format!(
-                            "KEEP '{}' initializer '{}' has the wrong quantity dimension",
-                            retained.value_type.text, initial.text
+                            "KEEP '{}' initializer has the wrong quantity dimension",
+                            value_kind.as_str()
                         ),
                     ));
                 }
                 configuration.push(conduit_core::ConfigurationEntry {
                     key: "initial".into(),
-                    value: conduit_core::ConfigurationValue::Quantity(quantity),
+                    value: conduit_core::ConfigurationValue::Quantity(*quantity),
                 });
             }
             let input = PortDescriptor {
@@ -426,14 +614,16 @@ fn instantiate_gear(
                 // A retained declaration accepts each admitted value occurrence; upstream
                 // flow-to-value lifting remains explicit in the ordinary cord checker.
                 temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
             };
             let output = PortDescriptor {
                 port_id: conduit_core::port_id("out"),
                 value_kind: value_kind.clone(),
                 direction: conduit_core::PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Current,
+                abnormal_kind: None,
             };
-            gears.push(CheckedGear {
+            gears.push(crate::checked_gear_from_parts! {
                 gear_id: gear_id.clone(),
                 kind_id: KindId::from("state/latest"),
                 kind_contract_revision: conduit_core::KindIdentity::from(
@@ -443,6 +633,9 @@ fn instantiate_gear(
                 shorthand: Some((input.port_id.clone(), output.port_id.clone())),
                 inputs: vec![input.clone()],
                 outputs: vec![output.clone()],
+                semantic_contract: conduit_core::KindSemanticContract::default(),
+                terminal_transductions: Vec::new(),
+                resource_ports: Vec::new(),
                 configuration,
                 pool_references: Vec::new(),
             });
@@ -456,30 +649,61 @@ fn instantiate_gear(
             return Ok(Instance {
                 inputs: BTreeMap::from([(
                     "in".to_string(),
-                    vec![Endpoint {
+                    vec![TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port: input,
-                    }],
+                    })],
                 )]),
                 outputs: BTreeMap::from([(
                     "out".to_string(),
-                    Endpoint {
+                    TrackedEndpoint::payload(Endpoint {
                         gear_id,
                         port: output,
-                    },
+                    }),
                 )]),
+                abnormal: None,
                 bare_ports: Some((Some("in".into()), Some("out".into()))),
+                terminal_transductions: Vec::new(),
             });
         }
     }
 
     let kind_id = KindId::from(gear.kind.as_str());
-    let definition = catalog.get(&kind_id).ok_or_else(|| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-037",
-            format!("primitive gear '{}' has no planning contract", gear.kind),
-        )
-    })?;
+    let specialized_definition;
+    let definition = if let Some(input_count) = relational_input_arity {
+        specialized_definition = catalog
+            .projection_for_arity(&kind_id, input_count)
+            .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
+        specialized_definition.as_ref().ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-037",
+                format!("primitive gear '{}' has no planning contract", gear.kind),
+            )
+        })?
+    } else {
+        if catalog.is_homogeneous_variadic(&kind_id) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-043",
+                format!(
+                    "variadic Gear '{}' requires an exact relational operand count",
+                    gear.kind
+                ),
+            ));
+        }
+        catalog.get(&kind_id).ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-037",
+                format!("primitive gear '{}' has no planning contract", gear.kind),
+            )
+        })?
+    };
+    let semantic_kind = catalog
+        .canonical_kind_for_arity(&kind_id, relational_input_arity)
+        .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
+    let terminal_transductions = semantic_kind
+        .as_ref()
+        .map(|kind| kind.terminal_transductions().cloned().collect())
+        .unwrap_or_default();
     if let Some(back) = backs.get(&kind_id) {
         let mut selected = back.realization.clone();
         selected.invocation_path = child_path.join("/");
@@ -488,6 +712,7 @@ fn instantiate_gear(
         let fragment = expand_instance(
             &back.form,
             forms,
+            structured_types,
             catalog,
             backs,
             &child_environment,
@@ -497,6 +722,7 @@ fn instantiate_gear(
             depth + 1,
         )?;
         gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
+        let abnormal = fragment.abnormal;
         gears.extend(fragment.gears);
         connections.extend(fragment.connections);
         shared_pools.extend(fragment.shared_pools);
@@ -504,9 +730,11 @@ fn instantiate_gear(
         return Ok(Instance {
             inputs: fragment.inputs,
             outputs: fragment.outputs,
+            abnormal,
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
+            terminal_transductions,
         });
     }
     let gear_id = GearId::from(child_path.join("/"));
@@ -518,7 +746,7 @@ fn instantiate_gear(
     }
     let configuration = configuration(gear, environment, definition)?;
     let pool_references = pool_references(gear, environment)?;
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
@@ -529,6 +757,19 @@ fn instantiate_gear(
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
+        semantic_contract: semantic_kind
+            .as_ref()
+            .map(conduit_core::Kind::semantic_contract)
+            .unwrap_or_else(|| conduit_core::KindSemanticContract {
+                configuration: definition.configuration.clone(),
+                laws: Vec::new(),
+            }),
+        terminal_transductions: terminal_transductions.clone(),
+        resource_ports: semantic_kind
+            .as_ref()
+            .map(conduit_core::Kind::resource_ports)
+            .unwrap_or_default()
+            .to_vec(),
         configuration,
         pool_references,
     });
@@ -539,6 +780,18 @@ fn instantiate_gear(
         source_gear: instance_name.to_string(),
         source_span: gear.source_span,
     });
+    let abnormal = definition
+        .outputs
+        .iter()
+        .filter(|port| port.abnormal_kind.is_some())
+        .map(|port| TrackedEndpoint {
+            endpoint: Endpoint {
+                gear_id: gear_id.clone(),
+                port: port.clone(),
+            },
+            track: conduit_core::ConnectionTrack::AbnormalTerminal,
+        })
+        .collect::<Vec<_>>();
     Ok(Instance {
         inputs: definition
             .inputs
@@ -546,10 +799,10 @@ fn instantiate_gear(
             .map(|port| {
                 (
                     port.port_id.as_str().to_string(),
-                    vec![Endpoint {
+                    vec![TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port: port.clone(),
-                    }],
+                    })],
                 )
             })
             .collect(),
@@ -559,13 +812,14 @@ fn instantiate_gear(
             .map(|port| {
                 (
                     port.port_id.as_str().to_string(),
-                    Endpoint {
+                    TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port: port.clone(),
-                    },
+                    }),
                 )
             })
             .collect(),
+        abnormal: (abnormal.len() == 1).then(|| abnormal[0].clone()),
         bare_ports: if definition.inputs.len() <= 1 && definition.outputs.len() <= 1 {
             Some((
                 definition
@@ -580,6 +834,7 @@ fn instantiate_gear(
         } else {
             None
         },
+        terminal_transductions,
     })
 }
 
@@ -601,7 +856,7 @@ fn substitute(
     environment: &BTreeMap<String, CanonicalStartupValue>,
 ) -> Result<CanonicalStartupValue, CanonicalExpansionDiagnostic> {
     match value {
-        CanonicalStartupValue::Literal(_) => Ok(value.clone()),
+        CanonicalStartupValue::Literal(_) | CanonicalStartupValue::Quantity(_) => Ok(value.clone()),
         CanonicalStartupValue::Structured(value) if value.try_concrete().is_some() => {
             Ok(CanonicalStartupValue::Structured(value.clone()))
         }

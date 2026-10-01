@@ -269,7 +269,7 @@ fn exact_grid_stale_state_resource_bounds_and_unsupported_sde_refuse() {
     let mut sde = contract.clone();
     sde.profile = DynamicsProfile::Stochastic {
         profile: "ito/additive-gaussian".into(),
-        randomness: RandomnessProfile::ExplicitSeed(9),
+        randomness: RandomnessProfile::explicit_seed(9).unwrap(),
     };
     assert_eq!(
         sde.validate(),

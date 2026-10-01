@@ -205,7 +205,7 @@ fn local_action_label(action: &conduit_presentation::PresentationAction) -> Stri
     };
     format!(
         "{binding} {}{availability}",
-        action.label.to_ascii_uppercase()
+        action.name.to_ascii_uppercase()
     )
 }
 

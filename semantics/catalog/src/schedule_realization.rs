@@ -173,10 +173,10 @@ fn outcome_value(
     let (tag, payload) = match outcome {
         WorkflowTimingOutcome::Awaiting => ("awaiting", unit_value()?),
         WorkflowTimingOutcome::OnTime => ("on_time", unit_value()?),
-        WorkflowTimingOutcome::Late { lateness } => ("late", quantity(lateness)?),
+        WorkflowTimingOutcome::Late(late) => ("late", quantity(*late.lateness())?),
         WorkflowTimingOutcome::MissedWindow => ("missed_window", unit_value()?),
-        WorkflowTimingOutcome::ClockUncertain { uncertainty } => {
-            ("clock_uncertain", quantity(uncertainty)?)
+        WorkflowTimingOutcome::ClockUncertain(uncertain) => {
+            ("clock_uncertain", quantity(*uncertain.uncertainty())?)
         }
         WorkflowTimingOutcome::Failed => ("failed", unit_value()?),
         WorkflowTimingOutcome::Cancelled => ("cancelled", unit_value()?),

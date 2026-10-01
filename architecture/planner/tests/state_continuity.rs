@@ -45,7 +45,10 @@ fn explicit_capacity_upgrade_seals_same_form_and_preserves_fresh_boot_bindings()
         destination.fragments[0].placements
     );
     assert_eq!(replacement.fragments[0].states[0].retained, Some(retained));
-    assert_eq!(replacement.fragments[0].states[0].initial_value, vec![7]);
+    assert_eq!(
+        replacement.fragments[0].states[0].initial_value,
+        Some(vec![7])
+    );
     assert!(destination.fragments[0].states[0].retained.is_none());
 }
 
@@ -86,7 +89,7 @@ fn invented_source_bytes_generation_and_identity_refuse() {
 fn incompatible_initialization_and_specialization_are_not_capacity_upgrades() {
     let (source, destination, retained, mut approval) = candidates();
     let mut fragment = destination.fragments[0].clone();
-    fragment.states[0].initial_value = vec![8];
+    fragment.states[0].initial_value = Some(vec![8]);
     let changed = common::seal(fragment);
     approval.destination_plan = changed.plan_id.clone();
     assert_eq!(

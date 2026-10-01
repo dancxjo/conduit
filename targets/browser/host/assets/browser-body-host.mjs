@@ -56,7 +56,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
   if ([hostId, bootId].some(identity => typeof identity !== "string" || identity.length < 1 || identity.length > 256) ||
-      proposal?.schema !== "conduit.patchbay/body-execution-proposal@1" ||
+      proposal?.schema !== "conduit.body/execution-proposal@1" ||
       proposal.wake?.lifecycle !== "AwaitingPlan" || proposal.wake.plans.length !== 0 ||
       !Array.isArray(proposal.plan?.forms) || proposal.plan.forms.length < 1 || proposal.plan.forms.length > 16 ||
       !Array.isArray(externallyManagedPlanIds) || external.size !== externallyManagedPlanIds.length ||
@@ -310,8 +310,14 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (effect.effect_kind === "manifestation") {
       const output = slots.get(effect.placement_id);
       if (!output) throw new Error("browser presentation slot not acquired");
+      output.dataset.hostId = effect.host_id;
+      output.dataset.bootId = effect.boot_id;
+      output.dataset.bodyPlanId = started.play.plan_id;
       output.dataset.planId = effect.plan_id;
       output.dataset.activePlayId = effect.active_play_id;
+      output.dataset.placementId = effect.placement_id;
+      output.dataset.presentationId = effect.presentation_id;
+      output.dataset.observationSequence = effect.observation_sequence;
       output.dataset.presentationKind = effect.presentation_kind;
       if (effect.presentation_kind === "presentation/application-view" && Array.isArray(effect.application_view)) {
         const channel = applicationChannel(effect.checked_form_id);

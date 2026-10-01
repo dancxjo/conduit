@@ -81,6 +81,17 @@ pub struct Manifestation {
     pub signs: alloc::vec::Vec<ManifestationSign>,
 }
 
+/// Canonical presentation vocabulary for one finite realized occurrence.
+///
+/// The underlying Rust representation retains its historical name while the
+/// public Mask boundary and semantic value identity migrate to Show.
+pub type Show = Manifestation;
+pub type ShowId = ManifestationId;
+pub type ShowLifecycle = ManifestationLifecycle;
+pub type ShowFailure = ManifestationFailure;
+pub type ShowSign = ManifestationSign;
+pub type ShowError = ManifestationError;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ManifestationError {
     InvalidPresentation,
@@ -116,6 +127,51 @@ impl Manifestation {
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
         let placement = renderer_placement(plan, &placement_id)?;
+        Self::prepared_at_placement(
+            presentation,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    pub(crate) fn prepared_at_mask_form_boundary(
+        presentation: &Presentation,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement_id: PlacementId,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        presentation
+            .validate()
+            .map_err(|_| ManifestationError::InvalidPresentation)?;
+        let placement = planned_placement(plan, &placement_id)?;
+        Self::prepared_at_placement(
+            presentation,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepared_at_placement(
+        presentation: &Presentation,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement: &PlannedGear,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
         if active_play.plan_id != plan.plan_id
             || active_play.host_id != placement.host_id
             || active_play.boot_id != placement.boot_id
@@ -226,6 +282,29 @@ impl Manifestation {
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
         let placement = renderer_placement(plan, &self.placement_id)?;
+        self.validate_at_placement(presentation, plan, placement)?;
+        Ok(placement)
+    }
+
+    pub(crate) fn validate_against_mask_form<'a>(
+        &self,
+        presentation: &Presentation,
+        plan: &'a Plan,
+    ) -> Result<&'a PlannedGear, ManifestationError> {
+        presentation
+            .validate()
+            .map_err(|_| ManifestationError::InvalidPresentation)?;
+        let placement = planned_placement(plan, &self.placement_id)?;
+        self.validate_at_placement(presentation, plan, placement)?;
+        Ok(placement)
+    }
+
+    fn validate_at_placement(
+        &self,
+        presentation: &Presentation,
+        plan: &Plan,
+        placement: &PlannedGear,
+    ) -> Result<(), ManifestationError> {
         if self.body_id != presentation.basis.body_id
             || self.wake_id != presentation.basis.wake_id
             || self.presentation_id != presentation.identity
@@ -265,7 +344,7 @@ impl Manifestation {
         {
             return Err(ManifestationError::InvalidTransition);
         }
-        Ok(placement)
+        Ok(())
     }
 
     fn push_sign(&mut self, sign_id: SignId) {
@@ -344,6 +423,20 @@ pub(crate) fn renderer_placement<'a>(
     plan: &'a Plan,
     placement_id: &PlacementId,
 ) -> Result<&'a PlannedGear, ManifestationError> {
+    let placement = planned_placement(plan, placement_id)?;
+    if placement.kind_id.as_str() != RENDERER_KIND
+        || placement.inputs != crate::renderer_inputs()
+        || placement.outputs != crate::renderer_outputs()
+    {
+        return Err(ManifestationError::WrongRendererContract);
+    }
+    Ok(placement)
+}
+
+fn planned_placement<'a>(
+    plan: &'a Plan,
+    placement_id: &PlacementId,
+) -> Result<&'a PlannedGear, ManifestationError> {
     if !verify_plan(plan) {
         return Err(ManifestationError::InvalidPlan);
     }
@@ -353,12 +446,6 @@ pub(crate) fn renderer_placement<'a>(
         .flat_map(|fragment| &fragment.placements)
         .find(|placement| &placement.placement_id == placement_id)
         .ok_or(ManifestationError::MissingRendererPlacement)?;
-    if placement.kind_id.as_str() != RENDERER_KIND
-        || placement.inputs != crate::renderer_inputs()
-        || placement.outputs != crate::renderer_outputs()
-    {
-        return Err(ManifestationError::WrongRendererContract);
-    }
     Ok(placement)
 }
 
@@ -395,7 +482,7 @@ fn bind_manifestation(
 ) -> ManifestationId {
     let mut digest = Sha256::new();
     for value in [
-        "conduit.presentation/manifestation@1",
+        "conduit.presentation/show@1",
         presentation.as_str(),
         plan.as_str(),
         active_play.as_str(),

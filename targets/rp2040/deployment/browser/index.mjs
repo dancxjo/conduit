@@ -15,8 +15,8 @@ export {
 } from "./spawn.mjs";
 export {
   bindRp2040BodySpore,
-  createRp2040BrowserFabricationAdapter,
+  createRp2040BrowserMakeAdapter,
   readRp2040BodySpore,
-  RP2040_BROWSER_FABRICATION,
-  Rp2040FabricationRefusal,
-} from "./fabrication.mjs";
+  RP2040_BROWSER_MAKE,
+  Rp2040MakeRefusal,
+} from "./make.mjs";

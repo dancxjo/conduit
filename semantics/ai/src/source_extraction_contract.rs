@@ -5,9 +5,12 @@ use conduit_core::{
     kind_id, port_id, protected_resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     FrontStartupParameter, HostCallContractId, HostCallRequirement, ImplementationId,
-    ImplementationOffer, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    ImplementationOffer, Kind, KindConfigurationField, KindConfigurationRule, KindId, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
+
+use crate::SourceExtractionOfferInvalidity;
 
 pub const SOURCE_EXTRACTION_KIND: &str = "retrieval/extract-source";
 pub const SOURCE_EXTRACTION_REVISION: &str = "conduit.ai/extract-source@1";
@@ -43,12 +46,6 @@ pub struct SourceExtractionContract {
     pub maximum_chunks: u32,
     pub maximum_work_units: u32,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SourceExtractionOfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
 }
 
 pub fn source_extraction_contract() -> SourceExtractionContract {
@@ -107,7 +104,7 @@ pub fn deterministic_source_extraction_offer(
 ) -> Result<CapabilityOffer, SourceExtractionOfferInvalidity> {
     validate_process_identity(process_identity)?;
     let contract = source_extraction_contract();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters: source_extraction_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(
@@ -117,6 +114,7 @@ pub fn deterministic_source_extraction_offer(
         kind_contract_revision: contract.kind_contract_revision.clone(),
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
+        semantic_contract: source_extraction_semantic_contract().semantic_contract(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 DETERMINISTIC_EXTRACTION_EXECUTION_PROFILE,
@@ -137,6 +135,39 @@ pub fn deterministic_source_extraction_offer(
         }],
         limits: contract.limits,
     })
+}
+
+fn source_extraction_semantic_contract() -> Kind {
+    let contract = source_extraction_contract();
+    Kind {
+        startup_parameters: source_extraction_startup_parameters(),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: vec![
+            KindConfigurationField {
+                key: "profile".into(),
+                default_value: conduit_core::ConfigurationValue::Text("text-utf8".into()),
+                rule: KindConfigurationRule::TextOneOf {
+                    values: vec![
+                        "text-utf8".into(),
+                        "structured-items".into(),
+                        "resource-metadata".into(),
+                    ],
+                },
+            },
+            count_field("maximum-source-bytes", contract.maximum_source_bytes),
+            count_field("maximum-source-items", contract.maximum_source_items),
+            count_field("maximum-output-bytes", contract.maximum_output_bytes),
+            count_field("maximum-chunk-bytes", contract.maximum_chunk_bytes),
+            count_field("maximum-chunks", contract.maximum_chunks),
+            count_field("maximum-work-units", contract.maximum_work_units),
+        ],
+        semantic_laws: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 pub fn source_extraction_operation(contract: &SourceExtractionContract) -> HostCallRequirement {
@@ -167,6 +198,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -176,10 +208,7 @@ pub fn install_source_extraction_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     let contract = source_extraction_contract();
     startup.insert(KindSignature {
@@ -199,31 +228,7 @@ pub fn install_source_extraction_catalog(
         ],
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![
-                KindConfigurationField {
-                    key: "profile".into(),
-                    default_value: conduit_core::ConfigurationValue::Text("text-utf8".into()),
-                    rule: KindConfigurationRule::TextOneOf {
-                        values: vec![
-                            "text-utf8".into(),
-                            "structured-items".into(),
-                            "resource-metadata".into(),
-                        ],
-                    },
-                },
-                count_field("maximum-source-bytes", contract.maximum_source_bytes),
-                count_field("maximum-source-items", contract.maximum_source_items),
-                count_field("maximum-output-bytes", contract.maximum_output_bytes),
-                count_field("maximum-chunk-bytes", contract.maximum_chunk_bytes),
-                count_field("maximum-chunks", contract.maximum_chunks),
-                count_field("maximum-work-units", contract.maximum_work_units),
-            ],
-        })
+        .insert_kind(source_extraction_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -238,12 +243,11 @@ fn count_parameter(name: &str, maximum: u32) -> conduit_form::StartupParameterSi
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn count_field(name: &str, maximum: u32) -> conduit_form::KindConfigurationField {
-    conduit_form::KindConfigurationField {
+fn count_field(name: &str, maximum: u32) -> KindConfigurationField {
+    KindConfigurationField {
         key: name.into(),
         default_value: conduit_core::ConfigurationValue::U64(u64::from(maximum)),
-        rule: conduit_form::KindConfigurationRule::U64Range {
+        rule: KindConfigurationRule::U64Range {
             minimum: 1,
             maximum: u64::from(maximum),
         },

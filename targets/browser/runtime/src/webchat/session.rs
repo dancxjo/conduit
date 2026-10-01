@@ -1,20 +1,23 @@
 use super::BrowserChatBack;
 use conduit_core::{bind_active_play, BaseImplementationId, BootId, HostId};
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
+    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
 };
-use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, NodeSpec};
+use conduit_kernel::scheduler::{
+    CordSpec, FixedScheduler, HostCallRequest, NodeSpec, RemoteValueOffer,
+};
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
-    NodeId, PortId, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, KernelIdentityMap,
+    lower_plan_fragment, KernelExecutionIdentityMap, KernelIdentityMap, LoweredForePort,
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
-use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
-use conduit_presentation::{Manifestation, Presentation, PresentationInteractionLedger};
+use conduit_planner::{plan_expanded_authoring_with_options, PlanningOptions};
+use conduit_presentation::{
+    FaceInteractionArgument, FaceInteractionLedger, Presentation, PresentationBasis,
+};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -23,28 +26,27 @@ use std::fmt::Write as _;
 pub(super) struct InteractionFrame {
     pub(super) presentation_id: String,
     pub(super) presentation_revision: u64,
-    pub(super) manifestation_id: String,
-    pub(super) input_id: String,
+    pub(super) show_id: String,
     pub(super) action_id: String,
     pub(super) target: String,
-    pub(super) value_kind: String,
+    pub(super) arguments: Vec<FaceInteractionArgument>,
     pub(super) sequence: u64,
-    pub(super) value: String,
 }
 
 const SOURCE: &str = include_str!("../../../../../forms/webchat/main.conduit");
-const NODES: usize = 9;
-const CORDS: usize = 11;
+const NODES: usize = 6;
+const CORDS: usize = 8;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 44;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = CORDS;
-const ACTIVE_HOST_CALLS: usize = 12;
+const ACTIVE_HOST_CALLS: usize = 10;
 const HOST_BINDINGS: usize = NODES * 4;
 const PENDING_REQUESTS: usize = 8;
 const VALUE_ITEMS: u16 = 64;
 const VALUE_BYTES: u32 = 512 * 1024;
 const SIGN_ITEMS: u16 = 1_024;
+const REMOTE_SIGN_ITEMS: u16 = 32;
 const REQUEST_IDENTITIES: usize = 64;
 
 pub(super) type ChatScheduler = FixedScheduler<
@@ -77,7 +79,9 @@ pub(crate) struct BrowserChatSession {
     pub(super) lowered_identity: KernelIdentityMap,
     pub(super) identity: KernelExecutionIdentityMap,
     pub(super) current: Option<HostCallRequest>,
-    pub(super) parked_input: Option<HostCallRequest>,
+    pub(super) interaction_boundary: LoweredForePort,
+    pub(super) face_boundary: LoweredForePort,
+    pub(super) pending_face: Option<RemoteValueOffer>,
     pub(super) parked_receive: Option<HostCallRequest>,
     pub(super) complete: bool,
     pub(super) disconnected: bool,
@@ -86,12 +90,13 @@ pub(crate) struct BrowserChatSession {
     pub(super) value_capacity: (usize, usize),
     pub(super) identity_capacity: (usize, usize, usize),
     pub(super) chat_state: conduit_chat::ChatPresentationState,
-    pub(super) plan: conduit_core::Plan,
     pub(super) active_play: conduit_core::ActivePlayIdentity,
-    pub(super) renderer_placement: conduit_core::PlacementId,
     pub(super) presentation: Presentation,
-    pub(super) manifestation: Option<Manifestation>,
-    pub(super) interaction_ledger: PresentationInteractionLedger,
+    pub(super) body_id: conduit_body::BodyId,
+    pub(super) wake: conduit_body::Wake,
+    pub(super) body_plan: conduit_body::BodyPlan,
+    pub(super) mask: Option<crate::workspace_mask::BrowserMaskRuntime>,
+    pub(super) interaction_ledger: FaceInteractionLedger,
     pub(super) interaction_text: Vec<u8>,
     pub(super) evidence_text: Vec<u8>,
 }
@@ -99,7 +104,7 @@ pub(crate) struct BrowserChatSession {
 impl BrowserChatSession {
     #[cfg(test)]
     pub(crate) fn prepare(url: &str, host_id: HostId, boot_id: BootId) -> Result<Self, i32> {
-        Self::prepare_form(url, "webchat-browser-demo", host_id, boot_id)
+        Self::prepare_form(url, "chat/browser-client", host_id, boot_id)
     }
 
     pub(crate) fn prepare_form(
@@ -127,15 +132,47 @@ impl BrowserChatSession {
             .map_err(|_| -202)?;
         let checked =
             check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|_| -203)?;
-        let expanded = expand_canonical_form(&checked, form_name, &profile).map_err(|_| -204)?;
+        let authoring =
+            expand_canonical_form_for_authoring(&checked, form_name, &profile).map_err(|_| -204)?;
         let advertisement = super::catalog::advertisement(host_id, boot_id);
         let hosts = [advertisement.clone()];
-        let placements =
-            conduit_planner::default_expanded_placements(&expanded, &hosts).map_err(|_| -205)?;
+        let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
+            .map_err(|_| -205)?;
         let connection_bases = BTreeMap::new();
         let line_candidates = BTreeMap::new();
-        let plan = plan_expanded_canonical_with_options(
-            &expanded,
+        let boundary_limits = authoring
+            .front
+            .inputs()
+            .iter()
+            .map(|port| (conduit_core::PortDirection::Input, port))
+            .chain(
+                authoring
+                    .front
+                    .outputs()
+                    .iter()
+                    .map(|port| (conduit_core::PortDirection::Output, port)),
+            )
+            .map(|(direction, port)| {
+                (
+                    conduit_planner::ForeBoundaryKey {
+                        direction,
+                        front_port_id: port.port_id.clone(),
+                        track: conduit_core::ConnectionTrack::Payload,
+                    },
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: conduit_presentation::MAX_QUEUED_FACE_INTERACTIONS as u16,
+                        byte_capacity: if direction == conduit_core::PortDirection::Input {
+                            conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32
+                                * conduit_presentation::MAX_QUEUED_FACE_INTERACTIONS as u32
+                        } else {
+                            conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES as u32 * 2
+                        },
+                    },
+                )
+            })
+            .collect();
+        let plan = plan_expanded_authoring_with_options(
+            &authoring,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -148,11 +185,34 @@ impl BrowserChatSession {
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
+            &boundary_limits,
         )
         .map_err(|_| -206)?;
         let plan_record = plan.clone();
         let fragment = plan.fragments.into_iter().next().ok_or(-207)?;
+        let active_play =
+            bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         let lowered = lower_plan_fragment(&fragment).map_err(|_| -208)?;
+        let interaction_boundary = lowered
+            .fore_ports
+            .iter()
+            .find(|port| {
+                port.direction == conduit_core::PortDirection::Input
+                    && port.track == conduit_core::ConnectionTrack::Payload
+                    && port.front_port_id.as_str() == "interaction"
+            })
+            .cloned()
+            .ok_or(-208)?;
+        let face_boundary = lowered
+            .fore_ports
+            .iter()
+            .find(|port| {
+                port.direction == conduit_core::PortDirection::Output
+                    && port.track == conduit_core::ConnectionTrack::Payload
+                    && port.front_port_id.as_str() == "face"
+            })
+            .cloned()
+            .ok_or(-208)?;
         if lowered.nodes.len() != NODES
             || lowered.cords.len() != CORDS
             || lowered.cord_value_slots as usize > QUEUE_SLOTS
@@ -203,20 +263,48 @@ impl BrowserChatSession {
                 maximum_message_bytes: count("maximum-message-bytes")? as u32,
             })
             .map_err(|_| -212)?;
-        let presentation = chat_state.presentation().map_err(|_| -212)?;
-        let initial_presentation = serde_json::to_vec(&presentation).map_err(|_| -212)?;
+        let resident = conduit_body::ResidentForm::new(
+            fragment.source_document_id.clone(),
+            fragment.checked_form_id.clone(),
+        );
+        let born = conduit_body::Body::born(
+            resident.source_document_id.clone(),
+            resident.checked_form_id.clone(),
+            1,
+            conduit_core::SignId::from("sign/webchat-body-born"),
+        )
+        .map_err(|_| -212)?;
+        let body_id = born.body_id.clone();
+        let (_, wake) = born
+            .wake(1, conduit_core::SignId::from("sign/webchat-body-woke"))
+            .map_err(|_| -212)?;
+        let body_plan = conduit_body::BodyPlan::seal(
+            &wake,
+            vec![conduit_body::BodyFormPlan {
+                form: resident,
+                plan: plan_record.clone(),
+            }],
+        )
+        .map_err(|_| -212)?;
+        let presentation = chat_state
+            .presentation()
+            .map_err(|_| -212)?
+            .with_basis(PresentationBasis {
+                body_id: Some(body_id.clone()),
+                wake_id: Some(wake.wake_id.clone()),
+                source_document_id: Some(fragment.source_document_id.clone()),
+                checked_form_id: Some(fragment.checked_form_id.clone()),
+                expanded_form_id: Some(fragment.expanded_form_id.clone()),
+                plan_id: Some(fragment.plan_id.clone()),
+                active_play_id: Some(active_play.active_play_id.clone()),
+                sign_ids: vec![conduit_core::SignId::from("sign/webchat-face")],
+            })
+            .map_err(|_| -212)?;
         let mut backs = Vec::with_capacity(NODES);
         for node in &lowered.nodes {
             let placement = &fragment.placements[usize::from(node.node.0)];
             let back = match placement.kind_id.as_str() {
-                conduit_chat::CHAT_STATE_KIND => {
-                    BrowserChatBack::state(values.store(&initial_presentation).map_err(|_| -211)?)
-                }
-                conduit_presentation::PRESENTATION_TEE_KIND => BrowserChatBack::tee(),
-                conduit_presentation::RENDERER_KIND => BrowserChatBack::renderer(),
-                conduit_presentation::INTERACTION_KIND => {
-                    BrowserChatBack::interaction(values.store(&[]).map_err(|_| -211)?)
-                }
+                conduit_chat::CHAT_STATE_KIND => BrowserChatBack::state(),
                 conduit_chat::CHAT_SUBMIT_KIND => BrowserChatBack::submit(),
                 conduit_chat::CHAT_FROM_WEBSOCKET_KIND
                 | conduit_chat::CHAT_TO_WEBSOCKET_KIND
@@ -252,15 +340,7 @@ impl BrowserChatSession {
         };
         let mut node_specs = [inactive_node; NODES];
         node_specs.copy_from_slice(&lowered.node_specs);
-        let inactive_cord = CordSpec {
-            cord: CordId(u16::MAX),
-            source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            slot_start: u16::MAX,
-            item_capacity: 0,
-            byte_capacity: 0,
-            pressure_policy: Default::default(),
-        };
+        let inactive_cord = CordSpec::inactive();
         let mut cord_specs = [inactive_cord; CORDS];
         for (target, cord) in cord_specs.iter_mut().zip(&lowered.cords) {
             *target = cord.spec;
@@ -287,19 +367,19 @@ impl BrowserChatSession {
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or(-217)?;
-        let sign = HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|_| -217)?;
+        let remote_sign_bytes =
+            conduit_kernel::remote_sign_storage_bytes(REMOTE_SIGN_ITEMS).ok_or(-217)?;
+        let sign = HostedSignLog::new_with_remote_storage(
+            SIGN_ITEMS,
+            sign_bytes,
+            REMOTE_SIGN_ITEMS,
+            remote_sign_bytes,
+        )
+        .map_err(|_| -217)?;
         let scheduler = ChatScheduler::new_with_active_counts_and_host_calls(
             NODES, CORDS, node_specs, cord_specs, routes, bindings, backs, values, sign,
         )
         .map_err(|_| -218)?;
-        let active_play =
-            bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-        let renderer_placement = fragment
-            .placements
-            .iter()
-            .find(|placement| placement.kind_id.as_str() == conduit_presentation::RENDERER_KIND)
-            .map(|placement| placement.placement_id.clone())
-            .ok_or(-219)?;
         let identity = KernelExecutionIdentityMap::new(
             &lowered.identity,
             &active_play,
@@ -345,7 +425,9 @@ impl BrowserChatSession {
             lowered_identity: lowered.identity,
             identity,
             current: None,
-            parked_input: None,
+            interaction_boundary,
+            face_boundary,
+            pending_face: None,
             parked_receive: None,
             complete: false,
             disconnected: false,
@@ -354,12 +436,13 @@ impl BrowserChatSession {
             value_capacity,
             identity_capacity,
             chat_state,
-            plan: plan_record,
             active_play,
-            renderer_placement,
             presentation,
-            manifestation: None,
-            interaction_ledger: PresentationInteractionLedger::new(8, 32).map_err(|_| -219)?,
+            body_id,
+            wake,
+            body_plan,
+            mask: None,
+            interaction_ledger: FaceInteractionLedger::new(8, 32).map_err(|_| -219)?,
             interaction_text: Vec::with_capacity(16 * 1024),
             evidence_text: Vec::with_capacity(16 * 1024),
         };

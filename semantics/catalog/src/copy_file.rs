@@ -4,8 +4,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType, StructuredVariantCase,
+    kind_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    StructuredVariantCase,
 };
 
 pub const COPY_FILE_KIND: &str = "file/copy";
@@ -76,6 +76,7 @@ fn result_port(direction: PortDirection) -> PortDescriptor {
         value_kind: copy_result_type().profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -104,23 +105,11 @@ pub fn copy_file_contract() -> StandardKindContract {
 #[cfg(feature = "form-catalog")]
 pub fn install_copy_file_catalog(catalog: &mut conduit_form::ProfileCatalog) -> Result<(), String> {
     for definition in [
-        conduit_form::KindProjection {
-            kind_id: kind_id(COPY_FILE_KIND),
-            kind_contract_revision: KindIdentity::from(COPY_FILE_CONTRACT_REVISION),
-            inputs: Vec::new(),
-            outputs: vec![result_port(PortDirection::Output)],
-            configuration: Default::default(),
-        },
-        conduit_form::KindProjection {
-            kind_id: kind_id(crate::STRUCTURED_PRESENTATION_KIND),
-            kind_contract_revision: KindIdentity::from(crate::STRUCTURED_PRESENTATION_REVISION),
-            inputs: vec![result_port(PortDirection::Input)],
-            outputs: Vec::new(),
-            configuration: Default::default(),
-        },
+        copy_file_contract().into_semantic_contract(COPY_FILE_CONTRACT_REVISION),
+        crate::structured_presentation_contract(COPY_RESULT_TYPE, &copy_result_type()).into(),
     ] {
         catalog
-            .insert(definition)
+            .insert_kind(definition)
             .map_err(|error| error.to_string())?;
     }
     Ok(())

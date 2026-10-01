@@ -44,7 +44,7 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
   family: FAMILY,
   target: targetProfile.target,
   intentions: EXISTING_COMPUTER_RENDEZVOUS_MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed generic native release" }),
   ]),
   carriers: Object.freeze({

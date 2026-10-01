@@ -1,26 +1,15 @@
-# A living portable controller-to-pitch Form. Pointer acquisition and visible
-# quantity manifestation are selected host realizations, not authored APIs.
-form pocket-theremin {
-    controller: input/pointer-source
-    normalize: math/normalized-quantity-scalar
-    pitch: quantity-range-map
-    inspect: structured-info/wrap-quantity
-    manifest: presentation/quantity
-    tone: sound/pitch-tone
-
-    controller.pointer >> project(PointerEvent.position) >> project(Point2.x) >> normalize.in
-    normalize.out >> pitch.control
-    pitch.quantity >> inspect.in
-    pitch.quantity >> tone.pitch
-    inspect.out >> manifest.input
-}
-
-# Reusable typed pitch mapping; other controllers can supply the same normalized
-# scalar without importing pointer or presentation meaning.
-form quantity-range-map (
-    control: Scalar >> quantity: Quantity
+# Portable semantic Pocket Theremin control and synthesis. Input acquisition
+# and PCM playback are separate Host realizations.
+form pocket-theremin (
+    >> distance: Distance
+    audio: audio/pcm-frames@1...| >>
 ) {
-    map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = "Hz", range-policy = "clamp", quantization = "nearest")
-    control >> map.in
-    map.out >> quantity
-}
+    map: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 220Hz, target-maximum = 880Hz)
+    frequency: keep Frequency(440Hz) for this play
+    tone: audio/tone
+
+    distance >> map.distance
+    map.frequency >> frequency
+    frequency >> tone.frequency
+    tone.audio >> audio
+}.

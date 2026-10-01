@@ -3,9 +3,10 @@
 use crate::PortableKindContract;
 #[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
-use alloc::vec;
+use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const JSON_ENCODE_KIND: &str = "json/encode";
@@ -42,13 +43,28 @@ pub fn json_decode_semantics() -> PortableKindContract {
     )
 }
 
+pub fn json_semantic_contract(contract: PortableKindContract) -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: Some((port_id("value"), port_id("value"))),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: Default::default(),
+        semantic_laws: vec![KindSemanticLaw::Terminal(
+            KindTerminalBehavior::MirrorsInputTerminal,
+        )],
+        limits: contract.limits,
+    }
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_json_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use alloc::vec::Vec;
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_form::KindSignature;
     for contract in [
         json_encode_semantics(),
         json_decode_semantics(),
@@ -59,13 +75,7 @@ pub fn install_json_catalogs(
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: Default::default(),
-            })
+            .insert_kind(json_semantic_contract(contract))
             .map_err(|error| error.to_string())?;
     }
     crate::install_json_boolean_summary_catalog(startup, profile)
@@ -91,5 +101,6 @@ fn port(value: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(value),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

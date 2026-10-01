@@ -7,6 +7,7 @@ enum AliasDriver {
         port: u16,
         pending: bool,
         consume: bool,
+        borrow: bool,
     },
 }
 impl StepBack<2> for AliasDriver {
@@ -23,12 +24,16 @@ impl StepBack<2> for AliasDriver {
                 port,
                 pending,
                 consume,
+                borrow,
             } => {
                 if *pending {
                     if io.host_completion().is_none() {
                         return StepOutcome::Await;
                     }
                     io.consume_host_completion().unwrap();
+                    if *borrow {
+                        io.consume(PortId(*port)).unwrap();
+                    }
                     *pending = false;
                     *port += 1;
                     return if *port == 2 {
@@ -42,6 +47,8 @@ impl StepBack<2> for AliasDriver {
                 };
                 if *consume {
                     io.consume(PortId(*port)).unwrap();
+                } else if *borrow {
+                    io.borrow_input_for_call(PortId(*port)).unwrap();
                 }
                 io.request_host_call(
                     RequestId(u32::from(*port)),
@@ -54,9 +61,20 @@ impl StepBack<2> for AliasDriver {
             }
         }
     }
+
+    fn retains_host_call_input(&self, _request: RequestId, _value: ValueRef) -> bool {
+        matches!(
+            self,
+            Self::Consumer {
+                pending: true,
+                borrow: true,
+                ..
+            }
+        )
+    }
 }
 
-fn exercise(consume: bool) {
+fn exercise(consume: bool, borrow: bool) {
     let mut values = FixedValueStore::<2, 4>::new(8).unwrap();
     let value = values.store(&[42]).unwrap();
     let mut routes = FixedRoutes::<4, 2>::new(2);
@@ -102,6 +120,7 @@ fn exercise(consume: bool) {
                 port: 0,
                 pending: false,
                 consume,
+                borrow,
             },
         ],
         values,
@@ -111,7 +130,7 @@ fn exercise(consume: bool) {
     let mut requests = 0;
     for _ in 0..20 {
         match scheduler.step() {
-            Err(error) if !consume => {
+            Err(error) if !consume && !borrow => {
                 assert_eq!(error, SchedulerError::InvalidHostCallAccess);
                 assert!(scheduler.next_host_request().is_none());
                 return;
@@ -120,7 +139,7 @@ fn exercise(consume: bool) {
                 panic!("consumed reference must transfer while its queued alias remains: {error:?}")
             }
             Ok(SchedulerStatus::Drained) => {
-                assert!(consume);
+                assert!(consume || borrow);
                 assert_eq!(requests, 2);
                 assert_eq!(scheduler.values().used_items(), 0);
                 return;
@@ -128,7 +147,7 @@ fn exercise(consume: bool) {
             _ => {}
         }
         if let Some(request) = scheduler.next_host_request() {
-            assert!(consume);
+            assert!(consume || borrow);
             assert_eq!(request.input.value, value);
             assert_eq!(request.request, RequestId(requests));
             assert_eq!(scheduler.host_value(value).unwrap(), &[42]);
@@ -150,9 +169,14 @@ fn exercise(consume: bool) {
 }
 #[test]
 fn consumed_reference_can_transfer_while_another_input_keeps_its_alias() {
-    exercise(true);
+    exercise(true, false);
 }
 #[test]
 fn unconsumed_queued_reference_cannot_be_borrowed_for_host_work() {
-    exercise(false);
+    exercise(false, false);
+}
+
+#[test]
+fn explicitly_pinned_reference_stays_queued_until_host_completion() {
+    exercise(false, true);
 }

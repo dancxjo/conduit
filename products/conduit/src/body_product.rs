@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
-use conduit_body_fabrication::{
+use conduit_body_make::{
     check_body_description, parse_body_description_conduit, CheckedBodyDescription,
 };
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
-use conduit_host_fabrication::{parse_host_configuration_conduit, HostConfiguration};
+use conduit_host_make::{parse_host_configuration_conduit, HostConfiguration};
 use conduit_std_host::{StdHost, StdHostConfig};
 
 use crate::product_execution::{ProductExecutionContext, ProductRuntime};
@@ -58,8 +58,8 @@ pub(crate) fn load(path: &Path) -> Result<CheckedBodyDescription, String> {
     check_body_description(
         description,
         &configurations,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
     )
     .map_err(|diagnostics| format!("Body description refused: {diagnostics:?}"))
 }
@@ -110,7 +110,7 @@ fn context(body: &CheckedBodyDescription) -> Result<ProductExecutionContext, Str
 
 fn runtime(
     body: &CheckedBodyDescription,
-    host: &conduit_body_fabrication::CheckedBodyHost,
+    host: &conduit_body_make::CheckedBodyHost,
 ) -> Result<StdHost, String> {
     let target = &host.configuration.profile().target;
     if target.family != "std" || target.architecture != std::env::consts::ARCH {

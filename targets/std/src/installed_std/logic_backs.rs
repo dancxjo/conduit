@@ -392,7 +392,9 @@ fn comparison_operator(placement: &PlannedGear) -> Result<CompareOperator, Strin
     match placement.configuration.as_slice() {
         [entry] if entry.key == conduit_semantic_catalog::COMPARE_OPERATOR_KEY => {
             match &entry.value {
-                ConfigurationValue::Text(value) => CompareOperator::parse(value),
+                ConfigurationValue::Text(value) => {
+                    conduit_semantic_catalog::parse_scalar_comparison(value)
+                }
                 _ => None,
             }
         }

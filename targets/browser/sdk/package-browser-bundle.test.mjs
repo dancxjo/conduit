@@ -30,7 +30,7 @@ try {
   const distribution = {
     schema: "conduit.release/host-bundle@1",
     target_id: "browser/wasm32/page",
-    fabrication_package_id: "browser-wasm@1",
+    make_package_id: "browser-wasm@1",
     output: "browser-bundle",
     files: [runtimeFile, bootFile],
     bundle_sha256: distributionDigest,
@@ -39,7 +39,7 @@ try {
   const release = {
     schema: distribution.schema,
     target_id: distribution.target_id,
-    fabrication_package_id: distribution.fabrication_package_id,
+    make_package_id: distribution.make_package_id,
     output: distribution.output,
     distribution_id: "browser-reviewed@1",
     distribution_sha256: distributionDigest,
@@ -66,6 +66,10 @@ try {
   assert(listing.includes("browser-sdk.mjs"));
   assert(listing.includes("browser-sdk-forms.mjs"));
   assert(listing.includes("browser-sdk-events.mjs"));
+  assert(listing.includes("browser-sdk-face.mjs"));
+  assert(listing.includes("host/assets/browser-membership.js"));
+  assert(listing.includes("host/assets/browser-host-identity.mjs"));
+  assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));
   assert(listing.includes("host/assets/browser-body-host.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
   const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });

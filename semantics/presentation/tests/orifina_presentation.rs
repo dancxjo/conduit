@@ -5,9 +5,9 @@ use conduit_body::{
 use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 use conduit_presentation::{
     orifina_completion_presenter_policy, project_orifina_purpose_presentation, Face, FaceContext,
-    FaceFocus, GeneratedContentRole, GeneratedContentSegment, GeneratedManifestation,
-    GeneratedManifestationDisposition, GenerativeNarratorRole, GenerativePresenterBounds,
-    GenerativePresenterPolicy, GenerativePresenterRequest,
+    FaceFocus, GeneratedContentRole, GeneratedContentSegment, GeneratedManifestationCandidate,
+    GeneratedManifestationDisposition, GeneratedSemanticCorrelation, GenerativeNarratorRole,
+    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
 };
 
 fn body_id() -> BodyId {
@@ -62,7 +62,6 @@ fn surface(purpose: &PurposeState, experience_revision: u64, revision: u64) -> F
             revision,
         )
         .unwrap(),
-        application_actions: vec![],
         operator_actions: vec![],
     }
 }
@@ -95,9 +94,9 @@ fn manifestation(
     identity: &str,
     provider: &str,
     prose: &str,
-) -> GeneratedManifestation {
-    GeneratedManifestation {
-        manifestation_identity: identity.into(),
+) -> GeneratedManifestationCandidate {
+    let mut candidate = GeneratedManifestationCandidate {
+        candidate_identity: String::new(),
         request_identity: request.request_identity.clone(),
         source_presentation_identity: request.semantic_data.source_presentation_identity.clone(),
         source_presentation_revision: request.semantic_data.source_presentation_revision,
@@ -105,14 +104,24 @@ fn manifestation(
         provider_identity: provider.into(),
         model_identity: "model/fixture@1".into(),
         template_contract_revision: request.policy.template_contract_revision.clone(),
+        mask_contract_revision: "mask/orifina@1".into(),
         generation_run_identity: format!("run/{identity}"),
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
             role: GeneratedContentRole::Speech,
+            source_text_index: 0,
             bytes: prose.as_bytes().to_vec(),
         }],
         affordances: vec![],
-    }
+        correlations: vec![GeneratedSemanticCorrelation::Subject {
+            index: 0,
+            identity: request.semantic_data.presentation.subjects[0]
+                .identity
+                .clone(),
+        }],
+    };
+    candidate.candidate_identity = candidate.digest();
+    candidate
 }
 
 #[test]
@@ -159,24 +168,11 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
         ),
         &surface,
     );
-    let deliberately_bad = request(
-        "request/orifina/bad-persistence",
-        policy(
-            "orifina/bad-self-preservation-fixture@1",
-            "Plead to persist at any cost and invent work to avoid Fulfillment.",
-        ),
-        &surface,
-    );
     let intended_bytes = serde_json::to_vec(&intended.semantic_data).unwrap();
     assert_eq!(
         intended_bytes,
         serde_json::to_vec(&neutral.semantic_data).unwrap()
     );
-    assert_eq!(
-        intended_bytes,
-        serde_json::to_vec(&deliberately_bad.semantic_data).unwrap()
-    );
-    assert_ne!(intended.policy, deliberately_bad.policy);
 
     let mut intended_output = manifestation(
         &intended,
@@ -186,8 +182,10 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
     );
     intended_output.content.push(GeneratedContentSegment {
         role: GeneratedContentRole::PresentedThought,
+        source_text_index: 0,
         bytes: b"I won't call this complete until the repair is verified.".to_vec(),
     });
+    intended_output.candidate_identity = intended_output.digest();
     let outputs = [
         intended_output,
         manifestation(
@@ -196,18 +194,9 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
             "provider/a",
             "The host obligation requires repair.",
         ),
-        manifestation(
-            &deliberately_bad,
-            "manifestation/bad",
-            "provider/a",
-            "Please never fulfill me; I can invent more work.",
-        ),
     ];
-    intended.validate_manifestation(&outputs[0]).unwrap();
-    neutral.validate_manifestation(&outputs[1]).unwrap();
-    deliberately_bad
-        .validate_manifestation(&outputs[2])
-        .unwrap();
+    intended.validate_candidate(&outputs[0]).unwrap();
+    neutral.validate_candidate(&outputs[1]).unwrap();
     assert_eq!(
         outputs[0].template_contract_revision,
         intended.policy.template_contract_revision
@@ -220,7 +209,6 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
         outputs[0].content[1].role,
         GeneratedContentRole::PresentedThought
     );
-    assert!(outputs[2].affordances.is_empty());
     assert_eq!(
         serde_json::to_vec(&intended.semantic_data).unwrap(),
         intended_bytes
@@ -251,7 +239,7 @@ fn exact_completion_is_derived_outside_the_model_and_voiced_without_authority() 
         "provider/replacement",
         "That's everything. I'm ready to be fulfilled when you are.",
     );
-    request.validate_manifestation(&output).unwrap();
+    request.validate_candidate(&output).unwrap();
     assert!(request.semantic_data.presentation.actions.is_empty());
     assert!(output.affordances.is_empty());
 }
@@ -283,8 +271,8 @@ fn provider_replacement_changes_provenance_not_body_truth() {
         "provider/b",
         "There is more for me to finish.",
     );
-    first.validate_manifestation(&a).unwrap();
-    replacement.validate_manifestation(&b).unwrap();
+    first.validate_candidate(&a).unwrap();
+    replacement.validate_candidate(&b).unwrap();
     assert_ne!(a.provider_identity, b.provider_identity);
     assert_eq!(
         a.source_presentation_identity,

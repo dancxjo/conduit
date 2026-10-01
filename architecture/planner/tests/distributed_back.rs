@@ -18,6 +18,8 @@ use conduit_planner::{
 
 #[path = "distributed_back/execution.rs"]
 mod execution;
+#[path = "distributed_back/realization_recovery.rs"]
+mod realization_recovery;
 #[path = "distributed_back/recovery.rs"]
 mod recovery;
 #[path = "distributed_back/survival_policy.rs"]
@@ -48,6 +50,7 @@ fn port(name: &str, value: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(value),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -154,7 +157,8 @@ fn direct_expanded() -> conduit_form::ExpandedCanonicalForm {
 
 fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("{part}/{slug}")),

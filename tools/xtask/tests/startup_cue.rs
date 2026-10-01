@@ -37,7 +37,7 @@ fn cue_render_is_a_dry_runnable_new_file_operation_with_honest_evidence() {
             command.arg("--dry-run");
         }
         command
-            .args(["audio", "render-startup-cue", "--output"])
+            .args(["make", "startup-cue", "--output"])
             .arg(&path)
             .output()
             .unwrap()

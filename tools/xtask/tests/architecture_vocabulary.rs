@@ -16,14 +16,9 @@ const MARKERS: &[&str] = &[
 // directory to accumulate more milestone vocabulary.
 const ALLOWLIST: &[(&str, &str, &str)] = &[
     (
-        "products/patchbay/model/src/presenter_plans.rs",
+        "products/patchbay/model/src/mask_plans.rs",
         "capstone",
         "accepted canonical Form identity is preserved without migration",
-    ),
-    (
-        "bodies/pete/src/interaction_convergence.rs",
-        "capstone",
-        "accepted Body Plan and Play identities are preserved without migration",
     ),
     (
         "products/patchbay/native/src/bin/browser_parts_capstone/physical_body.rs",
@@ -135,7 +130,7 @@ fn is_explicit_boundary(repository: &Path, path: &Path) -> bool {
     relative.components().any(|component| {
         matches!(
             component.as_os_str().to_str(),
-            Some("proof" | "proof-appliances" | "tests" | "fixtures" | "fabrication" | "build")
+            Some("proof" | "proof-appliances" | "tests" | "fixtures" | "make" | "build")
         )
     })
 }

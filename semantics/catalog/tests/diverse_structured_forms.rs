@@ -112,12 +112,27 @@ fn five_unrelated_forms_use_exact_structured_values_and_the_same_selector_substr
             expand_canonical_form_for_authoring(&checked, specimen.form_name, &profile).unwrap();
         assert_eq!(authored.expanded.gears.len(), 2);
         assert_eq!(authored.output_bindings.len(), 1);
-        let selector_offer = structured_selector_proof_offer(selector, PortTemporal::Value);
+        let mut selector_offer = structured_selector_proof_offer(selector, PortTemporal::Value);
+        selector_offer.semantic_contract = authored
+            .expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id == selector_offer.kind_id)
+            .unwrap()
+            .semantic_contract
+            .clone();
         selector_kinds.push(selector_offer.kind_id.clone());
-        let host = host(vec![
-            structured_literal_proof_offer(specimen.type_name, &specimen.value_type),
-            selector_offer,
-        ]);
+        let mut literal_offer =
+            structured_literal_proof_offer(specimen.type_name, &specimen.value_type);
+        literal_offer.semantic_contract = authored
+            .expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id == literal_offer.kind_id)
+            .unwrap()
+            .semantic_contract
+            .clone();
+        let host = host(vec![literal_offer, selector_offer]);
         let placements = conduit_planner::default_expanded_placements(
             &authored.expanded,
             core::slice::from_ref(&host),
@@ -150,7 +165,8 @@ fn structured_literal_proof_offer(
     value_type: &StructuredInfoType,
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_literal_contract(type_name, value_type);
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: None,
         capability_id: "proof/structured-literal".into(),
@@ -175,7 +191,8 @@ fn structured_selector_proof_offer(
     temporal: PortTemporal,
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: contract.shorthand,
         capability_id: "proof/structured-selector".into(),

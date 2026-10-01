@@ -31,6 +31,14 @@ wake but retains the body; semantic completion ends the form's work. Likewise,
 `PlanRetired` and `Replanned` describe realization lifecycle, not semantic
 completion or a new source program.
 
+Conduitese exposes the wakeable transition as `stream;`. Like `stream|` and
+`stream!`, it can feed an exact typed handler (`stream; >> resting`), but unlike
+those terminal tracks it leaves the source live. One edge is emitted per
+active-to-quiescent epoch. Later admitted work rearms the edge; merely observing
+an empty queue does not. `stream~` remains cancellation control, so normal
+close, abnormal termination, cancellation, failure, and quiescence stay
+machine-distinct.
+
 ## Finite admission and continuation
 
 Each active play admits a fixed resource envelope before it starts: retained
@@ -47,7 +55,7 @@ counter that happens to reach the storage capacity.
 
 The finite-state specimen in `conduit-body` retains one bounded integer and one
 fixed resource envelope. Its caller may provide any number of transitions. A
-value overflow is reported as `ValueOverflow` and does not wrap or fabricate a
+value overflow is reported as `ValueOverflow` and does not wrap or make a
 new state. A replacement plan changes realization identity only; source and
 checked-form identity plus retained state remain unchanged when continuity is
 admitted. The specimen is a contract proof, not a second scheduler or runtime.
@@ -66,13 +74,13 @@ admitted. The specimen is a contract proof, not a second scheduler or runtime.
    completion remain distinct results and retain bounded evidence.
 
 The contract therefore supports thermostats, servers, sensor pipelines,
-compositors, audio graphs, robot controllers, and UIs without claiming an
-infinite value domain, infinite reservation, background-realtime behavior, or
-physical continuity.
+compositors, audio graphs, robot controllers, and UIs without deriving an
+infinite reservation from an open value domain, claiming background-realtime
+behavior, or claiming physical continuity.
 
 ## Stop line
 
 No infinite resource reservation; no `universal` or `unsafe` escape hatch; no
-semantically unbounded allocation; no hidden restart loop; no timer-owned
+ungoverned allocation growth; no hidden restart loop; no timer-owned
 scheduler; and no conflation of lull, suspend, replan, or quiescence with
 HALT.

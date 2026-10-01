@@ -429,8 +429,8 @@ test("two Chromium clients use the actual user-operated WSS relay service", asyn
       .digest("hex");
     const port = await unusedPort();
     const relayUrl = `wss://localhost:${port}/conduit`;
-    await execute("target/debug/conduit", [
-      "rendezvous-relay", "provision",
+    await execute("target/debug/conduit-relay", [
+      "provision",
       "--relay-address", `127.0.0.1:${port}`,
       "--relay-url", relayUrl,
       "--server-identity", "localhost",
@@ -445,8 +445,8 @@ test("two Chromium clients use the actual user-operated WSS relay service", asyn
     ]);
     const first = JSON.parse(await readFile(join(provisioned, "endpoint-first.json"), "utf8"));
     const second = JSON.parse(await readFile(join(provisioned, "endpoint-second.json"), "utf8"));
-    relay = spawn("target/debug/conduit", [
-      "rendezvous-relay", "serve",
+    relay = spawn("target/debug/conduit-relay", [
+      "serve",
       "--bind", `0.0.0.0:${port}`,
       "--public-url", relayUrl,
       "--tls-cert", certificate,

@@ -50,6 +50,14 @@ fn load_with_catalogs(
 }
 
 impl CanonicalSource {
+    pub(crate) fn check(&self) -> Result<conduit_form::CheckedSyntaxDocument, String> {
+        if let Some(diagnostic) = self.syntax.diagnostics.first() {
+            return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
+        }
+        conduit_form::check_syntax_document(&self.syntax, &self.startup)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+    }
+
     pub(crate) fn expand_entry(&self) -> Result<ExpandedCanonicalForm, String> {
         self.expand_entry_with_backs(false)
     }
@@ -61,11 +69,7 @@ impl CanonicalSource {
     }
 
     fn expand_entry_with_backs(&self, recursive: bool) -> Result<ExpandedCanonicalForm, String> {
-        if let Some(diagnostic) = self.syntax.diagnostics.first() {
-            return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
-        }
-        let checked = conduit_form::check_syntax_document(&self.syntax, &self.startup)
-            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let checked = self.check()?;
         let entry = checked
             .forms
             .last()
@@ -87,6 +91,8 @@ impl CanonicalSource {
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
+    conduit_presentation::install_mask_form_value_aliases(&mut startup)?;
+    conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
@@ -133,4 +139,32 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profiles)?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn product_compiler_checks_the_ordinary_mask_form_boundary() {
+        let source = parse(
+            "form browser-mask (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
+        )
+        .unwrap();
+        let checked = conduit_form::check_syntax_document(&source.syntax, &source.startup).unwrap();
+        let front = &checked.forms[0].runtime_front;
+
+        assert_eq!(
+            front.inputs()[0].value_kind.as_str(),
+            conduit_presentation::PRESENTATION_VALUE_KIND
+        );
+        assert_eq!(
+            front.outputs()[0].value_kind.as_str(),
+            conduit_presentation::FACE_INTERACTION_VALUE_KIND
+        );
+        assert_eq!(
+            front.outputs()[1].value_kind.as_str(),
+            conduit_presentation::SHOW_VALUE_KIND
+        );
+    }
 }

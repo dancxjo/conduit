@@ -68,8 +68,27 @@ impl ExpandedCanonicalForm {
                     .iter()
                     .find(|port| port.port_id == connection.sink_port_id)
             });
-            let source_matches = source.map(|port| (&port.value_kind, port.temporal))
-                == Some((&connection.value_kind, connection.temporal));
+            let source_matches = source.is_some_and(|port| match connection.track {
+                conduit_core::ConnectionTrack::Payload => {
+                    port.value_kind == connection.value_kind && port.temporal == connection.temporal
+                }
+                conduit_core::ConnectionTrack::NormalClose => {
+                    matches!(
+                        port.temporal,
+                        conduit_core::PortTemporal::Flow { closes: true }
+                    ) && connection.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && connection.temporal == conduit_core::PortTemporal::Value
+                }
+                conduit_core::ConnectionTrack::AbnormalTerminal => {
+                    port.abnormal_kind.as_ref() == Some(&connection.value_kind)
+                        && connection.temporal == conduit_core::PortTemporal::Value
+                }
+                conduit_core::ConnectionTrack::Quiescence => {
+                    matches!(port.temporal, conduit_core::PortTemporal::Flow { .. })
+                        && connection.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && connection.temporal == conduit_core::PortTemporal::Value
+                }
+            });
             let sink_matches = sink.is_some_and(|port| {
                 port.value_kind == connection.value_kind
                     && (port.temporal == connection.temporal
@@ -175,11 +194,25 @@ pub(super) fn expanded_identity(
             push(&mut canonical, port.temporal.as_str());
             push(
                 &mut canonical,
+                port.abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str),
+            );
+            push(
+                &mut canonical,
                 match port.direction {
                     conduit_core::PortDirection::Input => "input",
                     conduit_core::PortDirection::Output => "output",
                 },
             );
+        }
+        crate::push_terminal_transduction_text(&mut canonical, &gear.terminal_transductions);
+        for resource in &gear.resource_ports {
+            push(&mut canonical, resource.port_id.as_str());
+            push(&mut canonical, resource.class_id.as_str());
+            push(&mut canonical, &format!("{:?}", resource.ownership));
+            push(&mut canonical, &format!("{:?}", resource.lifecycle));
+            push(&mut canonical, &format!("{:?}", resource.mobility));
         }
         for entry in &gear.configuration {
             push(&mut canonical, &entry.key);
@@ -222,6 +255,7 @@ pub(super) fn expanded_identity(
         push(&mut canonical, connection.sink_gear_id.as_str());
         push(&mut canonical, connection.sink_port_id.as_str());
         push(&mut canonical, connection.value_kind.as_str());
+        push(&mut canonical, connection.track.as_str());
         push(&mut canonical, connection.temporal.as_str());
     }
     for pool in shared_pools {
@@ -249,6 +283,12 @@ pub(super) fn expanded_identity(
             push(&mut canonical, port.port_id.as_str());
             push(&mut canonical, port.value_kind.as_str());
             push(&mut canonical, port.temporal.as_str());
+            push(
+                &mut canonical,
+                port.abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str),
+            );
             push(&mut canonical, &format!("{:?}", port.direction));
         }
         for consumer in &pool.consumers {

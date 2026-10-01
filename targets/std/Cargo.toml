@@ -28,7 +28,7 @@ conduit-human = { path = "../../semantics/human" }
 conduit-robotics = { path = "../../semantics/robotics" }
 conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
 conduit-form = { path = "../../architecture/form" }
-conduit-host-fabrication = { path = "../../fabrication/host" }
+conduit-host-make = { path = "../../make/host" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }
@@ -112,8 +112,9 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
+conduit-observatory = { path = "../../architecture/observatory" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
-conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+conduit-workspace-make = { path = "../../make/workspace" }
 ed25519-dalek = "2.2"
 rcgen = "0.14"
 turn = "0.17.2"

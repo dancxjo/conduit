@@ -78,6 +78,17 @@ pub(crate) fn checked_identity(
                 .map_or_else(|| "intrinsic".into(), |value| value.to_string()),
         );
     }
+    for contract in runtime_front
+        .value_contracts()
+        .iter()
+        .filter(|contract| !contract.contract.constraints.is_empty())
+    {
+        canonical.push_str("value-contract");
+        push_field(&mut canonical, &format!("{:?}", contract.location));
+        let mut encoded = String::new();
+        push_hex(&mut encoded, &contract.contract.identity_bytes());
+        push_field(&mut canonical, &encoded);
+    }
     if let Some((input, output)) = shorthand {
         canonical.push_str("shorthand");
         push_field(&mut canonical, input);
@@ -137,7 +148,7 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
     }
     if let Some(retained) = &gear.retained {
         push_field(&mut value, "keep");
-        push_field(&mut value, &retained.value_type.text);
+        push_field(&mut value, retained.value_kind.as_str());
         push_field(
             &mut value,
             if retained.optional {
@@ -155,10 +166,10 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
         push_field(&mut value, &format!("{:?}", retained.duration));
         push_field(
             &mut value,
-            retained
+            &retained
                 .initial
                 .as_ref()
-                .map_or("none", |initial| initial.text.as_str()),
+                .map_or_else(|| "none".into(), canonical_value),
         );
     }
     value
@@ -171,6 +182,39 @@ pub(crate) fn canonical_cord(cord: &CheckedCanonicalCord) -> String {
             CheckedCordStage::Reference(reference) => {
                 push_field(&mut value, "reference");
                 push_field(&mut value, reference);
+            }
+            CheckedCordStage::RelationalGear {
+                operands,
+                gear,
+                input_ports,
+                output_port,
+            } => {
+                push_field(&mut value, "relational-gear");
+                push_field(&mut value, &canonical_gear(gear));
+                for (operand, input_port) in operands.iter().zip(input_ports) {
+                    push_field(&mut value, operand);
+                    push_field(&mut value, input_port);
+                }
+                push_field(&mut value, output_port);
+            }
+            CheckedCordStage::TerminalProjection {
+                endpoint, terminal, ..
+            } => {
+                push_field(&mut value, "terminal-projection");
+                push_field(&mut value, endpoint);
+                push_field(&mut value, &format!("{terminal:?}"));
+            }
+            CheckedCordStage::Cancellation { gear, .. } => {
+                push_field(&mut value, "cancellation");
+                push_field(&mut value, gear);
+            }
+            CheckedCordStage::When { expression, .. } => {
+                push_field(&mut value, "when");
+                push_field(&mut value, &canonical_expression(expression));
+            }
+            CheckedCordStage::PureExpression { expression, .. } => {
+                push_field(&mut value, "pure-expression");
+                push_field(&mut value, &canonical_expression(expression));
             }
             CheckedCordStage::InlineGear(gear) => {
                 push_field(&mut value, "inline-gear");
@@ -194,6 +238,100 @@ pub(crate) fn canonical_cord(cord: &CheckedCanonicalCord) -> String {
     value
 }
 
+pub(crate) fn canonical_expression(expression: &crate::ExpressionSyntax) -> String {
+    use crate::ExpressionSyntax;
+    let mut value = String::new();
+    match expression {
+        ExpressionSyntax::Atomic(atomic) => {
+            push_field(&mut value, "atomic");
+            push_field(&mut value, &atomic.text);
+        }
+        ExpressionSyntax::Input(_) => push_field(&mut value, "input"),
+        ExpressionSyntax::Projection {
+            value: projected,
+            member,
+            ..
+        } => {
+            push_field(&mut value, "projection");
+            push_field(&mut value, &canonical_expression(projected));
+            match member {
+                crate::ExpressionProjection::Field(field) => {
+                    push_field(&mut value, "field");
+                    push_field(&mut value, &field.text);
+                }
+                crate::ExpressionProjection::TupleIndex(index) => {
+                    push_field(&mut value, "tuple-index");
+                    push_field(&mut value, &index.text);
+                }
+            }
+        }
+        ExpressionSyntax::Unary {
+            operator, operand, ..
+        } => {
+            push_field(&mut value, "unary");
+            push_field(&mut value, &format!("{operator:?}"));
+            push_field(&mut value, &canonical_expression(operand));
+        }
+        ExpressionSyntax::Binary {
+            operator,
+            left,
+            right,
+            ..
+        } => {
+            push_field(&mut value, "binary");
+            push_field(&mut value, &format!("{operator:?}"));
+            push_field(&mut value, &canonical_expression(left));
+            push_field(&mut value, &canonical_expression(right));
+        }
+        ExpressionSyntax::Conditional {
+            condition,
+            when_true,
+            when_false,
+            ..
+        } => {
+            push_field(&mut value, "conditional");
+            push_field(&mut value, &canonical_expression(condition));
+            push_field(&mut value, &canonical_expression(when_true));
+            push_field(&mut value, &canonical_expression(when_false));
+        }
+        ExpressionSyntax::Tuple { values, .. } | ExpressionSyntax::Collection { values, .. } => {
+            push_field(
+                &mut value,
+                if matches!(expression, ExpressionSyntax::Tuple { .. }) {
+                    "tuple"
+                } else {
+                    "collection"
+                },
+            );
+            for item in values {
+                push_field(&mut value, &canonical_expression(item));
+            }
+        }
+        ExpressionSyntax::Record { fields, .. } => {
+            push_field(&mut value, "record");
+            for field in fields {
+                push_field(&mut value, &field.name.text);
+                push_field(&mut value, &canonical_expression(&field.value));
+            }
+        }
+        ExpressionSyntax::Variant { tag, payload, .. } => {
+            push_field(&mut value, "variant");
+            push_field(&mut value, &tag.text);
+            push_field(&mut value, &canonical_expression(payload));
+        }
+        ExpressionSyntax::SemanticCall {
+            kind, arguments, ..
+        } => {
+            push_field(&mut value, "semantic-call");
+            push_field(&mut value, &kind.text);
+            for argument in arguments {
+                push_field(&mut value, &canonical_expression(argument));
+            }
+        }
+    }
+    value
+}
+
 fn push_hex(output: &mut String, bytes: &[u8]) {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     for byte in bytes {
@@ -211,6 +349,9 @@ fn push_field(target: &mut String, value: &str) {
 fn canonical_value(value: &CanonicalStartupValue) -> String {
     match value {
         CanonicalStartupValue::Literal(value) => format!("literal:{value}"),
+        CanonicalStartupValue::Quantity(value) => {
+            format!("quantity:{}:{}", value.unit().semantic_id(), value.value())
+        }
         CanonicalStartupValue::FormParameter(name) => format!("parameter:{name}"),
         CanonicalStartupValue::PoolReference(pool) => {
             format!("pool-reference:{}", pool.as_str())

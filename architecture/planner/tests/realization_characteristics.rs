@@ -1,7 +1,7 @@
 use conduit_ai::{
-    generate_text_base_fixtures, generate_text_realization_advertisements,
-    install_generate_text_catalog, DATA_EGRESS_CHARACTERISTIC, MAXIMUM_CONTEXT_CHARACTERISTIC,
-    METERED_COST_CHARACTERISTIC,
+    install_llm_semantic_catalog, llm_generate_base_fixtures,
+    llm_generate_realization_advertisements, DATA_EGRESS_CHARACTERISTIC,
+    MAXIMUM_CONTEXT_CHARACTERISTIC, METERED_COST_CHARACTERISTIC,
 };
 use conduit_core::{
     CharacteristicId, CharacteristicQuantity, CharacteristicUnit, ResourceHealth,
@@ -19,12 +19,9 @@ use std::collections::BTreeMap;
 fn form() -> conduit_form::CheckedForm {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    install_generate_text_catalog(&mut startup, &mut profile).expect("catalog installs");
-    conduit_form::parse(
-        "form answer {\n    generate: ai/generate-text\n}\n",
-        &profile,
-    )
-    .expect("form checks")
+    install_llm_semantic_catalog(&mut startup, &mut profile).expect("catalog installs");
+    conduit_form::parse("form answer {\n    generate: llm/generate\n}\n", &profile)
+        .expect("form checks")
 }
 
 fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObservation> {
@@ -52,19 +49,19 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
 #[test]
 fn context_and_privacy_hard_requirements_select_only_large_local() {
     let form = form();
-    let fixtures = generate_text_base_fixtures();
+    let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
-    let advertisements = generate_text_realization_advertisements(&fixtures);
+    let advertisements = llm_generate_realization_advertisements(&fixtures);
     let gear = &form.gears[0];
     let requirements = HardRealizationRequirements {
         minimum_characteristic_counts: BTreeMap::from([(
             CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
             CharacteristicQuantity {
-                value: 24_000,
-                unit: CharacteristicUnit::Tokens,
+                value: 24,
+                unit: CharacteristicUnit::Items,
             },
         )]),
         required_characteristic_flags: BTreeMap::from([(
@@ -93,8 +90,8 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
     let mut changed_advertisements = advertisements.clone();
     changed_advertisements[1].characteristics[0].value =
         conduit_core::CharacteristicValue::UnsignedQuantity {
-            value: 32_769,
-            unit: conduit_core::CharacteristicUnit::Tokens,
+            value: 33,
+            unit: conduit_core::CharacteristicUnit::Items,
         };
     let changed = plan_selected_realizations_with_characteristics(
         &form,
@@ -112,7 +109,7 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
     changed_definitions[1].characteristics[0]
         .definition
         .value_kind = conduit_core::CharacteristicValueKind::UnsignedQuantity {
-        unit: conduit_core::CharacteristicUnit::Tokens,
+        unit: conduit_core::CharacteristicUnit::Items,
         maximum: u64::MAX - 1,
     };
     let changed = plan_selected_realizations_with_characteristics(
@@ -131,17 +128,17 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
 #[test]
 fn a_unit_mismatched_hard_quantity_cannot_be_interpreted_by_convention() {
     let form = form();
-    let fixtures = generate_text_base_fixtures();
+    let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
-    let advertisements = generate_text_realization_advertisements(&fixtures);
+    let advertisements = llm_generate_realization_advertisements(&fixtures);
     let requirements = HardRealizationRequirements {
         minimum_characteristic_counts: BTreeMap::from([(
             CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
             CharacteristicQuantity {
-                value: 24_000,
+                value: 24,
                 unit: CharacteristicUnit::Bytes,
             },
         )]),
@@ -165,18 +162,18 @@ fn a_unit_mismatched_hard_quantity_cannot_be_interpreted_by_convention() {
 #[test]
 fn bounded_decision_sign_explains_rejections_and_exact_selection() {
     let form = form();
-    let fixtures = generate_text_base_fixtures();
+    let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
-    let advertisements = generate_text_realization_advertisements(&fixtures);
+    let advertisements = llm_generate_realization_advertisements(&fixtures);
     let requirements = HardRealizationRequirements {
         minimum_characteristic_counts: BTreeMap::from([(
             CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
             CharacteristicQuantity {
-                value: 24_000,
-                unit: CharacteristicUnit::Tokens,
+                value: 24,
+                unit: CharacteristicUnit::Items,
             },
         )]),
         required_characteristic_flags: BTreeMap::from([(
@@ -242,7 +239,7 @@ fn bounded_decision_sign_explains_rejections_and_exact_selection() {
 #[test]
 fn decision_sign_fails_before_exceeding_its_candidate_bound() {
     let form = form();
-    let fixture = generate_text_base_fixtures()[0].clone();
+    let fixture = llm_generate_base_fixtures()[0].clone();
     let mut hosts = Vec::new();
     let mut advertisements = Vec::new();
     for index in 0..=conduit_planner::MAXIMUM_REALIZATION_DECISION_RECORDS {
@@ -251,8 +248,8 @@ fn decision_sign_fails_before_exceeding_its_candidate_bound() {
         host.boot_id = conduit_core::BootId::from(format!("bounded-boot-{index:03}"));
         host.capabilities[0].capability_id =
             conduit_core::CapabilityId::from(format!("bounded-capability-{index:03}"));
-        let mut facts = conduit_ai::generate_text_realization_advertisements(&[
-            conduit_ai::GenerateTextBaseFixture {
+        let mut facts = conduit_ai::llm_generate_realization_advertisements(&[
+            conduit_ai::LlmGenerateBaseFixture {
                 advertisement: host.clone(),
                 facts: fixture.facts.clone(),
             },
@@ -278,12 +275,12 @@ fn decision_sign_fails_before_exceeding_its_candidate_bound() {
 #[test]
 fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
     let form = form();
-    let fixtures = generate_text_base_fixtures();
+    let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
-    let advertisements = generate_text_realization_advertisements(&fixtures);
+    let advertisements = llm_generate_realization_advertisements(&fixtures);
     let selection = select_realization_with_characteristics_and_signs(
         &form.gears[0],
         &hosts,
@@ -312,12 +309,12 @@ fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
 #[test]
 fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
     let form = form();
-    let fixtures = generate_text_base_fixtures();
+    let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
-    let advertisements = generate_text_realization_advertisements(&fixtures);
+    let advertisements = llm_generate_realization_advertisements(&fixtures);
     let gear_id = form.gears[0].gear_id.clone();
     let requirements = BTreeMap::from([(
         gear_id.clone(),
@@ -325,8 +322,8 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
             minimum_characteristic_counts: BTreeMap::from([(
                 CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
                 CharacteristicQuantity {
-                    value: 24_000,
-                    unit: CharacteristicUnit::Tokens,
+                    value: 24,
+                    unit: CharacteristicUnit::Items,
                 },
             )]),
             ..HardRealizationRequirements::default()

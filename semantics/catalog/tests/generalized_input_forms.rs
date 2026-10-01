@@ -192,37 +192,40 @@ fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
         ),
     ]
     .into_iter()
-    .map(|(kind, outputs)| conduit_core::CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: conduit_core::CapabilityId::from(format!("proof/{kind}@1")),
-        kind_id: conduit_core::kind_id(kind),
-        kind_contract_revision: conduit_core::KindIdentity::from(
-            conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
-        ),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: conduit_core::ExecutionProfileId::from(
-                "proof/generalized-input@1",
+    .map(|(kind, outputs)| {
+        conduit_core::capability_offer_from_parts! {
+            semantic_contract: Default::default(),
+            startup_parameters: vec![],
+            shorthand: None,
+            capability_id: conduit_core::CapabilityId::from(format!("proof/{kind}@1")),
+            kind_id: conduit_core::kind_id(kind),
+            kind_contract_revision: conduit_core::KindIdentity::from(
+                conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
             ),
-            implementation_id: conduit_core::ImplementationId::from(format!("proof/{kind}@1")),
-            artifact_id: conduit_core::ArtifactId::from("proof/generalized-input@1"),
-        },
-        inputs: vec![],
-        outputs,
-        host_calls: vec![conduit_core::HostCallRequirement {
-            contract_id: conduit_core::HostCallContractId::from("proof/generalized-input@1"),
-            target_kind: Some(conduit_core::kind_id(kind)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: 8,
-            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
-        },
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: conduit_core::ExecutionProfileId::from(
+                    "proof/generalized-input@1",
+                ),
+                implementation_id: conduit_core::ImplementationId::from(format!("proof/{kind}@1")),
+                artifact_id: conduit_core::ArtifactId::from("proof/generalized-input@1"),
+            },
+            inputs: vec![],
+            outputs,
+            host_calls: vec![conduit_core::HostCallRequirement {
+                contract_id: conduit_core::HostCallContractId::from("proof/generalized-input@1"),
+                target_kind: Some(conduit_core::kind_id(kind)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+            limits: conduit_core::CapabilityLimits {
+                max_active_instances: 4,
+                max_queue_items: 8,
+                max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
+            },
+        }
     })
     .collect()
 }

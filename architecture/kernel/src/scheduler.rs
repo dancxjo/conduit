@@ -11,7 +11,7 @@ use crate::{
     HostCallId, HostCallOutcome, KernelEventKind, NodeId, PortId, ProtocolError, RemoteEndpointId,
     RequestId, RouteTarget, SignError, SignSink, StorageError, ValueRef, ValueStorage,
 };
-pub use conduit_assigned_plan::AssignedPressurePolicy;
+pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy};
 
 mod active_capacity;
 mod debug_control;
@@ -37,6 +37,67 @@ pub struct NodeSpec<const PORTS: usize> {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AssignedTerminalTransduction {
+    pub input: PortId,
+    pub output: PortId,
+    pub normal_close: AssignedNormalCloseTransduction,
+    pub abnormal: AssignedAbnormalTransduction,
+    pub cancellation: AssignedCancellationTransduction,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AssignedFiniteTerminalEmission {
+    pub maximum_items: u16,
+    pub maximum_bytes: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AssignedNormalCloseTransduction {
+    NotAccepted,
+    PropagateAfterDrain,
+    Consume,
+    FlushThenPropagate(AssignedFiniteTerminalEmission),
+    PropagateWhenAllClose,
+    FlushThenPropagateWhenAllClose(AssignedFiniteTerminalEmission),
+    DomainSpecific { law: [u8; 32] },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AssignedAbnormalTransduction {
+    NotAccepted,
+    PropagateAfterDrain,
+    Recover,
+    FinalizeThenPropagate(AssignedFiniteTerminalEmission),
+    DomainSpecific { law: [u8; 32] },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AssignedCancellationTransduction {
+    NotCancellable,
+    Request {
+        input: PortId,
+        disposition_kind: [u8; 32],
+    },
+    DomainSpecific {
+        law: [u8; 32],
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ActiveTerminalPhase {
+    Normal {
+        input: PortId,
+        emitted: AssignedFiniteTerminalEmission,
+    },
+    Abnormal {
+        input: PortId,
+        terminal: CanonicalValue,
+        emitted: AssignedFiniteTerminalEmission,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub struct CordSpec {
     pub cord: CordId,
     pub source: CordEndpoint,
@@ -44,7 +105,12 @@ pub struct CordSpec {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    /// Largest single canonical payload admitted on this Cord. This is the
+    /// semantic value envelope, independent of the Cord's aggregate queue
+    /// storage budget.
+    pub maximum_value_bytes: u32,
     pub pressure_policy: AssignedPressurePolicy,
+    pub track: AssignedConnectionTrack,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -56,21 +122,63 @@ pub struct CordCapacity {
 }
 
 impl CordSpec {
+    pub const fn new(
+        cord: CordId,
+        source: CordEndpoint,
+        sink: CordEndpoint,
+        capacity: CordCapacity,
+    ) -> Self {
+        Self {
+            cord,
+            source,
+            sink,
+            slot_start: capacity.slot_start,
+            item_capacity: capacity.item_capacity,
+            byte_capacity: capacity.byte_capacity,
+            maximum_value_bytes: capacity.byte_capacity,
+            pressure_policy: capacity.pressure_policy,
+            track: AssignedConnectionTrack::Payload,
+        }
+    }
+
+    /// Padding entry for fixed-capacity tables. Active-prefix validation keeps
+    /// this sentinel outside the executable plan.
+    pub const fn inactive() -> Self {
+        Self {
+            cord: CordId(u16::MAX),
+            source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
+            sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
+            slot_start: u16::MAX,
+            item_capacity: 0,
+            byte_capacity: 0,
+            maximum_value_bytes: 0,
+            pressure_policy: AssignedPressurePolicy::PreserveOrder,
+            track: AssignedConnectionTrack::Payload,
+        }
+    }
+
     pub const fn local(
         cord: CordId,
         source: (NodeId, PortId),
         sink: (NodeId, PortId),
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::local(source.0, source.1),
-            sink: CordEndpoint::local(sink.0, sink.1),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-        }
+            CordEndpoint::local(source.0, source.1),
+            CordEndpoint::local(sink.0, sink.1),
+            capacity,
+        )
+    }
+
+    pub const fn with_track(mut self, track: AssignedConnectionTrack) -> Self {
+        self.track = track;
+        self
+    }
+
+    pub const fn with_maximum_value_bytes(mut self, maximum_value_bytes: u32) -> Self {
+        self.maximum_value_bytes = maximum_value_bytes;
+        self
     }
 
     pub const fn remote_egress(
@@ -79,15 +187,12 @@ impl CordSpec {
         endpoint: RemoteEndpointId,
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::local(source.0, source.1),
-            sink: CordEndpoint::Remote(endpoint),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-        }
+            CordEndpoint::local(source.0, source.1),
+            CordEndpoint::Remote(endpoint),
+            capacity,
+        )
     }
 
     pub const fn remote_ingress(
@@ -96,15 +201,12 @@ impl CordSpec {
         sink: (NodeId, PortId),
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::Remote(endpoint),
-            sink: CordEndpoint::local(sink.0, sink.1),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-        }
+            CordEndpoint::Remote(endpoint),
+            CordEndpoint::local(sink.0, sink.1),
+            capacity,
+        )
     }
 
     pub const fn source_local(self) -> Option<(NodeId, PortId)> {
@@ -145,11 +247,26 @@ pub enum RemoteIngressOutcome {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RemoteTerminalDisposition {
+    NormalClose,
+    Abnormal,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StepOutcome {
     Progress,
     Await,
     Yield,
     Complete,
+    /// Explicit semantic abnormal termination of this Gear's endpoint contract.
+    ///
+    /// This is deliberately distinct from [`StepOutcome::Fail`], which reports
+    /// mechanism/Back trouble and does not manufacture semantic terminal truth.
+    Abnormal {
+        /// Exact output Fore port whose typed `!` contract is being fulfilled.
+        port: PortId,
+        terminal: CanonicalValue,
+    },
     Fail(crate::Failure),
 }
 
@@ -180,6 +297,25 @@ struct PendingHostCall {
 }
 
 pub trait StepBack<const PORTS: usize> {
+    /// Exact terminal contracts implemented by this prepared Back. Preparation
+    /// must match these to the Plan-lowered contracts before play.
+    fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
+        let mut contracts = [None; PORTS];
+        if let Some(contract) = self.terminal_transduction() {
+            let input = usize::from(contract.input.0);
+            if input < PORTS {
+                contracts[input] = Some(contract);
+            }
+        }
+        contracts
+    }
+
+    /// Convenience for existing single-input Backs. Multi-input Backs override
+    /// `terminal_transductions`; the scheduler and Plan boundary are plural.
+    fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
+        None
+    }
+
     /// Finalize private state only after successful transactional I/O commit.
     fn step_committed(&mut self) {}
     fn step(
@@ -187,6 +323,13 @@ pub trait StepBack<const PORTS: usize> {
         io: &mut StepIo<PORTS>,
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome;
+    /// Bytes for one output staged by [`StepIo::send_prepared`]. The storage
+    /// belongs to this already-prepared Back and must remain unchanged until
+    /// `step_committed`; the scheduler copies it into admitted value storage
+    /// only after the Step has passed transactional validation.
+    fn prepared_output(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
     fn accepts_input_while_host_call_pending(&self) -> bool {
         false
     }
@@ -241,12 +384,14 @@ impl StepInputBytes<'static, 1> {
 pub struct StepIo<const PORTS: usize> {
     inputs: [Option<ValueRef>; PORTS],
     input_closed: [bool; PORTS],
+    input_abnormal: [Option<CanonicalValue>; PORTS],
     output_maximum_bytes: [Option<u32>; PORTS],
     consumed: [bool; PORTS],
     retained_inputs: [bool; PORTS],
     consumed_closed: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
+    prepared_output: Option<(PortId, u32)>,
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
@@ -281,12 +426,64 @@ impl<const PORTS: usize> StepIo<PORTS> {
             .unwrap_or(true)
     }
 
+    /// Exact bounded abnormal terminal truth observed after ordinary values on
+    /// this input have drained. This is not mechanism failure and is distinct
+    /// from normal close.
+    pub fn input_abnormal(&self, port: PortId) -> Option<CanonicalValue> {
+        self.input_abnormal
+            .get(usize::from(port.0))
+            .copied()
+            .flatten()
+    }
+
+    /// Consume one exact abnormal input terminal as part of this transactional
+    /// Step. The Back remains responsible for the checked transduction promised
+    /// by its Kind; the kernel does not turn the terminal into generic failure.
+    pub fn consume_abnormal(&mut self, port: PortId) -> Result<CanonicalValue, SchedulerError> {
+        self.consume_fuel(1)?;
+        let index = usize::from(port.0);
+        let terminal = self
+            .input_abnormal
+            .get(index)
+            .copied()
+            .flatten()
+            .ok_or(SchedulerError::InvalidPortAccess)?;
+        if self.inputs.get(index).copied().flatten().is_some()
+            || self.consumed_closed.get(index).copied().unwrap_or(true)
+        {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        }
+        self.consumed_closed[index] = true;
+        Ok(terminal)
+    }
+
     pub fn consume(&mut self, port: PortId) -> Result<ValueRef, SchedulerError> {
         self.consume_input(port, false)
     }
 
     pub fn take_input(&mut self, port: PortId) -> Result<ValueRef, SchedulerError> {
         self.consume_input(port, true)
+    }
+
+    /// Pin the presented input as one admitted Host Call's request without
+    /// consuming it from its cord. A later step must consume or otherwise
+    /// resolve the same input after the exact completion is observed.
+    pub fn borrow_input_for_call(&mut self, port: PortId) -> Result<ValueRef, SchedulerError> {
+        self.consume_fuel(1)?;
+        let index = usize::from(port.0);
+        let value = self
+            .inputs
+            .get(index)
+            .copied()
+            .flatten()
+            .ok_or(SchedulerError::InvalidPortAccess)?;
+        if self.consumed.get(index).copied().unwrap_or(true)
+            || self.retained_inputs.get(index).copied().unwrap_or(true)
+        {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        }
+        self.retained_inputs[index] = true;
+        Ok(value)
     }
 
     pub fn consume_closed(&mut self, port: PortId) -> Result<(), SchedulerError> {
@@ -367,10 +564,37 @@ impl<const PORTS: usize> StepIo<PORTS> {
             || self.outputs.get(index).is_none()
             || self.outputs[index].is_some()
             || self.canonical_output.is_some()
+            || self.prepared_output.is_some()
         {
             return self.fail(SchedulerError::OutputBlocked);
         }
         self.canonical_output = Some((port, value));
+        Ok(())
+    }
+
+    /// Stage one value held in allocation-prepared Back storage.
+    ///
+    /// The Back exposes the exact bytes through [`StepBack::prepared_output`].
+    /// This records no pointer and grants no storage authority; it only binds
+    /// the output port and byte length into the current Step transaction.
+    pub fn send_prepared(&mut self, port: PortId, byte_len: u32) -> Result<(), SchedulerError> {
+        self.consume_fuel(1)?;
+        let index = usize::from(port.0);
+        let maximum = self
+            .output_maximum_bytes
+            .get(index)
+            .copied()
+            .flatten()
+            .ok_or(SchedulerError::OutputBlocked)?;
+        if byte_len > maximum
+            || self.outputs.get(index).is_none()
+            || self.outputs[index].is_some()
+            || self.canonical_output.is_some()
+            || self.prepared_output.is_some()
+        {
+            return self.fail(SchedulerError::OutputBlocked);
+        }
+        self.prepared_output = Some((port, byte_len));
         Ok(())
     }
 
@@ -470,6 +694,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
         self.consumed.iter().any(|value| *value)
             || self.outputs.iter().any(Option::is_some)
             || self.canonical_output.is_some()
+            || self.prepared_output.is_some()
             || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
@@ -504,12 +729,14 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Self {
             inputs,
             input_closed,
+            input_abnormal: [None; PORTS],
             output_maximum_bytes,
             consumed: [false; PORTS],
             retained_inputs: [false; PORTS],
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             canonical_output: None,
+            prepared_output: None,
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -550,6 +777,10 @@ impl<const PORTS: usize> StepIo<PORTS> {
         self.canonical_output.as_ref()
     }
 
+    pub const fn test_prepared_output(&self) -> Option<(PortId, u32)> {
+        self.prepared_output
+    }
+
     pub fn test_discards(&self) -> &[Option<ValueRef>; PORTS] {
         &self.discards
     }
@@ -584,12 +815,14 @@ impl StepIo<1> {
         Self {
             inputs: [None],
             input_closed: [false],
+            input_abnormal: [None],
             output_maximum_bytes: [Some(maximum_output_bytes)],
             consumed: [false],
             retained_inputs: [false],
             consumed_closed: [false],
             outputs: [None],
             canonical_output: None,
+            prepared_output: None,
             discards: [None],
             host_completion,
             consumed_host_completion: false,
@@ -609,6 +842,7 @@ impl StepIo<1> {
             && !self.consumed_host_completion
             && self.outputs[0].is_none()
             && self.canonical_output.is_none()
+            && self.prepared_output.is_none()
             && self.discards[0].is_none()
             && self.host_cancellation.is_none()
         {
@@ -623,6 +857,7 @@ impl StepIo<1> {
             && self.consumed_host_completion
             && self.host_request.is_none()
             && self.canonical_output.is_none()
+            && self.prepared_output.is_none()
             && self.discards[0].is_none()
             && self.host_cancellation.is_none()
         {
@@ -660,10 +895,16 @@ pub enum SchedulerError {
     OutputBlocked,
     QueueCapacityExceeded,
     QueueByteCapacityExceeded,
+    SemanticValueBoundExceeded,
     StepFuelExceeded,
     FalseProgress,
     DecisionLimitExceeded,
     BackFailed(crate::Failure),
+    SemanticAbnormal {
+        node: NodeId,
+        port: PortId,
+        terminal: CanonicalValue,
+    },
     HostCallCapacityExceeded,
     HostCallRequestDuplicate,
     HostCallCompletionRejected,
@@ -703,9 +944,18 @@ struct CordState {
     len: u16,
     queued_bytes: u32,
     producer_closed: bool,
+    producer_abnormal: bool,
+    abnormal_terminal: Option<CanonicalValue>,
     next_remote_sequence: u64,
     offered_remote_sequence: Option<u64>,
     remote_accepted: bool,
+    quiescence_armed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct UnresolvedAbnormal {
+    port: PortId,
+    terminal: CanonicalValue,
 }
 
 impl CordState {
@@ -714,9 +964,12 @@ impl CordState {
         len: 0,
         queued_bytes: 0,
         producer_closed: false,
+        producer_abnormal: false,
+        abnormal_terminal: None,
         next_remote_sequence: 0,
         offered_remote_sequence: None,
         remote_accepted: false,
+        quiescence_armed: false,
     };
 }
 
@@ -738,6 +991,13 @@ pub struct FixedScheduler<
     E: SignSink,
 {
     node_specs: [NodeSpec<PORTS>; NODES],
+    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    terminal_inputs_consumed: [[bool; PORTS]; NODES],
+    terminal_phases: [Option<ActiveTerminalPhase>; NODES],
+    terminal_cancellation_pending: [bool; NODES],
+    unresolved_abnormal: [Option<UnresolvedAbnormal>; NODES],
+    projected_recovery_source: [Option<NodeId>; NODES],
+    recovery_for_cord: [Option<NodeId>; CORDS],
     cord_specs: [CordSpec; CORDS],
     active_nodes: usize,
     active_cords: usize,
@@ -833,6 +1093,13 @@ where
         )?;
         Ok(Self {
             node_specs,
+            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_inputs_consumed: [[false; PORTS]; NODES],
+            terminal_phases: [None; NODES],
+            terminal_cancellation_pending: [false; NODES],
+            unresolved_abnormal: [None; NODES],
+            projected_recovery_source: [None; NODES],
+            recovery_for_cord: [None; CORDS],
             cord_specs,
             active_nodes,
             active_cords,
@@ -921,6 +1188,9 @@ where
             return Err(SchedulerError::DebugSuspended);
         }
         let Some(node) = self.next_ready() else {
+            if let Some(node) = self.emit_quiescence_transitions()? {
+                return Ok(SchedulerStatus::Progress { node });
+            }
             return if self.completed[..self.active_nodes]
                 .iter()
                 .all(|value| *value)
@@ -928,7 +1198,7 @@ where
                     .iter()
                     .all(|cord| cord.len == 0)
             {
-                Ok(SchedulerStatus::Drained)
+                self.drained_status()
             } else {
                 Ok(SchedulerStatus::Idle)
             };
@@ -991,12 +1261,88 @@ where
                 .iter()
                 .all(|cord| cord.len == 0)
         {
-            Ok(SchedulerStatus::Drained)
+            self.drained_status()
         } else {
             Ok(SchedulerStatus::Progress {
                 node: NodeId(as_u16(node)?),
             })
         }
+    }
+
+    /// Bind the exact Plan-lowered terminal contracts before play. A prepared
+    /// Back may not claim a different mapping or behavior.
+    pub fn bind_terminal_transductions(
+        &mut self,
+        contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    ) -> Result<(), SchedulerError> {
+        for (node, contract) in contracts.iter().copied().enumerate() {
+            if node < self.active_nodes {
+                if self.drivers[node].terminal_transductions() != contract {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+            } else if contract.iter().any(Option::is_some) {
+                return Err(SchedulerError::InvalidPlan);
+            }
+        }
+        self.terminal_transductions = contracts;
+        self.bind_projected_recoveries()?;
+        Ok(())
+    }
+
+    fn bind_projected_recoveries(&mut self) -> Result<(), SchedulerError> {
+        self.recovery_for_cord = [None; CORDS];
+        for cord in 0..self.active_cords {
+            let spec = self.cord_specs[cord];
+            if spec.track != AssignedConnectionTrack::AbnormalTerminal {
+                continue;
+            }
+            let CordEndpoint::Local {
+                node: sink,
+                port: sink_port,
+            } = spec.sink
+            else {
+                continue;
+            };
+            let Some(contract) = self.terminal_transductions[usize::from(sink.0)]
+                .get(usize::from(sink_port.0))
+                .copied()
+                .flatten()
+            else {
+                continue;
+            };
+            if contract.input == sink_port
+                && matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
+            {
+                if self.recovery_for_cord[..cord]
+                    .iter()
+                    .enumerate()
+                    .any(|(other, recovery)| {
+                        *recovery == Some(sink)
+                            || (*recovery).is_some() && self.cord_specs[other].source == spec.source
+                    })
+                {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                self.recovery_for_cord[cord] = Some(sink);
+            }
+        }
+        Ok(())
+    }
+
+    fn drained_status(&self) -> Result<SchedulerStatus, SchedulerError> {
+        if let Some((node, unresolved)) = self.unresolved_abnormal[..self.active_nodes]
+            .iter()
+            .copied()
+            .enumerate()
+            .find_map(|(node, value)| value.map(|value| (node, value)))
+        {
+            return Err(SchedulerError::SemanticAbnormal {
+                node: NodeId(as_u16(node)?),
+                port: unresolved.port,
+                terminal: unresolved.terminal,
+            });
+        }
+        Ok(SchedulerStatus::Drained)
     }
 
     pub fn run(&mut self, maximum_decisions: u32) -> Result<(), SchedulerError> {
@@ -1330,10 +1676,124 @@ where
         Ok(RemoteIngressOutcome::Accepted { sequence })
     }
 
+    /// Atomically admits one external payload to every exact ingress branch.
+    /// If any branch is pressured, no branch observes the value and the same
+    /// sequence remains retryable across the whole fan-out.
+    pub fn admit_remote_input_fanout(
+        &mut self,
+        targets: &[(RemoteEndpointId, CordId)],
+        sequence: u64,
+        bytes: &[u8],
+    ) -> Result<RemoteIngressOutcome, SchedulerError> {
+        if self.cancelled {
+            return Err(SchedulerError::Cancelled);
+        }
+        if targets.is_empty() || targets.len() > usize::from(u16::MAX) {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
+        let byte_len =
+            u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
+        let next_sequence = sequence
+            .checked_add(1)
+            .ok_or(SchedulerError::RemoteSequenceRejected)?;
+        for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
+            if targets[..index].contains(&(endpoint, cord)) {
+                return Err(SchedulerError::InvalidRemoteCordAccess);
+            }
+            let cord_index = usize::from(cord.0);
+            if cord_index >= self.active_cords {
+                return Err(SchedulerError::InvalidRemoteCordAccess);
+            }
+            let spec = self.cord_specs[cord_index];
+            if !matches!(spec.source, CordEndpoint::Remote(candidate) if candidate == endpoint)
+                || !matches!(spec.sink, CordEndpoint::Local { .. })
+            {
+                return Err(SchedulerError::InvalidRemoteCordAccess);
+            }
+            let state = &self.cords[cord_index];
+            if state.producer_closed || state.next_remote_sequence != sequence {
+                return Err(SchedulerError::RemoteSequenceRejected);
+            }
+            if byte_len > self.admission_maximum(spec, state)? {
+                return Ok(RemoteIngressOutcome::Full { sequence });
+            }
+        }
+        self.ensure_sign_capacity(targets.len())?;
+        self.ensure_remote_sign_capacity(targets.len())?;
+        let value = self.values.store(bytes)?;
+        for references in 1..targets.len() {
+            if let Err(error) = self.values.retain(value) {
+                for _ in 0..references {
+                    self.values.release(value)?;
+                }
+                return Err(error.into());
+            }
+        }
+        for (endpoint, cord) in targets.iter().copied() {
+            let cord_index = usize::from(cord.0);
+            let spec = self.cord_specs[cord_index];
+            let (sink_node, sink_port) = spec.sink_local().ok_or(SchedulerError::InvalidPlan)?;
+            if let Some(superseded) = self.push(cord_index, value)? {
+                self.values.release(superseded)?;
+            }
+            self.cords[cord_index].next_remote_sequence = next_sequence;
+            self.ready[usize::from(sink_node.0)] = true;
+            self.signs.record_remote(
+                sink_node,
+                sink_port,
+                KernelEventKind::RemoteInputAdmitted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord,
+                    direction: crate::RemoteCordDirection::Ingress,
+                    sequence,
+                },
+            )?;
+        }
+        Ok(RemoteIngressOutcome::Accepted { sequence })
+    }
+
     pub fn close_remote_input(
         &mut self,
         endpoint: RemoteEndpointId,
         cord: CordId,
+    ) -> Result<(), SchedulerError> {
+        self.close_remote_input_with_disposition(
+            endpoint,
+            cord,
+            RemoteTerminalDisposition::NormalClose,
+        )
+    }
+
+    pub fn close_remote_input_with_disposition(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        disposition: RemoteTerminalDisposition,
+    ) -> Result<(), SchedulerError> {
+        if disposition == RemoteTerminalDisposition::Abnormal {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
+        self.close_remote_input_terminal(endpoint, cord, None)
+    }
+
+    /// Admit exact typed semantic abnormal truth from a remote source. The
+    /// session layer validates the bytes against the connection's declared F
+    /// before constructing this bounded value.
+    pub fn close_remote_input_abnormal(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        terminal: CanonicalValue,
+    ) -> Result<(), SchedulerError> {
+        self.close_remote_input_terminal(endpoint, cord, Some(terminal))
+    }
+
+    fn close_remote_input_terminal(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        abnormal_terminal: Option<CanonicalValue>,
     ) -> Result<(), SchedulerError> {
         if self.cancelled {
             return Err(SchedulerError::Cancelled);
@@ -1355,11 +1815,17 @@ where
             _ => return Err(SchedulerError::InvalidRemoteCordAccess),
         };
         if self.cords[cord_index].producer_closed {
-            return Ok(());
+            return if self.cords[cord_index].abnormal_terminal == abnormal_terminal {
+                Ok(())
+            } else {
+                Err(SchedulerError::RemoteDeliveryRejected)
+            };
         }
         self.ensure_sign_capacity(1)?;
         self.ensure_remote_sign_capacity(1)?;
         self.cords[cord_index].producer_closed = true;
+        self.cords[cord_index].producer_abnormal = abnormal_terminal.is_some();
+        self.cords[cord_index].abnormal_terminal = abnormal_terminal;
         self.ready[usize::from(sink_node.0)] = true;
         self.signs.record_remote(
             sink_node,
@@ -1397,8 +1863,59 @@ where
         ) {
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
+        Ok(self
+            .remote_egress_terminal_disposition(endpoint, cord)?
+            .is_some())
+    }
+
+    pub fn remote_egress_terminal_disposition(
+        &self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+    ) -> Result<Option<RemoteTerminalDisposition>, SchedulerError> {
+        let cord_index = usize::from(cord.0);
+        if cord_index >= self.active_cords {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
+        let spec = *self
+            .cord_specs
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        if !matches!(
+            (spec.source, spec.sink),
+            (
+                CordEndpoint::Local { .. },
+                CordEndpoint::Remote(candidate)
+            ) if candidate == endpoint
+        ) {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
         let state = self.cords[cord_index];
-        Ok(state.producer_closed && state.len == 0)
+        Ok(
+            (state.producer_closed && state.len == 0).then_some(if state.producer_abnormal {
+                RemoteTerminalDisposition::Abnormal
+            } else {
+                RemoteTerminalDisposition::NormalClose
+            }),
+        )
+    }
+
+    /// Exact typed terminal bytes for an abnormal remote egress after its
+    /// ordinary values have drained.
+    pub fn remote_egress_abnormal_terminal(
+        &self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+    ) -> Result<Option<CanonicalValue>, SchedulerError> {
+        if self.remote_egress_terminal_disposition(endpoint, cord)?
+            != Some(RemoteTerminalDisposition::Abnormal)
+        {
+            return Ok(None);
+        }
+        self.cords
+            .get(usize::from(cord.0))
+            .map(|state| state.abnormal_terminal)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)
     }
 
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
@@ -1573,7 +2090,9 @@ where
     fn context(&self, node: usize) -> Result<StepIo<PORTS>, SchedulerError> {
         let mut inputs = [None; PORTS];
         let mut input_closed = [false; PORTS];
+        let mut input_abnormal = [None; PORTS];
         let mut output_maximum_bytes = [None; PORTS];
+        let node_id = NodeId(as_u16(node)?);
         let host_completion = self
             .pending_host_calls
             .iter()
@@ -1593,10 +2112,29 @@ where
             let Some(cord) = cord else {
                 continue;
             };
+            if self.terminal_inputs_consumed[node][port] {
+                continue;
+            }
             let cord_index = usize::from(cord.0);
+            let projected_recovery_handles_source = self.cords[cord_index].producer_abnormal
+                && self.recovery_for_cord[..self.active_cords]
+                    .iter()
+                    .enumerate()
+                    .any(|(recovery_cord, recovery)| {
+                        *recovery == Some(node_id)
+                            && self.cord_specs[recovery_cord].source
+                                == self.cord_specs[cord_index].source
+                    });
             inputs[port] = self.peek(cord_index)?;
-            input_closed[port] =
-                self.cords[cord_index].producer_closed && self.cords[cord_index].len == 0;
+            input_closed[port] = self.cords[cord_index].producer_closed
+                && (!self.cords[cord_index].producer_abnormal || projected_recovery_handles_source)
+                && self.cords[cord_index].len == 0;
+            input_abnormal[port] = (self.cords[cord_index].producer_closed
+                && self.cords[cord_index].producer_abnormal
+                && !projected_recovery_handles_source
+                && self.cords[cord_index].len == 0)
+                .then_some(self.cords[cord_index].abnormal_terminal)
+                .flatten();
         }
         for (port, output_maximum) in output_maximum_bytes.iter_mut().enumerate() {
             let Ok(targets) = self
@@ -1614,6 +2152,9 @@ where
                     .cord_specs
                     .get(cord)
                     .ok_or(SchedulerError::InvalidPlan)?;
+                if spec.track != AssignedConnectionTrack::Payload {
+                    continue;
+                }
                 if state.producer_closed {
                     maximum = 0;
                     any = true;
@@ -1629,12 +2170,14 @@ where
         Ok(StepIo {
             inputs,
             input_closed,
+            input_abnormal,
             output_maximum_bytes,
             consumed: [false; PORTS],
             retained_inputs: [false; PORTS],
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             canonical_output: None,
+            prepared_output: None,
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -1653,6 +2196,9 @@ where
         mut io: StepIo<PORTS>,
     ) -> Result<(), SchedulerError> {
         let staged = io.staged();
+        let terminal_phase = self.validate_terminal_transduction(node, outcome, &io)?;
+        let cancellation_pending = self.validate_terminal_cancellation(node, outcome, &io)?;
+        let projected_recovery = self.projected_recovery_for_step(node, &io)?;
         match outcome {
             StepOutcome::Progress if !staged => return Err(SchedulerError::FalseProgress),
             StepOutcome::Await if staged => return Err(SchedulerError::FalseProgress),
@@ -1677,16 +2223,60 @@ where
                 });
                 return Err(SchedulerError::BackFailed(code));
             }
+            StepOutcome::Abnormal { .. }
+                if io.host_request.is_some()
+                    || io.host_cancellation.is_some()
+                    || ((io.outputs.iter().any(Option::is_some)
+                        || io.canonical_output.is_some()
+                        || io.prepared_output.is_some())
+                        && !matches!(
+                            (
+                                self.terminal_phases[node],
+                                self.terminal_phases[node].and_then(|phase| {
+                                    let input = match phase {
+                                        ActiveTerminalPhase::Normal { input, .. }
+                                        | ActiveTerminalPhase::Abnormal { input, .. } => input,
+                                    };
+                                    self.terminal_transductions[node][usize::from(input.0)]
+                                })
+                            ),
+                            (
+                                Some(ActiveTerminalPhase::Abnormal { .. }),
+                                Some(AssignedTerminalTransduction {
+                                    abnormal: AssignedAbnormalTransduction::FinalizeThenPropagate(
+                                        _
+                                    ),
+                                    ..
+                                })
+                            )
+                        )
+                        && !self.step_begins_abnormal_finalization(node, &io)) =>
+            {
+                return Err(SchedulerError::FalseProgress);
+            }
             _ => {}
         }
 
-        if matches!(outcome, StepOutcome::Progress | StepOutcome::Complete) {
-            let complete_sign_records = if matches!(outcome, StepOutcome::Complete) {
+        if matches!(
+            outcome,
+            StepOutcome::Progress | StepOutcome::Complete | StepOutcome::Abnormal { .. }
+        ) {
+            let complete_sign_records = if matches!(
+                outcome,
+                StepOutcome::Complete | StepOutcome::Abnormal { .. }
+            ) {
                 if io.host_request.is_some() || io.host_cancellation.is_some() {
                     return Err(SchedulerError::InvalidHostCallAccess);
                 }
                 self.output_route_count(node)?
                     .checked_add(1)
+                    .and_then(|count| {
+                        count.checked_add(usize::from(
+                            outcome == StepOutcome::Complete
+                                && (projected_recovery.is_some()
+                                    || self.projected_recovery_source[node].is_some()),
+                        ))
+                    })
                     .ok_or(SchedulerError::InvalidPlan)?
             } else {
                 0
@@ -1695,8 +2285,27 @@ where
                 .checked_add(usize::from(io.host_cancellation.is_some()))
                 .and_then(|count| count.checked_add(complete_sign_records))
                 .ok_or(SchedulerError::InvalidPlan)?;
-            let generated =
-                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?;
+            let generated = if let Some((port, declared_len)) = io.prepared_output {
+                let bytes = self.drivers[node]
+                    .prepared_output(port)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                if u32::try_from(bytes.len()).ok() != Some(declared_len) {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                let value = self.values.store(bytes)?;
+                let output = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if output.is_some() {
+                    self.values.release(value)?;
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                *output = Some(value);
+                Some(value)
+            } else {
+                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?
+            };
             let mut sign_records =
                 match self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)
                 {
@@ -1730,6 +2339,9 @@ where
                 return Err(error);
             }
             self.drivers[node].step_committed();
+            if let Some(source) = projected_recovery {
+                self.projected_recovery_source[node] = Some(source);
+            }
         }
         match outcome {
             StepOutcome::Progress => {
@@ -1749,6 +2361,21 @@ where
                 self.completed[node] = true;
                 self.ready[node] = false;
                 self.close_outputs(node)?;
+                if let Some(source) = self.projected_recovery_source[node].take() {
+                    self.unresolved_abnormal[usize::from(source.0)] = None;
+                    self.signs.record(
+                        NodeId(as_u16(node)?),
+                        self.terminal_transductions[node]
+                            .iter()
+                            .flatten()
+                            .find(|contract| {
+                                matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
+                            })
+                            .map(|contract| contract.input),
+                        None,
+                        KernelEventKind::SemanticAbnormalRecovered,
+                    )?;
+                }
                 self.signs.record(
                     NodeId(as_u16(node)?),
                     None,
@@ -1765,9 +2392,540 @@ where
                     fault_code: None,
                 });
             }
+            StepOutcome::Abnormal { port, terminal } => {
+                self.completed[node] = true;
+                self.ready[node] = false;
+                let routed = self.abnormally_terminate_outputs(node, port, terminal)?;
+                self.signs.record(
+                    NodeId(as_u16(node)?),
+                    Some(port),
+                    None,
+                    KernelEventKind::SemanticAbnormal,
+                )?;
+                if !routed {
+                    return Err(SchedulerError::SemanticAbnormal {
+                        node: NodeId(as_u16(node)?),
+                        port,
+                        terminal,
+                    });
+                }
+            }
             StepOutcome::Fail(_) => unreachable!(),
         }
+        if matches!(outcome, StepOutcome::Progress | StepOutcome::Yield) {
+            self.arm_quiescence_outputs(node)?;
+        }
+        self.terminal_phases[node] = terminal_phase;
+        self.terminal_cancellation_pending[node] = cancellation_pending;
         Ok(())
+    }
+
+    fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
+        let node = NodeId(as_u16(node)?);
+        for cord in 0..self.active_cords {
+            if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
+                && self.cord_specs[cord].source_local().map(|source| source.0) == Some(node)
+            {
+                self.cords[cord].quiescence_armed = true;
+            }
+        }
+        Ok(())
+    }
+
+    /// Emit one wakeable edge for every source that became active and has now
+    /// returned the whole play to quiescence. Empty queues alone do not arm an
+    /// edge, and terminal sources are never reported as quiescent.
+    fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
+        let mut count = 0_usize;
+        let mut first_source = None;
+        for cord in 0..self.active_cords {
+            let spec = self.cord_specs[cord];
+            if spec.track != AssignedConnectionTrack::Quiescence
+                || !self.cords[cord].quiescence_armed
+            {
+                continue;
+            }
+            let Some((source, _)) = spec.source_local() else {
+                continue;
+            };
+            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
+                continue;
+            }
+            first_source.get_or_insert(source);
+            count = count.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+        }
+        if count == 0 {
+            return Ok(None);
+        }
+        self.ensure_sign_capacity(count)?;
+        let value = self.values.store(&[])?;
+        for _ in 1..count {
+            self.values.retain(value)?;
+        }
+        for cord in 0..self.active_cords {
+            let spec = self.cord_specs[cord];
+            if spec.track != AssignedConnectionTrack::Quiescence
+                || !self.cords[cord].quiescence_armed
+            {
+                continue;
+            }
+            let Some((source, port)) = spec.source_local() else {
+                continue;
+            };
+            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
+                continue;
+            }
+            self.push(cord, value)?;
+            self.cords[cord].quiescence_armed = false;
+            if let Some((sink, _)) = spec.sink_local() {
+                self.ready[usize::from(sink.0)] = true;
+            }
+            self.signs
+                .record(source, Some(port), None, KernelEventKind::ValueRouted)?;
+        }
+        Ok(first_source)
+    }
+
+    fn projected_recovery_for_step(
+        &self,
+        node: usize,
+        io: &StepIo<PORTS>,
+    ) -> Result<Option<NodeId>, SchedulerError> {
+        let mut source = None;
+        for (port, consumed) in io.consumed.iter().copied().enumerate() {
+            if !consumed {
+                continue;
+            }
+            let Some(cord) = self.node_specs[node].input_cords[port] else {
+                continue;
+            };
+            let cord = usize::from(cord.0);
+            if self.recovery_for_cord[cord] != Some(NodeId(as_u16(node)?)) {
+                continue;
+            }
+            let CordEndpoint::Local {
+                node: origin,
+                port: origin_port,
+            } = self.cord_specs[cord].source
+            else {
+                return Err(SchedulerError::InvalidPlan);
+            };
+            let unresolved = self.unresolved_abnormal[usize::from(origin.0)]
+                .ok_or(SchedulerError::InvalidPlan)?;
+            if unresolved.port != origin_port {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            let input = io.inputs[port].ok_or(SchedulerError::InvalidPlan)?;
+            if self.values.get(input)? != unresolved.terminal.as_slice() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            if source.replace(origin).is_some_and(|other| other != origin)
+                || self.projected_recovery_source[node].is_some_and(|other| other != origin)
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+        }
+        Ok(source)
+    }
+
+    fn step_begins_abnormal_finalization(&self, node: usize, io: &StepIo<PORTS>) -> bool {
+        self.terminal_transductions[node]
+            .iter()
+            .flatten()
+            .any(|contract| {
+                let input = usize::from(contract.input.0);
+                matches!(
+                    contract.abnormal,
+                    AssignedAbnormalTransduction::FinalizeThenPropagate(_)
+                ) && input < PORTS
+                    && io.input_abnormal[input].is_some()
+                    && io.consumed_closed[input]
+            })
+    }
+
+    fn validate_terminal_cancellation(
+        &self,
+        node: usize,
+        outcome: StepOutcome,
+        io: &StepIo<PORTS>,
+    ) -> Result<bool, SchedulerError> {
+        let Some(contract) = self.terminal_transductions[node]
+            .iter()
+            .flatten()
+            .find(|contract| {
+                matches!(
+                    contract.cancellation,
+                    AssignedCancellationTransduction::Request { .. }
+                )
+            })
+            .copied()
+        else {
+            return Ok(false);
+        };
+        let AssignedCancellationTransduction::Request { input, .. } = contract.cancellation else {
+            return Ok(false);
+        };
+        let input = usize::from(input.0);
+        if input >= PORTS {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        let requested = io.consumed[input];
+        let pending = self.terminal_cancellation_pending[node] || requested;
+        if !pending {
+            return Ok(false);
+        }
+        match outcome {
+            StepOutcome::Abnormal { port, .. } if port == contract.output => Ok(false),
+            StepOutcome::Abnormal { .. } | StepOutcome::Complete => {
+                Err(SchedulerError::InvalidPlan)
+            }
+            StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => Ok(true),
+            StepOutcome::Fail(_) => Ok(pending),
+        }
+    }
+
+    fn validate_terminal_transduction(
+        &self,
+        node: usize,
+        outcome: StepOutcome,
+        io: &StepIo<PORTS>,
+    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
+        let active_input = self.terminal_phases[node].map(|phase| match phase {
+            ActiveTerminalPhase::Normal { input, .. }
+            | ActiveTerminalPhase::Abnormal { input, .. } => input,
+        });
+        let first_consumed = io.consumed_closed.iter().position(|consumed| *consumed);
+        let mut contracted_consumed = io
+            .consumed_closed
+            .iter()
+            .enumerate()
+            .filter(|(port, consumed)| {
+                **consumed && self.terminal_transductions[node][*port].is_some()
+            })
+            .map(|(port, _)| port);
+        let consumed_input = contracted_consumed.next().or(first_consumed);
+        if contracted_consumed.next().is_some() {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        if io
+            .input_abnormal
+            .iter()
+            .enumerate()
+            .any(|(port, terminal)| {
+                terminal.is_some() && self.terminal_transductions[node][port].is_none()
+            })
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        let selected_input = active_input
+            .map(|port| usize::from(port.0))
+            .or(consumed_input)
+            .or_else(|| {
+                (0..PORTS).find(|port| {
+                    io.inputs[*port].is_none()
+                        && (io.input_abnormal[*port].is_some()
+                            || (io.input_closed[*port]
+                                && self.terminal_transductions[node][*port].is_some()))
+                })
+            });
+        let Some(selected_input) = selected_input else {
+            return Ok(None);
+        };
+        let Some(contract) = self.terminal_transductions[node][selected_input] else {
+            if io.input_abnormal[selected_input].is_some() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            return Ok(None);
+        };
+        let input = usize::from(contract.input.0);
+        if input >= PORTS {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        if let Some(phase) = self.terminal_phases[node] {
+            return self.advance_terminal_phase(contract, phase, outcome, io);
+        }
+        let terminal_is_exposed = (io.input_abnormal[input].is_some()
+            || (io.input_closed[input]
+                && !matches!(
+                    contract.normal_close,
+                    AssignedNormalCloseTransduction::NotAccepted
+                )))
+            && io.inputs[input].is_none();
+        if terminal_is_exposed && !io.consumed_closed[input] {
+            let may_wait_for_finite_output_capacity = if io.input_abnormal[input].is_some() {
+                matches!(
+                    contract.abnormal,
+                    AssignedAbnormalTransduction::FinalizeThenPropagate(_)
+                )
+            } else {
+                matches!(
+                    contract.normal_close,
+                    AssignedNormalCloseTransduction::FlushThenPropagate(_)
+                        | AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(_)
+                )
+            };
+            return if may_wait_for_finite_output_capacity && outcome == StepOutcome::Await {
+                Ok(None)
+            } else {
+                // Non-buffered contracts must consume exposed truth now. A
+                // finite flushing Back may await only before beginning its
+                // admitted terminal phase, typically under output pressure.
+                Err(SchedulerError::InvalidPlan)
+            };
+        }
+        let consumed = io
+            .input_abnormal
+            .iter()
+            .zip(io.consumed_closed)
+            .enumerate()
+            .find_map(|(port, (terminal, consumed))| consumed.then_some((port, *terminal)))
+            .and_then(|(port, terminal)| terminal.map(|terminal| (port, terminal)));
+        if let Some((consumed_input, terminal)) = consumed {
+            if input != consumed_input {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            return match contract.abnormal {
+                AssignedAbnormalTransduction::NotAccepted => Err(SchedulerError::InvalidPlan),
+                AssignedAbnormalTransduction::PropagateAfterDrain => {
+                    if outcome
+                        != (StepOutcome::Abnormal {
+                            port: contract.output,
+                            terminal,
+                        })
+                    {
+                        return Err(SchedulerError::InvalidPlan);
+                    }
+                    Ok(None)
+                }
+                AssignedAbnormalTransduction::FinalizeThenPropagate(bound) => {
+                    let emitted = self.accumulate_terminal_emission(
+                        AssignedFiniteTerminalEmission {
+                            maximum_items: 0,
+                            maximum_bytes: 0,
+                        },
+                        io,
+                        bound,
+                    )?;
+                    match outcome {
+                        StepOutcome::Abnormal {
+                            port,
+                            terminal: propagated,
+                        } if port == contract.output && propagated == terminal => Ok(None),
+                        StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Abnormal {
+                            input: contract.input,
+                            terminal,
+                            emitted,
+                        })),
+                        StepOutcome::Fail(_) => Ok(None),
+                        _ => Err(SchedulerError::InvalidPlan),
+                    }
+                }
+                AssignedAbnormalTransduction::Recover => {
+                    if matches!(outcome, StepOutcome::Abnormal { .. }) {
+                        Err(SchedulerError::InvalidPlan)
+                    } else {
+                        Ok(None)
+                    }
+                }
+                AssignedAbnormalTransduction::DomainSpecific { .. } => match outcome {
+                    StepOutcome::Abnormal { port, .. } if port != contract.output => {
+                        Err(SchedulerError::InvalidPlan)
+                    }
+                    _ => Ok(None),
+                },
+            };
+        }
+        if !io.consumed_closed[input] {
+            return Ok(None);
+        }
+        use AssignedNormalCloseTransduction as Normal;
+        match contract.normal_close {
+            Normal::NotAccepted => Err(SchedulerError::InvalidPlan),
+            Normal::PropagateAfterDrain => {
+                if outcome == StepOutcome::Complete {
+                    Ok(None)
+                } else {
+                    Err(SchedulerError::InvalidPlan)
+                }
+            }
+            Normal::FlushThenPropagate(bound) => {
+                let emitted = self.accumulate_terminal_emission(
+                    AssignedFiniteTerminalEmission {
+                        maximum_items: 0,
+                        maximum_bytes: 0,
+                    },
+                    io,
+                    bound,
+                )?;
+                match outcome {
+                    StepOutcome::Complete => Ok(None),
+                    StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Normal {
+                        input: contract.input,
+                        emitted,
+                    })),
+                    StepOutcome::Fail(_) => Ok(None),
+                    _ => Err(SchedulerError::InvalidPlan),
+                }
+            }
+            Normal::FlushThenPropagateWhenAllClose(bound) => {
+                let emitted = self.accumulate_terminal_emission(
+                    AssignedFiniteTerminalEmission {
+                        maximum_items: 0,
+                        maximum_bytes: 0,
+                    },
+                    io,
+                    bound,
+                )?;
+                let last =
+                    self.terminal_transductions[node]
+                        .iter()
+                        .enumerate()
+                        .all(|(port, profile)| {
+                            profile.is_none()
+                                || port == input
+                                || self.terminal_inputs_consumed[node][port]
+                        });
+                if last {
+                    match outcome {
+                        StepOutcome::Complete => Ok(None),
+                        StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Normal {
+                            input: contract.input,
+                            emitted,
+                        })),
+                        StepOutcome::Fail(_) => Ok(None),
+                        _ => Err(SchedulerError::InvalidPlan),
+                    }
+                } else {
+                    match outcome {
+                        StepOutcome::Progress | StepOutcome::Fail(_) => Ok(None),
+                        _ => Err(SchedulerError::InvalidPlan),
+                    }
+                }
+            }
+            Normal::PropagateWhenAllClose => {
+                let last =
+                    self.terminal_transductions[node]
+                        .iter()
+                        .enumerate()
+                        .all(|(port, profile)| {
+                            profile.is_none()
+                                || port == input
+                                || self.terminal_inputs_consumed[node][port]
+                        });
+                match (last, outcome) {
+                    (false, StepOutcome::Progress | StepOutcome::Fail(_))
+                    | (true, StepOutcome::Complete | StepOutcome::Fail(_)) => Ok(None),
+                    _ => Err(SchedulerError::InvalidPlan),
+                }
+            }
+            Normal::Consume => {
+                if matches!(outcome, StepOutcome::Abnormal { .. }) {
+                    Err(SchedulerError::InvalidPlan)
+                } else {
+                    Ok(None)
+                }
+            }
+            Normal::DomainSpecific { .. } => match outcome {
+                StepOutcome::Abnormal { port, .. } if port != contract.output => {
+                    Err(SchedulerError::InvalidPlan)
+                }
+                _ => Ok(None),
+            },
+        }
+    }
+
+    fn advance_terminal_phase(
+        &self,
+        contract: AssignedTerminalTransduction,
+        phase: ActiveTerminalPhase,
+        outcome: StepOutcome,
+        io: &StepIo<PORTS>,
+    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
+        match phase {
+            ActiveTerminalPhase::Normal { input, emitted } => {
+                let bound = match contract.normal_close {
+                    AssignedNormalCloseTransduction::FlushThenPropagate(bound)
+                    | AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(bound) => {
+                        bound
+                    }
+                    _ => return Err(SchedulerError::InvalidPlan),
+                };
+                let emitted = self.accumulate_terminal_emission(emitted, io, bound)?;
+                match outcome {
+                    StepOutcome::Complete => Ok(None),
+                    StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => {
+                        Ok(Some(ActiveTerminalPhase::Normal { input, emitted }))
+                    }
+                    _ => Err(SchedulerError::InvalidPlan),
+                }
+            }
+            ActiveTerminalPhase::Abnormal {
+                input,
+                terminal,
+                emitted,
+            } => {
+                let AssignedAbnormalTransduction::FinalizeThenPropagate(bound) = contract.abnormal
+                else {
+                    return Err(SchedulerError::InvalidPlan);
+                };
+                let emitted = self.accumulate_terminal_emission(emitted, io, bound)?;
+                match outcome {
+                    StepOutcome::Abnormal {
+                        port,
+                        terminal: propagated,
+                    } if port == contract.output && propagated == terminal => Ok(None),
+                    StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => {
+                        Ok(Some(ActiveTerminalPhase::Abnormal {
+                            input,
+                            terminal,
+                            emitted,
+                        }))
+                    }
+                    _ => Err(SchedulerError::InvalidPlan),
+                }
+            }
+        }
+    }
+
+    fn accumulate_terminal_emission(
+        &self,
+        emitted: AssignedFiniteTerminalEmission,
+        io: &StepIo<PORTS>,
+        bound: AssignedFiniteTerminalEmission,
+    ) -> Result<AssignedFiniteTerminalEmission, SchedulerError> {
+        let mut items = emitted.maximum_items;
+        let mut bytes = emitted.maximum_bytes;
+        for value in io.outputs.iter().flatten() {
+            items = items.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+            bytes = bytes
+                .checked_add(
+                    u32::try_from(self.values.get(*value)?.len())
+                        .map_err(|_| SchedulerError::InvalidPlan)?,
+                )
+                .ok_or(SchedulerError::InvalidPlan)?;
+        }
+        if let Some((_, value)) = &io.canonical_output {
+            items = items.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+            bytes = bytes
+                .checked_add(
+                    u32::try_from(value.as_slice().len())
+                        .map_err(|_| SchedulerError::InvalidPlan)?,
+                )
+                .ok_or(SchedulerError::InvalidPlan)?;
+        }
+        if let Some((_, byte_len)) = io.prepared_output {
+            items = items.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+            bytes = bytes
+                .checked_add(byte_len)
+                .ok_or(SchedulerError::InvalidPlan)?;
+        }
+        if items > bound.maximum_items || bytes > bound.maximum_bytes {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        Ok(AssignedFiniteTerminalEmission {
+            maximum_items: items,
+            maximum_bytes: bytes,
+        })
     }
 
     fn commit(&mut self, node: usize, staged: StagedStep<PORTS>) -> Result<(), SchedulerError> {
@@ -1812,12 +2970,20 @@ where
 
         for (port, consumed) in consumed_closed.iter().copied().enumerate() {
             if consumed {
+                let cord = self.node_specs[node].input_cords[port]
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                let kind = if self.cords[usize::from(cord.0)].producer_abnormal {
+                    KernelEventKind::InputAbnormal
+                } else {
+                    KernelEventKind::InputClosed
+                };
                 self.signs.record(
                     NodeId(as_u16(node)?),
                     Some(PortId(as_u16(port)?)),
                     None,
-                    KernelEventKind::InputClosed,
+                    kind,
                 )?;
+                self.terminal_inputs_consumed[node][port] = true;
             }
         }
 
@@ -1923,6 +3089,16 @@ where
                     .filter(|candidate| **candidate == value)
                     .count()
                     + usize::from(consumed_host_value == Some(value));
+                if consumed_references == 0
+                    && retained_values
+                        .iter()
+                        .flatten()
+                        .any(|retained| *retained == value)
+                {
+                    // The cord keeps its reference while the admitted Host Call
+                    // owns one additional pinned reference until completion.
+                    self.values.retain(value)?;
+                }
                 let base_references = consumed_references.max(1);
                 if base_references > 1 {
                     for _ in 0..(base_references - 1) {
@@ -2000,6 +3176,11 @@ where
                 .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))?;
             let targets = targets.collect_targets::<ROUTE_TARGETS>()?;
             for target in targets.iter() {
+                if self.cord_specs[usize::from(target.cord.0)].track
+                    != AssignedConnectionTrack::Payload
+                {
+                    continue;
+                }
                 if let Some(superseded) = self.push(usize::from(target.cord.0), value)? {
                     self.values.release(superseded)?;
                 }
@@ -2045,11 +3226,13 @@ where
         if consumed_host_completion && host_cancellation.is_some() {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
-        if retained_inputs
-            .iter()
-            .zip(consumed)
-            .any(|(retained, consumed)| *retained && !*consumed)
-        {
+        if retained_inputs.iter().enumerate().any(|(port, retained)| {
+            *retained
+                && !consumed[port]
+                && host_request.map(|request| request.2.value)
+                    != self.node_specs[node].input_cords[port]
+                        .and_then(|cord| self.peek(usize::from(cord.0)).ok().flatten())
+        }) {
             return Err(SchedulerError::InvalidPortAccess);
         }
         let completed_pending = self.pending_host_calls.iter().flatten().find(|pending| {
@@ -2137,8 +3320,14 @@ where
                     .cord_specs
                     .get(cord)
                     .ok_or(SchedulerError::InvalidPlan)?;
+                if spec.track != AssignedConnectionTrack::Payload {
+                    continue;
+                }
                 if state.len >= spec.item_capacity {
                     return Err(SchedulerError::QueueCapacityExceeded);
+                }
+                if value.byte_len > spec.maximum_value_bytes {
+                    return Err(SchedulerError::SemanticValueBoundExceeded);
                 }
                 if value.byte_len > spec.byte_capacity.saturating_sub(state.queued_bytes) {
                     return Err(SchedulerError::QueueByteCapacityExceeded);
@@ -2233,6 +3422,10 @@ where
                     .checked_add(
                         self.routes
                             .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))?
+                            .filter(|target| {
+                                self.cord_specs[usize::from(target.cord.0)].track
+                                    == AssignedConnectionTrack::Payload
+                            })
                             .count(),
                     )
                     .ok_or(SchedulerError::InvalidPlan)?;
@@ -2290,6 +3483,10 @@ where
                 .checked_add(
                     self.routes
                         .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))?
+                        .filter(|target| {
+                            self.cord_specs[usize::from(target.cord.0)].track
+                                == AssignedConnectionTrack::Payload
+                        })
                         .count(),
                 )
                 .ok_or(SchedulerError::InvalidPlan)?;
@@ -2311,6 +3508,7 @@ where
 
     fn close_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
         let mut remote_closures = 0_usize;
+        let mut normal_close_targets = 0_usize;
         for port in 0..PORTS {
             let Ok(targets) = self
                 .routes
@@ -2318,15 +3516,40 @@ where
             else {
                 continue;
             };
+            let targets = targets.collect_targets::<ROUTE_TARGETS>()?;
             remote_closures = remote_closures
                 .checked_add(
                     targets
+                        .iter()
                         .filter(|target| matches!(target.sink, CordEndpoint::Remote(_)))
                         .count(),
                 )
                 .ok_or(SchedulerError::InvalidPlan)?;
+            for target in targets.iter() {
+                let cord = usize::from(target.cord.0);
+                let spec = self.cord_specs[cord];
+                if spec.track != AssignedConnectionTrack::NormalClose {
+                    continue;
+                }
+                let state = self.cords[cord];
+                if state.len >= spec.item_capacity {
+                    return Err(SchedulerError::QueueCapacityExceeded);
+                }
+                normal_close_targets = normal_close_targets
+                    .checked_add(1)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+            }
         }
         self.ensure_remote_sign_capacity(remote_closures)?;
+        let normal_close = if normal_close_targets == 0 {
+            None
+        } else {
+            let value = self.values.store(&[])?;
+            for _ in 1..normal_close_targets {
+                self.values.retain(value)?;
+            }
+            Some(value)
+        };
         for port in 0..PORTS {
             let Ok(targets) = self
                 .routes
@@ -2337,6 +3560,27 @@ where
             let targets = targets.collect_targets::<ROUTE_TARGETS>()?;
             for target in targets.iter() {
                 let cord = usize::from(target.cord.0);
+                if self.cord_specs[cord].track == AssignedConnectionTrack::NormalClose {
+                    let value = normal_close.ok_or(SchedulerError::InvalidPlan)?;
+                    if self.push(cord, value)?.is_some() {
+                        return Err(SchedulerError::InvalidPlan);
+                    }
+                    self.signs.record(
+                        NodeId(as_u16(node)?),
+                        Some(PortId(as_u16(port)?)),
+                        None,
+                        KernelEventKind::ValueRouted,
+                    )?;
+                    self.signs.observe_debug(DebugRuntimeEvent {
+                        node: NodeId(as_u16(node)?),
+                        port: Some(PortId(as_u16(port)?)),
+                        cord: Some(target.cord),
+                        kind: DebugEventKind::ValueSent,
+                        type_identity: None,
+                        value: Some(&[]),
+                        fault_code: None,
+                    });
+                }
                 self.cords[cord].producer_closed = true;
                 if let CordEndpoint::Local { node, .. } = target.sink {
                     self.ready[usize::from(node.0)] = true;
@@ -2359,6 +3603,111 @@ where
             }
         }
         Ok(())
+    }
+
+    fn abnormally_terminate_outputs(
+        &mut self,
+        node: usize,
+        output: PortId,
+        terminal: CanonicalValue,
+    ) -> Result<bool, SchedulerError> {
+        let mut abnormal_targets = 0_usize;
+        let mut remote_closures = 0_usize;
+        let Ok(targets) = self.routes.route(NodeId(as_u16(node)?), output) else {
+            // A checked terminal output may deliberately end at this semantic
+            // boundary. No Cord means the typed abnormal value terminates the
+            // Play here; it is not an invalid-port side channel.
+            return Ok(false);
+        };
+        for target in targets {
+            let cord = usize::from(target.cord.0);
+            let spec = self.cord_specs[cord];
+            remote_closures = remote_closures
+                .checked_add(usize::from(matches!(target.sink, CordEndpoint::Remote(_))))
+                .ok_or(SchedulerError::InvalidPlan)?;
+            if spec.track != AssignedConnectionTrack::AbnormalTerminal {
+                continue;
+            }
+            let state = self.cords[cord];
+            if state.len >= spec.item_capacity
+                || spec.byte_capacity < terminal.as_slice().len() as u32
+            {
+                return Err(SchedulerError::QueueCapacityExceeded);
+            }
+            abnormal_targets = abnormal_targets
+                .checked_add(1)
+                .ok_or(SchedulerError::InvalidPlan)?;
+        }
+        if abnormal_targets == 0 {
+            return Ok(false);
+        }
+        self.ensure_sign_capacity(abnormal_targets)?;
+        self.ensure_remote_sign_capacity(remote_closures)?;
+        let bytes = terminal.as_slice();
+        let value = self.values.store(bytes)?;
+        for _ in 1..abnormal_targets {
+            self.values.retain(value)?;
+        }
+        let targets = self
+            .routes
+            .route(NodeId(as_u16(node)?), output)
+            .map_err(|_| SchedulerError::InvalidPortAccess)?
+            .collect_targets::<ROUTE_TARGETS>()?;
+        for target in targets.iter() {
+            let cord = usize::from(target.cord.0);
+            let spec = self.cord_specs[cord];
+            if spec.track == AssignedConnectionTrack::AbnormalTerminal {
+                if self.push(cord, value)?.is_some() {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                self.signs.record(
+                    NodeId(as_u16(node)?),
+                    Some(output),
+                    None,
+                    KernelEventKind::ValueRouted,
+                )?;
+                self.signs.observe_debug(DebugRuntimeEvent {
+                    node: NodeId(as_u16(node)?),
+                    port: Some(output),
+                    cord: Some(target.cord),
+                    kind: DebugEventKind::ValueSent,
+                    type_identity: None,
+                    value: Some(bytes),
+                    fault_code: None,
+                });
+            }
+            self.cords[cord].producer_closed = true;
+            self.cords[cord].producer_abnormal =
+                spec.track != AssignedConnectionTrack::AbnormalTerminal;
+            self.cords[cord].abnormal_terminal =
+                (spec.track != AssignedConnectionTrack::AbnormalTerminal).then_some(terminal);
+            if let CordEndpoint::Local { node, .. } = target.sink {
+                self.ready[usize::from(node.0)] = true;
+            } else {
+                let CordEndpoint::Remote(endpoint) = target.sink else {
+                    unreachable!("remote output closure has remote sink")
+                };
+                self.signs.record_remote(
+                    NodeId(as_u16(node)?),
+                    output,
+                    KernelEventKind::RemoteOutputClosed,
+                    crate::RemoteLifecycleIdentity {
+                        endpoint,
+                        cord: target.cord,
+                        direction: crate::RemoteCordDirection::Egress,
+                        sequence: self.cords[cord].next_remote_sequence,
+                    },
+                )?;
+            }
+        }
+        if self.unresolved_abnormal[node].is_some() {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        self.unresolved_abnormal[node] = Some(UnresolvedAbnormal {
+            port: output,
+            terminal,
+        });
+        Ok(true)
     }
 
     fn peek(&self, cord: usize) -> Result<Option<ValueRef>, SchedulerError> {
@@ -2504,6 +3853,8 @@ fn validate_plan<
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
+            || cord.maximum_value_bytes == 0
+            || cord.maximum_value_bytes > cord.byte_capacity
         {
             return Err(SchedulerError::InvalidPlan);
         }

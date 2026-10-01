@@ -5,8 +5,11 @@ use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
+
+use crate::MorseError;
 
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
 pub const TEXT_MORSE_KIND: &str = "text/morse";
@@ -31,20 +34,6 @@ pub struct MorseSegment {
 pub struct MorsePattern {
     pub unit_millis: u16,
     pub segments: Vec<MorseSegment>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MorseError {
-    Empty,
-    TextTooLong,
-    UnsupportedCharacter,
-    InvalidWordGap,
-    InvalidUnitMillis,
-    SegmentCapacity,
-    OutputCapacity,
-    MalformedEncoding,
-    NonCanonicalEncoding,
-    InvalidPattern,
 }
 
 pub fn text_morse_semantics() -> MorseKindContract {
@@ -84,6 +73,18 @@ pub struct MorseKindContract {
 
 impl MorseKindContract {
     pub fn into_semantic_contract(self) -> Kind {
+        let configuration = self
+            .configuration
+            .iter()
+            .map(|(key, value)| KindConfigurationField {
+                key: (*key).into(),
+                default_value: value.clone(),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
+                    maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
+                },
+            })
+            .collect();
         Kind {
             startup_parameters: self
                 .configuration
@@ -102,7 +103,7 @@ impl MorseKindContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
-            configuration: Default::default(),
+            configuration,
             semantic_laws: Default::default(),
             limits: self.limits,
         }
@@ -257,6 +258,7 @@ fn text_port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(super::TEXT_VALUE_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -266,6 +268,7 @@ fn morse_port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(MORSE_PATTERN_VALUE_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

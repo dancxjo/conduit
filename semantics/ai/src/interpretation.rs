@@ -2,7 +2,10 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::SignId;
 use serde::{Deserialize, Serialize};
 
-use crate::{TemporalReference, TemporalRetrievalIntent};
+use crate::{
+    InterpretationDisposition, InterpretationInvalidity, InterpretationProvenance,
+    TemporalReference, TemporalRetrievalIntent,
+};
 
 pub const MAXIMUM_INTERPRETATION_EVIDENCE: usize = 16;
 pub const MAXIMUM_INTERPRETATION_TEXT_BYTES: usize = 2_048;
@@ -23,18 +26,6 @@ pub struct InterpretationRequest {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InterpretationProvenance {
-    ModelDerived,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InterpretationDisposition {
-    Interpreted,
-    InsufficientEvidence,
-    ContradictoryEvidence,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProfileReportedConfidence {
     /// A bounded model/profile score, deliberately not named or treated as probability.
     pub score_permille: u16,
@@ -49,21 +40,6 @@ pub struct ModelInterpretation {
     pub confidence: Option<ProfileReportedConfidence>,
     pub implications: Vec<String>,
     pub disposition: InterpretationDisposition,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InterpretationInvalidity {
-    EmptyEvidence,
-    TooMuchEvidence,
-    EmptySignIdentity,
-    DuplicateSignIdentity,
-    TextBoundExceeded,
-    MissingHypothesis,
-    TooManyImplications,
-    InvalidConfidence,
-    FabricatedEvidenceReference,
-    ResolvedEvidenceMarkedUnresolved,
-    InvalidTemporalContext,
 }
 
 impl InterpretationRequest {

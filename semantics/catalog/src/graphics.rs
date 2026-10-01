@@ -5,8 +5,8 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_presentation::{
     PresentationIconKey, GRAPHICS_SCENE_KIND, MAX_GRAPHICS_SCENE_BYTES, MAX_GRAPHICS_TEXT_BYTES,
@@ -144,6 +144,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 fn geometry_fields() -> Vec<KindConfigurationField> {
@@ -195,10 +196,7 @@ pub fn install_graphics_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for contract in [
         graphics_rect_contract(),
         graphics_text_contract(),
@@ -224,34 +222,8 @@ pub fn install_graphics_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .into_iter()
-            .map(|field| KindConfigurationField {
-                key: field.key,
-                default_value: field.default_value,
-                rule: match field.rule {
-                    KindConfigurationRule::U64Range { minimum, maximum } => {
-                        KindConfigurationRule::U64Range { minimum, maximum }
-                    }
-                    KindConfigurationRule::TextBytes { maximum } => {
-                        KindConfigurationRule::TextBytes { maximum }
-                    }
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf { values }
-                    }
-                    _ => unreachable!(),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(GRAPHICS_SCENE_CONTRACT_REVISION),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract.into_semantic_contract(GRAPHICS_SCENE_CONTRACT_REVISION))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -260,6 +232,7 @@ pub fn install_graphics_catalogs(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_core::{FrontValueLocation, KindSemanticLaw};
     #[test]
     fn reduced_family_is_exact_and_toolkit_free() {
         let contracts = [
@@ -283,5 +256,29 @@ mod tests {
             }
             assert!(graphics_contract_for(contract.kind_id.as_str()).is_some());
         }
+    }
+
+    #[test]
+    fn scene_transforms_publish_exact_finite_port_envelopes() {
+        let kind =
+            graphics_icon_contract().into_semantic_contract(GRAPHICS_SCENE_CONTRACT_REVISION);
+        let contracts = kind
+            .semantic_laws
+            .iter()
+            .find_map(|law| match law {
+                KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
+                _ => None,
+            })
+            .expect("variable-size Face values require explicit envelopes");
+        assert!(contracts.iter().any(|value_contract| {
+            value_contract.location == FrontValueLocation::Input(port_id(GRAPHICS_INPUT_PORT))
+                && value_contract.contract.maximum_bytes
+                    == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32
+        }));
+        assert!(contracts.iter().any(|value_contract| {
+            value_contract.location == FrontValueLocation::Output(port_id(GRAPHICS_OUTPUT_PORT))
+                && value_contract.contract.maximum_bytes
+                    == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32
+        }));
     }
 }

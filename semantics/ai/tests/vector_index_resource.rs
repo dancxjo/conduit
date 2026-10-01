@@ -83,7 +83,7 @@ fn query_only_authority_is_distinct_from_every_mutation_authority() {
         Err(VectorIndexResourceRefusal::InsertNotAuthorized)
     );
     let mut forged = query_only.clone();
-    forged.authority_identity = "authority/fabricated-admin".into();
+    forged.authority_identity = "authority/made-admin".into();
     assert_eq!(
         state.mutate(&forged, insert("source/forged", 4)),
         Err(VectorIndexResourceRefusal::UnknownAuthority)

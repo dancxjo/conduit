@@ -204,7 +204,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#plan")).toContainText("presentation/renderer-dom-svg@1");
     await expect(page.locator("#plan")).toContainText("patchbay-html/dom-svg@1");
     await expect(page.locator("#realizations")).toContainText("Port presentation · Input · Info presentation/presentation@1 · Value");
-    await expect(page.locator("#realizations")).toContainText("Port manifestation · Output · Info presentation/manifestation@1 · Value");
+    await expect(page.locator("#realizations")).toContainText("Port show · Output · Info presentation/show@1 · Value");
     await expect(page.locator("#realizations")).toContainText("Resource patchbay-html/host/presentation");
     await expect(page.locator("#realizations")).toContainText("Base conduit.host/present@1 · target presentation/base/dom-svg@1");
     await expect(page.locator("#realizations")).toContainText("project · host patchbay-presentation/host · boot patchbay-presentation/boot");
@@ -587,7 +587,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       await expect(page.locator("#semantic-actions button")).toHaveCount(actions.length);
       for(const [index,action] of actions.entries()){
         const control=page.locator(`#semantic-actions [data-application-key="semantic-${index}"]`);
-        await expect(control).toHaveText(action.label.toUpperCase());
+        await expect(control).toHaveText(action.name.toUpperCase());
         if(action.availability==="Available")await expect(control).toBeEnabled();else await expect(control).toBeDisabled();
         const availability=page.locator(`#semantic-actions [data-application-key="availability-${index}"]`);
         if(action.availability?.Refused)await expect(availability).toHaveAttribute("data-application-evidence","refused");
@@ -629,7 +629,7 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
       first.viewport={x:31,y:-27,zoom:1.4};
       const duplicate=scene.reconcileFlowScene(scene.projectFlowScene(canonical),first);
       const added=structuredClone(canonical);
-      added.presentation.subjects.push({identity:"subject/new",role:"Gear",label:"New",accessibility_name:"New gear"});
+      added.presentation.subjects.push({identity:"subject/new",role:"Gear",name:"New gear"});
       const withNew=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const withNewAgain=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const removed=structuredClone(added);

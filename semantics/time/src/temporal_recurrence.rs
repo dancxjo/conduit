@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     CivilResolutionChoice, LocalDate, LocalDateTime, LocalTime, MonotonicDuration,
-    MonotonicInstant, NamedTimeZone, TemporalInstant, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    MonotonicInstant, NamedTimeZone, RecurrenceRefusal, TemporalInstant,
+    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_RECURRENCE_OCCURRENCES: u32 = 4_096;
@@ -84,22 +85,6 @@ pub enum OccurrenceInstant {
         instant: TemporalInstant,
         resolution: CivilResolutionChoice,
     },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RecurrenceRefusal {
-    InvalidIdentity,
-    InvalidRule,
-    InvalidLimit,
-    InvalidExceptions,
-    InvalidWindow,
-    IncomparableWindow,
-    WrongWindowKind,
-    WorkLimitExceeded,
-    ArithmeticOverflow,
-    CivilResolutionRequired,
-    InvalidCivilResolution,
-    CivilResolutionMismatch,
 }
 
 impl WeekdaySet {

@@ -86,8 +86,7 @@ pub(crate) fn project(
         projection.subjects.push(PresentationSubject {
             identity: identity.clone(),
             role: PresentationRole::Form,
-            label: form.label.clone(),
-            accessibility_name: format!("Available form {}", form.label),
+            name: form.label.clone(),
         });
         projection.properties.extend([
             identity_property(&identity, "source-document-id", &form.source_document_id),
@@ -105,7 +104,8 @@ pub(crate) fn project(
             ),
             intent: "conduit.intent/add-form@1".into(),
             target: identity.clone(),
-            label: "Add to Body".into(),
+            name: "Add to Body".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: match state {
                 BodyState::Awake { .. } => PresentationActionAvailability::Unavailable {
@@ -171,7 +171,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(projected.subjects.len(), 1);
-        assert_eq!(projected.subjects[0].label, "clock");
+        assert_eq!(projected.subjects[0].name, "clock");
         assert_eq!(projected.actions.len(), 1);
         assert_eq!(projected.actions[0].intent, "conduit.intent/add-form@1");
         assert!(matches!(

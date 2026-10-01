@@ -5,6 +5,7 @@ use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
     StructuredInfoValue, StructuredInfoValueShape,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 use core::cmp::Ordering;
 
 use crate::finance::*;
@@ -19,19 +20,10 @@ pub struct FinanceFixture {
 }
 
 pub fn deterministic_finance_fixture() -> Result<FinanceFixture, FinanceRefusal> {
-    let left = Money {
-        amount: FixedDecimal::new(1_234, 2)?,
-        currency: Currency::Usd,
-    };
-    let right = Money {
-        amount: FixedDecimal::new(66, 2)?,
-        currency: Currency::Usd,
-    };
+    let left = Money::new(FixedDecimal::new(1_234, 2)?, Currency::Usd)?;
+    let right = Money::new(FixedDecimal::new(66, 2)?, Currency::Usd)?;
     Ok(FinanceFixture {
-        convertible: money_value(Money {
-            amount: FixedDecimal::new(1_000, 2)?,
-            currency: Currency::Eur,
-        })?,
+        convertible: money_value(Money::new(FixedDecimal::new(1_000, 2)?, Currency::Eur)?)?,
         left: money_value(left)?,
         rate: rate_observation_value(&deterministic_rate_observation()?)?,
         right: money_value(right)?,
@@ -76,7 +68,7 @@ pub fn convert_money_values(
     let observation = RateObservation {
         base: Currency::from_tag(variant_tag(record_field(instrument, "base")?)?)?,
         quote: Currency::from_tag(variant_tag(record_field(instrument, "quote")?)?)?,
-        rate: FixedDecimal::decode(leaf_bytes(record_field(rate, "rate")?)?)?,
+        rate: FixedDecimal::from_structured(record_field(rate, "rate")?.clone())?,
         observed_ticks: parse_count(record_field(record_field(rate, "observed_at")?, "ticks")?)?,
         source: leaf_text(record_field(rate, "source")?)?,
         profile: leaf_text(record_field(rate, "profile")?)?,
@@ -88,12 +80,12 @@ pub fn decode_money_value(value: &StructuredInfoValue) -> Result<Money, FinanceR
     if value.value_type() != &finance_money_type() {
         return Err(FinanceRefusal::MalformedInfo);
     }
-    let amount = leaf_bytes(record_field(value, "amount")?)?;
+    let amount = record_field(value, "amount")?.clone();
     let currency = variant_tag(record_field(value, "currency")?)?;
-    Ok(Money {
-        amount: FixedDecimal::decode(amount)?,
-        currency: Currency::from_tag(currency)?,
-    })
+    Ok(Money::new(
+        FixedDecimal::from_structured(amount)?,
+        Currency::from_tag(currency)?,
+    )?)
 }
 
 pub fn deterministic_rate_observation() -> Result<RateObservation<'static>, FinanceRefusal> {
@@ -119,13 +111,7 @@ fn rate_observation_value(
             ),
             ("observed_at", instant_value(observation.observed_ticks)?),
             ("profile", text_value(observation.profile)),
-            (
-                "rate",
-                StructuredInfoValue::leaf(
-                    finance_fixed_decimal_type(),
-                    observation.rate.encode().to_vec(),
-                )?,
-            ),
+            ("rate", observation.rate.clone().into_structured()?),
             ("source", text_value(observation.source)),
         ],
     )
@@ -158,17 +144,11 @@ fn deterministic_quote() -> Result<StructuredInfoValue, FinanceRefusal> {
         vec![
             (
                 "ask",
-                money_value(Money {
-                    amount: FixedDecimal::new(108_270, 5)?,
-                    currency: Currency::Usd,
-                })?,
+                money_value(Money::new(FixedDecimal::new(108_270, 5)?, Currency::Usd)?)?,
             ),
             (
                 "bid",
-                money_value(Money {
-                    amount: FixedDecimal::new(108_250, 5)?,
-                    currency: Currency::Usd,
-                })?,
+                money_value(Money::new(FixedDecimal::new(108_250, 5)?, Currency::Usd)?)?,
             ),
             ("freshness", freshness),
             (
@@ -183,17 +163,14 @@ fn deterministic_quote() -> Result<StructuredInfoValue, FinanceRefusal> {
 
 fn deterministic_transaction_events() -> Result<StructuredInfoValue, FinanceRefusal> {
     let event_type = finance_transaction_event_type();
-    let amount = Money {
-        amount: FixedDecimal::new(10_000, 2)?,
-        currency: Currency::Eur,
-    };
+    let amount = Money::new(FixedDecimal::new(10_000, 2)?, Currency::Eur)?;
     let placed = StructuredInfoValue::variant(
         event_type.clone(),
         "placed",
         record_value(
             variant_payload_type(&event_type, "placed")?,
             vec![
-                ("amount", money_value(amount)?),
+                ("amount", money_value(amount.clone())?),
                 ("observed_at", instant_value(1_788_000_001)?),
                 ("order_id", text_value("fixture/order-1")),
             ],
@@ -210,10 +187,7 @@ fn deterministic_transaction_events() -> Result<StructuredInfoValue, FinanceRefu
                 ("order_id", text_value("fixture/order-1")),
                 (
                     "price",
-                    money_value(Money {
-                        amount: FixedDecimal::new(108_260, 5)?,
-                        currency: Currency::Usd,
-                    })?,
+                    money_value(Money::new(FixedDecimal::new(108_260, 5)?, Currency::Usd)?)?,
                 ),
             ],
         )?,
@@ -237,22 +211,7 @@ fn deterministic_transaction_events() -> Result<StructuredInfoValue, FinanceRefu
 }
 
 fn money_value(money: Money) -> Result<StructuredInfoValue, FinanceRefusal> {
-    record_value(
-        finance_money_type(),
-        vec![
-            (
-                "amount",
-                StructuredInfoValue::leaf(
-                    finance_fixed_decimal_type(),
-                    money.amount.encode().to_vec(),
-                )?,
-            ),
-            (
-                "currency",
-                unit_variant(finance_currency_type(), money.currency.tag())?,
-            ),
-        ],
-    )
+    Ok(money.into_structured()?)
 }
 
 fn instrument_value(

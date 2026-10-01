@@ -3,7 +3,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{semantic_digest, Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 
-use crate::{TensorAxisRole, TensorValue};
+use crate::{SampledSignalRefusal, SignalContinuity, TensorAxisRole, TensorValue};
 
 pub const SAMPLED_SIGNAL_INFO_ID: &str = "data/sampled-signal@1";
 pub const MAXIMUM_SIGNAL_IDENTITY_BYTES: usize = 128;
@@ -21,13 +21,6 @@ pub enum SignalCadence {
     Regular { samples: u64, per: Quantity },
     /// Exact source-clock coordinates. This tensor must be one-dimensional.
     Irregular { coordinates: Box<TensorValue> },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SignalContinuity {
-    Continuous,
-    Discontinuous { gap_identity: String },
-    ClockReset { prior_clock: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,23 +65,6 @@ pub struct SignalSummary {
     pub content_digest: [u8; 32],
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SampledSignalRefusal {
-    InvalidClock,
-    InvalidStart,
-    InvalidCadence,
-    InvalidContinuity,
-    EmptySignal,
-    TensorInvalid,
-    SampleCountMismatch,
-    MissingSampleAxis,
-    WindowOutOfBounds,
-    TemporalOverflow,
-    IncompatibleSignals,
-    NoncontiguousSignals,
-    TooManyParts,
-}
-
 impl SampledSignal {
     pub fn validate(&self) -> Result<(), SampledSignalRefusal> {
         identity(&self.clock_identity).map_err(|_| SampledSignalRefusal::InvalidClock)?;
@@ -129,12 +105,9 @@ impl SampledSignal {
         }
         match &self.continuity {
             SignalContinuity::Continuous => {}
-            SignalContinuity::Discontinuous { gap_identity } => {
-                identity(gap_identity).map_err(|_| SampledSignalRefusal::InvalidContinuity)?;
-            }
-            SignalContinuity::ClockReset { prior_clock } => {
-                identity(prior_clock).map_err(|_| SampledSignalRefusal::InvalidContinuity)?;
-                if prior_clock == &self.clock_identity {
+            SignalContinuity::Discontinuous(_) => {}
+            SignalContinuity::ClockReset(reset) => {
+                if reset.prior_clock() == &self.clock_identity {
                     return Err(SampledSignalRefusal::InvalidContinuity);
                 }
             }
@@ -245,13 +218,13 @@ impl SampledSignal {
         }
         match &self.continuity {
             SignalContinuity::Continuous => bytes.push(0),
-            SignalContinuity::Discontinuous { gap_identity } => {
+            SignalContinuity::Discontinuous(gap) => {
                 bytes.push(1);
-                push_text(&mut bytes, gap_identity);
+                push_text(&mut bytes, gap.gap_identity());
             }
-            SignalContinuity::ClockReset { prior_clock } => {
+            SignalContinuity::ClockReset(reset) => {
                 bytes.push(2);
-                push_text(&mut bytes, prior_clock);
+                push_text(&mut bytes, reset.prior_clock());
             }
         }
         bytes.extend_from_slice(&self.sample_count.to_le_bytes());

@@ -3,6 +3,8 @@
 use alloc::{string::String, vec::Vec};
 use conduit_core::{BoundedResourceRef, TemporalInstant};
 
+use crate::ReplayPolicy;
+
 pub const MAXIMUM_REPLAY_ENTRIES: usize = 64;
 pub const MAXIMUM_REPLAY_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_REPLAY_RATE_TERM: u32 = 1_000;
@@ -21,13 +23,6 @@ pub struct HistoricalReplayEntry {
     pub event_time: TemporalInstant,
     pub origin: crate::HistoricalEntryOrigin,
     pub value: BoundedResourceRef,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ReplayPolicy {
-    Step,
-    OriginalTiming,
-    Rate { numerator: u32, denominator: u32 },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -59,7 +54,6 @@ pub enum ReplayRefusal {
     DuplicateIdentity,
     ReorderedHistoricalSequence,
     ReorderedHistoricalTime,
-    InvalidRate,
     InvalidDurationLimit,
     ReplayDurationExceeded,
     InvalidHistoricalTime,
@@ -97,7 +91,6 @@ impl BoundedReplayController {
         policy: ReplayPolicy,
         maximum_duration_seconds: u64,
     ) -> Result<Self, ReplayRefusal> {
-        validate_policy(policy)?;
         if maximum_duration_seconds == 0
             || maximum_duration_seconds > MAXIMUM_REPLAY_DURATION_SECONDS
         {
@@ -174,7 +167,7 @@ impl BoundedReplayController {
         self.last_playback_ticks = playback_ticks;
         self.accumulated_pause = 0;
         self.paused_at = None;
-        self.state = match self.policy {
+        self.state = match &self.policy {
             ReplayPolicy::Step => ReplayState::Paused,
             ReplayPolicy::OriginalTiming | ReplayPolicy::Rate { .. } => ReplayState::Running,
         };
@@ -279,15 +272,12 @@ impl BoundedReplayController {
             .ticks
             .checked_sub(self.entries[0].event_time.ticks)
             .ok_or(ReplayRefusal::ReorderedHistoricalTime)?;
-        match self.policy {
+        match &self.policy {
             ReplayPolicy::Step => Err(ReplayRefusal::InvalidState),
             ReplayPolicy::OriginalTiming => Ok(historical),
-            ReplayPolicy::Rate {
-                numerator,
-                denominator,
-            } => historical
-                .checked_mul(u64::from(denominator))
-                .and_then(|scaled| scaled.checked_div(u64::from(numerator)))
+            ReplayPolicy::Rate(rate) => historical
+                .checked_mul(u64::from(*rate.denominator()))
+                .and_then(|scaled| scaled.checked_div(u64::from(*rate.numerator())))
                 .ok_or(ReplayRefusal::ArithmeticOverflow),
         }
     }
@@ -367,21 +357,4 @@ const fn maximum_duration_ticks(scale: conduit_core::TemporalScale, seconds: u64
         conduit_core::TemporalScale::Microseconds => seconds * 1_000_000,
         conduit_core::TemporalScale::Nanoseconds => seconds * 1_000_000_000,
     }
-}
-
-fn validate_policy(policy: ReplayPolicy) -> Result<(), ReplayRefusal> {
-    if let ReplayPolicy::Rate {
-        numerator,
-        denominator,
-    } = policy
-    {
-        if numerator == 0
-            || denominator == 0
-            || numerator > MAXIMUM_REPLAY_RATE_TERM
-            || denominator > MAXIMUM_REPLAY_RATE_TERM
-        {
-            return Err(ReplayRefusal::InvalidRate);
-        }
-    }
-    Ok(())
 }

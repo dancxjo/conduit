@@ -137,7 +137,7 @@ fn comparison_operator(
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
             (conduit_semantic_catalog::COMPARE_OPERATOR_KEY, ConfigurationValue::Text(value)) => {
-                conduit_semantic_catalog::ScalarComparison::parse(value)
+                conduit_semantic_catalog::parse_scalar_comparison(value)
             }
             _ => None,
         })

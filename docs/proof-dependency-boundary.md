@@ -22,7 +22,7 @@ requires removing its audit entry in the same change; adding an edge requires an
 explicit classification and review rather than silently widening the inversion.
 
 Extraction work should move the smallest truthful reusable contract to its
-architecture, semantic, mechanism, fabrication, or target owner. It must not
+architecture, semantic, mechanism, make, or target owner. It must not
 copy fixed host, boot, line, board, transport, plan, or scenario identity into a
 new production location, and it must not promote simulated advertisements into
 claims about physical target availability.

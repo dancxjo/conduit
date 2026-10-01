@@ -2,11 +2,8 @@ use super::{configuration_type, sound_contracts_with_revisions};
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use conduit_core::{ConfigurationValue, KindIdentity};
-use conduit_form::{
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    StartupParameterSignature,
-};
+use conduit_core::ConfigurationValue;
+use conduit_form::{KindSignature, StartupParameterSignature};
 
 /// Installs portable sound semantics and structured instrument authoring contracts.
 /// This installs no Host offer: availability and implementation remain separate realization facts.
@@ -15,10 +12,39 @@ pub fn install_sound_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in sound_contracts_with_revisions() {
-        install_contract(startup, profile, contract, revision)?;
+        if contract.kind_id.as_str() == super::AUDIO_TONE_KIND {
+            install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())?;
+        } else {
+            install_contract(startup, profile, contract, revision)?;
+        }
     }
     crate::install_structured_music_form_catalogs(startup, profile)?;
     Ok(())
+}
+
+/// Install only the portable `audio/tone` transform contract.
+///
+/// Hosts that cannot realize tone synthesis still need this semantic contract
+/// to check reviewed Forms before realization eligibility is considered.
+pub fn install_audio_tone_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())
+}
+
+fn install_semantic_contract(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+    contract: conduit_core::Kind,
+) -> Result<(), String> {
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().to_string(),
+        startup_parameters: Vec::new(),
+    })?;
+    profile
+        .insert_kind(contract)
+        .map_err(|error| error.to_string())
 }
 
 /// Install only the portable push-to-talk Front when another semantic owner
@@ -41,55 +67,6 @@ fn install_contract(
     contract: super::StandardKindContract,
     revision: &'static str,
 ) -> Result<(), String> {
-    let configuration = contract
-        .configuration
-        .iter()
-        .map(|field| KindConfigurationField {
-            key: field.key.clone(),
-            default_value: field.default_value.clone(),
-            rule: match &field.rule {
-                KindConfigurationRule::Any => KindConfigurationRule::Any,
-                KindConfigurationRule::U64Range { minimum, maximum } => {
-                    KindConfigurationRule::U64Range {
-                        minimum: *minimum,
-                        maximum: *maximum,
-                    }
-                }
-                KindConfigurationRule::I64Range { minimum, maximum } => {
-                    KindConfigurationRule::I64Range {
-                        minimum: *minimum,
-                        maximum: *maximum,
-                    }
-                }
-                KindConfigurationRule::DurationMillis { minimum, maximum } => {
-                    KindConfigurationRule::DurationMillis {
-                        minimum: *minimum,
-                        maximum: *maximum,
-                    }
-                }
-                KindConfigurationRule::QuantityRange {
-                    minimum,
-                    maximum,
-                    canonical_unit,
-                } => KindConfigurationRule::QuantityRange {
-                    minimum: *minimum,
-                    maximum: *maximum,
-                    canonical_unit: *canonical_unit,
-                },
-                KindConfigurationRule::TextBytes { maximum } => {
-                    KindConfigurationRule::TextBytes { maximum: *maximum }
-                }
-                KindConfigurationRule::TextOneOf { values } => KindConfigurationRule::TextOneOf {
-                    values: values.clone(),
-                },
-                KindConfigurationRule::Structured { profile } => {
-                    KindConfigurationRule::Structured {
-                        profile: profile.clone(),
-                    }
-                }
-            },
-        })
-        .collect::<Vec<_>>();
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().to_string(),
         startup_parameters: contract
@@ -103,13 +80,7 @@ fn install_contract(
             .collect(),
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(revision),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration,
-        })
+        .insert_kind(contract.into_semantic_contract(revision))
         .map_err(|error| error.to_string())
 }
 

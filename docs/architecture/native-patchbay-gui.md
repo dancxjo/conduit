@@ -37,7 +37,7 @@ and panel layout do not enter source, checked, expanded, plan, or play identity.
 
 Every graph hit stores a `PatchbaySubjectRef` containing both the admitted subject identity and the
 exact expanded-form identity from which its geometry was built. Applying a target to a replacement
-projection fails as `StaleGraphBasis`; a fabricated subject fails separately as `UnknownSubject`.
+projection fails as `StaleGraphBasis`; a made subject fails separately as `UnknownSubject`.
 These are pre-admission candidates for #694, not operation-success records.
 
 The initial spike used provisional selected-subject state. Its integration gate

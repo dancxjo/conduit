@@ -210,6 +210,7 @@ fn info_port(
         value_kind: kind_id(info),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 
@@ -226,10 +227,7 @@ pub fn install_flow_state_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for (contract, revision) in [
         (
             state_latest_scalar_contract(),
@@ -263,28 +261,8 @@ pub fn install_flow_state_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .iter()
-            .map(|field| KindConfigurationField {
-                key: field.key.clone(),
-                default_value: field.default_value.clone(),
-                rule: match field.rule {
-                    KindConfigurationRule::U64Range { minimum, maximum } => {
-                        KindConfigurationRule::U64Range { minimum, maximum }
-                    }
-                    _ => unreachable!("flow/state configuration uses only exact integer ranges"),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(semantic_contract(contract, revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

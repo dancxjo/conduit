@@ -117,7 +117,7 @@ impl MathTransform {
     pub(super) fn apply(
         self,
         input: Scalar,
-    ) -> Result<Scalar, conduit_semantic_catalog::MathScalarError> {
+    ) -> Result<Scalar, conduit_semantic_catalog::MathScalarRefusal> {
         match self {
             Self::Clamp { minimum, maximum } => {
                 conduit_semantic_catalog::clamp_scalar(input, minimum, maximum)

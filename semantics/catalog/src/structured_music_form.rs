@@ -39,7 +39,7 @@ pub fn rhythm_compare_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -65,7 +65,7 @@ pub fn instrument_map_semantic_contract() -> Result<Kind, String> {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -208,10 +208,10 @@ pub fn install_structured_music_form_catalogs(
         .map_err(|error| error.to_string())?;
 
     profile
-        .insert(instrument_map_definition()?)
+        .insert_kind(instrument_map_semantic_contract()?)
         .map_err(|error| error.to_string())?;
     profile
-        .insert(rhythm_compare_definition())
+        .insert_kind(rhythm_compare_semantic_contract())
         .map_err(|error| error.to_string())?;
     Ok(())
 }
@@ -269,6 +269,7 @@ pub fn instrument_map_definition() -> Result<KindProjection, String> {
             value_kind: control_kind,
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: vec![
             flow_port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Output),
@@ -357,6 +358,7 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 
@@ -370,5 +372,6 @@ fn structured_flow_port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }

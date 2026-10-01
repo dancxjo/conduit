@@ -47,6 +47,19 @@ pub(crate) fn source_offer() -> CapabilityOffer {
 pub(crate) fn sink_offer() -> CapabilityOffer {
     offer(true)
 }
+pub(crate) fn semantic_kind(offer: &CapabilityOffer) -> Kind {
+    Kind {
+        startup_parameters: offer.startup_parameters.clone(),
+        shorthand: offer.shorthand.clone(),
+        kind_id: offer.kind_id.clone(),
+        kind_contract_revision: offer.kind_contract_revision.clone(),
+        inputs: offer.inputs.clone(),
+        outputs: offer.outputs.clone(),
+        configuration: offer.semantic_contract.configuration.clone(),
+        semantic_laws: offer.semantic_contract.laws.clone(),
+        limits: offer.limits.clone(),
+    }
+}
 fn offer(sink: bool) -> CapabilityOffer {
     let id = if sink {
         SINK.implementation_id

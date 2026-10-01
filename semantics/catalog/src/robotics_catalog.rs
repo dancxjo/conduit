@@ -1,12 +1,11 @@
 use super::{
-    configuration_type, robotics_contracts_with_revisions,
-    robotics_hazard_contracts_with_revisions, robotics_input_contracts_with_revisions,
-    KindConfigurationField, KindConfigurationRule,
+    robotics_contracts_with_revisions, robotics_hazard_contracts_with_revisions,
+    robotics_input_contracts_with_revisions, KindConfigurationField, KindConfigurationRule,
 };
 use alloc::format;
 use alloc::string::{String, ToString};
-use conduit_core::{ConfigurationValue, KindIdentity};
-use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
+use conduit_core::ConfigurationValue;
+use conduit_form::{KindSignature, StartupParameterSignature};
 
 pub fn install_robotics_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -29,54 +28,37 @@ pub fn install_robotics_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .iter()
-            .map(|field| KindConfigurationField {
-                key: field.key.clone(),
-                default_value: field.default_value.clone(),
-                rule: match &field.rule {
-                    KindConfigurationRule::U64Range { minimum, maximum } => {
-                        KindConfigurationRule::U64Range {
-                            minimum: *minimum,
-                            maximum: *maximum,
-                        }
-                    }
-                    KindConfigurationRule::I64Range { minimum, maximum } => {
-                        KindConfigurationRule::I64Range {
-                            minimum: *minimum,
-                            maximum: *maximum,
-                        }
-                    }
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf {
-                            values: values.clone(),
-                        }
-                    }
-                    KindConfigurationRule::QuantityRange {
-                        minimum,
-                        maximum,
-                        canonical_unit,
-                    } => KindConfigurationRule::QuantityRange {
-                        minimum: *minimum,
-                        maximum: *maximum,
-                        canonical_unit: *canonical_unit,
-                    },
-                    _ => unreachable!("robotics uses only finite numeric/text rules"),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract.into_semantic_contract(revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+fn configuration_type(field: &KindConfigurationField) -> &'static str {
+    match (&field.rule, &field.default_value) {
+        (
+            KindConfigurationRule::QuantityRange { canonical_unit, .. },
+            ConfigurationValue::Quantity(_),
+        ) => match canonical_unit.dimension() {
+            conduit_core::QuantityDimension::Time => "Duration",
+            conduit_core::QuantityDimension::Frequency => "Frequency",
+            conduit_core::QuantityDimension::Voltage => "Voltage",
+            conduit_core::QuantityDimension::Temperature => "Temperature",
+            conduit_core::QuantityDimension::Length => "Distance",
+            conduit_core::QuantityDimension::Angle => "Angle",
+            conduit_core::QuantityDimension::Ratio => "Ratio",
+            conduit_core::QuantityDimension::PixelCount => "PixelCount",
+            conduit_core::QuantityDimension::Current
+            | conduit_core::QuantityDimension::Charge
+            | conduit_core::QuantityDimension::DataSize => "Quantity",
+        },
+        (_, ConfigurationValue::Text(_)) => "Text",
+        (_, ConfigurationValue::U64(_)) => "Count",
+        (_, ConfigurationValue::I64(_)) => "Scalar",
+        (_, ConfigurationValue::Quantity(_)) => "Quantity",
+        _ => unreachable!("robotics configuration is finite text/integer/quantity"),
+    }
 }
 
 fn configuration_source(field: &KindConfigurationField) -> String {

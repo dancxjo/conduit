@@ -7,7 +7,7 @@ use conduit_data::{
     TensorValue,
 };
 
-use crate::RandomnessProfile;
+use crate::{DynamicsRefusal, IntegrationTerminal, RandomnessProfile};
 
 pub const MAXIMUM_DYNAMICS_CONTEXTS: usize = 32;
 pub const MAXIMUM_DYNAMICS_SAMPLES: usize = 65_536;
@@ -102,15 +102,6 @@ pub struct IntegrationCandidate {
     pub realization: SolverRealization,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum IntegrationTerminal {
-    WorkLimitExhausted,
-    Cancelled,
-    Discontinuity,
-    ProviderLost,
-    Failed,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HostIntegrationTerminal {
     Candidate(Box<IntegrationCandidate>),
@@ -149,24 +140,6 @@ pub enum IntegrationOutcome {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DynamicsRefusal {
-    MissingIdentity,
-    InvalidTime,
-    InvalidSampling,
-    UnsupportedStochasticProfile,
-    InvalidAccuracy,
-    InvalidResources,
-    InvalidState,
-    StaleState,
-    InvalidContext,
-    ResourceBoundExceeded,
-    InvalidTrajectory,
-    InvalidFinalState,
-    WorkBoundExceeded,
-    InvalidRealization,
-}
-
 impl IntegrateContract {
     pub fn validate(&self) -> Result<(), DynamicsRefusal> {
         nonzero(self.identity)?;
@@ -192,7 +165,8 @@ impl IntegrateContract {
             state_id: state.identity.clone().into(),
             gear_id: "ai/integrate".into(),
             value_kind: "ai/dynamics-state@1".into(),
-            initial_value: state.generation.to_le_bytes().to_vec(),
+            initial_value: Some(state.generation.to_le_bytes().to_vec()),
+            lifetime: conduit_core::StateLifetime::Play,
             retained: None,
             maximum_value_bytes,
             continuation: StateContinuation::MaximumTransitions(1),

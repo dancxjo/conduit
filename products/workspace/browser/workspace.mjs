@@ -108,7 +108,7 @@ export async function startApplication(application) {
     let saving = Promise.resolve();
     let selected = session.foreground()?.checked_form_id;
     let playback = { state: 'Lulled', detail: 'Its forms can wake here.' };
-    let play = null;
+    let play = null, currentMask = null;
     let library = null, membership = null, editing = false;
     const tutorialInstalled = () => session.current()?.initial_forms.some(form => form.checked_form_id === tutorialForm.checked_form_id) ?? false;
     const handleTutorialEvent = (event, resident = false) => {
@@ -121,6 +121,26 @@ export async function startApplication(application) {
       else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
       else fail(new Error('Unknown tutorial action'));
     };
+    const submitMaskInteraction = event => {
+      const mask = currentMask;
+      const action = mask?.actions.find(candidate => candidate.identity === event.action);
+      if (!action) throw new Error('The Mask did not expose this action');
+      if (action.arguments.length !== 1) throw new Error('The tutorial action does not have one exact argument');
+      const argument = action.arguments[0];
+      return session.interactWithTutorialMask({
+        show_id: mask.show_id,
+        presentation_id: mask.presentation_id,
+        presentation_revision: mask.presentation_revision,
+        action_id: event.action,
+        target: action.target,
+        arguments: [{
+          name: argument.name,
+          value_kind: argument.contract.value_kind,
+          value: Array.from(event.value ?? []),
+        }],
+        sequence: Number(event.sequence ?? 1),
+      });
+    };
     const renderTutorial = () => {
       if (!session.current() || !tutorialInstalled()) {
         tutorial.hidden = true;
@@ -130,12 +150,49 @@ export async function startApplication(application) {
       const resident = ['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state);
       tutorialCore.hidden = resident;
       tutorialResident.hidden = !resident;
-      if (resident) return;
       const revision = ++tutorialRevision;
+      // A freshly born or explicitly lulled Body has no current Wake/Body
+      // Plan, so it truthfully has no current Mask Show. The semantic
+      // lifecycle surface remains usable to request Wake; once a realization
+      // exists, every resident presentation and interaction crosses the exact
+      // sealed Mask route below.
+      const mask = session.current()?.plan_id
+        ? session.presentTutorialMask(revision, playback.state)
+        : null;
+      currentMask = mask;
+      const applyMask = () => {
+        if (!mask) return null;
+        tutorial.dataset.maskShowId = mask.show_id;
+        tutorial.dataset.maskManifestationId = mask.manifestation_id;
+        tutorial.dataset.maskPlanId = mask.mask_plan_id;
+        tutorial.dataset.maskPlayId = mask.mask_play.active_play_id;
+        tutorial.dataset.maskPlacementId = mask.placement_id;
+        tutorial.dataset.presentationId = mask.presentation_id;
+        tutorial.dataset.presentationRevision = String(mask.presentation_revision);
+        return session.acknowledgeTutorialMask({
+          show_id: mask.show_id,
+          manifestation_id: mask.manifestation_id,
+          mask_plan_id: mask.mask_plan_id,
+          active_play_id: mask.mask_play.active_play_id,
+          placement_id: mask.placement_id,
+          presentation_id: mask.presentation_id,
+          presentation_revision: mask.presentation_revision,
+        });
+      };
+      if (resident) { applyMask(); return; }
       tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
         tutorialPresentation.nextEvent('body-tutorial');
+        if (mask) {
+          try {
+            submitMaskInteraction(event);
+          } catch (error) {
+            fail(error);
+            return;
+          }
+        }
         handleTutorialEvent(event);
       } });
+      applyMask();
     };
     const bodyChanged = () => {
       saving = saving.then(() => session.save()).then(async () => {
@@ -284,7 +341,11 @@ export async function startApplication(application) {
       if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'),
         presentationRootFor: ({ checkedFormId }) => checkedFormId === tutorialForm.checked_form_id ? tutorialResident : null,
         onApplicationEvent: ({ checkedFormId, event }) => {
-          if (checkedFormId === tutorialForm.checked_form_id) handleTutorialEvent(event, true);
+          if (checkedFormId === tutorialForm.checked_form_id) {
+            try { submitMaskInteraction(event); }
+            catch (error) { fail(error); return; }
+            handleTutorialEvent(event, true);
+          }
         },
         onTutorialPresenterRequest: effect => session.tutorialPresenterRequest(
           `tutorial-presenter/${effect.active_play_id}/${effect.request_sequence}`,
@@ -367,7 +428,25 @@ export async function startApplication(application) {
       presentationFor: application.presentationFor, onUse: useForm, onRemove: removeForm, onFailure: fail,
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
-    globalThis.__conduitWorkspace = Object.freeze({ host, presentationFor: application.presentationFor, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
+    globalThis.__conduitWorkspace = Object.freeze({ host, presentationFor: application.presentationFor, current: session.current, evidence: session.evidence,
+      maskObservation: session.tutorialMaskObservation,
+      maskJourney() {
+        session.beginTutorialMaskJourney();
+        const mask = session.prepareTutorialMaskReplacement();
+        tutorial.dataset.maskShowId = mask.show_id;
+        tutorial.dataset.maskManifestationId = mask.manifestation_id;
+        tutorial.dataset.maskPlanId = mask.mask_plan_id;
+        tutorial.dataset.maskPlayId = mask.mask_play.active_play_id;
+        tutorial.dataset.maskPlacementId = mask.placement_id;
+        tutorial.dataset.presentationId = mask.presentation_id;
+        tutorial.dataset.presentationRevision = String(mask.presentation_revision);
+        session.acknowledgeTutorialMask({ show_id: mask.show_id, manifestation_id: mask.manifestation_id,
+          mask_plan_id: mask.mask_plan_id, active_play_id: mask.mask_play.active_play_id,
+          placement_id: mask.placement_id, presentation_id: mask.presentation_id,
+          presentation_revision: mask.presentation_revision });
+        return session.tutorialMaskJourney();
+      },
+      state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
     membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another host',

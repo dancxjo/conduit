@@ -29,9 +29,8 @@ pub fn pcm_as_sampled_signal(
         },
         sample_count: u64::from(header.frame_count),
         continuity: if header.discontinuity {
-            SignalContinuity::Discontinuous {
-                gap_identity: "audio/declared-discontinuity".to_string(),
-            }
+            SignalContinuity::discontinuous("audio/declared-discontinuity".to_string())
+                .expect("reviewed discontinuity identity")
         } else {
             SignalContinuity::Continuous
         },
@@ -103,8 +102,8 @@ pub fn sampled_signal_as_pcm(
     };
     let discontinuity = match &signal.continuity {
         SignalContinuity::Continuous => false,
-        SignalContinuity::Discontinuous { gap_identity }
-            if gap_identity == "audio/declared-discontinuity" =>
+        SignalContinuity::Discontinuous(gap)
+            if gap.gap_identity() == "audio/declared-discontinuity" =>
         {
             true
         }

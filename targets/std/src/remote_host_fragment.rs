@@ -67,7 +67,6 @@ impl StdHost {
             request,
             self.speech_recognition.as_mut(),
             self.local_model.as_deref_mut(),
-            self.speech_synthesis.as_mut(),
             cancelled,
         )
     }

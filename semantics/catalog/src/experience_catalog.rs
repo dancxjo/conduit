@@ -163,6 +163,7 @@ pub fn install_experience_catalogs(
                     .clone(),
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Current,
+                abnormal_kind: None,
             }],
             configuration: vec![],
         })
@@ -179,5 +180,6 @@ fn flow_port(name: &str, value_type: &StructuredInfoType) -> PortDescriptor {
             .clone(),
         direction: PortDirection::Input,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }
 }

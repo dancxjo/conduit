@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 113
+maximum_forms = 116
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -247,6 +247,12 @@ title = "Money Quote"
 entry = "money-quote"
 deterministic = { package = "conduit-std-host", test = "finance_forms", case = "deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible" }
 [[forms]]
+slug = "native-graphical-mask"
+title = "Native Graphical Mask"
+entry = "native-graphical"
+deterministic = { package = "conduitos", test = "lib", case = "presenter_control::tests::native_presenter_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan", plan_play_evidence = true }
+browser_safe_not_applicable = "the ordinary Mask is realized by the ConduitOS graphical Host, not a browser Host"
+[[forms]]
 slug = "morse-network"
 title = "Morse Network"
 entry = "morse_network"
@@ -315,9 +321,8 @@ title = "Pocket Theremin"
 entry = "pocket-theremin"
 initial_body_order = 11
 initial_body_presentation_profile = 1
-reusable_entries = [{ entry = "quantity-range-map", title = "Typed Pitch Mapping", composition = { parent = "pocket-theremin", occurrences = ["pitch"] } }]
-deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_form", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
-browser_safe = { spec = "proof/browser/quantity-controller.spec.mjs", case = "Pocket Theremin maps pointer and deterministic control to typed pitch" }
+deterministic = { package = "conduit-std-host", test = "lib", case = "canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm" }
+browser_safe_not_applicable = "browser has no audio/tone Back; browser playback is a later #4091 wave"
 [[forms]]
 slug = "pool-webchat"
 title = "Pool Webchat"
@@ -381,7 +386,7 @@ initial_body_order = 10
 initial_body_presentation_profile = 3
 reusable_entries = [{ entry = "secret-knock", title = "Secret Knock Recognizer", composition = { parent = "secret-knock-demo", occurrences = ["recognize"] } }, { entry = "compare-pattern", title = "Timing Pattern Comparison", composition = { parent = "secret-knock", occurrences = ["compare"] } }, { entry = "derive-intervals", title = "Ordered Event Intervals", composition = { parent = "secret-knock", occurrences = ["intervals"] } }, { entry = "normalize-durations", title = "Relative Duration Normalization", composition = { parent = "secret-knock", occurrences = ["normalize"] } }]
 deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "secret_knock_form", case = "canonical_secret_knock_is_a_host_free_composition_of_reusable_forms" }
-browser_safe = { spec = "proof/browser/secret-knock-conformance.spec.mjs", case = "canonical Secret Knock runs its stored template and nested recognizer" }
+browser_safe_not_applicable = "the retired standalone Tour carrier owned this browser-device journey; deterministic kernel execution remains current"
 [[forms]]
 slug = "signal-demo"
 title = "Signal Demo"
@@ -404,6 +409,18 @@ title = "Socket Client"
 entry = "echo-client-demo"
 reusable_entries = [{ entry = "echo-client", title = "Echo Client", composition = { parent = "echo-client-demo", occurrences = ["client"] } }]
 deterministic = { package = "conduit-net", test = "external_websocket", case = "canonical_duplex_source_checks_and_expands_to_the_external_client_leaf" }
+[[forms]]
+slug = "spoken-generative-mask"
+title = "Generative Spoken Mask"
+entry = "spoken-generative"
+deterministic = { package = "conduit-std-host", test = "lib", case = "spoken_mask_runtime_tests::registered_spoken_mask_executes_to_an_artifact_acknowledged_show", plan_play_evidence = true }
+browser_safe_not_applicable = "the reviewed path requires admitted language, speech, audio conversion, and artifact authority on a hosted speech-capable Host"
+[[forms]]
+slug = "spoken-mask"
+title = "Spoken Mask"
+entry = "spoken"
+deterministic = { package = "conduitos", test = "lib", case = "presenter_control::tests::spoken_presenter_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan", plan_play_evidence = true }
+browser_safe_not_applicable = "the ordinary Mask is realized by the ConduitOS speech Host, not a browser Host"
 [[forms]]
 slug = "tabular-query"
 title = "Tabular Query"
@@ -475,11 +492,11 @@ deterministic = { package = "conduit-semantic-catalog", test = "vision_forms", c
 [[forms]]
 slug = "webchat"
 title = "Webchat"
-entry = "webchat-browser-demo"
+entry = "webchat-transport-demo"
 reusable_entries = [
   { entry = "chat/client", title = "Chat Client", composition = { parent = "webchat-transport-demo", occurrences = ["client"] } },
   { entry = "chat/server", title = "Chat Server", composition = { parent = "webchat-transport-demo", occurrences = ["server"] } },
-  { entry = "chat/browser-client", title = "Browser Chat Client", composition = { parent = "webchat-browser-demo", occurrences = ["client"] } },
+  { entry = "chat/browser-client", title = "Browser Chat Client" },
 ]
 deterministic = { package = "conduit-std-host", test = "external_websocket_plan", case = "planned_listener_executes_through_kernel_host_calls_for_two_clients" }
 

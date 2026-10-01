@@ -1,4 +1,10 @@
-//! Fixed-capacity renderer-neutral presentation obligations.
+//! Fixed-capacity realization operations for graphical presenter pipelines.
+//!
+//! This older icon/frame/badge carrier is downstream Mask machinery. It is
+//! deliberately **not** the universal grammar's semantic composition, which
+//! is represented by [`crate::PresentationCompositionRelation`].
+
+use crate::{CompositionItemKind, CompositionItemKindCode, CompositionRole, CompositionRoleCode};
 
 pub const PRESENTATION_COMPOSITION_KIND: &str = "presentation/composition@1";
 pub const MAX_COMPOSITION_ITEMS: usize = 8;
@@ -102,7 +108,7 @@ impl PresentationIconKey {
         }
     }
 
-    pub const fn accessibility_name(self) -> &'static str {
+    pub const fn name(self) -> &'static str {
         match self {
             Self::Clock => "clock",
             Self::Repeat2 => "repeating flow",
@@ -143,25 +149,9 @@ impl PresentationIconKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum CompositionItemKind {
-    Icon = 1,
-    Frame = 2,
-    Badge = 3,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum AccessibilityRole {
-    Image = 1,
-    Group = 2,
-    Status = 3,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CompositionItem {
     pub kind: CompositionItemKind,
-    pub role: AccessibilityRole,
+    pub role: CompositionRole,
     token_len: u8,
     name_len: u8,
     token: [u8; MAX_COMPOSITION_TOKEN_BYTES],
@@ -171,28 +161,26 @@ pub struct CompositionItem {
 impl CompositionItem {
     pub fn new(
         kind: CompositionItemKind,
-        role: AccessibilityRole,
+        role: CompositionRole,
         token: &str,
-        accessibility_name: &str,
+        name: &str,
     ) -> Result<Self, CompositionError> {
-        if token.is_empty() || accessibility_name.is_empty() {
+        if token.is_empty() || name.is_empty() {
             return Err(CompositionError::EmptyText);
         }
-        if token.len() > MAX_COMPOSITION_TOKEN_BYTES
-            || accessibility_name.len() > MAX_COMPOSITION_NAME_BYTES
-        {
+        if token.len() > MAX_COMPOSITION_TOKEN_BYTES || name.len() > MAX_COMPOSITION_NAME_BYTES {
             return Err(CompositionError::TextTooLong);
         }
         let mut item = Self {
             kind,
             role,
             token_len: token.len() as u8,
-            name_len: accessibility_name.len() as u8,
+            name_len: name.len() as u8,
             token: [0; MAX_COMPOSITION_TOKEN_BYTES],
             name: [0; MAX_COMPOSITION_NAME_BYTES],
         };
         item.token[..token.len()].copy_from_slice(token.as_bytes());
-        item.name[..accessibility_name.len()].copy_from_slice(accessibility_name.as_bytes());
+        item.name[..name.len()].copy_from_slice(name.as_bytes());
         Ok(item)
     }
 
@@ -201,15 +189,15 @@ impl CompositionItem {
             .expect("validated composition token")
     }
 
-    pub fn accessibility_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         core::str::from_utf8(&self.name[..usize::from(self.name_len)])
-            .expect("validated accessibility name")
+            .expect("validated composition name")
     }
 }
 
 const EMPTY_ITEM: CompositionItem = CompositionItem {
     kind: CompositionItemKind::Icon,
-    role: AccessibilityRole::Image,
+    role: CompositionRole::Image,
     token_len: 0,
     name_len: 0,
     token: [0; MAX_COMPOSITION_TOKEN_BYTES],
@@ -217,6 +205,8 @@ const EMPTY_ITEM: CompositionItem = CompositionItem {
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A bounded realization program, retained for existing presenter pipelines.
+/// It does not express rhetorical grouping, contrast, emphasis, or co-presence.
 pub struct PresentationComposition {
     count: u8,
     items: [CompositionItem; MAX_COMPOSITION_ITEMS],
@@ -233,25 +223,25 @@ pub enum CompositionError {
 }
 
 impl PresentationComposition {
-    pub fn icon(token: &str, accessibility_name: &str) -> Result<Self, CompositionError> {
+    pub fn icon(token: &str, name: &str) -> Result<Self, CompositionError> {
         if !is_authoritative_icon(token) {
             return Err(CompositionError::UnknownIcon);
         }
         let mut value = Self::empty();
         value.push(CompositionItem::new(
             CompositionItemKind::Icon,
-            AccessibilityRole::Image,
+            CompositionRole::Image,
             token,
-            accessibility_name,
+            name,
         )?)?;
         Ok(value)
     }
 
     pub fn icon_or_fallback(
         token: Option<&str>,
-        accessibility_name: Option<&str>,
+        name: Option<&str>,
     ) -> Result<Self, CompositionError> {
-        match (token, accessibility_name) {
+        match (token, name) {
             (Some(token), Some(name)) => Self::icon(token, name),
             (None, None) => Self::icon(
                 "conduit-generic-gear",
@@ -278,26 +268,22 @@ impl PresentationComposition {
         Ok(())
     }
 
-    pub fn frame(mut self, role: &str, accessibility_name: &str) -> Result<Self, CompositionError> {
+    pub fn frame(mut self, role: &str, name: &str) -> Result<Self, CompositionError> {
         self.push(CompositionItem::new(
             CompositionItemKind::Frame,
-            AccessibilityRole::Group,
+            CompositionRole::Group,
             role,
-            accessibility_name,
+            name,
         )?)?;
         Ok(self)
     }
 
-    pub fn badge(
-        mut self,
-        state: &str,
-        accessibility_name: &str,
-    ) -> Result<Self, CompositionError> {
+    pub fn badge(mut self, state: &str, name: &str) -> Result<Self, CompositionError> {
         self.push(CompositionItem::new(
             CompositionItemKind::Badge,
-            AccessibilityRole::Status,
+            CompositionRole::Status,
             state,
-            accessibility_name,
+            name,
         )?)?;
         Ok(self)
     }
@@ -321,8 +307,8 @@ impl PresentationComposition {
         let mut cursor = 2;
         for item in self.items() {
             output[cursor..cursor + 4].copy_from_slice(&[
-                item.kind as u8,
-                item.role as u8,
+                CompositionItemKindCode::encode(item.kind)[0],
+                CompositionRoleCode::encode(item.role)[0],
                 item.token_len,
                 item.name_len,
             ]);
@@ -330,7 +316,7 @@ impl PresentationComposition {
             let token = item.token();
             output[cursor..cursor + token.len()].copy_from_slice(token.as_bytes());
             cursor += token.len();
-            let name = item.accessibility_name();
+            let name = item.name();
             output[cursor..cursor + name.len()].copy_from_slice(name.as_bytes());
             cursor += name.len();
         }
@@ -371,9 +357,9 @@ impl PresentationComposition {
             let item = CompositionItem::new(kind, role, token, name)?;
             if !matches!(
                 (kind, role),
-                (CompositionItemKind::Icon, AccessibilityRole::Image)
-                    | (CompositionItemKind::Frame, AccessibilityRole::Group)
-                    | (CompositionItemKind::Badge, AccessibilityRole::Status)
+                (CompositionItemKind::Icon, CompositionRole::Image)
+                    | (CompositionItemKind::Frame, CompositionRole::Group)
+                    | (CompositionItemKind::Badge, CompositionRole::Status)
             ) {
                 return Err(CompositionError::NonCanonicalEncoding);
             }
@@ -394,21 +380,11 @@ pub fn is_authoritative_icon(token: &str) -> bool {
 }
 
 fn decode_kind(value: u8) -> Result<CompositionItemKind, CompositionError> {
-    match value {
-        1 => Ok(CompositionItemKind::Icon),
-        2 => Ok(CompositionItemKind::Frame),
-        3 => Ok(CompositionItemKind::Badge),
-        _ => Err(CompositionError::MalformedEncoding),
-    }
+    CompositionItemKindCode::decode(&[value]).map_err(|_| CompositionError::MalformedEncoding)
 }
 
-fn decode_role(value: u8) -> Result<AccessibilityRole, CompositionError> {
-    match value {
-        1 => Ok(AccessibilityRole::Image),
-        2 => Ok(AccessibilityRole::Group),
-        3 => Ok(AccessibilityRole::Status),
-        _ => Err(CompositionError::MalformedEncoding),
-    }
+fn decode_role(value: u8) -> Result<CompositionRole, CompositionError> {
+    CompositionRoleCode::decode(&[value]).map_err(|_| CompositionError::MalformedEncoding)
 }
 
 #[cfg(test)]

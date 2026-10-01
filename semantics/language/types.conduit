@@ -1,0 +1,5 @@
+# Authoritative portable linguistic meaning. Rust consumes generated bindings.
+
+type LinguisticOffsetBasis =
+    unicode_scalar
+    | utf8_byte

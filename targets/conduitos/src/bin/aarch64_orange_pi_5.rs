@@ -10,12 +10,12 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
     allocation::BOOT_ARENA,
     arch, dual_region_composition, dual_region_plan,
-    fabrication::{EMBEDDED_FABRICATION, IMPL_LINEAR_PRESENTER},
     front_door::FrontDoor,
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
+    make::{EMBEDDED_MAKE, IMPL_LINEAR_PRESENTER},
     offer::CpuFeatures,
-    offer_fabrication::ImageBoundHostOffer,
+    offer_make::ImageBoundHostOffer,
 };
 
 const ARENA_BYTES: usize = 8 * 1024 * 1024;
@@ -35,10 +35,10 @@ pub extern "C" fn conduitos_aarch64_orange_pi_5_start() -> ! {
             .initialize(arena, ARENA_BYTES)
             .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     }
-    EMBEDDED_FABRICATION
+    EMBEDDED_MAKE
         .validate(ARENA_BYTES as u64)
         .unwrap_or_else(|error| refuse(error.as_str()));
-    if !EMBEDDED_FABRICATION.includes(IMPL_LINEAR_PRESENTER) {
+    if !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER) {
         refuse("linear-presenter-absent-from-image");
     }
 
@@ -55,7 +55,7 @@ pub extern "C" fn conduitos_aarch64_orange_pi_5_start() -> ! {
     );
     let offer = ImageBoundHostOffer::new(
         &identities,
-        &EMBEDDED_FABRICATION,
+        &EMBEDDED_MAKE,
         CpuFeatures {
             sse2: false,
             rdrand: false,
@@ -77,9 +77,9 @@ pub extern "C" fn conduitos_aarch64_orange_pi_5_start() -> ! {
         host_id.clone(),
         boot_id.clone(),
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.build_id,
+        EMBEDDED_MAKE.image_binding,
         form.source_document_id,
         form.checked_form_id,
         5,
@@ -92,8 +92,8 @@ pub extern "C" fn conduitos_aarch64_orange_pi_5_start() -> ! {
         host_id,
         boot_id,
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.image_binding,
     )
     .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
     let receipt = presenter
@@ -105,9 +105,8 @@ pub extern "C" fn conduitos_aarch64_orange_pi_5_start() -> ! {
         arch::present(b"\n");
     }
 
-    let mut prepared =
-        dual_region_plan::prepare(&identities, &offer, EMBEDDED_FABRICATION.build_id)
-            .unwrap_or_else(|error| refuse(error.as_str()));
+    let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
+        .unwrap_or_else(|error| refuse(error.as_str()));
     let mut clock = arch::Clock::new();
     let mut timer = arch::Timer::new();
     let mut serial = arch::Serial::new();

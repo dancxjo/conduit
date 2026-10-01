@@ -16,6 +16,8 @@
     "browser-sdk.mjs",
     "browser-sdk-forms.mjs",
     "browser-sdk-events.mjs",
+    "browser-sdk-face.mjs",
+    "host/assets/*.js",
     "host/assets/*.mjs",
     "browser-sdk.d.ts",
     "README.md",

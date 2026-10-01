@@ -29,18 +29,15 @@ fn fixture() -> (
 ) {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile).unwrap();
-    let form = conduit_form::parse(
-        "form answer {\n    generate: ai/generate-text\n}\n",
-        &profile,
-    )
-    .unwrap();
-    let fixtures = conduit_ai::generate_text_base_fixtures();
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
+    let form =
+        conduit_form::parse("form answer {\n    generate: llm/generate\n}\n", &profile).unwrap();
+    let fixtures = conduit_ai::llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
-    let advertisements = conduit_ai::generate_text_realization_advertisements(&fixtures);
+    let advertisements = conduit_ai::llm_generate_realization_advertisements(&fixtures);
     let observations = hosts
         .iter()
         .flat_map(|host| {
@@ -80,8 +77,8 @@ fn fixture() -> (
                 PlannerPredicate::AtLeast {
                     fact: context.clone(),
                     value: PlannerFactValue::Quantity {
-                        value: 24_000,
-                        unit: CharacteristicUnit::Tokens,
+                        value: 24,
+                        unit: CharacteristicUnit::Items,
                     },
                 },
                 PlannerPredicate::Equal {

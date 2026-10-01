@@ -12,16 +12,12 @@ const SEND: HostCallId = HostCallId(3);
 
 pub(crate) enum BrowserChatBack {
     State(State),
-    Tee,
-    Renderer(Request),
-    Interaction(Interaction),
     Submit(Request),
     Adapter(Request),
     Socket(Socket),
 }
 
 pub(crate) struct State {
-    initial: Option<ValueRef>,
     pending: Option<RequestId>,
     next: u32,
 }
@@ -30,14 +26,6 @@ pub(crate) struct Request {
     pending: Option<RequestId>,
     next: u32,
     maximum: u32,
-}
-
-pub(crate) struct Interaction {
-    token: ValueRef,
-    presentation: Option<ValueRef>,
-    manifestation: Option<ValueRef>,
-    pending: Option<RequestId>,
-    next: u32,
 }
 
 pub(crate) struct Socket {
@@ -51,27 +39,8 @@ pub(crate) struct Socket {
 }
 
 impl BrowserChatBack {
-    pub(crate) fn state(initial: ValueRef) -> Self {
+    pub(crate) fn state() -> Self {
         Self::State(State {
-            initial: Some(initial),
-            pending: None,
-            next: 0,
-        })
-    }
-
-    pub(crate) fn tee() -> Self {
-        Self::Tee
-    }
-
-    pub(crate) fn renderer() -> Self {
-        Self::Renderer(Request::new(64 * 1024))
-    }
-
-    pub(crate) fn interaction(token: ValueRef) -> Self {
-        Self::Interaction(Interaction {
-            token,
-            presentation: None,
-            manifestation: None,
             pending: None,
             next: 0,
         })
@@ -79,7 +48,7 @@ impl BrowserChatBack {
 
     pub(crate) fn submit() -> Self {
         Self::Submit(Request::new(
-            conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES as u32,
+            conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
         ))
     }
 
@@ -120,11 +89,7 @@ impl StepBack<PORTS> for BrowserChatBack {
     ) -> StepOutcome {
         match self {
             Self::State(state) => state.step(io),
-            Self::Tee => step_tee(io),
-            Self::Renderer(request) | Self::Submit(request) | Self::Adapter(request) => {
-                request.step(io)
-            }
-            Self::Interaction(interaction) => interaction.step(io),
+            Self::Submit(request) | Self::Adapter(request) => request.step(io),
             Self::Socket(socket) => socket.step(io),
         }
     }
@@ -132,29 +97,16 @@ impl StepBack<PORTS> for BrowserChatBack {
     fn cancel(&mut self) {
         match self {
             Self::State(state) => state.pending = None,
-            Self::Renderer(request) | Self::Submit(request) | Self::Adapter(request) => {
+            Self::Submit(request) | Self::Adapter(request) => {
                 request.pending = None;
             }
-            Self::Interaction(interaction) => interaction.pending = None,
             Self::Socket(socket) => socket.pending = None,
-            Self::Tee => {}
         }
     }
 }
 
 impl State {
     fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
-        if let Some(value) = self.initial {
-            if !io.output_ready(PortId(0)) {
-                return StepOutcome::Await;
-            }
-            if io.send(PortId(0), value).is_err() {
-                return BrowserChatBack::fail(40);
-            }
-            self.initial = None;
-            return StepOutcome::Progress;
-        }
-
         if let Some(expected) = self.pending {
             let Some((request, outcome)) = io.host_completion() else {
                 return StepOutcome::Await;
@@ -201,25 +153,6 @@ impl State {
         }
         StepOutcome::Await
     }
-}
-
-fn step_tee(io: &mut StepIo<PORTS>) -> StepOutcome {
-    if let Some(value) = io.input(PortId(0)) {
-        if !io.output_ready(PortId(0)) {
-            return StepOutcome::Await;
-        }
-        if io.consume(PortId(0)).is_err() || io.send(PortId(0), value).is_err() {
-            return BrowserChatBack::fail(41);
-        }
-        return StepOutcome::Progress;
-    }
-    if io.input_closed(PortId(0)) {
-        if io.consume_closed(PortId(0)).is_err() {
-            return BrowserChatBack::fail(41);
-        }
-        return StepOutcome::Complete;
-    }
-    StepOutcome::Await
 }
 
 impl Request {
@@ -277,79 +210,6 @@ impl Request {
             return StepOutcome::Complete;
         }
         StepOutcome::Await
-    }
-}
-
-impl Interaction {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
-        if let Some(expected) = self.pending {
-            let Some((request, outcome)) = io.host_completion() else {
-                return StepOutcome::Await;
-            };
-            if request != expected {
-                return BrowserChatBack::fail(46);
-            }
-            match outcome.disposition {
-                HostCallDisposition::Completed if outcome.failure.is_none() => {
-                    if let Some(output) = outcome.output {
-                        if !io.output_ready(PortId(0)) {
-                            return StepOutcome::Await;
-                        }
-                        if io.consume_host_completion().is_err()
-                            || io.send(PortId(0), output.value).is_err()
-                        {
-                            return BrowserChatBack::fail(46);
-                        }
-                    } else if io.consume_host_completion().is_err() {
-                        return BrowserChatBack::fail(46);
-                    }
-                }
-                HostCallDisposition::Cancelled => {
-                    if io.consume_host_completion().is_err() {
-                        return BrowserChatBack::fail(46);
-                    }
-                }
-                _ => return BrowserChatBack::fail(45),
-            }
-            self.pending = None;
-            return StepOutcome::Progress;
-        }
-
-        let mut consumed = false;
-        if self.presentation.is_none() {
-            if let Some(value) = io.input(PortId(0)) {
-                if io.consume(PortId(0)).is_err() {
-                    return BrowserChatBack::fail(46);
-                }
-                self.presentation = Some(value);
-                consumed = true;
-            }
-        }
-        if self.manifestation.is_none() {
-            if let Some(value) = io.input(PortId(1)) {
-                if io.consume(PortId(1)).is_err() {
-                    return BrowserChatBack::fail(46);
-                }
-                self.manifestation = Some(value);
-                consumed = true;
-            }
-        }
-        if self.presentation.is_none() || self.manifestation.is_none() {
-            return if consumed {
-                StepOutcome::Progress
-            } else {
-                StepOutcome::Await
-            };
-        }
-
-        let request = RequestId(self.next);
-        let input = BoundedValueRef::new(self.token, 0).expect("empty admitted input token");
-        if io.request_host_call(request, HostCallId(0), input).is_err() {
-            return BrowserChatBack::fail(46);
-        }
-        self.next = self.next.saturating_add(1);
-        self.pending = Some(request);
-        StepOutcome::Progress
     }
 }
 

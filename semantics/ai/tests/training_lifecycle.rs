@@ -16,7 +16,7 @@ fn lifecycle_is_finite_and_terminal_paths_cleanly_unload() {
             .unwrap();
         lifecycle.transition(TrainingLifecyclePhase::Ready).unwrap();
         lifecycle
-            .transition(TrainingLifecyclePhase::ActiveStep { step: 1 })
+            .transition(TrainingLifecyclePhase::active_step(1).unwrap())
             .unwrap();
         lifecycle.transition(terminal).unwrap();
         lifecycle
@@ -28,7 +28,7 @@ fn lifecycle_is_finite_and_terminal_paths_cleanly_unload() {
         phase: TrainingLifecyclePhase::Ready,
     };
     assert_eq!(
-        lifecycle.transition(TrainingLifecyclePhase::ActiveStep { step: 0 }),
+        lifecycle.transition(TrainingLifecyclePhase::active_step(0).unwrap()),
         Err(TrainingRefusal::InvalidLifecycleTransition)
     );
 }

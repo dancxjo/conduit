@@ -84,7 +84,8 @@ impl TestLogicScriptBack {}
 impl TestLogicSinkBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-logic-script"),
@@ -112,7 +113,8 @@ pub(super) fn offer() -> CapabilityOffer {
 }
 
 pub(super) fn sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-logic-sink"),
@@ -128,6 +130,7 @@ pub(super) fn sink_offer() -> CapabilityOffer {
             value_kind: kind_id(SCALAR_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: Vec::new(),
@@ -168,6 +171,7 @@ fn scalar_output(name: &str) -> PortDescriptor {
         value_kind: kind_id(SCALAR_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

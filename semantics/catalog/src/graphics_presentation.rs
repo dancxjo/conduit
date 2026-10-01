@@ -3,7 +3,7 @@
 use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const GRAPHICS_PRESENTATION_KIND: &str = "presentation/graphics";
@@ -19,6 +19,7 @@ pub fn graphics_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_presentation::GRAPHICS_SCENE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),
@@ -64,20 +65,14 @@ pub fn install_graphics_presentation_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_form::KindSignature;
     let contract = graphics_presentation_contract();
     startup.insert(KindSignature {
         kind: GRAPHICS_PRESENTATION_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(GRAPHICS_PRESENTATION_REVISION),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(contract.into_semantic_contract(GRAPHICS_PRESENTATION_REVISION))
         .map_err(|error| error.to_string())
 }
 

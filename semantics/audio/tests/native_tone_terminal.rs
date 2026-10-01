@@ -1,0 +1,145 @@
+use conduit_audio::{
+    audio_tone_terminal_kind_id, AudioToneTerminal, CancellationDisposition, Gate,
+    ModulationDestination, MusicalControl, PressureDisposition, SoundSeam, SoundStreamState,
+    SoundTerminalBehavior,
+};
+use conduit_core::StructuredInfoTypeShape;
+use conduit_form::rust_binding::NativeRustBinding;
+
+#[test]
+fn native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit() {
+    let semantic = AudioToneTerminal::semantic_type().unwrap();
+    let StructuredInfoTypeShape::Variant { schema, .. } = semantic.shape() else {
+        panic!("audio tone terminal must remain a semantic variant")
+    };
+    assert_eq!(schema, &audio_tone_terminal_kind_id());
+
+    let structured = AudioToneTerminal::Cancelled.into_structured().unwrap();
+    assert_eq!(
+        AudioToneTerminal::from_structured(structured).unwrap(),
+        AudioToneTerminal::Cancelled
+    );
+
+    assert_eq!(AudioToneTerminal::Cancelled.encode(), [0]);
+    assert_eq!(
+        AudioToneTerminal::decode(&[0]).unwrap(),
+        AudioToneTerminal::Cancelled
+    );
+}
+
+#[test]
+fn musical_control_payloads_round_trip_and_own_their_refinements() {
+    for control in [
+        MusicalControl::sustain(true).unwrap(),
+        MusicalControl::pitch_bend(-1_000_000, 2_400_000_000).unwrap(),
+        MusicalControl::modulation(1_000_000, ModulationDestination::Amplitude).unwrap(),
+    ] {
+        let structured = control.clone().into_structured().unwrap();
+        assert_eq!(
+            MusicalControl::from_structured(structured).unwrap(),
+            control
+        );
+    }
+
+    assert!(MusicalControl::pitch_bend(-1_000_001, 0).is_err());
+    assert!(MusicalControl::pitch_bend(0, 2_400_000_001).is_err());
+    assert!(MusicalControl::modulation(1_000_001, ModulationDestination::Pitch).is_err());
+}
+
+#[test]
+fn pcm_unit_variants_have_native_semantic_identity_and_exact_round_trips() {
+    use conduit_audio::{PcmChannelLayout, PcmSampleRepresentation};
+
+    for representation in [
+        PcmSampleRepresentation::Signed16LittleEndian,
+        PcmSampleRepresentation::Signed24LittleEndian,
+        PcmSampleRepresentation::Float32LittleEndian,
+    ] {
+        let structured = representation.into_structured().unwrap();
+        assert_eq!(
+            PcmSampleRepresentation::from_structured(structured).unwrap(),
+            representation
+        );
+    }
+    for layout in [PcmChannelLayout::Mono, PcmChannelLayout::StereoLeftRight] {
+        let structured = layout.into_structured().unwrap();
+        assert_eq!(
+            PcmChannelLayout::from_structured(structured).unwrap(),
+            layout
+        );
+    }
+}
+
+#[test]
+fn musical_unit_variants_have_native_semantic_identity_and_exact_round_trips() {
+    for gate in [Gate::On, Gate::Off] {
+        let structured = gate.into_structured().unwrap();
+        assert_eq!(Gate::from_structured(structured).unwrap(), gate);
+    }
+    for destination in [
+        ModulationDestination::Pitch,
+        ModulationDestination::FilterCutoff,
+        ModulationDestination::Amplitude,
+    ] {
+        let structured = destination.into_structured().unwrap();
+        assert_eq!(
+            ModulationDestination::from_structured(structured).unwrap(),
+            destination
+        );
+    }
+}
+
+#[test]
+fn sound_stream_and_compatibility_vocabularies_have_native_identity() {
+    for value in [
+        PressureDisposition::WaitWithoutConsumption,
+        PressureDisposition::RefuseBeforePlay,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            PressureDisposition::from_structured(structured).unwrap(),
+            value
+        );
+    }
+    for value in [
+        CancellationDisposition::CancelAndReleaseFiniteState,
+        CancellationDisposition::DrainThenComplete,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            CancellationDisposition::from_structured(structured).unwrap(),
+            value
+        );
+    }
+    for value in [
+        SoundTerminalBehavior::CompletesWhenInputsClose,
+        SoundTerminalBehavior::DrainsAdmittedOutputThenCompletes,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            SoundTerminalBehavior::from_structured(structured).unwrap(),
+            value
+        );
+    }
+    for value in [
+        SoundSeam::Tone,
+        SoundSeam::MusicalEvents,
+        SoundSeam::Synthesis,
+        SoundSeam::PcmPlayback,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(SoundSeam::from_structured(structured).unwrap(), value);
+    }
+    for value in [
+        SoundStreamState::Open,
+        SoundStreamState::Draining,
+        SoundStreamState::Cancelled,
+        SoundStreamState::Closed,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            SoundStreamState::from_structured(structured).unwrap(),
+            value
+        );
+    }
+}

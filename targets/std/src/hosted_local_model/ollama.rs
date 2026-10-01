@@ -17,7 +17,7 @@ use serde_json::json;
 use std::io::{Read, Write};
 use std::process::{Command, Stdio};
 
-const OLLAMA_ENDPOINT: &str = "http://127.0.0.1:11434";
+pub const DEFAULT_OLLAMA_ENDPOINT: &str = "http://127.0.0.1:11434";
 const MAXIMUM_INVENTORY_BYTES: usize = 16 * 1024 * 1024;
 const MAXIMUM_RUNTIME_IDENTITY_BYTES: usize = 4 * 1024;
 const REQUEST_TIMEOUT_SECONDS: &str = "120";
@@ -25,6 +25,7 @@ const WARMUP_MAXIMUM_TOKENS: u64 = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct OllamaDiscovery {
+    pub endpoint: String,
     pub runtime_version: String,
     pub model_name: String,
     pub model_content_identity: String,
@@ -40,6 +41,7 @@ pub struct OllamaDiscovery {
 
 pub struct OllamaLocalModelAdapter {
     offer: LocalModelOffer,
+    endpoint: String,
     model_name: String,
     next_request_sequence: u64,
     active_stream: Option<super::ollama_stream::Session>,
@@ -128,13 +130,19 @@ struct ChatMessage {
 
 impl OllamaDiscovery {
     pub fn discover(model: &str) -> Result<Self, String> {
+        Self::discover_at(DEFAULT_OLLAMA_ENDPOINT, model)
+    }
+
+    pub fn discover_at(endpoint: &str, model: &str) -> Result<Self, String> {
+        validate_endpoint(endpoint)?;
         if model.is_empty() || model.len() > conduit_ai::MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES {
             return Err("local model name is empty or exceeds the identity bound".to_string());
         }
         let runtime_version =
             bounded_command("ollama", &["--version"], MAXIMUM_RUNTIME_IDENTITY_BYTES)?;
-        let tags: TagsResponse = serde_json::from_slice(&curl_json("/api/tags", None)?)
-            .map_err(|error| format!("decode local Ollama inventory: {error}"))?;
+        let tags: TagsResponse =
+            serde_json::from_slice(&curl_json(endpoint, "/api/tags", None)?)
+                .map_err(|error| format!("decode local Ollama inventory: {error}"))?;
         let selected = tags
             .models
             .into_iter()
@@ -144,8 +152,9 @@ impl OllamaDiscovery {
             })?;
         let show_body = serde_json::to_vec(&json!({ "model": selected.name }))
             .map_err(|error| error.to_string())?;
-        let show: ShowResponse = serde_json::from_slice(&curl_json("/api/show", Some(&show_body))?)
-            .map_err(|error| format!("decode local Ollama model metadata: {error}"))?;
+        let show: ShowResponse =
+            serde_json::from_slice(&curl_json(endpoint, "/api/show", Some(&show_body))?)
+                .map_err(|error| format!("decode local Ollama model metadata: {error}"))?;
         let architecture = show
             .model_info
             .get("general.architecture")
@@ -159,6 +168,7 @@ impl OllamaDiscovery {
             .and_then(serde_json::Value::as_u64)
             .ok_or_else(|| "local model metadata has no exact context length".to_string())?;
         Ok(Self {
+            endpoint: endpoint.into(),
             runtime_version: runtime_version.trim().to_string(),
             model_name: selected.name,
             model_content_identity: selected.digest,
@@ -243,6 +253,7 @@ impl OllamaDiscovery {
             .map_err(|error| format!("local Ollama offer validation: {error:?}"))?;
         let adapter = OllamaLocalModelAdapter {
             offer,
+            endpoint: self.endpoint,
             model_name: self.model_name,
             next_request_sequence: 1,
             active_stream: None,
@@ -280,7 +291,7 @@ impl OllamaLocalModelAdapter {
             request["format"] = json!("json");
         }
         let body = serde_json::to_vec(&request).map_err(|error| error.to_string())?;
-        serde_json::from_slice(&curl_json("/api/generate", Some(&body))?)
+        serde_json::from_slice(&curl_json(&self.endpoint, "/api/generate", Some(&body))?)
             .map_err(|error| format!("decode local Ollama inference: {error}"))
     }
 
@@ -292,7 +303,7 @@ impl OllamaLocalModelAdapter {
             "keep_alive": "5m"
         }))
         .map_err(|error| error.to_string())?;
-        serde_json::from_slice(&curl_json("/api/embed", Some(&body))?)
+        serde_json::from_slice(&curl_json(&self.endpoint, "/api/embed", Some(&body))?)
             .map_err(|error| format!("decode local Ollama embedding: {error}"))
     }
 
@@ -327,22 +338,22 @@ impl OllamaLocalModelAdapter {
             "format": {
                 "type": "object",
                 "properties": {
-                    "speech": { "type": "string", "minLength": 1, "maxLength": 1024 },
-                    "presented_thought": { "type": ["string", "null"], "maxLength": 1024 },
+                    "speech_text_index": { "type": "integer", "minimum": 0 },
+                    "presented_thought_text_index": { "type": ["integer", "null"], "minimum": 0 },
                     "suggested_action_identities": {
                         "type": "array",
                         "items": action_items,
                         "maxItems": available_actions.len()
                     }
                 },
-                "required": ["speech", "presented_thought", "suggested_action_identities"],
+                "required": ["speech_text_index", "presented_thought_text_index", "suggested_action_identities"],
                 "additionalProperties": false
             },
             "keep_alive": "5m",
             "options": { "num_predict": maximum_tokens, "temperature": 0 }
         }))
         .map_err(|error| error.to_string())?;
-        serde_json::from_slice(&curl_json("/api/chat", Some(&body))?)
+        serde_json::from_slice(&curl_json(&self.endpoint, "/api/chat", Some(&body))?)
             .map_err(|error| format!("decode local Ollama presenter inference: {error}"))
     }
 }
@@ -353,7 +364,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
     }
 
     fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
-        let current = curl_json("/api/tags", None)
+        let current = curl_json(&self.endpoint, "/api/tags", None)
             .ok()
             .and_then(|bytes| serde_json::from_slice::<TagsResponse>(&bytes).ok())
             .is_some_and(|inventory| {
@@ -397,9 +408,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             .unwrap_or(1)
             .clamp(1, token_ceiling);
         let (payload, truncated, work_units) = match placement.kind_id.as_str() {
-            conduit_ai::GENERATE_TEXT_KIND
-            | conduit_ai::LLM_GENERATE_KIND
-            | conduit_ai::LLM_GENERATE_FLOW_KIND => {
+            conduit_ai::LLM_GENERATE_KIND | conduit_ai::LLM_GENERATE_FLOW_KIND => {
                 match self.generate(input, maximum_tokens, false) {
                     Ok(generated) => (
                         generated.response.into_bytes(),
@@ -609,13 +618,8 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
         if payload.is_empty() || payload.len() as u64 > maximum_output_bytes {
             return LocalModelAdapterTerminal::Failed;
         }
-        if matches!(
-            placement.kind_id.as_str(),
-            conduit_ai::GENERATE_TEXT_KIND | conduit_ai::LLM_PRESENT_KIND
-        ) {
-            if placement.kind_id.as_str() == conduit_ai::LLM_PRESENT_KIND {
-                self.next_request_sequence = self.next_request_sequence.saturating_add(1);
-            }
+        if matches!(placement.kind_id.as_str(), conduit_ai::LLM_PRESENT_KIND) {
+            self.next_request_sequence = self.next_request_sequence.saturating_add(1);
             output.extend_from_slice(&payload);
             return if truncated {
                 LocalModelAdapterTerminal::Truncated
@@ -695,7 +699,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             .unwrap_or(1)
             .clamp(1, 512);
         super::ollama_stream::generate(
-            OLLAMA_ENDPOINT,
+            &self.endpoint,
             REQUEST_TIMEOUT_SECONDS,
             &self.model_name,
             input,
@@ -729,7 +733,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                 .unwrap_or(1)
                 .clamp(1, 512);
             match super::ollama_stream::Session::spawn(
-                OLLAMA_ENDPOINT,
+                &self.endpoint,
                 REQUEST_TIMEOUT_SECONDS,
                 &self.model_name,
                 input,
@@ -781,8 +785,12 @@ fn model_names_match(candidate: &str, requested: &str) -> bool {
     candidate == requested || candidate.strip_suffix(":latest") == Some(requested)
 }
 
-pub(super) fn curl_json(path: &str, body: Option<&[u8]>) -> Result<Vec<u8>, String> {
-    let url = format!("{OLLAMA_ENDPOINT}{path}");
+pub(super) fn curl_json(
+    endpoint: &str,
+    path: &str,
+    body: Option<&[u8]>,
+) -> Result<Vec<u8>, String> {
+    let url = format!("{endpoint}{path}");
     let mut command = Command::new("curl");
     command.args([
         "--silent",
@@ -798,6 +806,22 @@ pub(super) fn curl_json(path: &str, body: Option<&[u8]>) -> Result<Vec<u8>, Stri
     }
     command.arg(url);
     bounded_child(command, body, MAXIMUM_INVENTORY_BYTES)
+}
+
+fn validate_endpoint(endpoint: &str) -> Result<(), String> {
+    let Some(authority) = endpoint.strip_prefix("http://") else {
+        return Err("Ollama endpoint must use explicit http:// loopback transport".into());
+    };
+    let host = authority
+        .rsplit_once(':')
+        .map_or(authority, |(host, _)| host);
+    if !matches!(host, "127.0.0.1" | "localhost" | "[::1]")
+        || authority.contains('/')
+        || endpoint.ends_with(':')
+    {
+        return Err("Ollama endpoint must name one exact loopback origin without a path".into());
+    }
+    Ok(())
 }
 
 fn bounded_command(program: &str, args: &[&str], maximum: usize) -> Result<String, String> {

@@ -2,7 +2,7 @@
 
 use conduit_core::{semantic_digest, InfoDecodeError};
 
-use crate::BODY_SECTOR_MASK;
+use crate::{BeaconKind, BeaconKindCode, BODY_SECTOR_MASK};
 
 pub const ROBOTICS_PROXIMITY_INFO_ID: &str = "robotics/proximity-body-sectors@1";
 pub const ROBOTICS_BEACON_INFO_ID: &str = "robotics/beacon-observation@1";
@@ -50,11 +50,10 @@ impl ProximityObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum BeaconKind {
-    VirtualWall = 0,
-    InfraredCode = 1,
+impl BeaconKind {
+    pub const fn wire_tag(self) -> u8 {
+        BeaconKindCode::encode(self)[0]
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -74,16 +73,13 @@ impl BeaconObservation {
     }
 
     pub const fn encode(self) -> [u8; ROBOTICS_BEACON_ENCODED_LEN] {
-        [self.kind as u8, self.code]
+        [self.kind.wire_tag(), self.code]
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_BEACON_ENCODED_LEN)?;
-        let kind = match encoded[0] {
-            0 => BeaconKind::VirtualWall,
-            1 => BeaconKind::InfraredCode,
-            other => return Err(InfoDecodeError::NonCanonicalEnum(other)),
-        };
+        let kind = BeaconKindCode::decode(&encoded[0..1])
+            .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[0]))?;
         Self::new(kind, encoded[1])
     }
 

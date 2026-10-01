@@ -6,11 +6,11 @@
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
-use crate::SpeechRecognitionContract;
+use crate::{SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionContract};
 
 pub const SPEECH_COMMIT_KIND: &str = "speech/commit-generated-text";
 pub const SPEECH_COMMIT_REVISION: &str = "conduit.speech/commit-generated-text@1";
@@ -21,11 +21,31 @@ pub const MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES: usize = 2_048;
 pub const MAXIMUM_COMMITTED_SEGMENTS: usize = 32;
 pub const SPEECH_COMMIT_QUEUE_BYTES: u32 = 32 * 1024;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SpeechCommitReason {
-    TonguesBoundary,
-    FinalFlush,
+// The semantic type owns the meaning; this adapter preserves the established
+// JSON representation used at the Tongues boundary.
+impl Serialize for SpeechCommitReason {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(match self {
+            Self::TonguesBoundary => "tongues-boundary",
+            Self::FinalFlush => "final-flush",
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for SpeechCommitReason {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match String::deserialize(deserializer)?.as_str() {
+            "tongues-boundary" => Ok(Self::TonguesBoundary),
+            "final-flush" => Ok(Self::FinalFlush),
+            _ => Err(serde::de::Error::custom("unknown speech commit reason")),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -75,16 +95,6 @@ pub struct SpeechCommitEvidence {
     pub maximum_inter_segment_gap_milliseconds: Option<u32>,
     pub pcm_extent_bytes: u64,
     pub cancelled: bool,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpeechCommitRefusal {
-    EmptyStreamIdentity,
-    EmptyDelta,
-    PendingBoundExceeded,
-    SegmentBoundExceeded,
-    SegmentQueueFull,
-    AlreadyClosed,
 }
 
 #[derive(Clone, Debug)]
@@ -230,6 +240,7 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 

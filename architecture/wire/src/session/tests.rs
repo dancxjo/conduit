@@ -78,6 +78,7 @@ fn binding() -> SessionBinding {
                 maximum_frame_bytes: MAXIMUM_FRAME_BYTES,
             },
         },
+        abnormal_kind: None,
     }
 }
 
@@ -111,12 +112,15 @@ fn planned_connection(expected: &SessionBinding, base: BaseImplementationId) -> 
         sink_placement_id: PlacementId::from("test/sink-placement"),
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
+        resource: None,
+        track: Default::default(),
         temporal: conduit_core::PortTemporal::Value,
         pressure_policy: Default::default(),
         selected_line: Some(line.clone()),
         admitted_lines: vec![line],
         item_capacity: 1,
         byte_capacity: MAXIMUM_PAYLOAD_BYTES,
+        abnormal_kind: None,
     }
 }
 
@@ -283,6 +287,88 @@ fn lifecycle_is_exact_bounded_and_terminal() {
     machine.admit_inbound(terminal).unwrap();
     assert!(machine.is_terminal());
     assert_eq!(machine.admit_inbound(terminal), Err(WireError::LateFrame));
+}
+
+#[test]
+fn typed_abnormal_terminal_is_distinct_bounded_session_truth() {
+    let mut declared_binding = binding();
+    declared_binding.abnormal_kind = Some(KindId::from(conduit_core::TEXT_INFO_ID));
+    let mut source = SessionMachine::new(declared_binding.clone(), SessionRole::Source).unwrap();
+    trigger(&mut source);
+    let abnormal = declared_binding.frame(SessionMessage::InputAbnormal {
+        final_sequence: 0,
+        terminal: b"fault-7",
+    });
+    source.admit_outbound(abnormal).unwrap();
+    assert!(source.checkpoint().input_closed);
+    assert!(source.checkpoint().input_abnormal);
+    assert_eq!(
+        source.checkpoint().abnormal_terminal_digest,
+        Some(conduit_core::semantic_digest(
+            conduit_core::TEXT_INFO_ID,
+            b"fault-7"
+        ))
+    );
+
+    let mut encoded = [0_u8; MAXIMUM_FRAME_BYTES as usize];
+    let length = encode_session_frame_into(
+        abnormal,
+        &mut encoded,
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .unwrap();
+    let decoded = decode_session_frame(
+        &encoded[..length],
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .unwrap();
+    assert_eq!(
+        decoded.identity.abnormal_kind,
+        Some(conduit_core::TEXT_INFO_ID)
+    );
+    assert_eq!(decoded.message, abnormal.message);
+
+    let undeclared_binding = binding();
+    let mut undeclared =
+        SessionMachine::new(undeclared_binding.clone(), SessionRole::Source).unwrap();
+    trigger(&mut undeclared);
+    let undeclared_abnormal = undeclared_binding.frame(SessionMessage::InputAbnormal {
+        final_sequence: 0,
+        terminal: b"fault-7",
+    });
+    assert_eq!(
+        undeclared.admit_outbound(undeclared_abnormal),
+        Err(WireError::ValueContractMismatch)
+    );
+
+    let mut unvalidated_domain_binding = binding();
+    unvalidated_domain_binding.abnormal_kind = Some(KindId::from("test/terminal-fault"));
+    let mut unvalidated_domain =
+        SessionMachine::new(unvalidated_domain_binding.clone(), SessionRole::Source).unwrap();
+    trigger(&mut unvalidated_domain);
+    assert_eq!(
+        unvalidated_domain.admit_outbound(unvalidated_domain_binding.frame(
+            SessionMessage::InputAbnormal {
+                final_sequence: 0,
+                terminal: b"raw",
+            },
+        )),
+        Err(WireError::ValueContractMismatch)
+    );
+
+    let mut count_binding = binding();
+    count_binding.abnormal_kind = Some(KindId::from(conduit_core::COUNT_INFO_ID));
+    let mut count = SessionMachine::new(count_binding.clone(), SessionRole::Source).unwrap();
+    trigger(&mut count);
+    assert_eq!(
+        count.admit_outbound(count_binding.frame(SessionMessage::InputAbnormal {
+            final_sequence: 0,
+            terminal: &[1],
+        })),
+        Err(WireError::ValueContractMismatch)
+    );
 }
 
 #[test]

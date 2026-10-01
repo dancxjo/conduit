@@ -106,6 +106,7 @@ fn exact_plan(hosts: &[HostAdvertisement], label: &str) -> Plan {
             execution_fusions: vec![],
             states: Vec::new(),
             connections: vec![],
+            fore_ports: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],
             startup_order: vec![],
@@ -312,12 +313,15 @@ fn remote_session_claim_and_disclosure_keep_exact_truth() {
         sink_placement_id: PlacementId::from("placement/browser"),
         sink_port_id: PortId::from("in"),
         value_kind: KindId::from("text/utf8"),
+        resource: None,
+        track: Default::default(),
         temporal: PortTemporal::Flow { closes: true },
         pressure_policy: Default::default(),
         selected_line: Some(admitted.clone()),
         admitted_lines: vec![admitted],
         item_capacity: 1,
         byte_capacity: 128,
+        abnormal_kind: None,
     };
     let session = SessionBinding::from_planned_connection(
         conduit_core::PlanId::from("plan/host-fences"),

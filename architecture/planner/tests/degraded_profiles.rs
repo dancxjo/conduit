@@ -12,7 +12,7 @@ use common::{generic_policy_facts as facts, quantity, resource_observations as o
 
 fn profile() -> ReviewedServiceProfile {
     ReviewedServiceProfile {
-        profile_id: "ai/generate-text/survival@1".into(),
+        profile_id: "llm/generate/survival@1".into(),
         hard_requirements: HardRealizationRequirements {
             predicates: vec![PlannerPredicate::Equal {
                 fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
@@ -26,8 +26,8 @@ fn profile() -> ReviewedServiceProfile {
         degradable_dimensions: vec![DegradedDimension {
             characteristic_id: CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
             human_name: "maximum context".into(),
-            full_value: quantity(32_768, CharacteristicUnit::Tokens),
-            weakest_permitted_value: quantity(8_192, CharacteristicUnit::Tokens),
+            full_value: quantity(32, CharacteristicUnit::Items),
+            weakest_permitted_value: quantity(8, CharacteristicUnit::Items),
             direction: DegradationDirection::HigherIsStronger,
         }],
     }
@@ -37,7 +37,7 @@ fn policy() -> SurvivalPolicy {
     SurvivalPolicy {
         policy_id: "policy/voyager/context-survival".into(),
         revision: 1,
-        permitted_profile_id: "ai/generate-text/survival@1".into(),
+        permitted_profile_id: "llm/generate/survival@1".into(),
         permitted_dimensions: vec![CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC)],
         degradation_allowed: true,
     }
@@ -98,11 +98,11 @@ fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
     );
     assert_eq!(
         degraded.dimensions[0].requested_value,
-        quantity(32_768, CharacteristicUnit::Tokens)
+        quantity(32, CharacteristicUnit::Items)
     );
     assert_eq!(
         degraded.dimensions[0].admitted_value,
-        quantity(8_192, CharacteristicUnit::Tokens)
+        quantity(8, CharacteristicUnit::Items)
     );
     assert!(!degraded.observation_signs.is_empty());
     let plan_b = seal_reviewed_service_profile_plan(
@@ -239,7 +239,7 @@ fn semantic_units_evidence_and_absent_weaker_profiles_never_launder() {
     );
     let mut no_fit = profile();
     no_fit.degradable_dimensions[0].weakest_permitted_value =
-        quantity(9_000, CharacteristicUnit::Tokens);
+        quantity(9, CharacteristicUnit::Items);
     assert_eq!(
         select_reviewed_service_profile(
             &form.gears[0],

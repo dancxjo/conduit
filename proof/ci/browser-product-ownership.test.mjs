@@ -8,6 +8,34 @@ test("browser Host has no Tour or Creche product source", () => {
   assert.ok(existsSync("products/patchbay/html/assets/patchbay.application.template.json"));
 });
 
+test("browser WebRTC realization is owned by the browser Host", () => {
+  const names = [
+    "body-webrtc-session.mjs",
+    "body-webrtc-sessions.mjs",
+    "webrtc-datachannel-line.mjs",
+    "webrtc-session-runtime.mjs",
+  ];
+  for (const name of names) {
+    assert.ok(existsSync(`targets/browser/host/assets/${name}`), `browser Host is missing ${name}`);
+    assert.ok(!existsSync(`products/patchbay/html/assets/${name}`), `Patchbay still owns ${name}`);
+  }
+  const descriptor = JSON.parse(
+    readFileSync("products/patchbay/html/assets/patchbay.application.template.json", "utf8"),
+  );
+  for (const role of ["body-webrtc-sessions", "body-webrtc-session", "webrtc-line", "webrtc-runtime"]) {
+    const resource = descriptor.resources.find((candidate) => candidate.role === role);
+    assert.match(resource.source, /^targets\/browser\/host\/assets\//);
+  }
+});
+
+test("generic browser membership is owned by the browser Host", () => {
+  const source = readFileSync("targets/browser/host/assets/browser-membership.js", "utf8");
+  assert.match(source, /export async function joinBrowserBody/);
+  assert.match(source, /\.\/body-webrtc-sessions\.mjs/);
+  assert.doesNotMatch(source, /Patchbay/);
+  assert.equal(existsSync("products/patchbay/html/assets/browser-membership.js"), false);
+});
+
 test("Crèche compatibility entrance cannot run parallel product state", () => {
   const source = readFileSync("products/creche/browser/creche.mjs", "utf8");
   assert.match(source, /location\.replace\(workspace\.href\)/);
@@ -19,15 +47,21 @@ test("Crèche compatibility entrance cannot run parallel product state", () => {
   assert.deepEqual(application.dependencies, []);
 });
 
-for (const product of ["tour", "creche", "workspace"]) {
+for (const product of ["creche", "workspace"]) {
   test(`${product} package dependencies name real source owners`, () => {
     const root = resolve(`products/${product}/browser`);
     const descriptor = JSON.parse(readFileSync(`${root}/${product}.application.template.json`, "utf8"));
+    const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
     assert.equal(descriptor.application_id, `conduit.application/${product}`);
     for (const resource of descriptor.resources) {
-      if (!existsSync(resolve(root, resource.path)) || resource.kind !== "module") continue;
+      const source = resource.source ? resolve(resource.source) : resolve(root, resource.path);
+      if (!existsSync(source) || resource.kind !== "module") continue;
       for (const dependency of resource.dependencies) {
-        assert.ok(existsSync(resolve(root, dependency.specifier)), `${resource.role}: missing source owner ${dependency.specifier}`);
+        const dependencyResource = resources.get(dependency.role);
+        const dependencySource = dependencyResource?.source
+          ? resolve(dependencyResource.source)
+          : resolve(root, dependency.specifier);
+        assert.ok(existsSync(dependencySource), `${resource.role}: missing source owner ${dependency.specifier}`);
       }
     }
   });
@@ -39,7 +73,7 @@ test("target source moves preserve declared browser resource URLs and relative d
   const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
   const entry = descriptor.resources.find((resource) => resource.path === "creche-installed-targets.mjs");
   const packageRoot = new URL("https://conduit.invalid/creche/");
-  let adapters = 0;
+  const adapters = [];
   for (const dependency of entry.dependencies.filter((dependency) => dependency.role.endsWith("-adapter"))) {
     const source = resolve(root, dependency.specifier);
     assert.ok(existsSync(source), `target source owner is absent: ${dependency.specifier}`);
@@ -56,7 +90,16 @@ test("target source moves preserve declared browser resource URLs and relative d
       assert.ok(new URL(match[1], resourceUrl).href.startsWith(new URL("artifacts/", packageRoot).href),
         `target artifact URL escaped its package artifacts: ${match[1]}`);
     }
-    adapters += 1;
+    adapters.push(dependency.role.replace(/-adapter$/, ""));
   }
-  assert.ok(adapters > 0, "Crèche must consume declared target adapters");
+  assert.deepEqual(adapters, [
+    "avr",
+    "rp2040",
+    "esp32",
+    "std",
+    "browser",
+    "orange-pi",
+    "raspberry-pi",
+    "conduitos",
+  ]);
 });

@@ -32,6 +32,9 @@ pub struct SessionMachine {
     transfer: Option<TransferState>,
     next_sequence: u64,
     input_closed: bool,
+    input_abnormal: bool,
+    abnormal_terminal_digest: Option<[u8; 32]>,
+    replay_input_terminal: bool,
     local_failure: Option<SessionFailureState>,
     peer_failure: Option<SessionFailureState>,
     local_terminal: Option<SessionTerminalDisposition>,
@@ -51,6 +54,9 @@ impl SessionMachine {
             transfer: None,
             next_sequence: 0,
             input_closed: false,
+            input_abnormal: false,
+            abnormal_terminal_digest: None,
+            replay_input_terminal: false,
             local_failure: None,
             peer_failure: None,
             local_terminal: None,
@@ -92,6 +98,8 @@ impl SessionMachine {
                 }
             },
             input_closed: self.input_closed,
+            input_abnormal: self.input_abnormal,
+            abnormal_terminal_digest: self.abnormal_terminal_digest,
         }
     }
 
@@ -134,6 +142,12 @@ impl SessionMachine {
             SessionResumeAction::AdvanceDelivered(sequence) => {
                 self.next_sequence = sequence.checked_add(1).ok_or(WireError::InvalidState)?;
                 self.transfer = None;
+            }
+            SessionResumeAction::ReplayInputTerminal => {
+                self.replay_input_terminal = true;
+            }
+            SessionResumeAction::AwaitInputTerminal => {
+                self.replay_input_terminal = false;
             }
         }
         self.binding = binding;
@@ -229,6 +243,16 @@ impl SessionMachine {
             }
             SessionMessage::InputClosed { final_sequence } => {
                 self.require_active()?;
+                if self.source_direction(direction) && self.replay_input_terminal {
+                    if self.input_closed
+                        && !self.input_abnormal
+                        && final_sequence == self.next_sequence
+                    {
+                        self.replay_input_terminal = false;
+                        return Ok(());
+                    }
+                    return Err(WireError::ValueContractMismatch);
+                }
                 if self.input_closed && final_sequence == self.next_sequence {
                     return Err(WireError::DuplicateFrame);
                 }
@@ -240,6 +264,55 @@ impl SessionMachine {
                     return Err(WireError::ReorderedFrame);
                 }
                 self.input_closed = true;
+                self.input_abnormal = false;
+                self.abnormal_terminal_digest = None;
+                Ok(())
+            }
+            SessionMessage::InputAbnormal {
+                final_sequence,
+                terminal,
+            } => {
+                self.require_active()?;
+                let Some(abnormal_kind) = self.binding.abnormal_kind.as_ref() else {
+                    return Err(WireError::ValueContractMismatch);
+                };
+                if terminal.len()
+                    > usize::try_from(self.binding.limits.maximum_payload_bytes)
+                        .map_err(|_| WireError::InvalidLimits)?
+                {
+                    return Err(WireError::OversizedPayload);
+                }
+                if conduit_core::primitive_info_kind(abnormal_kind.as_str()).is_none() {
+                    return Err(WireError::ValueContractMismatch);
+                }
+                conduit_core::validate_primitive_info(abnormal_kind.as_str(), terminal)
+                    .map_err(|_| WireError::ValueContractMismatch)?;
+                let terminal_digest =
+                    conduit_core::semantic_digest(abnormal_kind.as_str(), terminal);
+                if self.source_direction(direction) && self.replay_input_terminal {
+                    if self.input_closed
+                        && self.input_abnormal
+                        && final_sequence == self.next_sequence
+                        && self.abnormal_terminal_digest == Some(terminal_digest)
+                    {
+                        self.replay_input_terminal = false;
+                        return Ok(());
+                    }
+                    return Err(WireError::ValueContractMismatch);
+                }
+                if self.input_closed && final_sequence == self.next_sequence {
+                    return Err(WireError::DuplicateFrame);
+                }
+                if !self.source_direction(direction)
+                    || self.input_closed
+                    || self.transfer.is_some()
+                    || final_sequence != self.next_sequence
+                {
+                    return Err(WireError::ReorderedFrame);
+                }
+                self.input_closed = true;
+                self.input_abnormal = true;
+                self.abnormal_terminal_digest = Some(terminal_digest);
                 Ok(())
             }
             SessionMessage::Cancelled { code } => {

@@ -23,6 +23,17 @@ use conduit_wire::SessionMessage;
 
 mod vision;
 
+fn semantic_data_refusal(detail: u16) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Denied,
+        output: None,
+        failure: Some(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::HostCallDenied,
+            detail,
+        }),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RemoteValueTransfer {
     pub endpoint: RemoteEndpointId,
@@ -62,6 +73,7 @@ pub struct InstalledRemoteFragment {
     vision_clock_basis: String,
     pending_body_context: Option<HostCallRequest>,
     delivered_body_context: Option<[u8; 32]>,
+    data_text_hosts: super::data_text_host::DataTextGenerationHosts,
 }
 
 impl InstalledRemoteFragment {
@@ -119,8 +131,13 @@ impl InstalledRemoteFragment {
             &fragment.boot_id,
             play_sequence,
         );
+        let data_text_hosts = super::data_text_host::DataTextGenerationHosts::prepare(
+            fragment,
+            &lowered.identity,
+            &play,
+        )?;
         let drivers =
-            preparation::prepare_operations(fragment, &lowered, &mut values, &play, None)?;
+            preparation::prepare_operations(fragment, &lowered, &mut values, &play, None, None)?;
         let tables = KernelTables::prepare(&[&lowered])?;
         let sign_bytes = u32::from(sign_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
@@ -184,6 +201,7 @@ impl InstalledRemoteFragment {
             vision_clock_basis,
             pending_body_context: None,
             delivered_body_context: None,
+            data_text_hosts,
         })
     }
 
@@ -256,6 +274,51 @@ impl InstalledRemoteFragment {
             if self.pending_body_context.replace(request).is_some() {
                 return Err("remote body context has two pending requests".into());
             }
+            return Ok(true);
+        }
+        if matches!(
+            contract,
+            conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL
+                | conduit_std_offers::DATA_LOAD_TEXT_HOST_CALL
+        ) {
+            let operation = if contract == conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL {
+                super::data_text_back::DataTextOperation::Save
+            } else {
+                super::data_text_back::DataTextOperation::Load
+            };
+            let completion = self.data_text_hosts.execute(request.node, operation, input);
+            let outcome = match completion {
+                super::data_text_host::DataTextCompletion::Output(encoded) => {
+                    let value = self
+                        .scheduler
+                        .store_host_value(encoded)
+                        .map_err(|error| format!("store remote data Text output: {error:?}"))?;
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
+                        output: Some(BoundedValueRef::new(value, maximum_output_bytes).map_err(
+                            |error| format!("bound remote data Text output: {error:?}"),
+                        )?),
+                        failure: None,
+                    }
+                }
+                super::data_text_host::DataTextCompletion::SaveTerminal(terminal) => {
+                    semantic_data_refusal(u16::from(terminal.encode()[0]))
+                }
+                super::data_text_host::DataTextCompletion::LoadTerminal(terminal) => {
+                    semantic_data_refusal(u16::from(terminal.encode()[0]))
+                }
+                super::data_text_host::DataTextCompletion::Failed(detail) => HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
+                    output: None,
+                    failure: Some(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::HostCallFailed,
+                        detail,
+                    }),
+                },
+            };
+            self.scheduler
+                .complete_host_call(request.node, request.request, outcome)
+                .map_err(|error| format!("complete remote data Text operation: {error:?}"))?;
             return Ok(true);
         }
         if matches!(
@@ -472,7 +535,6 @@ impl InstalledRemoteFragment {
         mut local_model: Option<
             &mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static),
         >,
-        speech_synthesis: Option<&mut crate::hosted_speech::PiperSpeechAdapter>,
         cancelled: F,
     ) -> Result<bool, String>
     where
@@ -516,10 +578,7 @@ impl InstalledRemoteFragment {
                 }
                 Err(failure) => super::whisper_speech_back::failure_outcome(failure),
             }
-        } else if matches!(
-            contract,
-            conduit_ai::GENERATE_TEXT_HOST_CALL | conduit_ai::LOCAL_MODEL_OPERATION
-        ) {
+        } else if contract == conduit_ai::LOCAL_MODEL_OPERATION {
             let placement = self
                 .placements
                 .get(usize::from(request.node.0))
@@ -563,44 +622,6 @@ impl InstalledRemoteFragment {
                 None
             };
             completion.outcome(output)
-        } else if contract == conduit_std_offers::PIPER_SPEECH_OPERATION {
-            let streaming = self
-                .placements
-                .get(usize::from(request.node.0))
-                .is_some_and(|placement| {
-                    placement.implementation_id.as_str()
-                        == conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
-                });
-            match super::speech_synthesis_back::execute_piper_cancellable(
-                speech_synthesis,
-                input,
-                streaming,
-                cancelled,
-            ) {
-                Ok(block) => {
-                    let output = block
-                        .map(|block| self.scheduler.store_host_value(block))
-                        .transpose()
-                        .map_err(|error| format!("store remote Piper block: {error:?}"))?
-                        .map(|value| BoundedValueRef::new(value, maximum_output_bytes))
-                        .transpose()
-                        .map_err(|error| format!("bound remote Piper block: {error:?}"))?;
-                    HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output,
-                        failure: None,
-                    }
-                }
-                Err(error) => {
-                    let (disposition, failure) =
-                        super::speech_synthesis_back::piper_failure_outcome(error);
-                    HostCallOutcome {
-                        disposition,
-                        output: None,
-                        failure: Some(failure),
-                    }
-                }
-            }
         } else {
             return Ok(false);
         };
@@ -663,16 +684,63 @@ impl InstalledRemoteFragment {
             .map_err(|error| format!("admit remote std value: {error:?}"))
     }
     pub fn close_ingress(&mut self, endpoint: RemoteEndpointId) -> Result<(), String> {
+        self.close_ingress_with_disposition(
+            endpoint,
+            conduit_kernel::RemoteTerminalDisposition::NormalClose,
+        )
+    }
+    pub fn close_ingress_with_disposition(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        disposition: conduit_kernel::RemoteTerminalDisposition,
+    ) -> Result<(), String> {
         let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Ingress)?;
         self.scheduler
-            .close_remote_input(endpoint, cord)
+            .close_remote_input_with_disposition(endpoint, cord, disposition)
             .map_err(|error| format!("close remote std input: {error:?}"))
     }
+    pub fn close_ingress_abnormal(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        terminal: &[u8],
+    ) -> Result<(), String> {
+        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Ingress)?;
+        let session = self
+            .sessions
+            .get(endpoint)
+            .ok_or_else(|| "unknown remote std ingress session".to_string())?;
+        validate_remote_abnormal(
+            session.binding().abnormal_kind.as_ref(),
+            session.binding().limits.maximum_payload_bytes,
+            terminal,
+        )?;
+        let terminal = conduit_kernel::CanonicalValue::new(terminal)
+            .map_err(|error| format!("bound remote std abnormal terminal: {error:?}"))?;
+        self.scheduler
+            .close_remote_input_abnormal(endpoint, cord, terminal)
+            .map_err(|error| format!("close remote std input abnormally: {error:?}"))
+    }
     pub fn egress_terminal(&mut self, endpoint: RemoteEndpointId) -> Result<bool, String> {
+        Ok(self.egress_terminal_disposition(endpoint)?.is_some())
+    }
+    pub fn egress_terminal_disposition(
+        &mut self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<conduit_kernel::RemoteTerminalDisposition>, String> {
         let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
         self.scheduler
-            .remote_egress_terminal(endpoint, cord)
+            .remote_egress_terminal_disposition(endpoint, cord)
             .map_err(|error| format!("complete remote std output: {error:?}"))
+    }
+    pub fn egress_abnormal_terminal(
+        &self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<Vec<u8>>, String> {
+        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
+        self.scheduler
+            .remote_egress_abnormal_terminal(endpoint, cord)
+            .map(|terminal| terminal.map(|value| value.as_slice().to_vec()))
+            .map_err(|error| format!("read remote std abnormal terminal: {error:?}"))
     }
     pub fn cancel(&mut self) -> Result<(), String> {
         self.pending_body_context = None;
@@ -724,6 +792,28 @@ impl InstalledRemoteFragment {
     }
 }
 
+fn validate_remote_abnormal(
+    abnormal_kind: Option<&conduit_core::KindId>,
+    maximum_payload_bytes: u32,
+    terminal: &[u8],
+) -> Result<(), String> {
+    let abnormal_kind = abnormal_kind
+        .ok_or_else(|| "remote std ingress has no abnormal terminal kind".to_string())?;
+    if conduit_core::primitive_info_kind(abnormal_kind.as_str()).is_none() {
+        return Err(
+            "remote std abnormal terminal kind has no installed exact validator".to_string(),
+        );
+    }
+    if terminal.len()
+        > usize::try_from(maximum_payload_bytes)
+            .map_err(|_| "remote std abnormal terminal bound is not addressable".to_string())?
+    {
+        return Err("remote std abnormal terminal exceeds its planned bound".into());
+    }
+    conduit_core::validate_primitive_info(abnormal_kind.as_str(), terminal)
+        .map_err(|_| "remote std abnormal terminal does not inhabit its planned kind".to_string())
+}
+
 fn exact_cord(
     lowered: &LoweredPlanFragment,
     cord: CordId,
@@ -772,4 +862,20 @@ fn remote_sign_capacity(lowered: &LoweredPlanFragment) -> Result<u16, String> {
                 .checked_add(events)
                 .ok_or_else(|| "remote lifecycle Sign capacity overflow".to_string())
         })
+}
+
+#[cfg(test)]
+mod terminal_tests {
+    use super::*;
+
+    #[test]
+    fn remote_abnormal_truth_must_inhabit_the_exact_planned_kind_and_bound() {
+        let unit = conduit_core::kind_id(conduit_core::UNIT_INFO_ID);
+        assert_eq!(validate_remote_abnormal(Some(&unit), 1, &[]), Ok(()));
+        assert!(validate_remote_abnormal(Some(&unit), 1, &[0]).is_err());
+        assert!(validate_remote_abnormal(Some(&unit), 0, &[0]).is_err());
+        assert!(validate_remote_abnormal(None, 1, &[]).is_err());
+        let domain = conduit_core::kind_id("domain/specific/fault");
+        assert!(validate_remote_abnormal(Some(&domain), 8, b"bounded but untyped").is_err());
+    }
 }

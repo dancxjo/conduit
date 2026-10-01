@@ -2,15 +2,15 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use conduit_host_browser_fabrication::{
-    BrowserFabricationPackage, BROWSER_CAPABILITY_INTENTS, BROWSER_IMPLEMENTATIONS,
+use conduit_host_browser_make::{
+    BrowserMakePackage, BROWSER_CAPABILITY_INTENTS, BROWSER_IMPLEMENTATIONS,
     REVIEWED_DISTRIBUTION_ID, REVIEWED_RUNTIME_ARTIFACT,
 };
-use conduit_host_fabrication::{
+use conduit_host_make::{
     canonical_host_configuration_conduit, check_host_configuration, resolve_host_capability_intent,
-    CapabilityIntent, ConfigurationBase, ConfigurationTarget, FabricationCatalog,
-    FabricationContribution, FabricationPackageSet, HostCapabilityIntent, HostCapabilityReview,
-    HostConfiguration, HostFabricationPackage,
+    CapabilityIntent, ConfigurationBase, ConfigurationTarget, HostCapabilityIntent,
+    HostCapabilityReview, HostConfiguration, HostMakePackage, MakeCatalog, MakeContribution,
+    MakePackageSet,
 };
 use serde::{Deserialize, Serialize};
 
@@ -127,10 +127,10 @@ fn review_capability_intent(
             selection.catalog_generation, CATALOG_GENERATION
         ));
     }
-    let package = BrowserFabricationPackage;
-    let packages = FabricationPackageSet::compose(&[&package])
-        .map_err(|error| format!("compose browser fabrication package: {error:?}"))?;
-    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let package = BrowserMakePackage;
+    let packages = MakePackageSet::compose(&[&package])
+        .map_err(|error| format!("compose browser make package: {error:?}"))?;
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
     let capability_review = resolve_host_capability_intent(
         &HostCapabilityIntent {
             target: super::spore_target::BROWSER_PAGE_TARGET_ID.into(),
@@ -178,7 +178,7 @@ pub(super) struct BrowserConfigurationReview {
     pub(super) canonical_source: String,
     pub(super) configuration_id: String,
     pub(super) profile_id: String,
-    limits: conduit_host_fabrication::HostBounds,
+    limits: conduit_host_make::HostBounds,
     output: &'static str,
     join_mode: &'static str,
     does_not_create: [&'static str; 7],
@@ -232,8 +232,8 @@ pub(super) fn review(
 ) -> Result<
     (
         BrowserConfigurationReview,
-        conduit_host_fabrication::CheckedHostConfiguration,
-        FabricationPackageSet,
+        conduit_host_make::CheckedHostConfiguration,
+        MakePackageSet,
     ),
     String,
 > {
@@ -264,14 +264,14 @@ pub(super) fn review(
     for implementations in by_kind.values_mut() {
         implementations.sort();
     }
-    let package = BrowserFabricationPackage;
-    let FabricationContribution::Anchor(anchor) = package.contribution() else {
-        return Err("browser fabrication package is not an anchor".into());
+    let package = BrowserMakePackage;
+    let MakeContribution::Anchor(anchor) = package.contribution() else {
+        return Err("browser make package is not an anchor".into());
     };
     let target = anchor
         .targets
         .first()
-        .ok_or_else(|| "browser fabrication package omitted its page target".to_string())?;
+        .ok_or_else(|| "browser make package omitted its page target".to_string())?;
     let configuration = HostConfiguration {
         schema: 1,
         name: CONFIGURATION_NAME.into(),
@@ -280,7 +280,7 @@ pub(super) fn review(
             machine: target.machine.clone(),
             board: target.board.clone(),
             os: target.os.clone(),
-            fabrication_descriptor: None,
+            make_descriptor: None,
         },
         bases: by_kind
             .iter()
@@ -295,17 +295,16 @@ pub(super) fn review(
     };
     let canonical_source = canonical_host_configuration_conduit(&configuration)
         .map_err(|error| format!("encode canonical browser Host configuration: {error:?}"))?;
-    let packages = FabricationPackageSet::compose(&[&package])
-        .map_err(|error| format!("compose browser fabrication package: {error:?}"))?;
-    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let packages = MakePackageSet::compose(&[&package])
+        .map_err(|error| format!("compose browser make package: {error:?}"))?;
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
     let checked = check_host_configuration(configuration, &catalog, &packages)
         .map_err(|errors| format!("IncompatibleSelection: {errors:?}"))?;
-    let profile_id =
-        conduit_host_fabrication::validate_profile(checked.profile().clone(), &catalog)
-            .map_err(|errors| format!("IncompatibleSelection: {errors:?}"))?
-            .profile_id()
-            .as_str()
-            .to_owned();
+    let profile_id = conduit_host_make::validate_profile(checked.profile().clone(), &catalog)
+        .map_err(|errors| format!("IncompatibleSelection: {errors:?}"))?
+        .profile_id()
+        .as_str()
+        .to_owned();
     let review = BrowserConfigurationReview {
         schema: "conduit.creche/checked-browser-configuration@1",
         catalog_generation: CATALOG_GENERATION,

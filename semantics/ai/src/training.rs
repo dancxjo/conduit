@@ -4,7 +4,10 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{PlannedStateBoundary, StateContinuation};
 use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
-use crate::{ModelArtifact, MutableModelState, RandomnessProfile};
+use crate::{
+    BatchOrder, CheckpointPolicy, EvaluationPolicy, ModelArtifact, MutableModelState,
+    ObjectiveParticipation, RandomnessProfile, TrainStepFailure, TrainingRefusal,
+};
 
 #[path = "training_request.rs"]
 mod request;
@@ -27,12 +30,6 @@ pub const MAXIMUM_BATCH_EXAMPLES: usize = 4096;
 pub const MAXIMUM_BATCH_MODALITIES: usize = 32;
 pub const MAXIMUM_METRICS: usize = 64;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ObjectiveParticipation {
-    Optimize,
-    ObserveOnly,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingObjective {
     pub role: String,
@@ -47,12 +44,6 @@ pub struct TrainingObjective {
 pub enum MissingModalityPolicy {
     Reject,
     PermitDeclared { optional_modalities: Vec<String> },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BatchOrder {
-    Stable,
-    Shuffled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,20 +69,6 @@ pub struct TrainingResourceEnvelope {
     pub maximum_work_units: u64,
     pub maximum_checkpoint_bytes: u64,
     pub maximum_in_flight_steps: u16,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CheckpointPolicy {
-    None,
-    EverySteps(u64),
-    AtCompletion,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum EvaluationPolicy {
-    None,
-    EverySteps(u64),
-    AtCompletion,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -156,46 +133,10 @@ pub struct HostStepCandidate {
     pub consumed_work_units: u64,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TrainStepFailure {
-    Cancelled,
-    ResourceExhausted,
-    ProviderLost,
-    Failed,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HostStepTerminal {
     Candidate(HostStepCandidate),
     NoCommit(TrainStepFailure),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TrainingRefusal {
-    InvalidIdentity,
-    InvalidArtifact,
-    InvalidSession,
-    InvalidObjective,
-    TooManyObjectives,
-    NoOptimizationObjective,
-    InvalidResourceEnvelope,
-    InvalidPolicy,
-    InvalidSplit,
-    InvalidBatch,
-    BatchBoundExceeded,
-    MissingRequiredModality,
-    UnexpectedSeed,
-    StepBoundExceeded,
-    StaleState,
-    InvalidCandidate,
-    WorkBoundExceeded,
-    InvalidMetric,
-    DuplicateMetric,
-    InvalidRealization,
-    CheckpointBoundExceeded,
-    CheckpointNotScheduled,
-    EvaluationNotScheduled,
-    InvalidLifecycleTransition,
 }
 
 impl TrainingSession {
@@ -257,9 +198,6 @@ impl TrainingSession {
         {
             return Err(TrainingRefusal::InvalidSession);
         }
-        if let RandomnessProfile::ProviderChosen { nonce, .. } = &self.randomness {
-            text(nonce)?;
-        }
         validate_interval_policy(self.checkpoint_policy)?;
         validate_evaluation_policy(self.evaluation_policy)?;
         match &self.missing_modality_policy {
@@ -302,7 +240,8 @@ impl TrainingSession {
             state_id: state.model.state_identity.clone().into(),
             gear_id: "ai/train-step".into(),
             value_kind: "ai/training-state@1".into(),
-            initial_value,
+            initial_value: Some(initial_value),
+            lifetime: conduit_core::StateLifetime::Play,
             retained: None,
             maximum_value_bytes: maximum_state_bytes,
             continuation: StateContinuation::MaximumTransitions(self.resources.maximum_steps),

@@ -1,0 +1,73 @@
+# Authoritative portable human-experience meaning. Rust consumes generated bindings.
+
+type KeyTransition =
+    pressed
+    | released
+
+code human/key-transition = KeyTransition as u8
+
+type ChordPhase =
+    triggered
+
+code human/chord-phase = ChordPhase as u8 from 2
+
+type CoreChordId =
+    cancel_or_escape
+    | clear_or_refresh
+    | repeat_or_replan
+    | palette
+    | inspect
+    | plan
+    | command
+    | activate
+
+code human/core-chord-id = CoreChordId as u8 from 1
+
+type ExperienceDomain =
+    visual
+    | auditory
+    | location
+    | body_state
+    | human_utterance
+    | recollection
+
+type ExperienceOrigin =
+    observation
+    | human_reported
+    | remembered
+    | model_derived
+    | imagined
+
+type ExperienceTemporalRole =
+    current
+    | recent
+    | stale
+    | historical
+
+type ExperienceAvailability =
+    present
+    | not_observed
+    | source_unavailable
+
+type ExperienceCertainty =
+    certain
+    | uncertain
+
+type ExperienceRelationKind =
+    relates
+    | contradicts
+
+type SourceAvailability =
+    present
+    | missing
+    | unavailable
+
+type VisualEvidenceClass =
+    deterministic_derived
+    | statistical_candidate
+    | model_derived
+
+type VisualExperienceRelationKind =
+    relates
+    | supports
+    | contradicts

@@ -61,6 +61,7 @@ fn binding(base: BaseImplementationId) -> SessionBinding {
                 maximum_frame_bytes: 1024,
             },
         },
+        abnormal_kind: None,
     }
 }
 

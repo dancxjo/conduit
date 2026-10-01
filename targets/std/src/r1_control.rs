@@ -156,10 +156,8 @@ impl R1ControlKernel {
         let input = self.pending[usize::from(merged.value.slot)].take()?;
         Some(R1MergedInput {
             input,
-            signal: Signal {
-                sequence: merged.sequence,
-                level: input.level,
-            },
+            signal: Signal::new(input.level, merged.sequence)
+                .expect("merged Signal fields are always valid"),
         })
     }
 
@@ -226,7 +224,7 @@ fn merge_and_record(
             "peer_sequence": merged.input.peer_sequence,
             "input": if merged.input.level { "keydown" } else { "keyup" },
             "requested_level": merged.input.level,
-            "merged_sequence": merged.signal.sequence,
+            "merged_sequence": merged.signal.sequence(),
             "physical_led_result": null,
         })
     );
@@ -283,8 +281,8 @@ mod tests {
         }
         for sequence in 0..6 {
             let merged = kernel.pop().unwrap();
-            assert_eq!(merged.signal.sequence, sequence);
-            assert_eq!(merged.signal.level, sequence.is_multiple_of(2));
+            assert_eq!(*merged.signal.sequence(), sequence);
+            assert_eq!(*merged.signal.level(), sequence.is_multiple_of(2));
         }
         assert_eq!(kernel.pending(), 0);
     }

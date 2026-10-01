@@ -35,14 +35,14 @@ pub(crate) struct BrowserInstallation {
     pub perform: Option<BrowserHostCall>,
 }
 
-pub(crate) const AUDIO_FABRICATION_ID: &str = "browser/audio-cue@1";
-pub(crate) const PRESENTATION_FABRICATION_ID: &str = "browser/dom-presentation@1";
-pub(crate) const KEYBOARD_FABRICATION_ID: &str = "browser/keyboard-events@1";
-pub(crate) const POINTER_FABRICATION_ID: &str = "browser/pointer-events@1";
+pub(crate) const AUDIO_MAKE_ID: &str = "browser/audio-cue@1";
+pub(crate) const PRESENTATION_MAKE_ID: &str = "browser/dom-presentation@1";
+pub(crate) const KEYBOARD_MAKE_ID: &str = "browser/keyboard-events@1";
+pub(crate) const POINTER_MAKE_ID: &str = "browser/pointer-events@1";
 
 /// The finite human-facing machinery admitted into one browser IMAGE.
 ///
-/// This is deliberately expressed in fabrication identities. The Web API
+/// This is deliberately expressed in make identities. The Web API
 /// surface is merely how the host realizes these selections after Boot.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct BrowserMachinery {
@@ -65,23 +65,23 @@ impl BrowserMachinery {
         let has = |identity| selected.contains(&identity);
         for identity in selected {
             if ![
-                PRESENTATION_FABRICATION_ID,
-                KEYBOARD_FABRICATION_ID,
-                POINTER_FABRICATION_ID,
-                AUDIO_FABRICATION_ID,
+                PRESENTATION_MAKE_ID,
+                KEYBOARD_MAKE_ID,
+                POINTER_MAKE_ID,
+                AUDIO_MAKE_ID,
             ]
             .contains(identity)
             {
                 return Err(format!(
-                    "unknown browser human-facing fabrication identity {identity}"
+                    "unknown browser human-facing make identity {identity}"
                 ));
             }
         }
         Ok(Self {
-            presentation: has(PRESENTATION_FABRICATION_ID),
-            keyboard: has(KEYBOARD_FABRICATION_ID),
-            pointer: has(POINTER_FABRICATION_ID),
-            audio: has(AUDIO_FABRICATION_ID),
+            presentation: has(PRESENTATION_MAKE_ID),
+            keyboard: has(KEYBOARD_MAKE_ID),
+            pointer: has(POINTER_MAKE_ID),
+            audio: has(AUDIO_MAKE_ID),
         })
     }
 
@@ -114,12 +114,12 @@ impl BrowserMachinery {
         true
     }
 
-    pub(crate) fn selected_fabrication_ids(self) -> Vec<&'static str> {
+    pub(crate) fn selected_make_ids(self) -> Vec<&'static str> {
         [
-            (self.presentation, PRESENTATION_FABRICATION_ID),
-            (self.keyboard, KEYBOARD_FABRICATION_ID),
-            (self.pointer, POINTER_FABRICATION_ID),
-            (self.audio, AUDIO_FABRICATION_ID),
+            (self.presentation, PRESENTATION_MAKE_ID),
+            (self.keyboard, KEYBOARD_MAKE_ID),
+            (self.pointer, POINTER_MAKE_ID),
+            (self.audio, AUDIO_MAKE_ID),
         ]
         .into_iter()
         .filter_map(|(selected, identity)| selected.then_some(identity))
@@ -129,13 +129,13 @@ impl BrowserMachinery {
 
 pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     BrowserMachinery::from_selected(&[
-        PRESENTATION_FABRICATION_ID,
-        KEYBOARD_FABRICATION_ID,
-        POINTER_FABRICATION_ID,
-        AUDIO_FABRICATION_ID,
+        PRESENTATION_MAKE_ID,
+        KEYBOARD_MAKE_ID,
+        POINTER_MAKE_ID,
+        AUDIO_MAKE_ID,
     ])
     .expect("ordinary browser profile contains reviewed machinery")
-    .selected_fabrication_ids()
+    .selected_make_ids()
 }
 
 /// Exact installed capabilities supported by the local form/Body executor.
@@ -157,6 +157,18 @@ pub(crate) fn factory(
 ) -> Option<&'static BrowserInstallation> {
     if implementation_id.as_str() == super::structured_selector::IMPLEMENTATION {
         return Some(&super::structured_selector::INSTALLATION);
+    }
+    if implementation_id.as_str() == super::pure_expression::IMPLEMENTATION {
+        return Some(&super::pure_expression::INSTALLATION);
+    }
+    if implementation_id.as_str() == super::pure_expression::FILTER_IMPLEMENTATION {
+        return Some(&super::pure_expression::FILTER_INSTALLATION);
+    }
+    if implementation_id.as_str() == super::time_window::IMPLEMENTATION {
+        return Some(&super::time_window::INSTALLATION);
+    }
+    if implementation_id.as_str() == super::time_sample::IMPLEMENTATION {
+        return Some(&super::time_sample::INSTALLATION);
     }
     if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
         return Some(resource);
@@ -362,7 +374,7 @@ mod profile_tests {
     use super::*;
 
     #[test]
-    fn selected_fabrication_ids_gate_real_planning_offers_and_resources() {
+    fn selected_make_ids_gate_real_planning_offers_and_resources() {
         let viewer = advertisement_for_machinery(
             HostId::from("browser/viewer"),
             BootId::from("browser/viewer-boot"),
@@ -386,9 +398,9 @@ mod profile_tests {
             HostId::from("browser/control"),
             BootId::from("browser/control-boot"),
             BrowserMachinery::from_selected(&[
-                PRESENTATION_FABRICATION_ID,
-                KEYBOARD_FABRICATION_ID,
-                POINTER_FABRICATION_ID,
+                PRESENTATION_MAKE_ID,
+                KEYBOARD_MAKE_ID,
+                POINTER_MAKE_ID,
             ])
             .unwrap(),
         );
@@ -403,12 +415,12 @@ mod profile_tests {
     }
 
     #[test]
-    fn fabrication_metadata_matches_installed_offer_identities() {
+    fn make_metadata_matches_installed_offer_identities() {
         let advertised = advertisement(
             HostId::from("browser/metadata-test"),
             BootId::from("browser/metadata-test-boot"),
         );
-        for binding in conduit_host_browser_fabrication::BROWSER_HUMAN_PRESENTATION_REALIZATIONS {
+        for binding in conduit_host_browser_make::BROWSER_HUMAN_PRESENTATION_REALIZATIONS {
             let Some(installation) = INSTALLATIONS
                 .iter()
                 .find(|entry| entry.implementation_id == binding.runtime_implementation_id)
@@ -469,7 +481,7 @@ mod profile_tests {
                     operation.contract_id.as_str() == binding.host_call
                         && operation.maximum_in_flight == binding.maximum_in_flight
                 }),
-                "fabrication operation binding drifted for {}: expected {}",
+                "make operation binding drifted for {}: expected {}",
                 binding.runtime_implementation_id,
                 binding.host_call
             );

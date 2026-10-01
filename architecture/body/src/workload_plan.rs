@@ -21,19 +21,19 @@ pub struct BodyPlan {
     pub workload_revision: u64,
     pub workset: BodyWorkset,
     pub forms: Vec<BodyFormPlan>,
-    /// Exact Presenter realizations selected independently of authored forms.
+    /// Exact Mask Form realizations selected independently of authored forms.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub presenter_topologies: Vec<BodyPresenterTopology>,
+    pub mask_topologies: Vec<BodyMaskTopology>,
 }
 
-pub const MAX_BODY_PRESENTER_TOPOLOGIES: usize = 16;
-pub const MAX_BODY_PRESENTER_CHAINS: usize = 8;
-pub const MAX_BODY_PRESENTER_STAGES: usize = 8;
+pub const MAX_BODY_MASK_TOPOLOGIES: usize = 16;
+pub const MAX_BODY_MASK_CHAINS: usize = 8;
+pub const MAX_BODY_MASK_STAGES: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct BodyPresentationSelector {
-    /// The exact resident Form when the Presentation is form-scoped. `None`
-    /// selects the body-scoped Presentation without inventing a source Form.
+pub struct BodyFaceSelector {
+    /// The exact resident Form when the Face is form-scoped. `None` selects
+    /// the body-scoped Face without inventing a source Form.
     pub form: Option<ResidentForm>,
     pub source_placement_id: PlacementId,
 }
@@ -41,15 +41,15 @@ pub struct BodyPresentationSelector {
 /// One independently admitted linear chain. `plan` is an ordinary immutable
 /// Plan over reviewed realization Forms; `stage_placement_ids` fixes its path.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BodyPresenterChainPlan {
+pub struct BodyMaskChainPlan {
     pub plan: Plan,
     pub stage_placement_ids: Vec<PlacementId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BodyPresenterTopology {
-    pub presentation: BodyPresentationSelector,
-    pub chains: Vec<BodyPresenterChainPlan>,
+pub struct BodyMaskTopology {
+    pub face: BodyFaceSelector,
+    pub chains: Vec<BodyMaskChainPlan>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -73,21 +73,21 @@ pub enum BodyPlanError {
     WrongWake,
     StaleWorkload,
     InvalidIdentity,
-    PresenterTopologyCapacityExceeded,
-    PresenterChainCapacityExceeded,
-    InvalidPresenterChain,
-    DuplicatePresenterTopology,
+    MaskTopologyCapacityExceeded,
+    MaskChainCapacityExceeded,
+    InvalidMaskChain,
+    DuplicateMaskTopology,
 }
 
 impl BodyPlan {
     pub fn seal(wake: &Wake, forms: Vec<BodyFormPlan>) -> Result<Self, BodyPlanError> {
-        Self::seal_with_presenters(wake, forms, Vec::new())
+        Self::seal_with_masks(wake, forms, Vec::new())
     }
 
-    pub fn seal_with_presenters(
+    pub fn seal_with_masks(
         wake: &Wake,
         mut forms: Vec<BodyFormPlan>,
-        mut presenter_topologies: Vec<BodyPresenterTopology>,
+        mut mask_topologies: Vec<BodyMaskTopology>,
     ) -> Result<Self, BodyPlanError> {
         wake.workset
             .validate()
@@ -120,14 +120,14 @@ impl BodyPlan {
         }) {
             return Err(BodyPlanError::MissingForm);
         }
-        validate_presenter_topologies(wake, &presenter_topologies)?;
-        presenter_topologies.sort_by(|left, right| left.presentation.cmp(&right.presentation));
+        validate_mask_topologies(&wake.workset, &mask_topologies)?;
+        mask_topologies.sort_by(|left, right| left.face.cmp(&right.face));
         let plan_id = bind_body_plan(
             &wake.body_id,
             &wake.wake_id,
             wake.workload_revision,
             &forms,
-            &presenter_topologies,
+            &mask_topologies,
         );
         Ok(Self {
             plan_id,
@@ -136,7 +136,7 @@ impl BodyPlan {
             workload_revision: wake.workload_revision,
             workset: wake.workset.clone(),
             forms,
-            presenter_topologies,
+            mask_topologies,
         })
     }
 
@@ -150,12 +150,63 @@ impl BodyPlan {
         if self.workload_revision != wake.workload_revision || self.workset != wake.workset {
             return Err(BodyPlanError::StaleWorkload);
         }
-        let resealed = Self::seal_with_presenters(
-            wake,
-            self.forms.clone(),
-            self.presenter_topologies.clone(),
-        )?;
+        let resealed =
+            Self::seal_with_masks(wake, self.forms.clone(), self.mask_topologies.clone())?;
         if resealed.plan_id != self.plan_id {
+            return Err(BodyPlanError::InvalidIdentity);
+        }
+        Ok(())
+    }
+
+    /// Revalidate the immutable body-wide seal without relying on ambient Wake
+    /// state. Runtime consumers use this before trusting nested Form Plans.
+    pub fn verify_seal(&self) -> Result<(), BodyPlanError> {
+        self.workset
+            .validate()
+            .map_err(|_| BodyPlanError::InvalidIdentity)?;
+        if self.workset.is_empty() {
+            return Err(BodyPlanError::EmptyWorkset);
+        }
+        if self.forms.len() > MAX_BODY_FORMS {
+            return Err(BodyPlanError::FormCapacityExceeded);
+        }
+        if self
+            .forms
+            .windows(2)
+            .any(|pair| pair[0].form >= pair[1].form)
+        {
+            return Err(BodyPlanError::DuplicateForm);
+        }
+        for partition in &self.forms {
+            if !self.workset.contains(&partition.form)
+                || !verify_plan(&partition.plan)
+                || partition.plan.source_document_id != partition.form.source_document_id
+                || partition.plan.checked_form_id != partition.form.checked_form_id
+            {
+                return Err(BodyPlanError::InvalidPlan);
+            }
+        }
+        if self.workset.forms().iter().any(|form| {
+            self.forms
+                .binary_search_by(|value| value.form.cmp(form))
+                .is_err()
+        }) {
+            return Err(BodyPlanError::MissingForm);
+        }
+        validate_mask_topologies(&self.workset, &self.mask_topologies)?;
+        if self
+            .mask_topologies
+            .windows(2)
+            .any(|pair| pair[0].face >= pair[1].face)
+            || self.plan_id
+                != bind_body_plan(
+                    &self.body_id,
+                    &self.wake_id,
+                    self.workload_revision,
+                    &self.forms,
+                    &self.mask_topologies,
+                )
+        {
             return Err(BodyPlanError::InvalidIdentity);
         }
         Ok(())
@@ -197,10 +248,10 @@ fn bind_body_plan(
     wake_id: &WakeId,
     workload_revision: u64,
     forms: &[BodyFormPlan],
-    presenter_topologies: &[BodyPresenterTopology],
+    mask_topologies: &[BodyMaskTopology],
 ) -> PlanId {
     let mut bytes = Vec::new();
-    push(&mut bytes, "conduit.body/body-plan@1");
+    push(&mut bytes, "conduit.body/body-plan@2");
     push(&mut bytes, body_id.as_str());
     push(&mut bytes, wake_id.as_str());
     bytes.extend_from_slice(&workload_revision.to_le_bytes());
@@ -210,19 +261,16 @@ fn bind_body_plan(
         push(&mut bytes, form.form.checked_form_id.as_str());
         push(&mut bytes, form.plan.plan_id.as_str());
     }
-    bytes.extend_from_slice(&(presenter_topologies.len() as u32).to_le_bytes());
-    for topology in presenter_topologies {
-        if let Some(form) = &topology.presentation.form {
+    bytes.extend_from_slice(&(mask_topologies.len() as u32).to_le_bytes());
+    for topology in mask_topologies {
+        if let Some(form) = &topology.face.form {
             push(&mut bytes, "form");
             push(&mut bytes, form.source_document_id.as_str());
             push(&mut bytes, form.checked_form_id.as_str());
         } else {
             push(&mut bytes, "body");
         }
-        push(
-            &mut bytes,
-            topology.presentation.source_placement_id.as_str(),
-        );
+        push(&mut bytes, topology.face.source_placement_id.as_str());
         bytes.extend_from_slice(&(topology.chains.len() as u32).to_le_bytes());
         for chain in &topology.chains {
             push(&mut bytes, chain.plan.plan_id.as_str());
@@ -235,41 +283,37 @@ fn bind_body_plan(
     PlanId::from(digest_id("body-plan", &bytes))
 }
 
-fn validate_presenter_topologies(
-    wake: &Wake,
-    topologies: &[BodyPresenterTopology],
+fn validate_mask_topologies(
+    workset: &BodyWorkset,
+    topologies: &[BodyMaskTopology],
 ) -> Result<(), BodyPlanError> {
-    if topologies.len() > MAX_BODY_PRESENTER_TOPOLOGIES {
-        return Err(BodyPlanError::PresenterTopologyCapacityExceeded);
+    if topologies.len() > MAX_BODY_MASK_TOPOLOGIES {
+        return Err(BodyPlanError::MaskTopologyCapacityExceeded);
     }
     for (index, topology) in topologies.iter().enumerate() {
         if topology
-            .presentation
+            .face
             .form
             .as_ref()
-            .is_some_and(|form| !wake.workset.contains(form))
-            || topology
-                .presentation
-                .source_placement_id
-                .as_str()
-                .is_empty()
+            .is_some_and(|form| !workset.contains(form))
+            || topology.face.source_placement_id.as_str().is_empty()
             || topology.chains.is_empty()
-            || topology.chains.len() > MAX_BODY_PRESENTER_CHAINS
+            || topology.chains.len() > MAX_BODY_MASK_CHAINS
         {
-            return Err(BodyPlanError::InvalidPresenterChain);
+            return Err(BodyPlanError::InvalidMaskChain);
         }
         if topologies[index + 1..]
             .iter()
-            .any(|other| other.presentation == topology.presentation)
+            .any(|other| other.face == topology.face)
         {
-            return Err(BodyPlanError::DuplicatePresenterTopology);
+            return Err(BodyPlanError::DuplicateMaskTopology);
         }
         for chain in &topology.chains {
             if !verify_plan(&chain.plan)
                 || chain.stage_placement_ids.is_empty()
-                || chain.stage_placement_ids.len() > MAX_BODY_PRESENTER_STAGES
+                || chain.stage_placement_ids.len() > MAX_BODY_MASK_STAGES
             {
-                return Err(BodyPlanError::InvalidPresenterChain);
+                return Err(BodyPlanError::InvalidMaskChain);
             }
             let placements = chain
                 .plan
@@ -285,7 +329,7 @@ fn validate_presenter_topologies(
                         .count()
                         != 1
                 {
-                    return Err(BodyPlanError::InvalidPresenterChain);
+                    return Err(BodyPlanError::InvalidMaskChain);
                 }
                 if let Some(next_id) = chain.stage_placement_ids.get(stage_index + 1) {
                     let connected = chain
@@ -298,7 +342,7 @@ fn validate_presenter_topologies(
                                 && &cord.sink_placement_id == next_id
                         });
                     if !connected {
-                        return Err(BodyPlanError::InvalidPresenterChain);
+                        return Err(BodyPlanError::InvalidMaskChain);
                     }
                 }
             }

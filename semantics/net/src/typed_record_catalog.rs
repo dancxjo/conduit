@@ -89,6 +89,7 @@ fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(crate::TEXT_INFO_ID),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -129,6 +130,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

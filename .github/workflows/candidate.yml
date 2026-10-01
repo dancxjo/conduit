@@ -3,6 +3,7 @@ name: candidate
 on:
   pull_request:
     branches: [dev]
+    types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
   actions: read
@@ -48,10 +49,10 @@ jobs:
           proof/ci/product-truth.spec.mjs
           proof/ci/release-lane-controller.spec.mjs
           proof/ci/release-request.spec.mjs
-          proof/ci/tour-compatibility.test.mjs
 
   check:
     needs: admission
+    if: github.event.pull_request.draft == false
     uses: ./.github/workflows/check.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
@@ -60,7 +61,8 @@ jobs:
 
   products:
     needs: admission
-    uses: ./.github/workflows/tour-products.yml
+    if: github.event.pull_request.draft == false
+    uses: ./.github/workflows/product-carrier.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
       candidate_sha: ${{ github.event.pull_request.head.sha }}
@@ -71,12 +73,18 @@ jobs:
     if: always() && !cancelled()
     runs-on: ubuntu-24.04
     steps:
-      - name: Admit only a candidate whose affected integration passed
+      - name: Admit drafts cheaply and merge-ready candidates completely
         env:
+          DRAFT: ${{ github.event.pull_request.draft }}
           ADMISSION_RESULT: ${{ needs.admission.result }}
           CHECK_RESULT: ${{ needs.check.result }}
           PRODUCTS_RESULT: ${{ needs.products.result }}
         run: |
           test "$ADMISSION_RESULT" = success
+          if test "$DRAFT" = true; then
+            test "$CHECK_RESULT" = skipped
+            test "$PRODUCTS_RESULT" = skipped
+            exit 0
+          fi
           test "$CHECK_RESULT" = success
           test "$PRODUCTS_RESULT" = success

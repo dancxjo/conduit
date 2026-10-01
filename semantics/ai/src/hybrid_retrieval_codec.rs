@@ -7,10 +7,10 @@ use crate::{
         decode_transport_chunk, encode_transport_chunk, Cursor, SourceExtractionCodecRefusal,
     },
     ExtractedSourceValue, HybridCandidate, HybridRetrievalOutcome, MechanismScore,
-    RetrievalContribution, RetrievalMechanism, RetrievalStage, RetrieverIdentity, StageCandidate,
-    MAXIMUM_HYBRID_BATCH_BYTES, MAXIMUM_HYBRID_CANDIDATES_PER_STAGE,
-    MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_HYBRID_RETRIEVERS, MAXIMUM_HYBRID_WORK_UNITS,
-    MAXIMUM_RAG_IDENTITY_BYTES,
+    RetrievalContribution, RetrievalMechanism, RetrievalMechanismCode, RetrievalStage,
+    RetrieverIdentity, StageCandidate, MAXIMUM_HYBRID_BATCH_BYTES,
+    MAXIMUM_HYBRID_CANDIDATES_PER_STAGE, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
+    MAXIMUM_HYBRID_RETRIEVERS, MAXIMUM_HYBRID_WORK_UNITS, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 const STAGE_VERSION: u8 = 1;
@@ -277,24 +277,11 @@ fn decode_score(
 }
 
 const fn mechanism_tag(mechanism: RetrievalMechanism) -> u8 {
-    match mechanism {
-        RetrievalMechanism::VectorSimilarity => 0,
-        RetrievalMechanism::Lexical => 1,
-        RetrievalMechanism::Metadata => 2,
-        RetrievalMechanism::Temporal => 3,
-        RetrievalMechanism::DomainExact => 4,
-    }
+    RetrievalMechanismCode::encode(mechanism)[0]
 }
 
 fn decode_mechanism(tag: u8) -> Result<RetrievalMechanism, HybridRetrievalCodecRefusal> {
-    match tag {
-        0 => Ok(RetrievalMechanism::VectorSimilarity),
-        1 => Ok(RetrievalMechanism::Lexical),
-        2 => Ok(RetrievalMechanism::Metadata),
-        3 => Ok(RetrievalMechanism::Temporal),
-        4 => Ok(RetrievalMechanism::DomainExact),
-        _ => Err(HybridRetrievalCodecRefusal::Malformed),
-    }
+    RetrievalMechanismCode::decode(&[tag]).map_err(|_| HybridRetrievalCodecRefusal::Malformed)
 }
 
 fn push_optional_identity(

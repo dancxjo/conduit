@@ -58,6 +58,9 @@ pub fn render_linear_presentation(
     for relationship in &presentation.relationships {
         builder.push(linear_relationship(relationship))?;
     }
+    for relation in &presentation.composition {
+        builder.push(crate::linear_composition(relation))?;
+    }
     for property in &presentation.properties {
         builder.push(linear_property(property))?;
     }
@@ -66,9 +69,6 @@ pub fn render_linear_presentation(
     }
     for action in &presentation.actions {
         builder.push(linear_action(action))?;
-    }
-    for input in &presentation.inputs {
-        builder.push(crate::linear_input(input))?;
     }
     for disclosure in &presentation.disclosures {
         builder.push(linear_disclosure(disclosure))?;
@@ -135,13 +135,24 @@ pub(crate) fn push_linear_basis(
     for sign_id in &basis.sign_ids {
         builder.push(format!("SIGN id={}", sign_id.as_str()))?;
     }
+    builder.push(format!(
+        "INTERACTION_CONTEXT id={:?} basis_count={}",
+        presentation.interaction_context.identity,
+        presentation.interaction_context.basis.len()
+    ))?;
+    for statement in &presentation.interaction_context.basis {
+        builder.push(format!(
+            "CONTEXT_BASIS relationship={:?} source={:?} target={:?}",
+            statement.relationship, statement.source, statement.target
+        ))?;
+    }
     Ok(())
 }
 
 pub(crate) fn linear_subject(subject: &crate::PresentationSubject) -> String {
     format!(
-        "SUBJECT role={:?} id={:?} label={:?} accessibility={:?}",
-        subject.role, subject.identity, subject.label, subject.accessibility_name
+        "SUBJECT role={:?} id={:?} name={:?}",
+        subject.role, subject.identity, subject.name
     )
 }
 
@@ -167,11 +178,12 @@ pub(crate) fn linear_text(text: &crate::PresentationText) -> String {
 
 pub(crate) fn linear_action(action: &crate::PresentationAction) -> String {
     format!(
-        "ACTION id={:?} intent={:?} target={:?} label={:?} disclosure={:?} availability={}",
+        "ACTION id={:?} intent={:?} target={:?} name={:?} arguments={:?} disclosure={:?} availability={}",
         action.identity,
         action.intent,
         action.target,
-        action.label,
+        action.name,
+        action.arguments,
         action.disclosure,
         display_availability(&action.availability)
     )
@@ -274,6 +286,20 @@ fn display_property(value: &PresentationPropertyValue) -> String {
         PresentationPropertyValue::Count(value) => format!("count:{value}"),
         PresentationPropertyValue::Signed(value) => format!("signed:{value}"),
         PresentationPropertyValue::Flag(value) => format!("flag:{value}"),
+        PresentationPropertyValue::Content(encoded) => {
+            let content = conduit_core::BoundedResourceRef::validate_encoded(encoded)
+                .expect("validated Presentation content remains canonical");
+            format!(
+                "content:profile={:?},class={:?},bytes={},items={:?}",
+                content.content_profile,
+                content.access_class,
+                content.extent.bytes,
+                content.extent.items
+            )
+        }
+        PresentationPropertyValue::ValueContract(contract) => {
+            format!("value-contract:{contract:?}")
+        }
     }
 }
 

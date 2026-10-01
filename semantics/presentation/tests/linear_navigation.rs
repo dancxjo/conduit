@@ -54,7 +54,8 @@ fn fixture() -> (
             identity: "action/inspect-upper".into(),
             intent: "conduit.intent/inspect@1".into(),
             target: "gear/upper".into(),
-            label: "Inspect Uppercase".into(),
+            name: "Inspect Uppercase".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::SelectedDetail,
             availability: PresentationActionAvailability::Unavailable {
                 reason_code: "authority/not-admitted".into(),
@@ -70,7 +71,7 @@ fn fixture() -> (
             NavigationPlace {
                 place: PresentationPlace::Program,
                 root_subject: "program".into(),
-                label: "Program".into(),
+                name: "Program".into(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Plan,
                     focusable_subjects: vec!["program".into(), "gear/upper".into()],
@@ -79,7 +80,7 @@ fn fixture() -> (
             NavigationPlace {
                 place: PresentationPlace::Body,
                 root_subject: "body".into(),
-                label: "Body".into(),
+                name: "Body".into(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Plan,
                     focusable_subjects: vec!["body".into(), "host/local".into()],
@@ -240,8 +241,7 @@ fn subject(identity: &str, role: PresentationRole) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role,
-        label: identity.into(),
-        accessibility_name: identity.into(),
+        name: identity.into(),
     }
 }
 

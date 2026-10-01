@@ -4,6 +4,7 @@
 //! semantics, selection, effects, or a provider-specific object model.
 
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
@@ -14,7 +15,9 @@ pub use borrowed::*;
 mod inspection;
 mod profile;
 mod selection;
+mod sequence;
 mod transport;
+mod tuple;
 mod validation;
 use canonical::{
     check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
@@ -23,7 +26,9 @@ use canonical::{
 pub use inspection::*;
 pub use profile::*;
 pub use selection::*;
+pub use sequence::*;
 pub use transport::*;
+pub use tuple::*;
 pub use validation::PreparedStructuredValueValidator;
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 8;
@@ -44,6 +49,7 @@ pub enum StructuredInfoRefusal {
     NameTooLong,
     DuplicateName,
     EmptyShape,
+    InvalidCollectionBounds,
     UnboundedCollection,
     CollectionTooLarge,
     TooManyFields,
@@ -71,13 +77,19 @@ pub struct StructuredInfoType(StructuredInfoTypeNode);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StructuredInfoTypeShape<'a> {
     Leaf(&'a KindId),
+    /// Nominal semantic identity over one exact finite representation.
+    Nominal {
+        schema: &'a KindId,
+        representation: &'a StructuredInfoType,
+    },
     Collection {
         element: &'a StructuredInfoType,
         length: u16,
     },
     Sequence {
         element: &'a StructuredInfoType,
-        capacity: u16,
+        minimum_items: u16,
+        maximum_items: u16,
     },
     Record {
         schema: &'a KindId,
@@ -92,13 +104,18 @@ pub enum StructuredInfoTypeShape<'a> {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum StructuredInfoTypeNode {
     Leaf(KindId),
+    Nominal {
+        schema: KindId,
+        representation: alloc::boxed::Box<StructuredInfoType>,
+    },
     Collection {
         element: alloc::boxed::Box<StructuredInfoType>,
         length: u16,
     },
     Sequence {
         element: alloc::boxed::Box<StructuredInfoType>,
-        capacity: u16,
+        minimum_items: u16,
+        maximum_items: u16,
     },
     Record {
         schema: KindId,
@@ -164,18 +181,28 @@ impl StructuredInfoType {
     pub fn shape(&self) -> StructuredInfoTypeShape<'_> {
         match &self.0 {
             StructuredInfoTypeNode::Leaf(kind) => StructuredInfoTypeShape::Leaf(kind),
+            StructuredInfoTypeNode::Nominal {
+                schema,
+                representation,
+            } => StructuredInfoTypeShape::Nominal {
+                schema,
+                representation,
+            },
             StructuredInfoTypeNode::Collection { element, length } => {
                 StructuredInfoTypeShape::Collection {
                     element,
                     length: *length,
                 }
             }
-            StructuredInfoTypeNode::Sequence { element, capacity } => {
-                StructuredInfoTypeShape::Sequence {
-                    element,
-                    capacity: *capacity,
-                }
-            }
+            StructuredInfoTypeNode::Sequence {
+                element,
+                minimum_items,
+                maximum_items,
+            } => StructuredInfoTypeShape::Sequence {
+                element,
+                minimum_items: *minimum_items,
+                maximum_items: *maximum_items,
+            },
             StructuredInfoTypeNode::Record { schema, fields } => {
                 StructuredInfoTypeShape::Record { schema, fields }
             }
@@ -188,6 +215,20 @@ impl StructuredInfoType {
     pub fn leaf(kind: KindId) -> Result<Self, StructuredInfoRefusal> {
         validate_name(kind.as_str())?;
         Ok(Self(StructuredInfoTypeNode::Leaf(kind)))
+    }
+
+    /// Gives one exact representation a distinct authored semantic identity.
+    pub fn nominal(
+        schema: KindId,
+        representation: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        validate_name(schema.as_str())?;
+        let value = Self(StructuredInfoTypeNode::Nominal {
+            schema,
+            representation: alloc::boxed::Box::new(representation),
+        });
+        value.validate_limits()?;
+        Ok(value)
     }
 
     /// An absent length is explicitly unbounded and therefore refused.
@@ -210,17 +251,30 @@ impl StructuredInfoType {
     /// A finite variable-length sequence whose actual length is carried by each value.
     pub fn sequence(
         element: StructuredInfoType,
-        capacity: u16,
+        maximum_items: u16,
     ) -> Result<Self, StructuredInfoRefusal> {
-        if capacity == 0 {
+        Self::bounded_sequence(element, 0, maximum_items)
+    }
+
+    /// A finite variable-length sequence with exact cardinality bounds.
+    pub fn bounded_sequence(
+        element: StructuredInfoType,
+        minimum_items: u16,
+        maximum_items: u16,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        if maximum_items == 0 {
             return Err(StructuredInfoRefusal::EmptyShape);
         }
-        if usize::from(capacity) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
+        if minimum_items > maximum_items {
+            return Err(StructuredInfoRefusal::InvalidCollectionBounds);
+        }
+        if usize::from(maximum_items) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
             return Err(StructuredInfoRefusal::CollectionTooLarge);
         }
         let value = Self(StructuredInfoTypeNode::Sequence {
             element: alloc::boxed::Box::new(element),
-            capacity,
+            minimum_items,
+            maximum_items,
         });
         value.validate_limits()?;
         Ok(value)
@@ -268,6 +322,18 @@ impl StructuredInfoType {
         check_encoding_size(encoded)
     }
 
+    pub fn from_canonical_bytes(encoded: &[u8]) -> Result<Self, StructuredInfoRefusal> {
+        if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        let (value_type, remaining) = decode_type(encoded)?;
+        if remaining.is_empty() {
+            Ok(value_type)
+        } else {
+            Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+        }
+    }
+
     /// Validates one canonical value node against this exact type without allocating.
     pub fn validate_canonical_node(&self, encoded: &[u8]) -> Result<(), StructuredInfoRefusal> {
         if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
@@ -293,6 +359,115 @@ impl StructuredInfoType {
             return Err(StructuredInfoRefusal::TooManyNodes);
         }
         self.canonical_bytes().map(|_| ())
+    }
+}
+
+/// Canonical finite meaning of Conduitese `T?`: exactly `none | some(T)`.
+/// The selected case is carried by the ordinary structured-variant encoding;
+/// absence is never an empty byte string or an ambient null sentinel.
+pub fn optional_info_type(
+    value_type: StructuredInfoType,
+) -> Result<StructuredInfoType, StructuredInfoRefusal> {
+    StructuredInfoType::variant(
+        crate::kind_id("conduit.conduitese.optional.v1"),
+        vec![
+            StructuredVariantCase::new(
+                "none",
+                StructuredInfoType::leaf(crate::kind_id(crate::UNIT_INFO_ID))?,
+            )?,
+            StructuredVariantCase::new("some", value_type)?,
+        ],
+    )
+}
+
+/// Prepared, allocation-stable encoder for the canonical optional variant.
+/// Hosted profiles prepare its full finite buffer before Play.
+pub struct PreparedOptionalInfoEncoder {
+    value_type: StructuredInfoType,
+    value_type_prefix: Vec<u8>,
+    none: Vec<u8>,
+    some_prefix: Vec<u8>,
+    output: Vec<u8>,
+}
+
+impl PreparedOptionalInfoEncoder {
+    pub fn new(value_type: StructuredInfoType) -> Result<Self, StructuredInfoRefusal> {
+        let optional = optional_info_type(value_type.clone())?;
+        let none = StructuredInfoValue::variant(
+            optional.clone(),
+            "none",
+            StructuredInfoValue::leaf(
+                StructuredInfoType::leaf(crate::kind_id(crate::UNIT_INFO_ID))?,
+                Vec::new(),
+            )?,
+        )?
+        .canonical_bytes()?;
+        let mut some_prefix = optional.canonical_bytes()?;
+        some_prefix.push(3);
+        some_prefix.extend_from_slice(&4_u32.to_le_bytes());
+        some_prefix.extend_from_slice(b"some");
+        if some_prefix.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        Ok(Self {
+            value_type_prefix: value_type.canonical_bytes()?,
+            value_type,
+            none,
+            some_prefix,
+            output: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+        })
+    }
+
+    pub fn encode(&mut self, payload: Option<&[u8]>) -> Result<&[u8], StructuredInfoRefusal> {
+        self.output.clear();
+        let Some(payload) = payload else {
+            self.output.extend_from_slice(&self.none);
+            return Ok(&self.output);
+        };
+        self.output.extend_from_slice(&self.some_prefix);
+        match self.value_type.shape() {
+            StructuredInfoTypeShape::Leaf(kind) => {
+                validate_primitive_info(kind.as_str(), payload)
+                    .map_err(StructuredInfoRefusal::InvalidPrimitiveLeaf)?;
+                let encoded_len = self
+                    .some_prefix
+                    .len()
+                    .checked_add(1 + core::mem::size_of::<u32>())
+                    .and_then(|len| len.checked_add(payload.len()))
+                    .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)?;
+                if encoded_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                    return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+                }
+                self.output.push(0);
+                self.output
+                    .extend_from_slice(&(payload.len() as u32).to_le_bytes());
+                self.output.extend_from_slice(payload);
+            }
+            _ => {
+                let node = payload
+                    .strip_prefix(self.value_type_prefix.as_slice())
+                    .ok_or(StructuredInfoRefusal::WrongType)?;
+                let validated = validate_canonical_structured_value(payload)
+                    .map_err(|_| StructuredInfoRefusal::WrongType)?;
+                if validated.type_bytes() != self.value_type_prefix.as_slice() {
+                    return Err(StructuredInfoRefusal::WrongType);
+                }
+                let encoded_len = self
+                    .some_prefix
+                    .len()
+                    .checked_add(node.len())
+                    .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)?;
+                if encoded_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                    return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+                }
+                self.output.extend_from_slice(node);
+            }
+        }
+        Ok(&self.output)
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.output.capacity()
     }
 }
 
@@ -393,6 +568,24 @@ impl StructuredInfoValue {
         Self::finish(value_type, StructuredInfoValueNode::Leaf(canonical_value))
     }
 
+    /// Retags a value of the exact declared representation with its nominal Type.
+    pub fn nominal(
+        value_type: StructuredInfoType,
+        representation: StructuredInfoValue,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let StructuredInfoTypeNode::Nominal {
+            representation: expected,
+            ..
+        } = &value_type.0
+        else {
+            return Err(StructuredInfoRefusal::WrongType);
+        };
+        if representation.value_type != **expected {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        Self::finish(value_type, representation.node)
+    }
+
     pub fn collection(
         value_type: StructuredInfoType,
         values: Vec<StructuredInfoValue>,
@@ -413,10 +606,16 @@ impl StructuredInfoValue {
         value_type: StructuredInfoType,
         values: Vec<StructuredInfoValue>,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeNode::Sequence { element, capacity } = &value_type.0 else {
+        let StructuredInfoTypeNode::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+        } = &value_type.0
+        else {
             return Err(StructuredInfoRefusal::WrongType);
         };
-        if values.len() > usize::from(*capacity) {
+        if values.len() < usize::from(*minimum_items) || values.len() > usize::from(*maximum_items)
+        {
             return Err(StructuredInfoRefusal::WrongCollectionLength);
         }
         if values.iter().any(|value| value.value_type != **element) {

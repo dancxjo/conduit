@@ -81,7 +81,15 @@ impl<'a> Resolver<'a> {
             }
             return Ok(CanonicalStartupValue::Structured(checked));
         }
-        if !matches!(expression.syntax, crate::ExpressionSyntax::Atomic(_)) {
+        let negative_integer = matches!(
+            &expression.syntax,
+            crate::ExpressionSyntax::Unary {
+                operator: crate::UnaryOperator::Negate,
+                operand,
+                ..
+            } if matches!(operand.as_ref(), crate::ExpressionSyntax::Atomic(atomic) if looks_integer_magnitude(&atomic.text))
+        );
+        if !matches!(expression.syntax, crate::ExpressionSyntax::Atomic(_)) && !negative_integer {
             if let Some(runtime) = self
                 .runtime_ports
                 .iter()
@@ -112,7 +120,15 @@ impl<'a> Resolver<'a> {
                 conduit_core::SharedPoolId::from(expression),
             ))
         } else if is_atomic_literal(expression) {
-            Ok(CanonicalStartupValue::Literal(expression.to_string()))
+            match conduit_core::Quantity::parse_form_literal(expression) {
+                Ok(value) => Ok(CanonicalStartupValue::Quantity(value)),
+                Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
+                    Err(SyntaxCheckError::QuantityLiteral(format!(
+                        "non-canonical quantity unit in '{expression}'; use '{canonical}'"
+                    )))
+                }
+                Err(_) => Ok(CanonicalStartupValue::Literal(expression.to_string())),
+            }
         } else if let Some(runtime) = self
             .runtime_ports
             .iter()
@@ -125,6 +141,13 @@ impl<'a> Resolver<'a> {
             ))
         }
     }
+}
+
+fn looks_integer_magnitude(value: &str) -> bool {
+    value.starts_with(|character: char| character.is_ascii_digit())
+        && value.chars().all(|character| {
+            character.is_ascii_hexdigit() || matches!(character, 'x' | 'b' | 'o' | '_')
+        })
 }
 
 pub(super) fn is_atomic_literal(expression: &str) -> bool {

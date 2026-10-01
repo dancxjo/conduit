@@ -36,7 +36,8 @@ pub fn hosted_hnsw_vector_search_offer(
 
     let contract = vector_search_contract();
     let metric = metric_slug(profile.metric);
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
+        semantic_contract: conduit_ai::vector_search_semantic_contract().semantic_contract(),
         startup_parameters: vector_search_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(format!(

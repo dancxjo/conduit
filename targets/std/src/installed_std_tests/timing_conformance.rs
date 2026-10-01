@@ -39,6 +39,8 @@ const DELAY_FORM: &str = "form ordinary-delay {\n    source: test/timing-bool-so
 
 const THROTTLE_FORM: &str = "form patchbay-refresh-throttle {\n    edits: test/timing-bool-source\n    refresh: time/throttle(duration-ms = 5ms, policy = \"leading\", maximum-values = 3)\n    presenter: test/timing-bool-sink\n    edits >> refresh >> presenter\n}\n";
 
+const DEADLINE_CANCELLATION_FORM: &str = "form deadline-cancel {\n    trigger: test/timing-unit-source\n    deadline: time/deadline(duration-ms = 1ms)\n    operation: audio/tone\n    recovery: conduit-test/tone-terminal-recovery\n    trigger >> deadline.arm\n    deadline.request >> operation~\n    operation.audio! >> recovery.terminal\n}.\n";
+
 fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut startup_profile = conduit_form::ProfileCatalog::new();
@@ -54,6 +56,20 @@ fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
             startup_parameters: Vec::new(),
         })
         .expect("test source startup signature is unique");
+    startup
+        .insert(conduit_form::KindSignature {
+            kind: "test/timing-unit-source".to_string(),
+            startup_parameters: Vec::new(),
+        })
+        .expect("test unit source startup signature is unique");
+    for kind in ["audio/tone", "conduit-test/tone-terminal-recovery"] {
+        startup
+            .insert(conduit_form::KindSignature {
+                kind: kind.to_string(),
+                startup_parameters: Vec::new(),
+            })
+            .expect("deadline cancellation proof signature is unique");
+    }
     startup
         .insert(conduit_form::KindSignature {
             kind: "test/timing-bool-sink".to_string(),
@@ -329,4 +345,61 @@ fn delay_zero_maximum_and_late_wakes_preserve_exact_ordered_schedule() {
             0
         );
     }
+}
+
+#[test]
+fn authored_deadline_requests_typed_operation_cancellation_without_scheduler_cancellation() {
+    let mut host = host("authored-deadline-cancellation");
+    let planned = fragment(&host, DEADLINE_CANCELLATION_FORM);
+    let deadline = planned
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::TIME_DEADLINE_KIND
+        })
+        .expect("canonical deadline placement exists");
+    let operation = planned
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == "audio/tone")
+        .expect("cancellable operation placement exists");
+    assert_eq!(deadline.host_calls.len(), 1);
+    assert_eq!(
+        deadline.host_calls[0].contract_id,
+        conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT.into()
+    );
+    let cancellation = planned
+        .connections
+        .iter()
+        .find(|cord| cord.value_kind.as_str() == conduit_core::CANCELLATION_REQUEST_INFO_ID)
+        .expect("deadline request is one exact planned Cord");
+    assert_eq!(cancellation.source_placement_id, deadline.placement_id);
+    assert_eq!(cancellation.sink_placement_id, operation.placement_id);
+
+    let mut output = Vec::with_capacity(4_096);
+    let mut timer = ScheduledTimer {
+        now_ms: 0,
+        deadlines: Vec::with_capacity(4),
+        regress_after_wait: false,
+        late_by_ms: 3,
+    };
+    let report = host
+        .run_fragment_to(planned, &mut output, &mut timer)
+        .expect("authored deadline cancellation completes through the production kernel");
+    assert_eq!(timer.deadlines, vec![1]);
+    let kernel = report.kernel.expect("deadline kernel report exists");
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert!(kernel
+        .kernel_sign
+        .iter()
+        .any(|event| event.kind == conduit_kernel::KernelEventKind::SemanticAbnormal));
+    assert!(kernel
+        .kernel_sign
+        .iter()
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::SemanticAbnormalRecovered }));
+    assert!(!kernel.kernel_sign.iter().any(|event| matches!(
+        event.kind,
+        conduit_kernel::KernelEventKind::CancellationRequested
+            | conduit_kernel::KernelEventKind::RunCancelled
+    )));
 }

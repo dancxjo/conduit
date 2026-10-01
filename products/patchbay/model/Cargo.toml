@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-patchbay-graph = { path = "../graph" }
+patchbay-graph = { path = "../../../forms/patchbay/graph" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }
-patchbay-control = { path = "../control" }
+patchbay-control = { path = "../../../forms/patchbay" }
+patchbay-workbench-host-contract = { path = "../../../forms/patchbay/workbench/host-contract" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-net = { path = "../../../semantics/net" }
@@ -17,7 +18,7 @@ conduit-presentation = { path = "../../../semantics/presentation" }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
 conduit-body = { path = "../../../architecture/body" }
 conduit-chat = { path = "../../../semantics/chat" }
-conduit-creche-model = { path = "../../creche/model" }
+conduit-birth-form = { path = "../../../forms/birth" }
 conduit-browser-runtime = { path = "../../../targets/browser/runtime" }
 conduit-data = { path = "../../../semantics/data" }
 conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph/fixture" }

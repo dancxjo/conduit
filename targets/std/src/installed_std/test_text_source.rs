@@ -45,7 +45,8 @@ impl<const PORTS: usize> StepBack<PORTS> for TestTextSourceBack {
 impl TestTextSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "invalid".into(),
             value_type: conduit_core::kind_id("value/bool"),
@@ -95,6 +96,7 @@ fn outputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

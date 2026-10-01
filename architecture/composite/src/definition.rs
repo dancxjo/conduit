@@ -105,6 +105,7 @@ impl KernelCompositeDefinition {
                     if planned_port.value_kind != front.external_port.value_kind
                         || planned_port.direction != front.external_port.direction
                         || planned_port.temporal != front.external_port.temporal
+                        || planned_port.abnormal_kind != front.external_port.abnormal_kind
                     {
                         return Err(KernelCompositeDefinitionError::InvalidInternalPlan(
                             format!(
@@ -153,7 +154,8 @@ impl KernelCompositeDefinition {
             boot_id,
             offer_generation,
             profile,
-            external_capability: CapabilityOffer {
+            external_capability: conduit_core::capability_offer_from_parts! {
+                semantic_contract: Default::default(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: exported.capability_id,

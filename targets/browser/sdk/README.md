@@ -20,6 +20,36 @@ console.log(host.packageVersion, host.runtimeAbi); // diagnostics; these grant n
 const snapshot = await host.refresh(); // current offers come from a new Boot observation
 ```
 
+The same admitted Host and Boot may explicitly participate in an externally
+owned Body. Participation does not birth, recover, or make that Body; the
+invitation protocol returns its own membership, presence, biography and offer
+evidence.
+
+```js
+const participation = await host.participate({
+  invitation,
+  expectedBodyId,
+  onBiographyEvidence: evidence => inspect(evidence),
+});
+```
+
+The Body remains the authority for planning and claiming a Play. Once that
+authority supplies an exact proposal and Play identity, the participation can
+acquire this Host's page resources and run the Play without exposing raw WASM
+exports or Host implementation modules to HTML:
+
+```js
+const preparation = participation.prepare({ proposal, inputTarget, outputRoot });
+renderPlanInspection(preparation.inspection());
+const { play, wakeAtStart } = preparation.start(claimedPlay);
+await reportStarted(claimedPlay, wakeAtStart);
+const receipt = await play.dispatch();
+```
+
+`inspection()` is the immutable SDK boundary for an HTML workbench. It exposes
+the exact selected Plan without exposing raw Wasm exports, Host implementation
+modules, or the mutable execution owner.
+
 ## Source, checked meaning, and Body work
 
 Conduit keeps authorship separate from realization. A Form says what a
@@ -42,7 +72,7 @@ clock {
   every: time/every(1s)
   tick: presentation/tick
   every >> tick
-}.
+}
 `);
 
 const checked = await clock.check();
@@ -122,6 +152,33 @@ permission decision, or resource handle. Those belong to later Host and Plan
 decisions. This is what lets one checked meaning remain portable without
 pretending each Host can realize it.
 
+## Durable Body continuity
+
+The default BrowserHost is durable when its checked IMAGE selects the bounded
+`browser/indexeddb@1` implementation. The SDK retains the Rust Workspace's own
+durable Body evidence together with the exact Conduitese source needed to check
+that workset again. It does not serialize a JavaScript Body or an in-memory
+Play.
+
+On a later page load, `recover()` rechecks the source, refuses any retained
+Form identity that no longer matches canonical checking, and asks the Rust
+Workspace runtime to restore the same Body under the current Boot:
+
+```js
+const host = await Conduit.browser({ root });
+const checked = await host.form(source).check();
+const body = await host.recover()
+  ?? await host.birth({ name: "Clock", forms: checked.forms });
+const play = await body.wake();
+```
+
+Host and Body continuity do not imply Boot, Plan, Wake, or Play continuity. A
+reload admits a fresh Boot; recovery exposes no live realization and never
+resurrects an in-memory Play. A subsequent `wake()` must produce newly admitted
+Wake, Plan, and Play identities. `recover()` returns `null` when nothing has
+been retained and refuses when durability was disabled or the checked Profile
+did not select durable storage.
+
 ## Snapshots and evidence events
 
 `body.snapshot()` independently refreshes the exact Workspace snapshot. Its
@@ -151,6 +208,20 @@ snapshot independently of subscriptions.
 const snapshot = await body.snapshot();
 console.log(snapshot.evidence.body_id, snapshot.evidence.body.workload_revision);
 
+// Authored Form inspection creates no Body, Plan, Play, or authority. The
+// projected Front retains each exact Rust-checked value contract.
+const authored = host.form(`form code (
+  >> value: Text <= 8B ~ /^[A-Z]{2}[0-9]{2}$/
+) {
+  upper: text/upper
+  value >> upper
+}`);
+const authoredPatchbay = authored.patchbay();
+
+// Patchbay is a Body-owned semantic projection. A workbench Mask, not the SDK,
+// decides how to realize it in HTML.
+const patchbay = await body.patchbay();
+
 const controller = new AbortController();
 for await (const event of body.events({ signal: controller.signal })) {
   console.log(event.type, event.identity, event.evidence);
@@ -175,8 +246,8 @@ then initializes one real Host/Boot. It refuses cross-origin bundle roots,
 redirects, unlisted assets, stale digests, ABI mismatch, and a requested Profile
 that differs from the package's image. Module code is imported only from bytes
 whose identities were admitted by those manifests. The application's root is
-used as a presentation surface; it contributes no Host, Profile, or authority
-fact.
+used as a Mask realization surface for the body's Face; it contributes no Host,
+Profile, or authority fact.
 
 An application bundler needs no Conduit compiler. If it does not preserve the
 package's adjacent `bundle/` directory, publish that directory as static assets
@@ -208,7 +279,7 @@ The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.
 
 Repository maintainers can produce an npm-style package from a reviewed bundle
-with `cargo xtask host browser-sdk-package --bundle <bundle-directory> --output
+with `cargo xtask make host browser-sdk-package --bundle <bundle-directory> --output
 <new-package-directory>`. Then run `npm pack` in the output directory or serve
 the complete directory from a same-origin static root.
 

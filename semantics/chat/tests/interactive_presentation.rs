@@ -33,12 +33,15 @@ fn authored_state_is_the_bounded_semantic_ui_truth() {
     }
     let presentation = state.presentation().unwrap();
     assert_eq!(state.history_len(), MAXIMUM_CHAT_HISTORY_ITEMS);
-    assert_eq!(presentation.inputs[0].identity, CHAT_MESSAGE_INPUT);
     assert_eq!(
-        presentation.inputs[0].maximum_bytes,
+        presentation.actions[0].arguments[0].name,
+        CHAT_MESSAGE_INPUT
+    );
+    assert_eq!(
+        presentation.actions[0].arguments[0].contract.maximum_bytes,
         MAXIMUM_CHAT_MESSAGE_BYTES
     );
-    assert_eq!(presentation.inputs[0].label, "Message");
+    assert_eq!(presentation.actions[0].arguments[0].value_name, "Message");
     assert!(
         presentation
             .subjects
@@ -58,7 +61,7 @@ fn authored_state_is_the_bounded_semantic_ui_truth() {
 }
 
 #[test]
-fn source_label_change_alone_changes_presentation_identity_and_input_semantics() {
+fn source_label_change_alone_changes_face_identity_and_argument_semantics() {
     let first = ChatPresentationState::new(configuration("Message"))
         .unwrap()
         .presentation()
@@ -68,7 +71,7 @@ fn source_label_change_alone_changes_presentation_identity_and_input_semantics()
         .presentation()
         .unwrap();
     assert_ne!(first.identity, second.identity);
-    assert_eq!(second.inputs[0].label, "Say something");
+    assert_eq!(second.actions[0].arguments[0].value_name, "Say something");
 }
 
 #[test]

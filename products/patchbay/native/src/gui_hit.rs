@@ -2,7 +2,7 @@
 
 use crate::gui_primitives::PixelRect;
 use embedded_graphics::prelude::Point;
-use patchbay_model::PatchbaySubjectRef;
+use patchbay_graph::PatchbaySubjectRef;
 use patchbay_model::{EnvironmentLinkKind, MachineProfile};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,12 +65,12 @@ pub enum GuiAction {
         kind: String,
         target: (i32, i32),
     },
-    DuplicateGear(patchbay_model::PatchbaySubjectRef),
-    RemoveGear(patchbay_model::PatchbaySubjectRef),
-    RemoveCord(patchbay_model::PatchbaySubjectRef),
+    DuplicateGear(patchbay_graph::PatchbaySubjectRef),
+    RemoveGear(patchbay_graph::PatchbaySubjectRef),
+    RemoveCord(patchbay_graph::PatchbaySubjectRef),
     ConnectPorts {
-        source: patchbay_model::PatchbaySubjectRef,
-        sink: patchbay_model::PatchbaySubjectRef,
+        source: patchbay_graph::PatchbaySubjectRef,
+        sink: patchbay_graph::PatchbaySubjectRef,
     },
     RerouteCord {
         cord: PatchbaySubjectRef,

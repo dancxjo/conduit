@@ -111,7 +111,7 @@ impl PicoUsbSource {
 
         let configuration = parse_pulse_configuration(&fragment.placements[0].configuration)
             .map_err(|error| error.to_string())?;
-        if configuration.count != MAXIMUM_VALUES as u64 {
+        if *configuration.count() != MAXIMUM_VALUES as u64 {
             return Err("unchanged Signal form no longer produces sixteen values".to_owned());
         }
         let mut values = HostedValueStore::new(
@@ -121,14 +121,12 @@ impl PicoUsbSource {
         )
         .map_err(|error| format!("{error:?}"))?;
         let mut signal_values = Vec::with_capacity(MAXIMUM_VALUES);
-        for sequence in 0..configuration.count {
-            let signal = Signal {
+        for sequence in 0..*configuration.count() {
+            let signal = Signal::new(
+                conduit_signal::signal_level_for_sequence(sequence, *configuration.initial_level()),
                 sequence,
-                level: conduit_signal::signal_level_for_sequence(
-                    sequence,
-                    configuration.initial_level,
-                ),
-            };
+            )
+            .expect("planned Signal fields are valid");
             signal_values.push(
                 values
                     .store(&encode_signal(&signal).encoded)
@@ -139,7 +137,7 @@ impl PicoUsbSource {
         for _ in 0..MAXIMUM_WAITS {
             waits.push(
                 values
-                    .store(&configuration.period_ms.to_le_bytes())
+                    .store(&configuration.period_ms().to_le_bytes())
                     .map_err(|error| format!("{error:?}"))?,
             );
         }

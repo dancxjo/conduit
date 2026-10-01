@@ -12,14 +12,12 @@ impl FrontDoor {
             PresentationSubject {
                 identity: host.clone(),
                 role: PresentationRole::Host,
-                label: "This host".into(),
-                accessibility_name: "This host; current body none".into(),
+                name: "This host".into(),
             },
             PresentationSubject {
                 identity: form.clone(),
                 role: PresentationRole::Form,
-                label: "ConduitOS entrance Form".into(),
-                accessibility_name: "Openable checked IMAGE Form; opening is inert".into(),
+                name: "ConduitOS entrance Form".into(),
             },
         ];
         let mut relationships = vec![PresentationRelationship {
@@ -74,11 +72,10 @@ impl FrontDoor {
                 subjects.push(PresentationSubject {
                     identity: body.clone(),
                     role: PresentationRole::Body,
-                    label: journey
+                    name: journey
                         .friendly_name
                         .clone()
                         .unwrap_or_else(|| "Current body".into()),
-                    accessibility_name: format!("Current body; {:?}", journey.status),
                 });
                 relationships.push(PresentationRelationship {
                     source: host.clone(),
@@ -166,8 +163,7 @@ impl FrontDoor {
             subjects.push(PresentationSubject {
                 identity: line.line_id.clone(),
                 role: PresentationRole::Line,
-                label: "USB-backed Conduit Line".into(),
-                accessibility_name: line.status.label().into(),
+                name: "USB-backed Conduit Line".into(),
             });
             relationships.push(PresentationRelationship {
                 source: host.clone(),
@@ -204,8 +200,7 @@ impl FrontDoor {
             subjects.push(PresentationSubject {
                 identity: home_identity.into(),
                 role: PresentationRole::Region,
-                label: "ConduitOS Home".into(),
-                accessibility_name: format!("ConduitOS Home; {} view", view.as_str()),
+                name: "ConduitOS Home".into(),
             });
             relationships.push(PresentationRelationship {
                 source: home_identity.into(),

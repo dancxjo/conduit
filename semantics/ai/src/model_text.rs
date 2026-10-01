@@ -1,17 +1,17 @@
 //! Validated projection from a model-derived generation envelope to bounded text.
 
-use alloc::{
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+#[cfg(any(feature = "form-catalog", test))]
+use alloc::string::String;
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
 
 use crate::{
-    llm_contract, GeneratedTextChunk, ModelDerivedResult, ModelResultDisposition,
+    llm_contract, GeneratedTextChunk, ModelDerivedResult, ModelResultDisposition, ModelTextRefusal,
     GENERATED_RESULT_VALUE_KIND, GENERATED_TEXT_CHUNK_VALUE_KIND, LLM_GENERATE_KIND,
     MAXIMUM_GENERATED_TEXT_CHUNK_BYTES, MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS, TEXT_VALUE_KIND,
 };
@@ -48,18 +48,6 @@ impl ModelTextContract {
             limits: self.limits,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ModelTextRefusal {
-    EnvelopeBoundExceeded,
-    MalformedEnvelope,
-    NonCanonicalEnvelope,
-    InvalidGenerationResult,
-    NotProduced,
-    InvalidUtf8,
-    EmptyText,
-    TextBoundExceeded,
 }
 
 pub fn model_result_to_text_contract() -> ModelTextContract {
@@ -174,7 +162,7 @@ pub fn install_model_text_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_form::KindSignature;
 
     for contract in [
         model_result_to_text_contract(),
@@ -186,13 +174,7 @@ pub fn install_model_text_catalog(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: vec![],
-            })
+            .insert_kind(contract.into_semantic_capability_contract())
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -209,6 +191,7 @@ fn port_with_temporal(
         value_kind: kind_id(value_kind),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

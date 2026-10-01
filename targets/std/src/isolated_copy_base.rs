@@ -176,7 +176,7 @@ pub fn provider_main() -> Result<(), String> {
         1,
     )
     .map_err(capability_error)?;
-    let handle = table
+    let mut handle = table
         .issue(bootstrap.issue.clone())
         .map_err(capability_error)?;
     apply_copy_landlock(source_directory, destination_directory)?;
@@ -228,7 +228,9 @@ pub fn provider_main() -> Result<(), String> {
                 };
                 let terminal = match copy_files.step() {
                     Ok(true) => {
-                        table.complete(lease, 1).map_err(capability_error)?;
+                        table
+                            .complete(&mut handle, lease, 1)
+                            .map_err(capability_error)?;
                         crate::isolated_base::write_frame(
                             &mut io::stdout(),
                             &ResponseFrame::Progress {
@@ -239,7 +241,9 @@ pub fn provider_main() -> Result<(), String> {
                         false
                     }
                     Ok(false) => {
-                        table.complete(lease, 1).map_err(capability_error)?;
+                        table
+                            .complete(&mut handle, lease, 1)
+                            .map_err(capability_error)?;
                         let result = CopyResult::Success {
                             bytes_copied: copy_files.bytes_copied,
                         };
@@ -253,7 +257,9 @@ pub fn provider_main() -> Result<(), String> {
                         true
                     }
                     Err(result) => {
-                        table.complete(lease, 1).map_err(capability_error)?;
+                        table
+                            .complete(&mut handle, lease, 1)
+                            .map_err(capability_error)?;
                         crate::isolated_base::write_frame(
                             &mut io::stdout(),
                             &ResponseFrame::Terminal {

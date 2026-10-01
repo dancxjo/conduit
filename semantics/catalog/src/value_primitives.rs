@@ -5,8 +5,8 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const SCALAR_LITERAL_KIND: &str = "scalar/literal";
@@ -111,6 +111,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -127,10 +128,7 @@ pub fn install_value_primitive_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for contract in [
         scalar_literal_contract(),
         bool_literal_contract(),
@@ -159,27 +157,7 @@ pub fn install_value_primitive_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(VALUE_PRIMITIVE_CONTRACT_REVISION),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        rule: match field.rule {
-                            KindConfigurationRule::I64Range { minimum, maximum } => {
-                                KindConfigurationRule::I64Range { minimum, maximum }
-                            }
-                            KindConfigurationRule::Any => KindConfigurationRule::Any,
-                            _ => unreachable!(),
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(contract.into_semantic_contract(VALUE_PRIMITIVE_CONTRACT_REVISION))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

@@ -7,6 +7,9 @@ pub(super) struct ProductProofSpec {
 
 impl ProductProofSpec {
     fn owns(&self, path: &str) -> bool {
+        if super::is_rust_test_source(path) {
+            return false;
+        }
         self.exact_inputs.contains(&path)
             || self
                 .input_prefixes
@@ -18,102 +21,58 @@ impl ProductProofSpec {
 // This registry is the single ownership source for the Pages product carrier.
 // Workflow triggers must not duplicate these paths. Unknown global changes are
 // still handled by the impact planner's conservative full fallback.
-pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
-    ProductProofSpec {
-        id: "products.pages-carrier",
-        exact_inputs: &[
-            ".github/workflows/tour-products.yml",
-            ".github/workflows/tour-pages-deploy.yml",
-            "Cargo.lock",
-            "proof/browser/package.json",
-            "proof/browser/package-lock.json",
-            "targets/browser/tools/build-browser-application-package.mjs",
-            "targets/browser/tools/render-product-masthead.mjs",
-            "tools/ci/seal-pages-carrier.mjs",
-            "tools/ci/verify-pages-carrier.mjs",
-            "proof/browser/executable-tour.spec.mjs",
-            "proof/browser/browser-application-package.spec.mjs",
-            "proof/browser/browser-bundle-build.spec.mjs",
-            "proof/browser/browser-boot-profile.spec.mjs",
-            "proof/browser/browser-form-runner.spec.mjs",
-            "proof/browser/pages-front-door.spec.mjs",
-            "proof/ci/browser-product-ownership.test.mjs",
-            "proof/browser/presentation-nucleus.spec.mjs",
-            "proof/browser/presentation-nucleus.test.html",
-            "proof/browser/fourth-product-conformance.spec.mjs",
-            "proof/browser/tour-test-server.mjs",
-            "proof/browser/playwright.config.mjs",
-            "proof/browser/static-server.mjs",
-            "proof/browser/creche-browser-configuration.spec.mjs",
-            "proof/browser/workspace-arrival.spec.mjs",
-            "proof/browser/workspace-birth-naming.spec.mjs",
-            "proof/browser/workspace-body-execution.spec.mjs",
-            "proof/browser/creche-lifecycle-ownership.md",
-            "proof/browser/workspace-library.spec.mjs",
-            "proof/browser/workspace-handoff.test.mjs",
-            "proof/browser/creche-workspace-continuity.spec.mjs",
-            "proof/browser/home-host.spec.mjs",
-            "proof/browser/home-cross-front.spec.mjs",
-        ],
-        input_prefixes: &[
-            "proof/browser/fourth-product/",
-            "products/tour/",
-            "products/creche/",
-            "products/workspace/",
-            "products/patchbay/",
-            "products/home/browser/",
-            "products/home/model/",
-            "products/shared/browser/",
-            "semantics/presentation/assets/",
-            "site/",
-            "products/tour/browser/",
-            "products/creche/browser/",
-            "products/workspace/browser/",
-            "products/tour/tools/stage-tour-product",
-            "products/creche/tools/stage-creche-product",
-            "products/workspace/tools/stage-workspace-product",
-            "site/tools/stage-pages-root",
-            "products/patchbay/tools/stage-patchbay-product",
-            "products/home/tools/stage-home-product",
-            "targets/browser/host/",
-            "targets/browser/runtime/",
-            "targets/avr/",
-            "targets/esp32/",
-            "targets/orange-pi/",
-            "targets/raspberry-pi/",
-            "targets/std/deployment/browser/",
-            "targets/std/fabrication/",
-            "targets/conduitos/",
-            "targets/std/profiles/",
-            "targets/rp2040/profiles/",
-            "targets/browser/profiles/",
-            "fabrication/host/",
-            "fabrication/workspace/",
-        ],
-    },
-    ProductProofSpec {
-        id: "products.patchbay-debugger",
-        exact_inputs: &[
-            ".github/workflows/tour-products.yml",
-            "Cargo.lock",
-            "proof/browser/package.json",
-            "proof/browser/package-lock.json",
-            "architecture/kernel/src/debug_observation.rs",
-            "architecture/kernel/src/scheduler.rs",
-            "architecture/kernel/tests/debug_observation.rs",
-            "proof/browser/patchbay-debugger-watch.spec.mjs",
-            "proof/browser/patchbay-debugger.config.mjs",
-        ],
-        input_prefixes: &[
-            "architecture/kernel/src/debug_observation/",
-            "architecture/kernel/src/scheduler/debug_control.rs",
-            "products/patchbay/html/",
-            "products/patchbay/model/src/debugger_",
-            "products/patchbay/model/src/learned_watch",
-            "semantics/tongues/",
-        ],
-    },
-];
+pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
+    id: "products.pages-carrier",
+    exact_inputs: &[
+        ".github/workflows/product-carrier.yml",
+        ".github/workflows/pages-deploy.yml",
+        "proof/browser/package.json",
+        "proof/browser/package-lock.json",
+        "targets/browser/tools/build-browser-application-package.mjs",
+        "targets/browser/tools/render-product-masthead.mjs",
+        "tools/ci/seal-pages-carrier.mjs",
+        "tools/ci/verify-pages-carrier.mjs",
+        "proof/browser/browser-bundle-build.spec.mjs",
+        "proof/browser/browser-boot-profile.spec.mjs",
+        "proof/browser/pages-front-door.spec.mjs",
+        "proof/ci/browser-product-ownership.test.mjs",
+        "proof/browser/presentation-nucleus.spec.mjs",
+        "proof/browser/presentation-nucleus.test.html",
+        "proof/browser/static-product-server.mjs",
+        "proof/browser/playwright.config.mjs",
+        "proof/browser/static-server.mjs",
+        "proof/browser/creche-browser-configuration.spec.mjs",
+        "proof/browser/workspace-arrival.spec.mjs",
+        "proof/browser/workspace-birth-naming.spec.mjs",
+        "proof/browser/sdk-external-body-execution.spec.mjs",
+        "proof/browser/workspace-mixed-membership.spec.mjs",
+        "proof/browser/creche-lifecycle-ownership.md",
+        "proof/browser/workspace-library.spec.mjs",
+        "proof/browser/workspace-handoff.test.mjs",
+        "proof/browser/creche-workspace-continuity.spec.mjs",
+    ],
+    input_prefixes: &[
+        "docs/journeys/tour/",
+        "products/creche/",
+        "products/workspace/",
+        "products/patchbay/html/",
+        "products/patchbay/model/",
+        "products/patchbay/tools/",
+        "products/shared/browser/",
+        "semantics/presentation/assets/",
+        "site/",
+        "targets/browser/host/",
+        "targets/browser/runtime/",
+        "targets/avr/deployment/browser/",
+        "targets/rp2040/deployment/browser/",
+        "targets/esp32/deployment/browser/",
+        "targets/std/deployment/browser/",
+        "targets/browser/deployment/browser/",
+        "targets/orange-pi/deployment/browser/",
+        "targets/raspberry-pi/deployment/browser/",
+        "targets/conduitos/deployment/browser/",
+    ],
+}];
 
 pub(crate) fn proofs_for_paths(paths: &[String]) -> Vec<&'static str> {
     PRODUCT_PROOFS
@@ -144,7 +103,7 @@ impl BrowserPresentationSpec {
     }
 }
 
-// These inputs change browser presentation or how an already-fabricated
+// These inputs change browser presentation or how an already-made
 // browser product is assembled. They require the Pages/browser product proof,
 // but cannot change firmware or an operating-system image.
 pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
@@ -157,17 +116,13 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
         input_prefixes: &[
             "site/",
             "products/shared/browser/",
-            "products/tour/browser/",
+            "docs/journeys/tour/",
             "products/creche/browser/",
             "products/workspace/browser/",
-            "products/home/browser/",
-            "products/home/model/",
-            "products/tour/tools/stage-tour-product",
             "products/creche/tools/stage-creche-product",
             "products/workspace/tools/stage-workspace-product",
             "site/tools/stage-pages-root",
             "products/patchbay/tools/stage-patchbay-product",
-            "products/home/tools/stage-home-product",
         ],
     }];
 
@@ -191,7 +146,8 @@ mod tests {
         for path in [
             "proof/browser/workspace-arrival.spec.mjs",
             "proof/browser/workspace-birth-naming.spec.mjs",
-            "proof/browser/workspace-body-execution.spec.mjs",
+            "proof/browser/sdk-external-body-execution.spec.mjs",
+            "proof/browser/workspace-mixed-membership.spec.mjs",
             "proof/browser/workspace-library.spec.mjs",
             "proof/browser/workspace-handoff.test.mjs",
             "proof/browser/creche-workspace-continuity.spec.mjs",
@@ -220,17 +176,13 @@ mod tests {
     }
 
     #[test]
-    fn shared_presentation_contract_and_fixture_changes_select_the_product_carrier() {
+    fn shared_presentation_contract_changes_select_the_product_carrier() {
         for path in [
             "proof/browser/presentation-nucleus.spec.mjs",
             "proof/browser/presentation-nucleus.test.html",
-            "proof/browser/fourth-product-conformance.spec.mjs",
-            "proof/browser/tour-test-server.mjs",
+            "proof/browser/static-product-server.mjs",
             "proof/browser/playwright.config.mjs",
             "proof/browser/static-server.mjs",
-            "proof/browser/fourth-product/application.mjs",
-            "proof/browser/fourth-product/state.mjs",
-            "proof/browser/fourth-product/fourth.application.template.json",
         ] {
             assert!(
                 proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"),
@@ -248,15 +200,98 @@ mod product_source_tests {
     fn product_owned_browser_source_requires_carrier_and_browser_proof() {
         for path in [
             "products/shared/browser/conduit.css",
-            "products/tour/browser/tour.mjs",
-            "products/creche/browser/creche-lifecycle.mjs",
+            "docs/journeys/tour/chapter-1.md",
             "products/workspace/browser/body-bootstrap.mjs",
             "products/workspace/browser/reviewed-form-selection.mjs",
-            "products/home/browser/home.mjs",
-            "products/home/tools/stage-home-product.sh",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"));
             assert!(!browser_presentation_proofs_for_path(path).is_empty());
+        }
+    }
+
+    #[test]
+    fn broad_product_and_site_roots_own_their_carrier_staging_tools() {
+        for path in [
+            "products/creche/tools/stage-creche-product.mjs",
+            "products/workspace/tools/stage-workspace-product.mjs",
+            "products/patchbay/tools/stage-patchbay-product.mjs",
+            "site/tools/stage-pages-root.mjs",
+        ] {
+            assert_eq!(
+                proofs_for_paths(&[path.to_owned()]),
+                ["products.pages-carrier"]
+            );
+        }
+    }
+
+    #[test]
+    fn rust_test_sources_do_not_make_the_product_carrier() {
+        for path in [
+            "targets/browser/runtime/src/workspace_mask_tests.rs",
+            "targets/browser/runtime/src/form_runner/tests.rs",
+            "targets/browser/runtime/tests/presentation_offer_ownership.rs",
+            "products/patchbay/model/src/mask_control_tests.rs",
+            "products/patchbay/html/tests/server.rs",
+        ] {
+            assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
+        }
+    }
+
+    #[test]
+    fn native_semantics_do_not_select_the_browser_carrier() {
+        for path in [
+            "products/patchbay/native/Cargo.toml",
+            "products/patchbay/native/src/gui.rs",
+            "semantics/home/src/lib.rs",
+        ] {
+            assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
+            assert!(
+                browser_presentation_proofs_for_path(path).is_empty(),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn directly_staged_target_adapters_require_the_product_carrier() {
+        for target in [
+            "avr",
+            "rp2040",
+            "esp32",
+            "std",
+            "browser",
+            "orange-pi",
+            "raspberry-pi",
+            "conduitos",
+        ] {
+            let path = format!("targets/{target}/deployment/browser/creche-adapter.mjs");
+            assert_eq!(
+                proofs_for_paths(std::slice::from_ref(&path)),
+                ["products.pages-carrier"],
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn machine_and_make_sources_do_not_select_the_browser_carrier() {
+        for path in [
+            "targets/conduitos/src/main.rs",
+            "targets/conduitos/make/xtask/journey_body_track.rs",
+            "targets/esp32/firmware/s3-signal/build.rs",
+            "targets/esp32/make/src/lib.rs",
+            "targets/avr/firmware/promicro-host/Cargo.toml",
+            "targets/avr/make/src/lib.rs",
+            "targets/raspberry-pi/make/src/lib.rs",
+            "targets/orange-pi/make/src/lib.rs",
+            "targets/std/make/src/lib.rs",
+            "targets/std/profiles/linux-computer.host.conduit",
+            "targets/browser/profiles/browser-page.host.conduit",
+            "targets/rp2040/profiles/pico-w.host.conduit",
+            "make/host/src/lib.rs",
+            "make/workspace/src/lib.rs",
+        ] {
+            assert!(proofs_for_paths(&[path.into()]).is_empty(), "{path}");
         }
     }
 }

@@ -2,12 +2,10 @@ use std::ffi::OsString;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LifecycleClass {
-    Host,
-    Demo,
     Prove,
     Check,
     Integrate,
-    Fabricate,
+    Make,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,19 +21,6 @@ pub struct RepositoryCommand {
     pub aliases: &'static [CommandAlias],
 }
 
-const BROWSER_ALIASES: &[CommandAlias] = &[CommandAlias {
-    spelling: &["browser"],
-    deprecated: true,
-}];
-const STD_ALIASES: &[CommandAlias] = &[CommandAlias {
-    spelling: &["demo", "std"],
-    deprecated: true,
-}];
-const BROWSER_CHECK_ALIASES: &[CommandAlias] = &[CommandAlias {
-    spelling: &["check", "browser"],
-    deprecated: true,
-}];
-
 pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
     RepositoryCommand {
         canonical: &["integrate"],
@@ -43,23 +28,23 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["host", "browser"],
-        lifecycle: LifecycleClass::Host,
-        aliases: BROWSER_ALIASES,
+        canonical: &["make", "host", "browser"],
+        lifecycle: LifecycleClass::Make,
+        aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["host", "std"],
-        lifecycle: LifecycleClass::Host,
-        aliases: STD_ALIASES,
+        canonical: &["make", "host", "std"],
+        lifecycle: LifecycleClass::Make,
+        aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["check", "browser-host"],
+        canonical: &["check", "browser"],
         lifecycle: LifecycleClass::Check,
-        aliases: BROWSER_CHECK_ALIASES,
+        aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["demo", "triple"],
-        lifecycle: LifecycleClass::Demo,
+        canonical: &["prove", "journey", "triple"],
+        lifecycle: LifecycleClass::Prove,
         aliases: &[],
     },
     RepositoryCommand {
@@ -68,48 +53,9 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["host", "build"],
-        lifecycle: LifecycleClass::Fabricate,
+        canonical: &["make", "host", "build"],
+        lifecycle: LifecycleClass::Make,
         aliases: &[],
-    },
-];
-
-#[cfg(test)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct JustAlias {
-    pub recipe: &'static str,
-    pub canonical_body: &'static str,
-}
-
-#[cfg(test)]
-pub const FRIENDLY_JUST_ALIASES: &[JustAlias] = &[
-    JustAlias {
-        recipe: "patchbay",
-        canonical_body: "cargo xtask demo patchbay --on native",
-    },
-    JustAlias {
-        recipe: "browser",
-        canonical_body: "cargo xtask host browser",
-    },
-    JustAlias {
-        recipe: "std-host",
-        canonical_body: "cargo xtask host std",
-    },
-    JustAlias {
-        recipe: "demo-std",
-        canonical_body: "cargo xtask host std",
-    },
-    JustAlias {
-        recipe: "demo-triple-local",
-        canonical_body: "cargo xtask demo triple",
-    },
-    JustAlias {
-        recipe: "check-kernel-s1",
-        canonical_body: "cargo xtask check kernel-takeover",
-    },
-    JustAlias {
-        recipe: "check-kernel-takeover",
-        canonical_body: "cargo xtask check kernel-takeover",
     },
 ];
 
@@ -252,7 +198,7 @@ mod tests {
         let duplicate = [
             RepositoryCommand {
                 canonical: &["a"],
-                lifecycle: LifecycleClass::Demo,
+                lifecycle: LifecycleClass::Check,
                 aliases: &[],
             },
             RepositoryCommand {
@@ -268,7 +214,7 @@ mod tests {
         let duplicate_alias = [
             RepositoryCommand {
                 canonical: &["a"],
-                lifecycle: LifecycleClass::Demo,
+                lifecycle: LifecycleClass::Check,
                 aliases: TO_B,
             },
             RepositoryCommand {
@@ -284,12 +230,12 @@ mod tests {
         let cycle = [
             RepositoryCommand {
                 canonical: &["a"],
-                lifecycle: LifecycleClass::Demo,
+                lifecycle: LifecycleClass::Check,
                 aliases: TO_B,
             },
             RepositoryCommand {
                 canonical: &["b"],
-                lifecycle: LifecycleClass::Fabricate,
+                lifecycle: LifecycleClass::Make,
                 aliases: TO_A,
             },
         ];
@@ -299,13 +245,18 @@ mod tests {
     #[test]
     fn justfile_recipes_are_thin_registered_entrance_delegations() {
         let bodies = just_recipe_bodies(include_str!("../../../justfile")).unwrap();
-        for alias in FRIENDLY_JUST_ALIASES {
-            assert_eq!(
-                bodies.get(alias.recipe).map(String::as_str),
-                Some(alias.canonical_body),
-                "friendly recipe must delegate to its registered canonical command"
-            );
-        }
+        assert_eq!(
+            bodies,
+            std::collections::BTreeMap::from([
+                (
+                    "check".to_owned(),
+                    "cargo xtask check {{ args }}".to_owned()
+                ),
+                ("conduit".to_owned(), "conduit {{ args }}".to_owned()),
+                ("integrate".to_owned(), "cargo xtask integrate".to_owned()),
+                ("xtask".to_owned(), "cargo xtask {{ args }}".to_owned()),
+            ])
+        );
         assert!(just_recipe_bodies("bad:\n    cargo test --workspace\n")
             .unwrap_err()
             .contains("independent execution logic"));

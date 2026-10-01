@@ -11,14 +11,18 @@ use conduit_core::{
 use conduit_std_host::hosted_local_model::{HostedLocalModelAdapter, OllamaDiscovery};
 use serde::Serialize;
 
-pub(super) fn inspect(model: &str, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn inspect(
+    model: &str,
+    ollama_endpoint: &str,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
         if !opts.quiet {
             println!("would inspect already-local model {model} without loading it");
         }
         return Ok(());
     }
-    let discovery = OllamaDiscovery::discover(model)?;
+    let discovery = OllamaDiscovery::discover_at(ollama_endpoint, model)?;
     if opts.json {
         println!("{}", serde_json::to_string(&discovery)?);
     } else if !opts.quiet {
@@ -41,6 +45,7 @@ pub(super) fn inspect(model: &str, opts: &GlobalOpts) -> Result<(), Box<dyn std:
 
 pub(super) fn prove(
     model: &str,
+    ollama_endpoint: &str,
     admitted_memory_mib: u32,
     orifina_presenter: bool,
     journey_documentary: bool,
@@ -54,7 +59,7 @@ pub(super) fn prove(
         }
         return Ok(());
     }
-    let adapter = OllamaDiscovery::discover(model)?.initialize(
+    let adapter = OllamaDiscovery::discover_at(ollama_endpoint, model)?.initialize(
         admitted_memory_mib,
         vec![
             LocalModelKindProfile::Generate,
@@ -169,11 +174,11 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
     let host = HostId::from("host/orifina-local-model");
     let boot = BootId::from("boot/orifina-local-model");
     let mut body = orifina_body()?;
-    let mut requests = vec![conduit_workspace_model::tutorial::generative_request(
+    let mut requests = vec![conduit_tutorial_form::generative_request(
         &body,
         "request/workspace/orifina/provider-proof".into(),
         1,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )
     .map_err(|error| proof_error("build Workspace Orifina request", error))?];
     let mut plan_ids = Vec::new();
@@ -193,7 +198,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "playing",
         2,
-        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+        conduit_tutorial_form::TutorialPlayback::Playing,
     )?);
     body.lull(&host, &boot, Some(&first))
         .map_err(|error| proof_error("lull initial Orifina Play", error))?;
@@ -212,7 +217,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "revised",
         3,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )?);
 
     let failed = body
@@ -246,7 +251,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "fault",
         4,
-        conduit_workspace_model::tutorial::TutorialPlayback::Refused,
+        conduit_tutorial_form::TutorialPlayback::Refused,
     )?);
 
     let repaired = start_orifina(&mut body, &host, &boot, 2)?;
@@ -263,7 +268,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "repaired",
         5,
-        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+        conduit_tutorial_form::TutorialPlayback::Playing,
     )?);
     body.lull(&host, &boot, Some(&repaired))
         .map_err(|error| proof_error("lull repaired Orifina Play", error))?;
@@ -271,7 +276,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "lulled",
         6,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )?);
     body.fulfill(
         &host,
@@ -284,7 +289,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "fulfilled",
         7,
-        conduit_workspace_model::tutorial::TutorialPlayback::Completed,
+        conduit_tutorial_form::TutorialPlayback::Completed,
     )?);
     let evidence = body.evidence().clone();
     Ok(PreparedOrifinaJourney {
@@ -316,7 +321,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
     })
 }
 
-fn orifina_body() -> Result<conduit_workspace_model::WorkspaceBody, Box<dyn std::error::Error>> {
+fn orifina_body() -> Result<conduit_body::BodyLifecycleSession, Box<dyn std::error::Error>> {
     let form = ResidentForm::new("source/morse".into(), "checked/morse".into());
     let body = Body::born(
         form.source_document_id,
@@ -364,11 +369,11 @@ fn orifina_body() -> Result<conduit_workspace_model::WorkspaceBody, Box<dyn std:
     evidence
         .append_membership_events(membership, &[(admitted, 2), (present, 3)])
         .map_err(|error| proof_error("retain Orifina membership evidence", error))?;
-    conduit_workspace_model::WorkspaceBody::open(evidence)
+    conduit_body::BodyLifecycleSession::open(evidence)
         .map_err(|error| proof_error("open Orifina Workspace Body", error))
 }
 
-fn orifina_plans(body: &conduit_workspace_model::WorkspaceBody) -> Vec<BodyFormPlan> {
+fn orifina_plans(body: &conduit_body::BodyLifecycleSession) -> Vec<BodyFormPlan> {
     body.evidence()
         .body
         .workset
@@ -389,7 +394,7 @@ fn orifina_plans(body: &conduit_workspace_model::WorkspaceBody) -> Vec<BodyFormP
 }
 
 fn start_orifina(
-    body: &mut conduit_workspace_model::WorkspaceBody,
+    body: &mut conduit_body::BodyLifecycleSession,
     host: &HostId,
     boot: &BootId,
     sequence: u64,
@@ -411,7 +416,7 @@ fn start_orifina(
 }
 
 fn admit_orifina_companion(
-    body: &mut conduit_workspace_model::WorkspaceBody,
+    body: &mut conduit_body::BodyLifecycleSession,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut evidence = body.evidence().clone();
     let mut membership = evidence.membership.clone();
@@ -450,18 +455,18 @@ fn admit_orifina_companion(
     evidence
         .append_membership_events(membership, &[(admitted, sequence), (joined, sequence + 1)])
         .map_err(|error| proof_error("retain Orifina companion", error))?;
-    *body = conduit_workspace_model::WorkspaceBody::open(evidence)
+    *body = conduit_body::BodyLifecycleSession::open(evidence)
         .map_err(|error| proof_error("reopen distributed Orifina Body", error))?;
     Ok(())
 }
 
 fn tutorial_request(
-    body: &conduit_workspace_model::WorkspaceBody,
+    body: &conduit_body::BodyLifecycleSession,
     stage: &str,
     revision: u64,
-    playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    playback: conduit_tutorial_form::TutorialPlayback,
 ) -> Result<conduit_presentation::GenerativePresenterRequest, Box<dyn std::error::Error>> {
-    conduit_workspace_model::tutorial::generative_request(
+    conduit_tutorial_form::generative_request(
         body,
         format!("request/workspace/orifina/journey/{stage}"),
         revision,

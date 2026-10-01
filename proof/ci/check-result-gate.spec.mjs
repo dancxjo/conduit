@@ -6,7 +6,7 @@ import { test } from "node:test";
 const workflow = readFileSync(process.env.CONDUIT_CHECK_WORKFLOW
   ?? new URL("../../.github/workflows/check.yml", import.meta.url), "utf8");
 const gate = workflow.split("      - name: Preserve the stable required workspace gate\n")[1]
-  ?.split("\n\n  browser-tools:")[0];
+  ?.split(/\n\n  (?:browser-tools|conduitos-proof-image):/)[0];
 assert.ok(gate, "final check gate exists");
 const encoded = gate.split("        run: |\n")[1];
 assert.ok(encoded, "final check gate owns executable result validation");
@@ -21,7 +21,6 @@ function results(overrides = {}) {
     WORKSPACE_MATRIX: '["test-products"]',
     ESP32_RESULT: "skipped",
     STANDALONE_LOCKS_RESULT: "skipped",
-    BROWSER_HOST_RESULT: "skipped",
     LIMINE_RESULT: "skipped",
     TOOLS_RESULT: "skipped",
     X86_RESULT: "skipped",
@@ -48,10 +47,12 @@ test("selective pull request admits intentionally skipped ConduitOS", () => {
   assert.equal(prove(results()).status, 0);
 });
 
-test("trusted controller fixture from before local integration remains compatible", () => {
-  const legacy = results();
-  delete legacy.LOCAL_INTEGRATION_RESULT;
-  assert.equal(prove(legacy).status, 0);
+test("missing local integration truth refuses admission", () => {
+  const incomplete = results();
+  delete incomplete.LOCAL_INTEGRATION_RESULT;
+  const refusal = prove(incomplete);
+  assert.notEqual(refusal.status, 0);
+  assert.match(refusal.stderr, /local-integration result: expected success, got /);
 });
 
 test("selective pull request admits only its required x86 subset", () => {
@@ -83,7 +84,7 @@ test("exhaustive integration requires every ConduitOS aggregate", () => {
     "ARCHITECTURE_RESULT",
     "AARCH64_PRODUCT_RESULT",
   ];
-  if (script.includes("LOCAL_INTEGRATION_RESULT")) requiredResults.unshift("LOCAL_INTEGRATION_RESULT");
+  requiredResults.unshift("LOCAL_INTEGRATION_RESULT");
   for (const field of requiredResults) {
     const failed = prove({ ...exhaustive, [field]: "failure" });
     assert.notEqual(failed.status, 0, field);

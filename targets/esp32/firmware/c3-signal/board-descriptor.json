@@ -1,7 +1,7 @@
 {
   "schema": "conduit.host/esp32-board-descriptor@2",
   "id": "observed/usb-dcf8355d-esp32-c3@1",
-  "fabrication": {
+  "make": {
     "board_marking": "not-visually-inspected",
     "module_marking": "not-visually-inspected",
     "soc_marking": "ESP32-C3 (QFN32)",

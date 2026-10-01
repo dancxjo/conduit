@@ -26,7 +26,7 @@ pub enum BackInspection {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GearFrontPresentation {
     pub subject_identity: String,
-    pub accessibility_name: String,
+    pub name: String,
     pub kind_id: KindId,
     pub port_subjects: Vec<String>,
     /// Existing authoritative descriptors from the checked kind contract.
@@ -37,7 +37,7 @@ pub struct GearFrontPresentation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortPresentation {
     pub subject_identity: String,
-    pub accessibility_name: String,
+    pub name: String,
     pub direction: PortDirection,
     pub value_kind: KindId,
     pub temporal: PortTemporal,
@@ -53,7 +53,7 @@ pub struct CordLineAnnotation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CordPresentation {
     pub subject_identity: String,
-    pub accessibility_name: String,
+    pub name: String,
     pub source_port_subject: String,
     pub sink_port_subject: String,
     pub value_kind: KindId,
@@ -103,11 +103,11 @@ pub fn gear_front_presentation(
     if gear.identity.is_empty() {
         return Err(PatchbayBackError::EmptySubject);
     }
-    let accessibility_name = format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str());
-    validate_text(&accessibility_name)?;
+    let name = format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str());
+    validate_text(&name)?;
     Ok(GearFrontPresentation {
         subject_identity: gear.identity.clone(),
-        accessibility_name,
+        name,
         kind_id: gear.kind_id.clone(),
         port_subjects: gear
             .inputs
@@ -123,16 +123,16 @@ pub fn port_presentation(port: &PatchbayPort) -> Result<PortPresentation, Patchb
     if port.identity.is_empty() {
         return Err(PatchbayBackError::EmptySubject);
     }
-    let accessibility_name = format!(
+    let name = format!(
         "{} {:?} Port carrying {}",
         port.descriptor.port_id.as_str(),
         port.descriptor.direction,
         port.descriptor.value_kind.as_str()
     );
-    validate_text(&accessibility_name)?;
+    validate_text(&name)?;
     Ok(PortPresentation {
         subject_identity: port.identity.clone(),
-        accessibility_name,
+        name,
         direction: port.descriptor.direction,
         value_kind: port.descriptor.value_kind.clone(),
         temporal: port.descriptor.temporal,
@@ -151,16 +151,16 @@ pub fn cord_presentation(
     }) {
         return Err(PatchbayBackError::TextTooLong);
     }
-    let accessibility_name = format!(
+    let name = format!(
         "Cord from {} to {} carrying {}",
         cord.source_port,
         cord.sink_port,
         cord.value_kind.as_str()
     );
-    validate_text(&accessibility_name)?;
+    validate_text(&name)?;
     Ok(CordPresentation {
         subject_identity: cord.identity.clone(),
-        accessibility_name,
+        name,
         source_port_subject: cord.source_port.clone(),
         sink_port_subject: cord.sink_port.clone(),
         value_kind: cord.value_kind.clone(),
@@ -187,10 +187,10 @@ pub fn realize_recursive(
     let graphics = match &subject {
         PatchbaySubjectPresentation::GearFront(front) => gear_graphics(front)?,
         PatchbaySubjectPresentation::Port(port) => {
-            label_graphics(&port.accessibility_name, GraphicsPaintRole::Foreground)?
+            label_graphics(&port.name, GraphicsPaintRole::Foreground)?
         }
         PatchbaySubjectPresentation::Cord(cord) => {
-            label_graphics(&cord.accessibility_name, GraphicsPaintRole::Status)?
+            label_graphics(&cord.name, GraphicsPaintRole::Status)?
         }
     };
     Ok(PatchbayRealization {
@@ -202,15 +202,9 @@ pub fn realize_recursive(
 
 pub fn normalized_subject(realization: &PatchbayRealization) -> (&str, &str) {
     match &realization.subject {
-        PatchbaySubjectPresentation::GearFront(value) => {
-            (&value.subject_identity, &value.accessibility_name)
-        }
-        PatchbaySubjectPresentation::Port(value) => {
-            (&value.subject_identity, &value.accessibility_name)
-        }
-        PatchbaySubjectPresentation::Cord(value) => {
-            (&value.subject_identity, &value.accessibility_name)
-        }
+        PatchbaySubjectPresentation::GearFront(value) => (&value.subject_identity, &value.name),
+        PatchbaySubjectPresentation::Port(value) => (&value.subject_identity, &value.name),
+        PatchbaySubjectPresentation::Cord(value) => (&value.subject_identity, &value.name),
     }
 }
 
@@ -218,8 +212,8 @@ fn gear_graphics(front: &GearFrontPresentation) -> Result<GraphicsScene, Patchba
     let icon = conduit_semantic_catalog::palette_metadata(&front.kind_id)
         .map(|metadata| metadata.icon)
         .unwrap_or(PresentationIconKey::GenericGear);
-    let composition = PresentationComposition::icon(icon.as_str(), &front.accessibility_name)?
-        .frame("gear-front", &front.accessibility_name)?
+    let composition = PresentationComposition::icon(icon.as_str(), &front.name)?
+        .frame("gear-front", &front.name)?
         .badge("ready", "Gear ready")?;
     let mut scene = crate::constrained_graphics_scene(&composition, 160, 96)?;
     scene.push(GraphicsCommand::text(
@@ -302,7 +296,9 @@ mod tests {
                 value_kind: kind_id("value/text"),
                 direction,
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             },
+            value_contract: None,
         }
     }
 
@@ -354,7 +350,7 @@ mod tests {
         let sink = port(PortDirection::Input);
         let port_view = port_presentation(&source).unwrap();
         assert_eq!(port_view.subject_identity, source.identity);
-        assert!(port_view.accessibility_name.contains("Output Port"));
+        assert!(port_view.name.contains("Output Port"));
         let cord = PatchbayCord {
             identity: "cord/0".into(),
             source_port: source.identity,

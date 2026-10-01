@@ -171,5 +171,6 @@ fn signal_port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: signal_value_kind(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

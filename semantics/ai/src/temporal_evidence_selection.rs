@@ -4,8 +4,8 @@ use alloc::{string::String, vec, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    EntityBoundary, TemporalProvenance, TemporalReference, TemporalRetrievalIntent, TemporalSource,
-    TemporalValidity, TransitionDirection,
+    EntityBoundary, TemporalEvidenceSelectionRefusal, TemporalProvenance, TemporalReference,
+    TemporalRetrievalIntent, TemporalSource, TemporalValidity, TransitionDirection,
 };
 
 pub const MAXIMUM_TEMPORAL_EVIDENCE_CANDIDATES: usize = 128;
@@ -34,20 +34,6 @@ pub enum TemporalEvidenceSelection {
     Selected { identities: Vec<String> },
     NeedEarlierHistory,
     BoundaryUnavailable,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TemporalEvidenceSelectionRefusal {
-    EmptyCandidates,
-    TooManyCandidates,
-    EmptyIdentity,
-    IdentityTooLarge,
-    DuplicateIdentity,
-    InvalidReference,
-    InvalidIntent,
-    InvalidProvenance,
-    ReferenceMismatch,
-    MissingSourceTime,
 }
 
 impl TemporalEvidenceBatch {

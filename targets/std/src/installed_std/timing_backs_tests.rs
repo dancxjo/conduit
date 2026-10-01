@@ -1,4 +1,4 @@
-use super::{DebounceBack, TimeoutBack};
+use super::{DeadlineBack, DebounceBack, TimeoutBack};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostCallDisposition, HostCallOutcome, PortId, RequestId, ValueRef,
@@ -70,6 +70,10 @@ fn timeout() -> TimeoutBack {
         closing: false,
         arm_after_emit: false,
     }
+}
+
+fn deadline() -> DeadlineBack {
+    DeadlineBack::prepare(value(60, 8), value(61, 0))
 }
 
 #[test]
@@ -190,4 +194,64 @@ fn timeout_distinguishes_expiry_recovery_reset_and_terminal_cancellation() {
     released.extend(io.test_discards().iter().flatten().copied());
     released.sort_by_key(|value| value.slot);
     assert_eq!(released, vec![value(22, 8), value(32, 1), value(41, 1)]);
+}
+
+#[test]
+fn deadline_close_before_arm_completes_without_request() {
+    let mut operation = deadline();
+    let mut io = frame(None, true, None, true);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert!(io.test_host_request().is_none());
+    assert!(io.test_output(PortId(0)).is_none());
+    assert_eq!(io.test_discards()[0], Some(value(60, 8)));
+    let mut io = frame(None, false, None, true);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(io.test_discards()[0], Some(value(61, 0)));
+    let mut io = frame(None, false, None, true);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
+    );
+}
+
+#[test]
+fn armed_deadline_ignores_input_close_and_emits_request_only_after_completion() {
+    let mut operation = deadline();
+    let arm = value(62, 0);
+    let mut io = frame(Some(arm), false, None, true);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([Some(&[])], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(
+        io.test_host_request().map(|request| request.0),
+        Some(RequestId(1))
+    );
+
+    let mut io = frame(None, true, None, true);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert!(io.test_host_cancellation().is_none());
+    assert!(io.test_output(PortId(0)).is_none());
+
+    let mut io = frame(
+        None,
+        false,
+        Some(completion(1, HostCallDisposition::Completed)),
+        true,
+    );
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
+    );
+    assert_eq!(io.test_output(PortId(0)), Some(value(61, 0)));
+    assert!(io.test_host_cancellation().is_none());
 }

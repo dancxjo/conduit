@@ -21,7 +21,7 @@ expected = {
 }
 for source, digest in expected.items():
     assert hashlib.sha256((font_dir / source).read_bytes()).hexdigest() == digest, source
-corpus = repo / 'products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex'
+corpus = repo / 'mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex'
 points = sorted({int(line.split(':')[0], 16) for line in corpus.read_text().splitlines()})
 manifest = {'pillow': __version__, 'corpus_sha256': hashlib.sha256(corpus.read_bytes()).hexdigest(), 'atlases': []}
 for name, source, size, height in [('body', 'DejaVuSans.ttf', 14, 18), ('heading', 'DejaVuSans-Bold.ttf', 18, 24), ('title', 'DejaVuSans.ttf', 26, 34), ('code', 'DejaVuSansMono.ttf', 13, 18)]:

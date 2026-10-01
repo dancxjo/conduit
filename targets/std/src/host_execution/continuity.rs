@@ -40,6 +40,9 @@ impl StdHost {
                 indicator: None,
                 retained: Some(sources),
                 attach_live: false,
+                external_fore: None,
+                spoken_mask: None,
+                durable_state: None,
             },
         )
         .map_err(|reason| StateContinuationRunFailure {

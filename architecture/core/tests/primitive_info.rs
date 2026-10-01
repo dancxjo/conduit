@@ -4,6 +4,7 @@ use conduit_core::*;
 fn primitive_registry_is_exact_and_has_no_boolean_alias() {
     let registered = [
         (UNIT_INFO_ID, PrimitiveInfoKind::Unit),
+        (TERMINAL_INFO_ID, PrimitiveInfoKind::Terminal),
         (BOOL_INFO_ID, PrimitiveInfoKind::Bool),
         (COUNT_INFO_ID, PrimitiveInfoKind::Count),
         (SCALAR_INFO_ID, PrimitiveInfoKind::Scalar),
@@ -12,12 +13,54 @@ fn primitive_registry_is_exact_and_has_no_boolean_alias() {
         (QUANTITY_INFO_ID, PrimitiveInfoKind::Quantity),
         (DISTANCE_INFO_ID, PrimitiveInfoKind::Distance),
         (FREQUENCY_INFO_ID, PrimitiveInfoKind::Frequency),
+        ("value/u8", PrimitiveInfoKind::U8),
+        ("value/u16", PrimitiveInfoKind::U16),
+        ("value/u32", PrimitiveInfoKind::U32),
+        ("value/u64", PrimitiveInfoKind::U64),
+        ("value/u128", PrimitiveInfoKind::U128),
+        ("value/i8", PrimitiveInfoKind::I8),
+        ("value/i16", PrimitiveInfoKind::I16),
+        ("value/i32", PrimitiveInfoKind::I32),
+        ("value/i64", PrimitiveInfoKind::I64),
+        ("value/i128", PrimitiveInfoKind::I128),
     ];
     for (identity, kind) in registered {
         assert_eq!(primitive_info_kind(identity), Some(kind));
     }
     assert_eq!(primitive_info_kind("value/boolean"), None);
     assert_eq!(primitive_info_kind("domain/leaf@1"), None);
+}
+
+#[test]
+fn fixed_width_integer_info_requires_its_exact_portable_encoding_width() {
+    for (identity, width) in [
+        ("value/u8", 1),
+        ("value/i8", 1),
+        ("value/u16", 2),
+        ("value/i16", 2),
+        ("value/u32", 4),
+        ("value/i32", 4),
+        ("value/u64", 8),
+        ("value/i64", 8),
+        ("value/u128", 16),
+        ("value/i128", 16),
+    ] {
+        assert_eq!(validate_primitive_info(identity, &vec![0; width]), Ok(()));
+        assert_eq!(
+            validate_primitive_info(identity, &vec![0; width.saturating_sub(1)]),
+            Err(PrimitiveInfoRefusal::IntegerLength {
+                expected: width,
+                actual: width.saturating_sub(1),
+            })
+        );
+        assert_eq!(
+            validate_primitive_info(identity, &vec![0; width + 1]),
+            Err(PrimitiveInfoRefusal::IntegerLength {
+                expected: width,
+                actual: width + 1,
+            })
+        );
+    }
 }
 
 #[test]

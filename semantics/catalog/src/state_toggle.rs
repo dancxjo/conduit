@@ -5,8 +5,6 @@ use super::{
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
-#[cfg(feature = "form-catalog")]
-use conduit_core::KindIdentity;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
     PortTemporal, BOOL_INFO_ID,
@@ -39,12 +37,14 @@ pub fn state_toggle_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("value"),
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "initial".to_string(),
@@ -86,9 +86,7 @@ pub fn install_state_toggle_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    };
+    use conduit_form::KindSignature;
     let contract = state_toggle_contract();
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().to_string(),
@@ -99,17 +97,7 @@ pub fn install_state_toggle_catalogs(
         }],
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(STATE_TOGGLE_CONTRACT_REVISION),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![KindConfigurationField {
-                key: "initial".to_string(),
-                default_value: ConfigurationValue::Bool(false),
-                rule: KindConfigurationRule::Any,
-            }],
-        })
+        .insert_kind(state_toggle_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

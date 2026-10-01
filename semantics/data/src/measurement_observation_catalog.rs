@@ -2,8 +2,9 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, QUANTITY_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    QUANTITY_INFO_ID,
 };
 use conduit_form::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
@@ -25,8 +26,31 @@ pub fn install_measurement_observation_catalog(
         startup_parameters: vec![parameter("clock-basis", "Text", "\"control-occurrence\"")],
     })?;
     profile
-        .insert(measurement_observation_definition())
+        .insert_kind(measurement_observation_semantic_contract())
         .map_err(|error| error.to_string())
+}
+
+pub fn measurement_observation_semantic_contract() -> Kind {
+    let definition = measurement_observation_definition();
+    Kind {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "clock-basis".into(),
+            value_type: kind_id("value/text"),
+            has_default: true,
+        }],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: definition.configuration,
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
 }
 
 pub fn measurement_observation_definition() -> KindProjection {
@@ -38,6 +62,7 @@ pub fn measurement_observation_definition() -> KindProjection {
             value_kind: kind_id(QUANTITY_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("measurement"),
@@ -48,6 +73,7 @@ pub fn measurement_observation_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "clock-basis".into(),

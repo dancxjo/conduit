@@ -29,7 +29,8 @@ fn value(bytes: &[u8]) -> ValueRef {
 
 fn placement() -> PlannedGear {
     let offer = conduit_std_offers::instrument_map_std_offer();
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
+        semantic_contract: Default::default(),
         placement_id: PlacementId::from("instrument-map-placement"),
         gear_id: GearId::from("mapper"),
         kind_id: offer.kind_id,
@@ -52,6 +53,7 @@ fn placement() -> PlannedGear {
         limits: offer.limits,
         inputs: offer.inputs,
         outputs: offer.outputs,
+        terminal_transductions: Vec::new(),
         host_calls: offer.host_calls,
         resources: Vec::new(),
         authority: Vec::new(),
@@ -153,24 +155,18 @@ fn eight_buttons_map_to_portable_frequencies_and_preserve_identity_and_time() {
 fn sustain_modulation_and_expression_use_the_distinct_control_port() {
     let mapping = test_mapping();
     let sustain = musical_control(map_control(&mapping, &button(8, true, 9, 20), 0).unwrap());
-    assert_eq!(sustain.control, MusicalControl::Sustain { down: true });
+    assert_eq!(sustain.control, MusicalControl::sustain(true).unwrap());
     assert_eq!(sustain.event_time_micros, 20);
 
     let modulation = musical_control(map_control(&mapping, &analog(0, 250_000, 21), 1).unwrap());
     assert_eq!(
         modulation.control,
-        MusicalControl::Modulation {
-            amount_millionths: 250_000,
-            destination: ModulationDestination::FilterCutoff,
-        }
+        MusicalControl::modulation(250_000, ModulationDestination::FilterCutoff).unwrap()
     );
     let expression = musical_control(map_control(&mapping, &analog(1, 750_000, 22), 2).unwrap());
     assert_eq!(
         expression.control,
-        MusicalControl::Modulation {
-            amount_millionths: 750_000,
-            destination: ModulationDestination::Amplitude,
-        }
+        MusicalControl::modulation(750_000, ModulationDestination::Amplitude).unwrap()
     );
 }
 

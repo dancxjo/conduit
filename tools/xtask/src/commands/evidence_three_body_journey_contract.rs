@@ -29,182 +29,136 @@ pub(super) fn canonical(commit: &str) -> JourneyContract {
         schema: CONTRACT_SCHEMA.into(),
         journey_id: "orifina/tutorial@1".into(),
         git_commit: commit.into(),
-        steps: REQUIRED_MILESTONES
+        actions: REQUIRED_ACTIONS
             .iter()
             .copied()
-            .map(canonical_step)
+            .map(canonical_action)
             .collect(),
     }
 }
 
-fn canonical_step(milestone: JourneyMilestone) -> ContractStep {
-    let (step_id, title, happened, established, concepts, rung, provenance) = match milestone {
-        JourneyMilestone::BodyAbsent => (
-            "body.absent",
-            "Before the body",
-            "The reviewed host began without a body.",
-            "No Body identity existed before this track's birth operation.",
-            &["Body", "Host", "Boot"][..],
-            EvidenceRung::RuntimeReceipt,
-            &[ProvenanceField::Host, ProvenanceField::Boot][..],
+fn canonical_action(action: JourneyActionKind) -> ContractAction {
+    let (action_id, happened, established, concepts, assertions) = match action {
+        JourneyActionKind::Bootstrap => (
+            "journey.bootstrap", "One exact Host boot began a bounded bootstrap from truthful zero-Body state.",
+            "Absence and the start of bootstrap were both retained, rather than inferred from later Birth.",
+            &["Body", "Host", "Boot"][..], &["body-absent", "bootstrap-started"][..],
         ),
-        JourneyMilestone::BootstrapStarted => (
-            "bootstrap.started",
-            "Bootstrap began",
-            "The host started the bounded Body bootstrap flow.",
-            "Bootstrap was an explicit operation on one exact host boot.",
-            &["Host", "Boot", "Body"][..],
-            EvidenceRung::RuntimeReceipt,
-            &[ProvenanceField::Host, ProvenanceField::Boot][..],
+        JourneyActionKind::Birth => (
+            "journey.birth", "The bootstrap created a new Body and admitted its first wake.",
+            "Birth and usability are exact lifecycle truth for this independent Body.",
+            &["Body", "Wake", "Sign"][..], &["body-born", "body-awake"][..],
         ),
-        JourneyMilestone::BodyBorn => (
-            "body.born",
-            "A body was born",
-            "The accepted birth operation created this track's Body.",
-            "One new body identity and biography began.",
-            &["Body", "Host", "Boot", "Sign"][..],
-            EvidenceRung::BodyBiography,
-            &[
-                ProvenanceField::Body,
-                ProvenanceField::Host,
-                ProvenanceField::Boot,
-                ProvenanceField::Sign,
-            ][..],
+        JourneyActionKind::UsefulWork => (
+            "journey.useful-work", "The Body exercised already admitted semantic work.",
+            "An exact Plan and Play performed useful work; embodiment-specific inspection or revision may remain in detailed receipts.",
+            &["Body", "Form", "Plan", "Play"][..], &["standing-form-used"][..],
         ),
-        JourneyMilestone::BodyWoken => (
-            "body.awake",
-            "The body woke",
-            "An admitted wake made the body active.",
-            "The body became Awake through an exact lifecycle transition.",
-            &["Body", "Wake", "Sign"][..],
-            EvidenceRung::BodyBiography,
-            &[ProvenanceField::Body, ProvenanceField::Sign][..],
+        JourneyActionKind::MaskInspectInitialShow => mask_action(
+            "mask.inspect-initial-show",
+            "The Body inspected its exact current Face, Mask route, Plan, and Show.",
+            "The initial human-facing realization is producer evidence, not an inferred screenshot label.",
         ),
-        JourneyMilestone::FormUsed => (
-            "form.used",
-            "A standing Form was used",
-            "Later input exercised already admitted work.",
-            "One exact plan and Play retained the standing Form across use.",
-            &["Body", "Form", "Plan", "Play"][..],
-            EvidenceRung::RuntimeReceipt,
-            &[
-                ProvenanceField::Body,
-                ProvenanceField::Plan,
-                ProvenanceField::Play,
-                ProvenanceField::Sign,
-            ][..],
+        JourneyActionKind::MaskWearAlternate => mask_action(
+            "mask.wear-alternate",
+            "The Body made a second ordinary Mask Form eligible in its revisioned wardrobe.",
+            "Eligibility changed without mutating the immutable body-wide Plan.",
         ),
-        JourneyMilestone::BodyInspected => (
-            "body.inspected",
-            "The body inspected itself",
-            "The resident Face presented current realization truth.",
-            "The Presentation and Manifestation described this exact body.",
-            &["Body", "Presentation", "Manifestation"][..],
-            EvidenceRung::SemanticPresentation,
-            &[
-                ProvenanceField::Body,
-                ProvenanceField::Presentation,
-                ProvenanceField::Manifestation,
-            ][..],
+        JourneyActionKind::MaskPreferAlternate => mask_action(
+            "mask.prefer-alternate",
+            "The Body preferred and selected an already-sealed alternate Mask route.",
+            "Selection changed under the same body-wide Plan; no unsealed route was invented.",
         ),
-        JourneyMilestone::WorkloadRevised => (
-            "workload.revised",
-            "The workload changed",
-            "An ordinary semantic operation admitted another form.",
-            "The body retained a new exact workload revision.",
-            &["Body", "Form", "Plan", "Sign"][..],
-            EvidenceRung::BodyBiography,
-            &[
-                ProvenanceField::Body,
-                ProvenanceField::Plan,
-                ProvenanceField::Sign,
-            ][..],
+        JourneyActionKind::MaskWithdrawSelectedRoute => mask_action(
+            "mask.withdraw-selected-route",
+            "The selected sealed Mask route became unavailable.",
+            "The Body retained NoShow rather than silently retaining an unavailable realization.",
         ),
-        JourneyMilestone::HostAdded => (
-            "host.added",
-            "Another host was added",
-            "The body completed the reviewed Add Host flow.",
-            "An exact additional Host boot became retained body membership.",
-            &["Body", "Host", "Boot", "Plan"][..],
-            EvidenceRung::RuntimeReceipt,
-            &[
-                ProvenanceField::Body,
-                ProvenanceField::Host,
-                ProvenanceField::Boot,
-                ProvenanceField::Plan,
-                ProvenanceField::Sign,
-            ][..],
+        JourneyActionKind::MaskInspectUnavailableShow => mask_action(
+            "mask.inspect-unavailable-show",
+            "The Body inspected the interval in which no worn Mask was realizable.",
+            "Lack of Show remained distinct from Face truth and from authority to replan.",
         ),
-        JourneyMilestone::FaultObserved => (
-            "fault.observed",
-            "A real fault was observed",
-            "Ordinary execution retained an honest failure or refusal.",
-            "The body did not reinterpret failure as success or completion.",
-            &["Body", "Sign", "Refusal"][..],
-            EvidenceRung::StreamDisposition,
-            &[ProvenanceField::Body, ProvenanceField::Sign][..],
+        JourneyActionKind::MaskAddFaceHost => mask_action(
+            "mask.add-face-host",
+            "A new Host or Boot offered a possible Mask realization.",
+            "Availability alone did not mutate the old Plan or create a Show.",
         ),
-        JourneyMilestone::BodyRepaired => (
-            "body.repaired",
-            "The body was repaired",
-            "An ordinary repair restored the required work.",
-            "New runtime evidence established recovery from the retained fault.",
-            &["Body", "Plan", "Play", "Sign"][..],
-            EvidenceRung::RuntimeReceipt,
-            &[
-                ProvenanceField::Body,
-                ProvenanceField::Plan,
-                ProvenanceField::Play,
-                ProvenanceField::Sign,
-            ][..],
+        JourneyActionKind::MaskAdmitReplacementPlan => mask_action(
+            "mask.admit-replacement-plan",
+            "Authorized planning admitted a distinct body-wide replacement Plan.",
+            "The replacement is a new immutable identity, not disguised same-Plan fallback.",
         ),
-        JourneyMilestone::BodyContinued => (
-            "body.long-running",
-            "The body continued",
-            "The repaired Body remained available for later admitted input.",
-            "Finite admitted storage and work did not imply short-lived execution.",
-            &["Body", "Play", "Sign"][..],
-            EvidenceRung::RuntimeReceipt,
-            &[
-                ProvenanceField::Body,
-                ProvenanceField::Play,
-                ProvenanceField::Sign,
-            ][..],
+        JourneyActionKind::MaskInspectReplannedShow => mask_action(
+            "mask.inspect-replanned-show",
+            "The Body inspected the Show realized by the replacement Plan.",
+            "Face identity remained stable while realization identity changed.",
         ),
-        JourneyMilestone::BodyLulled => (
-            "body.lulled",
-            "The body lulled",
-            "An explicit lifecycle action ended the current wake.",
-            "The body became Lulled without being Fulfilled.",
-            &["Body", "Wake", "Sign"][..],
-            EvidenceRung::LifecycleAction,
-            &[ProvenanceField::Body, ProvenanceField::Sign][..],
+        JourneyActionKind::MaskDoffAlternate => mask_action(
+            "mask.doff-alternate",
+            "The Body removed the alternate Mask from its eligible wardrobe.",
+            "A doffed Mask could not remain selected merely because its Back stayed available.",
         ),
-        JourneyMilestone::BodyFulfilled => (
-            "body.fulfilled",
-            "The body was fulfilled",
-            "A selected terminal lifecycle action closed the body biography.",
-            "Fulfilled was irreversible and distinct from readiness or generated prose.",
-            &["Body", "Fulfilled", "Sign"][..],
-            EvidenceRung::FulfilledTransition,
-            &[ProvenanceField::Body, ProvenanceField::Sign][..],
+        JourneyActionKind::MaskInspectRestoredShow => mask_action(
+            "mask.inspect-restored-show",
+            "The Body inspected its restored original Mask under the replacement Plan.",
+            "The journey ended with exact Mask, route, Plan, and Show correlation.",
+        ),
+        JourneyActionKind::BreakAndRecover => (
+            "journey.break-recover", "The Body retained a real failure or refusal, plus an independently evidenced recovery where one existed.",
+            "Failure remained failure; no later success was relabeled as recovery for a different obligation.",
+            &["Body", "Refusal", "Plan", "Play"][..], &["fault-observed"][..],
+        ),
+        JourneyActionKind::RestAndFinish => (
+            "journey.rest-finish", "Explicit lifecycle actions ended the wake and then the Body biography.",
+            "Lulled and Fulfilled remained distinct, ordered terminal truths.",
+            &["Body", "Wake", "Fulfilled"][..], &["body-lulled", "body-fulfilled"][..],
         ),
     };
-    ContractStep {
-        step_id: step_id.into(),
-        milestone: Some(milestone),
-        title: title.into(),
+    ContractAction {
+        action_id: action_id.into(),
+        action,
+        title: action.title().into(),
         what_happened: happened.into(),
         what_conduit_established: established.into(),
         concepts: concepts.iter().map(|value| (*value).into()).collect(),
-        required_assertion: milestone.required_assertion().into(),
-        required_assertion_rung: rung,
-        allowed_dispositions: vec!["established".into()],
-        required_evidence_classes: vec!["semantic-receipt".into()],
-        required_provenance: provenance.to_vec(),
+        required_receipt_assertions: assertions.iter().map(|value| (*value).into()).collect(),
         non_claims: vec![
             "not-body-identity-equality".into(),
             "not-pixel-wording-or-timing-equality".into(),
         ],
     }
+}
+
+fn mask_action(
+    id: &'static str,
+    happened: &'static str,
+    established: &'static str,
+) -> (
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static [&'static str],
+    &'static [&'static str],
+) {
+    let assertion = match id {
+        "mask.inspect-initial-show" => &["mask-mask.inspect-initial-show"][..],
+        "mask.wear-alternate" => &["mask-mask.wear-alternate"][..],
+        "mask.prefer-alternate" => &["mask-mask.prefer-alternate"][..],
+        "mask.withdraw-selected-route" => &["mask-mask.withdraw-selected-route"][..],
+        "mask.inspect-unavailable-show" => &["mask-mask.inspect-unavailable-show"][..],
+        "mask.add-face-host" => &["mask-mask.add-face-host"][..],
+        "mask.admit-replacement-plan" => &["mask-mask.admit-replacement-plan"][..],
+        "mask.inspect-replanned-show" => &["mask-mask.inspect-replanned-show"][..],
+        "mask.doff-alternate" => &["mask-mask.doff-alternate"][..],
+        "mask.inspect-restored-show" => &["mask-mask.inspect-restored-show"][..],
+        _ => &[][..],
+    };
+    (
+        id,
+        happened,
+        established,
+        &["Body", "Face", "Mask", "Plan", "Show"],
+        assertion,
+    )
 }

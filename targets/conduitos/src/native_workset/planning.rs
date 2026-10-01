@@ -1,6 +1,6 @@
 //! Separate exact form partitions, one body Plan, and combined resource bounds.
 use alloc::{collections::BTreeMap, vec::Vec};
-use conduit_body::{BodyFormPlan, BodyPlan, BodyPresenterTopology, Wake};
+use conduit_body::{BodyFormPlan, BodyMaskTopology, BodyPlan, Wake};
 use conduit_core::{
     HostAdvertisement, KindId, PlacementId, Plan, PortId, ResourceClassId, ResourcePoolId,
 };
@@ -50,14 +50,13 @@ impl PreparedNativeWorkset {
         self.plan
     }
 
-    pub(crate) fn with_presenters(
+    pub(crate) fn with_masks(
         mut self,
         wake: &Wake,
-        presenter_topologies: Vec<BodyPresenterTopology>,
+        mask_topologies: Vec<BodyMaskTopology>,
     ) -> Result<Self, WorksetRefusal> {
-        self.plan =
-            BodyPlan::seal_with_presenters(wake, self.plan.forms.clone(), presenter_topologies)
-                .map_err(|_| WorksetRefusal::Plan)?;
+        self.plan = BodyPlan::seal_with_masks(wake, self.plan.forms.clone(), mask_topologies)
+            .map_err(|_| WorksetRefusal::Plan)?;
         Ok(self)
     }
 }

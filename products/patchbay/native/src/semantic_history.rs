@@ -19,7 +19,7 @@ pub(super) struct SemanticCheckpoint {
 impl SemanticCheckpoint {
     pub(super) fn from_editor(
         editor: &patchbay_model::FormEditor,
-        graph: &patchbay_model::PatchbayGraph,
+        graph: &patchbay_graph::PatchbayGraph,
     ) -> Result<Self, String> {
         let view = editor.view();
         let source_document_id = view

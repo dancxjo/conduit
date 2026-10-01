@@ -4,8 +4,8 @@ use alloc::string::String;
 use conduit_core::{semantic_digest, BoundedResourceRef, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedHistoricalTimeline, HistoricalEntryOrigin, HistoricalTimelineEntry,
-    HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES,
+    BoundedHistoricalTimeline, HistoricalEntryOrigin, HistoricalEntryOriginCode,
+    HistoricalTimelineEntry, HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES,
 };
 
 pub const HISTORICAL_TIMELINE_COMMAND_INFO_ID: &str = "history/timeline-command@1";
@@ -112,10 +112,7 @@ pub fn encode_historical_timeline_command_into(
             writer.text(&event_time.clock_basis)?;
             writer.u64(event_time.resolution_ticks)?;
             writer.u64(event_time.uncertainty_ticks)?;
-            writer.u8(match origin {
-                HistoricalEntryOrigin::MachineObservation => 0,
-                HistoricalEntryOrigin::OperatorAuthored => 1,
-            })?;
+            writer.u8(HistoricalEntryOriginCode::encode(*origin)[0])?;
             writer.length_prefixed(&resource)?;
         }
         HistoricalTimelineCommand::Remove { sequence } => {
@@ -163,11 +160,8 @@ pub fn decode_historical_timeline_command(
             event_time
                 .validate()
                 .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidTime)?;
-            let origin = match cursor.u8()? {
-                0 => HistoricalEntryOrigin::MachineObservation,
-                1 => HistoricalEntryOrigin::OperatorAuthored,
-                _ => return Err(HistoricalTimelineCommandCodecRefusal::InvalidCommand),
-            };
+            let origin = HistoricalEntryOriginCode::decode(&[cursor.u8()?])
+                .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidCommand)?;
             let value = BoundedResourceRef::decode(cursor.length_prefixed()?)
                 .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidResource)?;
             HistoricalTimelineCommand::Append {

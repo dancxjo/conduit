@@ -6,8 +6,6 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-#[cfg(feature = "form-catalog")]
-use conduit_core::KindIdentity;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
     PortTemporal,
@@ -41,12 +39,14 @@ pub fn state_count_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("value"),
             value_kind: kind_id(STATE_COUNT_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "start".to_string(),
@@ -97,6 +97,7 @@ pub fn count_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(STATE_COUNT_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),
@@ -118,9 +119,7 @@ pub fn install_count_pipeline_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    };
+    use conduit_form::KindSignature;
     for (contract, revision) in [
         (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
         (
@@ -144,26 +143,7 @@ pub fn install_count_pipeline_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        rule: match field.rule {
-                            KindConfigurationRule::U64Range { minimum, maximum } => {
-                                KindConfigurationRule::U64Range { minimum, maximum }
-                            }
-                            _ => unreachable!("count family only has Count ranges"),
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(contract.into_semantic_contract(revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

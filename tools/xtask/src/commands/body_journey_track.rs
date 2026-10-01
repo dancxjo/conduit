@@ -3,7 +3,7 @@
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::{fs, path::Path};
+use std::{collections::BTreeMap, fs, path::Path};
 
 const STEPS: [(&str, &str, &str); 13] = [
     ("body.absent", "body-absent", "runtime-receipt"),
@@ -11,7 +11,7 @@ const STEPS: [(&str, &str, &str); 13] = [
     ("body.born", "body-born", "body-biography"),
     ("body.awake", "body-awake", "body-biography"),
     ("form.used", "standing-form-used", "runtime-receipt"),
-    ("body.inspected", "body-inspected", "semantic-presentation"),
+    ("body.inspected", "body-inspected", "semantic-face"),
     ("workload.revised", "workload-revised", "body-biography"),
     ("host.added", "host-added", "runtime-receipt"),
     ("fault.observed", "fault-observed", "stream-disposition"),
@@ -30,19 +30,53 @@ pub(crate) struct TrackIdentities {
     pub plan: String,
     pub distributed_plan: Option<String>,
     pub play: String,
-    pub presentation: String,
-    pub manifestation: String,
+    pub face: String,
+    pub show: String,
     pub line: Option<String>,
-    pub signs: [Option<String>; 13],
+    pub signs: BTreeMap<&'static str, String>,
 }
 
 pub(crate) struct TrackSource {
     pub commit: String,
     pub track_id: &'static str,
     pub embodiment: &'static str,
-    pub presenter_id: &'static str,
+    pub mask_form_id: &'static str,
+    pub construction: Vec<ConstructionTruth>,
     pub identities: TrackIdentities,
-    pub facts: [Value; 13],
+    pub facts: Vec<Value>,
+    /// Exact producer-owned outcomes from the shared ordered Mask journey.
+    pub mask_actions: Value,
+    /// Producer-owned descriptions of the concrete event that realized each public action.
+    pub action_events: BTreeMap<&'static str, String>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct ConstructionTruth {
+    pub host_id: String,
+    pub profile: ConstructionStage,
+    pub build: ConstructionStage,
+    pub image: ConstructionStage,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "disposition", rename_all = "kebab-case")]
+pub(crate) enum ConstructionStage {
+    Exact { identity: String },
+    Omitted { reason: String },
+}
+
+impl ConstructionStage {
+    pub(crate) fn exact(identity: impl Into<String>) -> Self {
+        Self::Exact {
+            identity: identity.into(),
+        }
+    }
+
+    pub(crate) fn omitted(reason: impl Into<String>) -> Self {
+        Self::Omitted {
+            reason: reason.into(),
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -55,14 +89,22 @@ struct Artifact<'a> {
     source_facts: &'a Value,
 }
 
-pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
+pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String> {
     if source.commit.len() != 40 || !source.commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("Body track requires an exact commit".into());
     }
     let artifacts = output.join("artifacts");
     fs::create_dir_all(&artifacts)
         .map_err(|error| format!("create Body track artifacts: {error}"))?;
-    let mut steps = Vec::with_capacity(STEPS.len());
+    if source.facts.len() != STEPS.len() {
+        return Err("Body track facts must cover every retained detailed receipt".into());
+    }
+    if source.mask_actions.as_array().map(Vec::len)
+        != Some(conduit_presentation::MASK_JOURNEY_ACTIONS.len())
+    {
+        return Err("Body track requires every producer-owned Mask action".into());
+    }
+    let mut receipts = Vec::with_capacity(STEPS.len());
     for (index, ((step_id, assertion, rung), facts)) in
         STEPS.iter().zip(source.facts.iter()).enumerate()
     {
@@ -99,8 +141,8 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
             "form.used" | "body.repaired" | "body.long-running"
         )
         .then_some(&source.identities.play);
-        let sign = source.identities.signs[index].as_ref();
-        steps.push(serde_json::json!({
+        let sign = source.identities.signs.get(step_id);
+        receipts.push(serde_json::json!({
             "step_id": step_id,
             "assertion": assertion,
             "disposition": "established",
@@ -110,8 +152,8 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
                 "boot_id": if index < 3 { Some(&source.identities.boot) } else if host_added { Some(&source.identities.peer_boot) } else { None },
                 "plan_id": plan,
                 "play_id": play,
-                "presentation_id": (*step_id == "body.inspected").then_some(&source.identities.presentation),
-                "manifestation_id": (*step_id == "body.inspected").then_some(&source.identities.manifestation),
+                "face_id": (*step_id == "body.inspected").then_some(&source.identities.face),
+                "show_id": (*step_id == "body.inspected").then_some(&source.identities.show),
                 "line_id": (host_added).then_some(source.identities.line.as_ref()).flatten(),
                 "sign_id": sign,
             },
@@ -125,6 +167,113 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
             }],
         }));
     }
+    let mask_actions = source
+        .mask_actions
+        .as_array_mut()
+        .expect("Mask action length was checked above");
+    for outcome in mask_actions.iter_mut() {
+        let face = outcome
+            .as_object_mut()
+            .and_then(|object| object.remove("presentation_id"))
+            .ok_or("Body track Mask action lacks its exact Face identity")?;
+        outcome["face_id"] = face;
+    }
+    for (index, (expected, outcome)) in conduit_presentation::MASK_JOURNEY_ACTIONS
+        .iter()
+        .zip(mask_actions.iter_mut())
+        .enumerate()
+    {
+        if outcome["action_id"].as_str() != Some(expected.id()) {
+            return Err(format!(
+                "Body track Mask action {} is absent or reordered",
+                expected.id()
+            ));
+        }
+        let step_id = format!("mask.action-{index}");
+        let assertion = format!("mask-{}", expected.id());
+        let file = format!("{:02}-{step_id}.json", STEPS.len() + index + 1);
+        let relative = format!("artifacts/{file}");
+        let bytes = serde_json::to_vec_pretty(&Artifact {
+            schema: "conduit.evidence/semantic-step-receipt@2",
+            git_commit: &source.commit,
+            track: source.track_id,
+            step_id: &step_id,
+            assertion: &assertion,
+            source_facts: outcome,
+        })
+        .map_err(|error| format!("encode {step_id} receipt: {error}"))?;
+        write_new(&artifacts.join(file), &bytes)?;
+        receipts.push(serde_json::json!({
+            "step_id": step_id,
+            "assertion": assertion,
+            "disposition": "established",
+            "provenance": {
+                "body_id": &source.identities.body,
+                "host_id": null,
+                "boot_id": null,
+                "plan_id": outcome["plan_id"],
+                "play_id": null,
+                "face_id": outcome["face_id"],
+                "show_id": outcome["show_id"],
+                "line_id": null,
+                "sign_id": null,
+            },
+            "evidence": [{
+                "artifact_id": format!("{}/mask-action-{index}", source.track_id),
+                "evidence_class": "semantic-receipt",
+                "assertion_rung": "semantic-face",
+                "documentary_description": format!("{} producer outcome for {}.", source.embodiment, expected.id()),
+                "path": relative,
+                "sha256": format!("sha256:{:x}", Sha256::digest(&bytes)),
+            }],
+        }));
+        outcome["receipt_ids"] = serde_json::json!([format!("mask.action-{index}")]);
+    }
+    let action_receipts = [
+        (
+            "journey.bootstrap",
+            &["body.absent", "bootstrap.started"][..],
+        ),
+        ("journey.birth", &["body.born", "body.awake"][..]),
+        ("journey.useful-work", &["form.used"][..]),
+        (
+            "journey.break-recover",
+            &["fault.observed", "body.repaired"][..],
+        ),
+        (
+            "journey.rest-finish",
+            &["body.lulled", "body.fulfilled"][..],
+        ),
+    ];
+    let mut actions = action_receipts
+        .iter()
+        .map(|(action_id, receipt_ids)| {
+            let concrete_event = source
+                .action_events
+                .get(action_id)
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| format!("Body track lacks concrete event for {action_id}"))?;
+            Ok(serde_json::json!({
+                "action_id": action_id,
+                "concrete_event": concrete_event,
+                "receipt_ids": receipt_ids,
+            }))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mask_public_actions = source
+        .mask_actions
+        .as_array()
+        .expect("Mask action length was checked above")
+        .iter()
+        .map(|outcome| {
+            serde_json::json!({
+                "action_id": outcome["action_id"],
+                "concrete_event": outcome["concrete_event"],
+                "receipt_ids": outcome["receipt_ids"],
+            })
+        })
+        .collect::<Vec<_>>();
+    actions.splice(3..3, mask_public_actions);
     let mut hosts = vec![serde_json::json!({
         "host_id": source.identities.host,
         "boot_id": source.identities.boot,
@@ -134,17 +283,20 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
         "boot_id": source.identities.peer_boot,
     }));
     let document = serde_json::json!({
-        "schema": "conduit.evidence/body-journey-track@2",
+        "schema": "conduit.evidence/body-journey-track@6",
         "journey_id": "orifina/tutorial@1",
         "git_commit": source.commit,
         "track_id": source.track_id,
         "embodiment": source.embodiment,
         "body_id": source.identities.body,
-        "presenter_id": source.presenter_id,
+        "mask_form_id": source.mask_form_id,
+        "construction": source.construction,
         "hosts": hosts,
         "line_ids": source.identities.line.into_iter().collect::<Vec<_>>(),
         "distributed_plan_ids": source.identities.distributed_plan.into_iter().collect::<Vec<_>>(),
-        "steps": steps,
+        "receipts": receipts,
+        "actions": actions,
+        "mask_actions": source.mask_actions,
     });
     let bytes = serde_json::to_vec_pretty(&document)
         .map_err(|error| format!("encode Body track: {error}"))?;
@@ -176,9 +328,11 @@ pub(crate) fn attach_screenshots(
         .as_str()
         .ok_or("missing track id")?
         .to_owned();
-    let steps = track["steps"].as_array_mut().ok_or("missing track steps")?;
+    let receipts = track["receipts"]
+        .as_array_mut()
+        .ok_or("missing track receipts")?;
     for &(step_id, frame, caption) in captures {
-        let step = steps
+        let step = receipts
             .iter_mut()
             .find(|step| step["step_id"] == step_id)
             .ok_or_else(|| format!("unknown captured step {step_id}"))?;

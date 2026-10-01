@@ -3,7 +3,8 @@
 use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
 pub use conduit_semantic_catalog::{KindConfigurationRule, PaletteCategory, PaletteIconKey};
 
-pub const MAX_PALETTE_ENTRIES: usize = 74;
+/// Deliberate finite Patchbay capacity, not a snapshot of today's catalog size.
+pub const MAX_PALETTE_ENTRIES: usize = 128;
 pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -134,7 +135,7 @@ mod tests {
     fn standard_palette_is_exact_bounded_and_searches_contract_truth() {
         let palette = GearPalette::standard().unwrap();
         let supported = conduit_semantic_catalog::palette_contracts().len();
-        assert_eq!(supported, MAX_PALETTE_ENTRIES);
+        assert!(supported < MAX_PALETTE_ENTRIES);
         assert_eq!(palette.entries().len(), supported);
         assert_eq!(palette.search("").unwrap().len(), supported);
         assert_eq!(

@@ -21,7 +21,7 @@ const RANGES: &[(u32, u32)] = &[
 
 // The shared naming source is data, not a second list of transliterations.
 // Its module syntax is ASCII and is already included by the base ranges.
-const NAMING_CATALOG: &str = include_str!("../../../../products/creche/names/catalog.mjs");
+const NAMING_CATALOG: &str = include_str!("../../../../forms/birth/names/catalog.mjs");
 
 pub fn run(args: UnifontSubsetArgs) -> Result<(), Box<dyn std::error::Error>> {
     let input = File::open(&args.input)?;
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn pinned_subset_covers_every_shared_naming_character() {
         let subset = include_str!(
-            "../../../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex"
+            "../../../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex"
         );
         let covered: BTreeSet<u32> = subset
             .lines()
@@ -103,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn writes_only_the_bounded_patchbay_ranges() {
+    fn writes_only_the_bounded_shared_ranges() {
         let source =
             b"001F:00\n0020:01\n007E:02\n0100:03\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n1F980:08\n";
         let mut output = Vec::new();

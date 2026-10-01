@@ -47,7 +47,7 @@ jobs:
             sleep 1
           done
           PATH="$RUNNER_TEMP:$PATH" "$RUNNER_TEMP/ollama" pull "$MODEL"
-          PATH="$RUNNER_TEMP:$PATH" cargo xtask --json host prove-local-model --locked \
+          PATH="$RUNNER_TEMP:$PATH" cargo xtask --json make host prove-local-model --locked \
             --model "$MODEL" --admitted-memory-mib 8192 --orifina-presenter \
             > "$RUNNER_TEMP/live-model-receipt.json"
       - name: Retain live conformance

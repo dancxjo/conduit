@@ -499,6 +499,7 @@ fn primitive(
                 value_kind,
                 direction: PortDirection::Input,
                 temporal,
+                abnormal_kind: None,
             })
             .collect(),
         outputs: output
@@ -508,6 +509,7 @@ fn primitive(
                 value_kind,
                 direction: PortDirection::Output,
                 temporal,
+                abnormal_kind: None,
             })
             .collect(),
         configuration: vec![],

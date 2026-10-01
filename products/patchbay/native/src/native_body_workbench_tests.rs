@@ -14,7 +14,7 @@ use conduit_core::{bind_sign, BootId, HostId, ImplementationId, OfferGeneration,
 const PLAN: &str = "plan/native-fixture-patchbay";
 const IMPLEMENTATION: &str = "native/patchbay@1";
 
-fn fixture(choice: BodyGraduationChoice) -> (patchbay_model::PatchbayGraph, Vec<u8>) {
+fn fixture(choice: BodyGraduationChoice) -> (patchbay_graph::PatchbayGraph, Vec<u8>) {
     let source = r#"form signal {
     upper: text/upper
     show: presentation/text

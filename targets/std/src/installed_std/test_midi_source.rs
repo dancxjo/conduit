@@ -90,7 +90,8 @@ const fn midi_fixture_fail() -> StepOutcome {
 impl TestMidiSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-midi-performance-source"),
@@ -142,12 +143,14 @@ fn outputs() -> Vec<PortDescriptor> {
             value_kind: kind_id(MUSIC_NOTE_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         },
         PortDescriptor {
             port_id: port_id("controls"),
             value_kind: kind_id(MUSIC_CONTROL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         },
     ]
 }
@@ -194,7 +197,7 @@ fn prepare(
             .map_err(|error| format!("prepare test MIDI pitch: {error:?}"))?;
     let on = MusicalNoteEvent::new(NoteOccurrenceId(41), pitch, Gate::On, u16::MAX, 10, 0)
         .map_err(|error| format!("prepare test MIDI note-on: {error:?}"))?;
-    let sustain = MusicalControlEvent::new(MusicalControl::Sustain { down: true }, 11, 1)
+    let sustain = MusicalControlEvent::new(MusicalControl::sustain(true).unwrap(), 11, 1)
         .map_err(|error| format!("prepare test MIDI sustain: {error:?}"))?;
     let off = MusicalNoteEvent::new(NoteOccurrenceId(41), pitch, Gate::Off, 0, 12, 2)
         .map_err(|error| format!("prepare test MIDI note-off: {error:?}"))?;

@@ -35,6 +35,34 @@ fn representative_changes_select_only_owned_heavy_suites() {
 }
 
 #[test]
+fn rust_test_only_face_changes_stay_in_workspace_proof() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            "semantics/presentation/tests/human_interaction.rs".to_owned(),
+            "targets/browser/runtime/src/workspace_mask_tests.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan
+        .changed_packages
+        .contains(&"conduit-presentation".to_owned()));
+    assert!(plan
+        .changed_packages
+        .contains(&"conduit-browser-runtime".to_owned()));
+    assert!(plan.workspace_shards.values().any(|required| *required));
+}
+
+#[test]
 fn test_extraction_narrowing_retains_workspace_proof_only() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
@@ -152,7 +180,7 @@ fn dispatcher_command_implementation_has_command_local_impact() {
 }
 
 #[test]
-fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
+fn actions_monitor_bootstrap_is_controller_work_not_product_make() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let plan = plan_for_paths(
@@ -187,7 +215,7 @@ fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
 }
 
 #[test]
-fn check_result_gate_contract_does_not_fabricate_products() {
+fn check_result_gate_contract_does_not_make_products() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let complete = plan_for_paths(
@@ -226,14 +254,14 @@ fn check_result_gate_contract_does_not_fabricate_products() {
 fn pages_products_follow_the_typed_live_ownership_registry() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
-    let tour = plan_for_paths(
+    let journey = plan_for_paths(
         &root,
-        vec!["products/tour/assets/tour.mjs".to_owned()],
+        vec!["docs/journeys/tour/chapter-1.md".to_owned()],
         &packages,
     )
     .unwrap();
-    assert!(tour.pages_products_required);
-    assert_eq!(tour.pages_product_proofs, ["products.pages-carrier"]);
+    assert!(journey.pages_products_required);
+    assert_eq!(journey.pages_product_proofs, ["products.pages-carrier"]);
 
     let debugger = plan_for_paths(
         &root,
@@ -242,10 +270,7 @@ fn pages_products_follow_the_typed_live_ownership_registry() {
     )
     .unwrap();
     assert!(debugger.pages_products_required);
-    assert_eq!(
-        debugger.pages_product_proofs,
-        ["products.pages-carrier", "products.patchbay-debugger"]
-    );
+    assert_eq!(debugger.pages_product_proofs, ["products.pages-carrier"]);
 
     for path in [
         "docs/architecture/example.md",
@@ -259,7 +284,7 @@ fn pages_products_follow_the_typed_live_ownership_registry() {
 }
 
 #[test]
-fn registered_form_commands_do_not_fabricate_unrelated_machines() {
+fn registered_form_commands_do_not_make_unrelated_machines() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let plan = plan_for_paths(
@@ -295,7 +320,110 @@ fn registered_form_commands_do_not_fabricate_unrelated_machines() {
 }
 
 #[test]
-fn complete_tongues_analysis_slice_avoids_unrelated_machine_fabrication() {
+fn canonical_form_sources_retain_repository_form_proof() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    for path in [
+        "forms/hello/main.conduit",
+        "forms/not-yet-inventory/main.conduit",
+    ] {
+        let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert_eq!(
+            plan.repository_command_proofs,
+            ["repository.forms"],
+            "{path}"
+        );
+        assert!(!plan.full_fallback, "{path}");
+        assert!(plan.browser_required, "{path}");
+        assert_eq!(plan.changed_packages, ["xtask"], "{path}");
+    }
+}
+
+#[test]
+fn form_fixture_code_uses_cargo_package_impact() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    for (path, browser_required) in [
+        ("forms/little-seismograph/fixture/Cargo.toml", true),
+        ("forms/little-seismograph/fixture/src/lib.rs", true),
+        (
+            "forms/little-seismograph/fixture/tests/little_seismograph.rs",
+            false,
+        ),
+    ] {
+        let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert!(plan.repository_command_proofs.is_empty(), "{path}");
+        assert!(!plan.full_fallback, "{path}");
+        assert_eq!(plan.browser_required, browser_required, "{path}");
+        assert_eq!(
+            plan.changed_packages,
+            ["conduit-little-seismograph-fixture"],
+            "{path}"
+        );
+        if browser_required {
+            assert_eq!(
+                plan.suite_reasons["browser"],
+                ["package-dependency:conduit-little-seismograph-fixture"],
+                "{path}"
+            );
+        } else {
+            assert!(plan.suite_reasons["browser"].is_empty(), "{path}");
+        }
+        assert!(plan.workspace_shards["lint"], "{path}");
+        assert!(plan.workspace_shards["test-hosts"], "{path}");
+        assert!(plan.workspace_shards["test-products"], "{path}");
+    }
+}
+
+#[test]
+fn browser_admission_runs_only_the_owned_product_shards() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    let semantic = plan_for_paths(
+        &root,
+        vec!["semantics/time/src/window_back.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(semantic.browser_required);
+    assert_eq!(semantic.browser_admission_shards, ["browser-host"]);
+
+    let creche = plan_for_paths(
+        &root,
+        vec!["targets/browser/runtime/src/creche/spore_target.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(
+        creche.browser_admission_shards,
+        ["browser-host", "creche-workspace"]
+    );
+
+    let presentation = plan_for_paths(
+        &root,
+        vec!["semantics/presentation/src/interaction.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(
+        presentation.browser_admission_shards,
+        ["browser-host", "pages"]
+    );
+
+    let workflow = plan_for_paths(
+        &root,
+        vec![".github/workflows/product-carrier.yml".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(workflow.browser_admission_shards, BROWSER_ADMISSION_SHARDS);
+}
+
+#[test]
+fn complete_tongues_analysis_slice_avoids_unrelated_machine_make() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let paths = [
@@ -487,7 +615,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "products/creche/tools/stage-creche-product.sh".to_owned(),
-            "targets/raspberry-pi/fabrication/src/lib.rs".to_owned(),
+            "targets/raspberry-pi/make/src/lib.rs".to_owned(),
         ],
         &packages,
     )
@@ -505,7 +633,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
             "products/patchbay/html/assets/app.js".to_owned(),
             "proof/browser/pages-front-door.spec.mjs".to_owned(),
             "targets/browser/tools/render-product-masthead.mjs".to_owned(),
-            "products/tour/tools/stage-tour-product.sh".to_owned(),
+            "docs/journeys/tour/chapter-1.md".to_owned(),
             "products/creche/tools/stage-creche-product.sh".to_owned(),
             "site/tools/stage-pages-root.sh".to_owned(),
             "products/patchbay/tools/stage-patchbay-product.sh".to_owned(),
@@ -529,7 +657,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let creche_presentation = plan_for_paths(
         &root,
         vec![
-            "proof/browser/executable-tour.spec.mjs".to_owned(),
+            "proof/browser/creche-browser-configuration.spec.mjs".to_owned(),
             "products/creche/tools/stage-creche-product.sh".to_owned(),
             "products/creche/browser/creche-target-catalog.mjs".to_owned(),
             "products/creche/browser/creche.css".to_owned(),
@@ -581,14 +709,14 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             ".github/workflows/check.yml".to_owned(),
-            "products/tour/assets/tour.css".to_owned(),
+            "products/creche/browser/creche.css".to_owned(),
         ],
         &packages,
     )
     .unwrap();
     assert!(check_and_product.pages_products_required);
 
-    let path = ".github/workflows/tour-products.yml";
+    let path = ".github/workflows/product-carrier.yml";
     let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
     assert!(!focused_workflow.full_fallback, "{path}");
     assert!(!focused_workflow.esp32_required, "{path}");
@@ -651,6 +779,42 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let unknown =
         plan_for_paths(&root, vec!["unknown/new-input.bin".to_owned()], &packages).unwrap();
     assert!(unknown.full_fallback);
+}
+
+#[test]
+fn native_patchbay_changes_do_not_make_browser_or_pages_work() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            "Cargo.lock".to_owned(),
+            "products/patchbay/native/Cargo.toml".to_owned(),
+            "products/patchbay/native/src/gui.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert!(!plan.browser_required);
+    assert!(!plan.pages_products_required);
+    assert!(plan.pages_product_proofs.is_empty());
+    assert!(plan
+        .changed_packages
+        .contains(&"patchbay-native".to_owned()));
+    assert!(plan.workspace_shards.values().any(|required| *required));
+
+    let browser_manifest = plan_for_paths(
+        &root,
+        vec![
+            "Cargo.lock".to_owned(),
+            "products/patchbay/html/Cargo.toml".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(browser_manifest.browser_required);
+    assert!(browser_manifest.pages_products_required);
 }
 
 #[test]
@@ -729,6 +893,7 @@ fn esp32_paths_select_exact_target_obligations() {
     )
     .unwrap();
     assert_eq!(c3.esp32_targets, ["c3"]);
+    assert!(!c3.pages_products_required);
     assert!(c3
         .affected_test_packages
         .contains(&"conduit-esp32-c3-signal".to_owned()));
@@ -752,13 +917,14 @@ fn esp32_paths_select_exact_target_obligations() {
     .unwrap();
     assert_eq!(shared_source.esp32_targets.len(), 3);
 
-    let shared_fabrication = plan_for_paths(
+    let shared_make = plan_for_paths(
         &root,
-        vec!["targets/esp32/fabrication/src/family.rs".to_owned()],
+        vec!["targets/esp32/make/src/family.rs".to_owned()],
         &packages,
     )
     .unwrap();
-    assert_eq!(shared_fabrication.esp32_targets.len(), 3);
+    assert_eq!(shared_make.esp32_targets.len(), 3);
+    assert!(!shared_make.pages_products_required);
 
     let shared_dependency = plan_for_paths(
         &root,
@@ -784,6 +950,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
     )
     .unwrap();
     assert_eq!(xhci.conduitos_x86_proofs.len(), 9);
+    assert!(!xhci.pages_products_required);
     assert!(xhci.conduitos_x86_proofs.contains(&"xhci".to_owned()));
     assert!(xhci
         .conduitos_x86_proofs
@@ -818,6 +985,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
     )
     .unwrap();
     assert_eq!(common.conduitos_x86_proofs.len(), 9);
+    assert!(!common.pages_products_required);
     assert_eq!(common.conduitos_architectures.len(), 4);
     assert!(common.conduitos_aarch64_product_required);
 }
@@ -867,8 +1035,8 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
     assert!(workflow
         .contains("inputs.full_suite && '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]'"));
     assert!(workflow.contains("conduitos-proof-image:"));
-    assert!(workflow.contains("cargo xtask conduitos prepare-proof-image --locked"));
-    assert!(workflow.contains("cargo xtask conduitos prove-many"));
+    assert!(workflow.contains("cargo xtask make conduitos prepare-proof-image --locked"));
+    assert!(workflow.contains("cargo xtask make conduitos prove-many"));
     assert!(
         workflow.contains("--max-parallel 4 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked")
     );
@@ -905,7 +1073,7 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
 #[test]
 fn product_preflight_uses_the_trusted_controller_for_behind_candidates() {
     let root = crate::workspace::workspace_root().unwrap();
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml")).unwrap();
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml")).unwrap();
     assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
     assert!(workflow.contains(
         "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci standalone-locks --locked"

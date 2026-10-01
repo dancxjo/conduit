@@ -167,7 +167,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     },
     ProofCommandContract {
         id: "conduitos.observatory",
-        command: "cargo xtask conduitos prove --arch x86-64",
+        command: "cargo xtask make conduitos prove --arch x86-64",
         proof_class: ProofClass::FreestandingEmulator,
         required_tools_or_targets: &[
             "i686-unknown-uefi",
@@ -243,7 +243,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     },
     ProofCommandContract {
         id: "pico.firmware-build",
-        command: "cargo xtask pico build",
+        command: "cargo xtask make pico build",
         proof_class: ProofClass::FirmwareBuild,
         required_tools_or_targets: &["thumbv6m-none-eabi", "elf2uf2-rs"],
         named_artifacts: &["targets/rp2040/firmware/pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
@@ -251,7 +251,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     },
     ProofCommandContract {
         id: "pico.local-hardware",
-        command: "cargo xtask pico verify",
+        command: "cargo xtask make pico verify",
         proof_class: ProofClass::PhysicalLocalHardware,
         required_tools_or_targets: &["Pico W", "USB CDC sign port"],
         named_artifacts: &[],
@@ -267,7 +267,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     },
     ProofCommandContract {
         id: "body.pico-admission-physical",
-        command: "cargo xtask pico prove-body-admission --link-port <path>",
+        command: "cargo xtask make pico prove-body-admission --link-port <path>",
         proof_class: ProofClass::PhysicalCrossHost,
         required_tools_or_targets: &["provisioned Pico W", "USB CDC link port", "udevadm"],
         named_artifacts: &[],
@@ -308,14 +308,6 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "target/pico-appliance-two-pico-physical.json",
         ],
         allowed_claims: &["one physical Pico W client associates with the exact finite Pico W appliance, receives its bounded DHCP lease, resolves hello.conduit, loads the literal Hello response, and correlates its exact receipt with the appliance terminal Sign sequence"],
-    },
-    ProofCommandContract {
-        id: "copy.unfamiliar-user",
-        command: "target/debug/conduit copy <source> <destination> --inspect",
-        proof_class: ProofClass::ManualObservation,
-        required_tools_or_targets: &["conduit"],
-        named_artifacts: &[],
-        allowed_claims: &["an unfamiliar user can complete and inspect the copy task"],
     },
     ProofCommandContract {
         id: "r1.new-plan-recovery-simulation",
@@ -546,9 +538,7 @@ mod tests {
         assert!(config.contains("retries: 0"));
         assert!(config.contains("name: \"chromium\""));
         assert!(config.contains("name: \"firefox\""));
-        assert!(config.contains(
-            "testMatch: [\"browser-webrtc-body.spec.mjs\", \"home-host.spec.mjs\", \"home-cross-front.spec.mjs\"]"
-        ));
+        assert!(config.contains("testMatch: [\"browser-webrtc-body.spec.mjs\"]"));
     }
 
     #[test]

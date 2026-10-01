@@ -3,6 +3,15 @@
 #[cfg(feature = "host-profile")]
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    PulseConfiguration, Signal, ToggleConfiguration, Trigger, TriggerConfiguration,
+};
+
 #[cfg(feature = "host-profile")]
 mod trigger;
 #[cfg(feature = "host-profile")]
@@ -25,11 +34,10 @@ pub use canonical::{primary_signal_startup_catalog, signal_startup_catalog};
 use conduit_core::{
     kind_id, port_id, present_host_call_requirement, resource_offer, resource_requirement,
     wait_host_call_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
-    ExecutionProfileId, HostCallRequirement, Kind, KindId, KindIdentity, PortDescriptor,
-    PortDirection, ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
-    TIMER_RESOURCE_CLASS,
+    ExecutionProfileId, HostCallRequirement, Kind, KindConfigurationField, KindConfigurationRule,
+    KindId, KindIdentity, PortDescriptor, PortDirection, ResourceOffer, ResourceRequirement,
+    ValuePayload, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
-use serde::{Deserialize, Serialize};
 
 pub const SIGNAL_VALUE_KIND: &str = "value/signal";
 pub const PULSE_KIND: &str = "flow/pulse";
@@ -65,19 +73,6 @@ pub const PULSE_EXECUTION_PROFILE: &str = "conduit.signal/pulse-hosted@1";
 pub const SHOW_EXECUTION_PROFILE: &str = "conduit.signal/show-hosted@1";
 pub const SIGNAL_ENCODED_LEN_USIZE: usize = SIGNAL_ENCODED_LEN as usize;
 pub type EncodedSignal = [u8; SIGNAL_ENCODED_LEN_USIZE];
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Signal {
-    pub sequence: u64,
-    pub level: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PulseConfiguration {
-    pub count: u64,
-    pub period_ms: u64,
-    pub initial_level: bool,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SignalProfileError {
@@ -187,6 +182,7 @@ pub fn pulse_outputs() -> Vec<PortDescriptor> {
         value_kind: signal_value_kind(),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 
@@ -197,6 +193,7 @@ pub fn show_inputs() -> Vec<PortDescriptor> {
         value_kind: signal_value_kind(),
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 
@@ -210,7 +207,29 @@ pub fn pulse_semantic_contract() -> Kind {
         kind_contract_revision: pulse_contract_revision(),
         inputs: Vec::new(),
         outputs: pulse_outputs(),
-        configuration: Default::default(),
+        configuration: vec![
+            KindConfigurationField {
+                key: "count".into(),
+                default_value: ConfigurationValue::U64(16),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: MAX_SIGNAL_COUNT,
+                },
+            },
+            KindConfigurationField {
+                key: "period-ms".into(),
+                default_value: ConfigurationValue::U64(250),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: u64::MAX,
+                },
+            },
+            KindConfigurationField {
+                key: "initial".into(),
+                default_value: ConfigurationValue::Bool(false),
+                rule: KindConfigurationRule::Any,
+            },
+        ],
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
@@ -245,15 +264,15 @@ pub fn pulse_configuration_entries(config: &PulseConfiguration) -> Vec<Configura
     vec![
         ConfigurationEntry {
             key: "count".to_string(),
-            value: ConfigurationValue::U64(config.count),
+            value: ConfigurationValue::U64(*config.count()),
         },
         ConfigurationEntry {
             key: "period-ms".to_string(),
-            value: ConfigurationValue::U64(config.period_ms),
+            value: ConfigurationValue::U64(*config.period_ms()),
         },
         ConfigurationEntry {
             key: "initial".to_string(),
-            value: ConfigurationValue::Bool(config.initial_level),
+            value: ConfigurationValue::Bool(*config.initial_level()),
         },
     ]
 }
@@ -287,11 +306,12 @@ pub fn parse_pulse_configuration(
     if count > MAX_SIGNAL_COUNT {
         return Err(SignalProfileError::InvalidConfiguration("count"));
     }
-    Ok(PulseConfiguration {
+    PulseConfiguration::new(
         count,
-        period_ms: period_ms.ok_or(SignalProfileError::MissingConfiguration("period-ms"))?,
-        initial_level: initial_level.ok_or(SignalProfileError::MissingConfiguration("initial"))?,
-    })
+        initial_level.ok_or(SignalProfileError::MissingConfiguration("initial"))?,
+        period_ms.ok_or(SignalProfileError::MissingConfiguration("period-ms"))?,
+    )
+    .map_err(|_| SignalProfileError::InvalidConfiguration("count"))
 }
 
 pub fn signal_level_for_sequence(sequence: u64, initial_level: bool) -> bool {
@@ -304,8 +324,8 @@ pub fn signal_level_for_sequence(sequence: u64, initial_level: bool) -> bool {
 
 pub fn encode_signal_fixed(signal: &Signal) -> EncodedSignal {
     let mut encoded = [0u8; SIGNAL_ENCODED_LEN_USIZE];
-    encoded[..8].copy_from_slice(&signal.sequence.to_le_bytes());
-    encoded[8] = u8::from(signal.level);
+    encoded[..8].copy_from_slice(&signal.sequence().to_le_bytes());
+    encoded[8] = u8::from(*signal.level());
     encoded
 }
 
@@ -320,10 +340,8 @@ pub fn encode_signal_into(signal: &Signal, encoded: &mut [u8]) -> Result<(), Sig
 pub fn decode_signal_fixed(encoded: &EncodedSignal) -> Signal {
     let mut sequence = [0u8; 8];
     sequence.copy_from_slice(&encoded[..8]);
-    Signal {
-        sequence: u64::from_le_bytes(sequence),
-        level: encoded[8] != 0,
-    }
+    Signal::new(encoded[8] != 0, u64::from_le_bytes(sequence))
+        .expect("fixed Signal bytes contain valid native fields")
 }
 
 #[cfg(feature = "host-profile")]
@@ -350,10 +368,8 @@ pub fn decode_signal_bytes(encoded: &[u8]) -> Result<Signal, SignalProfileError>
     }
     let mut sequence = [0u8; 8];
     sequence.copy_from_slice(&encoded[..8]);
-    Ok(Signal {
-        sequence: u64::from_le_bytes(sequence),
-        level: encoded[8] != 0,
-    })
+    Signal::new(encoded[8] != 0, u64::from_le_bytes(sequence))
+        .map_err(|_| SignalProfileError::InvalidConfiguration("signal"))
 }
 
 pub fn signal_payload_size() -> u32 {
@@ -377,3 +393,30 @@ pub fn primary_signal_profile_catalog() -> conduit_form::ProfileCatalog {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod native_type_tests {
+    use super::{PulseConfiguration, Signal, ToggleConfiguration, Trigger, TriggerConfiguration};
+    use conduit_form::rust_binding::NativeRustBinding;
+
+    fn assert_round_trip<T>(value: T)
+    where
+        T: NativeRustBinding + Clone + core::fmt::Debug + PartialEq,
+    {
+        let structured = value.clone().into_structured().unwrap();
+        assert_eq!(structured.value_type(), &T::semantic_type().unwrap());
+        assert_eq!(T::from_structured(structured).unwrap(), value);
+    }
+
+    #[test]
+    fn signal_values_and_finite_configurations_are_native_records() {
+        assert_round_trip(Signal::new(true, 7).unwrap());
+        assert_round_trip(PulseConfiguration::new(16, false, 250).unwrap());
+        assert_round_trip(Trigger::new(9).unwrap());
+        assert_round_trip(TriggerConfiguration::new(16).unwrap());
+        assert_round_trip(ToggleConfiguration::new(true).unwrap());
+
+        assert!(PulseConfiguration::new(4_097, false, 250).is_err());
+        assert!(TriggerConfiguration::new(4_097).is_err());
+    }
+}

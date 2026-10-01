@@ -128,7 +128,7 @@ pub fn encode_native(
 ) -> Result<Vec<u8>, JoinError> {
     let host_id = conduit_core::HostId::from(crate::identity::hex(&identities.host));
     let boot_id = conduit_core::BootId::from(crate::identity::hex(&identities.boot));
-    let advertisement = crate::presenter_control::native_host_advertisement(&host_id, &boot_id, 1);
+    let advertisement = crate::mask_control::native_host_advertisement(&host_id, &boot_id, 1);
     encode(provision, &advertisement)
 }
 
@@ -147,7 +147,7 @@ mod tests {
                 "body_description_id":"description/one", "host_entry_name":"host", "host_configuration_id":"config/one",
                 "profile_id":"profile/one", "build_id":"build/one", "image_id":"image/one",
                 "image_content_digest":format!("sha256:{}", "1".repeat(64)), "target":"conduitos/x86_64/pc",
-                "output":"disk-image", "fabrication":{}, "source_identity":"source/one"},
+                "output":"disk-image", "make":{}, "source_identity":"source/one"},
             "invitation_provision":{"invitation_id":"invitation/one", "nonce":vec![17;32],
                 "expires_at_millis":1_800_000_000_000_u64, "secret":vec![13;32]}
         }))
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn emits_one_bounded_non_member_serial_join_without_logging_the_secret() {
-        let advertisement = crate::presenter_control::native_host_advertisement(
+        let advertisement = crate::mask_control::native_host_advertisement(
             &HostId::from("host/one"),
             &BootId::from("boot/one"),
             1,

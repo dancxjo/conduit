@@ -9,7 +9,7 @@ Place material by the contract that owns it. File type, reuse count, and the act
 | Defines universal form, body, plan, play, kernel, or identity machinery | `architecture/` | Product state, concrete devices, proof-only scenarios |
 | Defines portable host-neutral meaning | `semantics/` | DOM, sockets, boot choices, credentials |
 | Realizes a reusable protocol, device contract, or lower mechanism | `mechanisms/` | Speculative sharing without an independent contract |
-| Generically manufactures machinery | `fabrication/` | Board-specific build policy or a concrete body |
+| Generically manufactures machinery | `make/` | Board-specific build policy or a concrete body |
 | Exists because of a browser, OS, board, or machine environment | `targets/` | Tour routing or another named product's state |
 | Is a named human-facing product | `products/` | Generic host truth or a concrete robot composition |
 | Is a concrete body composition | `bodies/` | A generic framework or a renamed proof fixture |
@@ -25,15 +25,15 @@ Root Cargo metadata, toolchain/configuration files, licensing and contributor gu
 
 `products/conduit` owns the installed CLI entrance and `products/workspace` owns
 the primary body-centered product surface, including zero-body bootstrap and
-reviewed initial-workset selection. `products/tour` owns authored tutorial
-content and its retained standalone compatibility entrance;
+reviewed initial-workset selection. `forms/tour` owns the resident tutorial
+meaning while `docs/journeys/tour` owns its authored journey;
 `products/creche` owns target preparation and its retained compatibility route,
 not another bootstrap state model; `products/patchbay` owns specialized
 inspection/editing implementations and compatibility entrances while Patchbay
 also runs as a resident form. These package boundaries do not create separate
 body, scheduler, lifecycle, or authority truths. There is no reserved empty
-`products/book`: historical Book routes and saved-state compatibility are
-explicit Tour migration boundaries.
+`products/book` or `products/tour`: their historical routes and saved-state
+compatibility are retired pre-v1 application architecture.
 
 `bodies/pete` is a concrete robot body, with its own composition and configurations. The unfinished embodied-house specimen in #2293 belongs under `bodies/<specimen>` when its concrete composition is added; its existing semantic work does not establish a persistent live House.
 
@@ -47,17 +47,20 @@ Zero-body bootstrap selects ordinary initial active forms into body workload rev
 
 ## Browser and target boundaries
 
-body bootstrap and current-surface browser state live in
-`products/workspace/browser/`. Tour content and standalone compatibility assets
-live in `products/tour/browser/`; target-preparation and Crèche compatibility
-assets live in `products/creche/browser/`. Patchbay's specialized browser
-package is `products/patchbay/html/`; its native icons are in
-`products/patchbay/native/assets/`. Package names do not need to change merely
-to make directory spelling uniform.
+The browser Host owns generic package admission/loading, DOM and storage
+effects, identity, membership, and bounded Face realization. Renderer-neutral
+human meaning belongs to Face; browser layout and interaction mechanism belong
+to the selected Mask. Product state is never moved into Host assets merely to
+make staging convenient. Explicit package dependency declarations select
+finite bytes from their real owners.
 
-The browser host owns generic package admission/loading, DOM and storage effects, identity, membership and bounded presentation. Renderer-neutral UI meaning belongs in `semantics/presentation`. Product state is never moved back into host assets to make staging convenient. Explicit package dependency declarations select finite bytes from their real owners. See [browser product source ownership](browser-product-source-ownership.md).
+Legacy Tour, Crèche, Workspace, Home, and Patchbay compatibility packages still
+occupy `products/` while their useful Forms, journeys, make, and Mask
+machinery are extracted under [#4231](https://github.com/dancxjo/conduit/issues/4231).
+Their current directory placement is migration state, not a repository law or
+permission to create another application/runtime boundary.
 
-[Target-family ownership](../targets/README.md) defines the optional `host`, `runtime`, `offers`, `fabrication`, `firmware`, `deployment`, `profiles`, `tools`, and `proof` responsibilities. No target gets empty directories for symmetry. Target host examples live under `targets/<family>/profiles/`; Pete configuration belongs in `bodies/pete/profiles/`; proof-only topologies belong in `proof/fixtures/bodies/`. Target setup and credential/flash helpers belong in `targets/<family>/tools/`.
+[Target-family ownership](../targets/README.md) defines the optional `host`, `runtime`, `offers`, `make`, `firmware`, `deployment`, `profiles`, `tools`, and `proof` responsibilities. No target gets empty directories for symmetry. Target host examples live under `targets/<family>/profiles/`; Pete configuration belongs in `bodies/pete/profiles/`; proof-only topologies belong in `proof/fixtures/bodies/`. Target setup and credential/flash helpers belong in `targets/<family>/tools/`.
 
 Conduit product integration tests live in `products/conduit/tests/`. Package tests stay with their package. Repository-wide proof suites live under `proof/`; Playwright metadata and dependencies belong in `proof/browser/`. Target-local proof appliances remain under their exact target only when their manufacturing/bring-up contract requires it.
 

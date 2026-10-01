@@ -1,0 +1,66 @@
+# Authoritative portable text meaning. Rust consumes generated bindings.
+
+type MorseKeyPhase =
+    pressed
+    | released
+
+type MorseKeyTransition = {
+    clock_basis: Text <= 96B not in [""]
+    monotonic_micros: U64
+    phase: MorseKeyPhase
+    sequence: U64
+}
+
+type AddressDetectionRefusal =
+    recognized_text_too_large
+
+type AddressDetection =
+    not_addressed
+    | addressed {
+        matched_name_index: U8 in 0..=7
+        utterance: Text <= 256B
+    }
+
+type AddressConfigurationError =
+    empty
+    | too_many_names
+    | empty_name
+    | name_too_large
+    | invalid_name
+    | duplicate_name
+
+type AddressValueError =
+    bound_exceeded
+    | malformed
+    | non_canonical
+    | invalid_value
+
+type MorseError =
+    empty
+    | text_too_long
+    | unsupported_character
+    | invalid_word_gap
+    | invalid_unit_millis
+    | segment_capacity
+    | output_capacity
+    | malformed_encoding
+    | non_canonical_encoding
+    | invalid_pattern
+
+type MorseKeyRefusal =
+    invalid_unit_millis
+    | invalid_transition_capacity
+    | invalid_clock_basis
+    | clock_basis_mismatch
+    | duplicate_sequence
+    | sequence_gap
+    | non_monotonic_time
+    | wrong_phase
+    | ambiguous_duration
+    | transition_pressure
+    | empty
+    | incomplete
+    | cancelled
+    | invalid_pattern {
+        error: MorseError
+    }

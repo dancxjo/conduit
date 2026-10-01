@@ -18,18 +18,18 @@ package_test_shard!(
     "check.test.foundation",
     "Foundation crate unit and integration tests",
     [
-        "conduit-host-avr-fabrication",
-        "conduit-host-browser-fabrication",
-        "conduit-host-conduitos-fabrication",
-        "conduit-host-esp32-fabrication",
+        "conduit-host-avr-make",
+        "conduit-host-browser-make",
+        "conduit-host-conduitos-make",
+        "conduit-host-esp32-make",
         "conduit-host-hosted",
         "conduit-host-orange-pi",
         "conduit-host-raspberry-pi",
         "conduit-host-rp2040",
         "conduit-emergency-keyword-spotter",
-        "conduit-linear-framebuffer-fabrication",
+        "conduit-linear-framebuffer-make",
         "conduit-rp2040-pio-audio-extension",
-        "conduit-workspace-fabrication",
+        "conduit-workspace-make",
         "conduit-bluetooth",
         "conduit-assigned-plan",
         "conduit-alife",
@@ -46,7 +46,7 @@ package_test_shard!(
         "conduit-language",
         "conduit-plan-lowering",
         "conduit-form",
-        "conduit-host-fabrication",
+        "conduit-host-make",
         "conduit-planner",
         "conduit-signal",
         "conduit-signal-conformance",
@@ -58,7 +58,8 @@ package_test_shard!(
         "conduit-protected-line",
         "conduit-robotics",
         "conduit-body",
-        "conduit-body-fabrication",
+        "conduit-birth-form",
+        "conduit-body-make",
         "conduit-net",
         "conduit-rp2040-network-realization",
         "conduit-wire",
@@ -67,6 +68,9 @@ package_test_shard!(
         "conduit-time",
         "conduit-system-continuity",
         "conduit-observatory",
+        "patchbay-control",
+        "patchbay-graph",
+        "patchbay-application",
     ],
     []
 );
@@ -85,7 +89,7 @@ package_test_shard!(
         "conduitos",
         "patchbay-hosted",
         "patchbay-model",
-        "patchbay-graph",
+        "patchbay-workbench-host-contract",
         "patchbay-html",
         "patchbay-native",
     ],
@@ -105,14 +109,12 @@ package_test_shard!(
         "conduit-pete",
         "conduit-pete-workload-conformance",
         "conduit-tongues",
-        "conduit-creche-model",
         "conduit-home-model",
-        "conduit-home-native",
-        "conduit-workspace-model",
+        "conduit-body-invitation-form",
+        "conduit-body-lifecycle-conformance",
         "conduit-tour-model",
-        "conduit-tour-native",
-        "patchbay-application",
-        "patchbay-control",
+        "conduit-tutorial-form",
+        "conduit-form-library",
         "conduit",
         "conduit-xtask-dispatch",
         "xtask",
@@ -242,6 +244,12 @@ mod tests {
             .iter()
             .filter(|package| {
                 member_ids.contains(package["id"].as_str().expect("package id must be a string"))
+            })
+            .filter(|package| {
+                !package["manifest_path"]
+                    .as_str()
+                    .expect("package manifest path must be a string")
+                    .contains("/proof/fixtures/make-rename-ci-bridge/")
             })
             .map(|package| {
                 package["name"]

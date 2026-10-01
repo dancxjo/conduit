@@ -28,6 +28,7 @@ fn port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(VALUE),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -76,7 +77,8 @@ fn checked_form() -> conduit_form::CheckedForm {
 
 fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("{part}/{slug}")),

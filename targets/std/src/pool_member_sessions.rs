@@ -239,6 +239,7 @@ mod tests {
             execution_fusions: vec![],
             states: vec![],
             connections: vec![],
+            fore_ports: vec![],
             shared_pools: vec![pool],
             startup_dependencies: vec![],
             cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
@@ -257,12 +258,14 @@ mod tests {
             value_kind: KindId::from("value/text"),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         };
         let output = PortDescriptor {
             port_id: PortId::from("text"),
             value_kind: KindId::from("value/text"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         };
         let pool_id = SharedPoolId::from("pool/workers");
         let request = line(
@@ -303,7 +306,8 @@ mod tests {
             admission_authority: AuthorityGrantId::from("grant/workers"),
             consumers: vec![consumer_id.clone()],
         };
-        let consumer = PlannedGear {
+        let consumer = conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: consumer_id.clone(),
             gear_id: GearId::from("client"),
             kind_id: KindId::from("flow/pool-observe"),
@@ -325,6 +329,7 @@ mod tests {
             },
             inputs: vec![],
             outputs: vec![],
+            terminal_transductions: Vec::new(),
             host_calls: vec![],
             resources: vec![],
             authority: vec![],

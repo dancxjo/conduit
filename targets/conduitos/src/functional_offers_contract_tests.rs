@@ -137,6 +137,13 @@ fn realization_preserves_portable_contract_and_bounds() {
             ),
         ),
         (
+            time_deadline_offer(),
+            portable_monotonic_offer(
+                conduit_semantic_catalog::time_deadline_contract(),
+                conduit_semantic_catalog::TIME_DEADLINE_CONTRACT_REVISION,
+            ),
+        ),
+        (
             time_timeout_offer(),
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_timeout_contract(),
@@ -205,6 +212,48 @@ fn realization_preserves_portable_contract_and_bounds() {
                 .starts_with("conduitos/")
         );
     }
+}
+
+#[test]
+fn generic_temporal_offers_preserve_exact_checked_value_identity_and_bounds() {
+    let value = conduit_core::CheckedValueContract::new(
+        conduit_core::kind_id("value/conduitos-temporal-test"),
+        73,
+        vec![],
+    )
+    .unwrap();
+    let sample = time_sample_offer(&value).unwrap();
+    let window = time_window_offer(&value, 8).unwrap();
+    assert_eq!(
+        sample.semantic_contract,
+        conduit_semantic_catalog::time_sample_semantic_contract(&value)
+            .unwrap()
+            .semantic_contract()
+    );
+    assert!(sample.host_calls.is_empty());
+    assert!(sample.resource_requirements.is_empty());
+    assert_eq!(
+        window.semantic_contract,
+        conduit_semantic_catalog::time_window_semantic_contract(&value, 8)
+            .unwrap()
+            .semantic_contract()
+    );
+    assert_eq!(
+        window.host_calls,
+        vec![monotonic_timer_host_call_requirement()]
+    );
+    assert_eq!(
+        window.resource_requirements,
+        vec![monotonic_timer_resource_requirement()]
+    );
+    let oversized = conduit_core::CheckedValueContract::new(
+        conduit_core::kind_id("value/oversized"),
+        4_097,
+        vec![],
+    )
+    .unwrap();
+    assert!(time_sample_offer(&oversized).is_err());
+    assert!(time_window_offer(&oversized, 8).is_err());
 }
 
 fn portable_music_synth_offer() -> conduit_core::CapabilityOffer {
@@ -288,7 +337,7 @@ fn portable_every_offer(
     revision: &str,
 ) -> conduit_core::CapabilityOffer {
     let mut offer = portable_offer(contract, revision);
-    offer.startup_parameters[0].value_type = conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID);
+    offer.startup_parameters[0].value_type = conduit_core::kind_id(conduit_core::DURATION_INFO_ID);
     offer.startup_parameters[0].has_default = false;
     offer.resource_requirements = vec![conduit_core::resource_requirement(
         conduit_core::TIMER_RESOURCE_CLASS,

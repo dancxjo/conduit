@@ -6,6 +6,16 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
+    ChatConnectionState, ChatStateRefusal, PresenceState,
+};
+
 mod body_chat;
 pub use body_chat::*;
 
@@ -27,3 +37,72 @@ pub use messaging_view::*;
 mod messaging_catalog;
 #[cfg(feature = "form-catalog")]
 pub use messaging_catalog::*;
+
+#[cfg(test)]
+mod native_type_tests {
+    use super::{
+        BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, ChatConnectionState,
+        ChatStateRefusal, PresenceState,
+    };
+    use conduit_form::rust_binding::NativeRustBinding;
+
+    fn assert_round_trip<T>(value: T)
+    where
+        T: NativeRustBinding + Copy + core::fmt::Debug + PartialEq,
+    {
+        let structured = value.into_structured().expect("native value encodes");
+        assert_eq!(
+            structured.value_type(),
+            &T::semantic_type().expect("native semantic type checks")
+        );
+        assert_eq!(
+            T::from_structured(structured).expect("native value decodes"),
+            value
+        );
+    }
+
+    #[test]
+    fn chat_connection_and_presence_are_native_semantic_types() {
+        assert_round_trip(ChatConnectionState::Connected);
+        assert_round_trip(PresenceState::Away);
+    }
+
+    #[test]
+    fn chat_refusals_are_native_semantic_types() {
+        for refusal in [
+            ChatStateRefusal::InvalidConfiguration,
+            ChatStateRefusal::EmptyMessage,
+            ChatStateRefusal::OversizeMessage,
+            ChatStateRefusal::MalformedMessage,
+            ChatStateRefusal::SequenceExhausted,
+            ChatStateRefusal::InvalidPresentation,
+        ] {
+            assert_round_trip(refusal);
+        }
+        for refusal in [
+            BodyChatRefusal::EmptyMessage,
+            BodyChatRefusal::MessageBoundExceeded,
+            BodyChatRefusal::ContextBoundExceeded,
+            BodyChatRefusal::MalformedContext,
+            BodyChatRefusal::WrongContextSchema,
+            BodyChatRefusal::HistoryBoundExceeded,
+            BodyChatRefusal::PromptBoundExceeded,
+            BodyChatRefusal::Encoding,
+        ] {
+            assert_round_trip(refusal);
+        }
+    }
+
+    #[test]
+    fn body_chat_history_is_one_bounded_native_record() {
+        let message = BodyChatMessage::new("hello".into()).unwrap();
+        let item = BodyChatHistoryItem::new(BodyChatRole::Human, message).unwrap();
+        let structured = item.clone().into_structured().unwrap();
+        assert_eq!(
+            BodyChatHistoryItem::from_structured(structured).unwrap(),
+            item
+        );
+        assert!(BodyChatMessage::new(alloc::string::String::new()).is_err());
+        assert!(BodyChatMessage::new("x".repeat(4_097)).is_err());
+    }
+}

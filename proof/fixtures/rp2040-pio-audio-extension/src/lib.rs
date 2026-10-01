@@ -1,15 +1,13 @@
-use conduit_host_fabrication::{
-    FabricationContribution, FabricationExtension, HostFabricationPackage, ImplementationOffer,
-};
+use conduit_host_make::{HostMakePackage, ImplementationOffer, MakeContribution, MakeExtension};
 
 pub const PACKAGE_ID: &str = "example-rp2040-pio-audio@1";
 pub const IMPLEMENTATION_ID: &str = "example/rp2040-pio-audio@1";
 
 pub struct Rp2040PioAudioExtension;
 
-impl HostFabricationPackage for Rp2040PioAudioExtension {
-    fn contribution(&self) -> FabricationContribution {
-        FabricationContribution::Extension(FabricationExtension {
+impl HostMakePackage for Rp2040PioAudioExtension {
+    fn contribution(&self) -> MakeContribution {
+        MakeContribution::Extension(MakeExtension {
             package_id: PACKAGE_ID.into(),
             package_revision: 1,
             catalog: Default::default(),

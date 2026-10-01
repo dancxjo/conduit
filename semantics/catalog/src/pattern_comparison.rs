@@ -15,21 +15,13 @@ use conduit_form::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
+pub use conduit_time::PatternComparisonRefusal;
 
 pub const PATTERN_COMPARISON_TYPE: &str = "PatternComparison";
 pub const COMPARE_PATTERN_KIND: &str = "sequence/compare-normalized-pattern";
 pub const COMPARE_PATTERN_REVISION: &str = "conduit.std/compare-normalized-pattern@2";
 pub const MAXIMUM_ABSOLUTE_METRIC: &str = "maximum-absolute-millionths@1";
 pub const DEFAULT_PATTERN_TOLERANCE: u64 = 100_000;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PatternComparisonRefusal {
-    Malformed,
-    UnsupportedMetric,
-    ToleranceOutOfRange,
-    AlgorithmMismatch,
-    LengthMismatch,
-}
 
 pub fn pattern_comparison_type() -> StructuredInfoType {
     StructuredInfoType::record(
@@ -61,6 +53,7 @@ pub fn compare_normalized_pattern_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![
             KindConfigurationField {
@@ -102,7 +95,7 @@ pub fn compare_normalized_pattern_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -137,7 +130,7 @@ pub fn install_pattern_comparison_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(compare_normalized_pattern_definition())
+        .insert_kind(compare_normalized_pattern_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -252,6 +245,7 @@ fn value_port(name: &str, direction: PortDirection) -> PortDescriptor {
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

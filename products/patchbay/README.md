@@ -4,37 +4,53 @@ Patchbay lets you work with forms and inspect their realized execution. Open it
 from a checkout with:
 
 ```sh
-cargo xtask demo patchbay
-cargo xtask demo patchbay --on browser
+cargo xtask prove journey patchbay
+cargo xtask prove journey patchbay --on browser
 ```
 
-The installed product entrance is `conduit patchbay`. See the
+The installed product entrance is now simply `conduit`; Patchbay is not a
+separate product command. See the
 [current graphical ConduitOS journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
 for native Patchbay in use, or the [visual evidence guide](../../docs/visual-evidence.md)
 for browser captures and provenance.
 
-Patchbay is a Conduit application and projection over authoritative form,
-plan, play, body, host, boot, sign, and Observatory truth. It is not a host,
-planner, runtime, capability registry, or source of current realization truth.
+Patchbay is a resident inspect/edit/debug Form over authoritative form, plan,
+play, body, host, boot, sign, and Observatory truth. Its graphical workbench is
+a Mask realization of the Body's Face. Patchbay is not a separate application
+universe, host, planner, runtime, capability registry, or source of current
+realization truth.
 
-- `model/` owns presentation-neutral application state and projections.
-- `native/` owns the native renderer and hosted application composition edge.
-- `html/` owns the bounded HTML delivery and browser renderer edge.
+The repository is still extracting that boundary from an older product
+package. Current ownership is intentionally split while that migration
+finishes:
 
-Concrete hosted bootstrap and platform effects belong at the renderer or
-application-composition edge. The reusable model must consume exact
-advertisements, plans, reports, and Observatory projections without depending
-on `conduit-std-host` or reconstructing a second current-truth registry.
+- `forms/patchbay/` owns the bounded resident control contract;
+- `forms/patchbay/graph/` owns host-neutral semantic graph projection;
+- `model/` is mixed migration scaffolding being decomposed, not the
+  architectural owner of Patchbay meaning;
+- `native/` and `html/` contain current workbench realizations and packaging
+  edges that will move or disappear as the product shell retires.
+
+Do not add universal Body/Form/Plan/Play/Host/Line/Sign truth to `model/`, or
+preserve a product dependency through a compatibility re-export. Put semantic
+truth with its ordinary owner and medium-specific geometry, interaction and
+rendering with the workbench Mask.
+
+Concrete hosted bootstrap and platform effects belong at the selected Host or
+Mask realization edge. Patchbay projections consume exact advertisements,
+plans, reports, and Observatory truth without depending on a concrete Host or
+reconstructing a second current-truth registry.
 
 ## Explanation and proof classification
 
-- Voyager scar explanations and presenter-plan descriptions remain reusable
-  product projections: they consume exact supplied evidence and are used by
-  ordinary catalog or inspection surfaces. Their historical `capstone` names
-  are owned by the later residual naming cleanup; they do not construct hosts.
+- Voyager scar explanations and the historically named presenter-plan
+  descriptions are reusable inspection projections: they consume exact
+  supplied evidence and are used by ordinary catalog or inspection surfaces.
+  Their legacy names are migration debt, not current architecture; they do not
+  construct Hosts.
 - The heterogeneous capstone baseline is a historical proof specimen. It is
   compiled only with the model's unit tests and is absent from the ordinary
   model API.
 - Native binaries whose names contain `capstone` remain explicit proof
-  entrances. They are not invoked by the installed `conduit patchbay` product
-  command and make no physical claim unless their owning proof records one.
+  entrances. They are not invoked by the installed `conduit` product entrance
+  and make no physical claim unless their owning proof records one.

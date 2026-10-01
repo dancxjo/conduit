@@ -119,7 +119,8 @@ fn discard_kinds() -> [(&'static str, &'static str); 5] {
 }
 
 fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!(
@@ -140,6 +141,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
             value_kind: kind_id(value_kind),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: Vec::new(),

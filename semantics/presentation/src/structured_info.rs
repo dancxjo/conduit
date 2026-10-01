@@ -57,8 +57,7 @@ impl StructuredSignPresentation {
                 } else {
                     PresentationRole::Info
                 },
-                accessibility_name: format!("Structured Info {label}"),
-                label,
+                name: label,
             });
             subject_ids.push(identity.clone());
             if let Some(parent) = node.parent {
@@ -125,7 +124,7 @@ impl StructuredSignPresentation {
             vec![NavigationPlace {
                 place: PresentationPlace::Body,
                 root_subject: root,
-                label: "Structured Sign".to_string(),
+                name: "Structured Sign".to_string(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Signs,
                     focusable_subjects: subject_ids,
@@ -169,7 +168,26 @@ fn add_node_properties(
             PresentationPropertyValue::Flag(true),
         )),
     }
-    match &node.shape {
+    add_shape_properties(properties, subject, &node.shape);
+}
+
+fn add_shape_properties(
+    properties: &mut Vec<PresentationProperty>,
+    subject: &str,
+    shape: &StructuredInfoInspectionShape,
+) {
+    match shape {
+        StructuredInfoInspectionShape::Nominal {
+            schema,
+            representation,
+        } => {
+            properties.push(property(
+                subject,
+                "nominal-schema",
+                PresentationPropertyValue::Identity(schema.as_str().to_string()),
+            ));
+            add_shape_properties(properties, subject, representation);
+        }
         StructuredInfoInspectionShape::Leaf {
             kind,
             byte_len,
@@ -203,7 +221,11 @@ fn add_node_properties(
             "collection-item-count",
             PresentationPropertyValue::Count(u64::from(*length)),
         )),
-        StructuredInfoInspectionShape::Sequence { length, capacity } => {
+        StructuredInfoInspectionShape::Sequence {
+            length,
+            minimum_items,
+            maximum_items,
+        } => {
             properties.push(property(
                 subject,
                 "sequence-item-count",
@@ -211,8 +233,13 @@ fn add_node_properties(
             ));
             properties.push(property(
                 subject,
-                "sequence-capacity",
-                PresentationPropertyValue::Count(u64::from(*capacity)),
+                "sequence-minimum-items",
+                PresentationPropertyValue::Count(u64::from(*minimum_items)),
+            ));
+            properties.push(property(
+                subject,
+                "sequence-maximum-items",
+                PresentationPropertyValue::Count(u64::from(*maximum_items)),
             ));
         }
         StructuredInfoInspectionShape::Record {

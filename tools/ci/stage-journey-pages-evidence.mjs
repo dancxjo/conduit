@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cp, lstat, mkdir, readFile, readdir, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 const GALLERY_SCHEMA = "conduit.visual-evidence-gallery/v1";
@@ -11,9 +11,6 @@ const ROOT_ENTRIES = new Set([".nojekyll", "index.html", "gallery.json", "curren
 const JOURNEYS = new Map([
   ["one-form-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
   ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
-]);
-const OPTIONAL_JOURNEYS = new Map([
-  ["hears-speaks", ["index.html", "manifest.json", "input.pcm", "input.wav", "recognition.json", "response.json", "output.wav", "receipt.json"]],
 ]);
 
 const [galleryRoot, siteRoot, commit] = process.argv.slice(2);
@@ -28,14 +25,6 @@ if (index.schema !== GALLERY_SCHEMA || index.current_commit !== commit
 }
 
 await requireExactEntries(galleryRoot, ROOT_ENTRIES, "gallery root");
-for (const [journey, files] of OPTIONAL_JOURNEYS) {
-  try {
-    await lstat(path.join(galleryRoot, "current", journey));
-    JOURNEYS.set(journey, files);
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
-}
 await requireExactEntries(path.join(galleryRoot, "current"), new Set(JOURNEYS.keys()), "current journeys");
 await requireExactEntries(path.join(galleryRoot, "commits"), new Set([commit]), "commit history");
 await requireExactEntries(path.join(galleryRoot, "commits", commit), new Set(JOURNEYS.keys()), "commit journeys");

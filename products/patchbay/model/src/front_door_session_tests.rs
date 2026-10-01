@@ -51,7 +51,7 @@ fn fresh_session_projects_only_current_canonical_truth() {
         .presentation
         .subjects
         .iter()
-        .all(|subject| { !subject.label.contains("Pico") && !subject.label.contains("tab 3") }));
+        .all(|subject| { !subject.name.contains("Pico") && !subject.name.contains("tab 3") }));
 }
 
 #[test]

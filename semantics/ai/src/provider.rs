@@ -21,7 +21,11 @@ use conduit_web::{
     JsonValue,
 };
 
-use crate::{GENERATE_TEXT_KIND, TEXT_VALUE_KIND};
+use crate::{
+    llm_contract, LlmDeterminismProfile, ModelDerivedResult, ModelResultDisposition,
+    ModelResultProvenance, ModelWorkAccounting, GENERATED_RESULT_VALUE_KIND,
+    GENERATION_REQUEST_VALUE_KIND, LLM_GENERATE_KIND,
+};
 
 pub const PROVIDER_REQUEST_KIND: &str = "provider/openai-compatible-request";
 pub const PROVIDER_ENVELOPE_KIND: &str = "provider/openai-compatible-http-envelope";
@@ -61,6 +65,18 @@ pub struct ProviderEvidence {
     pub terminal: Result<(), ProviderFailure>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderResultContext {
+    pub implementation_identity: String,
+    pub request_identity: String,
+    pub run_identity: String,
+    pub input_bytes: u64,
+    pub context_items: u64,
+    pub work_units: u64,
+    pub history_items: u64,
+    pub determinism: LlmDeterminismProfile,
+}
+
 impl ProviderEvidence {
     pub fn redacted(request_sequence: u64, terminal: Result<(), ProviderFailure>) -> Self {
         Self {
@@ -72,10 +88,11 @@ impl ProviderEvidence {
     }
 }
 
-pub fn provider_request(prompt: &str) -> Result<JsonValue, ProviderFailure> {
-    if prompt.len() > MAXIMUM_PROVIDER_PROMPT_BYTES {
+pub fn provider_request(request: &[u8]) -> Result<JsonValue, ProviderFailure> {
+    if request.len() > MAXIMUM_PROVIDER_PROMPT_BYTES {
         return Err(ProviderFailure::InputOverflow);
     }
+    let prompt = core::str::from_utf8(request).map_err(|_| ProviderFailure::SemanticValidation)?;
     let value = JsonValue::Object(vec![
         ("input".into(), JsonValue::String(prompt.into())),
         ("model".into(), JsonValue::String("conduit-fixture".into())),
@@ -85,7 +102,10 @@ pub fn provider_request(prompt: &str) -> Result<JsonValue, ProviderFailure> {
     Ok(value)
 }
 
-pub fn provider_result(value: &JsonValue) -> Result<String, ProviderFailure> {
+pub fn provider_result(
+    value: &JsonValue,
+    context: ProviderResultContext,
+) -> Result<Vec<u8>, ProviderFailure> {
     let JsonValue::Object(members) = value else {
         return Err(ProviderFailure::ProviderProtocol);
     };
@@ -102,7 +122,29 @@ pub fn provider_result(value: &JsonValue) -> Result<String, ProviderFailure> {
     if output.len() > MAXIMUM_PROVIDER_OUTPUT_BYTES {
         return Err(ProviderFailure::OutputOverflow);
     }
-    Ok(output.clone())
+    let contract = llm_contract(LLM_GENERATE_KIND).expect("generation contract is catalogued");
+    let result = ModelDerivedResult {
+        provenance: ModelResultProvenance::ModelDerived,
+        payload_kind: contract.result_payload_kind.as_str().into(),
+        payload: output.as_bytes().to_vec(),
+        implementation_identity: context.implementation_identity,
+        request_identity: context.request_identity,
+        run_identity: context.run_identity,
+        confidence: None,
+        disposition: ModelResultDisposition::Produced,
+        determinism: context.determinism,
+        accounting: ModelWorkAccounting {
+            input_bytes: context.input_bytes,
+            context_items: context.context_items,
+            output_bytes: output.len() as u64,
+            work_units: context.work_units,
+            history_items: context.history_items,
+        },
+    };
+    result
+        .validate(&contract)
+        .map_err(|_| ProviderFailure::SemanticValidation)?;
+    serde_json::to_vec(&result).map_err(|_| ProviderFailure::OutputOverflow)
 }
 
 pub fn provider_http_request(
@@ -112,17 +154,21 @@ pub fn provider_http_request(
     json: &[u8],
 ) -> Result<HttpRequest, ProviderFailure> {
     let request = HttpRequest {
-        transaction_id: HttpTransactionId(transaction_id),
+        transaction_id: HttpTransactionId::new(transaction_id)
+            .map_err(|_| ProviderFailure::ProviderProtocol)?,
         method: HttpMethod::Post,
-        target: HttpTarget {
-            scheme: "https".into(),
-            authority: authority.into(),
-            path_and_query: path_and_query.into(),
-        },
-        headers: vec![HttpHeader {
-            name: "content-type".into(),
-            value: b"application/json".to_vec(),
-        }],
+        target: HttpTarget::new(
+            authority.into(),
+            path_and_query.into(),
+            conduit_web::HttpScheme::Https,
+        )
+        .map_err(|_| ProviderFailure::ProviderProtocol)?,
+        headers: vec![HttpHeader::new(
+            "content-type".into(),
+            conduit_form::rust_binding::BoundedBytes::new(b"application/json")
+                .ok_or(ProviderFailure::ProviderProtocol)?,
+        )
+        .map_err(|_| ProviderFailure::ProviderProtocol)?],
         body: conduit_web::HttpBody::inline(json.to_vec()),
     };
     request
@@ -178,7 +224,7 @@ pub fn install_provider_back(
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), String> {
     let source = format!(
-        "form {GENERATE_TEXT_KIND} (\n maximum-input-bytes: Count = 4096\n maximum-context-tokens: Count = 4096\n maximum-output-tokens: Count = 512\n temperature-milli: Count = 0\n prompt: {TEXT_VALUE_KIND} >> text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt >> request.prompt\n request.value >> encode.value\n encode.value >> envelope.json\n envelope.request >> http.request\n http.response >> response.response\n response.json >> decode.value\n decode.value >> result.value\n result.text >> text\n}}\n",
+        "form {LLM_GENERATE_KIND} (\n maximum-input-bytes: Count = 262144\n maximum-context-items: Count = 128\n maximum-output-bytes: Count = 65536\n maximum-work-units: Count = 1000000\n maximum-history-items: Count = 64\n >> request: {GENERATION_REQUEST_VALUE_KIND}\n result: {GENERATED_RESULT_VALUE_KIND} >>\n) {{\n request_adapter: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result_adapter: {PROVIDER_RESULT_KIND}\n request >> request_adapter.request\n request_adapter.value >> encode.value\n encode.value >> envelope.json\n envelope.request >> http.request\n http.response >> response.response\n response.json >> decode.value\n decode.value >> result_adapter.value\n result_adapter.result >> result\n}}\n",
         conduit_web::JSON_ENCODE_KIND,
         conduit_web::HTTP_CLIENT_KIND,
         conduit_web::JSON_DECODE_KIND,
@@ -186,10 +232,10 @@ pub fn install_provider_back(
     let checked = check_syntax_document(&parse_syntax_document(&source), startup)
         .map_err(|error| format!("provider Back check: {} {}", error.code, error.message))?;
     let high = profile
-        .canonical_kind(&kind_id(GENERATE_TEXT_KIND))
-        .ok_or_else(|| "portable generate-text definition missing".to_string())?;
+        .canonical_kind(&kind_id(LLM_GENERATE_KIND))
+        .ok_or_else(|| "portable llm/generate definition missing".to_string())?;
     backs
-        .insert(high, &checked, GENERATE_TEXT_KIND)
+        .insert(high, &checked, LLM_GENERATE_KIND)
         .map_err(|error| format!("provider Back catalog: {error:?}"))
 }
 
@@ -246,8 +292,8 @@ fn provider_definitions() -> Vec<KindProjection> {
     vec![
         definition(
             PROVIDER_REQUEST_KIND,
-            "prompt",
-            TEXT_VALUE_KIND,
+            "request",
+            GENERATION_REQUEST_VALUE_KIND,
             PortTemporal::Value,
             "value",
             conduit_web::JSON_INFO_ID,
@@ -284,8 +330,8 @@ fn provider_definitions() -> Vec<KindProjection> {
             "value",
             conduit_web::JSON_INFO_ID,
             PortTemporal::Value,
-            "text",
-            TEXT_VALUE_KIND,
+            "result",
+            GENERATED_RESULT_VALUE_KIND,
             PortTemporal::Value,
         ),
     ]
@@ -331,6 +377,7 @@ fn port(
         value_kind: kind_id(value),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

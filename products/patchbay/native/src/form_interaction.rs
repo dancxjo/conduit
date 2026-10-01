@@ -16,7 +16,7 @@ use crate::forms_navigation::BackNavigationError;
 
 pub(super) fn graphical_form_for_editor(
     editor: &FormEditor,
-) -> Result<Option<patchbay_model::PatchbayGraph>, String> {
+) -> Result<Option<patchbay_graph::PatchbayGraph>, String> {
     let view = editor.view();
     if !view.checked.diagnostics.is_empty()
         || !view
@@ -193,7 +193,7 @@ impl PatchbayApplication {
 
     pub(super) fn dispatch_selection(
         &mut self,
-        subject: patchbay_model::PatchbaySubjectRef,
+        subject: patchbay_graph::PatchbaySubjectRef,
     ) -> Result<(), String> {
         let mut interaction = self
             .interaction
@@ -371,11 +371,11 @@ impl PatchbayApplication {
             | PatchbayAction::ConnectPorts
             | PatchbayAction::RerouteCord
             | PatchbayAction::ConfigureGear
-            | PatchbayAction::AddPresenter
-            | PatchbayAction::RemovePresenter
-            | PatchbayAction::ReplacePresenter
-            | PatchbayAction::ReorderPresenter
-            | PatchbayAction::ToggleParallelPresenters => {
+            | PatchbayAction::AddMask
+            | PatchbayAction::RemoveMask
+            | PatchbayAction::ReplaceMask
+            | PatchbayAction::ReorderMaskStages
+            | PatchbayAction::ToggleParallelMasks => {
                 return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
             }
         };
@@ -452,7 +452,7 @@ impl PatchbayApplication {
         Some(&selected.subject_identity)
     }
 
-    pub(super) fn selected_graphical_subject(&self) -> Option<patchbay_model::PatchbaySubjectRef> {
+    pub(super) fn selected_graphical_subject(&self) -> Option<patchbay_graph::PatchbaySubjectRef> {
         let graph = self.graphical_form.as_ref()?;
         let selected = self.interaction.as_ref()?.selected()?;
         graph.resolve_subject_ref(selected).ok()?;
@@ -581,10 +581,10 @@ impl PatchbayApplication {
                     .and_then(|graph| graph.inspect(&subject.subject_identity).ok())
                     .map(|inspection| inspection.subject_kind)
                 {
-                    Some(patchbay_model::PatchbaySubjectKind::Gear) => {
+                    Some(patchbay_graph::PatchbaySubjectKind::Gear) => {
                         GuiAction::RemoveGear(subject)
                     }
-                    Some(patchbay_model::PatchbaySubjectKind::Cord) => {
+                    Some(patchbay_graph::PatchbaySubjectKind::Cord) => {
                         GuiAction::RemoveCord(subject)
                     }
                     _ => return Err("select a gear or Cord before removing it".into()),

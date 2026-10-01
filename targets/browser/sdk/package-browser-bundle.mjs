@@ -28,7 +28,7 @@ const [distribution, release, image] = await Promise.all([
   readJson(path.join(bundleRoot, IMAGE_PATH)),
 ]);
 if (distribution.schema !== RELEASE_SCHEMA || distribution.target_id !== "browser/wasm32/page"
-  || distribution.fabrication_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
+  || distribution.make_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
   || distribution.reviewed_distribution?.runtime_abi !== "conduit.browser/runtime-abi@1"
   || release.schema !== RELEASE_SCHEMA || release.target_id !== distribution.target_id
   || release.distribution_id !== distribution.reviewed_distribution.distribution_id
@@ -76,10 +76,10 @@ for (const file of release.files) {
 for (const name of ["browser-page.json", "browser-bundle-release.json"]) {
   await copyFile(path.join(bundleRoot, name), path.join(outputRoot, "bundle", name));
 }
-for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-forms.mjs", "browser-sdk-events.mjs", "browser-sdk.d.ts", "README.md"]) {
+for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-forms.mjs", "browser-sdk-events.mjs", "browser-sdk-face.mjs", "browser-sdk.d.ts", "README.md"]) {
   await copyFile(path.join(ROOT, name), path.join(outputRoot, name));
 }
-for (const name of ["browser-body-host.mjs", "browser-body-input.mjs", "browser-human-input.mjs", "browser-audio-cue.mjs", "browser-pcm-audio.mjs", "browser-form-effects.mjs", "application-presentation.mjs", "application-theme.mjs", "browser-runtime-bridge.mjs"]) {
+for (const name of ["browser-body-host.mjs", "browser-body-input.mjs", "browser-human-input.mjs", "browser-audio-cue.mjs", "browser-pcm-audio.mjs", "browser-form-effects.mjs", "application-presentation.mjs", "application-theme.mjs", "browser-runtime-bridge.mjs", "browser-application-storage.mjs", "browser-membership.js", "browser-host-identity.mjs", "body-webrtc-sessions.mjs", "body-webrtc-session.mjs", "webrtc-datachannel-line.mjs", "webrtc-session-runtime.mjs"]) {
   const source = path.join(HOST_ASSETS, name);
   const destination = path.join(outputRoot, "host", "assets", name);
   await mkdir(path.dirname(destination), { recursive: true });
@@ -88,6 +88,10 @@ for (const name of ["browser-body-host.mjs", "browser-body-input.mjs", "browser-
 const sdkModule = await readFile(path.join(outputRoot, "browser-sdk.mjs"), "utf8");
 await writeFile(path.join(outputRoot, "browser-sdk.mjs"), sdkModule.replace(
   '"../host/assets/browser-body-host.mjs"', '"./host/assets/browser-body-host.mjs"',
+).replace(
+  '"../host/assets/browser-application-storage.mjs"', '"./host/assets/browser-application-storage.mjs"',
+).replace(
+  '"../host/assets/browser-membership.js"', '"./host/assets/browser-membership.js"',
 ));
 await writeFile(path.join(outputRoot, "bundle", "browser-sdk-package.json"), JSON.stringify({
   schema: "conduit.browser/sdk-package@1",

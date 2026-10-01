@@ -12,8 +12,7 @@ fn subject(identity: &str) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role: PresentationRole::Form,
-        label: "Example Form".into(),
-        accessibility_name: "Example checked form".into(),
+        name: "Example checked form".into(),
     }
 }
 
@@ -26,7 +25,8 @@ fn action(
         identity: identity.into(),
         intent: "conduit.intent/open@1".into(),
         target: target.into(),
-        label: "Open".into(),
+        name: "Open".into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability,
     }

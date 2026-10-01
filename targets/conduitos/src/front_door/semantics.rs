@@ -146,7 +146,8 @@ fn action(
         identity: format!("action/{name}/{target}"),
         intent: semantic.presentation_intent().into(),
         target: target.into(),
-        label: label.into(),
+        name: label.into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability,
     }

@@ -21,7 +21,7 @@ use std::{
 };
 
 const PROTOCOL: u16 = 1;
-const MAXIMUM_CONTROL_FRAME_BYTES: usize = 128 * 1024;
+const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
@@ -341,8 +341,14 @@ impl DurableHostRuntime {
                 drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
             }
             SessionMessage::InputClosed { .. } => {
-                admitted.runtime_mut().close_ingress(endpoint)?;
+                admitted.runtime_mut().close_ingress_with_disposition(
+                    endpoint,
+                    conduit_kernel::RemoteTerminalDisposition::NormalClose,
+                )?;
                 drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
+            }
+            SessionMessage::InputAbnormal { .. } => {
+                return Err("typed-semantic-abnormal-ingress-not-prepared".into());
             }
             SessionMessage::Cancelled { code } => {
                 admitted.runtime_mut().cancel()?;
@@ -556,6 +562,7 @@ fn exchange_admitted_pool_member_frame(
         | SessionMessage::Accepted { .. }
         | SessionMessage::Delivered { .. }
         | SessionMessage::InputClosed { .. }
+        | SessionMessage::InputAbnormal { .. }
         | SessionMessage::Terminal { .. } => {}
     }
     let active = member
@@ -720,21 +727,33 @@ fn complete_remote_sessions(
             .machine()
             .checkpoint();
         if direction == RemoteCordDirection::Egress {
-            if !admitted.runtime_mut().egress_terminal(endpoint)? {
-                return Err("remote-egress-not-terminal".into());
-            }
+            let disposition = admitted
+                .runtime_mut()
+                .egress_terminal_disposition(endpoint)?
+                .ok_or_else(|| "remote-egress-not-terminal".to_string())?;
+            completions.push((
+                endpoint,
+                direction,
+                checkpoint.next_sequence,
+                Some(disposition),
+            ));
         } else if !checkpoint.input_closed {
             return Err("remote-ingress-not-closed".into());
+        } else {
+            completions.push((endpoint, direction, checkpoint.next_sequence, None));
         }
-        completions.push((endpoint, direction, checkpoint.next_sequence));
     }
-    for (endpoint, direction, final_sequence) in completions {
+    for (endpoint, direction, final_sequence, disposition) in completions {
         if direction == RemoteCordDirection::Egress {
-            responses.push(remote_response(
-                admitted,
-                endpoint,
-                SessionMessage::InputClosed { final_sequence },
-            )?);
+            let message = match disposition.expect("egress completion has disposition") {
+                conduit_kernel::RemoteTerminalDisposition::NormalClose => {
+                    SessionMessage::InputClosed { final_sequence }
+                }
+                conduit_kernel::RemoteTerminalDisposition::Abnormal => {
+                    return Err("typed-semantic-abnormal-egress-not-prepared".into());
+                }
+            };
+            responses.push(remote_response(admitted, endpoint, message)?);
         }
         responses.push(remote_response(
             admitted,

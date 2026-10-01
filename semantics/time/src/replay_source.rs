@@ -13,7 +13,7 @@ pub const REPLAY_SOURCE_KIND: &str = "history/replay-source";
 pub const REPLAY_SOURCE_CONTRACT_REVISION: &str = "conduit.history/replay-source@1";
 
 /// The finite replayable view of one retained semantic history. A retention
-/// gap remains explicit beside the replay entries and is never fabricated as
+/// gap remains explicit beside the replay entries and is never made as
 /// an event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplaySourceProjection {
@@ -112,6 +112,7 @@ pub fn replay_source_kind_projection() -> conduit_form::KindProjection {
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     conduit_form::KindProjection {
         kind_id: kind_id(REPLAY_SOURCE_KIND),
@@ -139,7 +140,7 @@ pub fn replay_source_semantic_contract() -> conduit_core::Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: conduit_core::CapabilityLimits {
             max_active_instances: 8,

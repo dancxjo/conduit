@@ -85,7 +85,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                         .ok_or("--text-lab-split requires one loopback WebSocket base")?,
                 );
             }
-            "--form" | "--seed"
+            "--form"
                 if !parsed.debugger_watch_fixture
                     && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
@@ -162,7 +162,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             }
             _ => {
                 return Err(format!(
-                    "unknown or incompatible Patchbay HTML argument {argument}; expected repeated --form <LABEL> <PATH> (--seed remains a legacy alias)"
+                    "unknown or incompatible Patchbay HTML argument {argument}; expected repeated --form <LABEL> <PATH>"
                 ));
             }
         }
@@ -287,7 +287,7 @@ mod tests {
                 .into_iter()
                 .map(str::to_owned)
         )
-        .is_ok());
+        .is_err());
         assert!(parse_arguments(
             [
                 "--documentary-fixture",
@@ -327,7 +327,7 @@ mod tests {
         assert!(parse_arguments(
             [
                 "--llm-documentary-fixture",
-                "--seed",
+                "--form",
                 "Hello",
                 "forms/hello/main.conduit"
             ]

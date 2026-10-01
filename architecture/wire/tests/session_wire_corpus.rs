@@ -139,6 +139,7 @@ fn binding(envelope: &ConnectionEnvelope) -> SessionBinding {
                 maximum_frame_bytes: SESSION_MAXIMUM_FRAME_BYTES,
             },
         },
+        abnormal_kind: None,
     }
 }
 
@@ -316,8 +317,8 @@ fn malformed_corpus_drives_live_session_codec_denial() {
     let baseline = binding(&golden);
     let encoded = encode_offered(&baseline, 0, &golden.payload);
     assert_eq!(
-        encoded[4], 4,
-        "open Base identity and exact Line contract are wire v4"
+        encoded[4], 5,
+        "typed abnormal Fore identity is session wire v5"
     );
 
     let mut legacy_v2 = encoded.clone();

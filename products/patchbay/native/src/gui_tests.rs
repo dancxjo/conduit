@@ -6,7 +6,8 @@ use crate::{
     icon::Icon,
     render::BACKGROUND,
 };
-use patchbay_model::{FormEditor, PatchbayGraph, CONDUIT_APPLICATION_THEME};
+use patchbay_graph::PatchbayGraph;
+use patchbay_model::{FormEditor, CONDUIT_APPLICATION_THEME};
 use std::path::PathBuf;
 
 fn graph() -> PatchbayGraph {
@@ -86,11 +87,9 @@ fn native_renderer_consumes_exact_shared_debugger_activity_without_topology_muta
 }
 
 #[test]
-fn icon_table_is_finite_and_every_icon_has_an_accessibility_name() {
+fn icon_table_is_finite_and_every_icon_has_a_human_name() {
     assert_eq!(Icon::ALL.len(), 25);
-    assert!(Icon::ALL
-        .iter()
-        .all(|icon| !icon.accessibility_name().is_empty()));
+    assert!(Icon::ALL.iter().all(|icon| !icon.name().is_empty()));
 }
 
 #[test]

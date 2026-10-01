@@ -33,7 +33,6 @@ mod homeostasis_kernel;
 mod imu_calibration_service;
 mod imu_observation;
 mod imu_play;
-mod interaction_convergence;
 mod pete_deployment;
 mod pete_memory;
 mod pete_model_context;
@@ -41,13 +40,10 @@ mod pete_recollection;
 mod pete_situation;
 mod pete_workload;
 mod physical_emergency;
-mod physical_interaction_surface;
 mod planning;
 mod profile;
 #[cfg(test)]
 mod proof;
-mod ssd1306_frame;
-mod ssd1306_presenter;
 
 pub use conduit_create_oi::*;
 pub use create_dock::*;
@@ -76,7 +72,6 @@ pub use homeostasis_kernel::*;
 pub use imu_calibration_service::*;
 pub use imu_observation::*;
 pub use imu_play::*;
-pub use interaction_convergence::*;
 pub use pete_deployment::*;
 pub use pete_memory::*;
 pub use pete_model_context::*;
@@ -84,11 +79,8 @@ pub use pete_recollection::*;
 pub use pete_situation::*;
 pub use pete_workload::*;
 pub use physical_emergency::*;
-pub use physical_interaction_surface::*;
 pub use planning::*;
 pub use profile::*;
-pub use ssd1306_frame::*;
-pub use ssd1306_presenter::*;
 
 #[cfg(test)]
 mod tests {

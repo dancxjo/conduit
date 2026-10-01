@@ -26,11 +26,13 @@ fn output(port: &str, value_type: StructuredInfoType, temporal: PortTemporal) ->
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction: PortDirection::Output,
         temporal,
+        abnormal_kind: None,
     }
 }
 
 fn source_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         kind_id: SOURCE_KIND.into(),
         kind_contract_revision: "fixture/little-seismograph-inputs@1".into(),
         capability_id: SOURCE_KIND.into(),

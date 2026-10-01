@@ -4,7 +4,7 @@ const REQUEST_IMPLEMENTATION = "browser/workspace-tutorial-presenter-request@1";
 const MANIFESTATION_IMPLEMENTATION = "browser/workspace-tutorial-manifestation@1";
 const PRESENTATION_RESOURCE = "conduit.resource/presentation-slot@1";
 const PRESENTATION_POOL = "browser/presentation";
-const GENERATED_KIND = "conduit.presentation/generated-manifestation@2";
+const GENERATED_KIND = "conduit.presentation/generated-manifestation-candidate@1";
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
 function acquireTutorialPresenter({ window, outputRoot, host, fragment, request }) {
@@ -71,13 +71,7 @@ function acquireTutorialPresenter({ window, outputRoot, host, fragment, request 
         item.source_presentation_revision !== pendingRequest.semantic_data.source_presentation_revision)) {
         throw new Error("generated tutorial manifestation exceeds its request");
       }
-      const content = manifestation.content.map(segment => decoder.decode(Uint8Array.from(segment.bytes ?? [])));
-      output.dataset.planId = effect.plan_id;
-      output.dataset.activePlayId = activePlayId;
-      output.dataset.presentationKind = effect.presentation_kind;
-      output.textContent = content.length ? content.join("\n") : `Presenter ${manifestation.disposition}`;
-      pendingRequest = null;
-      return undefined;
+      throw new Error("generated tutorial candidate requires semantic validation before presentation");
     },
     close() { if (closed) return; closed = true; output.remove(); },
   });

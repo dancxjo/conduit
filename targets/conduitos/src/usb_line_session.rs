@@ -41,6 +41,11 @@ pub enum ReceivedSessionMessage {
     Accepted(u64),
     Delivered(u64),
     InputClosed(u64),
+    InputAbnormal {
+        final_sequence: u64,
+        terminal: [u8; USB_LINE_MAXIMUM_PAYLOAD_BYTES as usize],
+        length: u8,
+    },
     Cancelled(u16),
     Failed(u16),
     Terminal {
@@ -197,6 +202,20 @@ impl ReceivedSessionMessage {
             SessionMessage::Accepted { sequence } => Self::Accepted(sequence),
             SessionMessage::Delivered { sequence } => Self::Delivered(sequence),
             SessionMessage::InputClosed { final_sequence } => Self::InputClosed(final_sequence),
+            SessionMessage::InputAbnormal {
+                final_sequence,
+                terminal,
+            } => {
+                let length = u8::try_from(terminal.len())
+                    .map_err(|_| UsbLineSessionError::PayloadStorageExceeded)?;
+                let mut copy = [0; USB_LINE_MAXIMUM_PAYLOAD_BYTES as usize];
+                copy[..terminal.len()].copy_from_slice(terminal);
+                Self::InputAbnormal {
+                    final_sequence,
+                    terminal: copy,
+                    length,
+                }
+            }
             SessionMessage::Cancelled { code } => Self::Cancelled(code),
             SessionMessage::Failed { code } => Self::Failed(code),
             SessionMessage::Terminal {

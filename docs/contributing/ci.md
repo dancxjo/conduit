@@ -19,7 +19,7 @@ Entry runs inexpensive patch, formatting, and controller checks first. After
 those pass, impact planning runs the affected workspace, browser, firmware,
 product, or ConduitOS proof before the required `candidate` result becomes
 green. Documentation-only and unrelated target worlds remain cheap; complete
-release fabrication stays in promotion.
+release make stays in promotion.
 
 Do not dispatch reconciliation, copy commit identities into comments, poll every
 child job, or preserve an obsolete candidate run. The newest head owns the PR.
@@ -63,7 +63,7 @@ runs there. Workspace checks run alongside x86 to report deterministic failures
 without waiting for emulator proof; both remain required by the final check gate.
 The x86 gate runs after classification, pinned tools, and its prepared-image
 build. Other platform check jobs wait for selected x86 proof;
-the product fabrication/browser/carrier pipeline waits for the check suite.
+the product make/browser/carrier pipeline waits for the check suite.
 This deliberately trades some green-run parallelism for early rejection of a
 known failing machine before spending a full release's build budget. A failure
 or cancellation cannot open the downstream gate. Unselected development proof
@@ -105,6 +105,24 @@ branch already is the reviewed batch boundary, and retaining its ancestry lets
 the automatic development sync distinguish accepted release repairs from work
 that accumulated later in `dev`. Squashing an environment promotion erases that
 relationship and turns the routine return merge into a large false conflict.
+
+## Documentary publication is downstream
+
+Promotion does not generate or require a complete Three Bodies documentary or
+the gallery-only One Form, Two Fronts and Little Life evidence.
+The first Pages deployment publishes the exact accepted software carrier and
+retains a bounded context linking its main commit, release source, promotion
+run, carrier, and source tree. Only after that deployment succeeds does
+`journey-publication.yml` consumes immutable claim-specific producer evidence,
+creates gallery-only evidence against that exact accepted source, and attempts
+the human documentary as a separate workflow.
+
+A documentary failure cannot fail, mutate, or revoke the accepted release. A
+successful documentary run reseals a new publication carrier over the same
+accepted source tree and refuses to deploy if `main` has advanced. It may be
+rerun explicitly with the exact successful Pages run that retained the context;
+it never guesses a release or upgrades documentary observations into runtime
+proof.
 
 ## Statuses
 

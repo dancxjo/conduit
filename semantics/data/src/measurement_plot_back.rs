@@ -96,5 +96,6 @@ fn port(name: &str, value_kind: conduit_core::KindId, direction: PortDirection) 
         value_kind,
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

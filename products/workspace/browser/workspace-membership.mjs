@@ -225,11 +225,11 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
       actions.append(back);
       if (targetKind === "machine") {
         const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with machine catalog";
-        proceed.addEventListener("click", renderMachineFabrication);
+        proceed.addEventListener("click", renderMachineMake);
         actions.prepend(proceed);
       } else if (outfitter.checked()) {
         const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with reviewed host";
-        proceed.addEventListener("click", () => renderBrowserFabrication(outfitter.selection()));
+        proceed.addEventListener("click", () => renderBrowserMake(outfitter.selection()));
         actions.prepend(proceed);
       }
       content.append(actions);
@@ -238,7 +238,7 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
     redraw();
   }
 
-  function renderMachineFabrication() {
+  function renderMachineMake() {
     content.replaceChildren();
     const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a host";
     const heading = document.createElement("h3"); heading.textContent = "Prepare and bind an exact physical Host";
@@ -273,8 +273,8 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
     content.append(kicker, heading, explanation, runner, actions);
   }
 
-  function renderBrowserFabrication(configurationSelection) {
-    if (!configurationSelection) throw new Error("Review the exact browser Host PROFILE before fabrication");
+  function renderBrowserMake(configurationSelection) {
+    if (!configurationSelection) throw new Error("Review the exact browser Host PROFILE before make");
     content.replaceChildren();
     const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a host";
     const heading = document.createElement("h3"); heading.textContent = "Bind and admit this reviewed browser Host";

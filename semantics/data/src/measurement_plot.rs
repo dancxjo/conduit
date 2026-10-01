@@ -2,17 +2,11 @@
 
 use alloc::vec::Vec;
 
-use crate::BoundedMeasurementWindow;
+use crate::{BoundedMeasurementWindow, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal};
 
 pub const MEASUREMENT_PLOT_SERIES_INFO_ID: &str = "data/measurement-plot-series@1";
 pub const MAXIMUM_MEASUREMENT_PLOT_POINTS: usize = 32;
 pub const PLOT_AXIS_MILLIONTHS: i64 = 1_000_000;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MeasurementPlotOverflowPolicy {
-    Reject,
-    EvenlySpaced,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MeasurementPlotProfile {
@@ -32,16 +26,6 @@ pub struct MeasurementPlotSeries {
     points: Vec<MeasurementPlotPoint>,
     source_samples: usize,
     omitted_samples: usize,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MeasurementPlotRefusal {
-    InvalidPointCapacity,
-    EmptyWindow,
-    Full,
-    DegenerateValueRange,
-    ArithmeticOverflow,
-    InvalidProjection,
 }
 
 impl MeasurementPlotSeries {

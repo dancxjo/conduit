@@ -9,6 +9,17 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    AddressConfigurationError, AddressDetection, AddressDetectionAddressed,
+    AddressDetectionRefusal, AddressValueError, MorseError, MorseKeyPhase, MorseKeyRefusal,
+    MorseKeyRefusalInvalidPattern, MorseKeyTransition,
+};
+
 mod addressed_utterance;
 mod morse;
 #[cfg(feature = "form-catalog")]
@@ -30,7 +41,8 @@ pub use morse_values_into::*;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, KindSemanticLaw,
+    KindTerminalBehavior, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
@@ -66,6 +78,13 @@ pub struct TextKindContract {
 
 impl TextKindContract {
     pub fn into_semantic_contract(self) -> Kind {
+        let terminal_behavior = match self.kind_id.as_str() {
+            TEXT_LITERAL_KIND => KindTerminalBehavior::EmitsOnce,
+            TEXT_UPPER_KIND | TEXT_JOIN_KIND | ADDRESS_DETECT_KIND => {
+                KindTerminalBehavior::MirrorsInputTerminal
+            }
+            _ => unreachable!("text contract kind is closed"),
+        };
         let shorthand = match self.kind_id.as_str() {
             TEXT_UPPER_KIND | TEXT_JOIN_KIND => Some((
                 self.inputs[0].port_id.clone(),
@@ -73,23 +92,35 @@ impl TextKindContract {
             )),
             _ => None,
         };
+        let startup_parameters = self
+            .configuration
+            .iter()
+            .map(|field| FrontStartupParameter {
+                name: field.key.into(),
+                value_type: kind_id(TEXT_VALUE_KIND),
+                has_default: false,
+            })
+            .collect();
+        let configuration = self
+            .configuration
+            .into_iter()
+            .map(|field| KindConfigurationField {
+                key: field.key.into(),
+                default_value: field.default_value,
+                rule: KindConfigurationRule::TextBytes {
+                    maximum: field.maximum_text_bytes,
+                },
+            })
+            .collect();
         Kind {
-            startup_parameters: self
-                .configuration
-                .iter()
-                .map(|field| FrontStartupParameter {
-                    name: field.key.into(),
-                    value_type: kind_id(TEXT_VALUE_KIND),
-                    has_default: false,
-                })
-                .collect(),
+            startup_parameters,
             shorthand,
             kind_id: self.kind_id,
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
-            configuration: Default::default(),
-            semantic_laws: Default::default(),
+            configuration,
+            semantic_laws: vec![KindSemanticLaw::Terminal(terminal_behavior)],
             limits: self.limits,
         }
     }
@@ -164,10 +195,7 @@ pub fn install_text_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("AddressSet", kind_id(ADDRESS_SET_VALUE_KIND))?;
     startup.insert_value_kind_alias("AddressDetection", kind_id(ADDRESS_DETECTION_VALUE_KIND))?;
@@ -197,23 +225,7 @@ pub fn install_text_catalogs(
         address_detect_semantics(),
     ] {
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key.to_string(),
-                        default_value: field.default_value,
-                        rule: KindConfigurationRule::TextBytes {
-                            maximum: field.maximum_text_bytes,
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(contract.into_semantic_contract())
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -229,6 +241,7 @@ fn named_text_port(name: &str, value_kind: &str, direction: PortDirection) -> Po
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

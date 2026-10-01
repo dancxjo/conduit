@@ -146,7 +146,7 @@ test("focus loss is recoverable while page loss is terminal", async ({ page }) =
   expect(await page.evaluate(async () => (await globalThis.__conduitHumanInput.acquireKeyboard()).code)).toBe("PageLost");
 });
 
-test("Pocket Theremin Body routing reuses one pointer slot for 100,000 browser observations", async ({ page }) => {
+test("Body routing reuses one pointer slot for 100,000 browser observations", async ({ page }) => {
   await page.goto("/proof/browser/browser-body-input.test.html");
   await expect(page.locator("#status")).toHaveText("ready");
   const result = await page.evaluate(() => globalThis.__conduitBodyInput.stress(100_000));
@@ -156,7 +156,7 @@ test("Pocket Theremin Body routing reuses one pointer slot for 100,000 browser o
   expect(result.latest.coalesced).toBe(99_998);
   expect(result.pressure).toEqual([expect.objectContaining({
     kind: "pointer",
-    form: "form/pocket-theremin",
+    form: "form/pointer-pressure-proof",
     capacity: 1,
     occupancy: 0,
     accepted: 100_000,

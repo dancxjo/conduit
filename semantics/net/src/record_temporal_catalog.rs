@@ -17,13 +17,16 @@ pub fn install_record_temporal_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    for definition in definitions() {
+    for definition in [
+        record_singleton_stream_semantic_contract(),
+        record_exactly_one_semantic_contract(),
+    ] {
         startup.insert(KindSignature {
             kind: definition.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(definition)
+            .insert_kind(definition)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -121,6 +124,7 @@ fn port(
         value_kind,
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

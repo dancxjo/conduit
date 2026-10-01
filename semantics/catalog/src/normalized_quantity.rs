@@ -2,6 +2,7 @@
 
 use alloc::vec::Vec;
 use conduit_core::{Kind, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN};
+pub use conduit_data::NormalizedQuantityRefusal;
 
 pub const NORMALIZED_QUANTITY_KIND: &str = "math/normalized-quantity-scalar";
 pub const NORMALIZED_QUANTITY_REVISION: &str = "conduit.std/normalized-quantity-scalar@1";
@@ -43,27 +44,13 @@ pub fn install_normalized_quantity_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    let contract = normalized_quantity_contract();
     startup.insert(conduit_form::KindSignature {
         kind: NORMALIZED_QUANTITY_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(conduit_form::KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: NORMALIZED_QUANTITY_REVISION.into(),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(normalized_quantity_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NormalizedQuantityRefusal {
-    MalformedOrWrongType,
-    IncompatibleUnit,
-    OutOfDomain,
 }
 
 /// The canonical leaf envelope is admitted once, before execution.

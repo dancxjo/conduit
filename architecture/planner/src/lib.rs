@@ -47,8 +47,9 @@ use conduit_core::{
     AuthorityGrant, BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId,
     DeliveryPressurePolicy, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement,
     HostId, LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedConnection, PlannedGear, ResourcePoolId, StartupDependency, TerminalPolicy,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    PlannedConnection, PlannedGear, PlannedStateBoundary, ResourcePoolId, StartupDependency,
+    StateContinuation, StateId, StateLifetime, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
@@ -84,10 +85,13 @@ pub mod proof;
 mod protected_resources;
 mod realization;
 mod realization_families;
+mod realization_recovery;
 mod recursive_recovery;
 mod replanning;
 mod requirements;
 mod resource_binding;
+mod resource_port;
+mod retry;
 mod selected_plan_sealing;
 mod startup;
 pub mod state_delay;
@@ -114,10 +118,12 @@ pub use advice::{
 };
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
-    default_expanded_placements, plan_canonical_realization_with_options, plan_expanded_canonical,
+    default_expanded_placements, plan_canonical_realization_with_options,
+    plan_expanded_authoring_with_options, plan_expanded_canonical,
     plan_expanded_canonical_with_connection_limits, plan_expanded_canonical_with_options,
     plan_expanded_canonical_with_shared_pools, CanonicalRealizationMode,
-    CanonicalRealizationSelectionError, PlannedCanonicalRealization, SharedPoolPlanningRequirement,
+    CanonicalRealizationSelectionError, ForeBoundaryKey, PlannedCanonicalRealization,
+    SharedPoolPlanningRequirement,
 };
 pub use characteristics::{
     plan_selected_realizations_with_characteristics,
@@ -202,12 +208,18 @@ pub use realization_families::{
     RealizationFamily, RealizationFamilyCatalog, MAXIMUM_CURRENT_FAMILY_OFFERS,
     MAXIMUM_REALIZATION_FAMILIES, MAXIMUM_REALIZATION_FAMILY_PREREQUISITES,
 };
+pub use realization_recovery::{
+    admit_realization_recovery, RealizationInvalidation, RealizationRecoveryOutcome,
+    RealizationRecoveryRefusal, RealizationReplacementEvidence, RecoveryPlanningOutcome,
+    MAXIMUM_INVALIDATED_REALIZATION_LINES, MAXIMUM_RECOVERY_REFUSAL_BYTES,
+};
 pub use recursive_recovery::{
     prove_recursive_recovery, RecursiveRecoveryCandidate, RecursiveRecoveryEvidence,
     RecursiveRecoveryLimits, RecursiveRecoveryRefusal,
 };
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
+pub use retry::{admit_explicit_retry, RetryAdmission, RetryAdmissionBasis};
 pub use selected_plan_sealing::seal_exact_plan_with_selected_realizations;
 pub use style::{
     dos_shell_style, presentation_style_characteristics, select_realization_with_style, NamedStyle,
@@ -462,6 +474,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
             })?;
         validate_operation_capability(gear, capability)?;
+        validate_keep_retention(gear, capability)?;
 
         let count = placement_count
             .entry((host.host_id.clone(), capability.capability_id.clone()))
@@ -536,7 +549,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             capability.capability_id.as_str()
         )));
         placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
-        planned_gears.push(PlannedGear {
+        planned_gears.push(conduit_core::planned_gear_from_parts! {
             placement_id,
             gear_id: gear.gear_id.clone(),
             kind_id: capability.kind_id.clone(),
@@ -554,6 +567,8 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
+            semantic_contract: capability.semantic_contract.clone(),
+            terminal_transductions: gear.terminal_transductions.clone(),
             host_calls: capability.host_calls.clone(),
             resources: resource_bindings,
             authority: authority_bindings,
@@ -601,6 +616,23 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
+        let source_gear = form
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id == connection.source_gear_id)
+            .expect("checked source gear must exist");
+        let sink_gear = form
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id == connection.sink_gear_id)
+            .expect("checked sink gear must exist");
+        let resource = resource_port::plan_resource_connection(
+            connection,
+            source_gear,
+            sink_gear,
+            source_plan,
+            sink_plan,
+        )?;
         let (selected_line, admitted_lines) = select_line(LineSelection {
             source: source_plan,
             sink: sink_plan,
@@ -644,13 +676,14 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         }
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
-                "connection:{}:{}:{}:{}:{}:{}:{}",
+                "connection:{}:{}:{}:{}:{}:{}:{}:{}",
                 form.checked_form_id.as_str(),
                 connection.source_gear_id.as_str(),
                 connection.source_port_id.as_str(),
                 connection.sink_gear_id.as_str(),
                 connection.sink_port_id.as_str(),
                 connection.value_kind.as_str(),
+                connection.track.as_str(),
                 connection.temporal.as_str(),
             ))),
             source_placement_id: source_plan.placement_id.clone(),
@@ -658,6 +691,13 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             sink_placement_id: sink_plan.placement_id.clone(),
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
+            resource,
+            abnormal_kind: source_capability
+                .outputs
+                .iter()
+                .find(|port| port.port_id == connection.source_port_id)
+                .and_then(|port| port.abnormal_kind.clone()),
+            track: connection.track,
             temporal: connection.temporal,
             pressure_policy: if source_plan.kind_id.as_str() == "flow/coalesce-latest" {
                 DeliveryPressurePolicy::CoalesceLatest
@@ -726,6 +766,13 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 }))
                 .chain(core::iter::once(ExpectedTerminal::PlanCompleted))
                 .collect();
+            let states = placements
+                .iter()
+                .map(planned_keep_state)
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>();
             let expected_sign = core::iter::once(ExpectedSign::PlanFragmentReceived)
                 .chain(placements.iter().map(|placement| {
                     ExpectedSign::PlacementPrepared(placement.placement_id.clone())
@@ -738,7 +785,25 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 }))
                 .chain(core::iter::once(ExpectedSign::PlanTerminal))
                 .collect::<Vec<_>>();
-            let sign_storage_budget = mandatory_sign_storage_requirement(&expected_sign)
+            let mut sign_storage_budget = mandatory_sign_storage_requirement(&expected_sign)
+                .ok_or_else(|| {
+                    PlannerError::SignBudgetOverflow(host.host_id.as_str().to_string())
+                })?;
+            let state_budget = conduit_core::state_resource_budget(&states).map_err(|error| {
+                PlannerError::InvalidStateContract(format!(
+                    "host '{}' retained State admission: {error:?}",
+                    host.host_id.as_str()
+                ))
+            })?;
+            sign_storage_budget.item_capacity = sign_storage_budget
+                .item_capacity
+                .checked_add(state_budget.sign_storage.item_capacity)
+                .ok_or_else(|| {
+                    PlannerError::SignBudgetOverflow(host.host_id.as_str().to_string())
+                })?;
+            sign_storage_budget.byte_capacity = sign_storage_budget
+                .byte_capacity
+                .checked_add(state_budget.sign_storage.byte_capacity)
                 .ok_or_else(|| {
                     PlannerError::SignBudgetOverflow(host.host_id.as_str().to_string())
                 })?;
@@ -756,8 +821,9 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 placements,
                 execution_regions: Vec::new(),
                 execution_fusions: Vec::new(),
-                states: Vec::new(),
+                states,
                 connections,
+                fore_ports: Vec::new(),
                 shared_pools: Vec::new(),
                 startup_dependencies,
                 startup_order,
@@ -779,6 +845,175 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         plan_completion_policy(form.completion),
         fragments,
     ))
+}
+
+fn planned_keep_state(
+    placement: &PlannedGear,
+) -> Result<Option<PlannedStateBoundary>, PlannerError> {
+    let Some(duration) = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "retained-duration")
+    else {
+        return Ok(None);
+    };
+    if !matches!(
+        placement.kind_id.as_str(),
+        "state/latest" | conduit_core::STATE_VALUE_KIND
+    ) {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' attaches retained duration to non-State Kind '{}'",
+            placement.gear_id.as_str(),
+            placement.kind_id.as_str()
+        )));
+    }
+    let conduit_core::ConfigurationValue::Text(duration) = &duration.value else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained duration is not canonical text",
+            placement.gear_id.as_str()
+        )));
+    };
+    let lifetime = state_lifetime(duration, &placement.gear_id)?;
+    let maximum = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "maximum-bytes")
+        .and_then(|entry| match &entry.value {
+            conduit_core::ConfigurationValue::U64(value) => u32::try_from(*value).ok(),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            PlannerError::InvalidStateContract(format!(
+                "gear '{}' has no exact retained value bound",
+                placement.gear_id.as_str()
+            ))
+        })?;
+    if maximum > placement.limits.max_queue_bytes {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' requires {} retained value bytes, but its selected Back admits {}",
+            placement.gear_id.as_str(),
+            maximum,
+            placement.limits.max_queue_bytes
+        )));
+    }
+    let [input] = placement.inputs.as_slice() else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained State must have one input",
+            placement.gear_id.as_str()
+        )));
+    };
+    let [output] = placement.outputs.as_slice() else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained State must have one output",
+            placement.gear_id.as_str()
+        )));
+    };
+    if input.value_kind != output.value_kind
+        || output.temporal != conduit_core::PortTemporal::Current
+    {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained State Fore is inconsistent",
+            placement.gear_id.as_str()
+        )));
+    }
+    let initial_value = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "initial")
+        .map(|entry| match &entry.value {
+            conduit_core::ConfigurationValue::Quantity(value) => Ok(value.encode().to_vec()),
+            conduit_core::ConfigurationValue::Structured(value) => {
+                let structured = conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    value.canonical_value(),
+                )
+                .map_err(|_| {
+                    PlannerError::InvalidStateContract(format!(
+                        "gear '{}' retained initializer is malformed",
+                        placement.gear_id.as_str()
+                    ))
+                })?;
+                match (structured.value_type().shape(), structured.shape()) {
+                    (
+                        conduit_core::StructuredInfoTypeShape::Leaf(kind),
+                        conduit_core::StructuredInfoValueShape::Leaf(bytes),
+                    ) if output.value_kind == *kind => Ok(bytes.to_vec()),
+                    _ => Ok(value.canonical_value().to_vec()),
+                }
+            }
+            _ => Err(PlannerError::InvalidStateContract(format!(
+                "gear '{}' retained initializer has no canonical encoding",
+                placement.gear_id.as_str()
+            ))),
+        })
+        .transpose()?;
+    Ok(Some(PlannedStateBoundary {
+        state_id: StateId::from(placement.gear_id.as_str()),
+        gear_id: placement.gear_id.clone(),
+        value_kind: output.value_kind.clone(),
+        initial_value,
+        lifetime,
+        retained: None,
+        maximum_value_bytes: maximum,
+        continuation: StateContinuation::ExternallyBounded,
+    }))
+}
+
+fn validate_keep_retention(
+    gear: &CheckedGear,
+    capability: &conduit_core::CapabilityOffer,
+) -> Result<(), PlannerError> {
+    capability.validate_state_retention().map_err(|_| {
+        PlannerError::InvalidStateContract(format!(
+            "capability '{}' attaches State retention to non-State Kind '{}'",
+            capability.capability_id.as_str(),
+            capability.kind_id.as_str()
+        ))
+    })?;
+    let Some(duration) = gear
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "retained-duration")
+    else {
+        return Ok(());
+    };
+    let conduit_core::ConfigurationValue::Text(duration) = &duration.value else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained duration is not canonical text",
+            gear.gear_id.as_str()
+        )));
+    };
+    let required = state_lifetime(duration, &gear.gear_id)?;
+    if capability
+        .state_retention
+        .is_none_or(|support| !support.supports(required))
+    {
+        return Err(PlannerError::StateRetentionUnsupported(format!(
+            "gear '{}' requires {:?}, but capability '{}' supports at most {}",
+            gear.gear_id.as_str(),
+            required,
+            capability.capability_id.as_str(),
+            capability
+                .state_retention
+                .map(|support| format!("{:?}", support.maximum_lifetime))
+                .unwrap_or_else(|| "no keep duration".to_string())
+        )));
+    }
+    Ok(())
+}
+
+fn state_lifetime(duration: &str, gear_id: &GearId) -> Result<StateLifetime, PlannerError> {
+    match duration {
+        "step" => Ok(StateLifetime::Step),
+        "play" => Ok(StateLifetime::Play),
+        "wake" => Ok(StateLifetime::Wake),
+        "boot" => Ok(StateLifetime::Boot),
+        "body" => Ok(StateLifetime::Body),
+        _ => Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' has unknown retained duration '{}'",
+            gear_id.as_str(),
+            duration
+        ))),
+    }
 }
 
 fn connection_endpoints(connection: &conduit_form::CheckedConnection) -> ConnectionEndpoints {
@@ -804,6 +1039,13 @@ fn validate_operation_capability(
     if capability.checked_front() != gear.checked_front() {
         return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",
+            gear.gear_id.as_str(),
+            capability.capability_id.as_str()
+        )));
+    }
+    if !gear.accepts_semantic_contract(capability) {
+        return Err(PlannerError::WrongKindContractRevision(format!(
+            "gear '{}' semantic laws or configuration contract differ from capability '{}'",
             gear.gear_id.as_str(),
             capability.capability_id.as_str()
         )));

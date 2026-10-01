@@ -23,7 +23,7 @@ if test -n "$initial_body_bundle"; then
   test -f "$initial_body_bundle"
   cp "$initial_body_bundle" "$destination/forms/initial-body.conduit"
 else
-  cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+  cargo xtask check forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
 fi
 cp products/workspace/browser/body-bootstrap.mjs "$destination/creche-lifecycle.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/creche-form-selection.mjs"
@@ -43,7 +43,6 @@ cp products/creche/browser/creche-rendezvous.mjs "$destination/creche-rendezvous
 cp products/creche/browser/rendezvous-candidate-schedule.mjs "$destination/rendezvous-candidate-schedule.mjs"
 cp products/creche/browser/rendezvous-cbor.mjs "$destination/rendezvous-cbor.mjs"
 cp products/creche/browser/creche-rendezvous-candidates.mjs "$destination/creche-rendezvous-candidates.mjs"
-cp products/creche/browser/creche-graduation.mjs "$destination/creche-graduation.mjs"
 cp products/creche/browser/creche-routing.mjs "$destination/creche-routing.mjs"
 cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination/application-syntax-presentation.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
@@ -71,7 +70,7 @@ if test "$mode" = release; then
     cp "$release_artifacts/esp32-$target-generic-release.bin" "$destination/artifacts/"
     cp "$release_artifacts/esp32-$target-generic-release.json" "$destination/artifacts/"
   done
-  for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 conduit-tour-linux-x86_64 conduit-home-linux-x86_64 install-linux-x86_64.sh hosted-windows-x86_64.json conduit-windows-x86_64.exe conduit-tour-windows-x86_64.exe conduit-home-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 install-macos-aarch64.sh browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-runtime-bridge.mjs browser-boot-profile.mjs browser-relay-line.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
+  for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 install-linux-x86_64.sh hosted-windows-x86_64.json conduit-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 install-macos-aarch64.sh browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-runtime-bridge.mjs browser-boot-profile.mjs browser-relay-line.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
     test -f "$release_artifacts/$artifact"
     cp "$release_artifacts/$artifact" "$destination/artifacts/"
   done

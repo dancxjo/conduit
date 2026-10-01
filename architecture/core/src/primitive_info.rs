@@ -5,9 +5,11 @@
 
 use crate::{
     InfoBool, InfoDecodeError, Quantity, QuantityDecodeRefusal, QuantityDimension, Scalar,
+    TerminalInfo, TerminalInfoDecodeRefusal,
 };
 
 pub const UNIT_INFO_ID: &str = "value/unit";
+pub const CANCELLATION_REQUEST_INFO_ID: &str = "control/cancellation-request";
 pub const COUNT_INFO_ID: &str = "value/count";
 pub const TEXT_INFO_ID: &str = "value/text";
 pub const BYTES_INFO_ID: &str = "value/bytes";
@@ -16,6 +18,8 @@ pub const COUNT_ENCODED_LEN: usize = 8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveInfoKind {
     Unit,
+    CancellationRequest,
+    Terminal,
     Bool,
     Count,
     Scalar,
@@ -24,6 +28,22 @@ pub enum PrimitiveInfoKind {
     Quantity,
     Distance,
     Frequency,
+    Duration,
+    Voltage,
+    Temperature,
+    Angle,
+    Ratio,
+    PixelCount,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,15 +56,22 @@ pub enum PrimitiveInfoRefusal {
     Scalar(InfoDecodeError),
     TextUtf8,
     Quantity(QuantityDecodeRefusal),
+    Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
         expected: QuantityDimension,
         actual: QuantityDimension,
+    },
+    IntegerLength {
+        expected: usize,
+        actual: usize,
     },
 }
 
 pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
     match identity.as_bytes() {
         b"value/unit" => Some(PrimitiveInfoKind::Unit),
+        b"control/cancellation-request" => Some(PrimitiveInfoKind::CancellationRequest),
+        b"conduit/terminal-info@1" => Some(PrimitiveInfoKind::Terminal),
         b"value/bool" => Some(PrimitiveInfoKind::Bool),
         b"value/count" => Some(PrimitiveInfoKind::Count),
         b"value/scalar" => Some(PrimitiveInfoKind::Scalar),
@@ -53,6 +80,22 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/quantity" => Some(PrimitiveInfoKind::Quantity),
         b"value/distance" => Some(PrimitiveInfoKind::Distance),
         b"value/frequency" => Some(PrimitiveInfoKind::Frequency),
+        b"value/duration" => Some(PrimitiveInfoKind::Duration),
+        b"value/voltage" => Some(PrimitiveInfoKind::Voltage),
+        b"value/temperature" => Some(PrimitiveInfoKind::Temperature),
+        b"value/angle" => Some(PrimitiveInfoKind::Angle),
+        b"value/ratio" => Some(PrimitiveInfoKind::Ratio),
+        b"value/pixel-count" => Some(PrimitiveInfoKind::PixelCount),
+        b"value/u8" => Some(PrimitiveInfoKind::U8),
+        b"value/u16" => Some(PrimitiveInfoKind::U16),
+        b"value/u32" => Some(PrimitiveInfoKind::U32),
+        b"value/u64" => Some(PrimitiveInfoKind::U64),
+        b"value/u128" => Some(PrimitiveInfoKind::U128),
+        b"value/i8" => Some(PrimitiveInfoKind::I8),
+        b"value/i16" => Some(PrimitiveInfoKind::I16),
+        b"value/i32" => Some(PrimitiveInfoKind::I32),
+        b"value/i64" => Some(PrimitiveInfoKind::I64),
+        b"value/i128" => Some(PrimitiveInfoKind::I128),
         _ => None,
     }
 }
@@ -62,7 +105,18 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Unit) if !encoded.is_empty() => {
             Err(PrimitiveInfoRefusal::UnitNotEmpty)
         }
-        Some(PrimitiveInfoKind::Unit | PrimitiveInfoKind::Bytes) | None => Ok(()),
+        Some(PrimitiveInfoKind::CancellationRequest) if !encoded.is_empty() => {
+            Err(PrimitiveInfoRefusal::UnitNotEmpty)
+        }
+        Some(PrimitiveInfoKind::Terminal) => TerminalInfo::decode(encoded)
+            .map(|_| ())
+            .map_err(PrimitiveInfoRefusal::Terminal),
+        Some(
+            PrimitiveInfoKind::Unit
+            | PrimitiveInfoKind::CancellationRequest
+            | PrimitiveInfoKind::Bytes,
+        )
+        | None => Ok(()),
         Some(PrimitiveInfoKind::Bool) => InfoBool::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Bool),
@@ -81,11 +135,26 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Quantity) => Quantity::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Quantity),
-        Some(PrimitiveInfoKind::Distance | PrimitiveInfoKind::Frequency) => {
+        Some(
+            PrimitiveInfoKind::Distance
+            | PrimitiveInfoKind::Frequency
+            | PrimitiveInfoKind::Duration
+            | PrimitiveInfoKind::Voltage
+            | PrimitiveInfoKind::Temperature
+            | PrimitiveInfoKind::Angle
+            | PrimitiveInfoKind::Ratio
+            | PrimitiveInfoKind::PixelCount,
+        ) => {
             let quantity = Quantity::decode(encoded).map_err(PrimitiveInfoRefusal::Quantity)?;
             let expected = match primitive_info_kind(identity) {
                 Some(PrimitiveInfoKind::Distance) => QuantityDimension::Length,
                 Some(PrimitiveInfoKind::Frequency) => QuantityDimension::Frequency,
+                Some(PrimitiveInfoKind::Duration) => QuantityDimension::Time,
+                Some(PrimitiveInfoKind::Voltage) => QuantityDimension::Voltage,
+                Some(PrimitiveInfoKind::Temperature) => QuantityDimension::Temperature,
+                Some(PrimitiveInfoKind::Angle) => QuantityDimension::Angle,
+                Some(PrimitiveInfoKind::Ratio) => QuantityDimension::Ratio,
+                Some(PrimitiveInfoKind::PixelCount) => QuantityDimension::PixelCount,
                 _ => unreachable!("matched dimensioned quantity kind"),
             };
             let actual = quantity.dimension();
@@ -95,6 +164,39 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
                 Err(PrimitiveInfoRefusal::WrongQuantityDimension { expected, actual })
             }
         }
+        Some(
+            kind @ (PrimitiveInfoKind::U8
+            | PrimitiveInfoKind::U16
+            | PrimitiveInfoKind::U32
+            | PrimitiveInfoKind::U64
+            | PrimitiveInfoKind::U128
+            | PrimitiveInfoKind::I8
+            | PrimitiveInfoKind::I16
+            | PrimitiveInfoKind::I32
+            | PrimitiveInfoKind::I64
+            | PrimitiveInfoKind::I128),
+        ) => {
+            let expected = fixed_integer_bytes(kind);
+            if encoded.len() == expected {
+                Ok(())
+            } else {
+                Err(PrimitiveInfoRefusal::IntegerLength {
+                    expected,
+                    actual: encoded.len(),
+                })
+            }
+        }
+    }
+}
+
+pub const fn fixed_integer_bytes(kind: PrimitiveInfoKind) -> usize {
+    match kind {
+        PrimitiveInfoKind::U8 | PrimitiveInfoKind::I8 => 1,
+        PrimitiveInfoKind::U16 | PrimitiveInfoKind::I16 => 2,
+        PrimitiveInfoKind::U32 | PrimitiveInfoKind::I32 => 4,
+        PrimitiveInfoKind::U64 | PrimitiveInfoKind::I64 => 8,
+        PrimitiveInfoKind::U128 | PrimitiveInfoKind::I128 => 16,
+        _ => 0,
     }
 }
 

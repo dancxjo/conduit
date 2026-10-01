@@ -19,7 +19,10 @@ pub struct KindSignature {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
     kinds: BTreeMap<String, KindSignature>,
+    fores: BTreeMap<String, CheckedFront>,
+    variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
+    structured_type_contracts: BTreeMap<String, Vec<NativeTypeValueContract>>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
 }
 
@@ -60,6 +63,77 @@ impl StartupCatalog {
         self.kinds.get(kind)
     }
 
+    /// Installs the complete checked Fore for source-time laws which depend on
+    /// runtime port shape, such as glyph operand binding. This is not a Back or
+    /// planning profile: it carries no implementation or availability truth.
+    pub fn insert_fore(&mut self, kind: &str, fore: CheckedFront) -> Result<(), String> {
+        let signature = self
+            .kinds
+            .get(kind)
+            .ok_or_else(|| format!("cannot install a Fore for unknown Kind '{kind}'"))?;
+        let expected = self
+            .canonical_startup_parameters(signature)
+            .map_err(|error| format!("invalid startup Fore for Kind '{kind}': {error:?}"))?;
+        if fore.startup_parameters() != expected {
+            return Err(format!(
+                "checked Fore startup parameters differ from Kind '{kind}' signature"
+            ));
+        }
+        if self.fores.contains_key(kind) {
+            return Err(format!("duplicate checked Fore for Kind '{kind}'"));
+        }
+        self.fores.insert(kind.to_string(), fore);
+        Ok(())
+    }
+
+    pub fn fore(&self, kind: &str) -> Option<&CheckedFront> {
+        self.fores.get(kind)
+    }
+
+    /// Marks one reviewed Kind Fore as a finite homogeneous input family.
+    /// Each use is specialized to ordinary exact ports before checking ends.
+    pub fn insert_homogeneous_variadic_fore(
+        &mut self,
+        kind: &str,
+        family: crate::HomogeneousVariadicFore,
+    ) -> Result<(), String> {
+        let signature = self
+            .kinds
+            .get(kind)
+            .ok_or_else(|| format!("cannot install a variadic Fore for unknown Kind '{kind}'"))?;
+        let startup_parameters = self
+            .canonical_startup_parameters(signature)
+            .map_err(|error| format!("invalid variadic Fore for Kind '{kind}': {error:?}"))?;
+        family.specialize(usize::from(family.minimum_inputs()), startup_parameters)?;
+        if self.variadic_fores.contains_key(kind) {
+            return Err(format!("duplicate variadic Fore for Kind '{kind}'"));
+        }
+        self.variadic_fores.insert(kind.into(), family);
+        Ok(())
+    }
+
+    pub(crate) fn fore_for_arity(
+        &self,
+        kind: &str,
+        input_count: usize,
+    ) -> Result<Option<CheckedFront>, String> {
+        if let Some(family) = self.variadic_fores.get(kind) {
+            let signature = self
+                .kinds
+                .get(kind)
+                .expect("variadic Fores retain their Kind signature");
+            let startup_parameters = self
+                .canonical_startup_parameters(signature)
+                .map_err(|error| format!("invalid variadic Fore for Kind '{kind}': {error:?}"))?;
+            return family.specialize(input_count, startup_parameters).map(Some);
+        }
+        Ok(self
+            .fores
+            .get(kind)
+            .filter(|fore| fore.inputs().len() == input_count)
+            .cloned())
+    }
+
     /// Resolves authoring spellings into the canonical startup type identities
     /// carried by checked fronts and realization offers.
     pub fn canonical_startup_parameters(
@@ -96,6 +170,18 @@ impl StartupCatalog {
         Ok(())
     }
 
+    pub(crate) fn insert_native_type(
+        &mut self,
+        name: impl Into<String>,
+        value_type: conduit_core::StructuredInfoType,
+        contracts: Vec<NativeTypeValueContract>,
+    ) -> Result<(), String> {
+        let name = name.into();
+        self.insert_structured_type(name.clone(), value_type)?;
+        self.structured_type_contracts.insert(name, contracts);
+        Ok(())
+    }
+
     pub fn insert_value_kind_alias(
         &mut self,
         name: impl Into<String>,
@@ -120,6 +206,32 @@ impl StartupCatalog {
         self.structured_types.get(name)
     }
 
+    pub(crate) fn structured_type_contracts(
+        &self,
+        name: &str,
+    ) -> Option<&[NativeTypeValueContract]> {
+        self.structured_type_contracts.get(name).map(Vec::as_slice)
+    }
+
+    pub(crate) fn structured_types_by_value_kind(
+        &self,
+    ) -> Result<
+        BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+        conduit_core::StructuredInfoRefusal,
+    > {
+        let mut checked = BTreeMap::new();
+        for value_type in self.structured_types.values() {
+            let value_kind = value_type.profile()?.value_kind().clone();
+            if checked
+                .insert(value_kind.clone(), value_type.clone())
+                .is_some_and(|prior| prior != *value_type)
+            {
+                return Err(conduit_core::StructuredInfoRefusal::WrongType);
+            }
+        }
+        Ok(checked)
+    }
+
     pub(crate) fn value_kind_alias(&self, name: &str) -> Option<&conduit_core::KindId> {
         self.value_kind_aliases.get(name)
     }
@@ -128,6 +240,7 @@ impl StartupCatalog {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CanonicalStartupValue {
     Literal(String),
+    Quantity(conduit_core::Quantity),
     FormParameter(String),
     PoolReference(conduit_core::SharedPoolId),
     Structured(crate::CanonicalStructuredStartupValue),
@@ -155,8 +268,23 @@ pub struct CheckedCanonicalGear {
     pub kind: String,
     pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
-    pub retained: Option<Box<crate::RetainedValue>>,
+    pub retained: Option<Box<CheckedRetainedValue>>,
     pub source_span: Span,
+}
+
+/// Canonical checked meaning of one authored `keep` declaration.
+///
+/// The source type spelling is deliberately gone at this layer. Retained State
+/// planning and realization consume the exact structured type and initializer,
+/// not an alias or an unchecked expression string.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedRetainedValue {
+    pub value_type: conduit_core::StructuredInfoType,
+    pub value_kind: conduit_core::KindId,
+    pub optional: bool,
+    pub maximum_bytes: Option<u64>,
+    pub initial: Option<CanonicalStartupValue>,
+    pub duration: crate::RetainedDuration,
 }
 
 impl PartialEq for CheckedCanonicalGear {
@@ -174,6 +302,29 @@ impl Eq for CheckedCanonicalGear {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckedCordStage {
     Reference(String),
+    RelationalGear {
+        operands: Vec<String>,
+        gear: CheckedCanonicalGear,
+        input_ports: Vec<String>,
+        output_port: String,
+    },
+    TerminalProjection {
+        endpoint: String,
+        terminal: crate::TerminalProjection,
+        source_span: Span,
+    },
+    Cancellation {
+        gear: String,
+        source_span: Span,
+    },
+    When {
+        expression: crate::ExpressionSyntax,
+        source_span: Span,
+    },
+    PureExpression {
+        expression: crate::ExpressionSyntax,
+        source_span: Span,
+    },
     InlineGear(CheckedCanonicalGear),
     Literal {
         value: CanonicalStartupValue,
@@ -216,7 +367,118 @@ pub struct CheckedCanonicalForm {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
+    pub native_types: Vec<CheckedNativeType>,
+    pub codes: Vec<CheckedCode>,
     pub forms: Vec<CheckedCanonicalForm>,
+    /// Authored shorthand correlated with the ordinary meaning established by
+    /// this exact check. This is source inspection, not another expansion or
+    /// an input to planning.
+    pub source_sugar_expansions: Vec<SourceSugarExpansion>,
+    pub(crate) structured_types: BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+}
+
+/// One checked compatibility code, distinct from semantic Type identity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedCode {
+    pub name: String,
+    pub compatibility_id: String,
+    pub value_type_name: String,
+    pub value_type: conduit_core::KindId,
+    pub storage: CheckedCodeStorage,
+    /// Exact iota order, either derived from Type order or explicitly authored.
+    pub mappings: Vec<CheckedCodeMapping>,
+    pub invalid_refusal: CheckedCodeRefusal,
+    pub exact_bytes: u16,
+    pub maximum_bytes: u16,
+    pub maximum_decode_steps: u16,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckedCodeStorage {
+    U8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckedCodeRefusal {
+    InvalidTag,
+}
+
+impl CheckedCodeRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidTag => "invalid_tag",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedCodeMapping {
+    pub variant: String,
+    pub discriminant: u8,
+}
+
+/// One checked source-owned semantic Type and its exact finite representation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedNativeType {
+    /// Source-local name. Import aliases may change this spelling downstream;
+    /// `identity` remains the canonical semantic identity.
+    pub name: String,
+    pub identity: conduit_core::KindId,
+    pub value_type: conduit_core::StructuredInfoType,
+    /// Primitive refinement contracts retained at exact representation paths.
+    pub value_contracts: Vec<NativeTypeValueContract>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeTypeValueContract {
+    /// Empty for a scalar representation; fields/cases/containers extend it.
+    pub representation_path: String,
+    pub contract: conduit_core::CheckedValueContract,
+}
+
+/// One checked explanation of concise source spelling.
+///
+/// The ordinary Kind and Fore roles come from the same lexical resolution and
+/// Fore specialization used to build [`CheckedCanonicalForm`]. Consumers must
+/// not reinterpret `authored` or use this record as planner input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSugarExpansion {
+    pub form: String,
+    pub checked_form_id: CheckedFormId,
+    pub authored: String,
+    pub source_span: Span,
+    pub ordinary_kind: String,
+    pub input_ports: Vec<String>,
+    pub output_ports: Vec<String>,
+    pub operand_bindings: Vec<SourceSugarOperandBinding>,
+    /// A direct stage replacement when the spelling is losslessly expressible.
+    /// Relational applications use explicit port bindings instead.
+    pub canonical_replacement: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSugarOperandBinding {
+    pub source: String,
+    pub input_port: String,
+}
+
+impl CheckedSyntaxDocument {
+    /// Returns the exact finite structured type behind one checked value Kind.
+    ///
+    /// Source aliases are deliberately absent here: expression checking and
+    /// expansion consume canonical semantic identity, never author spelling.
+    pub fn structured_type(
+        &self,
+        value_kind: &conduit_core::KindId,
+    ) -> Option<&conduit_core::StructuredInfoType> {
+        self.structured_types.get(value_kind)
+    }
+
+    pub(crate) fn structured_types(
+        &self,
+    ) -> &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType> {
+        &self.structured_types
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -253,11 +515,23 @@ pub struct ExpandedAuthoringForm {
     pub front: CheckedFront,
     pub input_bindings: Vec<AuthoringFrontBinding>,
     pub output_bindings: Vec<AuthoringFrontBinding>,
+    /// Exact typed abnormal truth which remains unresolved after the Form's
+    /// internal recovery routes. This is inferred checked meaning, not an
+    /// authored Fore spelling.
+    pub abnormal_export: Option<CheckedFormAbnormalExport>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthoringFrontBinding {
     pub front_port_id: conduit_core::PortId,
+    pub gear_id: conduit_core::GearId,
+    pub gear_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedFormAbnormalExport {
+    pub value_kind: conduit_core::KindId,
     pub gear_id: conduit_core::GearId,
     pub gear_port_id: conduit_core::PortId,
 }
@@ -311,6 +585,8 @@ pub(crate) enum SyntaxCheckError {
     UnsupportedKind(String),
     DuplicateGear(String),
     UnsupportedExpression(String),
+    QuantityLiteral(String),
+    InvalidIntegerLiteral(String),
     AmbiguousFrontName(String),
     StructuredExpression(String, Option<Span>),
 }
@@ -373,6 +649,8 @@ impl SyntaxCheckError {
                 format!("unsupported pure startup expression '{expression}'"),
                 None,
             ),
+            Self::QuantityLiteral(detail) => ("CND-FRM-055", detail, None),
+            Self::InvalidIntegerLiteral(detail) => ("CND-FRM-055", detail, None),
             Self::AmbiguousFrontName(name) => (
                 "CND-FRM-050",
                 format!("front name '{name}' is duplicated or ambiguously shadowed"),

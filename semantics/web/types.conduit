@@ -1,0 +1,72 @@
+# Authoritative portable HTTP meaning. Rust consumes generated bindings.
+
+type HttpMethod =
+    get
+    | head
+    | post
+    | put
+    | patch
+    | delete
+    | options
+
+type HttpScheme =
+    http
+    | https
+
+type HttpTransactionId = U64
+
+type HttpTarget = {
+    scheme: HttpScheme
+    authority: Text <= 255B not in [""]
+    path_and_query: Text <= 2048B not in [""]
+}
+
+type HttpHeader = {
+    name: Text <= 64B not in [""]
+    value: Bytes <= 512B
+}
+
+type HttpExchangeFailure =
+    name_resolution
+    | route_unavailable
+    | connect
+    | tls
+    | provider_lost
+    | request_overflow
+    | response_header_overflow
+    | response_body_overflow
+    | resource_unavailable
+    | capacity
+    | authority_denied
+    | cancelled
+
+type HttpServerResponseRefusal =
+    unknown_transaction
+    | stale_transaction
+    | duplicate_response
+    | late_response
+    | response_header_overflow
+    | response_body_overflow
+    | resource_unavailable
+    | listener_lost
+    | capacity
+    | authority_denied
+    | cancelled
+
+type HttpContractError =
+    empty_authority
+    | invalid_scheme
+    | invalid_target
+    | too_many_headers
+    | empty_header_name
+    | invalid_header_name
+    | sensitive_header_requires_protected_path
+    | framing_header_is_derived
+    | header_name_overflow
+    | header_value_overflow
+    | request_body_overflow
+    | response_body_overflow
+    | invalid_status
+    | malformed_encoding
+    | encoded_value_overflow
+    | trailing_bytes

@@ -1,13 +1,10 @@
 //! Provider-neutral, bounded Body Chat prompt and conversation state.
 
 #[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+#[cfg(feature = "form-catalog")]
 use alloc::vec;
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{collections::VecDeque, format, string::String, vec::Vec};
 use conduit_core::CapabilityLimits;
 #[cfg(feature = "form-catalog")]
 use conduit_core::{
@@ -15,8 +12,12 @@ use conduit_core::{
 };
 #[cfg(feature = "form-catalog")]
 use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+
+use crate::{
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
+};
 
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
 pub const BODY_CONVERSATION_CONTEXT_KIND: &str = "body/conversation-context";
@@ -25,7 +26,6 @@ pub const BODY_CHAT_PROMPT_REVISION: &str = "conduit.body/chat-prompt@3";
 pub const BODY_CHAT_FORM_KIND: &str = "body-chat";
 pub const BODY_CHAT_FORM_REVISION: &str = "conduit.body/chat-form@3";
 pub const MAXIMUM_BODY_CHAT_HISTORY_ITEMS: usize = 16;
-pub const MAXIMUM_BODY_CHAT_MESSAGE_BYTES: usize = 4_096;
 pub const MAXIMUM_BODY_CHAT_CONTEXT_BYTES: usize = 32_768;
 pub const MAXIMUM_BODY_CHAT_PROMPT_BYTES: usize = 4_096;
 pub const BODY_CONVERSATIONAL_SUMMARY_SCHEMA: &str = "conduit.body/conversational-summary@1";
@@ -126,16 +126,16 @@ impl BodyConversationalSummary {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum BodyChatRole {
-    Human,
-    Body,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct BodyChatHistoryItem {
-    pub role: BodyChatRole,
-    pub text: String,
+impl Serialize for BodyChatHistoryItem {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut record = serializer.serialize_struct("BodyChatHistoryItem", 2)?;
+        record.serialize_field("role", self.role())?;
+        record.serialize_field("text", self.text().get())?;
+        record.end()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -144,18 +144,6 @@ pub struct BodyChatGenerationRequest {
     pub context_basis: conduit_body::BodyConversationContextBasis,
     pub model_context_sha256: [u8; 32],
     pub encoded_request: Vec<u8>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BodyChatRefusal {
-    EmptyMessage,
-    MessageBoundExceeded,
-    ContextBoundExceeded,
-    MalformedContext,
-    WrongContextSchema,
-    HistoryBoundExceeded,
-    PromptBoundExceeded,
-    Encoding,
 }
 
 pub fn encode_body_conversation_context(
@@ -294,20 +282,17 @@ impl BodyChatPromptState {
             let mut digest = Sha256::new();
             digest.update(b"conduit-body-chat-request-v1\0");
             digest.update(model_context_sha256);
-            digest.update(message.as_bytes());
+            digest.update(message.get().as_bytes());
             for item in &recent_history {
-                digest.update([match item.role {
-                    BodyChatRole::Human => 0,
-                    BodyChatRole::Body => 1,
-                }]);
-                digest.update(item.text.as_bytes());
+                digest.update(BodyChatRoleCode::encode(*item.role()));
+                digest.update(item.text().get().as_bytes());
             }
             let request_identity = format!("body-chat-request/{:x}", digest.finalize());
             let prompt = Prompt {
                 schema: "conduit.body/chat-prompt-value@2",
                 request_identity: &request_identity,
                 instruction: "Answer as this body, briefly and only from the supplied current body truth and explicitly labeled conversation history. Never claim an action occurred merely because it was requested.",
-                current_message: message,
+                current_message: message.get(),
                 history: &recent_history,
                 body: &self.model_context,
             };
@@ -319,10 +304,10 @@ impl BodyChatPromptState {
                 return Err(BodyChatRefusal::PromptBoundExceeded);
             }
         };
-        self.push(BodyChatHistoryItem {
-            role: BodyChatRole::Human,
-            text: message.into(),
-        });
+        self.push(
+            BodyChatHistoryItem::new(BodyChatRole::Human, message)
+                .map_err(|_| BodyChatRefusal::MessageBoundExceeded)?,
+        );
         Ok(BodyChatGenerationRequest {
             request_identity,
             context_basis: self.context.basis.clone(),
@@ -333,10 +318,10 @@ impl BodyChatPromptState {
 
     pub fn record_response(&mut self, response: &[u8]) -> Result<(), BodyChatRefusal> {
         let response = decode_message(response)?;
-        self.push(BodyChatHistoryItem {
-            role: BodyChatRole::Body,
-            text: response.into(),
-        });
+        self.push(
+            BodyChatHistoryItem::new(BodyChatRole::Body, response)
+                .map_err(|_| BodyChatRefusal::MessageBoundExceeded)?,
+        );
         Ok(())
     }
 
@@ -351,14 +336,12 @@ impl BodyChatPromptState {
     }
 }
 
-fn decode_message(bytes: &[u8]) -> Result<&str, BodyChatRefusal> {
+fn decode_message(bytes: &[u8]) -> Result<BodyChatMessage, BodyChatRefusal> {
     if bytes.is_empty() {
         return Err(BodyChatRefusal::EmptyMessage);
     }
-    if bytes.len() > MAXIMUM_BODY_CHAT_MESSAGE_BYTES {
-        return Err(BodyChatRefusal::MessageBoundExceeded);
-    }
-    core::str::from_utf8(bytes).map_err(|_| BodyChatRefusal::MalformedContext)
+    let text = core::str::from_utf8(bytes).map_err(|_| BodyChatRefusal::MalformedContext)?;
+    BodyChatMessage::new(text.into()).map_err(|_| BodyChatRefusal::MessageBoundExceeded)
 }
 
 #[cfg(feature = "form-catalog")]
@@ -403,6 +386,7 @@ pub fn body_conversation_context_definition() -> KindProjection {
             value_kind: kind_id(conduit_body::BODY_CONVERSATION_CONTEXT_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: vec![],
     }
@@ -415,6 +399,7 @@ fn port(name: &str, kind: &str, temporal: PortTemporal) -> PortDescriptor {
         value_kind: kind_id(kind),
         direction: PortDirection::Input,
         temporal,
+        abnormal_kind: None,
     }
 }
 #[cfg(feature = "form-catalog")]
@@ -424,6 +409,7 @@ fn output(name: &str, kind: &str) -> PortDescriptor {
         value_kind: kind_id(kind),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 
@@ -441,14 +427,14 @@ pub fn install_body_chat_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(body_chat_prompt_definition())
+        .insert_kind(body_chat_prompt_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: BODY_CONVERSATION_CONTEXT_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(body_conversation_context_definition())
+        .insert_kind(body_conversation_context_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: BODY_CHAT_FORM_KIND.into(),

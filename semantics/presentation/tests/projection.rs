@@ -12,8 +12,7 @@ fn subject(identity: &str, role: PresentationRole) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role,
-        label: identity.into(),
-        accessibility_name: format!("{identity} subject"),
+        name: format!("{identity} subject"),
     }
 }
 
@@ -72,7 +71,8 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             identity: "action/birth".into(),
             intent: "conduit.intent/birth@1".into(),
             target: "program".into(),
-            label: "Birth".into(),
+            name: "Birth".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
@@ -86,7 +86,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             NavigationPlace {
                 place: PresentationPlace::Entrance,
                 root_subject: "entrance".into(),
-                label: "Entrance".into(),
+                name: "Entrance".into(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Structure,
                     focusable_subjects: vec!["entrance".into(), "form/text-lab".into()],
@@ -95,7 +95,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             NavigationPlace {
                 place: PresentationPlace::Program,
                 root_subject: "program".into(),
-                label: "Program".into(),
+                name: "Program".into(),
                 aspects: vec![
                     NavigationAspect {
                         aspect: PresentationAspect::Structure,
@@ -114,7 +114,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             NavigationPlace {
                 place: PresentationPlace::Body,
                 root_subject: "body".into(),
-                label: "Body".into(),
+                name: "Body".into(),
                 aspects: vec![
                     NavigationAspect {
                         aspect: PresentationAspect::Structure,

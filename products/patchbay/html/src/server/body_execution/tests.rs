@@ -5,10 +5,8 @@ use serde_json::{json, Value};
 use std::io::{Read, Write};
 
 fn request(action: Value) -> Vec<u8> {
-    serde_json::to_vec(
-        &json!({"schema": "conduit.patchbay/body-execution-request@1", "action": action}),
-    )
-    .unwrap()
+    serde_json::to_vec(&json!({"schema": "conduit.body/execution-request@1", "action": action}))
+        .unwrap()
 }
 
 fn claim_request(server: &PatchbayHtmlServer) -> Vec<u8> {

@@ -53,6 +53,7 @@ pub fn frame_resource_plan(
             value_kind: kind_id(RESOURCE_REFERENCE_INFO_ID),
             direction,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         };
         let kind = format!("frame/{name}");
         let definition = KindProjection {
@@ -118,7 +119,7 @@ pub fn frame_resource_plan(
                 contract.publication_slots = 0;
             }
             requirement.content = Some(contract);
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from(definition.kind_id.as_str()),
@@ -135,6 +136,10 @@ pub fn frame_resource_plan(
                 },
                 inputs: definition.inputs.clone(),
                 outputs: definition.outputs.clone(),
+                semantic_contract: conduit_core::KindSemanticContract {
+                    configuration: definition.configuration.clone(),
+                    laws: vec![],
+                },
                 host_calls: if source {
                     vec![]
                 } else {
@@ -218,7 +223,7 @@ pub fn frame_resource_plan(
             .capabilities
             .retain(|c| !matches!(c.kind_id.as_str(), "frame/display" | "frame/encoder"));
         // The remote host cannot satisfy the exact local Resource residence.
-        // No remote dereference implementation or Line is fabricated for it.
+        // No remote dereference implementation or Line is made for it.
         hosts.push(remote);
     }
     let grants = hosts

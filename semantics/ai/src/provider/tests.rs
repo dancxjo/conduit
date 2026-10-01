@@ -3,9 +3,10 @@ extern crate std;
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    bind_active_play, kind_id, resource_offer, seal_plan_with_realization_backs,
-    AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId, GearId,
-    HostAdvertisement, HostCallContractId, HostId, HostProfileId, LineId, LinkBindingId,
+    bind_active_play, kind_id, resource_offer, seal_plan_with_realization_backs, ArtifactId,
+    AuthorityContractId, AuthorityGrant, AuthorityGrantId, Back, BackOfferBuilder,
+    BaseImplementationId, BootId, CapabilityId, ExecutionProfileId, GearId, HostAdvertisement,
+    HostCallContractId, HostId, HostProfileId, ImplementationId, LineId, LinkBindingId,
     LinkEndpointId, OfferGeneration, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId, SignId,
     PROTOCOL_VERSION,
@@ -21,15 +22,15 @@ use conduit_planner::{
 
 use super::*;
 use crate::{
-    classify_missing_llm_plan, generate_text_base_fixtures, generate_text_contract,
-    install_generate_text_catalog, CrossHostLlmError, CrossHostLlmRun, LlmInterruptionReason,
-    LlmPlanningRefusal, ReplacementLlmRun,
+    classify_missing_llm_plan, install_llm_semantic_catalog, llm_contract, CrossHostLlmError,
+    CrossHostLlmRun, LlmDeterminismProfile, LlmInterruptionReason, LlmPlanningRefusal,
+    ModelDerivedResult, ReplacementLlmRun, LLM_GENERATE_KIND,
 };
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog, CanonicalBackCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    install_generate_text_catalog(&mut startup, &mut profile).unwrap();
+    install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     install_provider_catalogs(&mut startup, &mut profile).unwrap();
     let mut backs = CanonicalBackCatalog::new();
     install_provider_back(&startup, &profile, &mut backs).unwrap();
@@ -38,10 +39,40 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, CanonicalBackCatalog) {
 
 fn checked(startup: &StartupCatalog) -> conduit_form::CheckedSyntaxDocument {
     check_syntax_document(
-        &parse_syntax_document("form answer {\n generate: ai/generate-text\n}\n"),
+        &parse_syntax_document("form answer {\n generate: llm/generate\n}\n"),
         startup,
     )
     .unwrap()
+}
+
+fn direct_host() -> HostAdvertisement {
+    let contract = llm_contract(LLM_GENERATE_KIND)
+        .expect("generation contract exists")
+        .into_capability_contract();
+    let offer = BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("fixture/direct-llm"),
+            execution_profile_id: ExecutionProfileId::from("fixture/direct-llm@1"),
+            implementation_id: ImplementationId::from("fixture/direct-llm@1"),
+            artifact_id: ArtifactId::from("fixture/direct-llm/x86_64@1"),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build();
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from("direct-part"),
+        boot_id: BootId::from("direct-boot"),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("fixture/direct"),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![offer],
+        planner_capabilities: vec![],
+    }
 }
 
 fn line(
@@ -70,13 +101,13 @@ fn line(
 
 #[test]
 fn portable_front_and_provider_protocol_keep_realization_and_failures_distinct() {
-    let contract = generate_text_contract();
+    let contract = llm_contract(LLM_GENERATE_KIND).unwrap();
     let encoded = serde_json::to_string(&contract).unwrap();
     for forbidden in ["http", "credential", "openai", "socket", "address"] {
         assert!(!encoded.to_ascii_lowercase().contains(forbidden));
     }
 
-    let request_value = provider_request("hello").unwrap();
+    let request_value = provider_request(b"hello").unwrap();
     let request_json = request_value.encode_text().unwrap();
     let request =
         provider_http_request(7, "fixture.invalid", "/v1/responses", &request_json).unwrap();
@@ -84,17 +115,34 @@ fn portable_front_and_provider_protocol_keep_realization_and_failures_distinct()
     assert!(request
         .headers
         .iter()
-        .all(|header| header.name != "authorization"));
+        .all(|header| header.name() != "authorization"));
 
     let response = conduit_web::HttpResponse {
-        transaction_id: conduit_web::HttpTransactionId(7),
+        transaction_id: conduit_web::HttpTransactionId::new(7).unwrap(),
         status: 200,
         headers: vec![],
         body: conduit_web::HttpBody::inline(br#"{"output":"world"}"#.to_vec()),
     };
     let decoded =
         conduit_web::JsonValue::decode_text(provider_http_response(&response).unwrap()).unwrap();
-    assert_eq!(provider_result(&decoded).unwrap(), "world");
+    let encoded = provider_result(
+        &decoded,
+        ProviderResultContext {
+            implementation_identity: "provider/fixture@1".into(),
+            request_identity: "request/7".into(),
+            run_identity: "run/7".into(),
+            input_bytes: 5,
+            context_items: 0,
+            work_units: 1,
+            history_items: 0,
+            determinism: LlmDeterminismProfile::ProviderNondeterministic,
+        },
+    )
+    .unwrap();
+    let result: ModelDerivedResult = serde_json::from_slice(&encoded).unwrap();
+    assert_eq!(result.payload, b"world");
+    assert_eq!(result.request_identity, "request/7");
+    result.validate(&contract).unwrap();
 
     let mut limited = response.clone();
     limited.status = 429;
@@ -131,7 +179,7 @@ fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
     assert_eq!(recursive.gears.len(), 7);
     assert_eq!(recursive.realization_backs.len(), 1);
 
-    let direct_host = generate_text_base_fixtures()[0].advertisement.clone();
+    let direct_host = direct_host();
     let direct_placements =
         default_expanded_placements(&direct, std::slice::from_ref(&direct_host)).unwrap();
     let direct_plan = plan_expanded_canonical(
@@ -199,7 +247,7 @@ fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
     };
     assert!(tiny.capabilities.iter().all(|offer| {
         offer.kind_id.as_str() != conduit_web::HTTP_CLIENT_KIND
-            && offer.kind_id.as_str() != GENERATE_TEXT_KIND
+            && offer.kind_id.as_str() != LLM_GENERATE_KIND
     }));
 
     let hosts = [tiny.clone(), provider.clone()];

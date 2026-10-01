@@ -1,7 +1,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationEntry, ConfigurationValue, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
+    FrontStartupParameter, Kind, KindConfigurationField, KindConfigurationRule, KindId,
+    KindSemanticLaw, KindTerminalBehavior, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const TICK_KIND: &str = "time/tick";
@@ -12,6 +13,87 @@ pub const TICK_ENCODED_LEN: u32 = 8;
 pub const TICK_CONTRACT_REVISION: &str = "conduit.std/time-tick@2";
 pub const TIME_EVERY_CONTRACT_REVISION: &str = "conduit.std/time-every@2";
 pub const MAX_TICK_COUNT: u64 = 4_096;
+
+pub fn tick_semantic_contract() -> Kind {
+    let configuration = vec![
+        KindConfigurationField {
+            key: "count".into(),
+            default_value: ConfigurationValue::U64(4),
+            rule: KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: MAX_TICK_COUNT,
+            },
+        },
+        KindConfigurationField {
+            key: "period-ms".into(),
+            default_value: ConfigurationValue::U64(1_000),
+            rule: KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: u64::MAX,
+            },
+        },
+    ];
+    Kind {
+        startup_parameters: configuration
+            .iter()
+            .map(|field| FrontStartupParameter {
+                name: field.key.clone(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            })
+            .collect(),
+        shorthand: None,
+        kind_id: kind_id(TICK_KIND),
+        kind_contract_revision: TICK_CONTRACT_REVISION.into(),
+        inputs: Vec::new(),
+        outputs: tick_outputs(),
+        configuration,
+        semantic_laws: vec![KindSemanticLaw::Terminal(
+            KindTerminalBehavior::CompletesAfterConfiguredCount,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
+        },
+    }
+}
+
+pub fn time_every_semantic_contract() -> Kind {
+    let configuration = vec![KindConfigurationField {
+        key: "freq".into(),
+        default_value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
+            1_000,
+            conduit_core::QuantityUnit::Millisecond,
+        )),
+        rule: KindConfigurationRule::QuantityRange {
+            minimum: 0,
+            maximum: i64::MAX,
+            canonical_unit: conduit_core::QuantityUnit::Millisecond,
+        },
+    }];
+    Kind {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "freq".into(),
+            value_type: kind_id(conduit_core::DURATION_INFO_ID),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: kind_id(TIME_EVERY_KIND),
+        kind_contract_revision: TIME_EVERY_CONTRACT_REVISION.into(),
+        inputs: Vec::new(),
+        outputs: time_every_outputs(),
+        configuration,
+        semantic_laws: vec![KindSemanticLaw::Terminal(
+            KindTerminalBehavior::HostObservationEndsOrFailsSource,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
+        },
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TickConfiguration {
@@ -88,6 +170,7 @@ pub fn tick_outputs() -> Vec<PortDescriptor> {
         value_kind: tick_value_kind(),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }]
 }
 
@@ -100,6 +183,7 @@ pub fn time_every_outputs() -> Vec<PortDescriptor> {
         value_kind: tick_value_kind(),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }]
 }
 

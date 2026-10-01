@@ -54,7 +54,7 @@ fn native_renderer_inspects_its_exact_realization_without_local_state() {
     assert!(text.contains("implementation=presentation/renderer-wayland@1"));
     assert!(text.contains("artifact=patchbay-native/wayland@1"));
     assert!(text.contains("RENDERER PORT presentation Input info=presentation/presentation@1"));
-    assert!(text.contains("RENDERER PORT manifestation Output info=presentation/manifestation@1"));
+    assert!(text.contains("RENDERER PORT show Output info=presentation/show@1"));
     assert!(text.contains("RENDERER RESOURCE pool="));
     assert!(text.contains(
         "RENDERER BASE contract=conduit.host/present@1 target=presentation/base/wayland-surface@1"

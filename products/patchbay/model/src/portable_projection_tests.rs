@@ -5,7 +5,8 @@ use conduit_observatory::{
     SoundRealizationRoute, SOUND_INSPECTION_SCHEMA,
 };
 use conduit_presentation::{
-    PresentationPropertyValue, PresentationRole, MAX_PRESENTATION_TOTAL_BYTES,
+    PresentationContributionBasis, PresentationPropertyValue, PresentationRole,
+    MAX_PRESENTATION_TOTAL_BYTES,
 };
 use conduit_std_host::{StdHost, ThreadTimer};
 
@@ -144,6 +145,15 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
         property.name == "form-path"
             && property.value == PresentationPropertyValue::Text("hello".into())
     }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "value-contract"
+            && matches!(
+                &property.value,
+                PresentationPropertyValue::ValueContract(contract)
+                    if contract.value_kind.as_str() == conduit_core::TEXT_INFO_ID
+                        && contract.maximum_bytes == 256
+            )
+    }));
     assert!(portable.relationships.iter().any(|relationship| {
         relationship.kind == conduit_presentation::PresentationRelationshipKind::Connects
     }));
@@ -156,6 +166,8 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
         "implementation-id",
         "artifact-id",
         "admitted-capacity",
+        "pressure-policy",
+        "pressure-effect",
         "active-play-id",
         "play-state",
         "pressure",
@@ -165,6 +177,18 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
             .iter()
             .any(|property| property.name == required));
     }
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "pressure-policy"
+            && property.value == PresentationPropertyValue::Text("preserve-order".into())
+    }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "pressure-effect"
+            && property.value
+                == PresentationPropertyValue::Text(
+                    "pressure retains the pending value; a fan-out commits only when every branch admits it"
+                        .into(),
+                )
+    }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "plan-status"
             && property.value == PresentationPropertyValue::Text("active".into())
@@ -255,6 +279,40 @@ fn portable_projection_remains_inside_the_reviewed_aggregate_bound() {
     let (_, _, _, portable) = living_portable();
     let encoded = serde_json::to_vec(&portable).unwrap();
     assert!(encoded.len() <= MAX_PRESENTATION_TOTAL_BYTES);
+}
+
+#[test]
+fn patchbay_projects_form_meaning_without_redeclaring_face_owned_truth() {
+    let (projection, body, wake, portable) = living_portable();
+    let basis = PresentationContributionBasis {
+        checked_form_id: portable.basis.checked_form_id.clone().unwrap(),
+        plan_id: portable.basis.plan_id.clone().unwrap(),
+        active_play_id: portable.basis.active_play_id.clone().unwrap(),
+        required_interaction_context: None,
+    };
+    let fragment = projection
+        .to_presentation_fragment(&body, &wake, basis.clone())
+        .unwrap();
+
+    assert_eq!(fragment.basis, basis);
+    for form in body.workset.forms() {
+        assert!(!fragment
+            .subjects
+            .iter()
+            .any(|subject| subject.identity == format!("form/{}", form.checked_form_id.as_str())));
+    }
+    assert!(!fragment
+        .subjects
+        .iter()
+        .any(|subject| subject.identity == format!("body/{}", body.body_id.as_str())));
+    assert!(fragment
+        .subjects
+        .iter()
+        .any(|subject| subject.role == PresentationRole::Gear));
+    let debug = format!("{fragment:?}");
+    for forbidden in ["viewport", "pixel", "x_coordinate", "dom_id", "elbow_path"] {
+        assert!(!debug.contains(forbidden));
+    }
 }
 
 #[test]

@@ -168,6 +168,9 @@ fn skip_value_node(
     cursor: &mut Cursor<'_>,
 ) -> Result<(), StructuredSelectorRefusal> {
     match expected.shape() {
+        crate::StructuredInfoTypeShape::Nominal { representation, .. } => {
+            skip_value_node(representation, cursor)?;
+        }
         crate::StructuredInfoTypeShape::Leaf(_) => {
             expect_byte(cursor, 0)?;
             cursor.bytes().map_err(malformed)?;
@@ -179,10 +182,14 @@ fn skip_value_node(
                 skip_value_node(element, cursor)?;
             }
         }
-        crate::StructuredInfoTypeShape::Sequence { element, capacity } => {
+        crate::StructuredInfoTypeShape::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+        } => {
             expect_byte(cursor, 1)?;
             let length = cursor.length().map_err(malformed)?;
-            if length > usize::from(capacity) {
+            if length < usize::from(minimum_items) || length > usize::from(maximum_items) {
                 return Err(StructuredSelectorRefusal::MalformedCheckedValue);
             }
             for _ in 0..length {

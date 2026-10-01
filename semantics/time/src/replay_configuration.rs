@@ -78,10 +78,8 @@ pub fn replay_policy_from_configuration(
     match mode {
         REPLAY_MODE_STEP => Ok(ReplayPolicy::Step),
         REPLAY_MODE_ORIGINAL_TIMING => Ok(ReplayPolicy::OriginalTiming),
-        REPLAY_MODE_RATE => Ok(ReplayPolicy::Rate {
-            numerator: numerator as u32,
-            denominator: denominator as u32,
-        }),
+        REPLAY_MODE_RATE => ReplayPolicy::rate(denominator as u32, numerator as u32)
+            .map_err(|_| ReplayPolicyConfigurationRefusal::RateOutOfBounds),
         _ => Err(ReplayPolicyConfigurationRefusal::UnknownMode),
     }
 }
@@ -104,6 +102,7 @@ pub fn replay_control_kind_projection() -> conduit_form::KindProjection {
             .clone(),
         direction,
         temporal,
+        abnormal_kind: None,
     };
     conduit_form::KindProjection {
         kind_id: kind_id(crate::REPLAY_CONTROL_KIND),

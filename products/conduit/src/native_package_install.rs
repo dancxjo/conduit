@@ -1,6 +1,6 @@
 //! Native adapter for the bounded uncompressed body-bound ZIP emitted by Crèche.
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     BodyBoundArtifactIdentity, NativeInstallOutcome, NativeInstallRefusal, NativePackageInstaller,
 };
 use serde::{Deserialize, Serialize};
@@ -21,11 +21,32 @@ const END: u32 = 0x0605_4b50;
 
 pub(crate) struct LocalNativeInstaller {
     state_dir: PathBuf,
+    installed_host: Option<crate::durable_host::InstalledHostIdentity>,
+    #[cfg(test)]
+    suppress_service_manager: bool,
 }
 
 impl LocalNativeInstaller {
     pub(crate) fn new(state_dir: PathBuf) -> Self {
-        Self { state_dir }
+        Self {
+            state_dir,
+            installed_host: None,
+            #[cfg(test)]
+            suppress_service_manager: false,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_without_service_manager(state_dir: PathBuf) -> Self {
+        Self {
+            state_dir,
+            installed_host: None,
+            suppress_service_manager: true,
+        }
+    }
+
+    pub(crate) fn installed_host(&self) -> Option<&crate::durable_host::InstalledHostIdentity> {
+        self.installed_host.as_ref()
     }
 }
 
@@ -36,9 +57,16 @@ impl NativePackageInstaller for LocalNativeInstaller {
         artifact: &BodyBoundArtifactIdentity,
     ) -> Result<NativeInstallOutcome, NativeInstallRefusal> {
         let prepared = prepare(source, artifact, &self.state_dir)?;
+        #[cfg(test)]
+        let result = if self.suppress_service_manager {
+            crate::durable_host::install_for_activation_test(&prepared.manifest, &self.state_dir)
+        } else {
+            crate::durable_host::install_and_activate(&prepared.manifest, &self.state_dir)
+        };
+        #[cfg(not(test))]
         let result = crate::durable_host::install_and_activate(&prepared.manifest, &self.state_dir);
         let cleanup = fs::remove_dir_all(&prepared.root);
-        result.map_err(|_| NativeInstallRefusal::InstallationFailed)?;
+        self.installed_host = Some(result.map_err(|_| NativeInstallRefusal::InstallationFailed)?);
         cleanup.map_err(|_| NativeInstallRefusal::InstallationFailed)?;
         Ok(NativeInstallOutcome {
             package_bytes_consumed: artifact.artifact_bytes,
@@ -71,7 +99,7 @@ struct NativeSpore {
     image_content_digest: String,
     target: String,
     output: String,
-    fabrication: FabricationSelection,
+    make: MakeSelection,
     source_identity: String,
 }
 
@@ -82,8 +110,8 @@ struct SporeBinding {
 }
 
 #[derive(Deserialize)]
-struct FabricationSelection {
-    fabrication_package_id: String,
+struct MakeSelection {
+    make_package_id: String,
     builder_adapter: String,
     deployment_adapter: Option<String>,
 }
@@ -100,7 +128,7 @@ struct InvitationProvision {
 struct ReleaseManifest<'a> {
     schema: &'static str,
     target_id: &'a str,
-    fabrication_package_id: &'a str,
+    make_package_id: &'a str,
     output: &'static str,
     builder_adapter: &'a str,
     deployment_adapter: &'a str,
@@ -173,16 +201,16 @@ fn prepare(
         }
         let deployment = provision
             .spore
-            .fabrication
+            .make
             .deployment_adapter
             .as_deref()
             .ok_or(NativeInstallRefusal::BindingMismatch)?;
         let manifest = ReleaseManifest {
             schema: "conduit.release/host-bundle@1",
             target_id: &provision.spore.target,
-            fabrication_package_id: &provision.spore.fabrication.fabrication_package_id,
+            make_package_id: &provision.spore.make.make_package_id,
             output: "native-bundle",
-            builder_adapter: &provision.spore.fabrication.builder_adapter,
+            builder_adapter: &provision.spore.make.builder_adapter,
             deployment_adapter: deployment,
             source_identity: &provision.spore.source_identity,
             bundle_sha256: &artifact.image_content_sha256,
@@ -389,4 +417,4 @@ fn bundle_digest(files: &[ReleaseFile]) -> String {
 
 #[cfg(test)]
 #[path = "native_package_install_tests.rs"]
-mod tests;
+pub(crate) mod tests;

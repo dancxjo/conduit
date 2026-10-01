@@ -159,7 +159,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await page.goto(reopened.url);
     await page.getByRole("button", { name: "Open Form Empty Form" }).click();
     const restored = await current(page);
-    expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.label).sort()).toEqual(["making/literal", "making/text"]);
+    expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.name).sort()).toEqual(["Gear making/literal", "Gear making/text"]);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
     expect(restored.presentation.properties.some(property => property.name.startsWith("authored-control-") && property.value.Text.includes("Browser-authored truth"))).toBe(true);
   } finally {

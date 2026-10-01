@@ -11,7 +11,7 @@ enum TransactionState {
     ProviderLost,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Transaction {
     id: HttpTransactionId,
     state: TransactionState,
@@ -119,30 +119,32 @@ impl Default for HttpServerTransactions {
 mod tests {
     use super::*;
 
+    fn tx(value: u64) -> HttpTransactionId {
+        HttpTransactionId::new(value).unwrap()
+    }
+
     #[test]
     fn correlation_pressure_duplicate_late_and_unknown_are_distinct() {
         let mut state = HttpServerTransactions::new();
         for id in 0..HTTP_MAXIMUM_IN_FLIGHT {
-            state
-                .admit_request(HttpTransactionId(u64::from(id)))
-                .unwrap();
+            state.admit_request(tx(u64::from(id))).unwrap();
         }
         assert_eq!(
-            state.admit_request(HttpTransactionId(99)),
+            state.admit_request(tx(99)),
             Err(HttpServerResponseRefusal::Capacity)
         );
-        state.accept_response(HttpTransactionId(0)).unwrap();
+        state.accept_response(tx(0)).unwrap();
         assert_eq!(
-            state.accept_response(HttpTransactionId(0)),
+            state.accept_response(tx(0)),
             Err(HttpServerResponseRefusal::DuplicateResponse)
         );
-        state.cancel(HttpTransactionId(1)).unwrap();
+        state.cancel(tx(1)).unwrap();
         assert_eq!(
-            state.accept_response(HttpTransactionId(1)),
+            state.accept_response(tx(1)),
             Err(HttpServerResponseRefusal::LateResponse)
         );
         assert_eq!(
-            state.accept_response(HttpTransactionId(100)),
+            state.accept_response(tx(100)),
             Err(HttpServerResponseRefusal::UnknownTransaction)
         );
     }
@@ -150,9 +152,9 @@ mod tests {
     #[test]
     fn replayed_request_identity_is_stale_not_pressure() {
         let mut state = HttpServerTransactions::new();
-        state.admit_request(HttpTransactionId(7)).unwrap();
+        state.admit_request(tx(7)).unwrap();
         assert_eq!(
-            state.admit_request(HttpTransactionId(7)),
+            state.admit_request(tx(7)),
             Err(HttpServerResponseRefusal::StaleTransaction)
         );
     }
@@ -161,19 +163,17 @@ mod tests {
     fn terminal_slot_is_reused_without_growing_correlation_storage() {
         let mut state = HttpServerTransactions::new();
         for id in 0..HTTP_MAXIMUM_IN_FLIGHT {
-            state
-                .admit_request(HttpTransactionId(u64::from(id)))
-                .unwrap();
+            state.admit_request(tx(u64::from(id))).unwrap();
         }
-        state.accept_response(HttpTransactionId(0)).unwrap();
-        state.admit_request(HttpTransactionId(10)).unwrap();
+        state.accept_response(tx(0)).unwrap();
+        state.admit_request(tx(10)).unwrap();
         assert_eq!(state.entries.len(), HTTP_MAXIMUM_IN_FLIGHT as usize);
         assert_eq!(
-            state.accept_response(HttpTransactionId(0)),
+            state.accept_response(tx(0)),
             Err(HttpServerResponseRefusal::UnknownTransaction)
         );
         assert_eq!(
-            state.admit_request(HttpTransactionId(11)),
+            state.admit_request(tx(11)),
             Err(HttpServerResponseRefusal::Capacity)
         );
     }

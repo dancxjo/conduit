@@ -156,8 +156,10 @@ pub(crate) fn offer_named(
         value_kind: profile.value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     };
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
             value_type: conduit_core::kind_id("value/text"),
@@ -212,11 +214,35 @@ pub(crate) fn raw_source_offer(kind: &str, value_kind: &str) -> CapabilityOffer 
     offer
 }
 
+pub(crate) fn raw_sink_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
+    let mut offer = offer_named(
+        &StructuredInfoType::leaf(KindId::from("conduit-test/raw-placeholder@1")).unwrap(),
+        PortDirection::Input,
+        SOURCE_KIND,
+        kind,
+    );
+    offer.inputs[0].value_kind = KindId::from(value_kind);
+    offer
+}
+
 pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "value".into(),
         value: ConfigurationValue::Text(hex(value)),
     }]
+}
+
+pub(crate) fn bind_text_configuration(
+    offer: &mut CapabilityOffer,
+    key: &str,
+    default_value: String,
+    maximum: u32,
+) {
+    offer.semantic_contract.configuration = vec![conduit_core::KindConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::Text(default_value),
+        rule: conduit_core::KindConfigurationRule::TextBytes { maximum },
+    }];
 }
 
 fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
@@ -290,9 +316,15 @@ fn prepare_sink(
     } else {
         return Err("structured sink fixture configuration is malformed".into());
     };
-    for value in expected.iter().flatten() {
-        StructuredInfoValue::from_canonical_bytes(value)
-            .map_err(|error| format!("structured fixture refusal: {error:?}"))?;
+    if placement.inputs[0]
+        .value_kind
+        .as_str()
+        .starts_with("structured-info/profile-")
+    {
+        for value in expected.iter().flatten() {
+            StructuredInfoValue::from_canonical_bytes(value)
+                .map_err(|error| format!("structured fixture refusal: {error:?}"))?;
+        }
     }
     Ok(InstalledBack::TestStructuredSink(SinkBack {
         expected,
@@ -309,6 +341,7 @@ fn configured_values(placement: &PlannedGear) -> Result<Vec<Vec<u8>>, String> {
     };
     match entry.key.as_str() {
         "value" => Ok(vec![unhex(encoded)?]),
+        "values" if encoded.is_empty() => Ok(Vec::new()),
         "values" => encoded.split(',').map(unhex).collect(),
         "choices" => encoded.split([',', '|']).map(unhex).collect(),
         _ => Err("structured fixture value is malformed".into()),

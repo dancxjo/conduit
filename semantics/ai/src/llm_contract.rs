@@ -1,9 +1,11 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindConfigurationField,
+    KindConfigurationRule, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
+
+use crate::{LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome};
 
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
 pub const LLM_STREAM_GENERATE_KIND: &str = "llm/generate-stream";
@@ -44,43 +46,12 @@ const JUDGMENT_RESULT: &str = "llm/judgment-result@1";
 pub const GENERATIVE_PRESENTER_INPUT_VALUE_KIND: &str =
     "conduit.presentation/generative-presenter-input@1";
 pub const GENERATED_MANIFESTATION_VALUE_KIND: &str =
-    "conduit.presentation/generated-manifestation@2";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmDeterminismProfile {
-    /// Exact output equality is valid only for the catalog's pure validation fixtures.
-    DeterministicValidationFixture,
-    /// A seed is implementation input and does not establish universal equality.
-    SeededImplementationBestEffort,
-    StochasticInference,
-    ProviderNondeterministic,
-}
+    "conduit.presentation/generated-manifestation-candidate@2";
 
 impl LlmDeterminismProfile {
     pub const fn permits_semantic_output_equality_claim(self) -> bool {
         matches!(self, Self::DeterministicValidationFixture)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmTerminalOutcome {
-    Produced,
-    Truncated,
-    Refused,
-    Failed,
-    Cancelled,
-    ProviderLost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmImplementationControl {
-    Temperature,
-    Seed,
-    Sampler,
-    Quantization,
-    PromptTemplate,
-    ChatRoleEncoding,
-    ProviderFunctionJson,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -139,6 +110,7 @@ impl LlmSemanticContract {
     }
 
     pub fn into_capability_contract(self) -> conduit_core::Kind {
+        let bounds = self.bounds;
         conduit_core::Kind {
             startup_parameters: [
                 "maximum-input-bytes",
@@ -159,10 +131,27 @@ impl LlmSemanticContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
-            configuration: Default::default(),
+            configuration: vec![
+                bound("maximum-input-bytes", bounds.maximum_input_bytes),
+                bound("maximum-context-items", bounds.maximum_context_items),
+                bound("maximum-output-bytes", bounds.maximum_output_bytes),
+                bound("maximum-work-units", bounds.maximum_work_units),
+                bound("maximum-history-items", bounds.maximum_history_items),
+            ],
             semantic_laws: Default::default(),
             limits: self.limits,
         }
+    }
+}
+
+fn bound(key: &str, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::U64(maximum),
+        rule: KindConfigurationRule::U64Range {
+            minimum: 0,
+            maximum,
+        },
     }
 }
 
@@ -216,7 +205,7 @@ fn present_contract() -> LlmSemanticContract {
         GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
         GENERATED_MANIFESTATION_VALUE_KIND,
     );
-    contract.kind_contract_revision = KindIdentity::from("conduit.llm/present@2");
+    contract.kind_contract_revision = KindIdentity::from("conduit.llm/present@3");
     contract
 }
 
@@ -299,6 +288,7 @@ fn port_with_temporal(
         value_kind: kind_id(value_kind),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 
@@ -308,10 +298,7 @@ pub fn install_llm_semantic_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     for contract in llm_semantic_catalog() {
         let kind = contract.kind_id.as_str().to_string();
@@ -327,31 +314,8 @@ pub fn install_llm_semantic_catalog(
             ],
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: vec![
-                    bound("maximum-input-bytes", bounds.maximum_input_bytes),
-                    bound("maximum-context-items", bounds.maximum_context_items),
-                    bound("maximum-output-bytes", bounds.maximum_output_bytes),
-                    bound("maximum-work-units", bounds.maximum_work_units),
-                    bound("maximum-history-items", bounds.maximum_history_items),
-                ],
-            })
+            .insert_kind(contract.into_capability_contract())
             .map_err(|error| error.to_string())?;
-    }
-
-    fn bound(key: &str, maximum: u64) -> KindConfigurationField {
-        KindConfigurationField {
-            key: key.into(),
-            default_value: conduit_core::ConfigurationValue::U64(maximum),
-            rule: KindConfigurationRule::U64Range {
-                minimum: 0,
-                maximum,
-            },
-        }
     }
     fn parameter(name: &str, default: u64) -> StartupParameterSignature {
         StartupParameterSignature {

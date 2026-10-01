@@ -20,7 +20,6 @@ pub(super) fn append_exact_graph(
         let subject = content.subject_with_identity(
             format!("gear/{}", composition.identity),
             PresentationRole::Gear,
-            &composition.gear_name,
             format!(
                 "Form-backed Gear {} through checked Back {}",
                 composition.gear_name,
@@ -74,7 +73,6 @@ pub(super) fn append_exact_graph(
             let port_subject = content.subject_with_identity(
                 format!("port/{}", port.identity),
                 PresentationRole::Port,
-                port.descriptor.port_id.as_str(),
                 format!(
                     "Stable Front {:?} Port {} carrying {}",
                     port.descriptor.direction,
@@ -99,6 +97,13 @@ pub(super) fn append_exact_graph(
                 "value-kind",
                 port.descriptor.value_kind.as_str(),
             );
+            if let Some(contract) = &port.value_contract {
+                content.property(
+                    &port_subject,
+                    "value-contract",
+                    PresentationPropertyValue::ValueContract(contract.clone()),
+                );
+            }
             text(
                 content,
                 &port_subject,
@@ -115,7 +120,6 @@ pub(super) fn append_exact_graph(
         let subject = content.subject_with_identity(
             format!("gear/{}", gear.identity),
             PresentationRole::Gear,
-            gear.gear_id.as_str(),
             format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
         let parent = graph
@@ -140,7 +144,7 @@ pub(super) fn append_exact_graph(
         identity(content, &subject, "source-form", &gear.source_form);
         text(content, &subject, "form-path", &gear.form_path.join(" / "));
         text(content, &subject, "icon-token", icon.as_str());
-        text(content, &subject, "icon-name", icon.accessibility_name());
+        text(content, &subject, "icon-name", icon.name());
         for (index, control) in gear.controls.iter().enumerate() {
             text(
                 content,
@@ -180,7 +184,6 @@ pub(super) fn append_exact_graph(
             let port_subject = content.subject_with_identity(
                 format!("port/{}", port.identity),
                 PresentationRole::Port,
-                port.descriptor.port_id.as_str(),
                 format!(
                     "{} {:?} Port carrying {}",
                     port.descriptor.port_id.as_str(),
@@ -205,6 +208,13 @@ pub(super) fn append_exact_graph(
                 "value-kind",
                 port.descriptor.value_kind.as_str(),
             );
+            if let Some(contract) = &port.value_contract {
+                content.property(
+                    &port_subject,
+                    "value-contract",
+                    PresentationPropertyValue::ValueContract(contract.clone()),
+                );
+            }
             text(
                 content,
                 &port_subject,
@@ -218,7 +228,6 @@ pub(super) fn append_exact_graph(
         let subject = content.subject_with_identity(
             format!("cord/{}", cord.identity),
             PresentationRole::Cord,
-            "Cord",
             format!("Cord from {} to {}", cord.source_port, cord.sink_port),
         );
         content.contains(form, &subject);
@@ -344,7 +353,12 @@ fn append_gear_plan(
             placement.limits.max_queue_bytes
         ),
     );
-    crate::portable_resource_projection::append_resources(content, subject, placement);
+    crate::portable_resource_projection::append_resources(
+        content,
+        subject,
+        placement,
+        &plan.exact.fragments,
+    );
     crate::portable_vector_search_projection::append_vector_search_realization(
         content, subject, gear, placement,
     );
@@ -389,6 +403,18 @@ fn append_cord_plan(
             connection.item_capacity, connection.byte_capacity
         ),
     );
+    let (pressure_policy, pressure_effect) = match connection.pressure_policy {
+        conduit_core::DeliveryPressurePolicy::PreserveOrder => (
+            "preserve-order",
+            "pressure retains the pending value; a fan-out commits only when every branch admits it",
+        ),
+        conduit_core::DeliveryPressurePolicy::CoalesceLatest => (
+            "coalesce-latest",
+            "pressure may supersede one pending current value with the newest whole value",
+        ),
+    };
+    text(content, subject, "pressure-policy", pressure_policy);
+    text(content, subject, "pressure-effect", pressure_effect);
     if let Some(line) = &connection.selected_line {
         identity(content, subject, "line-id", line.line_id.as_str());
         text(

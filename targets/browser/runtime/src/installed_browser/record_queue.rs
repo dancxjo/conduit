@@ -105,7 +105,8 @@ mod tests {
 
     fn placement(maximum_frame_bytes: u64) -> PlannedGear {
         let offer = offer();
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: "queue-placement".into(),
             gear_id: "queue".into(),
             kind_id: offer.kind_id,
@@ -132,6 +133,7 @@ mod tests {
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
+            terminal_transductions: Vec::new(),
             host_calls: offer.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),

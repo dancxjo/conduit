@@ -25,7 +25,7 @@ such as `BodyId`, `CheckedFront`, and `Form`.
 The canonical execution vocabulary keeps one noun at each altitude:
 
 ```text
-a gear invokes a kind through its front
+a gear invokes a kind through its fore
 a host offers a back for that kind
 a plan chooses exact backs
 a play advances the plan in bounded steps
@@ -33,7 +33,7 @@ a step may cross into host machinery with a host call
 ```
 
 A `Kind` is the exact semantic contract: `KindId`, `KindIdentity`, callable
-Front, finite configuration contract, limits, and machine-readable semantic
+Fore, finite configuration contract, limits, and machine-readable semantic
 laws. An identity is not merely a human version label. `KindProjection` is the
 strictly smaller checker view used while checking authored Forms; it cannot be
 offered by a Host and is not a second Kind identity.
@@ -41,7 +41,7 @@ offered by a Host and is not a second Kind identity.
 A `Back` is realization truth, not another semantic contract. Host backs carry
 implementation, artifact, resource, authority, and host-boundary requirements.
 Form backs carry the exact source and checked form selected during expansion.
-They share the law “same Kind and same Front,” but remain distinct
+They share the law “same Kind and same Fore,” but remain distinct
 representations because their provenance and admission facts differ.
 
 “Capability” is reserved for possession/authority where that security meaning
@@ -98,9 +98,9 @@ CORD   typed semantic connection between compatible ports on gears
 INFO   shaped, typed data carried through cords
 RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
 SIGNAL one particular info semantic or mechanism where explicitly named
-FRONT   stable callable shape of a kind or form, including startup parameters and ports
+FORE    stable callable shape of a kind or form, including startup parameters and ports
 BACK    one Host- or Form-backed realization of a kind
-FACE   the body's semantic presentation surface, distinct from a callable front
+FACE   the body's human-facing semantic encounter and control grammar, distinct from a callable fore
 
 IMPL   platform-specific realization of a kind
 HOST   running software environment that makes truthful finite offers
@@ -108,7 +108,7 @@ PLAN   exact immutable realization of an admitted workload
 PLAY   one active execution of a plan
 ```
 
-A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A front is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
+A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A fore is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 
 ### resource, state, and line
 
@@ -146,7 +146,7 @@ plan
 plan fragment
 active play
 sign item
-presentation
+face revision
 ```
 
 A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not a sign identity.
@@ -167,6 +167,16 @@ None implies the next.
 A discovered device is not automatically a host. A host on the network is not automatically a member. A member is not automatically authorized. A resource being free is not permission to affect it.
 
 ### Least authority and finite embodiment
+
+Semantic infinity is allowed; resource infinity is not. A Type may describe an
+open mathematical domain such as `Scalar in 0..` or `Temperature in -273.15°C..`.
+That meaning is independent of the finite representation selected by a Host.
+Every actual Info value still has a finite admitted encoding, and a value which
+belongs to the semantic domain but cannot be represented by a selected Back or
+Host is a representation/admission refusal—not permission to narrow the Type.
+Arbitrary-precision encodings are charged by their actual admitted extent.
+Collections, queues, stream backlog, retained state, and mandatory work keep
+explicit finite bounds or governed pressure regardless of their element Type.
 
 An implementation must not possess materially more effect authority than the
 exact admitted realization it executes. General-purpose computation and
@@ -225,7 +235,7 @@ identity, semantics, lifecycle, and native security sovereignty when a base
 maps it to or manifests a Conduit meaning. External identity, semantic kind,
 directional mapping, adapter/base, authority, and outward manifestation are
 never aliases. Import and export are independently configured and authorized;
-discovery supplies observation only and cannot fabricate a host, part,
+discovery supplies observation only and cannot make a host, part,
 capability, membership, trust, or authority.
 
 An outward manifestation that may be observed again carries exact adapter,
@@ -247,31 +257,113 @@ failover unless each hop has its own explicit bounded contract and current
 authority. Transport confidentiality, peer authentication, membership/line
 admission, and effect authorization remain separate inspection facts.
 
-### Execution and presentation
+### Execution and Face
 
-The DOM, stdout, LEDs, dashboards, and workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or sign.
+The Body's Face speaks one bounded, immutable semantic graph. The current Rust
+type carrying that graph is named `Presentation`; that is migration-era type
+history, not a second architectural noun. Face is the universal human-facing
+grammar: exact basis and provenance, subjects,
+relationships, properties, typed content, wording, actions, inputs, semantic
+order, rhetorical composition, time, interaction context, and portable
+projection/navigation. It says
+what is humanly relevant about the current semantic world and what a human may
+currently do. It is not a universal widget set or scene graph.
 
-A presentation may summarize or arrange runtime facts. It may not manufacture them.
+Ordinary forms may contribute finite fragments of this grammar. Face
+composition preserves their exact source provenance and combines them with
+authoritative body, plan, play, host, and sign truth. A contribution may not
+forge or overwrite that authoritative truth.
 
-Web manifestations use the native HTML control whose semantics match the
+A Mask is an ordinary planned form that consumes one exact Face revision and
+produces one finite Show. Graphical, deterministic-linear, spoken, generative,
+tactile, and future masks all receive the same semantic grammar. A mask may
+project disclosure, navigation, wording, layout, or medium-specific form, but
+it may not redefine the Face's facts or authority.
+
+Projection chooses which truth matters now. Semantic composition says how
+those truths are meant to stand together: grouped, contrasted, juxtaposed,
+emphasized, subordinate, associated, or revealed in relation. Projection
+already states co-presence; composition says why the meanings belong together.
+A mask chooses how that rhetoric is physically realized. Composition therefore
+contains no panes, slides, windows, coordinates, typography, CSS, or widgets.
+
+The DOM, stdout, LEDs, spoken sentences, dashboards, slides, panels, buttons,
+and workbench canvases are downstream realizations. They do not own semantic
+truth, lifecycle truth, plan identity, authority, or sign.
+`PresentationMechanism`, `SemanticApplicationView`, and `ApplicationView` are
+historical Rust names or downstream adapters, not the Face contract.
+
+A Face may summarize or arrange runtime facts. It may not manufacture
+them. Semantic order is explicit when order is meaning; serialization order,
+geometry, DOM order, and spoken order do not silently become semantic order.
+Typed content is exact finite semantic data, never a DOM node, filesystem path,
+provider URL, framebuffer, or mask-owned cache.
+
+A semantic Type states meaning independently of any target. A named **code**
+states one portable way to carry or store that Type; its exact compatibility
+identity is derived mechanically from checked meaning rather than maintained
+by authors. A code does not alter Type identity. Rust types, CBOR schemas,
+browser values, and documentation are peer lowerings from the checked semantic
+graph. Generated bindings are machinery, while handwritten adapters are reserved
+for named external protocols and mechanisms. No target declaration or codec may
+be the only place where portable meaning or compatibility is reconstructable.
+
+Domain roles and relationships use validated extensible semantic identities.
+The universal grammar must not require a new central enum variant for every
+lesson, room, organelle, calendar event, song, robot joint, or future domain.
+Generic masks preserve unfamiliar valid identities and fall back to ordinary
+human names, wording, and disclosure rather than discarding truth.
+
+Accessibility is a requirement of every Face, not a separate semantic
+channel. The grammar supplies ordinary human names and descriptions; each mask
+maps them to visible text, speech, braille, native accessibility metadata, or
+another medium as appropriate.
+
+One Face may compose different revisions for different exact interaction
+contexts without creating several sovereign Faces. Each revision binds the
+finite context for which it was composed; the domain meaning of that context
+remains ordinary semantic truth. A mask or host may not carry hidden audience,
+participant, authority, exploration, or disclosure state outside this binding.
+Actions, inputs, navigation, and Shows correlate back to the exact Face
+revision and interaction context that offered them.
+
+Portable navigation is richer than disclosure depth:
+
+```text
+Navigation = Place x Aspect x Focus x Depth
+```
+
+Place selects a semantic domain, Aspect selects which truth matters, Focus
+anchors attention on one subject, and Depth controls progressive disclosure.
+`ENTER`, `SHOW`, `FOCUS`, `FOLLOW`, `DISCLOSE`, and `BACK` navigate;
+`INVOKE` requests a semantic action. Pointer movement, canvas pan/zoom, DOM
+position, scroll state, and spoken turn order are mask-local mechanics unless
+they resolve to one of those exact correlated navigation operations.
+
+Web masks use the native HTML control whose semantics match the
 operation: checkboxes for independent choices, radio buttons for one choice
 among alternatives, selects for bounded lists, buttons for actions, anchors
-for navigation, and fieldsets with legends for grouped choices. presentation
+for navigation, and fieldsets with legends for grouped choices. A Face
 may alter their appearance, but does not recreate native interaction semantics
 when the platform control already expresses the operation.
 
-An already-resolved bounded graphics scene may cross one terminal presentation
-front to request manifestation. That front names no framebuffer, DOM, window,
+An already-resolved bounded graphics scene may cross one terminal Mask fore
+to request a Show. That fore names no framebuffer, DOM, window,
 pixel format, or toolkit object: the selected implementation, admitted host
-operation, finite presentation resource, and exact display base remain plan and
-host truth. Transform kinds do not acquire hidden manifestation side effects.
+operation, finite Face-realization resource, and exact display base remain plan
+and host truth. Transform kinds do not acquire hidden Show side effects.
 
-### Fabrication and runtime
+Mask is a Form role, not a new authored keyword or a second graph language.
+The role is admitted from an ordinary Form's exact Fore. Richer authored
+Body/wardrobe configuration syntax remains deliberately unfrozen; neither a
+Mask nor a test fixture may invent private source spelling to conceal that gap.
 
-A host fabrication package is a Rust project boundary that knows how to manufacture machinery for a finite coherent family of exact targets. An anchor package owns each target's descriptor, toolchain and build adapter, finite maxima, artifact kinds, and target-appropriate post-build mechanics. Extension packages may add exact base implementation offers without editing the anchor or generic Conduit fabrication.
+### Make and runtime
+
+A host make package is a Rust project boundary that knows how to manufacture machinery for a finite coherent family of exact targets. An anchor package owns each target's descriptor, toolchain and build adapter, finite maxima, artifact kinds, and target-appropriate post-build mechanics. Extension packages may add exact base implementation offers without editing the anchor or generic Conduit make.
 
 ```text
-fabrication packages present in a project
+make packages present in a project
     -> exact target and implementation offers
 
 host construction
@@ -346,6 +438,39 @@ Values remain accounted for through offered, accepted, delivered, failed, cancel
 
 Automatic retry is a semantic promise and therefore must be planned. A base may not invent it.
 
+Conduitese projects four distinct stream outcomes or transitions at the same
+cord position: `stream|` is normal close, `stream!` is abnormal terminal truth,
+`stream~` is cancellation control, and `stream;` is the transition into
+quiescence. The semicolon is deliberately non-terminal and wakeable. It fires
+once when an active epoch becomes quiescent, and admitted work rearms it for a
+later active-to-quiescent transition. An empty queue does not itself constitute
+the transition, and close, failure, or cancellation never masquerades as `;`.
+
+For example, `samples; >> resting` handles a quiescence edge beside
+`samples| >> finished` and `samples! >> explain`; `deadline >> samples~`
+requests cancellation through the source's declared control.
+
+Abnormal terminal truth is part of the exact checked Fore, not a generic error
+side channel. A port separately declares its ordinary value kind, temporal
+modality, and—when promised—the exact bounded info kind carried by its `!`
+track. An abnormal Cord is therefore typed like any other Cord. Unhandled
+abnormal truth propagates to the containing Form's exact boundary; observation
+alone is not recovery, and several unresolved abnormal origins may not be
+collapsed into an implicit error bus.
+
+Terminal transduction is a distinct Kind contract. It states, independently,
+how normal close, abnormal termination, and cancellation are transduced.
+Normal-close flushing cannot silently run on abnormal termination. Successful
+fallback or recovery retains causal evidence but does not manufacture a
+semantic `!`; failed recovery leaves the exact abnormal obligation unresolved.
+
+`gear~` is a typed semantic cancellation request only when that Gear's exact
+Fore declares the cancellation control and transduction. The request is not an
+observed `gear!`, a successful cancellation disposition, or scheduler-wide
+cancellation. Deadlines compose through that explicit control and preserve the
+eventual typed terminal truth; elapsed time is never retroactively treated as
+proof that cancellation succeeded.
+
 ### One kernel
 
 Portable std, browser, Pico, future Android, and ConduitOS profiles use the same execution protocol and scheduler semantics.
@@ -382,7 +507,7 @@ A form may contain:
 - semantic configuration;
 - explicit finite work bounds;
 - nested forms;
-- named input and output fronts;
+- named input and output fores;
 - semantic requirements that truly belong to the work.
 
 A form does not contain:
@@ -398,9 +523,9 @@ A form does not contain:
 - resource handles;
 - authority grants.
 
-All forms are conceptually composite. A form with one opaque implementation is simply the smallest composition. A nested form becomes substitutable through its checked fronts while its hidden expansion remains bound into expanded and plan identity.
+All forms are conceptually composite. A form with one opaque implementation is simply the smallest composition. A nested form becomes substitutable through its checked fores while its hidden expansion remains bound into expanded and plan identity.
 
-A BODY may later appear through a FRONT inside another form without becoming a copy of that body.
+A BODY may later appear through a FORE inside another form without becoming a copy of that body.
 
 ## body identity and lifecycle
 
@@ -434,8 +559,8 @@ forms and records distinct birth event/sign evidence. No initial form is
 privileged after birth. In Conduit vocabulary a program is a form; there is no
 separate Program identity. The newborn body is LULLED; BIRTH creates no implicit
 wake, plan, or play. Thereafter changes in parts, hosts and boots, lines, the
-bounded current form workset, wake/lull episodes, plans, plays, and
-manifestations are events in the history of the same body rather than
+bounded current form workset, wake/lull episodes, plans, plays, and Shows are
+events in the history of the same body rather than
 replacement body identities.
 
 The form workset may contain zero, one, or many exact checked forms. Adding or
@@ -479,7 +604,7 @@ never implies a hidden retry or a parallel supervisor runtime.
 signs may carry bounded exact causal relationships. These relationships record
 what caused, requested, admitted, realized, observed, superseded, corrected, or
 terminated exact evidence across exact sessions. Temporal adjacency is not
-causality, missing evidence remains unknown, and presentation never owns the
+causality, missing evidence remains unknown, and Face never owns the
 causal history.
 
 A form contains configured gears and may require Roles. A Cast binds Roles to exact capabilities. A body-wide plan binds every form's gears to exact implementation, part, host, boot, base, authority, resource, route, and bound facts. A play starts that complete plan. A later Soul policy may prove continuity across restarts without pretending a restarted boot is the same execution session or changing what part membership means.
@@ -520,7 +645,7 @@ remaining gaps for each surface.
 ## Direction of travel
 
 The dependency direction remains meaning and typed contracts → exact planning
-and admission → the execution kernel → host effects → product presentation.
+and admission → the execution kernel → host effects → Face realization.
 body lifecycle coordinates the current workset through those same boundaries.
 Domain applications consume them rather than introducing another runtime.
 
@@ -540,18 +665,18 @@ Ideas are classified so that deferral does not feel like erasure and preservatio
 These ideas are current, load-bearing direction and have executable implementations and bounded proof surfaces in the repository:
 
 - semantic forms, host capability offers, and exact plans;
-- source, checked, expanded, plan, play, sign, and presentation identity separation;
+- source, checked, expanded, plan, play, sign, Face revision, and Show identity separation;
 - typed named ports and explicit fan-out;
 - bounded port-aware `conduit-kernel` execution;
 - generic Host Calls;
 - exact resource, authority, and observed-link planning contracts;
 - lossless source retention and located diagnostics;
-- inline nested forms and named composite fronts;
+- inline nested forms and named composite fores;
 - hosted and browser execution through the kernel, with separately proved lines;
 - the portable semantic catalog and host-owned realization offers;
 - body membership, workload and continuity contracts;
-- read-only Observatory and portable presentation/Manifestation contracts;
-- CLI, Tour, Crèche, Patchbay, and ConduitOS product surfaces;
+- read-only Observatory and portable Face/Show contracts;
+- CLI, ordinary Forms and Masks, Patchbay, and ConduitOS product surfaces;
 - ConduitOS freestanding emulator execution and retained visual evidence;
 - honest proof-class boundaries.
 
@@ -562,7 +687,7 @@ slice belongs in the living project even when its larger ambition remains open:
 
 - broader SOUL recovery and durable policy beyond bounded continuity evidence;
 - Zenoh as a possible later line base;
-- general package and artifact distribution beyond reviewed fabrication packages;
+- general package and artifact distribution beyond reviewed make packages;
 - domain expansion beyond the current House, Laptop, and Pete slices.
 
 Hostile isolation, physical coverage, and product usability still have concrete
@@ -602,8 +727,8 @@ These remain intentionally open questions:
 - how much automatic placement and negotiation belongs above explicit planning;
 - how bodies gather on neutral ground without confusing discovery with trust;
 - which timing profiles can be admitted across which local regions;
-- the final operator experience connecting task fronts, Observatory, and Workbench;
-- how a body exposes a front into another body while preserving continuity and authority;
+- the final operator experience connecting task fores, Observatory, and Workbench;
+- how a body exposes a fore into another body while preserving continuity and authority;
 - how much infrastructure installation Conduit should replace rather than compose with.
 
 An unresolved dream is not a promise and not a rejection. It is a question whose answer must eventually be made executable.
@@ -634,7 +759,7 @@ Conduit should become useful from the outside inward:
 - then let an unfamiliar person complete one useful task;
 - only then grow the freeform Workbench and larger domains.
 
-A user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, sign, and presentation.
+A user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, sign, Face, and Show.
 
 The current product loop is:
 
@@ -642,10 +767,10 @@ The current product loop is:
 Enter -> See -> Make -> Rehearse -> wake -> Observe -> Explain
 ```
 
-This is one semantic loop across radically different hosts and Presenters, not
-a request for identical pixels or mechanisms. presentation states what exists,
+This is one semantic loop across radically different hosts and Masks, not
+a request for identical pixels or mechanisms. Face states what exists,
 which ordinary semantic actions are available, why an action is unavailable,
-and which exact truth waits behind inspection. A Presenter binds local gestures
+and which exact truth waits behind inspection. A Mask binds local gestures
 such as keys, pointer activation, numbered serial choices, or touch to those
 actions; the gesture does not become the meaning or a second mutation path.
 
@@ -653,11 +778,11 @@ The ordinary surface prioritizes the meaningful object, current state, current
 action, effect, and refusal. Exact source, form, body, plan, placement, host,
 implementation, base, play, and sign truth remains reachable through explicit
 explanation rather than occupying the lobby. Geometry, focus, clipping,
-scrolling, and responsive layout remain Presenter-local.
+scrolling, and responsive layout remain Mask-local.
 
-Temporal context follows the same boundary. A presentation may state how an
+Temporal context follows the same boundary. A Face may state how an
 exact event, observation, or ingestion instant relates to an exact reference
-instant for that presentation turn, but relative age is derived presentation
+instant for that Face revision, but relative age is derived Face
 truth rather than event, sign, or evidence identity. Portable temporal facts
 therefore retain the exact source instant, its finite clock-basis identity and
 resolution, its admitted uncertainty, and its semantic time role. They refer to
@@ -674,13 +799,13 @@ an explicit indeterminate relation when admitted uncertainty overlaps the
 reference. Clock-basis mismatch, absent references, incompatible scales, and
 overflow remain typed refusals rather than approximate prose.
 
-Temporal facts name an existing presentation subject. When they claim sign
-provenance, that sign is already present in the presentation basis. A new
-reference instant may change presentation content identity, revision, and the
+Temporal facts name an existing Face subject. When they claim sign
+provenance, that sign is already present in the Face basis. A new
+reference instant may change Face content identity, revision, and the
 derived temporal relation without changing the referenced subject, event,
 observation, exact instant, or sign identity. Relative wording, locale,
 periodic refresh, clock acquisition, and domain-specific freshness thresholds
-remain Presenter or separately reviewed policy concerns; relative strings are
+remain Mask or separately reviewed policy concerns; relative strings are
 never stored as canonical evidence.
 
 For product work, exact proof is necessary but not sufficient. A completed
@@ -690,7 +815,7 @@ intended ordinary action, see its correlated effect or refusal, and descend to
 the exact proof when curious.
 
 Product demonstrations are ordinary checked forms travelling through
-the real checker, planner, kernel, presentation, and Presenter. A bespoke demo
+the real checker, planner, kernel, Face, and Mask. A bespoke demo
 appliance may diagnose a lower boundary, but it does not define the product
 experience. The product priority is to make the enactment loop understandable before
 expanding the interface. The roadmap records the actual sequencing; this design

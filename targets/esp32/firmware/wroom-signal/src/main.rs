@@ -73,7 +73,7 @@ const _: () = assert!(generated::GENERATED_RESOURCES.len() == 1);
 const _: () = assert!(generated::CORD_VALUE_SLOTS == 1);
 #[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::CORD_VALUE_BYTES == 9);
-const _: () = assert!(!generated::GENERATED_FABRICATION_DESCRIPTOR_BINDING.is_empty());
+const _: () = assert!(!generated::GENERATED_MAKE_DESCRIPTOR_BINDING.is_empty());
 
 esp_bootloader_esp_idf::esp_app_desc!();
 

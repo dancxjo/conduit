@@ -47,8 +47,8 @@ const server = http.createServer((request, response) => {
       const schema = input.format?.properties?.suggested_action_identities?.items;
       const actions = Array.isArray(schema?.enum) ? schema.enum.slice(0, 1) : [];
       return json(response, 200, { message: { role: "assistant", content: JSON.stringify({
-        speech: "I am lulled with my history retained.",
-        presented_thought: "The Body can wake again from retained meaning.",
+        speech_text_index: 0,
+        presented_thought_text_index: null,
         suggested_action_identities: actions,
       }) }, done: true, done_reason: "stop", prompt_eval_count: 8, eval_count: 8 });
     }

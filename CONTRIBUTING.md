@@ -6,7 +6,7 @@ capability. You do not need to understand the whole system first.
 
 ## Get something running
 
-Start with the [browser Tour](https://dancxjo.github.io/conduit/tour/) or the
+Start with the [body Workspace](https://dancxjo.github.io/conduit/workspace/) or the
 [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
 to see what we are building.
 
@@ -17,18 +17,18 @@ only for the target you work on.
 ```sh
 git clone --branch dev https://github.com/dancxjo/conduit.git
 cd conduit
-cargo xtask host std
+cargo xtask make host std
 ```
 
 The last command builds the product CLI and runs the checked-in Hello form.
 For a browser or native interface, follow [Try Conduit](docs/try-conduit.md).
-Rust needs a working native linker. Running Tour also needs Node.js, npm, and
+Rust needs a working native linker. Browser proof also needs Node.js, npm, and
 the WASM target (`rustup target add wasm32-unknown-unknown`). Browser conformance
 uses the additional pinned tools described in the [browser proof guide](proof/browser/README.md).
 `cargo xtask doctor` reports prerequisites across targets and can fail for
 optional browser/Pico tools even when the hosted example can run. For the full
 Linux release set, including the Raspberry Pi OS AArch64 package, run
-`cargo xtask setup linux-release` (or `just setup`) once, then verify it with
+`cargo xtask setup linux-release` once, then verify it with
 `cargo xtask doctor linux-release`. The first invocation compiles the repository
 tooling, so allow time and disk space.
 
@@ -36,8 +36,8 @@ tooling, so allow time and disk space.
 
 | If you want to work on… | Begin with… |
 |---|---|
-| Examples and the programming experience | [forms](forms/README.md), [Tour](products/tour/README.md) |
-| Visual interaction and inspection | [Patchbay](products/patchbay/README.md), [presentation boundary](docs/presenter-hourglass.md) |
+| Examples and the programming experience | [reviewed forms](forms/README.md), [Try Conduit](docs/try-conduit.md) |
+| Human encounter and inspection | [universal Face grammar](docs/architecture/presentation-grammar-conformance.md), [Patchbay Form graph](forms/patchbay/graph/README.md) |
 | Language, planning, or execution | [Canon](docs/conduit-canon.md), [architecture index](docs/architecture/README.md) |
 | A device, host, or ConduitOS | [Targets](targets/README.md), then that target's README |
 | Setup, documentation, or tests | [Documentation index](docs/README.md), [repository map](docs/repository-layout.md), [CI guide](docs/contributing/ci.md) |
@@ -106,7 +106,7 @@ changes normally need correct links, runnable examples, and patch hygiene, not
 hardware builds. The visual-reference check is:
 
 ```sh
-cargo xtask evidence docs-verify
+cargo xtask prove docs-verify
 ```
 
 Describe any check you could not run and the specific reason. A firmware build,

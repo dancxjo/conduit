@@ -2,7 +2,7 @@
 
 use std::{fs, path::Path};
 
-use conduit_host_fabrication::{verify_image_binding, BuildManifest, HostImage};
+use conduit_host_make::{verify_image_binding, BuildManifest, HostImage};
 use serde::{Deserialize, Serialize};
 
 use crate::{

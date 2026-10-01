@@ -66,7 +66,7 @@ serde-json-core = "0.6"
 [build-dependencies]
 conduit-alife-distributed-conformance = { path = "../../../../proof/conformance/alife-distributed" }
 conduit-core = { path = "../../../../architecture/core" }
-conduit-embedded-build = { path = "../../../../fabrication/embedded-build" }
+conduit-embedded-build = { path = "../../../../make/embedded-build" }
 conduit-form = { path = "../../../../architecture/form" }
 conduit-planner = { path = "../../../../architecture/planner" }
 conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", default-features = false }

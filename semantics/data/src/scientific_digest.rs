@@ -108,9 +108,10 @@ impl ClockRelation {
         bytes.extend_from_slice(&self.target_anchor.to_le_bytes());
         bytes.extend_from_slice(&self.source_ticks.to_le_bytes());
         bytes.extend_from_slice(&self.target_ticks.to_le_bytes());
-        match self.quality {
+        match &self.quality {
             ClockRelationQuality::Exact => bytes.push(0),
-            ClockRelationQuality::Estimated { maximum_error } => {
+            ClockRelationQuality::Estimated(estimated) => {
+                let maximum_error = estimated.maximum_error();
                 bytes.push(1);
                 bytes.extend_from_slice(&maximum_error.value().to_le_bytes());
                 bytes.push(time_unit_tag(maximum_error.unit()));

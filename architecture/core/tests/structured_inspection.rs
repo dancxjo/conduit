@@ -80,6 +80,26 @@ fn music_and_llm_signs_share_one_leaf_redacting_inspection() {
 }
 
 #[test]
+fn inspection_names_nominal_identity_and_retains_representation_semantics() {
+    let representation = leaf_type("value/count");
+    let ty =
+        StructuredInfoType::nominal(KindId::from("music/note@1"), representation.clone()).unwrap();
+    let value = StructuredInfoValue::nominal(
+        ty.clone(),
+        StructuredInfoValue::leaf(representation, encode_count(60).to_vec()).unwrap(),
+    )
+    .unwrap();
+
+    let inspection = StructuredInfoInspection::from_sign(&sign(&value), &ty).unwrap();
+    assert!(matches!(
+        &inspection.nodes[0].shape,
+        StructuredInfoInspectionShape::Nominal { schema, representation }
+            if schema.as_str() == "music/note@1"
+                && matches!(representation.as_ref(), StructuredInfoInspectionShape::Leaf { kind, .. } if kind.as_str() == "value/count")
+    ));
+}
+
+#[test]
 fn inspection_has_a_tighter_cap_and_reports_every_omitted_node() {
     let collection_type = StructuredInfoType::collection(leaf_type("value/count"), Some(8))
         .expect("finite collection type");

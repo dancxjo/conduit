@@ -30,14 +30,12 @@ form webchat-server-demo {
 }
 
 form chat/browser-client (
-    url: Url
+    >> interaction: FaceInteraction...|
+    face: Presentation...| >>
 ) {
     state: chat/state(title = "Conduit Webchat", history-label = "Chat history", input-label = "Message", submit-label = "Send", status-label = "Connection", maximum-history-items = 16, maximum-message-bytes = 256)
-    spread: presentation/tee
-    render: presentation/renderer
-    human: presentation/interaction
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
-    socket: net/websocket(url)
+    socket: net/websocket("ws://127.0.0.1:4178")
     incoming: chat/from-websocket
     outgoing: chat/to-websocket
     connection: chat/connection-from-websocket
@@ -46,28 +44,19 @@ form chat/browser-client (
     incoming.value >> state.message
     socket.live >> connection.value
     connection.value >> state.live
-    state.presentation >> spread.presentation
-    spread.presentation >> render.presentation
-    spread.presentation >> human.presentation
-    render.manifestation >> human.manifestation
-    human.interaction >> submit.interaction
+    state.presentation >> face
+    interaction >> submit.interaction
     submit.message >> outgoing.value
     outgoing.value >> socket.send
-}
-
-form webchat-browser-demo {
-    client: chat/browser-client("ws://127.0.0.1:4178")
 }
 
 form chat/browser-client-label-oracle (
-    url: Url
+    >> interaction: FaceInteraction...|
+    face: Presentation...| >>
 ) {
     state: chat/state(title = "Conduit Webchat", history-label = "Chat history", input-label = "Say something", submit-label = "Transmit", status-label = "Connection", maximum-history-items = 16, maximum-message-bytes = 256)
-    spread: presentation/tee
-    render: presentation/renderer
-    human: presentation/interaction
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
-    socket: net/websocket(url)
+    socket: net/websocket("ws://127.0.0.1:4178")
     incoming: chat/from-websocket
     outgoing: chat/to-websocket
     connection: chat/connection-from-websocket
@@ -76,15 +65,8 @@ form chat/browser-client-label-oracle (
     incoming.value >> state.message
     socket.live >> connection.value
     connection.value >> state.live
-    state.presentation >> spread.presentation
-    spread.presentation >> render.presentation
-    spread.presentation >> human.presentation
-    render.manifestation >> human.manifestation
-    human.interaction >> submit.interaction
+    state.presentation >> face
+    interaction >> submit.interaction
     submit.message >> outgoing.value
     outgoing.value >> socket.send
-}
-
-form webchat-browser-label-oracle {
-    client: chat/browser-client-label-oracle("ws://127.0.0.1:4178")
 }

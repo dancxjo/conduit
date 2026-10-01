@@ -280,6 +280,7 @@ pub fn pete_memory_contract() -> PeteMemoryContract {
         value_kind: kind_id(kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     PeteMemoryContract {
         kind_id: kind_id(PETE_MEMORY_RETAIN_KIND),

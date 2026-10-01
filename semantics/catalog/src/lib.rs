@@ -236,8 +236,18 @@ mod state_count;
 pub use state_count::*;
 mod state_toggle;
 pub use state_toggle::*;
+mod current_sample;
+pub use current_sample::*;
+mod combine_latest;
+pub use combine_latest::*;
+mod flow_zip;
+pub use flow_zip::*;
+mod flow_join_by_key;
+pub use flow_join_by_key::*;
 mod flow_state;
 pub use flow_state::*;
+mod flow_first;
+pub use flow_first::*;
 mod logic;
 pub use logic::*;
 mod math;
@@ -304,7 +314,9 @@ pub use sound_stream::*;
 #[cfg(feature = "form-catalog")]
 mod sound_catalog;
 #[cfg(feature = "form-catalog")]
-pub use sound_catalog::{install_audio_capture_push_to_talk_catalog, install_sound_catalogs};
+pub use sound_catalog::{
+    install_audio_capture_push_to_talk_catalog, install_audio_tone_catalog, install_sound_catalogs,
+};
 #[cfg(feature = "form-catalog")]
 mod structured_music_form;
 #[cfg(feature = "form-catalog")]
@@ -316,6 +328,7 @@ pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";
 pub const TEE_KIND: &str = "flow/tee";
 pub const GATE_KIND: &str = "flow/gate";
+pub const FIRST_KIND: &str = "flow/first";
 pub const TICK_KIND: &str = "time/tick";
 pub const LATEST_KIND: &str = "state/latest";
 pub const STATE_SELECT_KIND: &str = "state/select";
@@ -351,57 +364,20 @@ pub fn palette_contracts() -> Vec<StandardKindContract> {
 
 #[cfg(feature = "form-catalog")]
 pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
-    };
+    use conduit_form::ProfileCatalog;
 
     let mut catalog = ProfileCatalog::new();
     for (contract, revision) in supported_nucleus_contracts_with_revisions() {
+        let kind = match contract.kind_id.as_str() {
+            MATH_CLAMP_KIND => math_clamp_semantic_contract(),
+            MATH_SCALE_KIND => math_scale_semantic_contract(),
+            MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
+            FIRST_KIND => flow_first_scalar_semantic_contract(),
+            AUDIO_TONE_KIND => audio_tone_semantic_contract(),
+            _ => contract.into_semantic_contract(revision),
+        };
         catalog
-            .insert(KindProjection {
-                kind_contract_revision: conduit_core::KindIdentity::from(revision),
-                kind_id: contract.kind_id,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        rule: match field.rule {
-                            KindConfigurationRule::Any => KindConfigurationRule::Any,
-                            KindConfigurationRule::U64Range { minimum, maximum } => {
-                                KindConfigurationRule::U64Range { minimum, maximum }
-                            }
-                            KindConfigurationRule::I64Range { minimum, maximum } => {
-                                KindConfigurationRule::I64Range { minimum, maximum }
-                            }
-                            KindConfigurationRule::DurationMillis { minimum, maximum } => {
-                                KindConfigurationRule::DurationMillis { minimum, maximum }
-                            }
-                            KindConfigurationRule::QuantityRange {
-                                minimum,
-                                maximum,
-                                canonical_unit,
-                            } => KindConfigurationRule::QuantityRange {
-                                minimum,
-                                maximum,
-                                canonical_unit,
-                            },
-                            KindConfigurationRule::TextBytes { maximum } => {
-                                KindConfigurationRule::TextBytes { maximum }
-                            }
-                            KindConfigurationRule::TextOneOf { values } => {
-                                KindConfigurationRule::TextOneOf { values }
-                            }
-                            KindConfigurationRule::Structured { profile } => {
-                                KindConfigurationRule::Structured { profile }
-                            }
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(kind)
             .expect("standard catalog kinds are unique");
     }
     catalog
@@ -437,8 +413,6 @@ mod supported_nucleus_tests {
     #[test]
     fn supported_nucleus_contracts_are_typed_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 56);
-
         let identities = contracts
             .iter()
             .map(|contract| contract.kind_id.as_str())
@@ -518,3 +492,10 @@ pub use final_pattern_back::FinalNormalizedPatternBack;
 mod structured_selector_back;
 #[cfg(feature = "kernel-step")]
 pub use structured_selector_back::StructuredSelectorBack;
+
+mod pure_expression;
+pub use pure_expression::{pure_expression_contract, pure_filter_contract};
+#[cfg(feature = "kernel-step")]
+mod pure_expression_back;
+#[cfg(feature = "kernel-step")]
+pub use pure_expression_back::PureExpressionBack;

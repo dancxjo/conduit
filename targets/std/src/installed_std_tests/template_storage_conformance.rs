@@ -195,6 +195,12 @@ fn fixture_offer(
         SINK_KIND,
     );
     offer.startup_parameters[0].has_default = false;
+    installed_std::test_structured_selector::bind_text_configuration(
+        &mut offer,
+        "value",
+        hex(&value.canonical_bytes().unwrap()),
+        (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+    );
     offer
 }
 

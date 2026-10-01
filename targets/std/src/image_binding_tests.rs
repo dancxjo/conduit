@@ -5,7 +5,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
-use conduit_host_fabrication::{
+use conduit_host_make::{
     bind_runtime_offer, build_default_host_image, BuildInputs, HostImage, HostProfile,
     RuntimeFacts, RuntimeOfferInputs,
 };
@@ -20,8 +20,8 @@ fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, Hos
         source_identity: source.into(),
         toolchain_available: true,
     };
-    let catalog = conduit_workspace_fabrication::catalog();
-    let packages = conduit_workspace_fabrication::package_set();
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
     let (image, bytes) = build_default_host_image(profile, &catalog, &packages, &inputs).unwrap();
     let binding = bind_runtime_offer(
         &image.manifest,
@@ -34,12 +34,26 @@ fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, Hos
             offer_generation: OfferGeneration(1),
             offer_sign_id: conduit_core::SignId::from(format!("sign/{boot}/ready/1")),
             host_profile: HostProfileId::from("std/image-bound@1"),
-            candidate_resources: vec![conduit_core::resource_offer(
-                "std-image-test/timer",
-                conduit_core::TIMER_RESOURCE_CLASS,
-                16,
-            )],
-            candidate_capabilities: vec![conduit_std_offers::tick_capability_offer()],
+            candidate_bases: vec![conduit_core::BaseProviderEntry {
+                base_id: conduit_core::HostBaseId::from("std/timer/0"),
+                provider_instance_id: conduit_core::BaseInstanceId::from(format!(
+                    "{boot}/timer/provider/1"
+                )),
+                provider_generation: 1,
+                implementation_id: conduit_core::BaseImplementationId::from(
+                    "hosted/monotonic-clock@1",
+                ),
+                mechanism_family: conduit_core::HostBaseKindId::from("timer/monotonic"),
+                enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+                lifecycle: conduit_core::BaseLifecycle::Ready,
+                capabilities: vec![conduit_std_offers::tick_capability_offer()],
+                resources: vec![conduit_core::resource_offer(
+                    "std-image-test/timer",
+                    conduit_core::TIMER_RESOURCE_CLASS,
+                    16,
+                )],
+            }],
+            candidate_capabilities: vec![],
             planner_capabilities: Vec::new(),
             facts: RuntimeFacts {
                 ready_resource_classes: BTreeSet::from(["conduit.resource/timer-slot@1".into()]),

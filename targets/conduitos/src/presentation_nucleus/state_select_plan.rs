@@ -171,7 +171,8 @@ fn scalar_source_offer(kind: &str, values: [Option<Scalar>; 2]) -> CapabilityOff
 }
 
 fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-{identity}@1", kind.replace('/', "-"))),
@@ -184,6 +185,7 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
             value_kind: kind_id(value_kind),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         host_calls: vec![conduit_core::HostCallRequirement {
             contract_id: conduit_core::HostCallContractId::from(SOURCE_ADVANCE_HOST_CALL),
@@ -199,7 +201,8 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
 }
 
 fn sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-state-select-sink@1"),
@@ -211,6 +214,7 @@ fn sink_offer() -> CapabilityOffer {
             value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: vec![conduit_core::HostCallRequirement {

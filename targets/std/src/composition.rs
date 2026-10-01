@@ -22,6 +22,7 @@ pub struct StdHostComposition {
     pub text: bool,
     pub input: bool,
     pub state: bool,
+    pub data: bool,
     pub logic: bool,
     pub math: bool,
     pub layout: bool,
@@ -46,6 +47,7 @@ impl StdHostComposition {
             text: true,
             input: true,
             state: true,
+            data: true,
             logic: true,
             math: true,
             layout: true,
@@ -71,6 +73,7 @@ impl StdHostComposition {
             text: false,
             input: false,
             state: false,
+            data: false,
             logic: false,
             math: false,
             layout: false,
@@ -113,6 +116,11 @@ impl StdHostComposition {
 
     pub const fn with_state(mut self) -> Self {
         self.state = true;
+        self
+    }
+
+    pub const fn with_data(mut self) -> Self {
+        self.data = true;
         self
     }
 
@@ -205,6 +213,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::time_timeout_offer(),
             conduit_std_offers::time_delay_offer(),
             conduit_std_offers::time_throttle_offer(),
+            conduit_std_offers::time_deadline_offer(),
             conduit_std_offers::recurrence_std_offer(),
             conduit_std_offers::calendar_proposal_std_offer(),
             conduit_std_offers::tick_presentation_offer(),
@@ -249,14 +258,34 @@ pub(super) fn build_advertisement(
         ]);
     }
     if composition.state {
+        let boolean_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+            conduit_core::BOOL_INFO_ID,
+        ))
+        .expect("Boolean is a finite canonical structured type");
+        let boolean_default = conduit_core::StructuredInfoValue::leaf(
+            boolean_type.clone(),
+            conduit_core::InfoBool::FALSE.encode().to_vec(),
+        )
+        .expect("false is canonical Boolean State initialization");
         capabilities.extend([
             conduit_std_offers::state_count_offer(),
             conduit_std_offers::state_toggle_offer(),
             conduit_std_offers::count_presentation_offer(),
             conduit_std_offers::state_latest_scalar_offer(),
             conduit_std_offers::flow_tee_scalar_offer(),
+            conduit_std_offers::flow_first_scalar_offer(),
             conduit_std_offers::flow_gate_scalar_offer(),
             conduit_std_offers::state_select_scalar_offer(),
+        ]);
+        capabilities.push(
+            conduit_std_offers::state_value_std_offer("Boolean", &boolean_type, &boolean_default)
+                .expect("Boolean State has a finite canonical Front"),
+        );
+    }
+    if composition.data {
+        capabilities.extend([
+            conduit_std_offers::data_save_text_std_offer(),
+            conduit_std_offers::data_load_text_std_offer(),
         ]);
     }
     if composition.logic {
@@ -272,6 +301,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::math_scale_offer(),
             conduit_std_offers::math_deadband_offer(),
             conduit_std_offers::quantity_map_offer(),
+            conduit_std_offers::distance_frequency_map_offer(),
             conduit_std_offers::quantity_info_offer(),
         ]);
     }
@@ -342,6 +372,7 @@ pub(super) fn build_advertisement(
     if composition.alife {
         capabilities.extend(conduit_std_offers::alife_offers());
     }
+    capabilities.push(conduit_std_offers::audio_tone_offer());
     if playback.is_some() {
         capabilities.push(conduit_std_offers::audio_play_alsa_hw_offer());
     }

@@ -18,8 +18,8 @@ host resources.
 From a repository checkout:
 
 ```sh
-cargo xtask conduitos live x86_64 --locked
-cargo xtask conduitos live-boot x86_64 --locked
+cargo xtask make conduitos live x86_64 --locked
+cargo xtask make conduitos live-boot x86_64 --locked
 ```
 
 The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`;
@@ -60,22 +60,22 @@ Paths below are relative to `target/conduitos/`.
 | `conduitos/riscv64/virt` | `live/riscv64-virt/conduitos-riscv64.iso` | Serial product |
 | `conduitos/loongarch64/virt` | `live/loongarch64-virt/conduitos-loongarch64.iso` | Serial product |
 
-`cargo xtask conduitos live-matrix` reports current formats, emulator profiles,
-and exclusions. Raspberry Pi and Orange Pi image fabrication has separate
+`cargo xtask make conduitos live-matrix` reports current formats, emulator profiles,
+and exclusions. Raspberry Pi and Orange Pi image make has separate
 board contracts; presence of an image does not establish a usable physical
-host. See [Raspberry Pi](../raspberry-pi/fabrication/README.md) and
+host. See [Raspberry Pi](../raspberry-pi/make/README.md) and
 [Orange Pi](../orange-pi/README.md).
 
 ## Reproduce and inspect the evidence
 
 | Command | What it checks |
 | --- | --- |
-| `cargo xtask conduitos journey-proof` | Birth two resident forms, type and switch within one play, inspect body/wake/plan evidence, then exercise pointer actions and USB line state with correlated screenshots |
-| `cargo xtask conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
-| `cargo xtask conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
-| `cargo xtask conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |
-| `cargo xtask conduitos product-readiness-matrix` | Product readiness independently of architecture bring-up |
-| `cargo xtask conduitos std-gap` | Portable catalog coverage and remaining ConduitOS implementation gaps |
+| `cargo xtask make conduitos journey-proof` | Birth two resident forms, type and switch within one play, inspect body/wake/plan evidence, then exercise pointer actions and USB line state with correlated screenshots |
+| `cargo xtask make conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
+| `cargo xtask make conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
+| `cargo xtask make conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |
+| `cargo xtask make conduitos product-readiness-matrix` | Product readiness independently of architecture bring-up |
+| `cargo xtask make conduitos std-gap` | Portable catalog coverage and remaining ConduitOS implementation gaps |
 
 The journey writes PNGs and `manifest.json` under
 `target/conduitos/x86_64/journey-frames/`. The [visual evidence guide](../../docs/visual-evidence.md)
@@ -91,13 +91,13 @@ across a machine reboot.
 USB line attachment and delivery in that journey do not imply body membership;
 the records explicitly retain `membership: not-requested`.
 
-For device work, `cargo xtask conduitos --help` lists focused xHCI, USB,
+For device work, `cargo xtask make conduitos --help` lists focused xHCI, USB,
 HID, keyboard/text, hotplug, rescue, and sound proofs. Each owns a smaller
 contract: controller readiness, device enumeration, HID reports, and a portable
 keyboard offer are different steps. These tests use real emulated device
 paths and retain failures and identity changes as distinct results.
 
-`cargo xtask conduitos keyboard-repeat-proof --locked` boots the normal image,
+`cargo xtask make conduitos keyboard-repeat-proof --locked` boots the normal image,
 births a body and sends 320 keyboard transitions through one play before
 Stop and lull. It checks retained identities and the bounded recent-output
 window, and retains its receipt and screenshots under
@@ -111,12 +111,12 @@ The x86 headless profile excludes the native graphical Presenter, compositor,
 and display resources. Build and inspect its exact final artifact with:
 
 ```sh
-cargo xtask host build targets/conduitos/profiles/conduitos-headless.profile.json --output target/headless-proof
-cargo xtask conduitos headless-proof target/headless-proof
+cargo xtask make host build targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit --output target/headless-proof
+cargo xtask make conduitos headless-proof target/headless-proof
 ```
 
 The artifact boots without a framebuffer or USB input device. It validates
-its fabricated inventory and finite arena, derives fresh host/boot identities,
+its made inventory and finite arena, derives fresh host/boot identities,
 and reports `headless-workload-entry-unavailable`. This is an explicit
 unsupported workload entry: no providers are initialized, no offer is published,
 and no body, plan, or play is invented. Compiled implementation inventory is
@@ -129,7 +129,7 @@ zero allocation, and the expected unsupported disposition. The retained
 `headless-proof.json`, two serial logs, and ELF symbol inventory live in the
 supplied output directory. Passing this proof establishes that refusal contract,
 not working headless form execution or physical hardware acceptance. The
-ordinary graphical journey remains `cargo xtask conduitos journey-proof`.
+ordinary graphical journey remains `cargo xtask make conduitos journey-proof`.
 
 ## Where to contribute
 
@@ -137,7 +137,7 @@ ordinary graphical journey remains `cargo xtask conduitos journey-proof`.
   Limine-specific types stay in `src/boot/limine.rs`; other code consumes
   boot-neutral observations.
 - `firmware/` owns product linker scripts and boot configuration.
-- `fabrication/` owns target descriptors; `fabrication/xtask/` builds images
+- `make/` owns target descriptors; `make/xtask/` builds images
   and runs repository proofs.
 - `proof/appliances/` owns architecture bring-up programs. They are separate
   from the normal live product images.
@@ -155,6 +155,6 @@ issues for the current scope of each contribution.
 
 The canonical x86_64 image uses the [default graphical profile](assets/graphical/README.md)
 with proportional UI typography, a distinct code front, deterministic Unicode
-fallback, and bounded shell icons. `cargo xtask conduitos graphical-profile-proof`
+fallback, and bounded shell icons. `cargo xtask make conduitos graphical-profile-proof`
 boots that exact live ISO and retains its profile receipt and shell screenshots.
 This development capability is separate from stable or physical acceptance.

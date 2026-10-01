@@ -41,7 +41,7 @@ pub fn geometry_semantic_contracts() -> Vec<Kind> {
         .expect("bounded Transform2 profile")
         .value_kind()
         .clone();
-    vec![
+    let mut contracts = vec![
         geometry_contract(
             POINT2_LITERAL_KIND,
             vec![],
@@ -63,7 +63,19 @@ pub fn geometry_semantic_contracts() -> Vec<Kind> {
             "transform",
             transform_kind,
         ),
-    ]
+    ];
+    for (contract, default) in contracts.iter_mut().zip([
+        default_point2().expect("canonical Point2 default is valid"),
+        default_transform2().expect("canonical Transform2 default is valid"),
+        default_transform2().expect("canonical Transform2 default is valid"),
+    ]) {
+        contract.configuration =
+            vec![
+                structured_configuration_field(&contract.startup_parameters[0].name, default)
+                    .expect("canonical geometry default is bounded"),
+            ];
+    }
+    contracts
 }
 
 pub fn install_geometry_catalogs(
@@ -75,13 +87,8 @@ pub fn install_geometry_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    let defaults = [
-        default_point2()?,
-        default_transform2()?,
-        default_transform2()?,
-    ];
-    for (contract, default) in geometry_semantic_contracts().into_iter().zip(defaults) {
-        insert_contract(startup, profile, contract, default)?;
+    for contract in geometry_semantic_contracts() {
+        insert_contract(startup, profile, contract)?;
     }
     startup.insert(KindSignature {
         kind: CAPTURE_BOUNDED_STROKE_KIND.into(),
@@ -193,7 +200,6 @@ fn insert_contract(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
     contract: Kind,
-    default: StructuredInfoValue,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {
@@ -214,14 +220,22 @@ fn insert_contract(
                 .collect(),
         })
         .map_err(|error| error.to_string())?;
-    let parameter = &contract.startup_parameters[0];
+    profile
+        .insert_kind(contract)
+        .map_err(|error| error.to_string())
+}
+
+fn structured_configuration_field(
+    parameter: &str,
+    default: StructuredInfoValue,
+) -> Result<KindConfigurationField, String> {
     let value_type = default.value_type().clone();
     let value_profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
     let canonical = default
         .canonical_bytes()
         .map_err(|error| format!("{error:?}"))?;
-    let configuration = vec![KindConfigurationField {
-        key: parameter.name.clone(),
+    Ok(KindConfigurationField {
+        key: parameter.to_string(),
         default_value: ConfigurationValue::Structured(
             StructuredConfigurationValue::new(value_profile.value_kind().clone(), canonical)
                 .ok_or_else(|| "geometry default exceeds structured bound".to_string())?,
@@ -229,16 +243,7 @@ fn insert_contract(
         rule: KindConfigurationRule::Structured {
             profile: value_profile.value_kind().clone(),
         },
-    }];
-    profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration,
-        })
-        .map_err(|error| error.to_string())
+    })
 }
 
 pub fn geometry_port(
@@ -255,6 +260,7 @@ pub fn geometry_port(
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

@@ -1,8 +1,9 @@
 //! Hosted std realizations of portable flow/state contracts.
 
 use conduit_core::{
-    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer,
+    CheckedValueContract, ExecutionProfileId, HostCallContractId, HostCallRequirement,
+    ImplementationId, Kind,
 };
 
 pub const STATE_LATEST_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-latest-scalar-kernel@2";
@@ -19,6 +20,9 @@ pub const FLOW_GATE_BOOL_HOST_CALL_TARGET: &str = "value/decode-bool";
 pub const STATE_SELECT_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-select-scalar-kernel@1";
 pub const STATE_SELECT_SCALAR_IMPLEMENTATION: &str = "std/kernel-state-select-scalar@1";
 pub const STATE_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/state-select-scalar@1";
+pub const FLOW_FIRST_EXECUTION_PROFILE: &str = "conduit.std/flow-first-kernel@1";
+pub const FLOW_FIRST_IMPLEMENTATION: &str = "std/kernel-flow-first@1";
+pub const FLOW_FIRST_ARTIFACT: &str = "conduit-std-host/flow-first@1";
 
 pub fn state_latest_scalar_offer() -> CapabilityOffer {
     offer(
@@ -68,6 +72,38 @@ pub fn state_select_scalar_offer() -> CapabilityOffer {
         STATE_SELECT_SCALAR_ARTIFACT,
         Vec::new(),
     )
+}
+
+pub fn flow_first_offer(value: &CheckedValueContract) -> Result<CapabilityOffer, &'static str> {
+    Ok(offer(
+        conduit_semantic_catalog::flow_first_contract(value)?,
+        "flow-first-v1",
+        FLOW_FIRST_EXECUTION_PROFILE,
+        FLOW_FIRST_IMPLEMENTATION,
+        FLOW_FIRST_ARTIFACT,
+        Vec::new(),
+    ))
+}
+
+pub fn flow_first_scalar_offer() -> CapabilityOffer {
+    offer(
+        conduit_semantic_catalog::flow_first_scalar_semantic_contract(),
+        "flow-first-v1",
+        FLOW_FIRST_EXECUTION_PROFILE,
+        FLOW_FIRST_IMPLEMENTATION,
+        FLOW_FIRST_ARTIFACT,
+        Vec::new(),
+    )
+}
+
+#[cfg(test)]
+fn flow_first_scalar_value_contract() -> CheckedValueContract {
+    CheckedValueContract::new(
+        kind_id(conduit_core::SCALAR_INFO_ID),
+        conduit_core::SCALAR_ENCODED_LEN as u32,
+        Vec::new(),
+    )
+    .expect("Scalar has one canonical finite envelope")
 }
 
 fn offer(
@@ -122,6 +158,14 @@ mod tests {
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
         }
+        let first_offer = flow_first_scalar_offer();
+        let first_contract =
+            conduit_semantic_catalog::flow_first_contract(&flow_first_scalar_value_contract())
+                .unwrap();
+        assert_eq!(first_offer.kind_id, first_contract.kind_id);
+        assert_eq!(first_offer.inputs, first_contract.inputs);
+        assert_eq!(first_offer.outputs, first_contract.outputs);
+        assert_eq!(first_offer.limits, first_contract.limits);
         assert_eq!(flow_gate_scalar_offer().host_calls.len(), 1);
     }
 }

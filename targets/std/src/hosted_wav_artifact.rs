@@ -2,6 +2,7 @@
 
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{BootId, OfferGeneration, ResourcePoolId};
+use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -116,6 +117,11 @@ impl WavArtifactSession {
             blocks: self.blocks,
             completed: self.completed,
         }
+    }
+
+    pub(crate) fn content_sha256(&self) -> Option<String> {
+        self.completed
+            .then(|| format!("{:x}", Sha256::digest(&self.pcm)))
     }
 }
 

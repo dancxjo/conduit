@@ -82,7 +82,8 @@ impl<const PORTS: usize> StepBack<PORTS> for TestPcmSourceBack {
 impl TestPcmSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-pcm-source"),
@@ -130,6 +131,7 @@ fn outputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(AUDIO_PCM_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

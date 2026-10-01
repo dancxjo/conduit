@@ -3,14 +3,13 @@
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-use alloc::{
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+#[cfg(feature = "form-catalog")]
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_presentation::{
     LAYOUT_FRAME_KIND, MAX_LAYOUT_CHILDREN, MAX_LAYOUT_EXTENT, MAX_LAYOUT_FRAME_BYTES,
@@ -147,6 +146,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(LAYOUT_FRAME_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 fn u16_field(key: &str, default: u64) -> KindConfigurationField {
@@ -190,10 +190,7 @@ pub fn install_layout_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for contract in [
         layout_viewport_contract(),
         layout_inset_contract(),
@@ -222,31 +219,8 @@ pub fn install_layout_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .into_iter()
-            .map(|field| KindConfigurationField {
-                key: field.key,
-                default_value: field.default_value,
-                rule: match field.rule {
-                    KindConfigurationRule::U64Range { minimum, maximum } => {
-                        KindConfigurationRule::U64Range { minimum, maximum }
-                    }
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf { values }
-                    }
-                    _ => unreachable!(),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(LAYOUT_CONTRACT_REVISION),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract.into_semantic_contract(LAYOUT_CONTRACT_REVISION))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

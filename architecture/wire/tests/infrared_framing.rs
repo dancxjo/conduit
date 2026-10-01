@@ -62,6 +62,7 @@ fn ordinary_data_and_session_envelopes_fit_and_round_trip() {
         sink_host_id: "host/sink",
         sink_boot_id: "boot/sink",
         value_kind: "text/utf8",
+        abnormal_kind: None,
         limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: 96,

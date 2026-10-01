@@ -6,6 +6,8 @@ mod body;
 mod effects;
 #[path = "abi_profiles.rs"]
 mod profiles;
+#[path = "abi_projection.rs"]
+mod projection;
 
 use super::TourSession;
 use std::cell::RefCell;
@@ -111,7 +113,7 @@ pub extern "C" fn conduit_tour_inventory() -> i32 {
         .unwrap_or(ERROR_OUTPUT)
 }
 
-/// Projects the exact fabrication selections used to construct this runtime's
+/// Projects the exact make selections used to construct this runtime's
 /// ordinary installed-host advertisement.
 #[no_mangle]
 pub extern "C" fn conduit_tour_human_machinery() -> i32 {
@@ -172,46 +174,6 @@ pub extern "C" fn conduit_tour_reviewed_gallery_view(request_length: usize) -> i
         }) {
             Ok(()) => STATUS_READY,
             Err(_) => ERROR_PROJECTION,
-        }
-    })
-}
-
-/// Projects the exact checked form beside its Tour source without planning or
-/// starting a play.
-#[no_mangle]
-pub extern "C" fn conduit_tour_project_patchbay(source_length: usize, sequence: u64) -> i32 {
-    project_patchbay(source_length, sequence, false)
-}
-
-/// Projects the same visible checked form while retaining distinct recursive
-/// expansion evidence for the comparison lesson.
-#[no_mangle]
-pub extern "C" fn conduit_tour_project_patchbay_recursive(
-    source_length: usize,
-    sequence: u64,
-) -> i32 {
-    project_patchbay(source_length, sequence, true)
-}
-
-fn project_patchbay(source_length: usize, sequence: u64, recursive: bool) -> i32 {
-    clear_output();
-    if source_length == 0 || source_length > INPUT_BYTES {
-        return ERROR_INPUT;
-    }
-    INPUT.with(|input| {
-        let mut input = input.borrow_mut();
-        let result = core::str::from_utf8(&input[..source_length])
-            .map_err(|_| "compact Tour Patchbay source is not UTF-8".to_owned())
-            .and_then(|source| super::compact_patchbay::project(source, sequence, recursive));
-        input[..source_length].fill(0);
-        match result {
-            Ok(projection) => write_output(&projection)
-                .map(|()| STATUS_READY)
-                .unwrap_or(ERROR_OUTPUT),
-            Err(message) => {
-                let _ = write_output(&super::refusal(message));
-                ERROR_PROJECTION
-            }
         }
     })
 }

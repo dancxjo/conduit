@@ -1,0 +1,10 @@
+[package]
+name = "patchbay-hosted"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-std-host = { path = ".." }
+patchbay-workbench-host-contract = { path = "../../../forms/patchbay/workbench/host-contract" }

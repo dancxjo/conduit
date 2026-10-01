@@ -96,6 +96,7 @@ fn canonical_grant_for(role: BrowserWebRtcRole, base: BaseImplementationId) -> B
                 maximum_frame_bytes: MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
             },
         },
+        abnormal_kind: None,
     };
     let mut rendezvous = BrowserWebRtcRendezvous::default();
     let session_hello = rendezvous.grant(&binding).unwrap();

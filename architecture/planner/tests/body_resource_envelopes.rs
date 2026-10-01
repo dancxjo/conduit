@@ -6,8 +6,8 @@ use conduit_planner::{default_placements, plan_with_resource_allowances, Planner
 
 #[test]
 fn ordinary_planning_cannot_exceed_body_allowance_despite_host_capacity() {
-    let form = common::generate_text_form();
-    let mut host = conduit_ai::generate_text_base_fixtures()[0]
+    let form = common::llm_generate_form();
+    let mut host = conduit_ai::llm_generate_base_fixtures()[0]
         .advertisement
         .clone();
     let requirement = &mut host.capabilities[0].resource_requirements[0];

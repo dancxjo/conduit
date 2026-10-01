@@ -48,7 +48,8 @@ impl PatchbayApplication {
                     identity: format!("action/{}/{target}", action.as_str()),
                     intent: action.presentation_intent().into(),
                     target: target.clone(),
-                    label: action.as_str().replace('-', " "),
+                    name: action.as_str().replace('-', " "),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: unavailable.map_or(
                         PresentationActionAvailability::Available,
@@ -88,11 +89,10 @@ impl PatchbayApplication {
             vec![PresentationSubject {
                 identity: target.clone(),
                 role: PresentationRole::Form,
-                label: self
+                name: self
                     .form_editor
                     .as_ref()
                     .map_or_else(|| "Current form".into(), |editor| editor.view().open_form),
-                accessibility_name: "Current checked and expanded Form".into(),
             }],
             vec![],
             vec![],

@@ -102,12 +102,16 @@ pub enum PlannerError {
     LineOfferAmbiguous(String),
     UnavailableBaseImplementationId(String),
     InvalidConnectionBudget(String),
+    InvalidResourcePort(String),
+    UnsupportedResourcePortTransfer(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
     CyclicStartupDependencies(String),
     SignBudgetOverflow(String),
     InvalidPlacementSyntax(String),
     InvalidSharedPool(String),
+    InvalidStateContract(String),
+    StateRetentionUnsupported(String),
 }
 
 impl core::fmt::Display for PlannerError {
@@ -196,6 +200,10 @@ impl core::fmt::Display for PlannerError {
             Self::InvalidConnectionBudget(value) => {
                 write!(f, "invalid connection budget: {value}")
             }
+            Self::InvalidResourcePort(value) => write!(f, "invalid resource port: {value}"),
+            Self::UnsupportedResourcePortTransfer(value) => {
+                write!(f, "unsupported resource port transfer: {value}")
+            }
             Self::QueueRequirementAboveHostLimit(value) => {
                 write!(f, "queue requirement above host limit: {value}")
             }
@@ -210,6 +218,10 @@ impl core::fmt::Display for PlannerError {
             }
             Self::InvalidPlacementSyntax(value) => write!(f, "invalid placement syntax: {value}"),
             Self::InvalidSharedPool(value) => write!(f, "invalid shared pool: {value}"),
+            Self::InvalidStateContract(value) => write!(f, "invalid State contract: {value}"),
+            Self::StateRetentionUnsupported(value) => {
+                write!(f, "State retention unsupported: {value}")
+            }
         }
     }
 }

@@ -2,9 +2,7 @@
 
 pub mod state_value;
 
-#[cfg(feature = "form-catalog")]
 use alloc::format;
-#[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -12,7 +10,6 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-#[cfg(feature = "form-catalog")]
 use conduit_core::{ConfigurationValue, StructuredInfoValue};
 
 pub const STRUCTURED_LITERAL_KIND: &str = "structured-info/literal";
@@ -47,6 +44,42 @@ impl From<StructuredValueContract> for Kind {
     }
 }
 
+pub fn structured_literal_semantic_contract(
+    type_name: &str,
+    value_type: &StructuredInfoType,
+    default_value: &StructuredInfoValue,
+) -> Result<Kind, alloc::string::String> {
+    if default_value.value_type() != value_type {
+        return Err("structured literal default has the wrong exact type".into());
+    }
+    let profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
+    let canonical = default_value
+        .canonical_bytes()
+        .map_err(|error| format!("{error:?}"))?;
+    let mut kind: Kind = structured_literal_contract(type_name, value_type).into();
+    kind.configuration = vec![conduit_core::KindConfigurationField {
+        key: "value".into(),
+        default_value: ConfigurationValue::Structured(
+            conduit_core::StructuredConfigurationValue::new(
+                profile.value_kind().clone(),
+                canonical,
+            )
+            .ok_or_else(|| "structured literal default exceeds its bound".to_string())?,
+        ),
+        rule: conduit_core::KindConfigurationRule::Structured {
+            profile: profile.value_kind().clone(),
+        },
+    }];
+    Ok(kind)
+}
+
+pub fn structured_presentation_semantic_contract(
+    type_name: &str,
+    value_type: &StructuredInfoType,
+) -> Kind {
+    structured_presentation_contract(type_name, value_type).into()
+}
+
 pub fn structured_literal_contract(
     type_name: &str,
     value_type: &StructuredInfoType,
@@ -79,6 +112,7 @@ fn contract(
             PortDirection::Input
         },
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     StructuredValueContract {
         startup_parameters: if source {
@@ -122,20 +156,13 @@ pub fn install_structured_value_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     if default_value.value_type() != value_type {
         return Err("structured literal default has the wrong exact type".into());
     }
-    let type_profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
-    let canonical = default_value
-        .canonical_bytes()
-        .map_err(|error| format!("{error:?}"))?;
-    let literal = structured_literal_contract(type_name, value_type);
-    let presenter = structured_presentation_contract(type_name, value_type);
+    let literal = structured_literal_semantic_contract(type_name, value_type, default_value)?;
+    let presenter = structured_presentation_semantic_contract(type_name, value_type);
     startup
         .insert_structured_type(type_name, value_type.clone())
         .map_err(|error| error.to_string())?;
@@ -156,33 +183,9 @@ pub fn install_structured_value_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindProjection {
-            kind_id: literal.kind_id,
-            kind_contract_revision: literal.kind_contract_revision,
-            inputs: literal.inputs,
-            outputs: literal.outputs,
-            configuration: vec![KindConfigurationField {
-                key: "value".into(),
-                default_value: ConfigurationValue::Structured(
-                    conduit_core::StructuredConfigurationValue::new(
-                        type_profile.value_kind().clone(),
-                        canonical,
-                    )
-                    .ok_or_else(|| "structured literal default exceeds its bound".to_string())?,
-                ),
-                rule: KindConfigurationRule::Structured {
-                    profile: type_profile.value_kind().clone(),
-                },
-            }],
-        })
+        .insert_kind(literal)
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindProjection {
-            kind_id: presenter.kind_id,
-            kind_contract_revision: presenter.kind_contract_revision,
-            inputs: presenter.inputs,
-            outputs: presenter.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(presenter)
         .map_err(|error| error.to_string())
 }

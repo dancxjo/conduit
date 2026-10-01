@@ -1,0 +1,71 @@
+# Authoritative portable audio meaning. Rust consumes generated bindings.
+
+type AudioToneTerminal =
+    cancelled
+
+type Gate =
+    on
+    | off
+
+type ModulationDestination =
+    pitch
+    | filter-cutoff
+    | amplitude
+
+type MusicalControl =
+    sustain {
+        down: Boolean
+    }
+    | pitch-bend {
+        amount-millionths: I32 in -1000000..=1000000
+        range-microcents: U32 in 0..=2400000000
+    }
+    | modulation {
+        amount-millionths: U32 in 0..=1000000
+        destination: ModulationDestination
+    }
+
+type PcmSampleRepresentation =
+    signed16-little-endian
+    | signed24-little-endian
+    | float32-little-endian
+
+type PcmChannelLayout =
+    mono
+    | stereo-left-right
+
+type PressureDisposition =
+    wait_without_consumption
+    | refuse_before_play
+
+type CancellationDisposition =
+    cancel_and_release_finite_state
+    | drain_then_complete
+
+type SoundTerminalBehavior =
+    completes_when_inputs_close
+    | drains_admitted_output_then_completes
+
+type SoundSeam =
+    tone
+    | musical_events
+    | synthesis
+    | pcm_playback
+
+type SoundStreamState =
+    open
+    | draining
+    | cancelled
+    | closed
+
+code audio/tone-terminal = AudioToneTerminal as u8
+
+code audio/pcm-sample-representation = PcmSampleRepresentation as u8
+
+code audio/pcm-channel-layout = PcmChannelLayout as u8
+
+code audio/gate = Gate as u8
+    off
+    on
+
+code audio/modulation-destination = ModulationDestination as u8

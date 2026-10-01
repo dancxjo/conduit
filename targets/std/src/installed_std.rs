@@ -2,6 +2,7 @@ mod address_detect_back;
 mod alife_backs;
 mod alife_host;
 mod audio_play_back;
+mod audio_tone_back;
 mod back;
 mod back_capacity;
 mod back_kind;
@@ -19,18 +20,20 @@ mod catalog;
 pub(super) mod contract;
 mod count_backs;
 mod deadline_host;
+mod distance_frequency_back;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
 mod factory;
 mod final_normalized_pattern_back;
+mod flow_first_back;
 mod flow_gate_back;
 mod flow_pressure_backs;
 #[cfg(test)]
 mod flow_pressure_form_tests;
 mod flow_state_backs;
-mod generate_text;
 mod generated_speech_commit_back;
+mod generated_validation_backs;
 mod house_prompt_back;
 mod http;
 mod http_host;
@@ -68,12 +71,20 @@ mod lifecycle;
 mod retained_run;
 #[cfg(test)]
 pub(super) use retained_run::run_fragment;
+pub(crate) use retained_run::DurableStateRun;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
+mod combine_latest_back;
+mod current_sample_back;
+mod data_text_back;
+mod data_text_host;
+mod flow_join_by_key_back;
+mod flow_zip_back;
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_back;
 #[cfg(test)]
 mod pulse_observation_sink;
+mod pure_expression_back;
 mod quantity_mapping;
 mod recognition_text_back;
 mod recognized_turn_commit_back;
@@ -96,6 +107,7 @@ mod sequence_normalization_back;
 mod simple_presentation_host;
 mod speech_recognition_adapter_back;
 mod speech_synthesis_back;
+mod spoken_mask_backs;
 mod state_select_back;
 mod structured_presentation_host;
 mod structured_selector_back;
@@ -105,6 +117,10 @@ mod synth_render;
 mod template_storage_back;
 mod template_storage_host;
 mod test_audio_source;
+#[cfg(test)]
+mod test_audio_tone;
+#[cfg(test)]
+mod test_data_terminal_recovery;
 #[cfg(test)]
 mod test_gate;
 #[cfg(test)]
@@ -137,6 +153,8 @@ mod text_backs_tests;
 mod text_state_back;
 mod tick_backs;
 mod tick_presentation;
+mod time_sample_back;
+mod time_window_back;
 mod timed_button_attempt_back;
 mod timed_button_attempt_host;
 mod timed_pattern_back;
@@ -228,18 +246,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
-    lifecycle: RunLifecycle<'_, '_>,
+    lifecycle: RunLifecycle<'_, '_, '_>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
     let RunLifecycle {
         control,
         retained,
         indicator,
         attach_live,
-        mut speech_synthesis,
         mut speech_recognition,
         mut microphone,
         wav_artifact,
         mut vision,
+        mut external_fore,
+        spoken_mask,
+        durable_state,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -295,6 +315,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .ok_or_else(|| "installed sign item budget overflow".to_string())?;
         maximum_value_bytes = maximum_value_bytes.max(budget.maximum_value_bytes);
     }
+    for fore in lowered
+        .fore_ports
+        .iter()
+        .filter(|fore| fore.direction == conduit_core::PortDirection::Input)
+    {
+        value_items = value_items
+            .checked_add(fore.item_capacity)
+            .ok_or_else(|| "external Fore input value item budget overflow".to_string())?;
+        value_bytes = value_bytes
+            .checked_add(fore.byte_capacity)
+            .ok_or_else(|| "external Fore input value byte budget overflow".to_string())?;
+        maximum_value_bytes = maximum_value_bytes.max(fore.byte_capacity);
+    }
     #[cfg(test)]
     if fragment
         .placements
@@ -315,8 +348,43 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &advertisement.boot_id,
         play_sequence,
     );
-    let drivers =
-        preparation::prepare_operations(fragment, &lowered, &mut values, &active_play, retained)?;
+    let mut spoken_mask_session = spoken_mask
+        .as_ref()
+        .map(|preparation| preparation.prepare_session(active_play.clone()))
+        .transpose()?;
+    let drivers = preparation::prepare_operations(
+        fragment,
+        &lowered,
+        &mut values,
+        &active_play,
+        retained,
+        durable_state.as_ref().map(|state| state.body),
+    )?;
+    let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
+    for state in &lowered.states {
+        let placement = fragment
+            .placements
+            .get(usize::from(state.node.0))
+            .ok_or_else(|| "durable State node has no exact placement".to_string())?;
+        if placement.implementation_id.as_str()
+            != conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+        {
+            continue;
+        }
+        let durable = durable_state.as_ref().ok_or_else(|| {
+            "Body-durable State has no admitted residence execution binding".to_string()
+        })?;
+        let binding = crate::state_value::DurableStateBinding {
+            body: durable.body.as_str().into(),
+            state: state.contract.state_id.clone(),
+            value_kind: state.contract.value_kind.clone(),
+            maximum_value_bytes: state.contract.maximum_value_bytes,
+        };
+        durable_state_hosts[usize::from(state.node.0)] = Some(
+            crate::state_value::InstalledDurableStateHost::open(durable.root, binding)
+                .map_err(|error| format!("open durable State residence: {error:?}"))?,
+        );
+    }
     let driver_capacity_before = drivers
         .iter()
         .map(InstalledBack::allocation_capacity)
@@ -324,14 +392,37 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let value_allocation_before = values.allocation_capacities();
 
     let kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
+    let remote_sign_items = lowered.fore_ports.iter().try_fold(0_u16, |total, fore| {
+        let events = match fore.direction {
+            conduit_core::PortDirection::Input => fore.item_capacity.checked_add(1),
+            conduit_core::PortDirection::Output => fore
+                .item_capacity
+                .checked_mul(3)
+                .and_then(|count| count.checked_add(1)),
+        }
+        .ok_or_else(|| "external Fore lifecycle Sign capacity overflow".to_string())?;
+        total
+            .checked_add(events)
+            .ok_or_else(|| "external Fore lifecycle Sign capacity overflow".to_string())
+    })?;
+    sign_items = sign_items
+        .checked_add(remote_sign_items)
+        .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
     let sign_bytes = u32::from(sign_items)
         .checked_mul(
             u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
                 .map_err(|_| "installed sign charge overflow".to_string())?,
         )
         .ok_or_else(|| "installed sign byte budget overflow".to_string())?;
-    let sign = HostedSignLog::new(sign_items, sign_bytes)
-        .map_err(|error| format!("installed sign store: {error:?}"))?;
+    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
+        .ok_or_else(|| "external Fore remote Sign byte budget overflow".to_string())?;
+    let sign = HostedSignLog::new_with_remote_storage(
+        sign_items,
+        sign_bytes,
+        remote_sign_items,
+        remote_sign_bytes,
+    )
+    .map_err(|error| format!("installed sign store: {error:?}"))?;
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;
@@ -354,6 +445,87 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         _output.flush().map_err(|error| error.to_string())?;
     }
     let mut scheduler = kernel_tables.install(drivers, values, sign)?;
+    let mut external_fore_deliveries = Vec::with_capacity(
+        lowered
+            .fore_ports
+            .iter()
+            .filter(|port| port.direction == conduit_core::PortDirection::Output)
+            .count(),
+    );
+    let planned_inputs = lowered
+        .fore_ports
+        .iter()
+        .filter(|port| port.direction == conduit_core::PortDirection::Input)
+        .collect::<Vec<_>>();
+    let supplied_inputs = external_fore
+        .as_ref()
+        .map_or(&[][..], |binding| binding.inputs);
+    let planned_input_keys = planned_inputs
+        .iter()
+        .map(|port| (&port.front_port_id, port.track))
+        .collect::<std::collections::BTreeSet<_>>();
+    let supplied_input_keys = supplied_inputs
+        .iter()
+        .map(|input| (&input.front_port_id, input.track))
+        .collect::<std::collections::BTreeSet<_>>();
+    if supplied_inputs.len() != planned_input_keys.len()
+        || supplied_input_keys != planned_input_keys
+    {
+        return Err("external Fore input set does not match the sealed Plan".into());
+    }
+    for (front_port_id, track) in planned_input_keys {
+        let supplied = supplied_inputs
+            .iter()
+            .find(|input| input.front_port_id == *front_port_id && input.track == track)
+            .ok_or_else(|| {
+                format!(
+                    "external Fore input '{}' is missing",
+                    front_port_id.as_str()
+                )
+            })?;
+        let branches = planned_inputs
+            .iter()
+            .copied()
+            .filter(|planned| planned.front_port_id == *front_port_id && planned.track == track)
+            .collect::<Vec<_>>();
+        if branches
+            .iter()
+            .any(|planned| planned.validate_value(&supplied.bytes).is_err())
+        {
+            return Err(format!(
+                "external Fore input '{}' violates its sealed value contract",
+                front_port_id.as_str()
+            ));
+        }
+        let targets = branches
+            .iter()
+            .map(|planned| (planned.endpoint, planned.cord))
+            .collect::<Vec<_>>();
+        match scheduler
+            .admit_remote_input_fanout(&targets, 0, &supplied.bytes)
+            .map_err(|error| format!("admit external Fore input: {error:?}"))?
+        {
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 } => {}
+            outcome => {
+                return Err(format!(
+                    "external Fore input was not admitted exactly: {outcome:?}"
+                ))
+            }
+        }
+        for planned in branches {
+            scheduler
+                .close_remote_input(planned.endpoint, planned.cord)
+                .map_err(|error| format!("close external Fore input: {error:?}"))?;
+        }
+    }
+    if lowered
+        .fore_ports
+        .iter()
+        .any(|port| port.direction == conduit_core::PortDirection::Output)
+        && external_fore.is_none()
+    {
+        return Err("sealed external Fore output has no acknowledging adapter".into());
+    }
 
     let presentation_capacity = fragment
         .placements
@@ -444,6 +616,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut structured_selector_hosts = structured_selector_back::prepare_hosts(fragment)?;
+    let mut pure_expression_hosts = pure_expression_back::prepare_hosts(fragment)?;
     let mut image_text_hosts = image_text_back::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_back::prepare_hosts(fragment);
     let mut vision_request_sequence = 0_u64;
@@ -467,7 +640,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut address_detect_hosts = address_detect_back::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_back::prepare_hosts(fragment)?;
-    #[cfg(test)]
     let mut speech_synthesis_hosts = speech_synthesis_back::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_back::prepare_hosts(fragment);
     let mut body_chat_prompt_hosts = body_chat_prompt_back::prepare_hosts(fragment);
@@ -521,8 +693,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .then(template_storage_host::TemplateStorageHost::prepare)
         })
         .collect::<Vec<_>>();
-    let mut generate_text_output =
-        Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
+    let mut data_text_hosts = data_text_host::DataTextGenerationHosts::prepare(
+        fragment,
+        &lowered.identity,
+        &active_play,
+    )?;
+    let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
     let mut synth_output = Vec::with_capacity(synth_back::PCM_BLOCK_BYTES as usize);
@@ -577,6 +753,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut spoken_artifact_hosts =
+        spoken_mask_backs::prepare_artifact_hosts(fragment, &active_play, wav_artifact)?;
     let mut midi_input_sessions = fragment
         .placements
         .iter()
@@ -643,6 +821,40 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let play_start_probe = crate::allocation_probe::begin();
     let mut accepted_stop = None;
     let terminal_disposition = loop {
+        for planned in lowered
+            .fore_ports
+            .iter()
+            .filter(|port| port.direction == conduit_core::PortDirection::Output)
+        {
+            while let Some(offer) = scheduler
+                .remote_egress_offer(planned.endpoint, planned.cord)
+                .map_err(|error| format!("offer external Fore output: {error:?}"))?
+            {
+                let bytes = scheduler
+                    .host_value(offer.value)
+                    .map_err(|error| format!("read external Fore output: {error:?}"))?
+                    .to_vec();
+                let delivery = crate::ExternalForeDelivery {
+                    front_port_id: planned.front_port_id.clone(),
+                    track: planned.track,
+                    value_kind: planned.value_kind.clone(),
+                    sequence: offer.sequence,
+                    bytes,
+                };
+                external_fore
+                    .as_mut()
+                    .expect("output adapter checked above")
+                    .output
+                    .deliver(delivery.clone())?;
+                scheduler
+                    .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
+                    .map_err(|error| format!("accept external Fore output: {error:?}"))?;
+                scheduler
+                    .remote_egress_delivered(planned.endpoint, planned.cord, offer.sequence)
+                    .map_err(|error| format!("acknowledge external Fore output: {error:?}"))?;
+                external_fore_deliveries.push(delivery);
+            }
+        }
         if accepted_stop.is_none() {
             if let Some(request_id) = control.requested_stop() {
                 scheduler
@@ -724,12 +936,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if let Some(adapter) = &mut vector_search {
                     adapter.cancel();
                 }
-            } else if cancelled_operation.contract_id.as_str()
-                == conduit_std_offers::PIPER_SPEECH_OPERATION
-            {
-                if let Some(adapter) = &mut speech_synthesis {
-                    adapter.abort();
-                }
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
@@ -744,7 +950,71 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .find(|operation| operation.node == request.node && operation.call == request.call)
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
+                    | conduit_std_offers::STATE_VALUE_DURABLE_COMMIT_HOST_CALL
+            ) {
+                let host = durable_state_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "durable State request has no exact admitted residence".to_string()
+                    })?;
+                let result = if contract.as_str()
+                    == conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
+                {
+                    match input {
+                        [1] => host.recover_metadata(),
+                        metadata => host.recover_exact(metadata),
+                    }
+                } else {
+                    host.commit(input).map(|receipt| receipt.to_vec())
+                };
+                let outcome = match result {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(&encoded)
+                            .map_err(|error| format!("store durable State receipt: {error:?}"))?;
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound durable State receipt: {error:?}")
+                                })?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Err(refusal) => HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
+                        output: None,
+                        failure: Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: match refusal {
+                                crate::state_value::DurableStateRefusal::InvalidBinding => 1,
+                                crate::state_value::DurableStateRefusal::ValueTooLarge => 2,
+                                crate::state_value::DurableStateRefusal::GenerationGap => 3,
+                                crate::state_value::DurableStateRefusal::ConflictingDigest => 4,
+                                crate::state_value::DurableStateRefusal::Corrupt => 5,
+                                crate::state_value::DurableStateRefusal::Incompatible => 6,
+                                crate::state_value::DurableStateRefusal::Lost => 7,
+                                crate::state_value::DurableStateRefusal::StaleRecovery => 8,
+                                crate::state_value::DurableStateRefusal::InvalidReceipt => 9,
+                            },
+                        }),
+                    },
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete durable State operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
                 if input != b"capture" {
                     return Err("microphone clip capture request is not exact".into());
                 }
@@ -1180,6 +1450,74 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete bounded template storage: {error:?}"))?;
                 continue;
             }
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL
+                    | conduit_std_offers::DATA_LOAD_TEXT_HOST_CALL
+            ) {
+                let operation = if contract.as_str() == conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL
+                {
+                    data_text_back::DataTextOperation::Save
+                } else {
+                    data_text_back::DataTextOperation::Load
+                };
+                let completion = data_text_hosts.execute(request.node, operation, input);
+                let (disposition, output, failure) = match completion {
+                    data_text_host::DataTextCompletion::Output(encoded) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded data Text output: {error:?}")
+                        })?;
+                        (
+                            HostCallDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound data Text output: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    data_text_host::DataTextCompletion::SaveTerminal(terminal) => (
+                        HostCallDisposition::Denied,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallDenied,
+                            detail: u16::from(terminal.encode()[0]),
+                        }),
+                    ),
+                    data_text_host::DataTextCompletion::LoadTerminal(terminal) => (
+                        HostCallDisposition::Denied,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallDenied,
+                            detail: u16::from(terminal.encode()[0]),
+                        }),
+                    ),
+                    data_text_host::DataTextCompletion::Failed(detail) => (
+                        HostCallDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete data Text operation: {error:?}"))?;
+                continue;
+            }
             if contract.as_str() == conduit_std_offers::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL {
                 let now_micros = timer.monotonic_now_micros().ok_or_else(|| {
                     "admitted pressed-button monotonic-microsecond Base is unavailable".to_string()
@@ -1298,6 +1636,105 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| {
                         format!("complete bounded structured selector operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::PURE_EXPRESSION_HOST_CALL {
+                let completion = pure_expression_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "pure expression request has no admitted host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded pure expression output: {error:?}")
+                        })?;
+                        (
+                            HostCallDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound pure expression output: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostCallDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: pure_expression_back::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded pure expression operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::PURE_FILTER_HOST_CALL {
+                let completion = pure_expression_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "pure filter request has no admitted host".to_string())?
+                    .execute_filter(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(Some(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded pure filter output: {error:?}")
+                        })?;
+                        (
+                            HostCallDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound pure filter output: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(None) => (HostCallDisposition::Completed, None, None),
+                    Err(refusal) => (
+                        HostCallDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: pure_expression_back::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded pure filter operation: {error:?}")
                     })?;
                 continue;
             }
@@ -1732,6 +2169,149 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete WAV artifact host-call: {error:?}"))?;
                 continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::PRESENTATION_REQUEST_OPERATION
+                    | conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION
+                    | conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION
+                    | conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION
+                    | conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION
+                    | conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_OPERATION
+                    | conduit_std_offers::REGISTER_MANIFESTATION_OPERATION
+                    | conduit_std_offers::ARTIFACT_SHOW_OPERATION
+            ) {
+                let session = spoken_mask_session.as_mut().ok_or_else(|| {
+                    "spoken Mask semantic Host Call has no exact prepared session".to_string()
+                })?;
+                let result = match contract.as_str() {
+                    conduit_std_offers::PRESENTATION_REQUEST_OPERATION => {
+                        session.adapt_presentation(input).map(Some)
+                    }
+                    conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION => {
+                        session.register_validation_request(input).map(|()| None)
+                    }
+                    conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION => {
+                        session.finish_validation_envelope(input).map(Some)
+                    }
+                    conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION => {
+                        session.assess_generated_envelope(input).map(Some)
+                    }
+                    conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION => {
+                        session.register_generated_candidate(input).map(|()| None)
+                    }
+                    conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION => {
+                        session.retain_generated_assessment(input).map(Some)
+                    }
+                    conduit_std_offers::GENERATED_SPEECH_OPERATION => {
+                        session.validate_and_extract_speech(input).map(Some)
+                    }
+                    conduit_std_offers::REGISTER_MANIFESTATION_OPERATION => session
+                        .register_generated_manifestation(input)
+                        .map(|()| None),
+                    conduit_std_offers::ARTIFACT_SHOW_OPERATION => {
+                        session.acknowledge_artifact_and_build_show(input).map(Some)
+                    }
+                    _ => unreachable!(),
+                };
+                let (output_value, failure) = match result {
+                    Ok(Some(bytes)) => {
+                        let value = scheduler.store_host_value(&bytes).map_err(|error| {
+                            format!("store spoken Mask semantic output: {error:?}")
+                        })?;
+                        (
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound spoken Mask output: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(None) => (None, None),
+                    Err(_) => (
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::InvalidInput,
+                            detail: 4115,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition: if failure.is_some() {
+                                HostCallDisposition::Failed
+                            } else {
+                                HostCallDisposition::Completed
+                            },
+                            output: output_value,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete spoken Mask semantic call: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::SPOKEN_ARTIFACT_OPERATION {
+                let host = spoken_artifact_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "spoken artifact call has no exact host".to_string())?;
+                let sign = bind_sign(
+                    &advertisement.host_id,
+                    &advertisement.boot_id,
+                    Some(&active_play.active_play_id),
+                    *next_sign_sequence,
+                );
+                *next_sign_sequence = next_sign_sequence
+                    .checked_add(1)
+                    .ok_or_else(|| "spoken artifact sign sequence exhausted".to_string())?;
+                let result = spoken_mask_backs::execute_artifact(host, input, sign.sign_id.clone());
+                let (output_value, failure) = match result {
+                    Ok(Some(bytes)) => {
+                        execution_identity
+                            .bind_sign(&sign, None, None, None)
+                            .map_err(|error| format!("bind spoken artifact Sign: {error:?}"))?;
+                        let value = scheduler
+                            .store_host_value(&bytes)
+                            .map_err(|error| format!("store spoken artifact receipt: {error:?}"))?;
+                        (
+                            Some(BoundedValueRef::new(value, 4_096).map_err(|error| {
+                                format!("bound spoken artifact receipt: {error:?}")
+                            })?),
+                            None,
+                        )
+                    }
+                    Ok(None) => (None, None),
+                    Err(_) => (
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: 4115,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition: if failure.is_some() {
+                                HostCallDisposition::Failed
+                            } else {
+                                HostCallDisposition::Completed
+                            },
+                            output: output_value,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete spoken artifact call: {error:?}"))?;
+                continue;
             } else if contract.as_str() == pcm_profile_conversion_back::HOST_CALL {
                 let host = pcm_conversion_hosts
                     .get_mut(usize::from(request.node.0))
@@ -2040,8 +2620,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete generated-speech commit: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == conduit_std_offers::PIPER_SPEECH_OPERATION {
-                #[cfg(test)]
+            } else if contract.as_str() == conduit_std_offers::DETERMINISTIC_SPEECH_OPERATION {
                 if speech_synthesis_hosts
                     .get(usize::from(request.node.0))
                     .is_some_and(Option::is_some)
@@ -2081,53 +2660,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         })?;
                     continue;
                 }
-                let completion = speech_synthesis_back::execute_piper(
-                    speech_synthesis.as_deref_mut(),
-                    input,
-                    fragment
-                        .placements
-                        .get(usize::from(request.node.0))
-                        .is_some_and(|placement| {
-                            placement.implementation_id.as_str()
-                                == conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
-                        }),
-                    control.requested_stop().is_some(),
-                );
-                let (disposition, output, failure) = match completion {
-                    Ok(block) => {
-                        let output = block
-                            .map(|block| scheduler.store_host_value(block))
-                            .transpose()
-                            .map_err(|error| format!("store Piper speech block: {error:?}"))?
-                            .map(|value| {
-                                BoundedValueRef::new(
-                                    value,
-                                    lowered_operation.binding.maximum_output_bytes,
-                                )
-                            })
-                            .transpose()
-                            .map_err(|error| format!("bound Piper speech block: {error:?}"))?;
-                        (HostCallDisposition::Completed, output, None)
-                    }
-                    Err(error) => {
-                        let (disposition, failure) =
-                            speech_synthesis_back::piper_failure_outcome(error);
-                        (disposition, None, Some(failure))
-                    }
-                };
-                record_request(&mut requests, request);
-                scheduler
-                    .complete_host_call(
-                        request.node,
-                        request.request,
-                        HostCallOutcome {
-                            disposition,
-                            output,
-                            failure,
-                        },
-                    )
-                    .map_err(|error| format!("complete Piper speech operation: {error:?}"))?;
-                continue;
+                return Err("speech request has no admitted deterministic proof provider".into());
             } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
                     Ok(text) => {
@@ -2371,10 +2904,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete House prompt operation: {error:?}"))?;
                 continue;
-            } else if matches!(
-                contract.as_str(),
-                conduit_ai::GENERATE_TEXT_HOST_CALL | conduit_ai::LOCAL_MODEL_OPERATION
-            ) {
+            } else if contract.as_str() == conduit_ai::LOCAL_MODEL_OPERATION {
                 let placement = fragment
                     .placements
                     .get(usize::from(request.node.0))
@@ -2387,11 +2917,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         Some(adapter) => Some(&mut **adapter),
                         None => None,
                     },
-                    &mut generate_text_output,
+                    &mut local_model_output,
                 )?;
                 let output = if completion.has_output() {
                     let value = scheduler
-                        .store_host_value(&generate_text_output)
+                        .store_host_value(&local_model_output)
                         .map_err(|error| format!("store model output: {error:?}"))?;
                     Some(
                         BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
@@ -2913,6 +3443,21 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             }
         }
     };
+    for planned in lowered
+        .fore_ports
+        .iter()
+        .filter(|port| port.direction == conduit_core::PortDirection::Output)
+    {
+        if !scheduler
+            .remote_egress_terminal(planned.endpoint, planned.cord)
+            .map_err(|error| format!("observe external Fore terminal: {error:?}"))?
+        {
+            return Err(format!(
+                "external Fore output '{}' did not reach an observed normal terminal",
+                planned.front_port_id.as_str()
+            ));
+        }
+    }
     for state in synth_states.iter_mut().flatten() {
         state.stop();
     }
@@ -2928,44 +3473,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     }
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
-
-    let speech_synthesis_receipts = if let Some(adapter) = speech_synthesis {
-        let discovery = adapter.discovery();
-        let executable_sha256 = discovery.executable_sha256.clone();
-        let model_sha256 = discovery.model_sha256.clone();
-        let config_sha256 = discovery.config_sha256.clone();
-        match adapter.take_receipt() {
-            Some(receipt) => {
-                let placement = fragment
-                    .placements
-                    .iter()
-                    .find(|placement| {
-                        matches!(
-                            placement.implementation_id.as_str(),
-                            conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
-                                | conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
-                        )
-                    })
-                    .ok_or_else(|| "Piper receipt has no exact planned placement".to_string())?;
-                vec![crate::SpeechSynthesisExecutionReceipt {
-                    plan_id: fragment.plan_id.clone(),
-                    active_play_id: active_play.active_play_id.clone(),
-                    placement_id: placement.placement_id.clone(),
-                    implementation_id: placement.implementation_id.clone(),
-                    executable_sha256,
-                    model_sha256,
-                    config_sha256,
-                    text_sha256: receipt.text_sha256,
-                    pcm_sha256: receipt.pcm_sha256,
-                    frames: receipt.frames,
-                    blocks: receipt.blocks,
-                }]
-            }
-            None => Vec::new(),
-        }
-    } else {
-        Vec::new()
-    };
 
     let speech_recognition_receipts = if let Some(adapter) = speech_recognition {
         let discovery = adapter.discovery();
@@ -3145,14 +3652,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         observations,
         receipts: Vec::new(),
         control_receipts,
-        speech_synthesis: speech_synthesis_receipts,
         speech_recognition: speech_recognition_receipts,
         microphone: microphone
             .and_then(crate::hosted_microphone::AlsaMicrophoneAdapter::take_receipt)
             .into_iter()
             .collect(),
+        external_fore_deliveries,
         kernel: Some(StdKernelExecutionReport {
-            active_play_id: active_play.active_play_id,
+            active_play_id: active_play.active_play_id.clone(),
+            active_play,
             decisions: scheduler.decisions(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
@@ -3164,9 +3672,24 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             midi_input,
             midi_output,
             identity: execution_identity,
+            fore_endpoints: lowered.identity.fore_endpoints.clone(),
             #[cfg(test)]
             post_play_start_allocations,
         }),
     };
-    retained_run::finish(report, scheduler, fragment.states.len())
+    let graceful_state_count = fragment
+        .states
+        .iter()
+        .filter(|state| {
+            fragment
+                .placements
+                .iter()
+                .find(|placement| placement.gear_id == state.gear_id)
+                .is_some_and(|placement| {
+                    placement.implementation_id.as_str()
+                        == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+                })
+        })
+        .count();
+    retained_run::finish(report, scheduler, graceful_state_count)
 }

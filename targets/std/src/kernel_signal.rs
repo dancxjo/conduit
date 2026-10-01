@@ -17,8 +17,8 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_signal::{
-    decode_signal_bytes, encode_signal, parse_pulse_configuration, Signal, PULSE_KIND, SHOW_KIND,
-    SIGNAL_ENCODED_LEN,
+    decode_signal_bytes, encode_signal, parse_pulse_configuration, signal_level_for_sequence,
+    Signal, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN,
 };
 use std::io::Write;
 use std::time::Duration;
@@ -40,8 +40,8 @@ impl SignalManifestation for TextSignalManifestation {
         writeln!(
             operator_output,
             "signal {} {}",
-            signal.sequence,
-            if signal.level { "on" } else { "off" }
+            signal.sequence(),
+            if *signal.level() { "on" } else { "off" }
         )
         .map_err(|error| error.to_string())
     }
@@ -369,13 +369,13 @@ fn run_signal_profile<
     let pulse_placement = &fragment.placements[usize::from(pulse_node.node.0)];
     let configuration = parse_pulse_configuration(&pulse_placement.configuration)
         .map_err(|error| error.to_string())?;
-    let count = usize::try_from(configuration.count)
+    let count = usize::try_from(*configuration.count())
         .map_err(|_| "signal count does not fit this hosted profile".to_string())?;
     let wait_count = count.saturating_sub(1);
     let item_capacity = u16::try_from(count.saturating_add(wait_count).max(1))
         .map_err(|_| "signal value item budget overflow".to_string())?;
     let byte_capacity = configuration
-        .count
+        .count()
         .checked_mul(u64::from(SIGNAL_ENCODED_LEN))
         .and_then(|bytes| bytes.checked_add(u64::try_from(wait_count).ok()?.checked_mul(8)?))
         .and_then(|bytes| u32::try_from(bytes.max(1)).ok())
@@ -383,15 +383,10 @@ fn run_signal_profile<
     let mut values = HostedValueStore::new(item_capacity, SIGNAL_ENCODED_LEN, byte_capacity)
         .map_err(|error| format!("signal value store: {error:?}"))?;
     let mut signal_values = Vec::with_capacity(count);
-    for sequence in 0..configuration.count {
-        let payload = encode_signal(&Signal {
-            sequence,
-            level: if sequence.is_multiple_of(2) {
-                configuration.initial_level
-            } else {
-                !configuration.initial_level
-            },
-        });
+    for sequence in 0..*configuration.count() {
+        let level = signal_level_for_sequence(sequence, *configuration.initial_level());
+        let payload =
+            encode_signal(&Signal::new(level, sequence).expect("planned Signal fields are valid"));
         signal_values.push(
             values
                 .store(&payload.encoded)
@@ -402,7 +397,7 @@ fn run_signal_profile<
     for _ in 0..wait_count {
         wait_values.push(
             values
-                .store(&configuration.period_ms.to_le_bytes())
+                .store(&configuration.period_ms().to_le_bytes())
                 .map_err(|error| format!("preload wait value: {error:?}"))?,
         );
     }
@@ -456,7 +451,7 @@ fn run_signal_profile<
         .ok_or_else(|| "kernel sign item budget overflow".to_string())?;
     let sign_items = u16::try_from(
         configuration
-            .count
+            .count()
             .checked_mul(sign_events_per_signal)
             .and_then(|value| value.checked_add(64))
             .ok_or_else(|| "kernel sign item budget overflow".to_string())?,
@@ -538,14 +533,11 @@ fn run_signal_profile<
     for index in 0..count {
         let sequence =
             u64::try_from(index).map_err(|_| "signal projection sequence overflow".to_string())?;
-        let signal = Signal {
+        let signal = Signal::new(
+            signal_level_for_sequence(sequence, *configuration.initial_level()),
             sequence,
-            level: if sequence.is_multiple_of(2) {
-                configuration.initial_level
-            } else {
-                !configuration.initial_level
-            },
-        };
+        )
+        .expect("planned Signal fields are valid");
         for show_node in &show_nodes {
             let show_placement = &fragment.placements[usize::from(show_node.node.0)];
             let presentation = bind_presentation(
@@ -615,8 +607,8 @@ fn run_signal_profile<
                     output,
                     "receipt signal placement={} sequence={} level={}",
                     expected.presentation.placement_id.as_str(),
-                    signal.sequence,
-                    signal.level
+                    signal.sequence(),
+                    signal.level()
                 )
                 .map_err(|error| error.to_string())?;
                 manifested_requests.push(request);
@@ -693,8 +685,8 @@ fn run_signal_profile<
             .map_err(|error| format!("bind presentation sign identity: {error:?}"))?;
         receipts.push(SignalReceipt {
             placement_id: prepared.presentation.placement_id.clone(),
-            sequence: prepared.signal.sequence,
-            level: prepared.signal.level,
+            sequence: *prepared.signal.sequence(),
+            level: *prepared.signal.level(),
         });
         observations.push(Observation {
             sign_id: prepared.sign.sign_id,
@@ -738,11 +730,12 @@ fn run_signal_profile<
         observations,
         receipts,
         control_receipts: Vec::new(),
-        speech_synthesis: Vec::new(),
         speech_recognition: Vec::new(),
         microphone: Vec::new(),
+        external_fore_deliveries: Vec::new(),
         kernel: Some(StdKernelExecutionReport {
-            active_play_id: active_play.active_play_id,
+            active_play_id: active_play.active_play_id.clone(),
+            active_play,
             decisions: scheduler.decisions(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
@@ -754,6 +747,7 @@ fn run_signal_profile<
             midi_input: Vec::new(),
             midi_output: Vec::new(),
             identity: execution_identity,
+            fore_endpoints: Vec::new(),
             #[cfg(test)]
             post_play_start_allocations,
         }),

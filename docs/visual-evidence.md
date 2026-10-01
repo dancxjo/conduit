@@ -28,7 +28,7 @@ Refresh the source artifacts by running the ordinary repository-development
 entrance:
 
 ```sh
-cargo xtask conduitos journey-proof
+cargo xtask make conduitos journey-proof
 ```
 
 That proof replaces `target/conduitos/x86_64/journey-frames/manifest.json` and
@@ -75,79 +75,8 @@ the resulting directory but does not define its meaning.
 The manifest contract originated in #821; the first Patchbay captures were
 added through #822.
 
-Audio exhibits use the same envelope without pretending that sound is a
-screenshot. `cargo xtask host journey-hears-speaks` declares `audio` outputs
-for its input PCM, listenable input WAV, and synthesized output WAV, alongside
-machine-readable recognition, response, and same-play receipts. Complete
-verification requires that exact six-output set, audio media types, RIFF/WAVE
-framing for both listenable files, and shared plan/play provenance. Publication
-and CI transport remain separate acceptance gates; a local complete manifest
-does not itself make an exhibit current or accepted.
-
-Provider-backed audio is deliberately a host-local rung on `forebrain` and
-`victus`, not a reason to copy multi-gigabyte model stores into ordinary CI.
-Create a private JSON profile on each machine and run:
-
-```sh
-cargo xtask host journey-hears-speaks-local --locked \
-  --profile /absolute/path/hears-speaks-provider.json \
-  --output target/journeys/hears-speaks
-```
-
-The profile schema is `conduit.journey/hears-speaks-local-provider@1`. It names
-the exact host, already-installed Whisper executable and model, input PCM,
-already-local Ollama model, admitted memory, and already-installed Piper
-executable, voice, config, and optional library directory. Each executable,
-model, voice, and config entry has a corresponding SHA-256 field; the Ollama
-entry uses `ollama_model_content_identity`. The entrance accepts only
-`forebrain` or `victus`, verifies every declared digest before starting, and
-uses provider discovery that refuses an absent Ollama model. It contains no
-download or fallback path. This follows Tongues' separation between small
-checked-in contracts and locally installed, checksum-identified model assets;
-the license of a provider executable never implies the license of its weights.
-
-The retained `receipt.json` records the discovered Whisper executable/model,
-Ollama runtime/model, and Piper executable/voice/config identities. Thus the
-same six-output evidence format proves which locally installed provider bundle
-actually ran without publishing that bundle. Use a separately reviewed local
-profile on each host; copying a profile between machines is intentionally
-refused by its exact `host` field.
-
-After a release head has passed promotion, an operator may admit the small
-evidence directory without uploading any provider assets:
-
-```sh
-tar -C target/journeys/hears-speaks -czf hears-speaks.tar.gz \
-  input.pcm input.wav recognition.json response.json output.wav receipt.json manifest.json
-sha256sum hears-speaks.tar.gz
-gh release create "journey-evidence/$ACCEPTED_SOURCE_SHA" \
-  hears-speaks.tar.gz --target "$ACCEPTED_SOURCE_SHA" \
-  --title "Hears and Speaks evidence for $ACCEPTED_SOURCE_SHA"
-gh workflow run admit-hears-speaks.yml \
-  -f accepted_source_sha="$ACCEPTED_SOURCE_SHA" \
-  -f promotion_run_id="$PROMOTION_RUN_ID" \
-  -f evidence_sha256="$ARCHIVE_SHA256"
-```
-
-The trusted default-branch workflow accepts only a successful promotion head
-whose tree equals current `main`, downloads that run's already-sealed complete
-Pages carrier, verifies the archive digest and exact evidence manifest, then
-reseals and deploys the full site with the audio gallery added. A later commit
-cannot reuse the archive because the manifest, release tag, promotion run, and
-accepted tree must all agree. The archive contains only the bounded outputs;
-Whisper, Ollama, Piper, and their model stores remain local to the machine that
-ran them.
-
-The bounded gallery publisher accepts a verified audio exhibit only through
-`cargo xtask evidence gallery --hears-speaks-evidence-root <directory>` and
-only when its manifest is bound to the same accepted commit as the other
-gallery inputs. It copies the exact declared files into both commit-addressed
-and `current/hears-speaks/` pages with native browser audio controls. Omitting
-that input clears a stale current audio exhibit instead of silently carrying
-it across releases.
-
 The One form, Two fronts sibling uses a separate four-output manifest. Its
-supported entrance is `cargo xtask evidence one-form-two-fronts`, which feeds
+supported entrance is `cargo xtask prove one-form-two-fronts`, which feeds
 one deterministic front-door presentation into the native software renderer
 and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
 `native.json`, `browser.png`, and `browser.json`; complete verification requires
@@ -162,7 +91,7 @@ physical-display output, nor human perception is established. Omitting the
 input clears stale `current/one-form-two-fronts/` content.
 
 Little Life uses a separate six-output manifest rather than consuming a
-ConduitOS capture slot. `cargo xtask evidence little-life` retains PNGs at
+ConduitOS capture slot. `cargo xtask prove little-life` retains PNGs at
 generations 0, 1, 8, and 32, the complete 32-generation scalar-field terminal
 transcript, and the ordinary plan/play execution report. Generation zero is
 the deterministic Orbium seed lowered through the semantic gray8 bitmap
@@ -219,7 +148,7 @@ new success or erasing the known state.
 
 [![Current accepted Patchbay state retaining its exact plan after renderer delivery loss](https://dancxjo.github.io/conduit/current/patchbay/disconnected.png)](https://dancxjo.github.io/conduit/current/patchbay/disconnected/)
 
-`cargo xtask evidence docs-verify` rejects missing, duplicated, immutable-commit,
+`cargo xtask prove docs-verify` rejects missing, duplicated, immutable-commit,
 or ephemeral-artifact references. At publication, the same command additionally
 requires each stable image to match the exact current commit bytes and requires
 its page to expose that commit's provenance before Pages can deploy.
@@ -227,28 +156,35 @@ its page to expose that commit's provenance before Pages can deploy.
 ## Human review, not pixel authority
 
 The Three Bodies documentary foregrounds native and browser screenshots, an
-uncut browser session, and retained real-model speech with MP3 playback,
-measured waveforms and transcripts. By Step compares one semantic moment;
-body controls follow a single track. Machine receipts remain under Evidence.
-Pre-birth conversational moments are silent because no Body exists yet.
+uncut browser session, and retained real-model words with transcripts. By Step
+compares one semantic moment; body controls follow a single track. Machine
+receipts remain under Evidence. Pre-birth conversational moments are silent
+because no Body exists yet.
 
-`cargo xtask host prove-local-model --orifina-presenter --journey-documentary`
+`cargo xtask make host prove-local-model --orifina-presenter --journey-documentary`
 retains every tutorial-state request and its actual outward model words (supply
 the explicit local model and admitted-memory options shown by `--help`). This
 is an explicit documentary run, not a required live-inference release gate.
-`cargo xtask evidence journey-audio` voices those exact retained words with an
-explicit Piper executable/model/configuration and produces MP3s and waveforms;
-its receipt labels this offline voicing, not runtime TTS or physical playback.
+The retained words are not voiced by an unrelated documentary binary. Spoken
+evidence must cross the same admitted Tongues contract as any other speech.
 
-Publication uses `cargo xtask evidence three-body-journey` with
+Publication uses `cargo xtask prove three-body-journey` with
 `--recorded-generative <recorded-track.json>`. It verifies each current producer
 track, requires graphical media, verifies retained media digests, and refuses
 live-recording reuse when any exact structured Presenter request changes.
 The recorded source commit remains distinct from the current release commit.
 Model repetitions and weak phrasing are preserved rather than rewritten into
 an invented dialogue. See the retained recording's README for its exact limits.
+Release promotion does not run this publisher. `journey-publication.yml` runs
+only after the accepted software carrier has deployed. The successful Pages run
+retains one normalized exact base carrier for the downstream workflow regardless
+of whether those bytes were inherited or freshly made. The publisher
+consumes immutable native/browser claim evidence from promotion, creates the
+gallery-only One Form, Two Fronts and Little Life evidence against the accepted
+source, and refuses to replace Pages if `main` has advanced. Its failure leaves
+both the release and the base software publication intact.
 
-`cargo xtask evidence check-three-body-journey --publication-root <directory>
+`cargo xtask prove check-three-body-journey --publication-root <directory>
 --output <new-review-directory>` checks the assembled documentary in the pinned
 Chromium with one worker and zero retries. It verifies media loading/playback,
 collapsed provenance, body navigation and mobile overflow, and retains desktop
@@ -269,7 +205,7 @@ previous raster as runtime truth.
 
 ## ConduitOS console evidence
 
-`cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
+`cargo xtask make conduitos prove --arch x86-64 --evidence-root <directory>` can
 emit one bounded UTF-8 console transcript after the existing x86_64 proof has
 validated its boot sign, kernel sign, Observatory snapshot, exact semantic
 presentation, and terminal QEMU debug exit. The ordinary proof remains the

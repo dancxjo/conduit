@@ -218,6 +218,7 @@ fn apply_fusions(
             hosts,
             candidate,
             offer,
+            inputs.semantic_kinds,
             inputs.boundaries,
             &mut fused_gears,
         )?;
@@ -295,6 +296,7 @@ fn validate_fusion_offer(
     hosts: &[HostAdvertisement],
     candidate: &FusionCandidate,
     offer: &FusionRealizationOffer,
+    semantic_kinds: &[conduit_core::Kind],
     boundaries: &[FusionBoundary],
     fused_gears: &mut BTreeSet<GearId>,
 ) -> Result<(), String> {
@@ -332,10 +334,43 @@ fn validate_fusion_offer(
         {
             return Err("fusion Gears are not all local on the offered Host".to_string());
         }
-        host.capabilities
+        let capability = host
+            .capabilities
             .iter()
             .find(|capability| capability.capability_id == placement.capability_id)
             .ok_or_else(|| "fusion member capability is not installed".to_string())?;
+        let gear = form
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id == *gear_id)
+            .ok_or_else(|| "fusion Gear is absent from checked meaning".to_string())?;
+        if capability.kind_id != gear.kind_id
+            || capability.kind_contract_revision != gear.kind_contract_revision
+            || capability.checked_front() != gear.checked_front()
+        {
+            return Err("fusion member capability changes checked semantic meaning".to_string());
+        }
+        let semantic_kind = semantic_kinds
+            .iter()
+            .find(|kind| {
+                kind.kind_id == gear.kind_id
+                    && kind.kind_contract_revision == gear.kind_contract_revision
+            })
+            .ok_or_else(|| "fusion Gear lacks exact semantic transformation facts".to_string())?;
+        let back = conduit_core::Back {
+            capability_id: capability.capability_id.clone(),
+            execution_profile_id: offer.execution_profile_id.clone(),
+            implementation_id: offer.implementation_id.clone(),
+            artifact_id: offer.artifact_id.clone(),
+            host_calls: offer.host_calls.clone(),
+            resource_requirements: offer.resource_requirements.clone(),
+            authority_requirements: offer.authority_requirements.clone(),
+        };
+        let eligibility = conduit_core::derive_transformation_eligibility(semantic_kind, &back)
+            .map_err(|refusal| format!("fusion eligibility derivation refused: {refusal:?}"))?;
+        eligibility
+            .require(conduit_core::WorkTransformation::Fusion)
+            .map_err(|refusal| format!("fusion is not semantically eligible: {refusal:?}"))?;
     }
     let gear_set = offer.gear_ids.iter().collect::<BTreeSet<_>>();
     let expected_cords = form

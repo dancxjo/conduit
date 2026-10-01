@@ -10,15 +10,16 @@ These facts must remain distinct:
 
 | Fact | Meaning | Sufficient for a deadline? |
 | --- | --- | --- |
-| finite semantic domain | the values a computation may represent are bounded | no |
+| semantic value domain | the values a Type permits; it may be open-ended | no |
 | finite resource bound | storage, queue, or other admitted consumption is bounded | no |
 | maximum operation count | the selected realization has a finite work bound | no, by itself |
 | WCET basis | the selected realization has an exact worst-case time on this target | required |
 | deadline region | a composition whose transitive timing/resource basis was admitted | result |
 
 A bounded parser over 16 MiB can be ordinary valid form work while remaining
-ineligible for a 50 µs motor step if it has no compatible WCET basis. No
-semantic-unboundedness concept is needed to describe that result.
+ineligible for a 50 µs motor step if it has no compatible WCET basis. An open
+semantic range likewise says nothing about storage or timing cost; the selected
+finite representation and admitted work supply those facts.
 
 ## Admission and composition
 

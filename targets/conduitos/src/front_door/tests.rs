@@ -63,6 +63,7 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         input_count: 0,
         kernel_sign_gap: None,
         last_request_id: None,
+        mask: None,
     }
 }
 

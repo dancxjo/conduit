@@ -9,7 +9,7 @@ use super::{
 use crate::{WireError, MAX_ID_BYTES};
 
 const CHECKPOINT_MAGIC: [u8; 4] = *b"CNDC";
-const CHECKPOINT_WIRE_VERSION: u8 = 1;
+const CHECKPOINT_WIRE_VERSION: u8 = 3;
 
 pub fn encode_session_checkpoint_into(
     offer: SessionCheckpointOffer<'_>,
@@ -43,6 +43,10 @@ pub fn encode_session_checkpoint_into(
         }
     }
     writer.u8(u8::from(offer.checkpoint.input_closed))?;
+    writer.u8(u8::from(offer.checkpoint.input_abnormal))?;
+    if let Some(digest) = offer.checkpoint.abnormal_terminal_digest {
+        writer.bytes(&digest)?;
+    }
     Ok(writer.len())
 }
 
@@ -77,6 +81,10 @@ pub fn decode_session_checkpoint(
         sink_host_id: cursor.text()?,
         sink_boot_id: cursor.text()?,
         value_kind: cursor.text()?,
+        abnormal_kind: match cursor.text()? {
+            "" => None,
+            kind => Some(kind),
+        },
         limits: SessionLimits {
             maximum_in_flight_items: cursor.u16()?,
             maximum_payload_bytes: cursor.u32()?,
@@ -95,6 +103,18 @@ pub fn decode_session_checkpoint(
         1 => true,
         _ => return Err(WireError::InvalidState),
     };
+    let input_abnormal = match cursor.u8()? {
+        0 => false,
+        1 if input_closed => true,
+        _ => return Err(WireError::InvalidState),
+    };
+    let abnormal_terminal_digest = if input_abnormal {
+        let mut digest = [0; 32];
+        digest.copy_from_slice(cursor.take(32)?);
+        Some(digest)
+    } else {
+        None
+    };
     if !cursor.is_empty() {
         return Err(WireError::TrailingGarbage);
     }
@@ -104,11 +124,13 @@ pub fn decode_session_checkpoint(
             next_sequence,
             transfer,
             input_closed,
+            input_abnormal,
+            abnormal_terminal_digest,
         },
     })
 }
 
-fn identity_fields(identity: SessionIdentity<'_>) -> [&str; 11] {
+fn identity_fields(identity: SessionIdentity<'_>) -> [&str; 12] {
     [
         identity.plan_id,
         identity.source_fragment_id,
@@ -121,6 +143,7 @@ fn identity_fields(identity: SessionIdentity<'_>) -> [&str; 11] {
         identity.sink_host_id,
         identity.sink_boot_id,
         identity.value_kind,
+        identity.abnormal_kind.unwrap_or(""),
     ]
 }
 
@@ -253,6 +276,7 @@ mod tests {
                 sink_host_id: "sink-host",
                 sink_boot_id: "sink-boot",
                 value_kind: "value/signal@1",
+                abnormal_kind: None,
                 limits: SessionLimits {
                     maximum_in_flight_items: 1,
                     maximum_payload_bytes: 9,
@@ -263,6 +287,8 @@ mod tests {
                 next_sequence: 7,
                 transfer: SessionTransferCheckpoint::Accepted(7),
                 input_closed: false,
+                input_abnormal: false,
+                abnormal_terminal_digest: None,
             },
         }
     }
@@ -274,6 +300,22 @@ mod tests {
         assert_eq!(
             decode_session_checkpoint(&bytes[..length], 512).unwrap(),
             offer()
+        );
+    }
+
+    #[test]
+    fn typed_abnormal_terminal_identity_round_trips() {
+        let mut offer = offer();
+        offer.identity.abnormal_kind = Some("value/bool");
+        offer.checkpoint.input_closed = true;
+        offer.checkpoint.input_abnormal = true;
+        offer.checkpoint.abnormal_terminal_digest =
+            Some(conduit_core::semantic_digest("value/bool", &[1]));
+        let mut bytes = [0_u8; 512];
+        let length = encode_session_checkpoint_into(offer, &mut bytes, 512).unwrap();
+        assert_eq!(
+            decode_session_checkpoint(&bytes[..length], 512).unwrap(),
+            offer
         );
     }
 

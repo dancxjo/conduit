@@ -30,6 +30,18 @@ pub const TIME_THROTTLE_EXECUTION_PROFILE: &str =
     "conduit.std/time-throttle-bool-leading-kernel-hosted@1";
 pub const TIME_THROTTLE_IMPLEMENTATION: &str = "std/kernel-time-throttle-bool-leading@1";
 pub const TIME_THROTTLE_ARTIFACT: &str = "conduit-std-host/time-throttle-bool-leading@1";
+pub const TIME_DEADLINE_EXECUTION_PROFILE: &str =
+    "conduit.std/time-deadline-cancellation-kernel-hosted@1";
+pub const TIME_DEADLINE_IMPLEMENTATION: &str = "std/kernel-time-deadline-cancellation@1";
+pub const TIME_DEADLINE_ARTIFACT: &str = "conduit-std-host/time-deadline-cancellation@1";
+pub const TIME_SAMPLE_EXECUTION_PROFILE: &str = "conduit.std/time-sample-kernel-hosted@1";
+pub const TIME_SAMPLE_IMPLEMENTATION: &str = "std/kernel-time-sample@1";
+pub const TIME_SAMPLE_ARTIFACT: &str = "conduit-std-host/time-sample@1";
+pub const TIME_SAMPLE_MAXIMUM_VALUE_BYTES: u32 = 100;
+pub const TIME_WINDOW_EXECUTION_PROFILE: &str = "conduit.std/time-window-kernel-hosted@1";
+pub const TIME_WINDOW_IMPLEMENTATION: &str = "std/kernel-time-window@1";
+pub const TIME_WINDOW_ARTIFACT: &str = "conduit-std-host/time-window@1";
+pub const TIME_WINDOW_MAXIMUM_VALUE_BYTES: u32 = 4_096;
 
 pub fn tick_capability_offer() -> CapabilityOffer {
     offer(
@@ -111,6 +123,53 @@ pub fn time_throttle_offer() -> CapabilityOffer {
     )
 }
 
+pub fn time_deadline_offer() -> CapabilityOffer {
+    timing_offer(
+        conduit_semantic_catalog::time_deadline_semantic_contract(),
+        "time-deadline-cancellation-v1",
+        TIME_DEADLINE_EXECUTION_PROFILE,
+        TIME_DEADLINE_IMPLEMENTATION,
+        TIME_DEADLINE_ARTIFACT,
+    )
+}
+
+pub fn time_sample_offer(
+    value: &conduit_core::CheckedValueContract,
+) -> Result<CapabilityOffer, &'static str> {
+    if value.maximum_bytes > TIME_SAMPLE_MAXIMUM_VALUE_BYTES {
+        return Err("std time/sample specialization exceeds the derived-value byte bound");
+    }
+    Ok(offer(
+        conduit_semantic_catalog::time_sample_semantic_contract(value)?,
+        Identity {
+            capability: "time-sample-v1",
+            profile: TIME_SAMPLE_EXECUTION_PROFILE,
+            implementation: TIME_SAMPLE_IMPLEMENTATION,
+            artifact: TIME_SAMPLE_ARTIFACT,
+        },
+        Vec::new(),
+        Vec::new(),
+    ))
+}
+
+pub fn time_window_offer(
+    value: &conduit_core::CheckedValueContract,
+    maximum_items: u16,
+) -> Result<CapabilityOffer, &'static str> {
+    if value.maximum_bytes > TIME_WINDOW_MAXIMUM_VALUE_BYTES {
+        return Err("std time/window specialization exceeds the retained-value byte bound");
+    }
+    Ok(monotonic_offer(
+        conduit_semantic_catalog::time_window_semantic_contract(value, maximum_items)?,
+        Identity {
+            capability: "time-window-v1",
+            profile: TIME_WINDOW_EXECUTION_PROFILE,
+            implementation: TIME_WINDOW_IMPLEMENTATION,
+            artifact: TIME_WINDOW_ARTIFACT,
+        },
+    ))
+}
+
 fn timing_offer(
     contract: Kind,
     capability: &str,
@@ -172,23 +231,79 @@ mod tests {
     use super::*;
 
     #[test]
+    fn sample_offer_preserves_one_exact_specialization_without_clock_effects() {
+        let text = conduit_core::CheckedValueContract::new(
+            conduit_core::kind_id("value/text"),
+            73,
+            Vec::new(),
+        )
+        .unwrap();
+        let offer = time_sample_offer(&text).unwrap();
+        assert!(offer.host_calls.is_empty());
+        assert!(offer.resource_requirements.is_empty());
+        assert_eq!(offer.semantic_contract.value_contracts().len(), 2);
+        assert!(offer
+            .semantic_contract
+            .value_contracts()
+            .iter()
+            .all(|entry| entry.contract == text));
+        let oversized = conduit_core::CheckedValueContract::new(
+            conduit_core::kind_id("value/text"),
+            TIME_SAMPLE_MAXIMUM_VALUE_BYTES + 1,
+            Vec::new(),
+        )
+        .unwrap();
+        assert!(time_sample_offer(&oversized).is_err());
+    }
+
+    #[test]
+    fn window_offer_preserves_specialization_and_requires_monotonic_time() {
+        let text = conduit_core::CheckedValueContract::new(
+            conduit_core::kind_id("value/text"),
+            73,
+            Vec::new(),
+        )
+        .unwrap();
+        let offer = time_window_offer(&text, 8).unwrap();
+        assert_eq!(offer.host_calls.len(), 1);
+        assert_eq!(offer.resource_requirements.len(), 1);
+        assert!(matches!(
+            offer
+                .semantic_contract
+                .laws
+                .iter()
+                .find_map(|law| match law {
+                    conduit_core::KindSemanticLaw::Terminal(behavior) => Some(behavior),
+                    _ => None,
+                }),
+            Some(
+                conduit_core::KindTerminalBehavior::TumblingProcessingTimeWindow {
+                    maximum_items: 8
+                }
+            )
+        ));
+        assert_eq!(offer.semantic_contract.value_contracts().len(), 4);
+    }
+
+    #[test]
     fn timing_offers_preserve_exact_contracts_and_effect_requirements() {
         for offer in [
             time_debounce_offer(),
             time_timeout_offer(),
             time_delay_offer(),
             time_throttle_offer(),
+            time_deadline_offer(),
         ] {
             assert_eq!(offer.host_calls.len(), 1);
             assert_eq!(offer.resource_requirements.len(), 1);
             assert_eq!(
                 offer.startup_parameters[0].value_type.as_str(),
-                conduit_core::QUANTITY_INFO_ID
+                conduit_core::DURATION_INFO_ID
             );
         }
         assert_eq!(
             time_every_offer().startup_parameters[0].value_type.as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert!(!time_every_offer().startup_parameters[0].has_default);
         assert_eq!(tick_capability_offer().host_calls.len(), 1);

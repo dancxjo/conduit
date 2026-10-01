@@ -311,6 +311,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-data",
+ "conduit-form",
  "libm",
  "serde",
 ]
@@ -398,6 +399,7 @@ name = "conduit-human"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "serde",
  "sha2",
 ]
@@ -531,6 +533,7 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-presentation",
 ]
 
@@ -548,6 +551,7 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-data",
  "conduit-form",
  "conduit-human",
  "conduit-midi",
@@ -568,7 +572,6 @@ dependencies = [
  "conduit-form",
  "conduit-semantic-catalog",
  "conduit-time",
- "serde",
 ]
 
 [[package]]
@@ -598,6 +601,7 @@ dependencies = [
  "conduit-audio",
  "conduit-chat",
  "conduit-core",
+ "conduit-data",
  "conduit-form",
  "conduit-human",
  "conduit-midi",

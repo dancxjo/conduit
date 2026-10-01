@@ -166,7 +166,8 @@ fn offer(
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(capability),
@@ -226,6 +227,7 @@ fn source_port() -> PortDescriptor {
         value_kind: kind_id(KEY_EVENT_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 
@@ -235,6 +237,7 @@ fn sink_port() -> PortDescriptor {
         value_kind: kind_id(CHORD_INFO_ID),
         direction: PortDirection::Input,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }
 }
 

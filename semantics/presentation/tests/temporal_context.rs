@@ -35,8 +35,7 @@ fn presentation(
         vec![PresentationSubject {
             identity: "subject/event".into(),
             role: PresentationRole::Diagnostic,
-            label: "Event".into(),
-            accessibility_name: "Observed event".into(),
+            name: "Observed event".into(),
         }],
         vec![],
         vec![],

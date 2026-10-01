@@ -1,32 +1,147 @@
 use super::*;
 
-fn contract() -> JourneyContract {
-    JourneyContract {
-        schema: CONTRACT_SCHEMA.into(),
-        journey_id: "orifina/tutorial@1".into(),
-        git_commit: "a".repeat(40),
-        steps: REQUIRED_MILESTONES
-            .iter()
-            .enumerate()
-            .map(|(index, milestone)| ContractStep {
-                step_id: format!("journey.step-{index}"),
-                milestone: Some(*milestone),
-                title: format!("Journey milestone {index}"),
-                what_happened: "The body advanced through the shared tutorial.".into(),
-                what_conduit_established: "The exact semantic milestone was retained.".into(),
-                concepts: vec!["Body".into(), "biography".into()],
-                required_assertion: milestone.required_assertion().into(),
-                required_assertion_rung: EvidenceRung::BodyBiography,
-                allowed_dispositions: vec!["established".into()],
-                required_evidence_classes: vec!["semantic-receipt".into()],
-                required_provenance: vec![ProvenanceField::Body, ProvenanceField::Manifestation],
-                non_claims: vec!["not-physical-proof".into()],
-            })
-            .collect(),
+fn receipt(track: usize, step_id: &str, assertion: &str) -> TrackStep {
+    TrackStep {
+        step_id: step_id.into(),
+        assertion: assertion.into(),
+        disposition: "established".into(),
+        provenance: StepProvenance {
+            body_id: Some(format!("body-{track}")),
+            host_id: None,
+            boot_id: None,
+            plan_id: Some(format!("plan-{track}")),
+            play_id: Some(format!("play-{track}")),
+            face_id: Some(format!("face-{track}-{step_id}")),
+            show_id: Some(format!("show-{track}-{step_id}")),
+            line_id: (track == 2).then(|| "line-2".into()),
+            sign_id: Some(format!("sign-{track}-{step_id}")),
+        },
+        evidence: vec![StepEvidence {
+            artifact_id: format!("artifact-{track}-{step_id}"),
+            evidence_class: "semantic-receipt".into(),
+            assertion_rung: EvidenceRung::RuntimeReceipt,
+            documentary_description: format!("Producer receipt for {step_id}."),
+            path: PathBuf::from(format!("artifact-{track}-{step_id}.json")),
+            sha256: format!("sha256:{:064x}", track + step_id.len()),
+        }],
     }
 }
 
-fn track(index: usize, hosts: usize) -> BodyTrack {
+fn mask_actions(track: usize) -> Vec<MaskActionObservation> {
+    let face_id = format!("mask-face-{track}");
+    let first_plan = format!("mask-plan-{track}-initial");
+    let replacement_plan = format!("mask-plan-{track}-replacement");
+    let primary_mask = format!("mask-{track}-primary");
+    let alternate_mask = format!("mask-{track}-alternate");
+    conduit_presentation::MASK_JOURNEY_ACTIONS
+        .iter()
+        .enumerate()
+        .map(|(position, action)| {
+            let replacement = position >= 6;
+            let unavailable = (3..=6).contains(&position);
+            let restored = position >= 8;
+            MaskActionObservation {
+                action_id: action.id().into(),
+                concrete_event: format!(
+                    "Embodiment {track} enacted shared Mask action {}.",
+                    action.id()
+                ),
+                face_id: face_id.clone(),
+                selected_mask_form_id: Some(if position < 2 || restored {
+                    primary_mask.clone()
+                } else {
+                    alternate_mask.clone()
+                }),
+                plan_id: if replacement {
+                    replacement_plan.clone()
+                } else {
+                    first_plan.clone()
+                },
+                selected_route_id: (!unavailable).then(|| {
+                    if restored {
+                        format!("mask-route-{track}-replacement-primary")
+                    } else if position >= 2 {
+                        format!("mask-route-{track}-alternate")
+                    } else {
+                        format!("mask-route-{track}-primary")
+                    }
+                }),
+                show_id: (!unavailable).then(|| format!("mask-show-{track}-{position}")),
+                receipt_ids: vec![format!("mask.action-{position}")],
+            }
+        })
+        .collect()
+}
+
+fn track(index: usize) -> BodyTrack {
+    let details = [
+        ("body.absent", "body-absent"),
+        ("bootstrap.started", "bootstrap-started"),
+        ("body.born", "body-born"),
+        ("body.awake", "body-awake"),
+        ("form.used", "standing-form-used"),
+        ("body.inspected", "body-inspected"),
+        ("fault.observed", "fault-observed"),
+        ("body.repaired", "body-repaired"),
+        ("body.lulled", "body-lulled"),
+        ("body.fulfilled", "body-fulfilled"),
+    ];
+    let mut receipts = details
+        .iter()
+        .map(|(id, assertion)| receipt(index, id, assertion))
+        .collect::<Vec<_>>();
+    receipts.extend(
+        conduit_presentation::MASK_JOURNEY_ACTIONS
+            .iter()
+            .enumerate()
+            .map(|(position, action)| {
+                receipt(
+                    index,
+                    &format!("mask.action-{position}"),
+                    &format!("mask-{}", action.id()),
+                )
+            }),
+    );
+    let mask_actions = mask_actions(index);
+    let mut actions = vec![
+        TrackActionObservation {
+            action_id: "journey.bootstrap".into(),
+            concrete_event: format!(
+                "Embodiment {index} began without a Body and started bootstrap."
+            ),
+            receipt_ids: vec!["body.absent".into(), "bootstrap.started".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.birth".into(),
+            concrete_event: format!("Embodiment {index} created and woke its Body."),
+            receipt_ids: vec!["body.born".into(), "body.awake".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.useful-work".into(),
+            concrete_event: format!("Embodiment {index} performed its concrete useful work."),
+            receipt_ids: vec!["form.used".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.break-recover".into(),
+            concrete_event: format!(
+                "Embodiment {index} retained a fault and its recovery outcome."
+            ),
+            receipt_ids: vec!["fault.observed".into(), "body.repaired".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.rest-finish".into(),
+            concrete_event: format!("Embodiment {index} lulled and fulfilled its Body."),
+            receipt_ids: vec!["body.lulled".into(), "body.fulfilled".into()],
+        },
+    ];
+    actions.splice(
+        3..3,
+        mask_actions.iter().map(|action| TrackActionObservation {
+            action_id: action.action_id.clone(),
+            concrete_event: action.concrete_event.clone(),
+            receipt_ids: action.receipt_ids.clone(),
+        }),
+    );
     BodyTrack {
         schema: TRACK_SCHEMA.into(),
         journey_id: "orifina/tutorial@1".into(),
@@ -34,431 +149,233 @@ fn track(index: usize, hosts: usize) -> BodyTrack {
         track_id: format!("track-{index}"),
         embodiment: format!("embodiment-{index}"),
         body_id: format!("body-{index}"),
-        presenter_id: format!("presenter-{index}"),
-        hosts: (0..hosts)
-            .map(|host| HostIdentity {
-                host_id: format!("host-{index}-{host}"),
-                boot_id: format!("boot-{index}-{host}"),
-            })
-            .collect(),
-        line_ids: if hosts > 1 {
-            vec![format!("line-{index}")]
-        } else {
-            Vec::new()
-        },
-        distributed_plan_ids: if hosts > 1 {
-            vec![format!("plan-{index}")]
-        } else {
-            Vec::new()
-        },
-        steps: REQUIRED_MILESTONES
-            .iter()
-            .enumerate()
-            .map(|(step, _)| TrackStep {
-                step_id: format!("journey.step-{step}"),
-                assertion: REQUIRED_MILESTONES[step].required_assertion().into(),
-                disposition: "established".into(),
-                provenance: StepProvenance {
-                    body_id: Some(format!("body-{index}")),
-                    host_id: Some(format!("host-{index}-0")),
-                    boot_id: Some(format!("boot-{index}-0")),
-                    plan_id: (hosts > 1).then(|| format!("plan-{index}")),
-                    play_id: None,
-                    presentation_id: Some(format!("presentation-{index}-{step}")),
-                    manifestation_id: Some(format!("manifestation-{index}-{step}")),
-                    line_id: (hosts > 1).then(|| format!("line-{index}")),
-                    sign_id: Some(format!("sign-{index}-{step}")),
+        mask_form_id: format!("mask-form-{index}"),
+        construction: if index < 2 {
+            vec![ConstructionTruth {
+                host_id: format!("host-{index}"),
+                profile: ConstructionStage::Exact {
+                    identity: format!("profile-{index}"),
                 },
-                evidence: vec![StepEvidence {
-                    artifact_id: format!("artifact-{index}-{step}"),
-                    evidence_class: "semantic-receipt".into(),
-                    assertion_rung: EvidenceRung::BodyBiography,
-                    documentary_description: "The exact accepted milestone receipt.".into(),
-                    path: PathBuf::from(format!("artifact-{index}-{step}.json")),
-                    sha256: format!("sha256:{:064x}", index * 100 + step + 1),
-                }],
-            })
-            .collect(),
+                build: ConstructionStage::Exact {
+                    identity: format!("build-{index}"),
+                },
+                image: ConstructionStage::Exact {
+                    identity: format!("image-{index}"),
+                },
+            }]
+        } else {
+            vec![ConstructionTruth {
+                host_id: "host-2-a".into(),
+                profile: ConstructionStage::Omitted {
+                    reason: "This hosted journey uses an already-running Host and performs no profile make stage.".into(),
+                },
+                build: ConstructionStage::Omitted {
+                    reason: "This hosted journey starts admitted implementations and produces no standalone build artifact.".into(),
+                },
+                image: ConstructionStage::Omitted {
+                    reason: "This hosted journey is not booted from an image, so no image identity exists.".into(),
+                },
+            }, ConstructionTruth {
+                host_id: "host-2-b".into(),
+                profile: ConstructionStage::Omitted {
+                    reason: "This peer hosted journey uses an already-running Host and performs no profile make stage.".into(),
+                },
+                build: ConstructionStage::Omitted {
+                    reason: "This peer hosted journey starts admitted implementations and produces no standalone build artifact.".into(),
+                },
+                image: ConstructionStage::Omitted {
+                    reason: "This peer hosted journey is not booted from an image, so no image identity exists.".into(),
+                },
+            }]
+        },
+        hosts: if index == 2 {
+            vec![
+                HostIdentity {
+                    host_id: "host-2-a".into(),
+                    boot_id: "boot-2-a".into(),
+                },
+                HostIdentity {
+                    host_id: "host-2-b".into(),
+                    boot_id: "boot-2-b".into(),
+                },
+            ]
+        } else {
+            vec![HostIdentity {
+                host_id: format!("host-{index}"),
+                boot_id: format!("boot-{index}"),
+            }]
+        },
+        line_ids: if index == 2 {
+            vec!["line-2".into()]
+        } else {
+            Vec::new()
+        },
+        distributed_plan_ids: if index == 2 {
+            vec!["plan-2".into()]
+        } else {
+            Vec::new()
+        },
+        receipts,
+        actions,
+        mask_actions,
     }
 }
 
 fn complete() -> Vec<BodyTrack> {
-    vec![track(0, 1), track(1, 1), track(2, 2)]
-}
-
-fn validate_current(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), String> {
-    validate(contract, tracks, &contract.git_commit)
+    vec![track(0), track(1), track(2)]
 }
 
 #[test]
-fn three_distinct_bodies_share_semantics_without_collapsing_identities() {
-    validate_current(&contract(), &complete()).unwrap();
-}
-
-#[test]
-fn canonical_contract_names_exact_lifecycle_truth_and_refuses_overwrite() {
-    let commit = "c".repeat(40);
-    let canonical = contract::canonical(&commit);
-    validate_contract(&canonical, &commit).unwrap();
-    assert_eq!(canonical.steps.len(), REQUIRED_MILESTONES.len());
-    assert_eq!(canonical.steps[0].step_id, "body.absent");
-    assert_eq!(canonical.steps[7].step_id, "host.added");
-    assert_eq!(canonical.steps[12].step_id, "body.fulfilled");
-    assert!(canonical.steps[2]
-        .required_provenance
-        .contains(&ProvenanceField::Boot));
-
-    let root = std::env::temp_dir().join(format!(
-        "conduit-three-body-contract-{}",
-        std::process::id()
-    ));
-    let output = root.join("contract.json");
-    std::fs::create_dir_all(&root).unwrap();
-    contract::write(commit.clone(), output.clone()).unwrap();
-    let written: JourneyContract = read_bounded_json(&output).unwrap();
-    assert_eq!(written.git_commit, commit);
-    assert!(contract::write(written.git_commit, output).is_err());
-    std::fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn stale_or_malformed_expected_commit_refuses() {
-    let contract = contract();
+fn exactly_three_materially_distinct_tracks_share_one_ordered_action_journey() {
+    let contract = contract::canonical(&"a".repeat(40));
+    validate(&contract, &complete(), &contract.git_commit).unwrap();
+    let index = assemble_index(contract, complete()).unwrap();
+    assert_eq!(index.actions.len(), 15);
+    assert!(index.actions.iter().all(|action| action.bodies.len() == 3));
+    assert_eq!(index.actions[2].action.action_id, "journey.useful-work");
     assert_eq!(
-        validate(&contract, &complete(), &"b".repeat(40)).unwrap_err(),
-        "semantic Journey does not match the expected exact commit"
+        index.actions[3].action.action_id,
+        "mask.inspect-initial-show"
     );
     assert_eq!(
-        validate(&contract, &complete(), "main").unwrap_err(),
-        "semantic Journey does not match the expected exact commit"
+        index.actions[12].action.action_id,
+        "mask.inspect-restored-show"
     );
 }
 
 #[test]
-fn incomplete_or_reordered_lifecycle_refuses() {
-    let mut incomplete = contract();
-    incomplete
-        .steps
-        .retain(|step| step.milestone != Some(JourneyMilestone::HostAdded));
-    assert_eq!(
-        validate_current(&incomplete, &complete()).unwrap_err(),
-        "semantic Journey milestone FaultObserved is duplicated or out of order"
-    );
-
-    let mut reordered = contract();
-    reordered.steps.swap(7, 8);
-    assert_eq!(
-        validate_current(&reordered, &complete()).unwrap_err(),
-        "semantic Journey milestone FaultObserved is duplicated or out of order"
-    );
+fn detailed_receipts_are_richer_than_public_actions() {
+    let tracks = complete();
+    assert!(tracks
+        .iter()
+        .all(|track| track.receipts.len() > track.actions.len()));
+    assert!(tracks.iter().all(|track| track
+        .receipts
+        .iter()
+        .any(|receipt| receipt.step_id == "body.inspected")));
 }
 
 #[test]
-fn lifecycle_label_cannot_hide_a_different_semantic_assertion() {
-    let mut contract = contract();
-    contract.steps[8].required_assertion = "body-healthy".into();
-    assert_eq!(
-        validate_current(&contract, &complete()).unwrap_err(),
-        "semantic Journey milestone FaultObserved has a noncanonical assertion"
-    );
+fn action_order_and_required_semantics_fail_closed() {
+    let contract = contract::canonical(&"a".repeat(40));
+    let mut tracks = complete();
+    tracks[0].actions.swap(0, 1);
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("shuffled"));
+    let mut tracks = complete();
+    tracks[1].actions[13].receipt_ids = vec!["body.repaired".into()];
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("required semantic receipts"));
 }
 
 #[test]
-fn one_body_with_three_skins_refuses() {
+fn mask_journey_refuses_staged_or_invented_transition_truth() {
+    let contract = contract::canonical(&"a".repeat(40));
+
+    let mut tracks = complete();
+    tracks[0].mask_actions.swap(2, 3);
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("reordered Mask action"));
+
+    let mut tracks = complete();
+    tracks[0].mask_actions[4].show_id = Some("invented-show".into());
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("invents a Show"));
+
+    let mut tracks = complete();
+    tracks[1].mask_actions[2].plan_id = "different-plan-too-early".into();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("sealed same-Plan Mask selection"));
+
+    let mut tracks = complete();
+    tracks[1].mask_actions[6].plan_id = tracks[1].mask_actions[0].plan_id.clone();
+    tracks[1].mask_actions[7].plan_id = tracks[1].mask_actions[0].plan_id.clone();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("genuine replacement Plan"));
+
+    let mut tracks = complete();
+    tracks[2].mask_actions[9].selected_mask_form_id = Some("wrong-mask".into());
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("restore its original worn Mask"));
+}
+
+#[test]
+fn mask_journey_refuses_retained_show_identity_as_current_truth() {
+    let contract = contract::canonical(&"a".repeat(40));
+    let mut tracks = complete();
+    tracks[0].mask_actions[9].show_id = tracks[0].mask_actions[0].show_id.clone();
+
+    let error = validate(&contract, &tracks, &contract.git_commit).unwrap_err();
+
+    assert!(error.contains("reuses a retained Show as current Face truth"));
+}
+
+#[test]
+fn extra_detailed_receipts_do_not_become_public_actions() {
+    let contract = contract::canonical(&"a".repeat(40));
+    let mut tracks = complete();
+    tracks[0]
+        .receipts
+        .push(receipt(0, "mask.replanned", "mask-replanned"));
+    validate(&contract, &tracks, &contract.git_commit).unwrap();
+    let index = assemble_index(contract, tracks).unwrap();
+    assert_eq!(index.actions.len(), 15);
+    assert!(index.actions.iter().all(|action| action.bodies[0]
+        .receipts
+        .iter()
+        .all(|receipt| receipt.step_id != "mask.replanned")));
+}
+
+#[test]
+fn identity_collapsing_and_stale_commits_refuse() {
+    let contract = contract::canonical(&"a".repeat(40));
     let mut tracks = complete();
     tracks[1].body_id = tracks[0].body_id.clone();
-    assert!(validate_current(&contract(), &tracks).is_err());
+    assert!(validate(&contract, &tracks, &contract.git_commit).is_err());
+    assert!(validate(&contract, &complete(), &"b".repeat(40)).is_err());
 }
 
 #[test]
-fn three_tracks_must_not_reuse_one_embodiment_or_presenter() {
+fn construction_truth_covers_each_host_without_inventing_missing_stages() {
+    let contract = contract::canonical(&"a".repeat(40));
+
     let mut tracks = complete();
-    tracks[1].embodiment = tracks[0].embodiment.clone();
-    assert!(validate_current(&contract(), &tracks).is_err());
+    tracks[0].construction.clear();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("invalid Body track"));
 
-    tracks = complete();
-    tracks[1].presenter_id = tracks[0].presenter_id.clone();
-    assert!(validate_current(&contract(), &tracks).is_err());
-}
-
-#[test]
-fn independently_born_hosts_must_not_reuse_boot_identity() {
     let mut tracks = complete();
-    tracks[1].hosts[0].boot_id = tracks[0].hosts[0].boot_id.clone();
-    assert!(validate_current(&contract(), &tracks).is_err());
-}
+    tracks[2].construction[1].host_id = "host-not-in-body".into();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("does not cover every Host"));
 
-#[test]
-fn three_single_host_tracks_do_not_prove_a_distributed_body() {
-    let tracks = vec![track(0, 1), track(1, 1), track(2, 1)];
-    assert_eq!(
-        validate_current(&contract(), &tracks).unwrap_err(),
-        "at least one body must retain multi-host, Line, and distributed Plan truth"
-    );
-}
-
-#[test]
-fn reordered_semantics_and_cross_body_manifestations_refuse() {
     let mut tracks = complete();
-    tracks[1].steps[0].step_id = "body.awake".into();
-    assert!(validate_current(&contract(), &tracks).is_err());
-    tracks = complete();
-    tracks[1].steps[0].provenance.manifestation_id =
-        tracks[0].steps[0].provenance.manifestation_id.clone();
-    assert_eq!(
-        validate_current(&contract(), &tracks).unwrap_err(),
-        "Body tracks collapsed exact runtime or presentation identity"
-    );
-}
-
-#[test]
-fn steps_cannot_cite_another_tracks_host_or_an_unretained_line() {
-    let mut tracks = complete();
-    tracks[1].steps[0].provenance.host_id = Some("host-0-0".into());
-    assert!(validate_current(&contract(), &tracks).is_err());
-    tracks = complete();
-    tracks[2].steps[0].provenance.line_id = Some("line-invented".into());
-    assert!(validate_current(&contract(), &tracks).is_err());
-}
-
-#[test]
-fn steps_cannot_cite_a_boot_from_another_host_pair() {
-    let mut tracks = complete();
-    tracks[2].steps[0].provenance.boot_id = Some("boot-2-1".into());
-    assert_eq!(
-        validate_current(&contract(), &tracks).unwrap_err(),
-        "track-2 step cites a Boot outside its exact host pair"
-    );
-
-    let mut contract = contract();
-    contract.steps[0]
-        .required_provenance
-        .push(ProvenanceField::Boot);
-    validate_current(&contract, &complete()).unwrap();
-    let mut tracks = complete();
-    tracks[0].steps[0].provenance.boot_id = None;
-    assert!(validate_current(&contract, &tracks).is_err());
-}
-
-#[test]
-fn documentary_artifacts_are_digest_bound_and_root_confined() {
-    let root =
-        std::env::temp_dir().join(format!("conduit-three-body-journey-{}", std::process::id()));
-    std::fs::create_dir_all(&root).unwrap();
-    let source = root.join("track.json");
-    let mut track = track(0, 1);
-    for step in &mut track.steps {
-        let artifact = root.join(&step.evidence[0].path);
-        std::fs::write(&artifact, b"semantic receipt").unwrap();
-        step.evidence[0].sha256 = format!("sha256:{:x}", Sha256::digest(b"semantic receipt"));
-    }
-    verify_artifacts(&track, &source).unwrap();
-    let artifact = root.join("artifact-0-0.json");
-    std::fs::write(&artifact, b"changed receipt").unwrap();
-    assert!(verify_artifacts(&track, &source).is_err());
-
-    #[cfg(unix)]
-    {
-        let outside = root.with_extension("outside");
-        std::fs::write(&outside, b"semantic receipt").unwrap();
-        std::fs::remove_file(&artifact).unwrap();
-        std::os::unix::fs::symlink(&outside, &artifact).unwrap();
-        assert!(verify_artifacts(&track, &source).is_err());
-        std::fs::remove_file(outside).unwrap();
-    }
-    std::fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn published_index_preserves_semantic_assertions_and_non_claims() {
-    let contract = contract();
-    let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA.into(),
-        disposition: "complete".into(),
-        journey_id: contract.journey_id,
-        git_commit: contract.git_commit,
-        semantic_steps: contract.steps,
-        tracks: complete(),
-        recorded_generative: None,
+    tracks[2].construction[0].build = ConstructionStage::Exact {
+        identity: "invented-build".into(),
     };
-    let page = page::render(&index);
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("invalid Body track"));
+}
+
+#[test]
+fn action_major_page_names_producer_events_without_fixed_manifestation_labels() {
+    let contract = contract::canonical(&"a".repeat(40));
+    let index = assemble_index(contract, complete()).unwrap();
+    let html = page::render(&index);
+    assert!(html.contains("The same moment, three ways"));
+    assert!(html.contains("Embodiment 2 performed its concrete useful work."));
+    assert!(html.contains("Host host-2-a construction: profile omitted:"));
     let value = serde_json::to_value(index).unwrap();
-    assert_eq!(
-        value["semantic_steps"][0]["required_assertion"],
-        "body-absent"
-    );
-    assert_eq!(
-        value["semantic_steps"][0]["required_assertion_rung"],
-        "body-biography"
-    );
-    assert_eq!(
-        value["semantic_steps"][0]["non_claims"][0],
-        "not-physical-proof"
-    );
-    assert_eq!(value["tracks"].as_array().unwrap().len(), REQUIRED_TRACKS);
-    assert!(page.contains("Select a body to follow its life"));
-    assert!(page.contains("Compare all three"));
-    assert!(!page.contains("<details open"));
-    assert!(page.contains("<summary>Evidence</summary>"));
-    assert!(page.contains("not-physical-proof"));
-}
-
-#[test]
-fn downstream_manifestation_cannot_prove_upstream_semantic_truth() {
-    let mut tracks = complete();
-    for track in &mut tracks {
-        track.steps[0].evidence[0].assertion_rung = EvidenceRung::GeneratedManifestation;
-    }
-    assert_eq!(
-        validate_current(&contract(), &tracks).unwrap_err(),
-        "track-0 lacks authoritative BodyBiography evidence at journey.step-0"
-    );
-}
-
-#[test]
-fn presenter_policy_has_its_own_documentary_evidence_rung() {
-    assert_eq!(EvidenceRung::PresenterPolicy.label(), "presenter-policy");
-    assert_ne!(
-        EvidenceRung::PresenterPolicy,
-        EvidenceRung::GeneratedManifestation
-    );
-    assert_ne!(EvidenceRung::PresenterPolicy, EvidenceRung::PurposeState);
-}
-
-#[test]
-fn publication_writes_both_views_and_refuses_overwrite() {
-    let contract = contract();
-    let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA.into(),
-        disposition: "complete".into(),
-        journey_id: contract.journey_id,
-        git_commit: contract.git_commit,
-        semantic_steps: contract.steps,
-        tracks: complete(),
-        recorded_generative: None,
-    };
-    let root = std::env::temp_dir().join(format!(
-        "conduit-three-body-publication-{}",
-        std::process::id()
-    ));
-    let output = root.join("index.json");
-    std::fs::create_dir_all(&root).unwrap();
-    publish(&index, &output).unwrap();
-    assert!(output.is_file());
-    assert!(output.with_extension("html").is_file());
-    assert_eq!(
-        publish(&index, &output).unwrap_err(),
-        "three-Body Journey publication refuses overwrite"
-    );
-    std::fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn media_is_foreground_and_machine_provenance_stays_collapsed() {
-    let contract = contract();
-    let mut tracks = complete();
-    for class in ["screenshot", "waveform", "audio", "video", "transcript"] {
-        let mut item = tracks[0].steps[0].evidence[0].clone();
-        item.evidence_class = class.into();
-        item.path = PathBuf::from(format!("media/{class}"));
-        item.documentary_description = "Visible & audible <proof>".into();
-        tracks[0].steps[0].evidence.push(item);
-    }
-    let page = page::render(&ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA.into(),
-        disposition: "complete".into(),
-        journey_id: contract.journey_id,
-        git_commit: contract.git_commit,
-        semantic_steps: contract.steps,
-        tracks,
-        recorded_generative: None,
-    });
-    for tag in [
-        "<img",
-        "<audio controls",
-        "<video controls",
-        "<blockquote data-transcript",
-    ] {
-        assert!(page.contains(tag), "missing {tag}");
-    }
-    assert!(page.contains("Visible &amp; audible &lt;proof&gt;"));
-    assert!(!page.contains("<details open"));
-    assert!(page.find("<img").unwrap() < page.find("<summary>Evidence").unwrap());
-    for (position, _) in page.match_indices("<pre>") {
-        let prefix = &page[..position];
-        assert!(prefix.rfind("<details") > prefix.rfind("</details>"));
-    }
-}
-
-#[test]
-fn receipts_alone_cannot_pass_the_documentary_publication_gate() {
-    let mut native = track(0, 1);
-    native.track_id = "native-graphical".into();
-    assert!(artifacts::require_documentary(&[native], None)
-        .unwrap_err()
-        .contains("screenshot"));
-    let mut generated = track(2, 2);
-    generated.track_id = "hosted-generative".into();
-    assert!(artifacts::require_documentary(&[generated], None)
-        .unwrap_err()
-        .contains("live conversational media"));
-}
-
-#[test]
-fn retained_live_recordings_require_identical_current_presenter_inputs() {
-    let root = std::env::temp_dir().join(format!("conduit-recording-test-{}", std::process::id()));
-    let current_root = root.join("current");
-    let live_root = root.join("live");
-    std::fs::create_dir_all(&current_root).unwrap();
-    std::fs::create_dir_all(&live_root).unwrap();
-    let mut current = track(2, 2);
-    current.track_id = "hosted-generative".into();
-    let mut live = track(2, 2);
-    live.track_id = "hosted-generative".into();
-    live.embodiment = "hosted-open-weight-model-body".into();
-    live.git_commit = "b".repeat(40);
-    for (directory, track) in [(&current_root, &mut current), (&live_root, &mut live)] {
-        for (index, step) in track.steps.iter_mut().enumerate() {
-            step.evidence.clear();
-            for (class, bytes) in [
-                (
-                    "presenter-receipt",
-                    br#"{"proof_class":"live-local-model","request":{"state":"awake"}}"#.as_slice(),
-                ),
-                ("transcript", b"I am awake.".as_slice()),
-                ("audio", b"ID3test".as_slice()),
-                ("waveform", b"\x89PNG\r\n\x1a\n".as_slice()),
-            ] {
-                let path = PathBuf::from(format!("{index}-{class}"));
-                std::fs::write(directory.join(&path), bytes).unwrap();
-                step.evidence.push(StepEvidence {
-                    artifact_id: format!("{index}/{class}"),
-                    evidence_class: class.into(),
-                    assertion_rung: EvidenceRung::GeneratedManifestation,
-                    documentary_description: "Test-only retained recording".into(),
-                    path,
-                    sha256: format!("sha256:{:x}", Sha256::digest(bytes)),
-                });
-            }
-        }
-    }
-    let live_source = live_root.join("track.json");
-    std::fs::write(&live_source, serde_json::to_vec(&live).unwrap()).unwrap();
-    let sources = vec![current_root.join("track.json")];
-    let tracks = vec![current];
-    assert_eq!(
-        artifacts::read_recording(&live_source, &tracks, &sources)
-            .unwrap()
-            .git_commit,
-        "b".repeat(40)
-    );
-    std::fs::write(
-        current_root.join("0-presenter-receipt"),
-        br#"{"request":{"state":"lulled"}}"#,
-    )
-    .unwrap();
-    assert!(artifacts::read_recording(&live_source, &tracks, &sources)
-        .unwrap_err()
-        .contains("stale Presenter inputs"));
-    std::fs::remove_dir_all(root).unwrap();
+    assert_eq!(value["actions"][0]["bodies"].as_array().unwrap().len(), 3);
+    assert!(value.get("tracks").is_none());
 }

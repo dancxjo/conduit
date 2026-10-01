@@ -1,8 +1,7 @@
 use conduit_core::{verify_plan, BaseImplementationId, BootId, HostId, SignId};
 use conduit_presentation::{
-    render_linear_presentation, ManifestationError, ManifestationFailure, ManifestationLifecycle,
-    Presentation, PresentationTemporalFact, PresentationTemporalRole, TemporalInstant,
-    TemporalReference, TemporalScale,
+    plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, ManifestationError,
+    ManifestationFailure, ManifestationLifecycle,
 };
 
 use crate::{
@@ -99,7 +98,7 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
 }
 
 #[test]
-fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
+fn production_patchbay_face_preserves_meaning_across_graphical_aural_and_linear_masks() {
     let mut session = LocalFrontDoor::with_identity(
         crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/conformance"),
@@ -107,115 +106,59 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
     )
     .unwrap();
     session.plan_and_play().unwrap();
-    let projected = session.project().unwrap().presentation;
-    let reference = TemporalReference {
-        identity: "reference/conformance-now".into(),
-        instant: TemporalInstant {
-            ticks: 100,
-            scale: TemporalScale::Milliseconds,
-            clock_basis: "clock/conformance".into(),
-            resolution_ticks: 1,
-            uncertainty_ticks: 1,
-        },
-    };
-    let temporal_fact = PresentationTemporalFact::new(
-        projected.subjects[0].identity.clone(),
-        PresentationTemporalRole::Observation,
-        None,
-        TemporalInstant {
-            ticks: 80,
-            scale: TemporalScale::Milliseconds,
-            clock_basis: "clock/conformance".into(),
-            resolution_ticks: 1,
-            uncertainty_ticks: 2,
-        },
-        &reference,
-    )
-    .unwrap();
-    let presentation = Presentation::new_with_semantics_and_temporal(
-        projected.revision,
-        projected.basis,
-        projected.subjects,
-        projected.relationships,
-        projected.properties,
-        projected.text,
-        projected.actions,
-        projected.disclosures,
-        vec![reference.clone()],
-        vec![temporal_fact.clone()],
-    )
-    .unwrap();
-    let mut legacy = serde_json::to_value(
-        Presentation::new_with_semantics(
-            presentation.revision,
-            presentation.basis.clone(),
-            presentation.subjects.clone(),
-            presentation.relationships.clone(),
-            presentation.properties.clone(),
-            presentation.text.clone(),
-            presentation.actions.clone(),
-            presentation.disclosures.clone(),
-        )
-        .unwrap(),
-    )
-    .unwrap();
-    let legacy_object = legacy.as_object_mut().unwrap();
-    legacy_object.remove("temporal_references");
-    legacy_object.remove("temporal_facts");
-    let legacy: Presentation = serde_json::from_value(legacy).unwrap();
-    legacy.validate().unwrap();
-    assert!(legacy.temporal_references.is_empty() && legacy.temporal_facts.is_empty());
-    let native_entrance = PatchbayEntranceState::enter(&presentation).unwrap();
-    let browser_entrance = PatchbayEntranceState::enter(&presentation).unwrap();
-    let equivalence =
-        compare_entrances(&presentation, &native_entrance, &browser_entrance).unwrap();
-    assert_eq!(equivalence.temporal_references, vec![reference.clone()]);
-    assert_eq!(equivalence.temporal_facts, vec![temporal_fact.clone()]);
+    let face = session.project().unwrap().presentation;
+    let native_entrance = PatchbayEntranceState::enter(&face).unwrap();
+    let browser_entrance = PatchbayEntranceState::enter(&face).unwrap();
+    let equivalence = compare_entrances(&face, &native_entrance, &browser_entrance).unwrap();
+    assert!(equivalence.equivalent);
     let native = RendererExecution::prepare(
-        presentation.clone(),
+        face.clone(),
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
         SignId::from("native/prepared"),
     )
     .unwrap();
     let browser = RendererExecution::prepare(
-        presentation.clone(),
+        face.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("browser-host", "browser-boot", "browser/document-0"),
         SignId::from("browser/prepared"),
     )
     .unwrap();
-    let linear = render_linear_presentation(&presentation).unwrap();
+    let aural = plan_face_utterances(&face).unwrap();
+    let linear = render_linear_presentation(&face).unwrap();
 
     for realized in [&native.presentation, &browser.presentation] {
-        assert_eq!(realized.identity, presentation.identity);
-        assert_eq!(realized.basis, presentation.basis);
-        assert_eq!(realized.subjects, presentation.subjects);
-        assert_eq!(realized.relationships, presentation.relationships);
-        assert_eq!(realized.properties, presentation.properties);
-        assert_eq!(realized.text, presentation.text);
-        assert_eq!(realized.actions, presentation.actions);
-        assert_eq!(realized.disclosures, presentation.disclosures);
-        assert_eq!(
-            realized.temporal_references,
-            presentation.temporal_references
-        );
-        assert_eq!(realized.temporal_facts, presentation.temporal_facts);
+        assert_eq!(realized, &face);
     }
-    assert_eq!(linear.presentation_id, presentation.identity);
-    assert_eq!(linear.revision, presentation.revision);
-    assert_eq!(presentation.temporal_references, vec![reference]);
-    assert_eq!(presentation.temporal_facts, vec![temporal_fact]);
+    assert_eq!(aural.source_face_identity, face.identity.as_str());
+    assert_eq!(aural.source_face_revision, face.revision);
+    assert_eq!(linear.presentation_id, face.identity);
+    assert_eq!(linear.revision, face.revision);
 
     let records = linear.lines.join("\n");
-    for subject in &presentation.subjects {
+    for subject in &face.subjects {
         assert!(records.contains(&format!("id={:?}", subject.identity)));
-        assert!(records.contains(&format!("label={:?}", subject.label)));
-        assert!(records.contains(&format!("accessibility={:?}", subject.accessibility_name)));
+        assert!(records.contains(&format!("name={:?}", subject.name)));
+        assert!(aural.clauses.iter().any(|clause| {
+            clause.provenance
+                == FaceUtteranceProvenance::Subject {
+                    identity: subject.identity.clone(),
+                }
+        }));
     }
-    for relationship in &presentation.relationships {
+    for relationship in &face.relationships {
         assert!(records.contains(&format!("source={:?}", relationship.source)));
         assert!(records.contains(&format!("target={:?}", relationship.target)));
+    }
+    for action in &face.actions {
+        assert!(records.contains(&format!("id={:?}", action.identity)));
+        assert!(aural.clauses.iter().any(|clause| {
+            clause.provenance
+                == FaceUtteranceProvenance::Action {
+                    identity: action.identity.clone(),
+                }
+        }));
     }
 
     let native_placement = &native.plan.fragments[0].placements[0];
@@ -225,7 +168,20 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
         native_placement.implementation_id,
         browser_placement.implementation_id
     );
-    assert!(!records.contains("pixel=") && !records.contains("dom-id="));
+    // Different graphical furniture is harmless lost appearance: neither the
+    // spoken nor linear Mask promotes renderer-local geometry into Face truth.
+    let spoken = aural
+        .clauses
+        .iter()
+        .map(|clause| clause.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    for output in [&records, &spoken] {
+        assert!(!output.contains("pixel="));
+        assert!(!output.contains("dom-id="));
+        assert!(!output.contains(native_placement.implementation_id.as_str()));
+        assert!(!output.contains(browser_placement.implementation_id.as_str()));
+    }
 }
 
 #[test]

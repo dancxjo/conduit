@@ -92,6 +92,9 @@ fn scan_source(
                 offset += next.len_utf8();
             }
             SyntaxHighlightKind::Comment
+        } else if source[offset..].starts_with("r\"") {
+            offset = raw_quoted_end(source, offset);
+            SyntaxHighlightKind::String
         } else if matches!(character, '\'' | '"') {
             offset = quoted_end(source, offset, character);
             SyntaxHighlightKind::String
@@ -121,6 +124,13 @@ fn scan_source(
     Ok(())
 }
 
+fn raw_quoted_end(text: &str, start: usize) -> usize {
+    let content = start + 2;
+    text[content..]
+        .find('"')
+        .map_or(text.len(), |end| content + end + 1)
+}
+
 fn quoted_end(text: &str, start: usize, quote: char) -> usize {
     let mut offset = start + quote.len_utf8();
     let mut escaped = false;
@@ -148,13 +158,23 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
     if text.starts_with("...") {
         return Some((3, SyntaxHighlightKind::Operator));
     }
+    let glyph_length = text
+        .char_indices()
+        .take_while(|(_, character)| matches!(character, '<' | '>' | '&' | '?' | '@' | '^'))
+        .take(8)
+        .map(|(offset, character)| offset + character.len_utf8())
+        .last()
+        .unwrap_or(0);
+    if glyph_length > 0 && crate::surface_lex::is_glyph(&text[..glyph_length]) {
+        return Some((glyph_length, SyntaxHighlightKind::Operator));
+    }
     let character = text.chars().next()?;
     let following = &text[character.len_utf8()..];
     match character {
         '(' | ')' | '{' | '}' | '[' | ']' | ',' => {
             Some((character.len_utf8(), SyntaxHighlightKind::Delimiter))
         }
-        ':' | '=' | '>' | '|' | '$' | '?' => {
+        ':' | '=' | '>' | '|' | '!' | '~' | '$' | '?' => {
             Some((character.len_utf8(), SyntaxHighlightKind::Operator))
         }
         '.' if following
@@ -177,9 +197,15 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
-        "form" | "host" | "body" | "pool" => SyntaxHighlightKind::Keyword,
+        "form" | "host" | "body" | "pack" | "ship" | "need" | "version" | "pool" | "with"
+        | "as" | "from" | "sans" | "glyphs" | "in" | "not" | "type" | "code" | "kind" => {
+            SyntaxHighlightKind::Keyword
+        }
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
+            SyntaxHighlightKind::Number
+        }
+        _ if conduit_core::Quantity::parse_form_literal(word).is_ok() => {
             SyntaxHighlightKind::Number
         }
         _ if word.contains('/') || word.contains('.') || word.contains('@') => {
@@ -211,6 +237,79 @@ mod tests {
     use crate::{parse_syntax_document, MAXIMUM_FORM_TOKENS};
     use alloc::{string::String, vec};
 
+    #[test]
+    fn with_and_glyph_header_words_are_language_keywords() {
+        let source = "sans glyphs\nwith text/upper as ^^\nform example {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = spans
+            .iter()
+            .map(|span| (span.kind, &source[span.start..span.end]))
+            .collect::<Vec<_>>();
+        for keyword in ["sans", "glyphs", "with", "as", "form"] {
+            assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
+        }
+        assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "text/upper")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "^^")));
+    }
+
+    #[test]
+    fn kind_parameter_uses_the_compile_time_keyword() {
+        let source =
+            "form apply (\n transform: kind (\n  value: Text >> mapped: Text\n )\n) {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        assert!(pieces(source, &spans).contains(&(SyntaxHighlightKind::Keyword, "kind")));
+    }
+
+    #[test]
+    fn pack_source_uses_the_shared_lossless_highlighter() {
+        let source = "pack house/sensors (\n version = 1.4.0\n) {\n ship temperature\n need math/geometry = ^2.1\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        for keyword in ["pack", "version", "ship", "need"] {
+            assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
+        }
+        assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "house/sensors")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "math/geometry")));
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &source[span.start..span.end])
+                .collect::<String>(),
+            source
+        );
+    }
+
+    #[test]
+    fn checked_pattern_spelling_is_one_lossless_language_construct() {
+        let source = "form code (\n value: Text <= 16B ~ /[A-Z]{2}[0-9]{4}/\n) {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "~")));
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &source[span.start..span.end])
+                .collect::<String>(),
+            source
+        );
+    }
+
+    #[test]
+    fn named_type_parameter_uses_the_compile_time_keyword() {
+        let source = "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "type")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Name, "item")));
+    }
+
+    #[test]
+    fn composed_refinement_words_are_language_keywords() {
+        let source = "form value (\n count: Count in 1..=4 in [2, 3, 4]\n) {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "in")));
+    }
     fn pieces<'a>(
         source: &'a str,
         spans: &'a [SyntaxHighlightSpan],
@@ -223,7 +322,8 @@ mod tests {
 
     #[test]
     fn canonical_source_is_lossless_and_grammar_aware() {
-        let source = "form hello (\n  name: value/text = \"reader\"\n  tick: value/u64@1... >>\n) {\n  .\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output >> sink.input\n}\n";
+        let source = "form hello (\n  name: value/text = \"reader\"\n  tick: value/u64@1... >>\n) {\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output >> sink.input\n}.\n";
+        assert!(parse_syntax_document(source).diagnostics.is_empty());
         let spans = highlight_syntax(source).unwrap();
         let reconstructed: String = spans
             .iter()
@@ -294,13 +394,15 @@ mod tests {
 
     #[test]
     fn punctuation_and_literals_remain_finite_without_regex_rewriting() {
-        let source = "body demo { enabled=true list=[1,2] current=$value stream=value/text...| }";
+        let source = "body demo { enabled=true list=[1,2] current=$value stream=value/text...| abnormal=work! cancellation=work~ }";
         let spans = highlight_syntax(source).unwrap();
         let pieces = pieces(source, &spans);
         assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "body")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Literal, "true")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "$")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "...|")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "!")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "~")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Delimiter, "[")));
         assert_eq!(
             spans.len(),
@@ -308,5 +410,22 @@ mod tests {
             "one bounded span describes each exact piece"
         );
         assert_ne!(spans, vec![]);
+    }
+
+    #[test]
+    fn scientific_quantity_typography_is_one_preserved_numeric_span() {
+        let source = "target = 21°C\ndistance = 3.2m\nangle = 90°\nwidth = 640px\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        for literal in ["21°C", "3.2m", "90°", "640px"] {
+            assert!(pieces.contains(&(SyntaxHighlightKind::Number, literal)));
+        }
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &source[span.start..span.end])
+                .collect::<String>(),
+            source
+        );
     }
 }

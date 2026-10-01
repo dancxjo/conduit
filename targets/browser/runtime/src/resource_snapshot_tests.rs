@@ -43,7 +43,8 @@ pub(crate) fn placement(
         capability_id: capability.clone(),
     };
     (
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: "snapshot-placement".into(),
             gear_id: "snapshot".into(),
             kind_id: kind.clone(),
@@ -65,6 +66,7 @@ pub(crate) fn placement(
             },
             inputs: Vec::new(),
             outputs: Vec::new(),
+            terminal_transductions: Vec::new(),
             host_calls: vec![HostCallRequirement {
                 contract_id: operation.into(),
                 target_kind: Some(kind),

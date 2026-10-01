@@ -5,6 +5,7 @@ use super::back::InstalledBack;
 impl InstalledBack {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
+            Self::DistanceFrequency(_) => 0,
             Self::KeyboardInput(_) => 0,
             Self::ButtonInput(operation) => operation.allocation_capacity(),
             Self::Tick(operation) => operation.allocation_capacity(),
@@ -13,6 +14,9 @@ impl InstalledBack {
             Self::TimeTimeout(operation) => operation.allocation_capacity(),
             Self::TimeDelay(operation) => operation.allocation_capacity(),
             Self::TimeThrottle(operation) => operation.allocation_capacity(),
+            Self::TimeDeadline(operation) => operation.allocation_capacity(),
+            Self::TimeSample(operation) => operation.allocation_capacity(),
+            Self::TimeWindow(operation) => operation.allocation_capacity(),
             Self::TimedButtonAttempt(operation) => operation.allocation_capacity(),
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
@@ -20,6 +24,7 @@ impl InstalledBack {
             Self::SpeechSynthesis(_) => 0,
             Self::AudioRenderDemand(operation) => operation.allocation_capacity(),
             Self::AudioPlay(_) => 0,
+            Self::AudioTone(_) => 0,
             Self::PcmProfileConversion(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BodyWebRtcSessions } from "../../products/patchbay/html/assets/body-webrtc-sessions.mjs";
-import { decodeWebRtcBootstrapConfiguration } from "../../products/patchbay/html/assets/body-webrtc-session.mjs";
+import { BodyWebRtcSessions } from "../../targets/browser/host/assets/body-webrtc-sessions.mjs";
+import { decodeWebRtcBootstrapConfiguration } from "../../targets/browser/host/assets/body-webrtc-session.mjs";
 
 test("finite STUN and ephemeral TURN configuration remains bootstrap rather than Line truth", () => {
   const decoded = decodeWebRtcBootstrapConfiguration({

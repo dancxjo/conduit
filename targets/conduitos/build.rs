@@ -19,18 +19,18 @@ fn main() {
     println!("cargo:rerun-if-changed=proof/appliances/armv6-rpi-b-plus/linker/a3.ld");
     println!("cargo:rerun-if-env-changed=CONDUITOS_BUILD_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
-    println!("cargo:rerun-if-env-changed=CONDUITOS_FABRICATION_RECORD");
+    println!("cargo:rerun-if-env-changed=CONDUITOS_MAKE_RECORD");
     generate_unifont_subset();
     #[cfg(feature = "native-compositor")]
     typography::generate();
-    let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"))
-        .join("fabrication_record.rs");
-    if let Some(source) = env::var_os("CONDUITOS_FABRICATION_RECORD") {
+    let output =
+        PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR")).join("make_record.rs");
+    if let Some(source) = env::var_os("CONDUITOS_MAKE_RECORD") {
         println!(
             "cargo:rerun-if-changed={}",
             PathBuf::from(&source).display()
         );
-        fs::copy(source, output).expect("copy generated fabrication record");
+        fs::copy(source, output).expect("copy generated make record");
     } else {
         let build_id =
             env::var("CONDUITOS_BUILD_ID").unwrap_or_else(|_| "build:proof-appliance".into());
@@ -40,10 +40,10 @@ fn main() {
             fs::write(
                 output,
                 format!(
-                    "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: FABRICATION_SCHEMA, profile_id: \"profile:conduitos-orange-pi-5-rk3588s-v1\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/aarch64/orange-pi-5-rk3588s\", implementations: IMPL_TIME_TICK | IMPL_TICK_PRESENTATION | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_PRESENTATION | IMPL_LINEAR_PRESENTER, facilities: 0, resources: 0, bases: BASE_SERIAL_TEXT, drivers: DRIVER_DW_APB_UART2, presenters: PRESENTER_LINEAR_SERIAL, proof_instrumentation: 0, presentation_surface_slots: 0, presentation_surface_bytes: 0, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:conduitos-orange-pi-5-rk3588s-v1\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/aarch64/orange-pi-5-rk3588s\", implementations: IMPL_TIME_TICK | IMPL_TICK_PRESENTATION | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_PRESENTATION | IMPL_LINEAR_PRESENTER, facilities: 0, resources: 0, bases: BASE_SERIAL_TEXT, drivers: DRIVER_DW_APB_UART2, presenters: PRESENTER_LINEAR_SERIAL, proof_instrumentation: 0, presentation_surface_slots: 0, presentation_surface_bytes: 0, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
                 ),
             )
-            .expect("write Orange Pi 5 fabrication record");
+            .expect("write Orange Pi 5 make record");
         } else {
             let proof_instrumentation =
                 u16::from(env::var_os("CARGO_FEATURE_HOTPLUG_PROOF").is_some())
@@ -52,10 +52,10 @@ fn main() {
             fs::write(
                 output,
                 format!(
-                    "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: FABRICATION_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_PRESENTATION_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: 4, presentation_surface_bytes: 8388608, runtime_arena_ceiling: 16777216, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_PRESENTATION_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: 4, presentation_surface_bytes: 8388608, runtime_arena_ceiling: 16777216, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
                 ),
             )
-            .expect("write fallback fabrication record");
+            .expect("write fallback make record");
         }
     }
     let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("Cargo sets manifest directory");
@@ -132,7 +132,7 @@ fn generate_unifont_subset() {
     use std::{env, fs, path::PathBuf};
 
     const SOURCE: &str =
-        "../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex";
+        "../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex";
     println!("cargo:rerun-if-changed={SOURCE}");
     let source = fs::read_to_string(SOURCE).expect("read pinned GNU Unifont subset");
     let mut generated = String::from("static GLYPHS: &[GlyphRecord] = &[\n");

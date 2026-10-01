@@ -100,7 +100,7 @@ pub enum JourneyError {
     InputUnavailable,
     InputSequenceExhausted,
     RevisionExhausted,
-    Presenter(native_workset::PlayRefusal),
+    Mask(native_workset::PlayRefusal),
 }
 
 impl JourneyError {
@@ -120,7 +120,7 @@ impl JourneyError {
             Self::InputUnavailable => "product-input-unavailable",
             Self::InputSequenceExhausted => "product-input-sequence-exhausted",
             Self::RevisionExhausted => "product-presentation-revision-exhausted",
-            Self::Presenter(error) => error.as_str(),
+            Self::Mask(error) => error.as_str(),
         }
     }
 }
@@ -162,6 +162,7 @@ pub struct JourneyProjection {
     pub input_count: u32,
     pub kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     pub last_request_id: Option<String>,
+    pub mask: Option<crate::mask_control::NativeMaskEvidence>,
 }
 
 pub struct ProductJourney {
@@ -193,7 +194,7 @@ pub struct ProductJourney {
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
     application_request: Option<native_workset::NativeApplicationRequest>,
-    presenter_control: Option<crate::presenter_control::PresenterControl>,
+    mask_control: Option<crate::mask_control::MaskControl>,
 }
 
 impl ProductJourney {
@@ -300,7 +301,7 @@ impl ProductJourney {
             retained_kernel_sign_gap: None,
             last_request_id: None,
             application_request: None,
-            presenter_control: None,
+            mask_control: None,
         })
     }
 
@@ -501,6 +502,10 @@ impl ProductJourney {
                 .and_then(|kernel| kernel.sign_retention_gap())
                 .or(self.retained_kernel_sign_gap),
             last_request_id: self.last_request_id.clone(),
+            mask: self
+                .mask_control
+                .as_ref()
+                .and_then(|control| control.mask_evidence().cloned()),
         }
     }
 

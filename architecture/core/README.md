@@ -25,14 +25,16 @@ depends on semantic, application, target, or proof packages.
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `plan_fingerprint.rs` | universal architecture | Canonical fragment and plan commitment encoding; preserves immutable realization identity. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded form and plan. |
+| `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |
 | `port.rs` | universal architecture | Typed port direction and temporal shape. |
 | `preparation.rs` | universal architecture | Finite cross-host admission before one exact plan starts. |
-| `resource_content.rs`, `resource_canonical.rs`, `resource.rs` | universal architecture | Generic resource requirements, offers, observations, bindings, and compute topology. |
+| `resource_content.rs`, `resource_canonical.rs`, `resource.rs`, `resource_port.rs` | universal architecture | Generic resource requirements, offers, observations, bindings, compute topology, and the checked distinction between serializable info ports and unforgeable resource-authority ports. |
 | `resource_admission.rs` | universal architecture | Atomic admission of finite current host resources before play. |
 | `route.rs` | universal architecture | Exact planned/admitted line, base, endpoint, authority, and route truth. |
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |
 | `state_delay.rs` | universal architecture | Explicit typed computational-state identity, continuation, and retained-resource admission. |
 | `stream_sampling.rs` | universal architecture | Deterministic bounded source-item selection with exact selected/unselected ownership and accounting, distinct from pressure loss or coalescing. |
+| `terminal_info.rs` | universal architecture | Canonical bounded abnormal-terminal info, including exact category, causal evidence digest, and optional domain-owned fault identity. |
 | `deadline.rs` | generic mechanism | Exact bounded monotonic-deadline operation/resource contract; no clock implementation or scheduling policy. |
 | `delivery.rs` | universal architecture | Versioned delivery/evolution, atomic admission, explicit pressure/coalescing accounting, and finite typed queues without replacing concrete info. |
 | `device.rs` | universal architecture | Optional bounded host-observed Device grouping and provenance, validated against exact current host capability truth without granting authority. |
@@ -42,6 +44,10 @@ depends on semantic, application, target, or proof packages.
 | `resource_acquisition.rs` | generic mechanism | Attended resource request, acquisition, release, revocation, loss, and fresh-generation fencing. |
 | `info.rs` | generic value mechanism | Minimal bool/scalar envelopes, decode refusal, and semantic digest used by unrelated domains. |
 | `primitive_info.rs` | generic value mechanism | Closed canonical primitive identity registry plus allocation-free validation and count encoding. |
+| `value_constraint.rs` | generic value mechanism | Exact finite reusable value contracts, deterministic refusal, and portable bounded text-pattern automata shared by checking, planning, Faces, and Hosts. |
+| `fixed_integer.rs` | generic value mechanism | Exact fixed-width signed and unsigned integer values, encoding, and checked arithmetic. |
+| `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
+| `retry_evidence.rs` | universal architecture | Finite provider-owned retained evidence for one exact semantic operation, prior realization, and retry law; proves eligibility without inventing a retry loop or treating Step failure as semantic terminal truth. |
 | `quantity.rs` | generic value mechanism | Exact finite dimensioned quantity and exact-only conversion used across unrelated domains. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |

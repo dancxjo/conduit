@@ -63,6 +63,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
     let literal = crate::structured_offers::structured_literal_offer(
         conduit_semantic_catalog::EDUCATION_FEEDBACK_TYPE,
         &value_type,
+        &default,
         crate::structured_offers::BrowserOfferIdentity {
             capability: "browser-structured-info/literal@1",
             profile: BROWSER_PRESENTATION_PROFILE,

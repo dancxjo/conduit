@@ -5,9 +5,10 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
+pub use conduit_data::ScalarComparison;
 
 pub const LOGIC_COMPARE_KIND: &str = "logic/compare";
 pub const LOGIC_NOT_KIND: &str = "logic/not";
@@ -17,38 +18,15 @@ pub const LOGIC_COMPARE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-comp
 pub const LOGIC_NOT_CONTRACT_REVISION: &str = "conduit.std/logic-not@1";
 pub const LOGIC_SELECT_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-select-scalar@1";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ScalarComparison {
-    Less,
-    LessOrEqual,
-    Equal,
-    NotEqual,
-    GreaterOrEqual,
-    Greater,
-}
-
-impl ScalarComparison {
-    pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "lt" => Some(Self::Less),
-            "le" => Some(Self::LessOrEqual),
-            "eq" => Some(Self::Equal),
-            "ne" => Some(Self::NotEqual),
-            "ge" => Some(Self::GreaterOrEqual),
-            "gt" => Some(Self::Greater),
-            _ => None,
-        }
-    }
-
-    pub const fn evaluate(self, left: conduit_core::Scalar, right: conduit_core::Scalar) -> bool {
-        match self {
-            Self::Less => left.raw_microunits() < right.raw_microunits(),
-            Self::LessOrEqual => left.raw_microunits() <= right.raw_microunits(),
-            Self::Equal => left.raw_microunits() == right.raw_microunits(),
-            Self::NotEqual => left.raw_microunits() != right.raw_microunits(),
-            Self::GreaterOrEqual => left.raw_microunits() >= right.raw_microunits(),
-            Self::Greater => left.raw_microunits() > right.raw_microunits(),
-        }
+pub fn parse_scalar_comparison(value: &str) -> Option<ScalarComparison> {
+    match value {
+        "lt" => Some(ScalarComparison::Less),
+        "le" => Some(ScalarComparison::LessOrEqual),
+        "eq" => Some(ScalarComparison::Equal),
+        "ne" => Some(ScalarComparison::NotEqual),
+        "ge" => Some(ScalarComparison::GreaterOrEqual),
+        "gt" => Some(ScalarComparison::Greater),
+        _ => None,
     }
 }
 
@@ -163,6 +141,7 @@ fn value_port(name: &str, info: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -186,9 +165,7 @@ pub fn install_logic_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    };
+    use conduit_form::KindSignature;
     for (contract, revision) in [
         (
             logic_compare_scalar_contract(),
@@ -215,28 +192,8 @@ pub fn install_logic_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .into_iter()
-            .map(|field| KindConfigurationField {
-                key: field.key,
-                default_value: field.default_value,
-                rule: match field.rule {
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf { values }
-                    }
-                    _ => unreachable!("logic configuration is one finite text choice"),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract.into_semantic_contract(revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

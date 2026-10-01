@@ -38,6 +38,7 @@ const CONDUITOS_X86_PROOFS: [&str; 9] = [
     "emergency-halt",
 ];
 const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
+const BROWSER_ADMISSION_SHARDS: [&str; 3] = ["browser-host", "creche-workspace", "pages"];
 const GLOBAL_PREFIXES: [&str; 5] = [
     ".github/",
     ".cargo/",
@@ -46,7 +47,7 @@ const GLOBAL_PREFIXES: [&str; 5] = [
     "tools/xtask-dispatch/",
 ];
 const GLOBAL_FILES: [&str; 3] = ["Cargo.toml", "rust-toolchain", "rust-toolchain.toml"];
-const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/tour-products.yml"];
+const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/product-carrier.yml"];
 
 struct ControllerProofSpec {
     id: &'static str,
@@ -147,8 +148,8 @@ fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
         .collect()
 }
 const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
-    ".github/workflows/tour-products.yml",
-    ".github/workflows/tour-pages-deploy.yml",
+    ".github/workflows/product-carrier.yml",
+    ".github/workflows/pages-deploy.yml",
     ".github/workflows/pages-deploy-pr-proof.yml",
     "proof/ci/pages-product-run-selection.spec.mjs",
     "proof/ci/pages-workflow-paths.spec.mjs",
@@ -189,16 +190,16 @@ const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
     "proof/browser/patchbay-html.spec.mjs",
 ];
 const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
-    ".github/workflows/tour-products.yml",
-    "fabrication/workspace/tests/family_contracts.rs",
-    "proof/browser/executable-tour.spec.mjs",
+    ".github/workflows/product-carrier.yml",
+    "make/workspace/tests/family_contracts.rs",
+    "proof/browser/creche-raspberry-pi.spec.mjs",
     "products/creche/tools/stage-creche-product.sh",
     "targets/browser/runtime/src/creche/spore_target.rs",
     "targets/raspberry-pi/deployment/browser/creche-adapter.mjs",
     "targets/raspberry-pi/deployment/browser/image.mjs",
-    "targets/raspberry-pi/fabrication/src/lib.rs",
-    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_b_plus_image.rs",
-    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_board.rs",
+    "targets/raspberry-pi/make/src/lib.rs",
+    "targets/raspberry-pi/make/xtask/armv6_rpi_b_plus_image.rs",
+    "targets/raspberry-pi/make/xtask/armv6_rpi_board.rs",
     "targets/std/deployment/browser/creche-adapter.mjs",
     "tools/xtask/src/commands/host_release.rs",
 ];
@@ -218,7 +219,7 @@ fn is_tongues_analysis_path(path: &str) -> bool {
 }
 
 fn is_creche_presentation_path(path: &str) -> bool {
-    path == "proof/browser/executable-tour.spec.mjs"
+    path == "proof/browser/creche-browser-configuration.spec.mjs"
         || path == "products/creche/tools/stage-creche-product.sh"
         || path == "targets/browser/host/src/server.rs"
         || path == "targets/browser/host/src/server/tests.rs"
@@ -230,10 +231,26 @@ fn is_repository_tool_test(path: &str) -> bool {
     path.starts_with("tools/xtask/tests/") && path.ends_with(".rs")
 }
 
+/// Rust sources compiled only by a package's test target cannot alter a
+/// made product or machine image. Their owning package and reverse
+/// dependents still run through the workspace test shards.
+fn is_rust_test_source(path: &str) -> bool {
+    if !path.ends_with(".rs") {
+        return false;
+    }
+    let file = path.rsplit('/').next().unwrap_or(path);
+    file == "tests.rs"
+        || file.ends_with("_tests.rs")
+        || path.split('/').any(|component| component == "tests")
+}
+
 fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
+    if is_rust_test_source(path) {
+        return false;
+    }
     // Semantic crates are renderer- and machine-neutral contracts. Their
     // reverse-dependent workspace shards compile and test the affected product
-    // graph, including portable/embedded configurations. Fabricating firmware
+    // graph, including portable/embedded configurations. Making firmware
     // and booting every machine adds no distinct proof unless the change also
     // touches a target-sensitive layer, which is classified separately.
     !path.starts_with("semantics/") || !matches!(suite, "esp32" | "conduitos")
@@ -251,6 +268,7 @@ struct ImpactPlan {
     esp32_required: bool,
     esp32_targets: Vec<String>,
     browser_required: bool,
+    browser_admission_shards: Vec<&'static str>,
     conduitos_required: bool,
     conduitos_x86_proofs: Vec<String>,
     conduitos_architectures: Vec<String>,
@@ -393,7 +411,7 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
                 "conduit-esp32-c3-signal",
                 "conduit-esp32-s3-signal",
                 "conduit-esp32-wroom-signal",
-                "conduit-host-esp32-fabrication",
+                "conduit-host-esp32-make",
             ]),
         ),
         (
@@ -405,15 +423,14 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
                 "patchbay-hosted",
                 "patchbay-control",
                 "patchbay-model",
-                "patchbay-native",
             ]),
         ),
         (
             "conduitos",
             BTreeSet::from([
                 "conduitos",
-                "conduit-host-conduitos-fabrication",
-                "conduit-workspace-fabrication",
+                "conduit-host-conduitos-make",
+                "conduit-workspace-make",
             ]),
         ),
     ])
@@ -424,7 +441,7 @@ fn direct_prefixes(suite: &str) -> &'static [&'static str] {
         "esp32" => &["targets/esp32/"],
         "browser" => &[
             "targets/browser/",
-            "products/patchbay/",
+            "products/patchbay/html/",
             "proof/browser/",
             "assets/",
         ],
@@ -511,11 +528,11 @@ fn plan_for_paths(
         .iter()
         .all(|path| PI_ZERO_CRECHE_SLICE.contains(&path.as_str()))
         && [
-            ".github/workflows/tour-products.yml",
-            "proof/browser/executable-tour.spec.mjs",
+            ".github/workflows/product-carrier.yml",
+            "proof/browser/creche-raspberry-pi.spec.mjs",
             "products/creche/tools/stage-creche-product.sh",
             "targets/browser/runtime/src/creche/spore_target.rs",
-            "targets/raspberry-pi/fabrication/src/lib.rs",
+            "targets/raspberry-pi/make/src/lib.rs",
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
@@ -527,7 +544,7 @@ fn plan_for_paths(
             .any(|path| path.starts_with("products/creche/browser/creche"))
         && substantive
             .iter()
-            .any(|path| path.as_str() == "proof/browser/executable-tour.spec.mjs");
+            .any(|path| path.as_str() == "proof/browser/creche-browser-configuration.spec.mjs");
     let pages_deploy_resolver_slice = substantive
         .iter()
         .all(|path| PAGES_DEPLOY_RESOLVER_SLICE.contains(&path.as_str()))
@@ -693,7 +710,7 @@ fn plan_for_paths(
         }
         let mut direct = false;
         for suite in SUITES {
-            if starts_with_any(path, direct_prefixes(suite)) {
+            if !is_rust_test_source(path) && starts_with_any(path, direct_prefixes(suite)) {
                 selected.insert(suite.to_owned(), true);
                 reasons
                     .get_mut(suite)
@@ -798,7 +815,7 @@ fn plan_for_paths(
 }
 
 fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
-    if path.starts_with("targets/esp32/fabrication/")
+    if path.starts_with("targets/esp32/make/")
         || path == "targets/esp32/README.md"
         || path.starts_with("targets/esp32/firmware/wroom-signal/src/")
     {
@@ -816,7 +833,7 @@ fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
 
 fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
     if path == "targets/conduitos/src/bin/aarch64_product.rs"
-        || path == "targets/conduitos/profiles/conduitos-aarch64-headless.profile.json"
+        || path == "targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit"
     {
         impact.aarch64_product = true;
         return;
@@ -849,9 +866,7 @@ fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
             }
             return;
         }
-        if path.starts_with(&format!(
-            "targets/conduitos/fabrication/xtask/{architecture}_"
-        )) {
+        if path.starts_with(&format!("targets/conduitos/make/xtask/{architecture}_")) {
             impact.architectures.insert(architecture.to_owned());
             return;
         }
@@ -971,6 +986,8 @@ fn plan(
         } else {
             Vec::new()
         };
+    let browser_admission_shards =
+        browser_admission_shards(selected["browser"], full_fallback, &changed_paths);
     ImpactPlan {
         requested_base_sha: None,
         candidate_sha: None,
@@ -982,6 +999,7 @@ fn plan(
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
         browser_required: selected["browser"],
+        browser_admission_shards,
         conduitos_required: selected["conduitos"],
         conduitos_x86_proofs: machine.conduitos.x86_proofs.into_iter().collect(),
         conduitos_architectures: machine.conduitos.architectures.into_iter().collect(),
@@ -997,6 +1015,56 @@ fn plan(
         workspace_shards: workspace.shards,
         suite_reasons,
     }
+}
+
+fn browser_admission_shards(
+    browser_required: bool,
+    full_fallback: bool,
+    paths: &[String],
+) -> Vec<&'static str> {
+    if !browser_required {
+        return Vec::new();
+    }
+    if full_fallback
+        || paths.iter().any(|path| {
+            matches!(
+                path.as_str(),
+                ".github/workflows/product-carrier.yml"
+                    | "proof/browser/playwright.config.mjs"
+                    | "proof/browser/package.json"
+                    | "proof/browser/package-lock.json"
+            )
+        })
+    {
+        return BROWSER_ADMISSION_SHARDS.to_vec();
+    }
+
+    let mut shards = vec!["browser-host"];
+    if paths.iter().any(|path| {
+        path.starts_with("products/creche/")
+            || path.starts_with("products/workspace/")
+            || path.starts_with("make/workspace/")
+            || path.starts_with("targets/browser/runtime/src/creche/")
+            || path.starts_with("proof/browser/workspace-")
+            || path == "proof/browser/creche-workspace-continuity.spec.mjs"
+            || path == "proof/browser/browser-body-input.test.mjs"
+            || path == "proof/browser/browser-body-host.test.mjs"
+    }) {
+        shards.push("creche-workspace");
+    }
+    if paths.iter().any(|path| {
+        path.starts_with("site/")
+            || path.starts_with("products/home/")
+            || path.starts_with("products/shared/browser/")
+            || path.starts_with("semantics/presentation/")
+            || path.starts_with("targets/browser/host/")
+            || path.starts_with("proof/browser/pages-")
+            || path == "proof/browser/home-cross-front.spec.mjs"
+            || path == "proof/browser/web-accessibility.spec.mjs"
+    }) {
+        shards.push("pages");
+    }
+    shards
 }
 
 fn empty_reasons() -> BTreeMap<String, Vec<String>> {
@@ -1051,6 +1119,11 @@ fn write_github_outputs(plan: &ImpactPlan) {
         serde_json::to_string(&plan.esp32_targets).expect("ESP32 target matrix serializes")
     );
     println!("browser_required={}", plan.browser_required);
+    println!(
+        "browser_admission_matrix={}",
+        serde_json::to_string(&plan.browser_admission_shards)
+            .expect("browser admission shard matrix serializes")
+    );
     println!("conduitos_required={}", plan.conduitos_required);
     println!(
         "conduitos_x86_matrix={}",

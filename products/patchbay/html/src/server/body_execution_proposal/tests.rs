@@ -44,11 +44,11 @@ pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
         BodyPlanningSession::prepare(&evidence.body, 1, "sign/proposal-wake".into(), forms)
             .unwrap(),
     );
-    if let Some(mut control) = server.presenter_control.take() {
+    if let Some(mut control) = server.mask_control.take() {
         control
             .install_initial_graphical(server.body_planning.as_mut().unwrap())
             .unwrap();
-        server.presenter_control = Some(control);
+        server.mask_control = Some(control);
     }
     server
 }
@@ -62,7 +62,7 @@ fn exact_proposal_round_trips_without_admission_or_state_mutation() {
     let bytes = server.body_execution_proposal().unwrap();
     assert!(bytes.len() <= MAX_PROPOSAL_BYTES);
     let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(json["schema"], "conduit.patchbay/body-execution-proposal@1");
+    assert_eq!(json["schema"], "conduit.body/execution-proposal@1");
     let wake: Wake = serde_json::from_value(json["wake"].clone()).unwrap();
     let plan: BodyPlan = serde_json::from_value(json["plan"].clone()).unwrap();
     assert_eq!(&wake, planning.wake());
@@ -204,7 +204,7 @@ fn http_route_transfers_a_proposal_and_absence_is_a_nonfatal_conflict() {
         worker.join().unwrap().unwrap();
         if present {
             assert!(response.starts_with("HTTP/1.1 200 OK"));
-            assert!(response.contains("conduit.patchbay/body-execution-proposal@1"));
+            assert!(response.contains("conduit.body/execution-proposal@1"));
         } else {
             assert!(response.starts_with("HTTP/1.1 409 Conflict"));
             assert!(response.ends_with("BodyProposalAbsent"));

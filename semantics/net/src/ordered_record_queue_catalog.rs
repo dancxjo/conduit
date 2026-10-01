@@ -38,7 +38,7 @@ pub fn install_ordered_record_queue_catalog(
         ],
     })?;
     profile
-        .insert(ordered_record_queue_kind_projection())
+        .insert_kind(ordered_record_queue_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -90,7 +90,7 @@ pub fn ordered_record_queue_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -110,6 +110,7 @@ fn port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

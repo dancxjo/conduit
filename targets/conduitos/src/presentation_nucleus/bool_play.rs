@@ -200,7 +200,8 @@ fn advertisement(host: &str, boot: &str, value: InfoBool) -> HostAdvertisement {
 }
 
 fn source_offer(value: InfoBool) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(if value.get() {
@@ -221,6 +222,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
             value_kind: kind_id(conduit_core::BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),

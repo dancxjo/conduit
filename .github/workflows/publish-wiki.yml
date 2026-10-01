@@ -1,0 +1,50 @@
+name: Publish wiki
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "wiki/**"
+      - ".github/workflows/publish-wiki.yml"
+  gollum:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Check out GitHub Wiki
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: _wiki
+
+      - name: Publish wiki pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          find _wiki -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a wiki/. _wiki/
+
+          cd _wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Wiki already current."
+            exit 0
+          fi
+
+          git commit -m "Publish wiki from ${GITHUB_SHA}"
+          git push

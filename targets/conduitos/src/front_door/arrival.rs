@@ -1,8 +1,7 @@
 //! Native input adaptation for the shared Crèche draft; no lifecycle authority.
 use alloc::{format, string::String, vec::Vec};
-use conduit_creche_model::birth::{
-    BirthActionOutcome, BirthDraft, BirthDraftRefusal, BirthFormChoice, BirthSelection,
-};
+use conduit_birth_form::{BirthActionOutcome, BirthActions, BirthPresentation};
+use conduit_birth_form::{BirthDraft, BirthDraftRefusal, BirthFormChoice, BirthSelection};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
 use conduit_presentation::ApplicationEventKind;
 

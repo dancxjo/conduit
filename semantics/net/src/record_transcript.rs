@@ -3,8 +3,8 @@
 use alloc::vec::Vec;
 
 use crate::{
-    decode_typed_record, TypedRecordFrameRefusal, MAXIMUM_TYPED_RECORD_FRAME_BYTES,
-    TYPED_RECORD_FRAME_HEADER_BYTES,
+    decode_typed_record, RecordTranscriptDirection, RecordTranscriptTerminal,
+    TypedRecordFrameRefusal, MAXIMUM_TYPED_RECORD_FRAME_BYTES, TYPED_RECORD_FRAME_HEADER_BYTES,
 };
 
 pub const MAXIMUM_RECORD_TRANSCRIPT_ITEMS: usize = 32;
@@ -12,24 +12,7 @@ pub const MAXIMUM_RECORD_TRANSCRIPT_EVENTS: usize = 128;
 pub const MAXIMUM_RECORD_TRANSCRIPT_BYTES: usize =
     MAXIMUM_RECORD_TRANSCRIPT_ITEMS * MAXIMUM_TYPED_RECORD_FRAME_BYTES;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RecordTranscriptDirection {
-    Sent,
-    Received,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RecordTranscriptTerminal {
-    Completed,
-    Cancelled,
-    TransportUnavailable,
-    Disconnected,
-    TimedOut,
-    Refused(u16),
-    Failed(u16),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum StoredTranscriptEvent {
     Empty,
     Record(RecordTranscriptDirection),
@@ -43,7 +26,7 @@ struct TranscriptSlot {
     bytes: Vec<u8>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecordTranscriptEventRef<'a> {
     Record {
         direction: RecordTranscriptDirection,
@@ -52,7 +35,7 @@ pub enum RecordTranscriptEventRef<'a> {
     Terminal(RecordTranscriptTerminal),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordTranscriptEntryRef<'a> {
     pub sequence: u64,
     pub event: RecordTranscriptEventRef<'a>,
@@ -75,14 +58,14 @@ pub const RECORD_TRANSCRIPT_TERMINAL_WIRE_BYTES: usize = 4;
 pub fn encode_record_transcript_terminal(
     terminal: RecordTranscriptTerminal,
 ) -> [u8; RECORD_TRANSCRIPT_TERMINAL_WIRE_BYTES] {
-    let (tag, code) = match terminal {
+    let (tag, code) = match &terminal {
         RecordTranscriptTerminal::Completed => (0, 0),
         RecordTranscriptTerminal::Cancelled => (1, 0),
         RecordTranscriptTerminal::TransportUnavailable => (2, 0),
         RecordTranscriptTerminal::Disconnected => (3, 0),
         RecordTranscriptTerminal::TimedOut => (4, 0),
-        RecordTranscriptTerminal::Refused(code) => (5, code),
-        RecordTranscriptTerminal::Failed(code) => (6, code),
+        RecordTranscriptTerminal::Refused(payload) => (5, *payload.code()),
+        RecordTranscriptTerminal::Failed(payload) => (6, *payload.code()),
     };
     let code = code.to_le_bytes();
     [
@@ -108,8 +91,10 @@ pub fn decode_record_transcript_terminal(
         (2, 0) => Ok(RecordTranscriptTerminal::TransportUnavailable),
         (3, 0) => Ok(RecordTranscriptTerminal::Disconnected),
         (4, 0) => Ok(RecordTranscriptTerminal::TimedOut),
-        (5, code) => Ok(RecordTranscriptTerminal::Refused(code)),
-        (6, code) => Ok(RecordTranscriptTerminal::Failed(code)),
+        (5, code) => RecordTranscriptTerminal::refused(code)
+            .map_err(|_| RecordTranscriptRefusal::MalformedTerminal),
+        (6, code) => RecordTranscriptTerminal::failed(code)
+            .map_err(|_| RecordTranscriptRefusal::MalformedTerminal),
         _ => Err(RecordTranscriptRefusal::MalformedTerminal),
     }
 }
@@ -228,13 +213,13 @@ impl BoundedRecordTranscript {
             return None;
         }
         let slot = &self.slots[(self.head + retained_index) % self.slots.len()];
-        let event = match slot.event {
+        let event = match &slot.event {
             StoredTranscriptEvent::Record(direction) => RecordTranscriptEventRef::Record {
-                direction,
+                direction: *direction,
                 frame: &slot.bytes,
             },
             StoredTranscriptEvent::Terminal(terminal) => {
-                RecordTranscriptEventRef::Terminal(terminal)
+                RecordTranscriptEventRef::Terminal(terminal.clone())
             }
             StoredTranscriptEvent::Empty => return None,
         };

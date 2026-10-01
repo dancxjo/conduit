@@ -114,14 +114,12 @@ pub fn project_llm_patchbay(
         } else {
             PresentationRole::Document
         },
-        "LLM Body",
         "Body containing ordinary typed LLM work",
     );
     if let Some(form) = form {
         content.subject(
             form.clone(),
             PresentationRole::Form,
-            "Program Form",
             "Exact expanded Program Form containing the LLM Gear",
         );
         content.contains(&body, &form);
@@ -129,7 +127,6 @@ pub fn project_llm_patchbay(
     content.subject(
         truth.gear_identity.clone(),
         PresentationRole::Gear,
-        truth.contract.kind_id.as_str(),
         format!("{} semantic Gear", truth.contract.kind_id.as_str()),
     );
     content.contains(&body, &truth.gear_identity);
@@ -160,7 +157,6 @@ pub fn project_llm_patchbay(
         content.subject(
             identity.clone(),
             PresentationRole::Port,
-            port.port_id.as_str(),
             format!(
                 "{} {} carrying {}",
                 truth.contract.kind_id.as_str(),
@@ -340,7 +336,6 @@ fn append_result(
     content.subject(
         identity.clone(),
         PresentationRole::Info,
-        "MODEL INFO",
         "Model-derived Info, not a system Sign",
     );
     content.describes(&identity, &truth.gear_identity);
@@ -385,7 +380,6 @@ fn append_candidate(
     content.subject(
         candidate.candidate_identity.clone(),
         PresentationRole::Candidate,
-        "Candidate Form",
         "Model-produced candidate Form open in the ordinary editor and not running",
     );
     content.describes(&candidate.candidate_identity, &truth.gear_identity);
@@ -438,7 +432,6 @@ fn append_request_stages(
         content.subject(
             proposal.proposal_id.clone(),
             PresentationRole::Status,
-            "MODEL PROPOSAL",
             "Model-derived request awaiting an authority decision",
         );
         content.describes(&proposal.proposal_id, &truth.gear_identity);
@@ -474,7 +467,6 @@ fn append_request_stages(
         content.subject(
             decision.decision_id.clone(),
             PresentationRole::Status,
-            "MODEL REQUEST DECISION",
             "Authority decision for a model-derived proposal",
         );
         content.describes(&decision.decision_id, &truth.gear_identity);
@@ -507,7 +499,6 @@ fn append_request_stages(
         content.subject(
             sign_subject.clone(),
             PresentationRole::Sign,
-            "SYSTEM SIGN",
             "System evidence produced after an admitted effect request",
         );
         content.describes(&sign_subject, &truth.gear_identity);

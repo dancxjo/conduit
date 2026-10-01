@@ -1,6 +1,6 @@
 use super::*;
 
-fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
+pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
     let payloads = vec![
         ZipEntry {
             name: "conduit-linux-x86_64".into(),
@@ -36,9 +36,9 @@ fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
             "image_content_digest": image_content_sha256,
             "target": "std/x86_64/computer",
             "output": "native-bundle",
-            "fabrication": {
-                "fabrication_package_id": "hosted-native@1",
-                "fabrication_package_revision": 1,
+            "make": {
+                "make_package_id": "hosted-native@1",
+                "make_package_revision": 1,
                 "toolchain_identity": "rust/reviewed",
                 "builder_adapter": "conduit-host-hosted/build-native@1",
                 "strategy": "deterministic-specialized-build",

@@ -62,6 +62,7 @@ fn planned_binding() -> SessionBinding {
                 maximum_frame_bytes: 2_048,
             },
         },
+        abnormal_kind: None,
     }
 }
 

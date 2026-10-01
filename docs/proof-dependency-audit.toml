@@ -52,7 +52,7 @@ manifest = "targets/esp32/firmware/c3-signal/Cargo.toml"
 dependency = "conduit-alife-distributed-conformance"
 kind = "build-dependencies"
 classification = "firmware-build-fixture"
-resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware fabrication."
+resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware make."
 
 [[edges]]
 manifest = "targets/esp32/firmware/c3-signal/Cargo.toml"
@@ -73,7 +73,7 @@ manifest = "targets/esp32/firmware/wroom-signal/Cargo.toml"
 dependency = "conduit-alife-distributed-conformance"
 kind = "build-dependencies"
 classification = "firmware-build-fixture"
-resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware fabrication."
+resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware make."
 
 [[edges]]
 manifest = "targets/esp32/firmware/wroom-signal/Cargo.toml"
@@ -94,14 +94,14 @@ manifest = "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
 dependency = "conduit-alife-distributed-conformance"
 kind = "build-dependencies"
 classification = "firmware-build-fixture"
-resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware fabrication."
+resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware make."
 
 [[edges]]
 manifest = "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
 dependency = "conduit-r1-network-conformance"
 kind = "build-dependencies"
 classification = "firmware-build-fixture"
-resolution = "Keep fixed R1 plans in proof and pass sealed artifacts into target fabrication."
+resolution = "Keep fixed R1 plans in proof and pass sealed artifacts into target make."
 
 [[edges]]
 manifest = "targets/rp2040/firmware/pico-w-signal/Cargo.toml"

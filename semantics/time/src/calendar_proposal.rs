@@ -4,8 +4,8 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AvailabilityState, CalendarRefusal, ParticipantAvailability, TemporalInstant, TemporalRelation,
-    TemporalWindow,
+    AvailabilityState, CalendarRefusal, MeetingProposalRefusal, ParticipantAvailability,
+    TemporalInstant, TemporalRelation, TemporalWindow,
 };
 
 pub const MAXIMUM_MEETING_CANDIDATES: usize = 64;
@@ -54,16 +54,6 @@ pub struct MeetingProposal {
     pub availability_basis_identities: Vec<String>,
     pub candidates: Vec<ProposedMeetingSlot>,
     pub rejected: Vec<RejectedMeetingSlot>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MeetingProposalRefusal {
-    InvalidRequest,
-    InvalidAvailability,
-    StaleAvailability,
-    MissingParticipant,
-    NoCommonAvailability,
-    IncomparableTime,
 }
 
 impl MeetingProposalRequest {

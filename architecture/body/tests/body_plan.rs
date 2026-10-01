@@ -3,7 +3,7 @@ use conduit_body::{
     ResidentForm, WakeLifecycle,
 };
 use conduit_core::{
-    seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, Plan, SignId, SourceDocumentId,
+    seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, Plan, PlanId, SignId, SourceDocumentId,
 };
 
 fn resident(name: &str) -> ResidentForm {
@@ -56,6 +56,10 @@ fn one_body_plan_and_one_play_cover_two_exact_forms() {
     .unwrap();
     assert_eq!(body_plan.forms[0].form, dashboard);
     assert_eq!(body_plan.forms[1].form, service);
+    assert_eq!(body_plan.verify_seal(), Ok(()));
+    let mut forged = body_plan.clone();
+    forged.plan_id = PlanId::from("body-plan/forged");
+    assert_eq!(forged.verify_seal(), Err(BodyPlanError::InvalidIdentity));
 
     let waiting = wake
         .body_plan_ready(&body_plan, SignId::from("sign/planned"))

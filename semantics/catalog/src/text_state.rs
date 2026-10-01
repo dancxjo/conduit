@@ -104,12 +104,14 @@ fn contract(kind: &str, revision: &str, output: &str, summary: &str) -> Standard
             value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id(output),
             value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "maximum-bytes".to_string(),
@@ -179,13 +181,10 @@ pub fn install_text_state_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
-    for (contract, revision) in [
-        (text_edit_contract(), TEXT_EDIT_REVISION),
-        (text_submit_lines_contract(), TEXT_SUBMIT_LINES_REVISION),
+    use conduit_form::{KindSignature, StartupParameterSignature};
+    for contract in [
+        text_edit_semantic_contract(),
+        text_submit_lines_semantic_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -196,20 +195,7 @@ pub fn install_text_state_catalogs(
             }],
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: vec![KindConfigurationField {
-                    key: "maximum-bytes".to_string(),
-                    default_value: ConfigurationValue::U64(256),
-                    rule: KindConfigurationRule::U64Range {
-                        minimum: 1,
-                        maximum: MAXIMUM_EDITED_TEXT_BYTES as u64,
-                    },
-                }],
-            })
+            .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
     Ok(())

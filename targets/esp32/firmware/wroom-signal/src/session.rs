@@ -235,6 +235,7 @@ fn binding(boot: &crate::receipts::BootIdentity) -> Result<SessionBinding, &'sta
                 .expect("the frozen BLE profile remains valid"),
             contract: crate::generated::GENERATED_REMOTE_ENDPOINT_LINE_CONTRACTS[0],
         },
+        abnormal_kind: None,
     }
     .with_observed_boots(source_boot, BootId::from(boot.boot_id()))
     .map_err(|_| "runtime-binding")

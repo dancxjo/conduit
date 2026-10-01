@@ -11,7 +11,7 @@ const HEADER_BYTES: usize = MAGIC.len() + 4;
 
 pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
     // SAFETY: RP2040 maps its exact 2 MiB external flash at 0x1000_0000. The
-    // fabrication contract reserves and writes the final 4 KiB sector. This
+    // make contract reserves and writes the final 4 KiB sector. This
     // immutable view is bounded to that sector and is never written at runtime.
     let bytes = unsafe {
         core::slice::from_raw_parts(

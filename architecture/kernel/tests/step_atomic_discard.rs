@@ -320,15 +320,7 @@ fn install_route<const ROUTES: usize, const TARGETS: usize>(
 }
 
 fn inactive_cord() -> CordSpec {
-    CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-        pressure_policy: Default::default(),
-    }
+    CordSpec::inactive()
 }
 
 fn sign<const EVENTS: usize>() -> FixedSignLog<EVENTS> {

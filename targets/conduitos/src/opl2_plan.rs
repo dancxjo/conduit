@@ -217,7 +217,8 @@ fn checked(source: &str) -> Result<conduit_form::CheckedForm, PreparationError> 
 }
 
 fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-empty-control-source@1"),
@@ -229,6 +230,7 @@ fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
             value_kind: kind_id(conduit_audio::MUSIC_CONTROL_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         }],
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(NOTE_SOURCE_PROFILE),
@@ -248,7 +250,8 @@ fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
 }
 
 fn note_source_offer(build_id: &str) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-note-source@1"),
@@ -260,6 +263,7 @@ fn note_source_offer(build_id: &str) -> CapabilityOffer {
             value_kind: kind_id(conduit_audio::MUSIC_NOTE_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         }],
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(NOTE_SOURCE_PROFILE),

@@ -4,8 +4,8 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
-    StartupCatalog, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindSignature, ProfileCatalog, StartupCatalog,
+    StartupParameterSignature,
 };
 use serde::{Deserialize, Serialize};
 
@@ -89,6 +89,27 @@ pub fn streaming_synthesize_contract() -> SpeechContract {
     }
 }
 
+pub fn synthesize_semantic_contract() -> Kind {
+    synthesis_semantic_contract(synthesize_contract())
+}
+
+pub fn streaming_synthesize_semantic_contract() -> Kind {
+    synthesis_semantic_contract(streaming_synthesize_contract())
+}
+
+fn synthesis_semantic_contract(contract: SpeechContract) -> Kind {
+    let mut kind = contract.into_semantic_capability_contract();
+    kind.configuration = vec![KindConfigurationField {
+        key: "maximum-output-bytes".into(),
+        default_value: conduit_core::ConfigurationValue::U64(u64::from(MAXIMUM_PCM_BYTES)),
+        rule: KindConfigurationRule::U64Range {
+            minimum: 1,
+            maximum: u64::from(MAXIMUM_PCM_BYTES),
+        },
+    }];
+    kind
+}
+
 pub fn audio_play_contract() -> SpeechContract {
     SpeechContract {
         startup_parameters: Vec::new(),
@@ -110,7 +131,16 @@ pub fn install_speech_catalogs(
 ) -> Result<(), String> {
     install_speech_synthesis_catalog(startup, profile)?;
     install_speech_commit_catalog(startup, profile)?;
-    install_contract(startup, profile, audio_play_contract(), false)?;
+    startup.insert(KindSignature {
+        kind: AUDIO_PLAY_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert_kind(
+            conduit_semantic_catalog::audio_play_contract()
+                .into_semantic_contract(AUDIO_PLAY_REVISION),
+        )
+        .map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -124,13 +154,7 @@ pub fn install_speech_commit_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![],
-        })
+        .insert_kind(contract.into_semantic_capability_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -160,28 +184,11 @@ fn install_contract(
             vec![]
         },
     })?;
-    profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: if is_synthesis {
-                vec![KindConfigurationField {
-                    key: "maximum-output-bytes".into(),
-                    default_value: conduit_core::ConfigurationValue::U64(u64::from(
-                        MAXIMUM_PCM_BYTES,
-                    )),
-                    rule: KindConfigurationRule::U64Range {
-                        minimum: 1,
-                        maximum: u64::from(MAXIMUM_PCM_BYTES),
-                    },
-                }]
-            } else {
-                vec![]
-            },
-        })
-        .map_err(|error| error.to_string())
+    let mut kind = contract.into_semantic_capability_contract();
+    if is_synthesis {
+        kind.configuration = synthesis_semantic_contract(synthesize_contract()).configuration;
+    }
+    profile.insert_kind(kind).map_err(|error| error.to_string())
 }
 
 fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
@@ -190,6 +197,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -199,6 +207,7 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 

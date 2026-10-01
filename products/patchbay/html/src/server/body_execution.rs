@@ -50,7 +50,7 @@ impl PatchbayHtmlServer {
         }
         let request: ExecutionRequest =
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
-        if request.schema != "conduit.patchbay/body-execution-request@1" {
+        if request.schema != "conduit.body/execution-request@1" {
             return Err(ServerError::InvalidRequest);
         }
         if matches!(request.action, ExecutionAction::Claim { .. }) {
@@ -114,20 +114,17 @@ impl PatchbayHtmlServer {
             .ok_or_else(|| ServerError::Interaction("BodyWorkloadAbsent".into()))?;
         let (session, mut snapshot) = history::retain(&self.snapshot, session, &planning)?;
         snapshot.body_planning = Some(planning.snapshot());
-        if let (Some(control), Some(play)) = (&mut self.presenter_control, started_play.as_ref()) {
+        if let (Some(control), Some(play)) = (&mut self.mask_control, started_play.as_ref()) {
             control
                 .refresh_presentation(snapshot.presentation.clone())
-                .map_err(|error| {
-                    ServerError::Interaction(format!("Presenter refresh: {error:?}"))
-                })?;
-            let topology = control.project_current(&planning, play).map_err(|error| {
-                ServerError::Interaction(format!("Presenter projection: {error:?}"))
-            })?;
-            snapshot.presenter_topology = Some(
-                patchbay_model::project_presenter_topology(control.presentation(), &topology)
-                    .map_err(|error| {
-                        ServerError::Interaction(format!("Presenter projection: {error:?}"))
-                    })?,
+                .map_err(|error| ServerError::Interaction(format!("Mask refresh: {error:?}")))?;
+            let topology = control
+                .project_current(&planning, play)
+                .map_err(|error| ServerError::Interaction(format!("Mask projection: {error:?}")))?;
+            snapshot.mask_topology = Some(
+                patchbay_model::project_mask_topology(control.presentation(), &topology).map_err(
+                    |error| ServerError::Interaction(format!("Mask projection: {error:?}")),
+                )?,
             );
         }
         snapshot.interaction.revision = snapshot

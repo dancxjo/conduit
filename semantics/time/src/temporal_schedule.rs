@@ -8,8 +8,9 @@ use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant, RecurrenceOccurrence,
-    TemporalInstant, TemporalRelation, TemporalScale, TemporalWindow, TemporalWindowPosition,
+    ClockChangeBehavior, MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant,
+    RecurrenceOccurrence, ScheduledIntentRefusal, SuspendBehavior, TemporalInstant,
+    TemporalRelation, TemporalScale, TemporalWindow, TemporalWindowPosition,
     MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
@@ -43,19 +44,6 @@ pub struct CivilTrigger {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SuspendBehavior {
-    ClockIncludesSuspend,
-    ClockExcludesSuspend,
-    RefuseAfterSuspend,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ClockChangeBehavior {
-    ReevaluateWindow,
-    RefuseAfterChange,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MissedOccurrencePolicy {
     Expire,
     Skip,
@@ -85,17 +73,6 @@ pub enum ScheduledOccurrenceDecision {
     Suspended,
     ClockChanged,
     ClockUncertain,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScheduledIntentRefusal {
-    InvalidIdentity,
-    InvalidOccurrence,
-    TriggerOccurrenceMismatch,
-    InvalidWindow,
-    IncomparableObservation,
-    WrongObservationProfile,
-    InvalidLatePolicy,
 }
 
 impl<T> ScheduledIntent<T> {

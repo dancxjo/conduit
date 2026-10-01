@@ -79,6 +79,7 @@ fn family(kind: &str) -> &'static str {
         | conduit_semantic_catalog::BOOL_LITERAL_KIND => "typed-values",
         conduit_semantic_catalog::TIMED_BUTTON_ATTEMPT_KIND
         | conduit_time::TIME_EVERY_KIND
+        | conduit_semantic_catalog::TIME_DEBOUNCE_KIND
         | conduit_semantic_catalog::TIME_DELAY_KIND
         | conduit_semantic_catalog::ORDERED_EVENT_INTERVALS_KIND
         | conduit_semantic_catalog::NORMALIZE_SEQUENCE_KIND => "time",
@@ -125,6 +126,7 @@ mod tests {
             "browser/kernel-logic-select-scalar@1",
             "browser/kernel-layout-viewport@1",
             "browser/kernel-time-delay-bool@1",
+            "browser/kernel-time-debounce-bool@1",
             "browser/window-keyboard@1",
             "browser/presentation-bool@1",
         ] {

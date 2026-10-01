@@ -18,10 +18,10 @@ mod debug_control;
 mod front_door;
 mod http;
 mod interaction;
+mod mask_control;
 mod navigation;
 mod observation;
 mod parts;
-mod presenter_control;
 mod text_lab_loss;
 mod timeline;
 mod transition;
@@ -40,7 +40,7 @@ const APPLICATION_LOADER: &[u8] =
 const APPLICATION_STORAGE: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/browser-application-storage.mjs");
 // Matches the runtime resource bound in patchbay.application.template.json.
-const MAX_BROWSER_WASM_BYTES: usize = 8 * 1024 * 1024;
+const MAX_BROWSER_WASM_BYTES: usize = 12 * 1024 * 1024;
 const EMPTY_BROWSER_WASM: &[u8] = b"\0asm\x01\0\0\0";
 
 #[derive(Debug)]
@@ -119,7 +119,7 @@ pub struct PatchbayHtmlServer {
     body_workload: Option<patchbay_model::PatchbayBodyWorkloadSession>,
     body_planning_forms: Vec<patchbay_model::FormCandidate>,
     body_planning: Option<patchbay_model::BodyPlanningSession>,
-    presenter_control: Option<patchbay_model::PresenterControlSession>,
+    mask_control: Option<patchbay_model::MaskControlSession>,
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
     text_lab_base: Option<String>,
@@ -173,7 +173,7 @@ impl PatchbayHtmlServer {
             body_workload,
             body_planning_forms: Vec::new(),
             body_planning: None,
-            presenter_control: None,
+            mask_control: None,
             body_admission: None,
             browser_wasm: None,
             text_lab_base: None,
@@ -235,10 +235,10 @@ impl PatchbayHtmlServer {
         };
         if let Some(form) = selector_form {
             let manifestation = &self.snapshot.renderer.manifestation;
-            self.presenter_control = Some(
-                patchbay_model::PresenterControlSession::new(
+            self.mask_control = Some(
+                patchbay_model::MaskControlSession::new(
                     self.snapshot.presentation.clone(),
-                    conduit_body::BodyPresentationSelector {
+                    conduit_body::BodyFaceSelector {
                         form,
                         source_placement_id: self
                             .snapshot
@@ -263,9 +263,7 @@ impl PatchbayHtmlServer {
                         target_subject: "patchbay-html/speech-receipt".into(),
                     },
                 )
-                .map_err(|error| {
-                    ServerError::Interaction(format!("Presenter control: {error:?}"))
-                })?,
+                .map_err(|error| ServerError::Interaction(format!("Mask control: {error:?}")))?,
             );
         }
         self.body_planning_forms = forms;

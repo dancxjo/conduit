@@ -27,7 +27,7 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
   family: Object.freeze({ id: "conduit-target-family/browser@1", label: "Browser Hosts" }),
   target: TARGET,
   intentions: EXISTING_COMPUTER_MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed generic browser bundle" }),
   ]),
   carriers: Object.freeze({

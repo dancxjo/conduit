@@ -2,16 +2,23 @@
 
 mod common;
 
-use common::{checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE};
-use conduit_core::{bind_active_play, SignId};
+use common::{
+    available_mask_show, checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE,
+};
+use conduit_core::{
+    encode_count, CheckedValueContract, IntervalEndpoint, Quantity, QuantityUnit, ValueConstraint,
+    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
+};
+use conduit_form::TextPatternExpression;
 use conduit_presentation::{
-    Manifestation, ManifestationLifecycle, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosureLevel, PresentationInput,
-    PresentationInteraction, PresentationInteractionDisposition, PresentationInteractionFailure,
-    PresentationInteractionLedger, PresentationInteractionRefusal, UTF8_TEXT_VALUE_KIND,
+    FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionDisposition,
+    FaceInteractionFailure, FaceInteractionLedger, FaceInteractionRefusal, MaskShow, Presentation,
+    PresentationAction, PresentationActionAvailability, PresentationContextBasis,
+    PresentationDisclosureLevel, PresentationInteractionContext, PresentationRelationshipKind,
+    UTF8_TEXT_VALUE_KIND,
 };
 
-fn available_interaction_basis() -> (Presentation, Manifestation) {
+fn available_interaction_basis() -> (Presentation, MaskShow) {
     let form = checked_renderer_form();
     let plan = plan_for(
         &form,
@@ -26,7 +33,7 @@ fn available_interaction_basis() -> (Presentation, Manifestation) {
         ),
     );
     let base = presentation(&form, &plan);
-    let presentation = Presentation::new_with_interactions(
+    let presentation = Presentation::new_with_semantics(
         base.revision,
         base.basis,
         base.subjects,
@@ -37,178 +44,519 @@ fn available_interaction_basis() -> (Presentation, Manifestation) {
             identity: "message/send".into(),
             intent: "message/send".into(),
             target: "patchbay/form".into(),
-            label: "Send".into(),
+            name: "Send".into(),
+            arguments: vec![FaceActionArgument::text(
+                "message/input".into(),
+                "Message".into(),
+                1,
+                8,
+            )
+            .unwrap()],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
-        }],
-        vec![PresentationInput {
-            identity: "message/input".into(),
-            target: "patchbay/form".into(),
-            value_kind: UTF8_TEXT_VALUE_KIND.into(),
-            maximum_bytes: 8,
-            allow_empty: false,
-            label: "Message".into(),
-            accessibility_name: "Message".into(),
-            submit_action: "message/send".into(),
         }],
         base.disclosures,
     )
     .unwrap();
-    let placement = plan.fragments[0].placements[0].placement_id.clone();
-    let active = bind_active_play(
-        &plan.plan_id,
-        &plan.fragments[0].host_id,
-        &plan.fragments[0].boot_id,
-        1,
-    );
-    let manifestation = Manifestation::prepared(
-        &presentation,
-        &plan,
-        active,
-        placement,
-        "patchbay/form".into(),
-        "display/0".into(),
-        SignId::from("interaction/prepared"),
+    let show = available_mask_show(&presentation);
+    (presentation, show)
+}
+
+fn argument(name: &str, value: &[u8]) -> FaceInteractionArgument {
+    FaceInteractionArgument {
+        name: name.into(),
+        value_kind: UTF8_TEXT_VALUE_KIND.into(),
+        value: value.to_vec(),
+    }
+}
+
+fn bounded_lowercase_pattern(maximum: u16) -> conduit_core::CheckedTextPattern {
+    TextPatternExpression::Repeat {
+        expression: Box::new(TextPatternExpression::ScalarRange {
+            first: 'a' as u32,
+            last: 'z' as u32,
+        }),
+        minimum: 1,
+        maximum,
+    }
+    .compile(u32::from(maximum))
+    .expect("reviewed bounded lowercase pattern compiles during checking")
+}
+
+fn patterned_argument(maximum: u16) -> FaceActionArgument {
+    FaceActionArgument {
+        name: "message/input".into(),
+        value_name: "Lowercase message".into(),
+        contract: CheckedValueContract::new(
+            UTF8_TEXT_VALUE_KIND.into(),
+            u32::from(maximum),
+            vec![
+                ValueConstraint::ByteLength {
+                    minimum: 1,
+                    maximum: u32::from(maximum),
+                },
+                ValueConstraint::TextPattern {
+                    pattern: bounded_lowercase_pattern(maximum),
+                    anchored_start: true,
+                    anchored_end: true,
+                    negated: false,
+                },
+            ],
+        )
+        .expect("reviewed Face pattern contract is canonical"),
+    }
+}
+
+fn ranged_and_member_arguments() -> Vec<FaceActionArgument> {
+    vec![
+        FaceActionArgument {
+            name: "sample/count".into(),
+            value_name: "Sample count from two through four".into(),
+            contract: CheckedValueContract::new(
+                COUNT_INFO_ID.into(),
+                COUNT_ENCODED_LEN as u32,
+                vec![ValueConstraint::UnsignedRange {
+                    minimum: Some(2),
+                    maximum: Some(4),
+                    minimum_endpoint: IntervalEndpoint::Inclusive,
+                    maximum_endpoint: IntervalEndpoint::Inclusive,
+                }],
+            )
+            .expect("reviewed Face count range is canonical"),
+        },
+        FaceActionArgument {
+            name: "sample/distance".into(),
+            value_name: "Distance from one through two meters".into(),
+            contract: CheckedValueContract::new(
+                DISTANCE_INFO_ID.into(),
+                QUANTITY_ENCODED_LEN as u32,
+                vec![ValueConstraint::QuantityRange {
+                    minimum: Some(Quantity::new(1, QuantityUnit::Meter)),
+                    maximum: Some(Quantity::new(2, QuantityUnit::Meter)),
+                    minimum_endpoint: IntervalEndpoint::Inclusive,
+                    maximum_endpoint: IntervalEndpoint::Inclusive,
+                }],
+            )
+            .expect("reviewed Face distance range is canonical"),
+        },
+        FaceActionArgument {
+            name: "sample/mode".into(),
+            value_name: "Sampling mode".into(),
+            contract: CheckedValueContract::new(
+                UTF8_TEXT_VALUE_KIND.into(),
+                8,
+                vec![ValueConstraint::CanonicalMembership {
+                    members: vec![b"careful".to_vec(), b"quick".to_vec()],
+                    negated: false,
+                }],
+            )
+            .expect("reviewed Face finite membership is canonical"),
+        },
+    ]
+}
+
+fn rebuild_with_interactions(
+    face: &Presentation,
+    actions: Vec<PresentationAction>,
+) -> Presentation {
+    Presentation::new_with_semantics(
+        face.revision,
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+        actions,
+        face.disclosures.clone(),
     )
     .unwrap()
-    .transition(
-        ManifestationLifecycle::Available,
-        SignId::from("interaction/available"),
+}
+
+#[test]
+fn zero_argument_action_needs_no_counterfeit_empty_input() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions.push(PresentationAction {
+        identity: "message/refresh".into(),
+        intent: "message/refresh".into(),
+        target: "patchbay/form".into(),
+        name: "Refresh".into(),
+        arguments: vec![],
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: PresentationActionAvailability::Available,
+    });
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+
+    FaceInteraction::new(&face, &show, "message/refresh", "patchbay/form", vec![], 1).unwrap();
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/refresh",
+            "patchbay/form",
+            vec![argument("counterfeit/empty", b"")],
+            2,
+        ),
+        Err(FaceInteractionRefusal::UnknownArgument)
+    );
+}
+
+#[test]
+fn multiple_named_arguments_are_admitted_as_one_complete_atomic_interaction() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions[0]
+        .arguments
+        .push(FaceActionArgument::text("message/subject".into(), "Subject".into(), 1, 16).unwrap());
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+    let complete = vec![
+        argument("message/input", b"hello"),
+        argument("message/subject", b"greeting"),
+    ];
+
+    let interaction = FaceInteraction::new(
+        &face,
+        &show,
+        "message/send",
+        "patchbay/form",
+        complete.clone(),
+        1,
     )
     .unwrap();
-    (presentation, manifestation)
+    assert_eq!(interaction.arguments, complete);
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"hello")],
+            2,
+        ),
+        Err(FaceInteractionRefusal::MissingArgument)
+    );
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![
+                argument("message/input", b"hello"),
+                argument("message/input", b"again"),
+            ],
+            3,
+        ),
+        Err(FaceInteractionRefusal::DuplicateArgument)
+    );
 }
 
 #[test]
 fn cancellation_and_renderer_failure_are_terminal_evidence_not_success() {
-    let (presentation, manifestation) = available_interaction_basis();
+    let (presentation, show) = available_interaction_basis();
     for failure in [
-        PresentationInteractionFailure::Cancelled,
-        PresentationInteractionFailure::AdapterUnavailable,
-        PresentationInteractionFailure::DeliveryFailed,
+        FaceInteractionFailure::Cancelled,
+        FaceInteractionFailure::AdapterUnavailable,
+        FaceInteractionFailure::DeliveryFailed,
     ] {
-        let interaction = PresentationInteraction::new(
+        let interaction = FaceInteraction::new(
             &presentation,
-            &manifestation,
-            "message/input",
+            &show,
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            b"ok",
+            vec![argument("message/input", b"ok")],
             failure as u64,
         )
         .unwrap();
-        let mut ledger = PresentationInteractionLedger::new(1, 1).unwrap();
+        let mut ledger = FaceInteractionLedger::new(1, 1).unwrap();
         ledger.admit(interaction).unwrap();
         let evidence = ledger
-            .finish_front(PresentationInteractionDisposition::Failed(failure))
+            .finish_front(FaceInteractionDisposition::Failed(failure))
             .unwrap();
         assert_eq!(
             evidence.disposition,
-            PresentationInteractionDisposition::Failed(failure)
+            FaceInteractionDisposition::Failed(failure)
         );
     }
 }
 
 #[test]
 fn exact_available_interaction_round_trips_and_evidence_omits_plaintext() {
-    let (presentation, manifestation) = available_interaction_basis();
-    let interaction = PresentationInteraction::new(
+    let (presentation, show) = available_interaction_basis();
+    let interaction = FaceInteraction::new(
         &presentation,
-        &manifestation,
-        "message/input",
+        &show,
         "message/send",
         "patchbay/form",
-        UTF8_TEXT_VALUE_KIND,
-        b"hello",
+        vec![argument("message/input", b"hello")],
         7,
     )
     .unwrap();
-    let decoded = PresentationInteraction::decode(&interaction.encode()).unwrap();
-    decoded
-        .validate_against(&presentation, &manifestation)
-        .unwrap();
+    let decoded = FaceInteraction::decode(&interaction.encode()).unwrap();
+    decoded.validate_against(&presentation, &show).unwrap();
     let mut stale_interaction = decoded.clone();
-    stale_interaction.manifestation_id = "manifestation/stale".into();
+    stale_interaction.show_id = "show/stale".into();
     assert_eq!(
-        stale_interaction.validate_against(&presentation, &manifestation),
-        Err(PresentationInteractionRefusal::StaleManifestation)
+        stale_interaction.validate_against(&presentation, &show),
+        Err(FaceInteractionRefusal::StaleShow)
     );
-    let mut ledger = PresentationInteractionLedger::new(1, 1).unwrap();
+    let mut ledger = FaceInteractionLedger::new(1, 1).unwrap();
     ledger.admit(decoded).unwrap();
     let evidence = ledger
-        .finish_front(PresentationInteractionDisposition::Accepted {
+        .finish_front(FaceInteractionDisposition::Accepted {
             operation_request_id: "request/7".into(),
         })
         .unwrap();
-    assert_eq!(evidence.value_bytes, 5);
+    assert_eq!(evidence.arguments[0].value_bytes, 5);
     assert!(!format!("{evidence:?}").contains("hello"));
 }
 
 #[test]
+fn changing_only_interaction_context_stales_action_and_input_correlation() {
+    let (presentation, show) = available_interaction_basis();
+    let interaction = FaceInteraction::new(
+        &presentation,
+        &show,
+        "message/send",
+        "patchbay/form",
+        vec![argument("message/input", b"hello")],
+        8,
+    )
+    .unwrap();
+    let other_context = presentation
+        .clone()
+        .with_interaction_context(PresentationInteractionContext {
+            identity: "presentation/context/other-participant".into(),
+            basis: vec![PresentationContextBasis {
+                source: "patchbay/form".into(),
+                relationship: PresentationRelationshipKind::Contains,
+                target: "patchbay/renderer".into(),
+            }],
+        })
+        .unwrap();
+
+    assert_ne!(presentation.identity, other_context.identity);
+    assert_eq!(
+        interaction.validate_against(&other_context, &show),
+        Err(FaceInteractionRefusal::StaleFace)
+    );
+}
+
+#[test]
 fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly() {
-    let (presentation, manifestation) = available_interaction_basis();
+    let (presentation, show) = available_interaction_basis();
     let make = |value: &[u8], sequence| {
-        PresentationInteraction::new(
+        FaceInteraction::new(
             &presentation,
-            &manifestation,
-            "message/input",
+            &show,
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            value,
+            vec![argument("message/input", value)],
             sequence,
         )
     };
     assert_eq!(
         make(b"", 0),
-        Err(PresentationInteractionRefusal::EmptyValue)
+        Err(FaceInteractionRefusal::ViolatedConstraint)
     );
     assert_eq!(
         make(b"123456789", 0),
-        Err(PresentationInteractionRefusal::OversizeValue)
+        Err(FaceInteractionRefusal::OversizeValue)
     );
     assert_eq!(
         make(&[0xff], 0),
-        Err(PresentationInteractionRefusal::MalformedEncoding)
+        Err(FaceInteractionRefusal::MalformedEncoding)
     );
     assert_eq!(
-        PresentationInteraction::new(
+        FaceInteraction::new(
             &presentation,
-            &manifestation,
-            "missing",
+            &show,
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            b"ok",
+            vec![argument("missing", b"ok")],
             0
         ),
-        Err(PresentationInteractionRefusal::UnknownInput)
+        Err(FaceInteractionRefusal::MissingArgument)
     );
     let accepted = make(b"ok", 1).unwrap();
-    let mut ledger = PresentationInteractionLedger::new(1, 2).unwrap();
+    let mut ledger = FaceInteractionLedger::new(1, 2).unwrap();
     ledger.admit(accepted.clone()).unwrap();
     assert_eq!(
         ledger.admit(accepted),
-        Err(PresentationInteractionRefusal::DuplicateDelivery)
+        Err(FaceInteractionRefusal::DuplicateDelivery)
     );
     assert_eq!(
         ledger.admit(make(b"next", 2).unwrap()),
-        Err(PresentationInteractionRefusal::QueuePressure)
+        Err(FaceInteractionRefusal::QueuePressure)
     );
-    let mut stale = manifestation.clone();
+    let mut stale = show.clone();
     stale.presentation_revision += 1;
     assert_eq!(
-        PresentationInteraction::new(
+        FaceInteraction::new(
             &presentation,
             &stale,
-            "message/input",
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            b"ok",
+            vec![argument("message/input", b"ok")],
             3
         ),
-        Err(PresentationInteractionRefusal::StaleManifestation)
+        Err(FaceInteractionRefusal::StaleShow)
     );
+}
+
+#[test]
+fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspection() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions[0].arguments = vec![patterned_argument(8)];
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+
+    FaceInteraction::new(
+        &face,
+        &show,
+        "message/send",
+        "patchbay/form",
+        vec![argument("message/input", b"conduit")],
+        1,
+    )
+    .expect("an exact full pattern match is admitted");
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"Conduit")],
+            2,
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"toolonggg")],
+            3,
+        ),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", &[0xff])],
+            4,
+        ),
+        Err(FaceInteractionRefusal::MalformedEncoding)
+    );
+
+    let mut stale_show = show.clone();
+    stale_show.presentation_revision += 1;
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &stale_show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"Conduit")],
+            5,
+        ),
+        Err(FaceInteractionRefusal::StaleShow),
+        "Show correlation is checked before value admission"
+    );
+
+    let mut other_actions = face.actions.clone();
+    other_actions[0].arguments = vec![patterned_argument(7)];
+    let other_face = rebuild_with_interactions(&face, other_actions);
+    assert_ne!(face.identity, other_face.identity);
+
+    let linear = conduit_presentation::render_linear_presentation(&face).unwrap();
+    let action = linear
+        .lines
+        .iter()
+        .find(|line| line.starts_with("ACTION "))
+        .expect("deterministic-linear Mask exposes the action contract");
+    assert!(action.contains("TextPattern"));
+    assert!(action.contains("maximum_input_characters: 8"));
+}
+
+#[test]
+fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspection() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions[0].arguments = ranged_and_member_arguments();
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+    let interaction = |count: u64, distance: Quantity, mode: &[u8], sequence| {
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![
+                FaceInteractionArgument {
+                    name: "sample/count".into(),
+                    value_kind: COUNT_INFO_ID.into(),
+                    value: encode_count(count).to_vec(),
+                },
+                FaceInteractionArgument {
+                    name: "sample/distance".into(),
+                    value_kind: DISTANCE_INFO_ID.into(),
+                    value: distance.encode().to_vec(),
+                },
+                argument("sample/mode", mode),
+            ],
+            sequence,
+        )
+    };
+
+    interaction(
+        3,
+        Quantity::new(150, QuantityUnit::Centimeter),
+        b"careful",
+        1,
+    )
+    .expect("all canonical values satisfy the Face contracts");
+    assert_eq!(
+        interaction(
+            5,
+            Quantity::new(150, QuantityUnit::Centimeter),
+            b"careful",
+            2,
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+    assert_eq!(
+        interaction(3, Quantity::new(3, QuantityUnit::Meter), b"careful", 3,),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+    assert_eq!(
+        interaction(
+            3,
+            Quantity::new(150, QuantityUnit::Centimeter),
+            b"reckless",
+            4,
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+
+    let linear = conduit_presentation::render_linear_presentation(&face).unwrap();
+    let action = linear
+        .lines
+        .iter()
+        .find(|line| line.starts_with("ACTION "))
+        .expect("deterministic-linear Mask exposes the exact action contracts");
+    for constraint in ["UnsignedRange", "QuantityRange", "CanonicalMembership"] {
+        assert!(
+            action.contains(constraint),
+            "missing {constraint}: {action}"
+        );
+    }
 }

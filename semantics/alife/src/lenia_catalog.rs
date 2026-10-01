@@ -2,7 +2,8 @@
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, ConfigurationValue, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
@@ -63,7 +64,7 @@ pub fn install_lenia_catalogs(
 }
 
 fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
-    let startup_parameters = definition
+    let startup_parameters: Vec<conduit_core::FrontStartupParameter> = definition
         .configuration
         .iter()
         .map(|field| conduit_core::FrontStartupParameter {
@@ -76,6 +77,34 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
         ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
         _ => None,
     };
+    let (terminal, limits) = match definition.kind_id.as_str() {
+        ORBIUM_SEED_KIND => (
+            KindTerminalBehavior::EmitsOneField,
+            conduit_core::CapabilityLimits {
+                max_active_instances: 4,
+                max_queue_items: 4,
+                max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES * 4,
+            },
+        ),
+        LENIA_STEP_KIND => (
+            KindTerminalBehavior::EvolvesAfterTicksAndCompletesWhenTickCloses,
+            conduit_core::CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: MAXIMUM_PRESENTED_FIELDS + 1,
+                max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES + 64,
+            },
+        ),
+        SCALAR_FIELD_PRESENTATION_KIND => (
+            KindTerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
+            conduit_core::CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: MAXIMUM_PRESENTED_FIELDS,
+                max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES
+                    * u32::from(MAXIMUM_PRESENTED_FIELDS),
+            },
+        ),
+        _ => unreachable!("the canonical Lenia catalog is closed"),
+    };
     conduit_core::Kind {
         startup_parameters,
         shorthand,
@@ -84,12 +113,8 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: MAXIMUM_PRESENTED_FIELDS,
-            max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES,
-        },
+        semantic_laws: vec![KindSemanticLaw::Terminal(terminal)],
+        limits,
     }
 }
 
@@ -130,6 +155,7 @@ pub fn lenia_step_definition() -> KindProjection {
                 value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
                 direction: PortDirection::Input,
                 temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
             },
         ],
         outputs: vec![field_port(
@@ -183,6 +209,7 @@ fn field_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> P
         value_kind: kind_id(crate::SCALAR_FIELD2_INFO_ID),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

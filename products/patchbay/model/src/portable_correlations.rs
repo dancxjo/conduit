@@ -79,15 +79,11 @@ mod tests {
     #[test]
     fn exact_plan_properties_correlate_only_matching_host_and_line_subjects() {
         let mut content = ContentBuilder::new();
-        let gear = content.subject_with_identity("gear/a", PresentationRole::Gear, "A", "Gear A");
-        let cord =
-            content.subject_with_identity("cord/a", PresentationRole::Cord, "Cord", "Cord A");
-        let host =
-            content.subject_with_identity("host/a", PresentationRole::Host, "Host", "Host A");
-        let line =
-            content.subject_with_identity("line/a", PresentationRole::Line, "Line", "Line A");
-        let other =
-            content.subject_with_identity("host/b", PresentationRole::Host, "Other", "Other Host");
+        let gear = content.subject_with_identity("gear/a", PresentationRole::Gear, "Gear A");
+        let cord = content.subject_with_identity("cord/a", PresentationRole::Cord, "Cord A");
+        let host = content.subject_with_identity("host/a", PresentationRole::Host, "Host A");
+        let line = content.subject_with_identity("line/a", PresentationRole::Line, "Line A");
+        let other = content.subject_with_identity("host/b", PresentationRole::Host, "Other Host");
         for (subject, name, value) in [
             (&gear, "host-id", "host/a"),
             (&gear, "boot-id", "boot/a"),

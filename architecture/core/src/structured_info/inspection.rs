@@ -40,6 +40,10 @@ pub enum StructuredInfoInspectionMember {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StructuredInfoInspectionShape {
+    Nominal {
+        schema: KindId,
+        representation: alloc::boxed::Box<StructuredInfoInspectionShape>,
+    },
     Leaf {
         kind: KindId,
         byte_len: u32,
@@ -50,7 +54,8 @@ pub enum StructuredInfoInspectionShape {
     },
     Sequence {
         length: u16,
-        capacity: u16,
+        minimum_items: u16,
+        maximum_items: u16,
     },
     Record {
         schema: KindId,
@@ -202,6 +207,22 @@ fn inspection_shape(
     value: &StructuredInfoValue,
 ) -> Result<StructuredInfoInspectionShape, StructuredInfoInspectionRefusal> {
     match (value.value_type().shape(), value.shape()) {
+        (
+            StructuredInfoTypeShape::Nominal {
+                schema,
+                representation,
+            },
+            _,
+        ) => {
+            let representation = StructuredInfoValue {
+                value_type: representation.clone(),
+                node: value.node.clone(),
+            };
+            Ok(StructuredInfoInspectionShape::Nominal {
+                schema: schema.clone(),
+                representation: alloc::boxed::Box::new(inspection_shape(&representation)?),
+            })
+        }
         (StructuredInfoTypeShape::Leaf(kind), StructuredInfoValueShape::Leaf(bytes)) => {
             let semantic = if kind.as_str() == QUANTITY_INFO_ID {
                 Some(StructuredInfoLeafSemantic::Quantity(
@@ -223,11 +244,16 @@ fn inspection_shape(
             StructuredInfoValueShape::Collection(_),
         ) => Ok(StructuredInfoInspectionShape::Collection { length }),
         (
-            StructuredInfoTypeShape::Sequence { capacity, .. },
+            StructuredInfoTypeShape::Sequence {
+                minimum_items,
+                maximum_items,
+                ..
+            },
             StructuredInfoValueShape::Collection(values),
         ) => Ok(StructuredInfoInspectionShape::Sequence {
             length: values.len() as u16,
-            capacity,
+            minimum_items,
+            maximum_items,
         }),
         (
             StructuredInfoTypeShape::Record { schema, fields },

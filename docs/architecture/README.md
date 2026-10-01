@@ -29,6 +29,7 @@ proposals do not override the current canon.
 - [Implementation confinement and admitted authority](implementation-confinement.md)
 - [ConduitOS x86_64 protection domains](conduitos-protection-domains.md)
 - [Portable catalog and hosted std offer boundary](semantic-catalog.md)
+- [Semantic type ownership inventory](semantic-type-ownership.md)
 
 ## body, resources, and effects
 
@@ -52,9 +53,11 @@ proposals do not override the current canon.
 - [Structured diagnostics v1](structured-diagnostics.md)
 - [Machine-readable proof classes](proof-classes.md)
 
-## Browser and presentation
+## Browser and Face
 
-- [Browser host fabrication inventory](browser-fabrication-inventory.md)
+- [Face, Mask, and Show](../presenter-hourglass.md)
+- [Universal Face grammar conformance](presentation-grammar-conformance.md)
+- [Browser host make inventory](browser-make-inventory.md)
 - [Browser host identity and body membership](browser-host-membership.md)
 - [Portable presentation renderer contract](presentation-renderer.md)
 - [Patchbay renderer theme contract](patchbay-theme.md)

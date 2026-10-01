@@ -23,8 +23,31 @@ use sha2::{Digest, Sha256};
 mod back_catalog;
 mod canonical_expansion;
 mod checked_syntax;
+mod code;
 mod diagnostic;
+mod ecmascript_binding;
+mod expression_check;
+mod expression_definition;
+mod expression_evaluate;
+mod expression_numeric_type;
+mod expression_prepared;
+mod expression_program;
+mod expression_program_decode;
+mod expression_semantic_call;
 mod functional_front;
+mod integer_literal;
+mod native_type;
+mod package_bundle;
+#[cfg(test)]
+mod package_bundle_tests;
+mod package_check;
+#[cfg(test)]
+mod package_check_tests;
+mod package_resolution;
+#[cfg(test)]
+mod package_resolution_tests;
+mod pure_expression;
+pub mod rust_binding;
 mod structured_expression;
 mod structured_selector;
 mod structured_startup;
@@ -35,20 +58,43 @@ mod syntax_check;
 mod syntax_highlight;
 mod syntax_identity;
 mod text_value;
+mod value_pattern;
+mod value_pattern_lookahead;
+mod value_pattern_source;
+#[cfg(test)]
+mod value_pattern_tests;
 mod value_type;
+mod variadic_front;
 
 pub use back_catalog::*;
 pub use canonical_expansion::*;
 pub use checked_syntax::*;
 pub use conduit_core::{KindConfigurationField, KindConfigurationRule};
 pub use diagnostic::*;
+pub use ecmascript_binding::*;
+pub use expression_check::*;
+pub use expression_definition::*;
+pub use expression_evaluate::*;
+pub use expression_prepared::*;
+pub use expression_program::*;
+pub use package_bundle::*;
+pub use package_check::*;
+pub use package_resolution::*;
 pub use structured_startup::*;
 pub use syntax::*;
 pub use syntax_highlight::*;
+pub use value_pattern::*;
+pub use value_pattern_source::*;
+pub use variadic_front::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
+pub const MAXIMUM_USE_DECLARATIONS: usize = 256;
 pub const MAXIMUM_FORM_NESTING_DEPTH: usize = 16;
+pub const MAXIMUM_PACKAGE_EXPORTS: usize = 256;
+pub const MAXIMUM_PACKAGE_REQUIREMENTS: usize = 256;
+pub const MAXIMUM_PACKAGE_MEMBERS: usize = 256;
+pub const MAXIMUM_PACKAGE_CONTENT_BYTES: usize = 16 * 1024 * 1024;
 
 /// Exact UTF-8 byte extent plus one-based source locations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,6 +137,9 @@ pub struct CheckedGear {
     pub shorthand: Option<(PortId, PortId)>,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub semantic_contract: conduit_core::KindSemanticContract,
+    pub terminal_transductions: Vec<conduit_core::TerminalTransductionProfile>,
+    pub resource_ports: Vec<conduit_core::ResourcePortContract>,
     pub configuration: Vec<ConfigurationEntry>,
     pub pool_references: Vec<conduit_core::SharedPoolId>,
 }
@@ -102,6 +151,7 @@ pub struct CheckedConnection {
     pub sink_gear_id: GearId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+    pub track: conduit_core::ConnectionTrack,
     pub temporal: conduit_core::PortTemporal,
 }
 
@@ -275,6 +325,7 @@ pub struct CheckedCompositeFront {
     pub external_port: PortDescriptor,
     pub internal_gear_id: GearId,
     pub internal_port_id: PortId,
+    pub track: conduit_core::ConnectionTrack,
     pub terminal: CompositeFrontTerminal,
 }
 
@@ -330,6 +381,8 @@ impl From<&conduit_core::Kind> for KindProjection {
 pub struct ProfileCatalog {
     kinds: BTreeMap<KindId, KindProjection>,
     canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
+    variadic_fores: BTreeMap<KindId, HomogeneousVariadicFore>,
+    variadic_kinds: BTreeMap<KindId, conduit_core::Kind>,
 }
 
 impl ProfileCatalog {
@@ -347,6 +400,54 @@ impl ProfileCatalog {
         Ok(())
     }
 
+    /// Installs a reviewed finite family which specializes one homogeneous
+    /// input prototype into exact ordinary ports at each use site.
+    pub fn insert_homogeneous_variadic(
+        &mut self,
+        definition: KindProjection,
+        minimum_inputs: u16,
+        maximum_inputs: u16,
+    ) -> Result<(), FormError> {
+        let ([prototype], [output]) = (definition.inputs.as_slice(), definition.outputs.as_slice())
+        else {
+            return Err(FormError::InvalidKind(
+                "a homogeneous variadic projection requires one input prototype and one output"
+                    .into(),
+            ));
+        };
+        let family = HomogeneousVariadicFore::new(
+            prototype.clone(),
+            output.clone(),
+            minimum_inputs,
+            maximum_inputs,
+        )
+        .map_err(FormError::InvalidKind)?;
+        let kind_id = definition.kind_id.clone();
+        self.insert(definition)?;
+        self.variadic_fores.insert(kind_id, family);
+        Ok(())
+    }
+
+    /// Installs complete semantic Kind truth for a reviewed homogeneous
+    /// variadic family. The template itself is never exposed as an exact Kind.
+    pub fn insert_homogeneous_variadic_kind(
+        &mut self,
+        kind: conduit_core::Kind,
+        minimum_inputs: u16,
+        maximum_inputs: u16,
+    ) -> Result<(), FormError> {
+        kind.validate()
+            .map_err(|error| FormError::InvalidKind(format!("{error:?}")))?;
+        let kind_id = kind.kind_id.clone();
+        self.insert_homogeneous_variadic(
+            KindProjection::from(&kind),
+            minimum_inputs,
+            maximum_inputs,
+        )?;
+        self.variadic_kinds.insert(kind_id, kind);
+        Ok(())
+    }
+
     /// Installs canonical Kind truth while retaining the smaller checker view.
     pub fn insert_kind(&mut self, kind: conduit_core::Kind) -> Result<(), FormError> {
         kind.validate()
@@ -361,8 +462,62 @@ impl ProfileCatalog {
         self.kinds.get(kind_id)
     }
 
+    pub(crate) fn projection_for_arity(
+        &self,
+        kind_id: &KindId,
+        input_count: usize,
+    ) -> Result<Option<KindProjection>, String> {
+        let Some(definition) = self.kinds.get(kind_id) else {
+            return Ok(None);
+        };
+        let Some(family) = self.variadic_fores.get(kind_id) else {
+            return Ok((definition.inputs.len() == input_count).then(|| definition.clone()));
+        };
+        let fore = family.specialize(input_count, Vec::new())?;
+        Ok(Some(KindProjection {
+            kind_id: definition.kind_id.clone(),
+            kind_contract_revision: specialized_kind_identity(
+                &definition.kind_contract_revision,
+                input_count,
+            ),
+            inputs: fore.inputs().to_vec(),
+            outputs: fore.outputs().to_vec(),
+            configuration: definition.configuration.clone(),
+        }))
+    }
+
+    pub(crate) fn is_homogeneous_variadic(&self, kind_id: &KindId) -> bool {
+        self.variadic_fores.contains_key(kind_id)
+    }
+
+    pub(crate) fn canonical_kind_for_arity(
+        &self,
+        kind_id: &KindId,
+        input_count: Option<usize>,
+    ) -> Result<Option<conduit_core::Kind>, String> {
+        if let Some(template) = self.variadic_kinds.get(kind_id) {
+            let input_count = input_count.ok_or_else(|| {
+                format!(
+                    "variadic Gear '{}' requires an exact relational operand count",
+                    kind_id.as_str()
+                )
+            })?;
+            return self
+                .variadic_fores
+                .get(kind_id)
+                .expect("variadic Kind retains its Fore family")
+                .specialize_kind(template, input_count)
+                .map(Some);
+        }
+        Ok(self.canonical_kinds.get(kind_id).cloned())
+    }
+
     pub fn canonical_kind(&self, kind_id: &KindId) -> Option<&conduit_core::Kind> {
         self.canonical_kinds.get(kind_id)
+    }
+
+    pub(crate) fn canonical_kinds(&self) -> &BTreeMap<KindId, conduit_core::Kind> {
+        &self.canonical_kinds
     }
 
     /// Derives the startup names and defaults needed to check canonical source.
@@ -371,26 +526,74 @@ impl ProfileCatalog {
     pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
         let mut startup = StartupCatalog::new();
         for definition in self.kinds.values() {
-            startup.insert(KindSignature {
+            let canonical_kind = self
+                .canonical_kind(&definition.kind_id)
+                .or_else(|| self.variadic_kinds.get(&definition.kind_id));
+            let signature = KindSignature {
                 kind: definition.kind_id.as_str().to_string(),
-                startup_parameters: definition
-                    .configuration
-                    .iter()
-                    .map(|field| StartupParameterSignature {
-                        name: field.key.clone(),
-                        value_type: match &field.default_value {
-                            ConfigurationValue::Bool(_) => "Boolean",
-                            ConfigurationValue::U64(_) => "Count",
-                            ConfigurationValue::I64(_) => "Scalar",
-                            ConfigurationValue::Text(_) => "Text",
-                            ConfigurationValue::Structured(_) => "Structured",
-                            ConfigurationValue::Quantity(_) => "Quantity",
-                        }
-                        .into(),
-                        default: Some(render_value(&field.default_value)),
-                    })
-                    .collect(),
-            })?;
+                startup_parameters: canonical_kind.map_or_else(
+                    || {
+                        definition
+                            .configuration
+                            .iter()
+                            .map(projected_startup_parameter)
+                            .collect()
+                    },
+                    |kind| {
+                        kind.startup_parameters
+                            .iter()
+                            .map(|parameter| StartupParameterSignature {
+                                name: parameter.name.clone(),
+                                value_type: parameter.value_type.as_str().to_string(),
+                                default: parameter.has_default.then(|| {
+                                    definition
+                                        .configuration
+                                        .iter()
+                                        .find(|field| field.key == parameter.name)
+                                        .map(|field| render_value(&field.default_value))
+                                        .expect("validated Kind startup default has configuration")
+                                }),
+                            })
+                            .collect()
+                    },
+                ),
+            };
+            startup.insert(signature)?;
+            let fore = if let Some(kind) = canonical_kind {
+                kind.checked_front()
+            } else {
+                let signature = startup
+                    .signature(definition.kind_id.as_str())
+                    .expect("the signature was inserted immediately above");
+                let startup_parameters =
+                    startup
+                        .canonical_startup_parameters(signature)
+                        .map_err(|error| {
+                            format!(
+                                "cannot derive checked Fore for '{}': {error:?}",
+                                definition.kind_id.as_str()
+                            )
+                        })?;
+                let shorthand = match (definition.inputs.as_slice(), definition.outputs.as_slice())
+                {
+                    ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+                    _ => None,
+                };
+                conduit_core::CheckedFront::new(
+                    startup_parameters,
+                    definition.inputs.clone(),
+                    definition.outputs.clone(),
+                    shorthand,
+                )
+            };
+            if let Some(family) = self.variadic_fores.get(&definition.kind_id) {
+                startup.insert_homogeneous_variadic_fore(
+                    definition.kind_id.as_str(),
+                    family.clone(),
+                )?;
+            } else {
+                startup.insert_fore(definition.kind_id.as_str(), fore)?;
+            }
         }
         Ok(startup)
     }
@@ -498,6 +701,7 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
+            track: binding.track,
             terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
@@ -514,6 +718,7 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
+            track: binding.track,
             terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
@@ -730,9 +935,29 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
             .ok_or_else(|| {
                 FormError::InvalidExport("front names a missing or wrongly directed Port".into())
             })?;
-            if endpoint.value_kind != front.external_port.value_kind
-                || front.terminal != CompositeFrontTerminal::Independent
-            {
+            let contract_matches = match front.track {
+                conduit_core::ConnectionTrack::Payload => {
+                    endpoint.value_kind == front.external_port.value_kind
+                        && endpoint.abnormal_kind == front.external_port.abnormal_kind
+                }
+                conduit_core::ConnectionTrack::NormalClose => {
+                    matches!(
+                        endpoint.temporal,
+                        conduit_core::PortTemporal::Flow { closes: true }
+                    ) && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && front.external_port.temporal == conduit_core::PortTemporal::Value
+                }
+                conduit_core::ConnectionTrack::AbnormalTerminal => {
+                    endpoint.abnormal_kind.as_ref() == Some(&front.external_port.value_kind)
+                        && front.external_port.temporal == conduit_core::PortTemporal::Value
+                }
+                conduit_core::ConnectionTrack::Quiescence => {
+                    matches!(endpoint.temporal, conduit_core::PortTemporal::Flow { .. })
+                        && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && front.external_port.temporal == conduit_core::PortTemporal::Value
+                }
+            };
+            if !contract_matches || front.terminal != CompositeFrontTerminal::Independent {
                 return Err(FormError::InvalidExport(
                     "front contract differs from its internal endpoint".into(),
                 ));
@@ -767,11 +992,25 @@ fn canonical_form_text(
                 conduit_core::PortDirection::Output => "output",
             };
             text.push_str(&format!(
-                "port:{}:{}:{}:{}|",
+                "port:{}:{}:{}:{}:{}|",
                 port.port_id.as_str(),
                 port.value_kind.as_str(),
                 direction,
-                port.temporal.as_str()
+                port.temporal.as_str(),
+                port.abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str)
+            ));
+        }
+        push_terminal_transduction_text(&mut text, &gear.terminal_transductions);
+        for resource in &gear.resource_ports {
+            text.push_str(&format!(
+                "resource-port:{}:{}:{:?}:{:?}:{:?}|",
+                resource.port_id.as_str(),
+                resource.class_id.as_str(),
+                resource.ownership,
+                resource.lifecycle,
+                resource.mobility
             ));
         }
         for entry in &gear.configuration {
@@ -784,11 +1023,12 @@ fn canonical_form_text(
     }
     for connection in connections {
         text.push_str(&format!(
-            "conn:{}:{}->{}:{}:{}|",
+            "conn:{}:{}->{}:{}:{}:{}|",
             connection.source_gear_id.as_str(),
             connection.source_port_id.as_str(),
             connection.sink_gear_id.as_str(),
             connection.sink_port_id.as_str(),
+            connection.track.as_str(),
             connection.temporal.as_str()
         ));
     }
@@ -804,16 +1044,79 @@ fn canonical_form_text(
                 PortDirection::Output => "output",
             };
             text.push_str(&format!(
-                "front:{direction}:{}:{}:{}={}:{}:terminal-independent|",
+                "front:{direction}:{}:{}:{}:{}={}:{}:terminal-independent|",
                 front.external_port.port_id.as_str(),
                 front.external_port.value_kind.as_str(),
                 front.external_port.temporal.as_str(),
+                front
+                    .external_port
+                    .abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str),
                 front.internal_gear_id.as_str(),
                 front.internal_port_id.as_str(),
             ));
         }
     }
     text
+}
+
+fn push_terminal_transduction_text(
+    text: &mut String,
+    profiles: &[conduit_core::TerminalTransductionProfile],
+) {
+    use conduit_core::{
+        AbnormalTerminalTransduction as Abnormal, CancellationTransduction as Cancellation,
+        NormalCloseTransduction as Normal,
+    };
+    for profile in profiles {
+        text.push_str("terminal-transduction:");
+        text.push_str(profile.input_port_id.as_str());
+        text.push('>');
+        text.push_str(profile.output_port_id.as_str());
+        text.push(':');
+        match &profile.normal_close {
+            Normal::NotAccepted => text.push_str("close/not-accepted"),
+            Normal::PropagateAfterDrain => text.push_str("close/propagate-after-drain"),
+            Normal::Consume => text.push_str("close/consume"),
+            Normal::FlushThenPropagate(bound) => text.push_str(&format!(
+                "close/flush-then-propagate/{}/{}",
+                bound.maximum_items, bound.maximum_bytes
+            )),
+            Normal::FlushThenPropagateWhenAllClose(bound) => text.push_str(&format!(
+                "close/flush-then-propagate-when-all-close/{}/{}",
+                bound.maximum_items, bound.maximum_bytes
+            )),
+            Normal::PropagateWhenAllClose => text.push_str("close/propagate-when-all-close"),
+            Normal::DomainSpecific { law } => {
+                text.push_str(&format!("close/domain/{}", law.as_str()))
+            }
+        }
+        text.push(':');
+        match &profile.abnormal {
+            Abnormal::NotAccepted => text.push_str("abnormal/not-accepted"),
+            Abnormal::PropagateAfterDrain => text.push_str("abnormal/propagate-after-drain"),
+            Abnormal::Recover => text.push_str("abnormal/recover"),
+            Abnormal::FinalizeThenPropagate(bound) => text.push_str(&format!(
+                "abnormal/finalize-then-propagate/{}/{}",
+                bound.maximum_items, bound.maximum_bytes
+            )),
+            Abnormal::DomainSpecific { law } => {
+                text.push_str(&format!("abnormal/domain/{}", law.as_str()))
+            }
+        }
+        text.push(':');
+        match &profile.cancellation {
+            Cancellation::NotCancellable => text.push_str("cancel/not-cancellable"),
+            Cancellation::Request { disposition_kind } => {
+                text.push_str(&format!("cancel/request/{}", disposition_kind.as_str()))
+            }
+            Cancellation::DomainSpecific { law } => {
+                text.push_str(&format!("cancel/domain/{}", law.as_str()))
+            }
+        }
+        text.push('|');
+    }
 }
 
 fn checked_form_id(
@@ -861,6 +1164,15 @@ fn exported_contract_revision(
             push_identity_field(&mut canonical, front.external_port.temporal.as_str());
             push_identity_field(
                 &mut canonical,
+                front
+                    .external_port
+                    .abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str),
+            );
+            push_identity_field(&mut canonical, front.track.as_str());
+            push_identity_field(
+                &mut canonical,
                 match front.terminal {
                     CompositeFrontTerminal::Independent => "independent",
                     CompositeFrontTerminal::Coupled => "coupled",
@@ -876,6 +1188,29 @@ fn push_identity_field(canonical: &mut String, value: &str) {
     canonical.push(':');
     canonical.push_str(value);
     canonical.push('|');
+}
+
+fn projected_startup_parameter(field: &KindConfigurationField) -> StartupParameterSignature {
+    StartupParameterSignature {
+        name: field.key.clone(),
+        value_type: match (&field.rule, &field.default_value) {
+            (
+                KindConfigurationRule::QuantityRange { canonical_unit, .. },
+                ConfigurationValue::Quantity(_),
+            ) => canonical_unit.dimension().info_id(),
+            (_, ConfigurationValue::Bool(_)) => "Boolean",
+            (_, ConfigurationValue::U64(_)) => "Count",
+            (_, ConfigurationValue::I64(_)) => "Scalar",
+            (_, ConfigurationValue::Text(_)) => "Text",
+            (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
+            (_, ConfigurationValue::Quantity(_)) => "Quantity",
+        }
+        .into(),
+        // A legacy projection has no independently declared callable Fore, so
+        // its historical configuration default remains the only available
+        // omission contract. Canonical Kinds take the stricter branch above.
+        default: Some(render_value(&field.default_value)),
+    }
 }
 
 fn render_value(value: &ConfigurationValue) -> String {
@@ -917,7 +1252,14 @@ fn hex(nibble: u8) -> char {
 mod surface_tests;
 
 #[cfg(test)]
+mod behavior_parameter_tests;
+#[cfg(test)]
+mod generic_form_tests;
+#[cfg(test)]
 mod syntax_check_tests;
+
+#[cfg(test)]
+mod refinement_tests;
 
 #[cfg(test)]
 mod canonical_expansion_tests;

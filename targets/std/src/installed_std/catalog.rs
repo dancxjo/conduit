@@ -5,6 +5,7 @@ use super::alife_backs::{
     LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
 };
 use super::audio_play_back::AUDIO_PLAY_FACTORY;
+use super::audio_tone_back::FACTORY as AUDIO_TONE_FACTORY;
 use super::back::BackFactory;
 use super::body_chat_prompt_back::FACTORY as BODY_CHAT_PROMPT_FACTORY;
 use super::body_conversation_context_back::FACTORY as BODY_CONVERSATION_CONTEXT_FACTORY;
@@ -14,16 +15,27 @@ use super::calendar_provider_back::{
     CALENDAR_CANCEL_FACTORY, CALENDAR_CREATE_FACTORY, CALENDAR_FREE_BUSY_FACTORY,
     CALENDAR_INVITE_FACTORY, CALENDAR_READ_FACTORY, CALENDAR_UPDATE_FACTORY,
 };
+use super::combine_latest_back::FACTORY as COMBINE_LATEST_FACTORY;
 use super::count_backs::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
+use super::current_sample_back::FACTORY as CURRENT_SAMPLE_FACTORY;
+use super::data_text_back::{
+    LOAD_FACTORY as DATA_LOAD_TEXT_FACTORY, SAVE_FACTORY as DATA_SAVE_TEXT_FACTORY,
+};
+use super::distance_frequency_back::FACTORY as DISTANCE_FREQUENCY_FACTORY;
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use super::final_normalized_pattern_back::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
+use super::flow_first_back::FLOW_FIRST_FACTORY;
 use super::flow_gate_back::FLOW_GATE_SCALAR_FACTORY;
+use super::flow_join_by_key_back::FACTORY as FLOW_JOIN_BY_KEY_FACTORY;
 use super::flow_pressure_backs::{FLOW_BACKPRESSURE_FACTORY, FLOW_COALESCE_LATEST_FACTORY};
 use super::flow_state_backs::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
-use super::generate_text::{
-    GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
-};
+use super::flow_zip_back::FACTORY as FLOW_ZIP_FACTORY;
 use super::generated_speech_commit_back::FACTORY as GENERATED_SPEECH_COMMIT_FACTORY;
+use super::generated_validation_backs::{
+    ENVELOPE_FACTORY as GENERATED_VALIDATION_ENVELOPE_FACTORY,
+    RETAIN_FACTORY as RETAIN_GENERATED_VALIDATION_FACTORY,
+    VALIDATOR_FACTORY as GENERATED_SEMANTIC_VALIDATOR_FACTORY,
+};
 use super::house_prompt_back::FACTORY as HOUSE_PROMPT_FACTORY;
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::image_text_back::FACTORY as IMAGE_TEXT_FACTORY;
@@ -71,6 +83,9 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
+use super::pure_expression_back::{
+    FACTORY as PURE_EXPRESSION_FACTORY, FILTER_FACTORY as PURE_FILTER_FACTORY,
+};
 use super::recognition_text_back::FACTORY as RECOGNITION_TEXT_FACTORY;
 use super::recognized_turn_commit_back::FACTORY as RECOGNIZED_TURN_COMMIT_FACTORY;
 use super::record_delivery_back::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
@@ -93,12 +108,13 @@ use super::sequence_normalization_back::FACTORY as SEQUENCE_NORMALIZATION_FACTOR
 use super::speech_recognition_adapter_back::{
     RESULT_STREAM_FACTORY as SPEECH_RESULT_STREAM_FACTORY, WINDOW_FACTORY as SPEECH_WINDOW_FACTORY,
 };
-#[cfg(test)]
 use super::speech_synthesis_back::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
-#[cfg(test)]
 use super::speech_synthesis_back::DETERMINISTIC_STREAMING_FACTORY;
-use super::speech_synthesis_back::{
-    FACTORY as SPEECH_SYNTHESIS_FACTORY, STREAMING_FACTORY as STREAMING_SPEECH_FACTORY,
+use super::spoken_mask_backs::{
+    ARTIFACT_SHOW_FACTORY as SPOKEN_ARTIFACT_SHOW_FACTORY,
+    GENERATED_SPEECH_FACTORY as SPOKEN_GENERATED_SPEECH_FACTORY,
+    NO_INTERACTION_FACTORY as SPOKEN_NO_INTERACTION_FACTORY,
+    PRESENTATION_REQUEST_FACTORY as SPOKEN_PRESENTATION_REQUEST_FACTORY, SPOKEN_ARTIFACT_FACTORY,
 };
 use super::state_select_back::STATE_SELECT_SCALAR_FACTORY;
 use super::structured_selector_back::FACTORY as STRUCTURED_SELECTOR_FACTORY;
@@ -109,6 +125,21 @@ use super::structured_values_back::{
 use super::synth_back::MUSIC_SYNTH_FACTORY;
 use super::template_storage_back::FACTORY as TEMPLATE_STORAGE_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
+#[cfg(test)]
+use super::test_audio_tone::{
+    CANCEL_FACTORY as TEST_CANCELLATION_SOURCE_FACTORY,
+    CLOSE_FACTORY as TEST_NORMAL_CLOSE_SINK_FACTORY,
+    DISTANCE_SOURCE_FACTORY as TEST_DISTANCE_SOURCE_FACTORY,
+    RECOVERY_FACTORY as TEST_TONE_TERMINAL_RECOVERY_FACTORY,
+    SINK_FACTORY as TEST_TONE_PCM_SINK_FACTORY, SOURCE_FACTORY as TEST_FREQUENCY_SOURCE_FACTORY,
+};
+#[cfg(test)]
+use super::test_data_terminal_recovery::{
+    LOAD_FACTORY as TEST_DATA_LOAD_TERMINAL_RECOVERY_FACTORY,
+    SAVE_FACTORY as TEST_DATA_SAVE_TERMINAL_RECOVERY_FACTORY,
+    TEXT_SINK_FACTORY as TEST_DATA_TEXT_SINK_FACTORY,
+    TEXT_SOURCE_FACTORY as TEST_DATA_TEXT_SOURCE_FACTORY,
+};
 #[cfg(test)]
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
 #[cfg(test)]
@@ -136,7 +167,9 @@ use super::test_structured_selector::{
 #[cfg(test)]
 use super::test_text_source::TEST_TEXT_SOURCE_FACTORY;
 #[cfg(test)]
-use super::test_timing_sink::{TEST_TIMING_SINK_FACTORY, TEST_TIMING_SOURCE_FACTORY};
+use super::test_timing_sink::{
+    TEST_TIMING_SINK_FACTORY, TEST_TIMING_SOURCE_FACTORY, TEST_TIMING_UNIT_SOURCE_FACTORY,
+};
 use super::text_backs::{
     TEXT_JOIN_FACTORY, TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY,
 };
@@ -147,9 +180,11 @@ use super::text_state_back::{
 use super::tick_backs::TEST_OBSERVER_FACTORY;
 use super::tick_backs::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
+use super::time_sample_back::FACTORY as TIME_SAMPLE_FACTORY;
+use super::time_window_back::FACTORY as TIME_WINDOW_FACTORY;
 use super::timed_button_attempt_back::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
 use super::timed_pattern_back::FACTORY as TIMED_PATTERN_FACTORY;
-use super::timing_backs::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
+use super::timing_backs::{TIME_DEADLINE_FACTORY, TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_back::STATE_TOGGLE_FACTORY;
 use super::typed_record_back::{
     DEFRAME as TYPED_RECORD_DEFRAME_FACTORY, FRAME as TYPED_RECORD_FRAME_FACTORY,
@@ -165,6 +200,28 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &DISTANCE_FREQUENCY_FACTORY,
+    &AUDIO_TONE_FACTORY,
+    #[cfg(test)]
+    &TEST_FREQUENCY_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_DISTANCE_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_TONE_PCM_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_CANCELLATION_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_TONE_TERMINAL_RECOVERY_FACTORY,
+    #[cfg(test)]
+    &TEST_NORMAL_CLOSE_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_DATA_SAVE_TERMINAL_RECOVERY_FACTORY,
+    #[cfg(test)]
+    &TEST_DATA_LOAD_TERMINAL_RECOVERY_FACTORY,
+    #[cfg(test)]
+    &TEST_DATA_TEXT_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_DATA_TEXT_SOURCE_FACTORY,
     #[cfg(any(test, feature = "local-model-proof"))]
     &RECORDED_SPEECH_FACTORY,
     &WHISPER_SPEECH_FACTORY,
@@ -189,6 +246,9 @@ const FACTORIES: &[&BackFactory] = &[
     &TIME_TIMEOUT_FACTORY,
     &TIME_DELAY_FACTORY,
     &TIME_THROTTLE_FACTORY,
+    &TIME_DEADLINE_FACTORY,
+    &TIME_SAMPLE_FACTORY,
+    &TIME_WINDOW_FACTORY,
     &RECURRENCE_FACTORY,
     &CALENDAR_PROPOSAL_FACTORY,
     &CALENDAR_READ_FACTORY,
@@ -223,7 +283,12 @@ const FACTORIES: &[&BackFactory] = &[
     &STATE_LATEST_SCALAR_FACTORY,
     &FLOW_TEE_SCALAR_FACTORY,
     &STATE_SELECT_SCALAR_FACTORY,
+    &CURRENT_SAMPLE_FACTORY,
+    &COMBINE_LATEST_FACTORY,
+    &FLOW_ZIP_FACTORY,
+    &FLOW_JOIN_BY_KEY_FACTORY,
     &FLOW_GATE_SCALAR_FACTORY,
+    &FLOW_FIRST_FACTORY,
     &KEY_EVENT_TEE_FACTORY,
     &KEYMAP_FACTORY,
     &CHORDS_FACTORY,
@@ -235,6 +300,8 @@ const FACTORIES: &[&BackFactory] = &[
     &TIMED_PATTERN_FACTORY,
     &TIMED_BUTTON_ATTEMPT_FACTORY,
     &TEMPLATE_STORAGE_FACTORY,
+    &DATA_SAVE_TEXT_FACTORY,
+    &DATA_LOAD_TEXT_FACTORY,
     &LOGIC_COMPARE_SCALAR_FACTORY,
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
@@ -283,11 +350,15 @@ const FACTORIES: &[&BackFactory] = &[
     &ROBOTICS_VELOCITY_INTENT_FACTORY,
     &ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY,
     &MUSIC_SYNTH_FACTORY,
-    &SPEECH_SYNTHESIS_FACTORY,
-    &STREAMING_SPEECH_FACTORY,
-    #[cfg(test)]
+    &SPOKEN_PRESENTATION_REQUEST_FACTORY,
+    &GENERATED_VALIDATION_ENVELOPE_FACTORY,
+    &GENERATED_SEMANTIC_VALIDATOR_FACTORY,
+    &RETAIN_GENERATED_VALIDATION_FACTORY,
+    &SPOKEN_GENERATED_SPEECH_FACTORY,
+    &SPOKEN_ARTIFACT_FACTORY,
+    &SPOKEN_ARTIFACT_SHOW_FACTORY,
+    &SPOKEN_NO_INTERACTION_FACTORY,
     &DETERMINISTIC_SPEECH_FACTORY,
-    #[cfg(test)]
     &DETERMINISTIC_STREAMING_FACTORY,
     &AUDIO_RENDER_DEMAND_FACTORY,
     &AUDIO_PLAY_FACTORY,
@@ -296,9 +367,6 @@ const FACTORIES: &[&BackFactory] = &[
     &MIDI_OUTPUT_FACTORY,
     &MIDI_INPUT_FACTORY,
     &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
-    &GENERATE_TEXT_SMALL_FACTORY,
-    &GENERATE_TEXT_LARGE_FACTORY,
-    &GENERATE_TEXT_REMOTE_FACTORY,
     &HOUSE_PROMPT_FACTORY,
     &BODY_CHAT_PROMPT_FACTORY,
     &BODY_CONVERSATION_CONTEXT_FACTORY,
@@ -311,6 +379,8 @@ const FACTORIES: &[&BackFactory] = &[
     &JSON_BOOLEAN_SUMMARY_FACTORY,
     &JSON_DECODE_FACTORY,
     &STRUCTURED_SELECTOR_FACTORY,
+    &PURE_EXPRESSION_FACTORY,
+    &PURE_FILTER_FACTORY,
     &STRUCTURED_LITERAL_FACTORY,
     &STRUCTURED_PRESENTATION_FACTORY,
     &TYPED_RECORD_FRAME_FACTORY,
@@ -358,6 +428,8 @@ const FACTORIES: &[&BackFactory] = &[
     #[cfg(test)]
     &TEST_TIMING_SOURCE_FACTORY,
     #[cfg(test)]
+    &TEST_TIMING_UNIT_SOURCE_FACTORY,
+    #[cfg(test)]
     &TEST_JSON_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_JSON_SINK_FACTORY,
@@ -382,5 +454,7 @@ pub(crate) fn supports(fragment: &PlanFragment) -> bool {
             factory(&placement.implementation_id).is_some()
                 || placement.implementation_id.as_str()
                     == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+                || placement.implementation_id.as_str()
+                    == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
         })
 }

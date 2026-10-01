@@ -69,6 +69,11 @@ pub(crate) fn check_structured_expression(
         &StructuredInfoType,
     ) -> Result<CanonicalStartupValue, SyntaxCheckDiagnostic>,
 ) -> Result<CanonicalStructuredStartupValue, SyntaxCheckDiagnostic> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
+        let mut checked = check_structured_expression(expression, representation, resolve_atomic)?;
+        checked.value_type = expected.clone();
+        return Ok(checked);
+    }
     match expression {
         ExpressionSyntax::Atomic(atomic) => match resolve_atomic(atomic, expected)? {
             CanonicalStartupValue::Literal(value) => {
@@ -85,6 +90,27 @@ pub(crate) fn check_structured_expression(
                     ));
                 }
                 let canonical = canonical_leaf_literal(kind.as_str(), &value, atomic.span)?;
+                Ok(CanonicalStructuredStartupValue {
+                    value_type: expected.clone(),
+                    node: CanonicalStructuredStartupNode::Literal { canonical },
+                })
+            }
+            CanonicalStartupValue::Quantity(value) => {
+                let StructuredInfoTypeShape::Leaf(kind) = expected.shape() else {
+                    return Err(structured_diagnostic(
+                        atomic.span,
+                        "a quantity literal cannot satisfy a structured record, variant, or collection",
+                    ));
+                };
+                let canonical = value.encode().to_vec();
+                conduit_core::validate_primitive_info(kind.as_str(), &canonical).map_err(
+                    |error| {
+                        structured_diagnostic(
+                            atomic.span,
+                            &format!("quantity literal has the wrong exact dimension: {error:?}"),
+                        )
+                    },
+                )?;
                 Ok(CanonicalStructuredStartupValue {
                     value_type: expected.clone(),
                     node: CanonicalStructuredStartupNode::Literal { canonical },
@@ -109,11 +135,15 @@ pub(crate) fn check_structured_expression(
             )),
         },
         ExpressionSyntax::Collection { values, span } => {
-            let (element, limit, exact) = match expected.shape() {
-                StructuredInfoTypeShape::Collection { element, length } => (element, length, true),
-                StructuredInfoTypeShape::Sequence { element, capacity } => {
-                    (element, capacity, false)
+            let (element, minimum, maximum) = match expected.shape() {
+                StructuredInfoTypeShape::Collection { element, length } => {
+                    (element, length, length)
                 }
+                StructuredInfoTypeShape::Sequence {
+                    element,
+                    minimum_items,
+                    maximum_items,
+                } => (element, minimum_items, maximum_items),
                 _ => {
                     return Err(structured_diagnostic(
                         *span,
@@ -121,19 +151,17 @@ pub(crate) fn check_structured_expression(
                     ));
                 }
             };
-            if (exact && values.len() != usize::from(limit))
-                || (!exact && values.len() > usize::from(limit))
-            {
+            if values.len() < usize::from(minimum) || values.len() > usize::from(maximum) {
+                let constraint = if minimum == maximum {
+                    format!("requires exactly {minimum}")
+                } else {
+                    format!("permits {minimum}..={maximum}")
+                };
                 return Err(structured_diagnostic(
                     *span,
                     &format!(
-                        "collection literal has {} items but the type {} {limit}",
+                        "collection literal has {} items but the type {constraint}",
                         values.len(),
-                        if exact {
-                            "requires exactly"
-                        } else {
-                            "permits at most"
-                        }
                     ),
                 ));
             }
@@ -238,10 +266,43 @@ pub(crate) fn check_structured_expression(
                 },
             })
         }
+        ExpressionSyntax::Unary {
+            operator: crate::UnaryOperator::Negate,
+            operand,
+            span,
+        } if matches!(operand.as_ref(), ExpressionSyntax::Atomic(_)) => {
+            let ExpressionSyntax::Atomic(atomic) = operand.as_ref() else {
+                unreachable!("the guarded expression is atomic")
+            };
+            let negated = ExpressionSyntax::Atomic(SpannedText {
+                text: format!("-{}", atomic.text),
+                span: *span,
+            });
+            check_structured_expression(&negated, expected, resolve_atomic)
+        }
+        ExpressionSyntax::Input(_)
+        | ExpressionSyntax::Projection { .. }
+        | ExpressionSyntax::Unary { .. }
+        | ExpressionSyntax::Binary { .. }
+        | ExpressionSyntax::Conditional { .. }
+        | ExpressionSyntax::Tuple { .. }
+        | ExpressionSyntax::SemanticCall { .. } => Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-053",
+            span: expression.span(),
+            message: "pure runtime expression is not a structured startup value".into(),
+        }),
     }
 }
 
 fn concrete(value: &CanonicalStructuredStartupValue) -> Result<StructuredInfoValue, ()> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = value.value_type.shape() {
+        let represented = CanonicalStructuredStartupValue {
+            value_type: representation.clone(),
+            node: value.node.clone(),
+        };
+        return StructuredInfoValue::nominal(value.value_type.clone(), concrete(&represented)?)
+            .map_err(|_| ());
+    }
     match &value.node {
         CanonicalStructuredStartupNode::Literal { canonical, .. } => {
             StructuredInfoValue::leaf(value.value_type.clone(), canonical.clone()).map_err(|_| ())
@@ -385,6 +446,39 @@ fn canonical_leaf_literal(
             _ => None,
         },
         "value/scalar" => parse_scalar_literal(literal).map(|value| value.encode().to_vec()),
+        integer_kind
+            if conduit_core::primitive_info_kind(integer_kind).is_some_and(|kind| {
+                matches!(
+                    kind,
+                    conduit_core::PrimitiveInfoKind::U8
+                        | conduit_core::PrimitiveInfoKind::U16
+                        | conduit_core::PrimitiveInfoKind::U32
+                        | conduit_core::PrimitiveInfoKind::U64
+                        | conduit_core::PrimitiveInfoKind::U128
+                        | conduit_core::PrimitiveInfoKind::I8
+                        | conduit_core::PrimitiveInfoKind::I16
+                        | conduit_core::PrimitiveInfoKind::I32
+                        | conduit_core::PrimitiveInfoKind::I64
+                        | conduit_core::PrimitiveInfoKind::I128
+                )
+            }) =>
+        {
+            crate::integer_literal::canonicalize(literal, integer_kind)
+                .ok()
+                .flatten()
+                .and_then(|canonical| {
+                    let kind = conduit_core::primitive_info_kind(integer_kind)?;
+                    let value = if integer_kind.starts_with("value/i") {
+                        conduit_core::FixedInteger::from_signed(kind, canonical.parse().ok()?)
+                            .ok()?
+                    } else {
+                        conduit_core::FixedInteger::from_unsigned(kind, canonical.parse().ok()?)
+                            .ok()?
+                    };
+                    let (bytes, length) = value.encode();
+                    Some(bytes[..length].to_vec())
+                })
+        }
         _ if !matches!(
             kind,
             "value/unit" | "value/text" | "value/count" | "value/bool" | "value/scalar"
@@ -402,7 +496,7 @@ fn canonical_leaf_literal(
     })
 }
 
-fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> {
+pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> {
     let (negative, value) = value
         .strip_prefix('-')
         .map_or((false, value), |value| (true, value));

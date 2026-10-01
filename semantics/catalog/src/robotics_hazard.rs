@@ -166,6 +166,7 @@ fn current_port(name: &str, info: &str, direction: PortDirection) -> PortDescrip
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Current,
+        abnormal_kind: None,
     }
 }
 

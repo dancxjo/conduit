@@ -31,6 +31,7 @@ fn binding() -> SessionBinding {
             boot_id: sink_boot.clone(),
         },
         value_kind: KindId::from("conduit.signal/level@1"),
+        abnormal_kind: None,
         limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: 9,

@@ -311,10 +311,10 @@ impl PreparedApplication {
                     .ok_or("resident Tutorial requires exact body biography evidence")?;
                 let revision = u32::try_from(evidence.last_sequence())
                     .map_err(|_| "resident Tutorial presentation revision exhausted")?;
-                let view = conduit_workspace_model::tutorial::presentation_from_evidence(
+                let view = conduit_tutorial_form::presentation_from_evidence(
                     evidence,
                     revision,
-                    conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+                    conduit_tutorial_form::TutorialPlayback::Playing,
                 )
                 .map_err(|error| format!("prepare resident Tutorial view: {error:?}"))?
                 .lower()

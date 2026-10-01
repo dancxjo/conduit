@@ -1,15 +1,17 @@
-use crate::{generate_text_contract, GENERATE_TEXT_KIND, MAXIMUM_INPUT_BYTES};
+use crate::{
+    llm_contract, BaseProofClass, DataHandling, Metering, LLM_GENERATE_KIND, LOCAL_MODEL_OPERATION,
+    MAXIMUM_LLM_INPUT_BYTES,
+};
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     compute_resource_offer, compute_resource_requirement, kind_id, resource_offer,
     resource_requirement, stable_realization_boolean, stable_realization_quantity,
     ArchitectureBaseId, ArchitectureBaseKind, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CharacteristicUnit, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
-    FrontStartupParameter, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, OfferGeneration,
-    RealizationAdvertisement, RealizationCharacteristic,
+    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CharacteristicUnit,
+    ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId,
+    ImplementationOffer, OfferGeneration, RealizationAdvertisement, RealizationCharacteristic,
 };
 use serde::{Deserialize, Serialize};
 
@@ -19,58 +21,40 @@ pub const ACCELERATOR_SLOT_RESOURCE: &str = "conduit.resource/accelerator/slot@1
 pub const ACCELERATOR_MEMORY_GIB_RESOURCE: &str = "conduit.resource/accelerator-memory/gib@1";
 pub const NETWORK_EGRESS_RESOURCE: &str = "conduit.resource/network-egress/slot@1";
 pub const INFERENCE_SLOT_RESOURCE: &str = "conduit.resource/inference/slot@1";
-pub const GENERATE_TEXT_HOST_CALL: &str = "conduit.host/generate-text@1";
 pub const SMALL_LOCAL_IMPLEMENTATION: &str = "ai.fixture/small-local-cpu@1";
 pub const SMALL_LOCAL_ARTIFACT: &str = "ai.fixture/small-local-cpu/x86_64-portable@1";
 pub const LARGE_LOCAL_IMPLEMENTATION: &str = "ai.fixture/large-local-accelerated@1";
 pub const LARGE_LOCAL_ARTIFACT: &str = "ai.fixture/large-local-accelerated/x86_64-accelerator@1";
 pub const REMOTE_FRONTIER_IMPLEMENTATION: &str = "ai.fixture/remote-frontier@1";
 pub const REMOTE_FRONTIER_ARTIFACT: &str = "ai.fixture/remote-frontier/host-call@1";
-pub const REMOTE_GENERATE_TEXT_AUTHORITY: &str = "conduit.authority/remote-generate-text@1";
-pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-context-tokens@1";
-pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-tokens@1";
+pub const REMOTE_LLM_AUTHORITY: &str = "conduit.authority/remote-llm@1";
+pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-context-items@1";
+pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-bytes@1";
 pub const DATA_EGRESS_CHARACTERISTIC: &str = "conduit.realization/data-egress@1";
 pub const METERED_COST_CHARACTERISTIC: &str = "conduit.realization/metered-cost@1";
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BaseProofClass {
-    DeterministicConformanceFixture,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DataHandling {
-    LocalOnly,
-    RemoteEgress,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Metering {
-    UnmeteredFixture,
-    MeteredFixture,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GenerateTextBaseFacts {
+pub struct LlmGenerateBaseFacts {
     pub proof_class: BaseProofClass,
-    pub maximum_context_tokens: u64,
-    pub maximum_output_tokens: u64,
+    pub maximum_context_items: u64,
+    pub maximum_output_bytes: u64,
     pub data_handling: DataHandling,
     pub metering: Metering,
     pub benchmark_sign: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GenerateTextBaseFixture {
+pub struct LlmGenerateBaseFixture {
     pub advertisement: HostAdvertisement,
-    pub facts: GenerateTextBaseFacts,
+    pub facts: LlmGenerateBaseFacts,
 }
 
-pub fn generate_text_base_fixtures() -> [GenerateTextBaseFixture; 3] {
+pub fn llm_generate_base_fixtures() -> [LlmGenerateBaseFixture; 3] {
     [small_local(), large_local(), remote_frontier()]
 }
 
-pub fn generate_text_realization_advertisements(
-    fixtures: &[GenerateTextBaseFixture],
+pub fn llm_generate_realization_advertisements(
+    fixtures: &[LlmGenerateBaseFixture],
 ) -> alloc::vec::Vec<RealizationAdvertisement> {
     fixtures
         .iter()
@@ -84,11 +68,13 @@ pub fn generate_text_realization_advertisements(
                 characteristics: vec![
                     count_characteristic(
                         MAXIMUM_CONTEXT_CHARACTERISTIC,
-                        fixture.facts.maximum_context_tokens,
+                        fixture.facts.maximum_context_items,
+                        CharacteristicUnit::Items,
                     ),
                     count_characteristic(
                         MAXIMUM_OUTPUT_CHARACTERISTIC,
-                        fixture.facts.maximum_output_tokens,
+                        fixture.facts.maximum_output_bytes,
+                        CharacteristicUnit::Bytes,
                     ),
                     flag_characteristic(
                         DATA_EGRESS_CHARACTERISTIC,
@@ -104,12 +90,16 @@ pub fn generate_text_realization_advertisements(
         .collect()
 }
 
-fn count_characteristic(id: &str, value: u64) -> RealizationCharacteristic {
+fn count_characteristic(
+    id: &str,
+    value: u64,
+    unit: CharacteristicUnit,
+) -> RealizationCharacteristic {
     stable_realization_quantity(
         id,
         id,
-        "Stable reviewed LLM realization ceiling in canonical tokens.",
-        CharacteristicUnit::Tokens,
+        "Stable reviewed LLM realization ceiling in the named semantic unit.",
+        unit,
         u64::MAX,
         value,
     )
@@ -119,7 +109,7 @@ fn flag_characteristic(id: &str, value: bool) -> RealizationCharacteristic {
     stable_realization_boolean(id, id, "Stable reviewed LLM realization behavior.", value)
 }
 
-fn small_local() -> GenerateTextBaseFixture {
+fn small_local() -> LlmGenerateBaseFixture {
     base(
         "ai-small-local",
         "ai-small-local-boot",
@@ -131,8 +121,8 @@ fn small_local() -> GenerateTextBaseFixture {
             (HOST_MEMORY_GIB_RESOURCE, 6),
             (INFERENCE_SLOT_RESOURCE, 1),
         ],
+        8,
         8_192,
-        2_048,
         DataHandling::LocalOnly,
         Metering::UnmeteredFixture,
         "fixture/quality-small-v1",
@@ -140,7 +130,7 @@ fn small_local() -> GenerateTextBaseFixture {
     )
 }
 
-fn large_local() -> GenerateTextBaseFixture {
+fn large_local() -> LlmGenerateBaseFixture {
     base(
         "ai-large-local",
         "ai-large-local-boot",
@@ -154,8 +144,8 @@ fn large_local() -> GenerateTextBaseFixture {
             (ACCELERATOR_MEMORY_GIB_RESOURCE, 22),
             (INFERENCE_SLOT_RESOURCE, 1),
         ],
+        32,
         32_768,
-        8_192,
         DataHandling::LocalOnly,
         Metering::UnmeteredFixture,
         "fixture/quality-large-v1",
@@ -163,7 +153,7 @@ fn large_local() -> GenerateTextBaseFixture {
     )
 }
 
-fn remote_frontier() -> GenerateTextBaseFixture {
+fn remote_frontier() -> LlmGenerateBaseFixture {
     base(
         "ai-remote-base",
         "ai-remote-base-boot",
@@ -176,8 +166,8 @@ fn remote_frontier() -> GenerateTextBaseFixture {
             (NETWORK_EGRESS_RESOURCE, 1),
             (INFERENCE_SLOT_RESOURCE, 1),
         ],
-        200_000,
-        16_384,
+        128,
+        65_536,
         DataHandling::RemoteEgress,
         Metering::MeteredFixture,
         "fixture/quality-remote-v1",
@@ -193,27 +183,30 @@ fn base(
     implementation: &str,
     artifact: &str,
     resources: &[(&str, u32)],
-    maximum_context_tokens: u64,
-    maximum_output_tokens: u64,
+    maximum_context_items: u64,
+    maximum_output_bytes: u64,
     data_handling: DataHandling,
     metering: Metering,
     benchmark_sign: &str,
     remote: bool,
-) -> GenerateTextBaseFixture {
-    let contract = generate_text_contract();
+) -> LlmGenerateBaseFixture {
+    let kind = llm_contract(LLM_GENERATE_KIND)
+        .expect("generation contract is catalogued")
+        .into_capability_contract();
+    let semantic_contract = kind.semantic_contract();
     let host_call = HostCallRequirement {
-        contract_id: HostCallContractId::from(GENERATE_TEXT_HOST_CALL),
-        target_kind: Some(kind_id(GENERATE_TEXT_KIND)),
+        contract_id: HostCallContractId::from(LOCAL_MODEL_OPERATION),
+        target_kind: Some(kind_id(LLM_GENERATE_KIND)),
         maximum_in_flight: 1,
-        maximum_input_bytes: MAXIMUM_INPUT_BYTES as u32,
-        maximum_output_bytes: maximum_output_tokens as u32 * 4,
+        maximum_input_bytes: MAXIMUM_LLM_INPUT_BYTES as u32,
+        maximum_output_bytes: maximum_output_bytes as u32,
     };
     let capability_id = CapabilityId::from(capability);
     let authority_requirements = if remote {
         vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(REMOTE_GENERATE_TEXT_AUTHORITY),
+            contract_id: AuthorityContractId::from(REMOTE_LLM_AUTHORITY),
             host_call_contract_id: host_call.contract_id.clone(),
-            subject_kind: kind_id(GENERATE_TEXT_KIND),
+            subject_kind: kind_id(LLM_GENERATE_KIND),
         }]
     } else {
         vec![]
@@ -260,7 +253,7 @@ fn base(
         })
         .collect::<alloc::vec::Vec<_>>();
     resource_requirements.sort();
-    GenerateTextBaseFixture {
+    LlmGenerateBaseFixture {
         advertisement: HostAdvertisement {
             protocol_version: 1,
             host_id: HostId::from(host),
@@ -269,17 +262,18 @@ fn base(
             profile: HostProfileId::from("conduit.host/fixture@1"),
             bases: vec![],
             resources: resource_offers,
-            capabilities: vec![CapabilityOffer {
-                startup_parameters: startup_parameters(),
-                shorthand: None,
+            capabilities: vec![conduit_core::capability_offer_from_parts! {
+                startup_parameters: kind.startup_parameters,
+                shorthand: kind.shorthand,
                 capability_id,
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
+                kind_id: kind.kind_id,
+                kind_contract_revision: kind.kind_contract_revision,
+                inputs: kind.inputs,
+                outputs: kind.outputs,
+                semantic_contract,
                 implementation: ImplementationOffer {
                     execution_profile_id: ExecutionProfileId::from(
-                        "conduit.ai/generate-text-hosted@1",
+                        "conduit.llm/generate-fixture@1",
                     ),
                     implementation_id: ImplementationId::from(implementation),
                     artifact_id: ArtifactId::from(artifact),
@@ -290,36 +284,20 @@ fn base(
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
-                    max_queue_bytes: MAXIMUM_INPUT_BYTES as u32,
+                    max_queue_bytes: (MAXIMUM_LLM_INPUT_BYTES + maximum_output_bytes) as u32,
                 },
             }],
             planner_capabilities: vec![],
         },
-        facts: GenerateTextBaseFacts {
+        facts: LlmGenerateBaseFacts {
             proof_class: BaseProofClass::DeterministicConformanceFixture,
-            maximum_context_tokens,
-            maximum_output_tokens,
+            maximum_context_items,
+            maximum_output_bytes,
             data_handling,
             metering,
             benchmark_sign: benchmark_sign.to_string(),
         },
     }
-}
-
-fn startup_parameters() -> alloc::vec::Vec<FrontStartupParameter> {
-    [
-        "maximum-input-bytes",
-        "maximum-context-tokens",
-        "maximum-output-tokens",
-        "temperature-milli",
-    ]
-    .into_iter()
-    .map(|name| FrontStartupParameter {
-        name: name.to_string(),
-        value_type: conduit_core::kind_id("value/count"),
-        has_default: true,
-    })
-    .collect()
 }
 
 fn format_pool(host: &str, index: usize) -> String {
@@ -332,7 +310,7 @@ mod tests {
 
     #[test]
     fn three_materially_different_fixtures_offer_one_equal_checked_front() {
-        let fixtures = generate_text_base_fixtures();
+        let fixtures = llm_generate_base_fixtures();
         let front = fixtures[0].advertisement.capabilities[0].checked_front();
         for fixture in &fixtures {
             assert_eq!(fixture.advertisement.capabilities[0].checked_front(), front);
@@ -360,7 +338,7 @@ mod tests {
 
     #[test]
     fn implementation_artifact_and_resource_vectors_are_exact_and_distinct() {
-        let fixtures = generate_text_base_fixtures();
+        let fixtures = llm_generate_base_fixtures();
         for pair in fixtures.windows(2) {
             let left = &pair[0].advertisement.capabilities[0];
             let right = &pair[1].advertisement.capabilities[0];

@@ -136,6 +136,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

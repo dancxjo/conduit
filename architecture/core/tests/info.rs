@@ -99,6 +99,26 @@ fn scalar_arithmetic_is_checked_and_multiplication_truncates_toward_zero() {
         Scalar::MAX.checked_mul(Scalar::from_raw_microunits(1_000_001)),
         Err(ScalarArithmeticError::Overflow)
     );
+    assert_eq!(
+        Scalar::from_raw_microunits(3_000_000).checked_div(two),
+        Ok(one_and_half)
+    );
+    assert_eq!(
+        Scalar::ONE.checked_div(Scalar::ZERO),
+        Err(ScalarArithmeticError::DivisionByZero)
+    );
+    assert_eq!(
+        Scalar::from_raw_microunits(3_500_000).checked_rem(two),
+        Ok(one_and_half)
+    );
+    assert_eq!(
+        one_and_half.checked_neg(),
+        Ok(Scalar::from_raw_microunits(-1_500_000))
+    );
+    assert_eq!(
+        Scalar::MIN.checked_neg(),
+        Err(ScalarArithmeticError::Overflow)
+    );
 }
 
 #[test]

@@ -132,14 +132,7 @@ fn exact_discovery_selection_and_bounded_capture_produce_a_receipt() {
 
 #[test]
 fn stale_selection_and_oversized_capture_are_distinct() {
-    let _process = microphone_process();
-    let script = format!(
-        "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs={} count=1 2>/dev/null\n",
-        listing().replace('\n', "\\n"),
-        MAXIMUM_RAW_PCM_BYTES + 1
-    );
-    let (root, executable) = fixture(&script, "overflow");
-    let discovery = AlsaMicrophoneDiscovery::inspect(&executable).unwrap();
+    let (root, discovery) = parsed_fixture("#!/bin/sh\nexit 0\n", "overflow");
     let mut stale = discovery.observations[0].clone();
     stale.device = 8;
     assert!(matches!(
@@ -163,7 +156,18 @@ fn stale_selection_and_oversized_capture_are_distinct() {
         )
         .unwrap();
     assert_eq!(
-        adapter.capture(|| false),
+        adapter.finish_capture(
+            true,
+            BoundedRead {
+                bytes: vec![0; MAXIMUM_RAW_PCM_BYTES],
+                overflowed: true,
+            },
+            BoundedRead {
+                bytes: vec![],
+                overflowed: false,
+            },
+            raw_bytes_for_duration(6_000),
+        ),
         Err(MicrophoneFailure::OutputOverflow)
     );
     assert!(adapter.take_receipt().is_none());

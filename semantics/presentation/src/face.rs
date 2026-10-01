@@ -1,13 +1,14 @@
 //! One bounded renderer-neutral semantic surface for a current body.
 
-use alloc::{format, string::String, vec, vec::Vec};
-use conduit_body::{Body, BodyState, Wake, WakePlanState};
+use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
+use conduit_body::{Body, BodyState, Wake};
 use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ApplicationEventKind, ApplicationView, ApplicationViewRefusal, Presentation, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationProperty,
+    Presentation, PresentationBasis, PresentationContextBasis, PresentationDisclosure,
+    PresentationDisclosureLevel, PresentationError, PresentationFragment,
+    PresentationFragmentError, PresentationInteractionContext, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, PresentationText,
 };
@@ -15,8 +16,10 @@ use crate::{
 mod action_resolution;
 mod core_projection;
 mod projection;
+mod validation;
 use core_projection::{append_execution_truth, append_operator_actions};
 use projection::append_contribution;
+use validation::{validate_contributions, validate_wake};
 
 pub const MAX_FACE_CONTRIBUTIONS: usize = 5;
 pub const MAX_FACE_TRANSIENTS: usize = 2;
@@ -55,7 +58,19 @@ pub struct FaceContribution {
     pub checked_form_id: CheckedFormId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
-    pub view: ApplicationView,
+    pub presentation: Box<PresentationFragment>,
+}
+
+impl FaceContribution {
+    pub fn from_presentation(role: FaceContributionRole, fragment: PresentationFragment) -> Self {
+        Self {
+            role,
+            checked_form_id: fragment.basis.checked_form_id.clone(),
+            plan_id: fragment.basis.plan_id.clone(),
+            active_play_id: fragment.basis.active_play_id.clone(),
+            presentation: Box::new(fragment),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,20 +87,7 @@ pub struct Face {
     pub context: FaceContext,
     pub focus: FaceFocus,
     pub presentation: Presentation,
-    pub application_actions: Vec<FaceApplicationAction>,
     pub operator_actions: Vec<FaceOperatorAction>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FaceApplicationAction {
-    pub surface_action_id: String,
-    pub role: FaceContributionRole,
-    pub checked_form_id: CheckedFormId,
-    pub plan_id: PlanId,
-    pub active_play_id: ActivePlayId,
-    pub application_view_revision: u32,
-    pub application_action_id: String,
-    pub event: ApplicationEventKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,7 +118,14 @@ pub enum FaceRefusal {
     DuplicatePlay,
     FormNotResident,
     PlayNotCurrent,
-    InvalidApplicationView(ApplicationViewRefusal),
+    InvalidPresentationFragment(PresentationFragmentError),
+    IncompatibleInteractionContext,
+    FaceOwnedIdentity(String),
+    ContributionIdentityCollision {
+        identity: String,
+        first: CheckedFormId,
+        second: CheckedFormId,
+    },
     InvalidContext,
     InvalidFocus,
     InvalidPresentation(PresentationError),
@@ -134,10 +143,14 @@ impl Face {
         revision: u64,
         context: FaceContext,
         focus: FaceFocus,
-        contributions: Vec<FaceContribution>,
+        mut contributions: Vec<FaceContribution>,
     ) -> Result<Self, FaceRefusal> {
         body.validate().map_err(|_| FaceRefusal::InvalidBody)?;
         validate_wake(body, wake)?;
+        contributions.sort_by(|left, right| {
+            (left.role.token(), left.active_play_id.as_str())
+                .cmp(&(right.role.token(), right.active_play_id.as_str()))
+        });
         validate_contributions(body, wake, &context, &focus, &contributions)?;
 
         let body_subject = format!("body/{}", body.body_id.as_str());
@@ -146,14 +159,12 @@ impl Face {
             PresentationSubject {
                 identity: body_subject.clone(),
                 role: PresentationRole::Body,
-                label: "Body".into(),
-                accessibility_name: "Current body".into(),
+                name: "Current body".into(),
             },
             PresentationSubject {
                 identity: context_subject.clone(),
                 role: PresentationRole::Region,
-                label: context_label(&context).into(),
-                accessibility_name: format!("Current {} context", context_label(&context)),
+                name: format!("Current {} context", context_label(&context)),
             },
         ];
         let mut relationships = vec![PresentationRelationship {
@@ -161,6 +172,7 @@ impl Face {
             target: context_subject.clone(),
             kind: PresentationRelationshipKind::Contains,
         }];
+        let mut composition = Vec::new();
         let mut properties = vec![
             identity_property(&body_subject, "body-id", body.body_id.as_str()),
             PresentationProperty {
@@ -195,8 +207,6 @@ impl Face {
             ),
         }];
         let mut actions = Vec::new();
-        let mut inputs = Vec::new();
-        let mut application_actions = Vec::new();
         let mut operator_actions = Vec::new();
         let mut disclosures = vec![
             PresentationDisclosure {
@@ -208,6 +218,8 @@ impl Face {
                 level: PresentationDisclosureLevel::Context,
             },
         ];
+        let mut temporal_references = Vec::new();
+        let mut temporal_facts = Vec::new();
 
         append_execution_truth(
             wake,
@@ -223,8 +235,7 @@ impl Face {
             subjects.push(PresentationSubject {
                 identity: form_subject.clone(),
                 role: PresentationRole::Form,
-                label: form.checked_form_id.as_str().into(),
-                accessibility_name: format!("Resident Form {}", form.checked_form_id.as_str()),
+                name: format!("Resident Form {}", form.checked_form_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: body_subject.clone(),
@@ -269,12 +280,13 @@ impl Face {
                 &context_subject,
                 &mut subjects,
                 &mut relationships,
+                &mut composition,
                 &mut properties,
                 &mut text,
                 &mut actions,
-                &mut inputs,
                 &mut disclosures,
-                &mut application_actions,
+                &mut temporal_references,
+                &mut temporal_facts,
             );
         }
 
@@ -284,7 +296,7 @@ impl Face {
         }
         sign_ids.sort();
         sign_ids.dedup();
-        let presentation = Presentation::new_with_interactions(
+        let mut presentation = Presentation::new_with_semantics(
             revision,
             PresentationBasis {
                 body_id: Some(body.body_id.clone()),
@@ -301,125 +313,29 @@ impl Face {
             properties,
             text,
             actions,
-            inputs,
             disclosures,
         )
         .map_err(FaceRefusal::InvalidPresentation)?;
+        presentation.temporal_references = temporal_references;
+        presentation.temporal_facts = temporal_facts;
+        presentation.composition = composition;
+        let presentation = presentation
+            .with_interaction_context(PresentationInteractionContext {
+                identity: interaction_context_identity(&context, &focus),
+                basis: vec![PresentationContextBasis {
+                    source: body_subject,
+                    relationship: PresentationRelationshipKind::Contains,
+                    target: context_subject,
+                }],
+            })
+            .map_err(FaceRefusal::InvalidPresentation)?;
         Ok(Self {
             context,
             focus,
             presentation,
-            application_actions,
             operator_actions,
         })
     }
-}
-
-fn validate_wake(body: &Body, wake: Option<&Wake>) -> Result<(), FaceRefusal> {
-    match (&body.state, wake) {
-        (BodyState::Lulled | BodyState::Fulfilled { .. }, None) => Ok(()),
-        (BodyState::Lulled | BodyState::Fulfilled { .. }, Some(_)) => {
-            Err(FaceRefusal::UnexpectedWake)
-        }
-        (BodyState::Awake { wake_id }, Some(wake)) => {
-            wake.validate().map_err(|_| FaceRefusal::InvalidWake)?;
-            if &wake.wake_id != wake_id
-                || wake.body_id != body.body_id
-                || wake.workset != body.workset
-                || wake.workload_revision != body.workload_revision
-            {
-                return Err(FaceRefusal::InvalidWake);
-            }
-            Ok(())
-        }
-        (BodyState::Awake { .. }, None) => Err(FaceRefusal::MissingCurrentWake),
-    }
-}
-
-fn validate_contributions(
-    body: &Body,
-    wake: Option<&Wake>,
-    context: &FaceContext,
-    focus: &FaceFocus,
-    contributions: &[FaceContribution],
-) -> Result<(), FaceRefusal> {
-    if contributions.len() > MAX_FACE_CONTRIBUTIONS {
-        return Err(FaceRefusal::TooManyContributions);
-    }
-    if contributions
-        .iter()
-        .filter(|item| item.role == FaceContributionRole::Transient)
-        .count()
-        > MAX_FACE_TRANSIENTS
-    {
-        return Err(FaceRefusal::TooManyTransients);
-    }
-    for role in [
-        FaceContributionRole::Foreground,
-        FaceContributionRole::Tutorial,
-        FaceContributionRole::Inspection,
-    ] {
-        if contributions
-            .iter()
-            .filter(|item| item.role == role)
-            .count()
-            > 1
-        {
-            return Err(FaceRefusal::DuplicateRole);
-        }
-    }
-    for (index, contribution) in contributions.iter().enumerate() {
-        contribution
-            .view
-            .validate()
-            .map_err(FaceRefusal::InvalidApplicationView)?;
-        if !body
-            .workset
-            .forms()
-            .iter()
-            .any(|form| form.checked_form_id == contribution.checked_form_id)
-        {
-            return Err(FaceRefusal::FormNotResident);
-        }
-        if contributions[index + 1..]
-            .iter()
-            .any(|other| other.active_play_id == contribution.active_play_id)
-        {
-            return Err(FaceRefusal::DuplicatePlay);
-        }
-        let current = wake.is_some_and(|wake| {
-            wake.plans.iter().any(|plan| {
-                plan.plan_id == contribution.plan_id
-                    && plan.state == WakePlanState::Playing
-                    && plan.active_play_id.as_ref() == Some(&contribution.active_play_id)
-            })
-        });
-        if !current {
-            return Err(FaceRefusal::PlayNotCurrent);
-        }
-    }
-    if let Some(form) = context_form(context) {
-        if !body
-            .workset
-            .forms()
-            .iter()
-            .any(|resident| &resident.checked_form_id == form)
-        {
-            return Err(FaceRefusal::InvalidContext);
-        }
-    }
-    if let FaceFocus::Contribution { role, node_key } = focus {
-        let Some(contribution) = contributions.iter().find(|item| &item.role == role) else {
-            return Err(FaceRefusal::InvalidFocus);
-        };
-        if node_key
-            .as_ref()
-            .is_some_and(|key| !contribution.view.nodes.iter().any(|node| &node.key == key))
-        {
-            return Err(FaceRefusal::InvalidFocus);
-        }
-    }
-    Ok(())
 }
 
 fn identity_property(subject: &str, name: &str, value: &str) -> PresentationProperty {
@@ -448,15 +364,6 @@ fn context_label(context: &FaceContext) -> &'static str {
     }
 }
 
-fn context_form(context: &FaceContext) -> Option<&CheckedFormId> {
-    match context {
-        FaceContext::ResidentForm(form)
-        | FaceContext::Tutorial(form)
-        | FaceContext::Inspection(form) => Some(form),
-        FaceContext::Overview | FaceContext::Library => None,
-    }
-}
-
 fn focus_label(focus: &FaceFocus) -> String {
     match focus {
         FaceFocus::Body => "body".into(),
@@ -465,4 +372,15 @@ fn focus_label(focus: &FaceFocus) -> String {
             |key| format!("contribution/{}/node/{key}", role.token()),
         ),
     }
+}
+
+pub(super) fn interaction_context_identity(context: &FaceContext, focus: &FaceFocus) -> String {
+    let context = match context {
+        FaceContext::Overview => "overview".into(),
+        FaceContext::Library => "library".into(),
+        FaceContext::ResidentForm(form) => format!("resident-form/{}", form.as_str()),
+        FaceContext::Tutorial(form) => format!("tutorial/{}", form.as_str()),
+        FaceContext::Inspection(form) => format!("inspection/{}", form.as_str()),
+    };
+    format!("face/context/{context}/focus/{}", focus_label(focus))
 }

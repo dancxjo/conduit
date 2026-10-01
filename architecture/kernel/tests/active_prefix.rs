@@ -142,15 +142,7 @@ fn cord(index: u16, source: u16, sink: u16) -> CordSpec {
 }
 
 fn inactive_cord() -> CordSpec {
-    CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-        pressure_policy: Default::default(),
-    }
+    CordSpec::inactive()
 }
 
 fn sign() -> FixedSignLog<SIGN_EVENTS> {

@@ -10,9 +10,14 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
-import { BrowserForm, birthBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
+const BROWSER_PARTICIPATION_KEY = Symbol("Conduit BrowserBodyParticipation");
+const BROWSER_PREPARATION_KEY = Symbol("Conduit BrowserBodyPreparation");
+import { BrowserForm, birthBrowserBody, recoverBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
 import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
+import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
+import { joinBrowserBody } from "../host/assets/browser-membership.js";
 export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
+export { BrowserFaceClient, BrowserFaceError } from "./browser-sdk-face.mjs";
 
 export class ConduitSdkError extends Error {
   constructor({ code, category = "RuntimeRefusal", message, operation, evidence, identities = {}, cause }) {
@@ -87,6 +92,36 @@ export class BrowserHost {
     return reviewBrowserForms({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, forms });
   }
 
+  /** Join this already-admitted Host and Boot to one external Body invitation. */
+  async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,
+    onState, onBiographyEvidence, onOfferEvidence, renewPresence = true, reconnectPresence = true } = {}) {
+    if (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048) {
+      throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
+    }
+    const membership = await joinBrowserBody({
+      bodyUrl: invitation,
+      wasmBytes: this.#state.runtimeBytes,
+      admittedHost: {
+        api: this.#state.api,
+        membership: this.#state.membership,
+        hostId: this.id,
+        bootId: this.bootId,
+      },
+      expectedBodyId,
+      retainedCredential,
+      onCredential,
+      onState,
+      onBiographyEvidence,
+      onOfferEvidence,
+      renewPresence,
+      reconnectPresence,
+    });
+    return new BrowserBodyParticipation(BROWSER_PARTICIPATION_KEY, {
+      host: this.#state,
+      membership,
+    });
+  }
+
   async birth({ name, forms }) {
     if (typeof name !== "string" || !Array.isArray(forms)) throw new TypeError("BrowserHost.birth requires a name and checked Forms");
     return birthBrowserBody({
@@ -97,6 +132,8 @@ export class BrowserHost {
       root: this.#state.root,
       membership: this.#state.membership,
       createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
+      acquireBodyHost: acquireBrowserBodyHost,
+      storage: this.#state.storage,
       name,
       forms,
       sequence: () => {
@@ -105,6 +142,152 @@ export class BrowserHost {
       },
     });
   }
+
+  /** Recover the exact retained Body into this fresh Boot without resurrecting an old Play. */
+  async recover() {
+    return recoverBrowserBody({
+      bridge: this.#state.bridge,
+      host: this.id,
+      boot: this.bootId,
+      api: this.#state.api,
+      root: this.#state.root,
+      membership: this.#state.membership,
+      createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
+      acquireBodyHost: acquireBrowserBodyHost,
+      storage: this.#state.storage,
+    });
+  }
+}
+
+/** Current participation of this SDK Host incarnation in one external Body. */
+export class BrowserBodyParticipation {
+  #state;
+
+  constructor(key, state) {
+    if (key !== BROWSER_PARTICIPATION_KEY) {
+      throw new TypeError("BrowserBodyParticipation values come from BrowserHost.participate()");
+    }
+    this.#state = state;
+    Object.freeze(this);
+  }
+
+  get hostId() { return this.#state.membership.hostId; }
+  get bootId() { return this.#state.membership.bootId; }
+  get advertisement() { return this.#state.membership.advertisement; }
+  membershipCredential() { return this.#state.membership.membershipCredential(); }
+  biographyEvidence() { return this.#state.membership.biographyEvidence(); }
+  offerEvidence() { return this.#state.membership.offerEvidence(); }
+  state() { return this.#state.membership.state(); }
+  presenceState() { return this.#state.membership.presenceState(); }
+  pageLifecycle() { return this.#state.membership.pageLifecycle(); }
+  freshnessProfile() { return this.#state.membership.freshnessProfile(); }
+  requestOfferEvidence(options) { return this.#state.membership.requestOfferEvidence(options); }
+  signalWebRtc(options) { return this.#state.membership.signalWebRtc(options); }
+  requestWebRtcGrant(index, generation = 0) { return this.#state.membership.requestWebRtcGrant(index, generation); }
+  webRtcSessions() { return this.#state.membership.webRtcSessions(); }
+  offerWebRtcValue(identity, bytes) { return this.#state.membership.offerWebRtcValue(identity, bytes); }
+  receiveWebRtcValue(identity) { return this.#state.membership.receiveWebRtcValue(identity); }
+  pressureNextWebRtcValue(identity) { return this.#state.membership.pressureNextWebRtcValue(identity); }
+  deliverWebRtcValue(identity, sequence) { return this.#state.membership.deliverWebRtcValue(identity, sequence); }
+  waitWebRtcValueDelivered(identity, sequence) { return this.#state.membership.waitWebRtcValueDelivered(identity, sequence); }
+  closeWebRtcLine(identity) { return this.#state.membership.closeWebRtcLine(identity); }
+  replanWebRtc() { return this.#state.membership.replanWebRtc(); }
+  publishMediaResource(evidence) { return this.#state.membership.publishMediaResource(evidence); }
+  close() { return this.#state.membership.close(); }
+
+  /** Exact capability identities executable by this SDK Host runtime. */
+  executionCapabilities() {
+    const api = this.#state.host.api;
+    if (api.conduit_browser_body_capabilities() < 0) {
+      throw new Error("external Body execution capabilities unavailable");
+    }
+    const value = this.#state.host.bridge.browserFormReadOutputJson();
+    if (value?.schema !== "conduit.browser/body-capabilities@1"
+        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 112
+        || value.capability_ids.some(identity => typeof identity !== "string"
+          || identity.length < 1 || identity.length > 256)) {
+      throw new Error("invalid external Body execution capabilities");
+    }
+    return Object.freeze([...value.capability_ids]);
+  }
+
+  /** Acquire this page's exact resources for an authority-owned external Body proposal. */
+  prepare({ proposal, inputTarget, outputRoot, foregroundForm, presentationRootFor,
+    onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential
+        || proposal?.plan?.body_id !== credential.body_id) {
+      throw new Error("current external Body participation does not match the proposal");
+    }
+    const owner = acquireBrowserBodyHost({
+      api: this.#state.host.api,
+      hostId: this.hostId,
+      bootId: this.bootId,
+      proposal,
+      inputTarget,
+      outputRoot,
+      foregroundForm,
+      presentationRootFor,
+      onApplicationEvent,
+      onTutorialPresenterRequest,
+      externallyManagedPlanIds,
+    });
+    return new BrowserBodyPreparation(BROWSER_PREPARATION_KEY, { owner, proposal });
+  }
+}
+
+/** Page resources acquired for one exact external Body proposal, before Play admission. */
+export class BrowserBodyPreparation {
+  #state;
+
+  constructor(key, state) {
+    if (key !== BROWSER_PREPARATION_KEY) {
+      throw new TypeError("BrowserBodyPreparation values come from BrowserBodyParticipation.prepare()");
+    }
+    this.#state = state;
+    Object.freeze(this);
+  }
+
+  observations() { return Object.freeze(this.#state.owner.observations().map(item => Object.freeze({ ...item }))); }
+  evidence() { return this.#state.owner.evidence(); }
+
+  /** Immutable, read-only Plan truth suitable for a workbench Mask. */
+  inspection() {
+    const proposal = this.#state.proposal;
+    return freezeSdkJson({
+      schema: "conduit.browser/body-plan-inspection@1",
+      bodyId: proposal.plan.body_id,
+      wakeId: proposal.wake.wake_id,
+      planId: proposal.plan.plan_id,
+      plan: structuredClone(proposal.plan),
+    });
+  }
+
+  start(playIdentity) {
+    if (!playIdentity || !Number.isSafeInteger(playIdentity.play_sequence)
+        || playIdentity.play_sequence < 1 || playIdentity.plan_id !== this.#state.proposal.plan.plan_id
+        || playIdentity.wake_id !== this.#state.proposal.wake.wake_id
+        || playIdentity.body_id !== this.#state.proposal.plan.body_id) {
+      throw new Error("external Body Play identity does not match the prepared proposal");
+    }
+    const started = this.#state.owner.start(playIdentity.play_sequence);
+    if (Object.keys(playIdentity).some(key => started.play[key] !== playIdentity[key])) {
+      this.#state.owner.close();
+      throw new Error("external Body runtime started a different Play identity");
+    }
+    return Object.freeze({
+      wakeAtStart: Object.freeze(structuredClone(started.wake_at_start)),
+      play: new BrowserPlay(BROWSER_HOST_KEY, { started, adapter: this.#state.owner }),
+    });
+  }
+
+  close() { return this.#state.owner.close(); }
+}
+
+function freezeSdkJson(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) freezeSdkJson(child);
+  return Object.freeze(value);
 }
 
 export class BrowserPlay {
@@ -209,14 +392,23 @@ export const Conduit = Object.freeze({
         || initialized.hostId !== initialized.membership.hostId) {
         refuse("HostIncarnationMismatch", "initialized membership does not match the admitted Host and Boot identity");
       }
+      const implementationRegistry = boot.offers.map(({ implementation_id }) => implementation_id);
+      const storage = durable && implementationRegistry.includes("browser/indexeddb@1") ? await openBrowserApplicationStorage(
+        "conduit.browser/sdk-body-continuity@1",
+        1,
+        pkg.bundle_sha256,
+        { implementationRegistry },
+      ) : null;
       const state = {
         packageVersion: pkg.package_version,
         runtimeAbi: pkg.runtime_abi,
         hostId: initialized.hostId,
         api,
+        runtimeBytes,
         root,
         bridge,
         membership: initialized.membership,
+        storage,
         sequence: 0,
         boot,
         offers: Object.freeze(boot.offers.map((offer) => Object.freeze({ ...offer }))),
@@ -252,14 +444,14 @@ function requirePackage(pkg, requestedProfileId) {
 
 function requireRelease(distribution, bundle, pkg, image) {
   if (distribution?.schema !== RELEASE_SCHEMA || distribution.target_id !== pkg.target_id
-    || distribution.fabrication_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
+    || distribution.make_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
     || distribution.reviewed_distribution?.schema !== DISTRIBUTION_SCHEMA
     || distribution.reviewed_distribution.runtime_abi !== pkg.runtime_abi
     || distribution.bundle_sha256 !== image.reviewed_distribution?.distribution_digest) {
     refuse("IncompatibleDistribution", "reviewed BrowserBundle distribution does not match the SDK package ABI and identity");
   }
   if (bundle?.schema !== RELEASE_SCHEMA || bundle.target_id !== pkg.target_id
-    || bundle.fabrication_package_id !== "browser-wasm@1" || bundle.output !== "browser-bundle"
+    || bundle.make_package_id !== "browser-wasm@1" || bundle.output !== "browser-bundle"
     || bundle.distribution_id !== distribution.reviewed_distribution.distribution_id
     || bundle.distribution_sha256 !== distribution.bundle_sha256
     || bundle.browser_image_id !== pkg.image_id || bundle.browser_profile_id !== pkg.profile_id

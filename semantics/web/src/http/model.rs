@@ -1,13 +1,20 @@
-use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::BoundedResourceRef;
-use serde::{Deserialize, Serialize};
+
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    HttpContractError, HttpExchangeFailure, HttpHeader, HttpMethod, HttpScheme,
+    HttpServerResponseRefusal, HttpTarget, HttpTransactionId,
+};
 
 pub const HTTP_MAXIMUM_IN_FLIGHT: u16 = 4;
 pub const HTTP_MAXIMUM_HEADERS: usize = 16;
 pub const HTTP_MAXIMUM_HEADER_NAME_BYTES: usize = 64;
 pub const HTTP_MAXIMUM_HEADER_VALUE_BYTES: usize = 512;
-pub const HTTP_MAXIMUM_SCHEME_BYTES: usize = 8;
 pub const HTTP_MAXIMUM_AUTHORITY_BYTES: usize = 255;
 pub const HTTP_MAXIMUM_TARGET_BYTES: usize = 2_048;
 pub const HTTP_MAXIMUM_INLINE_BODY_BYTES: usize = 4_096;
@@ -24,31 +31,13 @@ pub const HTTP_AMBIENT_CREDENTIALS: bool = false;
 pub const HTTP_IMPLICIT_CACHING: bool = false;
 pub const HTTP_IMPLICIT_DECOMPRESSION: bool = false;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HttpTransactionId(pub u64);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HttpMethod {
-    Get,
-    Head,
-    Post,
-    Put,
-    Patch,
-    Delete,
-    Options,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HttpTarget {
-    pub scheme: String,
-    pub authority: String,
-    pub path_and_query: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HttpHeader {
-    pub name: String,
-    pub value: Vec<u8>,
+impl HttpScheme {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Http => "http",
+            Self::Https => "https",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,57 +79,6 @@ pub struct HttpResponse {
     pub body: HttpBody,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HttpExchangeFailure {
-    NameResolution,
-    RouteUnavailable,
-    Connect,
-    Tls,
-    ProviderLost,
-    RequestOverflow,
-    ResponseHeaderOverflow,
-    ResponseBodyOverflow,
-    ResourceUnavailable,
-    Capacity,
-    AuthorityDenied,
-    Cancelled,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HttpServerResponseRefusal {
-    UnknownTransaction,
-    StaleTransaction,
-    DuplicateResponse,
-    LateResponse,
-    ResponseHeaderOverflow,
-    ResponseBodyOverflow,
-    ResourceUnavailable,
-    ListenerLost,
-    Capacity,
-    AuthorityDenied,
-    Cancelled,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HttpContractError {
-    EmptyAuthority,
-    InvalidScheme,
-    InvalidTarget,
-    TooManyHeaders,
-    EmptyHeaderName,
-    InvalidHeaderName,
-    SensitiveHeaderRequiresProtectedPath,
-    FramingHeaderIsDerived,
-    HeaderNameOverflow,
-    HeaderValueOverflow,
-    RequestBodyOverflow,
-    ResponseBodyOverflow,
-    InvalidStatus,
-    MalformedEncoding,
-    EncodedValueOverflow,
-    TrailingBytes,
-}
-
 impl HttpRequest {
     pub fn validate(&self) -> Result<(), HttpContractError> {
         validate_target(&self.target)?;
@@ -172,20 +110,11 @@ fn validate_body(body: &HttpBody, maximum_inline_bytes: usize) -> Result<(), ()>
 }
 
 fn validate_target(target: &HttpTarget) -> Result<(), HttpContractError> {
-    if target.scheme != "http" && target.scheme != "https" {
-        return Err(HttpContractError::InvalidScheme);
-    }
-    if target.scheme.len() > HTTP_MAXIMUM_SCHEME_BYTES {
-        return Err(HttpContractError::InvalidScheme);
-    }
-    if target.authority.is_empty() {
-        return Err(HttpContractError::EmptyAuthority);
-    }
-    if target.authority.len() > HTTP_MAXIMUM_AUTHORITY_BYTES
-        || target.path_and_query.len() > HTTP_MAXIMUM_TARGET_BYTES
-        || !target.path_and_query.starts_with('/')
+    if target.authority().len() > HTTP_MAXIMUM_AUTHORITY_BYTES
+        || target.path_and_query().len() > HTTP_MAXIMUM_TARGET_BYTES
+        || !target.path_and_query().starts_with('/')
         || target
-            .authority
+            .authority()
             .bytes()
             .any(|byte| byte.is_ascii_control() || byte == b'/')
     {
@@ -199,29 +128,33 @@ fn validate_headers(headers: &[HttpHeader]) -> Result<(), HttpContractError> {
         return Err(HttpContractError::TooManyHeaders);
     }
     for header in headers {
-        if header.name.is_empty() {
+        if header.name().is_empty() {
             return Err(HttpContractError::EmptyHeaderName);
         }
-        if header.name.len() > HTTP_MAXIMUM_HEADER_NAME_BYTES {
+        if header.name().len() > HTTP_MAXIMUM_HEADER_NAME_BYTES {
             return Err(HttpContractError::HeaderNameOverflow);
         }
-        if !header.name.bytes().all(is_header_name_byte) {
+        if !header.name().bytes().all(is_header_name_byte) {
             return Err(HttpContractError::InvalidHeaderName);
         }
         if matches!(
-            header.name.as_str(),
+            header.name().as_str(),
             "authorization" | "proxy-authorization" | "cookie" | "set-cookie"
         ) {
             return Err(HttpContractError::SensitiveHeaderRequiresProtectedPath);
         }
-        if matches!(header.name.as_str(), "content-length" | "transfer-encoding") {
+        if matches!(
+            header.name().as_str(),
+            "content-length" | "transfer-encoding"
+        ) {
             return Err(HttpContractError::FramingHeaderIsDerived);
         }
-        if header.value.len() > HTTP_MAXIMUM_HEADER_VALUE_BYTES {
+        if header.value().as_slice().len() > HTTP_MAXIMUM_HEADER_VALUE_BYTES {
             return Err(HttpContractError::HeaderValueOverflow);
         }
         if header
-            .value
+            .value()
+            .as_slice()
             .iter()
             .any(|byte| *byte == b'\r' || *byte == b'\n')
         {
@@ -251,4 +184,58 @@ fn is_header_name_byte(byte: u8) -> bool {
                 | b'|'
                 | b'~'
         )
+}
+
+#[cfg(test)]
+mod native_type_tests {
+    use super::{
+        HttpExchangeFailure, HttpHeader, HttpMethod, HttpScheme, HttpServerResponseRefusal,
+        HttpTarget, HttpTransactionId,
+    };
+    use conduit_form::rust_binding::NativeRustBinding;
+
+    fn assert_round_trip<T>(value: T)
+    where
+        T: NativeRustBinding + Clone + core::fmt::Debug + PartialEq,
+    {
+        let structured = value
+            .clone()
+            .into_structured()
+            .expect("native value encodes");
+        assert_eq!(
+            structured.value_type(),
+            &T::semantic_type().expect("native semantic type checks")
+        );
+        assert_eq!(
+            T::from_structured(structured).expect("native value decodes"),
+            value
+        );
+    }
+
+    #[test]
+    fn http_method_and_terminal_families_are_native_semantic_types() {
+        assert_round_trip(HttpMethod::Patch);
+        assert_round_trip(HttpExchangeFailure::AuthorityDenied);
+        assert_round_trip(HttpServerResponseRefusal::StaleTransaction);
+    }
+
+    #[test]
+    fn portable_http_values_are_generated_from_conduitese() {
+        assert_round_trip(HttpTransactionId::new(42).unwrap());
+        assert_round_trip(
+            HttpTarget::new(
+                "api.example.test".into(),
+                "/v1/items".into(),
+                HttpScheme::Https,
+            )
+            .unwrap(),
+        );
+        assert_round_trip(
+            HttpHeader::new(
+                "content-type".into(),
+                conduit_form::rust_binding::BoundedBytes::new(b"application/json").unwrap(),
+            )
+            .unwrap(),
+        );
+    }
 }

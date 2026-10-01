@@ -15,9 +15,11 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_audio::{AUDIO_PCM_INFO_ID, MAXIMUM_PCM_FRAME_BYTES, PCM_FRAME_HEADER_ENCODED_LEN};
+#[cfg(feature = "form-catalog")]
+use conduit_core::KindIdentity;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 #[cfg(feature = "form-catalog")]
 use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
@@ -172,6 +174,7 @@ fn value_port(name: &str, info: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -181,6 +184,7 @@ fn flow_port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 

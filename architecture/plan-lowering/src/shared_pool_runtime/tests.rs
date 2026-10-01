@@ -4,10 +4,10 @@ use conduit_core::{
     CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, CheckedFront,
     ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId,
     GearId, HostId, ImplementationId, KindIdentity, OfferGeneration, PlacementId, PlanFragment,
-    PlanId, PlannedGear, PlannedSharedPool, PlanningRequestAuthority, PlayUnsatisfiedReason,
-    PoolDeclarationId, PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope,
-    PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition, SharedPoolId,
-    SignId, SignStorageBudget, SourceDocumentId, TerminalPolicy,
+    PlanId, PlannedSharedPool, PlanningRequestAuthority, PlayUnsatisfiedReason, PoolDeclarationId,
+    PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope, PoolRealizationHealth,
+    PoolRealizationObservation, PoolSelectionDisposition, SharedPoolId, SignId, SignStorageBudget,
+    SourceDocumentId, TerminalPolicy,
 };
 use conduit_kernel::{shared_pool::MemberKey, NodeId};
 
@@ -64,7 +64,8 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         host_id: HostId::from("coordinator"),
         boot_id: BootId::from("coordinator/boot-1"),
         offer_generation: OfferGeneration(1),
-        placements: vec![PlannedGear {
+        placements: vec![conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from("model-consumer"),
             gear_id: GearId::from("model-consumer"),
             kind_id: kind_id("test/model-consumer"),
@@ -86,6 +87,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
             },
             inputs: vec![],
             outputs: vec![],
+            terminal_transductions: Vec::new(),
             host_calls: vec![],
             resources: vec![],
             authority: vec![],
@@ -95,6 +97,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         execution_fusions: vec![],
         states: vec![],
         connections: vec![],
+        fore_ports: vec![],
         shared_pools: vec![pool],
         startup_dependencies: vec![],
         startup_order: vec![],

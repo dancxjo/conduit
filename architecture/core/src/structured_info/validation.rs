@@ -63,6 +63,9 @@ fn validate_node(
 ) -> Result<(), Refusal> {
     *remaining = remaining.checked_sub(1).ok_or(Refusal::TooManyNodes)?;
     match ty.shape() {
+        Shape::Nominal { representation, .. } => {
+            validate_node(representation, cursor, remaining)?;
+        }
         Shape::Leaf(kind) => {
             expect(cursor.byte()? == 0)?;
             let encoded = cursor.bytes()?;
@@ -79,10 +82,14 @@ fn validate_node(
                 validate_node(element, cursor, remaining)?;
             }
         }
-        Shape::Sequence { element, capacity } => {
+        Shape::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+        } => {
             expect(cursor.byte()? == 1)?;
             let length = cursor.length()?;
-            expect(length <= usize::from(capacity))?;
+            expect(length >= usize::from(minimum_items) && length <= usize::from(maximum_items))?;
             for _ in 0..length {
                 validate_node(element, cursor, remaining)?;
             }

@@ -11,9 +11,10 @@ use conduit_presentation::{
     NavigationOperation, NavigationState, PresentationAspect, PresentationDepth, PresentationPlace,
     PresentationRelationshipKind, PresentationRole, MAX_NAVIGATION_HISTORY,
 };
+use patchbay_graph::PatchbayGraph;
 use patchbay_model::{
-    FormEditor, PartsView, PatchbayGraph, PatchbayNavigationProjection, PatchbayPresentation,
-    PatchbayRequestId, PlanDocument,
+    FormEditor, PartsView, PatchbayNavigationProjection, PatchbayPresentation, PatchbayRequestId,
+    PlanDocument,
 };
 use serde_json::{json, Value};
 
@@ -247,7 +248,7 @@ fn role(
         .subjects
         .iter()
         .find(|candidate| candidate.identity == subject)
-        .map(|candidate| candidate.role)
+        .map(|candidate| candidate.role.clone())
 }
 
 fn navigate(

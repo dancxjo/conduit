@@ -2,16 +2,17 @@
 name = "conduit"
 version = "0.1.0"
 edition = "2021"
+default-run = "conduit"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-core = { path = "../../architecture/core" }
 conduit-body = { path = "../../architecture/body" }
-conduit-body-fabrication = { path = "../../fabrication/body" }
+conduit-body-make = { path = "../../make/body" }
 conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
 conduit-form = { path = "../../architecture/form" }
-conduit-host-fabrication = { path = "../../fabrication/host" }
+conduit-host-make = { path = "../../make/host" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }
@@ -30,7 +31,7 @@ conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text" }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }
-conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+conduit-workspace-make = { path = "../../make/workspace" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 getrandom = "0.3"
@@ -45,10 +46,6 @@ path = "src/lib.rs"
 [[test]]
 name = "hello"
 path = "tests/hello.rs"
-
-[[test]]
-name = "copy_task_front"
-path = "tests/copy_task_front.rs"
 
 [[test]]
 name = "structured_diagnostics"

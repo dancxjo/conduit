@@ -1,10 +1,59 @@
 use conduit_core::{
-    encode_count, validate_canonical_structured_value, KindId, RuntimeStructuredInfo, Scalar,
-    StartupStructuredValue, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal,
-    StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
-    MAXIMUM_STRUCTURED_COLLECTION_ITEMS, MAXIMUM_STRUCTURED_INFO_DEPTH,
-    MAXIMUM_STRUCTURED_LEAF_BYTES,
+    encode_count, optional_info_type, validate_canonical_structured_value, KindId,
+    PreparedOptionalInfoEncoder, RuntimeStructuredInfo, Scalar, StartupStructuredValue,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_COLLECTION_ITEMS,
+    MAXIMUM_STRUCTURED_INFO_DEPTH, MAXIMUM_STRUCTURED_LEAF_BYTES,
 };
+
+#[test]
+fn optional_info_is_exactly_the_finite_none_or_some_variant() {
+    let scalar = leaf_type("value/scalar");
+    let optional = optional_info_type(scalar.clone()).unwrap();
+    let none =
+        StructuredInfoValue::variant(optional.clone(), "none", leaf("value/unit", &[])).unwrap();
+    let some = StructuredInfoValue::variant(
+        optional.clone(),
+        "some",
+        StructuredInfoValue::leaf(scalar, Scalar::from_raw_microunits(7).encode().to_vec())
+            .unwrap(),
+    )
+    .unwrap();
+
+    assert_ne!(
+        none.canonical_bytes().unwrap(),
+        some.canonical_bytes().unwrap()
+    );
+    assert_eq!(
+        StructuredInfoValue::variant(optional, "none", leaf("value/scalar", &[0; 8])),
+        Err(StructuredInfoRefusal::WrongType)
+    );
+}
+
+#[test]
+fn prepared_optional_encoding_matches_the_canonical_variant_without_growth() {
+    let scalar = leaf_type("value/scalar");
+    let optional = optional_info_type(scalar.clone()).unwrap();
+    let scalar_bytes = Scalar::from_raw_microunits(7).encode();
+    let expected_some = StructuredInfoValue::variant(
+        optional.clone(),
+        "some",
+        StructuredInfoValue::leaf(scalar.clone(), scalar_bytes.to_vec()).unwrap(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let expected_none = StructuredInfoValue::variant(optional, "none", leaf("value/unit", &[]))
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let mut encoder = PreparedOptionalInfoEncoder::new(scalar).unwrap();
+    let capacity = encoder.capacity();
+    assert_eq!(encoder.encode(Some(&scalar_bytes)).unwrap(), expected_some);
+    assert_eq!(encoder.capacity(), capacity);
+    assert_eq!(encoder.encode(None).unwrap(), expected_none);
+    assert_eq!(encoder.capacity(), capacity);
+}
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(KindId::from(kind)).unwrap()
@@ -81,6 +130,34 @@ fn nominal_schemas_prevent_protocol_and_portable_records_from_accidental_aliasin
     assert_ne!(
         midi.semantic_digest().unwrap(),
         portable.semantic_digest().unwrap()
+    );
+}
+
+#[test]
+fn nominal_types_keep_distinct_identity_over_the_same_exact_representation() {
+    let representation = leaf_type("value/count");
+    let note =
+        StructuredInfoType::nominal(KindId::from("music/note@1"), representation.clone()).unwrap();
+    let velocity =
+        StructuredInfoType::nominal(KindId::from("music/velocity@1"), representation.clone())
+            .unwrap();
+    let represented = StructuredInfoValue::leaf(representation, encode_count(64).to_vec()).unwrap();
+    let note_value = StructuredInfoValue::nominal(note.clone(), represented.clone()).unwrap();
+    let velocity_value = StructuredInfoValue::nominal(velocity.clone(), represented).unwrap();
+
+    assert_ne!(note, velocity);
+    assert_ne!(note.profile().unwrap(), velocity.profile().unwrap());
+    assert_ne!(
+        note_value.semantic_digest().unwrap(),
+        velocity_value.semantic_digest().unwrap()
+    );
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(&note_value.canonical_bytes().unwrap()),
+        Ok(note_value)
+    );
+    assert_eq!(
+        StructuredInfoValue::nominal(note, velocity_value),
+        Err(StructuredInfoRefusal::WrongType)
     );
 }
 
@@ -185,9 +262,43 @@ fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
 }
 
 #[test]
+fn exact_structured_type_round_trips_without_a_value_node() {
+    let value_type = StructuredInfoType::record(
+        KindId::from("test/type-round-trip@1"),
+        vec![StructuredFieldType::new("value", leaf_type("value/count")).unwrap()],
+    )
+    .unwrap();
+    let encoded = value_type.canonical_bytes().unwrap();
+    assert_eq!(
+        StructuredInfoType::from_canonical_bytes(&encoded),
+        Ok(value_type)
+    );
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert_eq!(
+        StructuredInfoType::from_canonical_bytes(&trailing),
+        Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+    );
+}
+
+#[test]
 fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
     let element = leaf_type("value/count");
-    let sequence_type = StructuredInfoType::sequence(element.clone(), 4).unwrap();
+    assert_eq!(
+        StructuredInfoType::bounded_sequence(element.clone(), 3, 2),
+        Err(StructuredInfoRefusal::InvalidCollectionBounds)
+    );
+    let sequence_type = StructuredInfoType::bounded_sequence(element.clone(), 2, 4).unwrap();
+    let optional_sequence = StructuredInfoType::sequence(element.clone(), 4).unwrap();
+    assert_ne!(
+        sequence_type.semantic_digest().unwrap(),
+        optional_sequence.semantic_digest().unwrap()
+    );
+    assert_ne!(
+        sequence_type.canonical_bytes().unwrap(),
+        optional_sequence.canonical_bytes().unwrap()
+    );
+    StructuredInfoValue::sequence(optional_sequence, vec![]).unwrap();
     let values = vec![
         leaf("value/count", &encode_count(1)),
         leaf("value/count", &encode_count(2)),
@@ -200,6 +311,17 @@ fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
     );
     assert!(validate_canonical_structured_value(&canonical).is_ok());
     assert_eq!(
+        StructuredInfoValue::sequence(sequence_type.clone(), vec![]),
+        Err(StructuredInfoRefusal::WrongCollectionLength)
+    );
+    assert_eq!(
+        StructuredInfoValue::sequence(
+            sequence_type.clone(),
+            vec![leaf("value/count", &encode_count(1))]
+        ),
+        Err(StructuredInfoRefusal::WrongCollectionLength)
+    );
+    assert_eq!(
         StructuredInfoValue::sequence(
             sequence_type.clone(),
             (0..5)
@@ -209,7 +331,13 @@ fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
         Err(StructuredInfoRefusal::WrongCollectionLength)
     );
     assert_eq!(
-        StructuredInfoValue::sequence(sequence_type, vec![leaf("value/text", b"wrong element")],),
+        StructuredInfoValue::sequence(
+            sequence_type,
+            vec![
+                leaf("value/text", b"wrong element"),
+                leaf("value/text", b"wrong element"),
+            ],
+        ),
         Err(StructuredInfoRefusal::WrongType)
     );
 }

@@ -21,7 +21,7 @@ pub(super) fn advertisement(host: CatalogHost) -> Result<HostAdvertisement, Cata
         CatalogHost::Browser => browser_advertisement(),
         CatalogHost::Pico => Ok(conduit_signal_conformance::pico_local_advertisement()),
         CatalogHost::Conduitos => conduitos_advertisement(),
-        CatalogHost::PatchbayConstrained => patchbay_model::patchbay_presenter_plans()
+        CatalogHost::PatchbayConstrained => patchbay_model::patchbay_mask_plans()
             .map(|proof| proof.recursive_host)
             .map_err(|error| CatalogError::new("patchbay-recursive-profile-invalid", error)),
     }
@@ -32,7 +32,7 @@ fn browser_advertisement() -> Result<HostAdvertisement, CatalogError> {
     browser
         .capabilities
         .extend(conduit_browser_runtime::presentation_nucleus::offers());
-    let proof = patchbay_model::patchbay_presenter_plans()
+    let proof = patchbay_model::patchbay_mask_plans()
         .map_err(|error| CatalogError::new("patchbay-direct-profile-invalid", error))?;
     browser.capabilities.extend(
         proof

@@ -164,14 +164,14 @@ impl NativeWorksetPlay {
     ) -> Option<super::NativeApplicationRequest> {
         self.application_requests.get_mut(form)?.take()
     }
-    pub fn set_presenter_topology(
+    pub fn set_mask_topology(
         &mut self,
-        topology: &patchbay_application::PatchbayPresenterTopology,
+        topology: &patchbay_application::PatchbayMaskTopology,
     ) -> Result<(), PlayRefusal> {
         for form in 0..self.form_count {
             let is_patchbay = match self.applications[form].as_mut() {
                 Some(NativeApplication::Patchbay(application)) => {
-                    application.set_presenter_topology(topology);
+                    application.set_mask_topology(topology);
                     true
                 }
                 _ => false,

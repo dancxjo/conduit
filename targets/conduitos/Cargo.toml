@@ -204,29 +204,29 @@ loongarch64-a4 = []
 loongarch64-product = []
 
 [dependencies]
-conduit-creche-model = { path = "../../products/creche/model" }
-conduit-home-model = { path = "../../products/home/model" }
+conduit-birth-form = { path = "../../forms/birth" }
+conduit-home-model = { path = "../../semantics/home" }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-body = { path = "../../architecture/body", default-features = false, features = ["authenticated-admission"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-human = { path = "../../semantics/human" }
 conduit-robotics = { path = "../../semantics/robotics" }
-patchbay-control = { path = "../../products/patchbay/control" }
-patchbay-application = { path = "../../products/patchbay/application" }
+patchbay-control = { path = "../../forms/patchbay" }
+patchbay-application = { path = "../../forms/patchbay/application" }
 conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
 conduit-presentation = { path = "../../semantics/presentation" }
-conduit-tour-model = { path = "../../products/tour/model" }
+conduit-tour-model = { path = "../../forms/tour" }
 embedded-io = { version = "0.7.1", optional = true, default-features = false }
 embedded-tls = { version = "0.19.0", optional = true, default-features = false, features = ["rustpki"] }
 embedded-websocket = { version = "0.9.5", optional = true, default-features = false }
 rand_chacha = { version = "0.3.1", optional = true, default-features = false }
 rand_core = { version = "0.6.4", optional = true, default-features = false }
 smoltcp = { version = "0.13.1", optional = true, default-features = false, features = ["medium-ethernet", "proto-ipv4", "socket-tcp", "iface-max-addr-count-1", "iface-max-route-count-1", "iface-neighbor-cache-count-4"] }
-patchbay-graph = { path = "../../products/patchbay/graph" }
+patchbay-graph = { path = "../../forms/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
@@ -247,7 +247,7 @@ limine = "=0.5.0"
 conduit-std-host = { path = "../std" }
 
 [build-dependencies]
-# Fabrication-only rasterization: no font parser or atlas allocation in Play.
+# Make-only rasterization: no font parser or atlas allocation in Play.
 fontdue = { version = "=0.9.3", optional = true, default-features = false, features = ["std"] }
 sha2 = { version = "=0.10.9" }
 

@@ -4,10 +4,11 @@
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
-    ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId,
-    HostCallContractId, HostId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
-    PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
-    ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
+    ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ConnectionTrack,
+    ExpectedSign, FragmentId, HostCallContractId, HostId, KindId, LinkEndpoint, PlacementId,
+    PlanFragment, PlanId, PortDirection, PortId as PlanPortId, PortTemporal, PresentationId,
+    PresentationIdentity, ResourceBinding as PlanResourceBinding, SharedPoolId, SignId,
+    SignIdentity,
 };
 use conduit_kernel::{
     scheduler::{AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec},
@@ -49,6 +50,51 @@ fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> Assign
     }
 }
 
+fn lower_connection_track(
+    track: conduit_core::ConnectionTrack,
+) -> conduit_kernel::scheduler::AssignedConnectionTrack {
+    match track {
+        conduit_core::ConnectionTrack::Payload => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::Payload
+        }
+        conduit_core::ConnectionTrack::NormalClose => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::NormalClose
+        }
+        conduit_core::ConnectionTrack::AbnormalTerminal => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::AbnormalTerminal
+        }
+        conduit_core::ConnectionTrack::Quiescence => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::Quiescence
+        }
+    }
+}
+
+fn source_contract_matches(
+    descriptor: &LoweredPort,
+    track: ConnectionTrack,
+    value_kind: &KindId,
+    temporal: PortTemporal,
+) -> bool {
+    match track {
+        ConnectionTrack::AbnormalTerminal => {
+            temporal == PortTemporal::Value && descriptor.abnormal_kind.as_ref() == Some(value_kind)
+        }
+        ConnectionTrack::Payload => {
+            descriptor.value_kind == *value_kind && descriptor.temporal == temporal
+        }
+        ConnectionTrack::NormalClose => {
+            descriptor.temporal == (PortTemporal::Flow { closes: true })
+                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && temporal == PortTemporal::Value
+        }
+        ConnectionTrack::Quiescence => {
+            matches!(descriptor.temporal, PortTemporal::Flow { .. })
+                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && temporal == PortTemporal::Value
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
     InvalidFragment,
@@ -81,8 +127,12 @@ pub enum LoweringError {
         placement_id: PlacementId,
         port_id: PlanPortId,
     },
+    InvalidTerminalTransduction(PlacementId),
     UnsupportedHostCallConcurrency(PlacementId),
     ResourceBindingInvalid(PlacementId),
+    /// Resource authority cannot enter the byte-valued Cord store. A future
+    /// executable path must bind an already-issued local handle slot.
+    ResourceAuthorityTransferUnsupported(ConnectionId),
     SignBudgetInvalid,
     SignReferenceMissing,
     SharedPoolInvalid(SharedPoolId),
@@ -97,6 +147,10 @@ pub struct LoweredPort {
     pub value_kind: KindId,
     pub direction: PortDirection,
     pub temporal: conduit_core::PortTemporal,
+    pub abnormal_kind: Option<KindId>,
+    pub maximum_value_bytes: Option<u64>,
+    /// Independent finite envelope for the endpoint's abnormal (`!`) value.
+    pub maximum_abnormal_value_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,6 +160,88 @@ pub struct LoweredNode {
     pub maximum_step_fuel: u16,
     pub inputs: Vec<LoweredPort>,
     pub outputs: Vec<LoweredPort>,
+    pub terminal_transductions: Vec<LoweredTerminalTransduction>,
+}
+
+/// Plan-sealed semantic terminal mapping with exact kernel port ordinals.
+/// Terminal payload types remain owned by the lowered ports; this separately
+/// preserves what the selected Back promises to do with terminal truth.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoweredTerminalTransduction {
+    pub input: PortId,
+    pub output: PortId,
+    pub cancellation_input: Option<PortId>,
+    pub profile: conduit_core::TerminalTransductionProfile,
+}
+
+impl LoweredTerminalTransduction {
+    pub fn assigned(&self) -> conduit_kernel::scheduler::AssignedTerminalTransduction {
+        use conduit_kernel::scheduler::{
+            AssignedAbnormalTransduction as Abnormal,
+            AssignedCancellationTransduction as Cancellation,
+            AssignedFiniteTerminalEmission as Emission, AssignedNormalCloseTransduction as Normal,
+            AssignedTerminalTransduction,
+        };
+        let emission = |bound: &conduit_core::FiniteTerminalEmission| Emission {
+            maximum_items: bound.maximum_items,
+            maximum_bytes: bound.maximum_bytes,
+        };
+        let identity = |kind: &conduit_core::KindId| {
+            conduit_core::semantic_digest("conduit/kind-identity", kind.as_str().as_bytes())
+        };
+        AssignedTerminalTransduction {
+            input: self.input,
+            output: self.output,
+            normal_close: match &self.profile.normal_close {
+                conduit_core::NormalCloseTransduction::NotAccepted => Normal::NotAccepted,
+                conduit_core::NormalCloseTransduction::PropagateAfterDrain => {
+                    Normal::PropagateAfterDrain
+                }
+                conduit_core::NormalCloseTransduction::Consume => Normal::Consume,
+                conduit_core::NormalCloseTransduction::FlushThenPropagate(bound) => {
+                    Normal::FlushThenPropagate(emission(bound))
+                }
+                conduit_core::NormalCloseTransduction::FlushThenPropagateWhenAllClose(bound) => {
+                    Normal::FlushThenPropagateWhenAllClose(emission(bound))
+                }
+                conduit_core::NormalCloseTransduction::PropagateWhenAllClose => {
+                    Normal::PropagateWhenAllClose
+                }
+                conduit_core::NormalCloseTransduction::DomainSpecific { law } => {
+                    Normal::DomainSpecific { law: identity(law) }
+                }
+            },
+            abnormal: match &self.profile.abnormal {
+                conduit_core::AbnormalTerminalTransduction::NotAccepted => Abnormal::NotAccepted,
+                conduit_core::AbnormalTerminalTransduction::PropagateAfterDrain => {
+                    Abnormal::PropagateAfterDrain
+                }
+                conduit_core::AbnormalTerminalTransduction::Recover => Abnormal::Recover,
+                conduit_core::AbnormalTerminalTransduction::FinalizeThenPropagate(bound) => {
+                    Abnormal::FinalizeThenPropagate(emission(bound))
+                }
+                conduit_core::AbnormalTerminalTransduction::DomainSpecific { law } => {
+                    Abnormal::DomainSpecific { law: identity(law) }
+                }
+            },
+            cancellation: match &self.profile.cancellation {
+                conduit_core::CancellationTransduction::NotCancellable => {
+                    Cancellation::NotCancellable
+                }
+                conduit_core::CancellationTransduction::Request { disposition_kind } => {
+                    Cancellation::Request {
+                        input: self
+                            .cancellation_input
+                            .expect("checked cancellation request has one lowered input"),
+                        disposition_kind: identity(disposition_kind),
+                    }
+                }
+                conduit_core::CancellationTransduction::DomainSpecific { law } => {
+                    Cancellation::DomainSpecific { law: identity(law) }
+                }
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -136,6 +272,55 @@ pub struct LoweredRemoteEndpoint {
     pub value_kind: KindId,
     pub temporal: conduit_core::PortTemporal,
     pub line: AdmittedLine,
+}
+
+/// Numeric kernel binding for one plan-sealed external Fore port.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoweredForePort {
+    pub front_port_id: PlanPortId,
+    pub direction: PortDirection,
+    pub track: conduit_core::ConnectionTrack,
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub value_kind: KindId,
+    pub value_contract: Option<conduit_core::CheckedValueContract>,
+    pub abnormal_kind: Option<KindId>,
+    pub temporal: conduit_core::PortTemporal,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ForeValueRefusal {
+    NotValueTrack,
+    CordCapacity,
+    Malformed(conduit_core::PrimitiveInfoRefusal),
+    Constraint(conduit_core::ValueConstraintRefusal),
+}
+
+impl LoweredForePort {
+    /// Revalidates one committed external value against the exact sealed Fore
+    /// contract before the kernel observes it.
+    pub fn validate_value(&self, canonical: &[u8]) -> Result<(), ForeValueRefusal> {
+        let value_kind = match self.track {
+            conduit_core::ConnectionTrack::Payload
+            | conduit_core::ConnectionTrack::AbnormalTerminal => &self.value_kind,
+            conduit_core::ConnectionTrack::NormalClose
+            | conduit_core::ConnectionTrack::Quiescence => {
+                return Err(ForeValueRefusal::NotValueTrack);
+            }
+        };
+        if canonical.len() > self.byte_capacity as usize {
+            return Err(ForeValueRefusal::CordCapacity);
+        }
+        if let Some(contract) = &self.value_contract {
+            return contract
+                .validate(canonical)
+                .map_err(ForeValueRefusal::Constraint);
+        }
+        conduit_core::validate_primitive_info(value_kind.as_str(), canonical)
+            .map_err(ForeValueRefusal::Malformed)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -185,8 +370,19 @@ pub struct KernelIdentityMap {
     pub ports: Vec<KernelPortIdentity>,
     pub connections: Vec<(CordId, ConnectionId)>,
     pub remote_endpoints: Vec<(RemoteEndpointId, ConnectionId)>,
+    pub fore_endpoints: Vec<KernelForeEndpointIdentity>,
     pub host_calls: Vec<(NodeId, HostCallId, HostCallContractId)>,
     pub resources: Vec<(NodeId, ResourceId, PlanResourceBinding)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelForeEndpointIdentity {
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub front_port_id: PlanPortId,
+    pub direction: PortDirection,
+    pub track: conduit_core::ConnectionTrack,
+    pub value_kind: KindId,
 }
 
 impl KernelIdentityMap {
@@ -324,6 +520,7 @@ pub struct KernelPresentationIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelSignIdentity {
     pub sign_id: SignId,
+    pub sequence: u64,
     pub node: Option<NodeId>,
     pub request: Option<conduit_kernel::RequestId>,
     pub presentation_id: Option<PresentationId>,
@@ -466,6 +663,7 @@ impl KernelExecutionIdentityMap {
         }
         self.signs.push(KernelSignIdentity {
             sign_id: sign.sign_id.clone(),
+            sequence: sign.sequence,
             node,
             request,
             presentation_id: presentation_id.cloned(),
@@ -552,6 +750,7 @@ pub struct LoweredPlanFragment {
     pub cords: Vec<LoweredCord>,
     pub fusions: Vec<LoweredFusion>,
     pub remote_endpoints: Vec<LoweredRemoteEndpoint>,
+    pub fore_ports: Vec<LoweredForePort>,
     pub routes: Vec<LoweredRoute>,
     pub host_calls: Vec<LoweredHostCall>,
     pub resources: Vec<LoweredResource>,
@@ -586,17 +785,20 @@ pub fn lower_plan_fragment_for_profile(
                 placement.placement_id.clone(),
             ));
         }
+        let checked_front = placement.checked_port_front();
         let inputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.inputs,
             PortDirection::Input,
+            checked_front.value_contracts(),
         )?;
         let outputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.outputs,
             PortDirection::Output,
+            checked_front.value_contracts(),
         )?;
         if inputs.len() > profile.maximum_ports_per_node() {
             return Err(LoweringError::ProfileCapacityExceeded {
@@ -621,6 +823,53 @@ pub fn lower_plan_fragment_for_profile(
             .and_then(|value| value.checked_add(placement.host_calls.len()))
             .ok_or(LoweringError::CapacityOverflow)
             .and_then(as_u16)?;
+        let terminal_transductions = placement
+            .terminal_transductions
+            .iter()
+            .map(|profile| {
+                let input = inputs
+                    .iter()
+                    .find(|port| port.port_id == profile.input_port_id)
+                    .map(|port| port.port)
+                    .ok_or_else(|| {
+                        LoweringError::InvalidTerminalTransduction(placement.placement_id.clone())
+                    })?;
+                let output = outputs
+                    .iter()
+                    .find(|port| port.port_id == profile.output_port_id)
+                    .map(|port| port.port)
+                    .ok_or_else(|| {
+                        LoweringError::InvalidTerminalTransduction(placement.placement_id.clone())
+                    })?;
+                let cancellation_input = if matches!(
+                    profile.cancellation,
+                    conduit_core::CancellationTransduction::Request { .. }
+                ) {
+                    Some(
+                        inputs
+                            .iter()
+                            .find(|port| {
+                                port.value_kind.as_str()
+                                    == conduit_core::CANCELLATION_REQUEST_INFO_ID
+                            })
+                            .map(|port| port.port)
+                            .ok_or_else(|| {
+                                LoweringError::InvalidTerminalTransduction(
+                                    placement.placement_id.clone(),
+                                )
+                            })?,
+                    )
+                } else {
+                    None
+                };
+                Ok(LoweredTerminalTransduction {
+                    input,
+                    output,
+                    cancellation_input,
+                    profile: profile.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         identity_ports.extend(
             inputs
                 .iter()
@@ -638,6 +887,7 @@ pub fn lower_plan_fragment_for_profile(
             maximum_step_fuel,
             inputs,
             outputs,
+            terminal_transductions: terminal_transductions.clone(),
         });
         node_specs.push(NodeSpec {
             input_cords,
@@ -653,6 +903,11 @@ pub fn lower_plan_fragment_for_profile(
     for (cord_index, connection) in fragment.connections.iter().enumerate() {
         if !connection_ids.insert(connection.connection_id.clone()) {
             return Err(LoweringError::DuplicateConnection(
+                connection.connection_id.clone(),
+            ));
+        }
+        if connection.resource.is_some() {
+            return Err(LoweringError::ResourceAuthorityTransferUnsupported(
                 connection.connection_id.clone(),
             ));
         }
@@ -686,8 +941,12 @@ pub fn lower_plan_fragment_for_profile(
             .transpose()?;
         if source_node.zip(source_port).is_some_and(|(node, port)| {
             let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
-            descriptor.value_kind != connection.value_kind
-                || descriptor.temporal != connection.temporal
+            !source_contract_matches(
+                descriptor,
+                connection.track,
+                &connection.value_kind,
+                connection.temporal,
+            )
         }) || sink_node.zip(sink_port).is_some_and(|(node, port)| {
             let descriptor = &nodes[usize::from(node.0)].inputs[usize::from(port.0)];
             descriptor.value_kind != connection.value_kind
@@ -712,6 +971,43 @@ pub fn lower_plan_fragment_for_profile(
             ));
         }
         let slot_start = value_slots;
+        let source_value_bound = source_node.zip(source_port).and_then(|(node, port)| {
+            let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
+            match connection.track {
+                ConnectionTrack::AbnormalTerminal => descriptor.maximum_abnormal_value_bytes,
+                ConnectionTrack::Payload => descriptor.maximum_value_bytes,
+                ConnectionTrack::NormalClose | ConnectionTrack::Quiescence => None,
+            }
+        });
+        let sink_value_bound = sink_node.zip(sink_port).and_then(|(node, port)| {
+            nodes[usize::from(node.0)].inputs[usize::from(port.0)].maximum_value_bytes
+        });
+        if !matches!(
+            connection.track,
+            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+        ) && source_value_bound
+            .zip(sink_value_bound)
+            .is_some_and(|(source, sink)| source != sink)
+        {
+            return Err(LoweringError::ConnectionContractMismatch(
+                connection.connection_id.clone(),
+            ));
+        }
+        let maximum_value_bytes = if !matches!(
+            connection.track,
+            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+        ) {
+            admitted_maximum_value_bytes(
+                source_value_bound
+                    .or(sink_value_bound)
+                    .map(u32::try_from)
+                    .transpose()
+                    .map_err(|_| LoweringError::CapacityOverflow)?,
+                connection.byte_capacity,
+            )
+        } else {
+            connection.byte_capacity
+        };
         value_slots = value_slots
             .checked_add(connection.item_capacity)
             .ok_or(LoweringError::CapacityOverflow)?;
@@ -747,6 +1043,8 @@ pub fn lower_plan_fragment_for_profile(
                         pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
+                .with_track(lower_connection_track(connection.track))
+                .with_maximum_value_bytes(maximum_value_bytes)
             }
             (Some((source_node, source_port)), None) => {
                 let endpoint = lower_remote_endpoints(
@@ -767,6 +1065,8 @@ pub fn lower_plan_fragment_for_profile(
                         pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
+                .with_track(lower_connection_track(connection.track))
+                .with_maximum_value_bytes(maximum_value_bytes)
             }
             (None, Some((sink_node, sink_port))) => {
                 let endpoint = lower_remote_endpoints(
@@ -787,6 +1087,8 @@ pub fn lower_plan_fragment_for_profile(
                         pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
+                .with_track(lower_connection_track(connection.track))
+                .with_maximum_value_bytes(maximum_value_bytes)
             }
             (None, None) => {
                 return Err(LoweringError::UnknownConnectionEndpoint(
@@ -797,6 +1099,124 @@ pub fn lower_plan_fragment_for_profile(
         cords.push(LoweredCord {
             connection_id: connection.connection_id.clone(),
             spec,
+        });
+    }
+
+    let mut fore_ports = Vec::with_capacity(fragment.fore_ports.len());
+    for planned in &fragment.fore_ports {
+        if planned.item_capacity == 0 || planned.byte_capacity == 0 {
+            return Err(LoweringError::InvalidConnectionBudget(ConnectionId::from(
+                planned.front_port_id.as_str(),
+            )));
+        }
+        let node = placement_nodes
+            .get(&planned.placement_id)
+            .copied()
+            .ok_or_else(|| {
+                LoweringError::UnknownConnectionEndpoint(ConnectionId::from(
+                    planned.front_port_id.as_str(),
+                ))
+            })?;
+        let ports = match planned.direction {
+            PortDirection::Input => &nodes[usize::from(node.0)].inputs,
+            PortDirection::Output => &nodes[usize::from(node.0)].outputs,
+        };
+        let port = find_port(ports, &planned.gear_port_id).ok_or_else(|| {
+            LoweringError::UnknownConnectionPort(ConnectionId::from(planned.front_port_id.as_str()))
+        })?;
+        let descriptor = &ports[usize::from(port.0)];
+        let descriptor_matches = match planned.track {
+            ConnectionTrack::Payload => {
+                descriptor.value_kind == planned.value_kind
+                    && descriptor.temporal == planned.temporal
+            }
+            ConnectionTrack::AbnormalTerminal => {
+                descriptor.abnormal_kind.as_ref() == Some(&planned.value_kind)
+                    && planned.temporal == PortTemporal::Value
+            }
+            ConnectionTrack::NormalClose => {
+                descriptor.temporal == (PortTemporal::Flow { closes: true })
+                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.temporal == PortTemporal::Value
+            }
+            ConnectionTrack::Quiescence => {
+                matches!(descriptor.temporal, PortTemporal::Flow { .. })
+                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.temporal == PortTemporal::Value
+            }
+        };
+        if !descriptor_matches {
+            return Err(LoweringError::ConnectionContractMismatch(
+                ConnectionId::from(planned.front_port_id.as_str()),
+            ));
+        }
+        let cord = CordId(as_u16(cords.len())?);
+        let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len() + fore_ports.len())?);
+        let capacity = CordCapacity {
+            slot_start: value_slots,
+            item_capacity: planned.item_capacity,
+            byte_capacity: planned.byte_capacity,
+            pressure_policy: lower_pressure_policy(planned.pressure_policy),
+        };
+        value_slots = value_slots
+            .checked_add(planned.item_capacity)
+            .ok_or(LoweringError::CapacityOverflow)?;
+        value_bytes = value_bytes
+            .checked_add(planned.byte_capacity)
+            .ok_or(LoweringError::CapacityOverflow)?;
+        let maximum_value_bytes = if matches!(
+            planned.track,
+            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+        ) {
+            planned.byte_capacity
+        } else {
+            admitted_maximum_value_bytes(
+                planned
+                    .value_contract
+                    .as_ref()
+                    .map(|contract| contract.maximum_bytes),
+                planned.byte_capacity,
+            )
+        };
+        let spec = match planned.direction {
+            PortDirection::Input => {
+                let input = &mut node_specs[usize::from(node.0)].input_cords[usize::from(port.0)];
+                if input.replace(cord).is_some() {
+                    return Err(LoweringError::MultipleConnectionsToInput {
+                        placement_id: planned.placement_id.clone(),
+                        port_id: planned.gear_port_id.clone(),
+                    });
+                }
+                CordSpec::remote_ingress(cord, endpoint, (node, port), capacity)
+            }
+            PortDirection::Output => {
+                CordSpec::remote_egress(cord, (node, port), endpoint, capacity)
+            }
+        }
+        .with_track(lower_connection_track(planned.track))
+        .with_maximum_value_bytes(maximum_value_bytes);
+        cords.push(LoweredCord {
+            connection_id: ConnectionId::from(alloc::format!(
+                "front/{}/{}/{}/{}",
+                planned.direction as u8,
+                planned.front_port_id.as_str(),
+                planned.placement_id.as_str(),
+                planned.gear_port_id.as_str(),
+            )),
+            spec,
+        });
+        fore_ports.push(LoweredForePort {
+            front_port_id: planned.front_port_id.clone(),
+            direction: planned.direction,
+            track: planned.track,
+            endpoint,
+            cord,
+            value_kind: planned.value_kind.clone(),
+            value_contract: planned.value_contract.clone(),
+            abnormal_kind: planned.abnormal_kind.clone(),
+            temporal: planned.temporal,
+            item_capacity: planned.item_capacity,
+            byte_capacity: planned.byte_capacity,
         });
     }
 
@@ -890,6 +1310,17 @@ pub fn lower_plan_fragment_for_profile(
                 .iter()
                 .map(|item| (item.endpoint, item.connection_id.clone()))
                 .collect(),
+            fore_endpoints: fore_ports
+                .iter()
+                .map(|item| KernelForeEndpointIdentity {
+                    endpoint: item.endpoint,
+                    cord: item.cord,
+                    front_port_id: item.front_port_id.clone(),
+                    direction: item.direction,
+                    track: item.track,
+                    value_kind: item.value_kind.clone(),
+                })
+                .collect(),
             host_calls: host_calls
                 .iter()
                 .map(|item| (item.node, item.call, item.contract_id.clone()))
@@ -911,6 +1342,7 @@ pub fn lower_plan_fragment_for_profile(
         cords,
         fusions,
         remote_endpoints,
+        fore_ports,
         routes,
         host_calls,
         resources,
@@ -921,6 +1353,10 @@ pub fn lower_plan_fragment_for_profile(
         sign_items: fragment.sign_storage_budget.item_capacity,
         sign_bytes: fragment.sign_storage_budget.byte_capacity,
     })
+}
+
+fn admitted_maximum_value_bytes(semantic_bound: Option<u32>, byte_capacity: u32) -> u32 {
+    semantic_bound.unwrap_or(byte_capacity).min(byte_capacity)
 }
 
 fn fragment_id_for_host(
@@ -972,4 +1408,153 @@ fn lower_routes(cords: &[LoweredCord]) -> Result<Vec<LoweredRoute>, LoweringErro
 
 fn as_u16(value: usize) -> Result<u16, LoweringError> {
     u16::try_from(value).map_err(|_| LoweringError::CapacityOverflow)
+}
+
+#[cfg(test)]
+mod terminal_track_tests {
+    use super::*;
+    use conduit_core::{kind_id, port_id};
+
+    fn source(abnormal: Option<&str>) -> LoweredPort {
+        LoweredPort {
+            node: NodeId(0),
+            port: PortId(0),
+            port_id: port_id("out"),
+            value_kind: kind_id("value/count"),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: abnormal.map(kind_id),
+            maximum_value_bytes: None,
+            maximum_abnormal_value_bytes: None,
+        }
+    }
+
+    #[test]
+    fn abnormal_lowering_uses_the_exact_declared_terminal_kind() {
+        let descriptor = source(Some("test/fault"));
+        assert!(source_contract_matches(
+            &descriptor,
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/fault"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/other-fault"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &source(None),
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/fault"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/fault"),
+            PortTemporal::Flow { closes: true }
+        ));
+    }
+
+    #[test]
+    fn payload_lowering_retains_the_ordinary_value_contract() {
+        let descriptor = source(Some("test/fault"));
+        assert!(source_contract_matches(
+            &descriptor,
+            ConnectionTrack::Payload,
+            &kind_id("value/count"),
+            PortTemporal::Flow { closes: true }
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::Payload,
+            &kind_id("test/fault"),
+            PortTemporal::Value
+        ));
+    }
+
+    #[test]
+    fn payload_value_maximum_is_bounded_by_the_admitted_cord_capacity() {
+        assert_eq!(admitted_maximum_value_bytes(Some(256), 64), 64);
+        assert_eq!(admitted_maximum_value_bytes(Some(32), 64), 32);
+        assert_eq!(admitted_maximum_value_bytes(None, 64), 64);
+    }
+
+    #[test]
+    fn external_fore_value_revalidates_the_sealed_constraint() {
+        let port = LoweredForePort {
+            front_port_id: port_id("count"),
+            direction: PortDirection::Input,
+            track: ConnectionTrack::Payload,
+            endpoint: RemoteEndpointId(0),
+            cord: CordId(0),
+            value_kind: kind_id(conduit_core::COUNT_INFO_ID),
+            value_contract: Some(
+                conduit_core::CheckedValueContract::new(
+                    kind_id(conduit_core::COUNT_INFO_ID),
+                    conduit_core::COUNT_ENCODED_LEN as u32,
+                    alloc::vec![conduit_core::ValueConstraint::UnsignedRange {
+                        minimum: Some(2),
+                        maximum: Some(4),
+                        minimum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
+                        maximum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
+                    }],
+                )
+                .unwrap(),
+            ),
+            abnormal_kind: None,
+            temporal: PortTemporal::Value,
+            item_capacity: 1,
+            byte_capacity: conduit_core::COUNT_ENCODED_LEN as u32,
+        };
+        assert_eq!(port.validate_value(&conduit_core::encode_count(3)), Ok(()));
+        assert_eq!(
+            port.validate_value(&conduit_core::encode_count(7)),
+            Err(ForeValueRefusal::Constraint(
+                conduit_core::ValueConstraintRefusal::UnsignedRange
+            ))
+        );
+
+        let mut abnormal = port;
+        abnormal.track = ConnectionTrack::AbnormalTerminal;
+        assert_eq!(
+            abnormal.validate_value(&conduit_core::encode_count(7)),
+            Err(ForeValueRefusal::Constraint(
+                conduit_core::ValueConstraintRefusal::UnsignedRange
+            ))
+        );
+    }
+
+    #[test]
+    fn normal_close_requires_a_closable_source_and_unit_value_track() {
+        let descriptor = source(Some("test/fault"));
+        assert!(source_contract_matches(
+            &descriptor,
+            ConnectionTrack::NormalClose,
+            &kind_id(conduit_core::UNIT_INFO_ID),
+            PortTemporal::Value
+        ));
+        let mut standing = descriptor.clone();
+        standing.temporal = PortTemporal::Flow { closes: false };
+        assert!(!source_contract_matches(
+            &standing,
+            ConnectionTrack::NormalClose,
+            &kind_id(conduit_core::UNIT_INFO_ID),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::NormalClose,
+            &kind_id("value/count"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::NormalClose,
+            &kind_id(conduit_core::UNIT_INFO_ID),
+            PortTemporal::Flow { closes: true }
+        ));
+    }
 }

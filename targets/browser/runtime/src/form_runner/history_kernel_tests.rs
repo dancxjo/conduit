@@ -1,9 +1,10 @@
 //! Deterministic planned history ingress; no live Line or storage claim.
 use super::*;
 use conduit_core::{
-    process_owned_line_offer_with_limits, BaseImplementationId, BoundedResourceRef, LinkLimits,
-    PortDirection, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
-    ResourceVersionIdentity, StructuredInfoType, TemporalInstant, TemporalScale,
+    process_owned_line_offer_with_limits, BaseImplementationId, BoundedResourceRef, Kind,
+    LinkLimits, PortDirection, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoType, TemporalInstant,
+    TemporalScale,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
@@ -56,15 +57,19 @@ fn fragment() -> PlanFragment {
             startup_parameters: Vec::new(),
         })
         .unwrap();
-    catalog
-        .insert(KindProjection {
-            kind_id: source_offer.kind_id.clone(),
-            kind_contract_revision: source_offer.kind_contract_revision.clone(),
-            inputs: Vec::new(),
-            outputs: source_offer.outputs.clone(),
-            configuration: Default::default(),
-        })
-        .unwrap();
+    let source_contract = Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: source_offer.kind_id.clone(),
+        kind_contract_revision: source_offer.kind_contract_revision.clone(),
+        inputs: Vec::new(),
+        outputs: source_offer.outputs.clone(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: source_offer.limits.clone(),
+    };
+    source_offer.semantic_contract = source_contract.semantic_contract();
+    catalog.insert_kind(source_contract).unwrap();
     let mut source_host = browser.clone();
     source_host.host_id = "fixture/history-source".into();
     source_host.boot_id = "fixture/history-source-boot".into();

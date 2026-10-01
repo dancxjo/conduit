@@ -164,12 +164,21 @@ pub(super) fn prepare(
             rejections,
         }
     })?;
-    // Lowering has already bounded the placements. Dynamic selectors are pure,
-    // installed realizations whose exact types and configuration are revalidated.
+    // Lowering has already bounded the placements. Dynamic selectors and pure
+    // expressions are installed realizations whose exact contracts are revalidated.
     for gear in fragments.iter().flat_map(|fragment| &fragment.placements) {
         if let Some(offer) =
             crate::installed_browser::structured_selector::offer_for_placement(gear)?
         {
+            if !host
+                .capabilities
+                .iter()
+                .any(|current| current.capability_id == offer.capability_id)
+            {
+                host.capabilities.push(offer);
+            }
+        }
+        if let Some(offer) = crate::installed_browser::pure_expression::offer_for_placement(gear)? {
             if !host
                 .capabilities
                 .iter()

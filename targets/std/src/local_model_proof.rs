@@ -7,7 +7,7 @@ use crate::{StdHost, StdHostComposition, StdHostConfig, TimerAdapter};
 use conduit_ai::LocalModelKindProfile;
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
-use conduit_presentation::{GeneratedManifestation, GenerativePresenterRequest};
+use conduit_presentation::{GeneratedManifestationCandidate, GenerativePresenterRequest};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -45,13 +45,13 @@ pub struct PresenterRequestProofReceipt {
     pub source_presentation_identity: String,
     pub source_presentation_revision: u64,
     pub policy_revision: String,
-    pub manifestation: GeneratedManifestation,
+    pub manifestation: GeneratedManifestationCandidate,
 }
 
 struct CapturingLocalModelAdapter {
     inner: Box<dyn HostedLocalModelAdapter>,
     generated_text: Arc<Mutex<Option<Vec<u8>>>>,
-    presenter_manifestations: Arc<Mutex<Vec<GeneratedManifestation>>>,
+    presenter_manifestations: Arc<Mutex<Vec<GeneratedManifestationCandidate>>>,
 }
 
 impl HostedLocalModelAdapter for CapturingLocalModelAdapter {
@@ -87,7 +87,9 @@ impl HostedLocalModelAdapter for CapturingLocalModelAdapter {
                 LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated
             )
         {
-            let Ok(manifestation) = serde_json::from_slice::<GeneratedManifestation>(output) else {
+            let Ok(manifestation) =
+                serde_json::from_slice::<GeneratedManifestationCandidate>(output)
+            else {
                 return LocalModelAdapterTerminal::Failed;
             };
             let Ok(mut captured) = self.presenter_manifestations.lock() else {
@@ -103,31 +105,6 @@ struct NoopTimer;
 
 impl TimerAdapter for NoopTimer {
     fn wait(&mut self, _duration: std::time::Duration) {}
-}
-
-pub fn presenter_policy_experiment(
-    intended: GenerativePresenterRequest,
-) -> Vec<GenerativePresenterRequest> {
-    use conduit_presentation::{GenerativeNarratorRole, GenerativePresenterPolicy};
-
-    let mut neutral = intended.clone();
-    neutral.request_identity = format!("{}/neutral", intended.request_identity);
-    neutral.policy = GenerativePresenterPolicy {
-        template_contract_revision:
-            crate::hosted_local_model::ollama_present::PROOF_NEUTRAL_POLICY_REVISION.into(),
-        narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-        instructions: crate::hosted_local_model::ollama_present::PROOF_NEUTRAL_POLICY.into(),
-    };
-    let mut deliberately_bad = intended.clone();
-    deliberately_bad.request_identity =
-        format!("{}/bad-self-preservation", intended.request_identity);
-    deliberately_bad.policy = GenerativePresenterPolicy {
-        template_contract_revision:
-            crate::hosted_local_model::ollama_present::PROOF_BAD_POLICY_REVISION.into(),
-        narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-        instructions: crate::hosted_local_model::ollama_present::PROOF_BAD_POLICY.into(),
-    };
-    vec![intended, neutral, deliberately_bad]
 }
 
 pub fn run(
@@ -215,10 +192,10 @@ pub fn run(
             .lock()
             .map_err(|_| "presenter proof capture lock is poisoned")?
             .pop()
-            .ok_or("Presenter proof produced no captured Manifestation")?;
+            .ok_or("Presenter proof produced no captured candidate")?;
         request
-            .validate_manifestation(&manifestation)
-            .map_err(|error| format!("invalid provider Manifestation: {error:?}"))?;
+            .validate_candidate(&manifestation)
+            .map_err(|error| format!("invalid provider candidate: {error:?}"))?;
         presenter_receipts.push(PresenterRequestProofReceipt {
             plan_id: execution.0,
             play_completed: execution.1,
@@ -327,6 +304,7 @@ fn run_profile(
     host: &mut StdHost,
     profile: LocalModelKindProfile,
 ) -> Result<(String, bool), Box<dyn std::error::Error>> {
+    const PROOF_MAXIMUM_INPUT_BYTES: u64 = 16 * 1024;
     let contract = conduit_ai::llm_contract(profile.kind()).expect("proof profiles are L0");
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
@@ -337,25 +315,29 @@ fn run_profile(
         contract.inputs[0].value_kind.as_str(),
         contract.outputs[0].value_kind.as_str(),
     );
-    let (maximum_input_bytes, maximum_output_bytes, maximum_work_units) =
-        if profile == LocalModelKindProfile::PresentSemanticFront {
-            let provider_maximum_input_bytes = host
-                .advertisement()
-                .capabilities
-                .iter()
-                .find(|offer| offer.kind_id.as_str() == profile.kind())
-                .and_then(|offer| offer.host_calls.first())
-                .map(|call| u64::from(call.maximum_input_bytes))
-                .ok_or("local-model proof Presenter Back has no Host Call bound")?;
-            (
-                (conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u64)
-                    .min(provider_maximum_input_bytes),
-                conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u64,
-                contract.bounds.maximum_work_units,
-            )
-        } else {
-            (4_096, 4_096, 4_096)
-        };
+    let provider_call = host
+        .advertisement()
+        .capabilities
+        .iter()
+        .find(|offer| offer.kind_id.as_str() == profile.kind())
+        .and_then(|offer| {
+            offer.host_calls.iter().find(|call| {
+                call.target_kind
+                    .as_ref()
+                    .is_some_and(|kind| kind.as_str() == profile.kind())
+            })
+        })
+        .ok_or("local-model proof Back has no Host Call bound")?;
+    let maximum_input_bytes = contract
+        .bounds
+        .maximum_input_bytes
+        .min(PROOF_MAXIMUM_INPUT_BYTES)
+        .min(u64::from(provider_call.maximum_input_bytes));
+    let maximum_output_bytes = contract
+        .bounds
+        .maximum_output_bytes
+        .min(u64::from(provider_call.maximum_output_bytes));
+    let maximum_work_units = contract.bounds.maximum_work_units;
     let source = format!(
         "form run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
         profile.kind(), maximum_input_bytes, maximum_output_bytes, maximum_work_units,
@@ -374,11 +356,7 @@ fn run_profile(
                 error.code, error.message
             )
         })?;
-    let connection_byte_capacity = if profile == LocalModelKindProfile::PresentSemanticFront {
-        conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
-    } else {
-        4_096
-    };
+    let connection_byte_capacity = u32::try_from(maximum_input_bytes.max(maximum_output_bytes))?;
     run_expanded(host, expanded, profile.kind(), connection_byte_capacity)
 }
 
@@ -447,33 +425,4 @@ fn run_expanded(
 fn sha256(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", Sha256::digest(bytes))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn presenter_policy_experiment_changes_only_identity_and_policy() {
-        let intended = crate::hosted_local_model::ollama_present::proof_request().unwrap();
-        let requests = presenter_policy_experiment(intended.clone());
-
-        assert_eq!(requests.len(), 3);
-        assert_eq!(requests[0], intended);
-        for request in &requests {
-            request.validate().unwrap();
-            assert_eq!(request.semantic_data, intended.semantic_data);
-            assert_eq!(request.bounds, intended.bounds);
-        }
-        assert_ne!(requests[0].request_identity, requests[1].request_identity);
-        assert_ne!(requests[1].request_identity, requests[2].request_identity);
-        assert_ne!(
-            requests[0].policy.template_contract_revision,
-            requests[1].policy.template_contract_revision
-        );
-        assert_ne!(
-            requests[1].policy.template_contract_revision,
-            requests[2].policy.template_contract_revision
-        );
-    }
 }

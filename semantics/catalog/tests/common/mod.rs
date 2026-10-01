@@ -89,7 +89,8 @@ pub fn proof_domain_offer(
     revision: &str,
     operation: &str,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{}@1", kind.as_str())),
@@ -121,8 +122,10 @@ pub fn proof_domain_offer(
 
 pub fn recurrence_proof_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::recurrence_semantic_contract();
+    let semantic_contract = contract.semantic_contract();
     let result = conduit_semantic_catalog::recurrence_result_type();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract,
         startup_parameters: contract.startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from("proof/time-expand-recurrence"),
@@ -139,6 +142,7 @@ pub fn recurrence_proof_offer() -> CapabilityOffer {
             value_kind: result.profile().unwrap().value_kind().clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         host_calls: vec![],
         resource_requirements: vec![],
@@ -229,7 +233,8 @@ fn workflow_proof_offer(
         maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     };
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{kind}@1")),
@@ -273,5 +278,6 @@ fn typed_port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

@@ -49,10 +49,10 @@ pub fn install_measurement_threshold_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(measurement_hysteresis_kind_projection())
+        .insert_kind(measurement_hysteresis_semantic_contract())
         .map_err(|error| error.to_string())?;
     profile
-        .insert(measurement_threshold_presentation_definition())
+        .insert_kind(measurement_threshold_presentation_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -79,7 +79,7 @@ pub fn measurement_threshold_presentation_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -119,7 +119,7 @@ pub fn measurement_hysteresis_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -150,5 +150,6 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

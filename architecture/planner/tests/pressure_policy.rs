@@ -4,15 +4,15 @@ use conduit_core::{
     PortDirection, PortTemporal,
 };
 use conduit_form::{
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
-    StartupCatalog, StartupParameterSignature,
+    KindProjection, KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use conduit_planner::{default_placements, plan_with_connection_limits};
 
 mod common;
 
 fn tick_current_sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("fixture-tick-current-sink"),
@@ -30,6 +30,7 @@ fn tick_current_sink_offer() -> CapabilityOffer {
                 .clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: vec![],
         host_calls: vec![],
@@ -71,27 +72,7 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
         })
         .unwrap();
     profile
-        .insert(KindProjection {
-            kind_id: tick_contract.kind_id,
-            kind_contract_revision: tick.kind_contract_revision.clone(),
-            inputs: vec![],
-            outputs: tick_contract.outputs,
-            configuration: tick_contract
-                .configuration
-                .into_iter()
-                .map(|field| KindConfigurationField {
-                    key: field.key,
-                    default_value: field.default_value,
-                    rule: match field.rule {
-                        conduit_semantic_catalog::KindConfigurationRule::U64Range {
-                            minimum,
-                            maximum,
-                        } => KindConfigurationRule::U64Range { minimum, maximum },
-                        rule => panic!("unexpected tick configuration rule: {rule:?}"),
-                    },
-                })
-                .collect(),
-        })
+        .insert_kind(conduit_semantic_catalog::tick_semantic_contract())
         .unwrap();
     conduit_semantic_catalog::install_flow_pressure_kind(
         conduit_semantic_catalog::flow_coalesce_latest_contract(&tick_kind, tick_bytes),

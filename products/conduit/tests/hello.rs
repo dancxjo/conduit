@@ -9,6 +9,14 @@ fn unique_report_path(name: &str) -> PathBuf {
     ))
 }
 
+fn unique_artifact_directory(name: &str) -> PathBuf {
+    std::env::temp_dir().join(format!(
+        "conduit-{name}-{}-{}",
+        std::process::id(),
+        std::thread::current().name().unwrap_or("test")
+    ))
+}
+
 #[test]
 fn canonical_hello_runs_locally() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -65,7 +73,9 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .expect("workspace root must exist");
     let form_path = workspace_root.join("forms/hello/main.conduit");
     let report_path = unique_report_path("actual-observatory");
+    let artifact_directory = unique_artifact_directory("actual-execution-artifacts");
     let _ = std::fs::remove_file(&report_path);
+    let _ = std::fs::remove_dir_all(&artifact_directory);
 
     let run = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
@@ -73,6 +83,10 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
             form_path.to_str().expect("form path must be utf-8"),
             "--report",
             report_path.to_str().expect("report path must be utf-8"),
+            "--artifacts",
+            artifact_directory
+                .to_str()
+                .expect("artifact directory must be utf-8"),
         ])
         .output()
         .expect("failed to run conduit binary");
@@ -105,10 +119,78 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .iter()
         .any(|observation| observation["active_play_id"].as_str().is_some()));
 
+    let retained = std::fs::read_dir(&artifact_directory)
+        .expect("standalone execution artifact directory must exist")
+        .map(|entry| entry.unwrap().path())
+        .collect::<Vec<_>>();
+    let artifact_with_prefix = |prefix: &str| {
+        retained
+            .iter()
+            .find(|path| {
+                path.file_name()
+                    .and_then(std::ffi::OsStr::to_str)
+                    .is_some_and(|name| name.starts_with(prefix))
+            })
+            .expect("requested standalone artifact must exist")
+    };
+    let plan_artifact = artifact_with_prefix("plan-");
+    let play_artifact = artifact_with_prefix("play-");
+    let sign_artifact = artifact_with_prefix("sign-");
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|path| path
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("plan-"))
+            .count(),
+        1
+    );
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|path| path
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("play-"))
+            .count(),
+        1
+    );
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|path| path
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("sign-"))
+            .count(),
+        observations.len()
+    );
+    for (path, expected) in [
+        (plan_artifact, "Plan "),
+        (play_artifact, "Play "),
+        (sign_artifact, "Sign "),
+    ] {
+        let inspected = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("inspect")
+            .arg(path)
+            .output()
+            .expect("standalone execution artifact inspection runs");
+        assert!(
+            inspected.status.success(),
+            "inspection failed: {inspected:?}"
+        );
+        assert!(String::from_utf8(inspected.stdout)
+            .unwrap()
+            .starts_with(expected));
+    }
+
     let inspect = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
             "inspect",
-            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
@@ -157,7 +239,6 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     let gap_report = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
             "inspect",
-            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
@@ -179,12 +260,12 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     let rejected = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
             "inspect",
-            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
         .expect("failed to inspect tampered report");
     let _ = std::fs::remove_file(&report_path);
+    let _ = std::fs::remove_dir_all(&artifact_directory);
     assert!(!rejected.status.success());
     assert!(rejected.stdout.is_empty());
     assert!(

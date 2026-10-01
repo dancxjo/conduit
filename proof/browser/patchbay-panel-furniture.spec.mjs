@@ -18,7 +18,7 @@ function startServer() {
 
 test("bounded collections are manifested without numbered static slot farms", async () => {
   const html = await readFile("products/patchbay/html/assets/index.html", "utf8");
-  const renderer = await readFile("products/patchbay/html/assets/shared-presentation.js", "utf8");
+  const renderer = await readFile("forms/patchbay/workbench/browser/shared-presentation.js", "utf8");
   expect(html).not.toMatch(/data-application-slot="[^"]+-\d+"/);
   expect(html.match(/data-application-collection=/g)?.length).toBeGreaterThan(10);
   expect(html.length).toBeLessThan(24_000);

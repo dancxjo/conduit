@@ -3,6 +3,8 @@ use conduit_form::parse_with_startup;
 use conduit_signal::{signal_profile_catalog, PULSE_KIND};
 use conduit_signal_conformance::pico_local_advertisement;
 
+pub mod local_model;
+
 #[allow(dead_code)]
 pub fn standard_planning_fixture(
     host_id: impl Into<conduit_core::HostId>,
@@ -33,13 +35,12 @@ pub fn standard_planning_fixture(
 }
 
 #[allow(dead_code)]
-pub fn generate_text_form() -> conduit_form::CheckedForm {
+pub fn llm_generate_form() -> conduit_form::CheckedForm {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)
-        .expect("catalog installs");
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).expect("catalog installs");
     conduit_form::parse_with_startup(
-        "form answer {\n    generate: ai/generate-text\n}\n",
+        "form answer {\n    generate: llm/generate\n}\n",
         &startup,
         &profile,
     )
@@ -52,9 +53,9 @@ pub fn generic_policy_facts() -> (
     Vec<conduit_core::HostAdvertisement>,
     Vec<conduit_core::RealizationAdvertisement>,
 ) {
-    let form = generate_text_form();
-    let fixtures = conduit_ai::generate_text_base_fixtures();
-    let advertisements = conduit_ai::generate_text_realization_advertisements(&fixtures);
+    let form = llm_generate_form();
+    let fixtures = conduit_ai::llm_generate_base_fixtures();
+    let advertisements = conduit_ai::llm_generate_realization_advertisements(&fixtures);
     let mut hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())

@@ -4,9 +4,9 @@ use std::{
 };
 
 use clap::{Args, Subcommand};
-use conduit_host_fabrication::{
-    build_default_host_image, check_host_configuration, fabrication_chooser_catalog,
-    parse_host_configuration_conduit, BuildInputs, HostImage, HostProfile,
+use conduit_host_make::{
+    build_default_host_image, check_host_configuration, make_chooser_catalog,
+    parse_host_configuration_conduit, BuildInputs, HostImage,
 };
 
 use crate::cli::GlobalOpts;
@@ -22,28 +22,18 @@ mod host_esp32_inspection;
 #[cfg(test)]
 #[path = "host_esp32_inspection_tests.rs"]
 mod host_esp32_inspection_tests;
-#[path = "host_hears_speaks.rs"]
-mod host_hears_speaks;
-#[path = "host_home_voice.rs"]
-mod host_home_voice;
 #[path = "host_local_model.rs"]
 mod host_local_model;
 #[path = "host_local_model_journey.rs"]
 mod host_local_model_journey;
 #[path = "host_microphone.rs"]
 mod host_microphone;
-#[path = "host_microphone_house.rs"]
-mod host_microphone_house;
-#[path = "host_piper.rs"]
-mod host_piper;
-#[path = "host_recorded_house.rs"]
-mod host_recorded_house;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_release_catalog.rs"]
 mod host_release_catalog;
-#[path = "host_spoken_microphone_house.rs"]
-mod host_spoken_microphone_house;
+#[path = "host_spoken_birth.rs"]
+mod host_spoken_birth;
 #[path = "host_target.rs"]
 pub(crate) mod host_target;
 #[path = "host_whisper.rs"]
@@ -122,7 +112,7 @@ enum HostCommand {
     },
     /// Prove one body across native, browser, and headless PROFILE-built Hosts.
     Capstone {
-        #[arg(long, default_value = "target/host-fabrication-capstone")]
+        #[arg(long, default_value = "target/host-make-capstone")]
         output: PathBuf,
         #[arg(long, default_value = "workspace-head")]
         source_identity: String,
@@ -152,12 +142,18 @@ enum HostCommand {
         /// Exact local model name or its local `:latest` alias.
         #[arg(long)]
         model: String,
+        /// Exact loopback Ollama origin.
+        #[arg(long, default_value = conduit_std_host::hosted_local_model::DEFAULT_OLLAMA_ENDPOINT)]
+        ollama_endpoint: String,
     },
     /// Initialize and warm one already-local Ollama model under finite Host limits.
     ProveLocalModel {
         /// Exact local model name or its local `:latest` alias.
         #[arg(long)]
         model: String,
+        /// Exact loopback Ollama origin.
+        #[arg(long, default_value = conduit_std_host::hosted_local_model::DEFAULT_OLLAMA_ENDPOINT)]
+        ollama_endpoint: String,
         /// Finite admitted RAM/VRAM ceiling expressed in MiB.
         #[arg(long)]
         admitted_memory_mib: u32,
@@ -168,46 +164,15 @@ enum HostCommand {
         #[arg(long, requires = "orifina_presenter")]
         journey_documentary: bool,
     },
-    /// Exercise one explicitly selected local Piper provider under finite bounds.
-    ProvePiper {
+    /// Speak through Tongues as Host, perform one Birth, then speak as the Body.
+    ProveSpokenBirth {
+        /// Explicitly consume the one allowed Birth action.
         #[arg(long)]
-        executable: PathBuf,
-        #[arg(long)]
-        model: PathBuf,
-        #[arg(long)]
-        config: PathBuf,
-        #[arg(long)]
-        library_path: Option<PathBuf>,
-        #[arg(long)]
-        text: String,
-        /// Run the unchanged portable form through ordinary std Plan and Play.
-        #[arg(long)]
-        plan_play: bool,
-        /// Freshly select this ALSA card for the plan/Play output.
-        #[arg(
-            long,
-            requires = "plan_play",
-            requires = "playback_device",
-            requires = "authorize_output"
-        )]
-        playback_card_id: Option<String>,
-        /// Freshly select this ALSA device number for the plan/Play output.
-        #[arg(
-            long,
-            requires = "plan_play",
-            requires = "playback_card_id",
-            requires = "authorize_output"
-        )]
-        playback_device: Option<u16>,
-        /// Explicitly authorize opening and writing the selected playback device.
-        #[arg(long, requires = "playback_card_id")]
-        authorize_output: bool,
-        #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_FRAMES)]
-        maximum_frames: u32,
-        #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_BLOCKS)]
-        maximum_blocks: u16,
-        #[arg(long, default_value_t = 30)]
-        timeout_seconds: u64,
+        confirm_birth: bool,
+        #[arg(long, default_value = "No Body exists yet. Confirm to begin.")]
+        bootstrap_text: String,
+        #[arg(long, default_value = "I am now speaking as the born Body.")]
+        body_text: String,
     },
     /// Carry a finite recorded PCM clip through ordinary Whisper Plan/Play.
     ProveWhisper {
@@ -224,32 +189,6 @@ enum HostCommand {
         threads: u8,
         #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
         timeout_seconds: u64,
-    },
-    /// Run recorded speech through name-gated local House generation in one plan.
-    ProveRecordedHouse {
-        #[arg(long)]
-        whisper_executable: PathBuf,
-        #[arg(long)]
-        whisper_model: PathBuf,
-        #[arg(long)]
-        pcm_s16le_16000_mono: PathBuf,
-        #[arg(long, default_value_t = 2)]
-        whisper_threads: u8,
-        #[arg(long, default_value_t = 30)]
-        whisper_timeout_seconds: u64,
-        #[arg(long)]
-        ollama_model: String,
-        #[arg(long)]
-        admitted_memory_mib: u32,
-    },
-    /// Retain one recorded House question and synthesized answer as journey evidence.
-    JourneyHearsSpeaks(host_hears_speaks::HearsSpeaksArgs),
-    /// Use one pinned, already-installed provider profile on forebrain or victus.
-    JourneyHearsSpeaksLocal {
-        #[arg(long)]
-        profile: PathBuf,
-        #[arg(long, default_value = "target/journeys/hears-speaks")]
-        output: PathBuf,
     },
     /// Explicitly capture one bounded microphone clip and recognize it through Whisper.
     ProveMicrophoneWhisper {
@@ -274,12 +213,6 @@ enum HostCommand {
         #[arg(long)]
         authorize_capture: bool,
     },
-    /// Capture one clip through the address-gated local House model Plan.
-    ProveMicrophoneHouse(host_microphone_house::MicrophoneHouseArgs),
-    /// Carry an authorized microphone-addressed House response to selected playback.
-    ProveSpokenMicrophoneHouse(host_spoken_microphone_house::SpokenMicrophoneHouseArgs),
-    /// Run one explicitly authorized push-to-talk Home command through Whisper and Piper playback.
-    HomeVoice(host_home_voice::HomeVoiceArgs),
 }
 
 #[derive(Args, Debug)]
@@ -318,7 +251,7 @@ enum RpiHostAction {
 
 #[derive(Subcommand, Debug)]
 enum HostConfigCommand {
-    /// Validate canonical source without saving or fabricating an IMAGE.
+    /// Validate canonical source without saving or making an IMAGE.
     Check { path: PathBuf },
     /// Print the resolved target, Bases, variants, limits, and identity.
     Show { path: PathBuf },
@@ -328,36 +261,11 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
     match args.command.unwrap_or(HostCommand::Std) {
         HostCommand::Std => super::demo::run_std(opts),
         HostCommand::Browser => super::browser::run(opts),
-        HostCommand::ProvePiper {
-            executable,
-            model,
-            config,
-            library_path,
-            text,
-            plan_play,
-            playback_card_id,
-            playback_device,
-            authorize_output,
-            maximum_frames,
-            maximum_blocks,
-            timeout_seconds,
-        } => host_piper::prove(
-            host_piper::PiperProofRequest {
-                executable,
-                model,
-                config,
-                library_path,
-                text,
-                plan_play,
-                playback_card_id,
-                playback_device,
-                authorize_output,
-                maximum_frames,
-                maximum_blocks,
-                timeout_seconds,
-            },
-            opts,
-        ),
+        HostCommand::ProveSpokenBirth {
+            confirm_birth,
+            bootstrap_text,
+            body_text,
+        } => host_spoken_birth::prove(confirm_birth, &bootstrap_text, &body_text, opts),
         HostCommand::ProveWhisper {
             executable,
             model,
@@ -374,31 +282,6 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
-        HostCommand::ProveRecordedHouse {
-            whisper_executable,
-            whisper_model,
-            pcm_s16le_16000_mono,
-            whisper_threads,
-            whisper_timeout_seconds,
-            ollama_model,
-            admitted_memory_mib,
-        } => host_recorded_house::prove(
-            host_recorded_house::RecordedHouseRequest {
-                whisper_executable,
-                whisper_model,
-                pcm_s16le_16000_mono,
-                whisper_threads,
-                whisper_timeout_seconds,
-                ollama_model,
-                admitted_memory_mib,
-            },
-            opts,
-        ),
-        HostCommand::JourneyHearsSpeaks(request) => host_hears_speaks::run(request, opts),
-        HostCommand::HomeVoice(request) => host_home_voice::run(request, opts),
-        HostCommand::JourneyHearsSpeaksLocal { profile, output } => {
-            host_hears_speaks::run_local(&profile, output, opts)
-        }
         HostCommand::ProveMicrophoneWhisper {
             arecord_executable,
             card_id,
@@ -425,10 +308,6 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
-        HostCommand::ProveSpokenMicrophoneHouse(request) => {
-            host_spoken_microphone_house::prove(request, opts)
-        }
-        HostCommand::ProveMicrophoneHouse(request) => host_microphone_house::prove(request, opts),
         HostCommand::Rpi(args) => match args.action.unwrap_or(RpiHostAction::Image) {
             RpiHostAction::Image => {
                 super::conduitos::build_rpi_image(args.board, opts).map_err(Into::into)
@@ -475,8 +354,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             Ok(())
         }
         HostCommand::Catalog => {
-            let catalog =
-                fabrication_chooser_catalog(&conduit_workspace_fabrication::package_set());
+            let catalog = make_chooser_catalog(&conduit_workspace_make::package_set());
             println!("{}", serde_json::to_string_pretty(&catalog)?);
             Ok(())
         }
@@ -569,14 +447,19 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             &output,
             opts,
         ),
-        HostCommand::InspectLocalModel { model } => host_local_model::inspect(&model, opts),
+        HostCommand::InspectLocalModel {
+            model,
+            ollama_endpoint,
+        } => host_local_model::inspect(&model, &ollama_endpoint, opts),
         HostCommand::ProveLocalModel {
             model,
+            ollama_endpoint,
             admitted_memory_mib,
             orifina_presenter,
             journey_documentary,
         } => host_local_model::prove(
             &model,
+            &ollama_endpoint,
             admitted_memory_mib,
             orifina_presenter,
             journey_documentary,
@@ -619,27 +502,30 @@ fn resolve_profile(
     source_identity: String,
 ) -> Result<(HostImage, Vec<u8>), Box<dyn std::error::Error>> {
     let source = fs::read_to_string(profile_path)?;
-    let profile = if is_conduit_source(profile_path, "host") {
-        let configuration = parse_host_configuration_conduit(&source)
-            .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
-        check_host_configuration(
-            configuration,
-            &conduit_workspace_fabrication::catalog(),
-            &conduit_workspace_fabrication::package_set(),
+    if !is_conduit_source(profile_path, "host") {
+        return Err(format!(
+            "Host construction source must use the canonical .host.conduit suffix: {}",
+            profile_path.display()
         )
-        .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
-        .into_profile()
-    } else {
-        serde_json::from_str::<HostProfile>(&source)?
-    };
+        .into());
+    }
+    let configuration = parse_host_configuration_conduit(&source)
+        .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
+    let profile = check_host_configuration(
+        configuration,
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
+    .into_profile();
     let inputs = BuildInputs {
         source_identity,
         toolchain_available: true,
     };
     build_default_host_image(
         profile,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
         &inputs,
     )
     .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}").into())
@@ -668,7 +554,7 @@ fn command_identity(
 
 fn load_configuration(
     path: &std::path::Path,
-) -> Result<conduit_host_fabrication::CheckedHostConfiguration, Box<dyn std::error::Error>> {
+) -> Result<conduit_host_make::CheckedHostConfiguration, Box<dyn std::error::Error>> {
     let source = fs::read_to_string(path)?;
     if !is_conduit_source(path, "host") {
         return Err(format!(
@@ -681,8 +567,8 @@ fn load_configuration(
         .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
     check_host_configuration(
         configuration,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
     )
     .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
 }

@@ -3,9 +3,10 @@ use alloc::vec;
 
 use conduit_core::{
     kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostCallContractId, HostCallRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, ResourceOffer,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
+    FrontStartupParameter, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, ResourceOffer,
 };
 
 /// Authored external WebSocket semantics. This is not a Conduit session line.
@@ -114,7 +115,7 @@ fn external_websocket_client_contract() -> Kind {
                 PortTemporal::Current,
             ),
         ],
-        configuration: Default::default(),
+        configuration: vec![free_configuration("url")],
         semantic_laws: Default::default(),
         limits: limits(1),
     }
@@ -187,9 +188,17 @@ fn external_websocket_listener_contract() -> Kind {
                 PortTemporal::Current,
             ),
         ],
-        configuration: Default::default(),
+        configuration: vec![free_configuration("bind")],
         semantic_laws: Default::default(),
         limits: limits(MAXIMUM_EXTERNAL_WEBSOCKET_PEERS),
+    }
+}
+
+fn free_configuration(key: &str) -> KindConfigurationField {
+    KindConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::Text(alloc::string::String::new()),
+        rule: KindConfigurationRule::Any,
     }
 }
 
@@ -234,11 +243,7 @@ pub fn install_external_websocket_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_core::ConfigurationValue;
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("Url", kind_id(URL_VALUE_KIND))?;
     startup.insert_value_kind_alias("NetAddress", kind_id(NET_ADDRESS_VALUE_KIND))?;
@@ -263,21 +268,7 @@ pub fn install_external_websocket_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .startup_parameters
-                    .into_iter()
-                    .map(|parameter| KindConfigurationField {
-                        key: parameter.name,
-                        default_value: ConfigurationValue::Text(alloc::string::String::new()),
-                        rule: KindConfigurationRule::Any,
-                    })
-                    .collect(),
-            })
+            .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -302,6 +293,7 @@ fn port(
         value_kind: kind_id(value_kind),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

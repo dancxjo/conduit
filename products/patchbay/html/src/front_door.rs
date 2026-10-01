@@ -162,7 +162,7 @@ mod tests {
                 .find(|subject| {
                     Some(subject.identity.as_str()) == snapshot.entrance.selected_subject.as_deref()
                 })
-                .map(|subject| subject.role),
+                .map(|subject| subject.role.clone()),
             Some(PresentationRole::Host)
         );
         assert!(snapshot.presentation.basis.plan_id.is_none());
@@ -191,8 +191,8 @@ mod tests {
             .filter(|action| action.target == form.identity)
             .collect::<Vec<_>>();
         assert_eq!(actions.len(), 2);
-        assert_eq!(actions[0].label, "Open");
-        assert_eq!(actions[1].label, "Birth");
+        assert_eq!(actions[0].name, "Open");
+        assert_eq!(actions[1].name, "Birth");
         let host = snapshot
             .presentation
             .subjects
@@ -205,7 +205,7 @@ mod tests {
             .iter()
             .find(|action| action.target == host.identity)
             .unwrap();
-        assert_eq!(creche_birth.label, "Name Body and choose Forms");
+        assert_eq!(creche_birth.name, "Name Body and choose Forms");
         assert!(creche_birth.availability.is_available());
     }
 }

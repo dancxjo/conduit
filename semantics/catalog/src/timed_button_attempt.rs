@@ -34,6 +34,7 @@ pub fn timed_button_attempt_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("events"),
@@ -44,6 +45,7 @@ pub fn timed_button_attempt_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![
             KindConfigurationField {
@@ -90,7 +92,7 @@ pub fn timed_button_attempt_semantic_contract() -> Kind {
             },
             FrontStartupParameter {
                 name: "timeout-ms".into(),
-                value_type: kind_id(conduit_core::QUANTITY_INFO_ID),
+                value_type: kind_id(conduit_core::DURATION_INFO_ID),
                 has_default: true,
             },
         ],
@@ -99,7 +101,7 @@ pub fn timed_button_attempt_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -137,7 +139,7 @@ pub fn install_timed_button_attempt_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(timed_button_attempt_definition())
+        .insert_kind(timed_button_attempt_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -168,7 +170,7 @@ mod tests {
         assert_eq!(contract.startup_parameters[1].name, "maximum-presses");
         assert_eq!(
             contract.startup_parameters[2].value_type.as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert!(contract
             .startup_parameters

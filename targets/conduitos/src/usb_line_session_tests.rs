@@ -53,6 +53,7 @@ fn binding() -> SessionBinding {
                 maximum_frame_bytes: USB_LINE_MAXIMUM_FRAME_BYTES,
             },
         },
+        abnormal_kind: None,
     }
 }
 

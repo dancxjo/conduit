@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 import { writeBrowserBodyJourneyTrack } from "./body-journey-track.mjs";
 
 let entrance;
@@ -17,7 +17,11 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   const capture = async (step, caption) => {
     const path = testInfo.outputPath(`journey-${step}.png`);
     await page.screenshot({ path, fullPage: true });
-    captures[step] = { path, caption };
+    const mask = await page.evaluate(() => {
+      try { return globalThis.__conduitWorkspace?.maskObservation?.() ?? null; }
+      catch { return null; }
+    });
+    captures[step] = { path, caption, mask };
   };
   await page.goto(entrance.url);
   await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
@@ -32,9 +36,44 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await capture("body.awake", "The body is awake and its selected form is playing.");
+  await page.getByRole("button", { name: "Use the current form", exact: true }).click();
   await page.locator('[data-inspect="lifecycle"]').click();
   await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
   await capture("body.inspected", "The body's own inspection panel reveals its lifecycle.");
+  const inspectedInteraction = captures["body.inspected"].mask?.interaction;
+  expect(inspectedInteraction?.schema).toBe("conduit.browser/mask-interaction@1");
+  expect(inspectedInteraction?.correlation).toMatchObject({
+    presentation_id: captures["body.inspected"].mask.presentation.identity,
+    presentation_revision: captures["body.inspected"].mask.presentation.revision,
+    show_id: captures["body.inspected"].mask.mask_show.show_id,
+  });
+  expect(inspectedInteraction?.correlation?.interaction).toMatchObject({
+    face_id: captures["body.inspected"].mask.presentation.identity,
+    face_revision: captures["body.inspected"].mask.presentation.revision,
+    show_id: captures["body.inspected"].mask.mask_show.show_id,
+    action_id: "body.use-current",
+  });
+  expect(inspectedInteraction?.semantic_action?.intent).toBe("conduit.intent/tutorial-next@1");
+  const maskActions = await page.evaluate(() => globalThis.__conduitWorkspace.maskJourney());
+  expect(maskActions.map(({ action_id }) => action_id)).toEqual([
+    "mask.inspect-initial-show", "mask.wear-alternate", "mask.prefer-alternate",
+    "mask.withdraw-selected-route", "mask.inspect-unavailable-show", "mask.add-face-host",
+    "mask.admit-replacement-plan", "mask.inspect-replanned-show", "mask.doff-alternate",
+    "mask.inspect-restored-show",
+  ]);
+  expect(new Set(maskActions.map(({ presentation_id }) => presentation_id))).toEqual(
+    new Set([captures["body.inspected"].mask.presentation.identity]),
+  );
+  expect(maskActions[2].plan_id).toBe(maskActions[0].plan_id);
+  expect(maskActions[2].show_id).toBe(maskActions[0].show_id);
+  expect(maskActions.slice(3, 6).every(outcome => outcome.plan_id === maskActions[0].plan_id
+    && outcome.show_id === null && outcome.selected_route_id === null)).toBe(true);
+  expect(maskActions[6].plan_id).not.toBe(maskActions[0].plan_id);
+  expect(maskActions[7]).toMatchObject({ plan_id: maskActions[6].plan_id,
+    selected_route_id: "route/browser-graphical-fallback" });
+  expect(maskActions[9]).toMatchObject({ plan_id: maskActions[6].plan_id,
+    selected_route_id: "route/browser-graphical" });
+  captures["body.inspected"].maskActions = maskActions;
   await page.locator("[data-close-inspection]").click();
   await page.getByRole("button", { name: "+ Forms", exact: true }).click();
   await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("desk");
@@ -245,7 +284,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
     ...journeyReceipt,
     checkpoints: { joined: after, refused: replan, restored, repaired },
-    host_fabrication: evidence,
+    host_make: evidence,
   };
   await writeFile(testInfo.outputPath("browser-body-journey.json"), JSON.stringify(retainedJourney, null, 2));
   const screenshot = testInfo.outputPath("browser-body-fulfilled.png");

@@ -101,8 +101,7 @@ pub fn project_pete_create_model_context(
         vec![PresentationSubject {
             identity: observation.subject.clone(),
             role: PresentationRole::Info,
-            label: format!("Pete Create {} observation", channel_name(channel)),
-            accessibility_name: format!("Pete Create {} observation", channel_name(channel)),
+            name: format!("Pete Create {} observation", channel_name(channel)),
         }],
         vec![],
         observation_properties(&observation, snapshot.maximum_age_ticks),

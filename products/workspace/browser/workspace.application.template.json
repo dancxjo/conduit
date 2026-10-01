@@ -14,7 +14,7 @@
       "role": "application-module",
       "kind": "module",
       "path": "workspace.mjs",
-      "maximum_bytes": 28672,
+      "maximum_bytes": 32768,
       "dependencies": [
         {
           "role": "browser-host-bootstrap",
@@ -157,7 +157,7 @@
       "dependencies": [
         {
           "role": "creche-name-catalog",
-          "specifier": "../names/catalog.mjs"
+          "specifier": "../../../forms/birth/names/catalog.mjs"
         }
       ]
     },
@@ -165,7 +165,7 @@
       "role": "runtime",
       "kind": "wasm",
       "path": "runtime.wasm",
-      "maximum_bytes": 8388608,
+      "maximum_bytes": 12582912,
       "dependencies": []
     },
     {
@@ -328,9 +328,9 @@
     { "role": "orange-pi-image", "kind": "module", "path": "targets/orange-pi/browser-deployment/image.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "raspberry-pi-adapter", "kind": "module", "path": "targets/raspberry-pi/browser-deployment/creche-adapter.mjs", "maximum_bytes": 24576, "dependencies": [{"role":"creche-existing-computer","specifier":"../../../creche-existing-computer.mjs"},{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"},{"role":"creche-native-disk","specifier":"../../../creche-native-disk.mjs"},{"role":"raspberry-pi-image","specifier":"./image.mjs"}] },
     { "role": "raspberry-pi-image", "kind": "module", "path": "targets/raspberry-pi/browser-deployment/image.mjs", "maximum_bytes": 8192, "dependencies": [] },
-    { "role": "rp2040-adapter", "kind": "module", "path": "targets/rp2040/browser-deployment/creche-adapter.mjs", "maximum_bytes": 24576, "dependencies": [{"role":"device-base","specifier":"../../../device-base.mjs"},{"role":"usb-device-base","specifier":"../../../usb-device-base.mjs"},{"role":"rp2040-deployment","specifier":"./deployment.mjs"},{"role":"rp2040-fabrication","specifier":"./fabrication.mjs"},{"role":"rp2040-spawn","specifier":"./spawn.mjs"},{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"}] },
+    { "role": "rp2040-adapter", "kind": "module", "path": "targets/rp2040/browser-deployment/creche-adapter.mjs", "maximum_bytes": 24576, "dependencies": [{"role":"device-base","specifier":"../../../device-base.mjs"},{"role":"usb-device-base","specifier":"../../../usb-device-base.mjs"},{"role":"rp2040-deployment","specifier":"./deployment.mjs"},{"role":"rp2040-make","specifier":"./make.mjs"},{"role":"rp2040-spawn","specifier":"./spawn.mjs"},{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"}] },
     { "role": "rp2040-deployment", "kind": "module", "path": "targets/rp2040/browser-deployment/deployment.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"rp2040-picoboot","specifier":"./picoboot.mjs"},{"role":"rp2040-uf2","specifier":"./uf2.mjs"}] },
-    { "role": "rp2040-fabrication", "kind": "module", "path": "targets/rp2040/browser-deployment/fabrication.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"rp2040-uf2","specifier":"./uf2.mjs"}] },
+    { "role": "rp2040-make", "kind": "module", "path": "targets/rp2040/browser-deployment/make.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"rp2040-uf2","specifier":"./uf2.mjs"}] },
     { "role": "rp2040-picoboot", "kind": "module", "path": "targets/rp2040/browser-deployment/picoboot.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "rp2040-spawn", "kind": "module", "path": "targets/rp2040/browser-deployment/spawn.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "rp2040-uf2", "kind": "module", "path": "targets/rp2040/browser-deployment/uf2.mjs", "maximum_bytes": 8192, "dependencies": [] },

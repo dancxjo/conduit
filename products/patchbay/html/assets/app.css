@@ -2,10 +2,6 @@
 html { scroll-padding-top:5rem; }
 body { margin:0; background:var(--conduit-background); color:var(--conduit-text-primary); }
 body[data-application-ready="false"] #patchbay-root { pointer-events:none; }
-.body-execution { margin-top:.75rem; overflow-wrap:anywhere; }
-.body-execution pre { white-space:pre-wrap; overflow-wrap:anywhere; }
-#body-execution-input { padding:.75rem; border:1px solid var(--conduit-structure-secondary); border-radius:.35rem; }
-#body-execution-output { display:flex; flex-wrap:wrap; gap:.75rem; padding:.5rem 0; }
 #body-workbench-history ol { display:grid; gap:.65rem; }
 #body-workbench-history li { padding:.65rem; border-left:3px solid var(--conduit-structure-secondary); }
 #body-workbench-history li p { margin:.25rem 0; }

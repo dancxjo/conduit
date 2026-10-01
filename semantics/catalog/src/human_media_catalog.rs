@@ -1,6 +1,8 @@
 //! Portable camera and microphone acquisition/use catalog contracts.
 
-use alloc::{string::ToString, vec};
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
@@ -45,12 +47,14 @@ pub fn media_acquisition_semantic_contract(kind: &str) -> Option<Kind> {
             value_kind: kind_id(request_kind),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("result"),
             value_kind: kind_id(MEDIA_ACQUISITION_RESULT_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         semantic_laws: Default::default(),
@@ -96,6 +100,7 @@ fn camera_frame_port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(CAMERA_FRAME_KIND),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 
@@ -118,12 +123,14 @@ pub fn microphone_clip_source_semantic_contract() -> Kind {
             value_kind: kind_id(conduit_text::TEXT_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("clip"),
             value_kind: kind_id(conduit_audio::AUDIO_PCM_CLIP_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         semantic_laws: Default::default(),

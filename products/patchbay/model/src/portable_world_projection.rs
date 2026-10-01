@@ -15,7 +15,6 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
     let body_subject = content.subject_with_identity(
         format!("body/{}", body.body_id.as_str()),
         PresentationRole::Body,
-        "Current body",
         format!("Current body {}", body.body_id.as_str()),
     );
     identity(content, &body_subject, "body-id", body.body_id.as_str());
@@ -43,7 +42,6 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
         let part_subject = content.subject_with_identity(
             format!("part/{}", row.details.part_id.as_str()),
             PresentationRole::Part,
-            &row.label,
             format!("{} {:?}", row.label, row.state),
         );
         content.contains(&body_subject, &part_subject);
@@ -109,7 +107,6 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
             content.subject_with_identity(
                 &host_subject,
                 PresentationRole::Host,
-                host_id.as_str(),
                 format!("Host {} boot {}", host_id.as_str(), boot_id.as_str()),
             );
             content.relationships.push(PresentationRelationship {
@@ -123,7 +120,6 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
         let candidate = content.subject_with_identity(
             format!("candidate/{}", row.candidate_id.as_str()),
             PresentationRole::Candidate,
-            &row.label,
             format!("Admission candidate {}", row.label),
         );
         content.relationships.push(PresentationRelationship {
@@ -178,7 +174,6 @@ pub(super) fn append_observatory(
         let subject = content.subject_with_identity(
             subject_identity,
             PresentationRole::Host,
-            host.host_id.as_str(),
             format!(
                 "Host {} boot {}",
                 host.host_id.as_str(),
@@ -240,7 +235,6 @@ pub(super) fn append_observatory(
                 capability.capability_id.as_str()
             ),
             PresentationRole::Capability,
-            capability.kind_id.as_str(),
             format!("Capability {}", capability.capability_id.as_str()),
         );
         content.contains(
@@ -271,7 +265,6 @@ pub(super) fn append_observatory(
         let subject = content.subject_with_identity(
             format!("line/{}", line.offer.line_id.as_str()),
             PresentationRole::Line,
-            line.offer.line_id.as_str(),
             format!("Line {}", line.offer.line_id.as_str()),
         );
         content.describes(&subject, document);
@@ -362,7 +355,6 @@ fn append_capability(
             capability.capability_id.as_str()
         ),
         PresentationRole::Capability,
-        capability.kind_id.as_str(),
         format!("Capability {}", capability.capability_id.as_str()),
     );
     content.contains(owner, &subject);

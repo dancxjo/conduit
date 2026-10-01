@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, io::IsTerminal as _, path::Path, str::FromStr};
 
-use conduit_body_fabrication::{
+use conduit_body_make::{
     canonical_body_description_conduit, check_body_description, BodyBindingTarget, BodyDescription,
     BodyHostDescription, SporeDescription, SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
 };
-use conduit_host_fabrication::{CheckedHostConfiguration, SporeOutputKind};
+use conduit_host_make::{CheckedHostConfiguration, SporeOutputKind};
 use console::{style, Emoji};
 use serde::Serialize;
 
@@ -87,7 +87,7 @@ struct CreatedHostReport {
     target: String,
     join_mode: &'static str,
     output: &'static str,
-    fabrication_package: String,
+    make_package: String,
     features: Vec<String>,
 }
 
@@ -229,7 +229,7 @@ fn prepare(
                 output
             }
         };
-        let selection = conduit_workspace_fabrication::package_set()
+        let selection = conduit_workspace_make::package_set()
             .derive_build_selection(recipe.checked.profile(), output_kind)
             .map_err(|item| {
                 format!(
@@ -261,7 +261,7 @@ fn prepare(
             target: recipe.target.clone(),
             join_mode: join_name(seed.join_mode),
             output: output_name(output_kind),
-            fabrication_package: recipe.package.package_id.clone(),
+            make_package: recipe.package.package_id.clone(),
             features: selection.features,
         });
     }
@@ -275,8 +275,8 @@ fn prepare(
             hosts,
         },
         &configurations,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
     )
     .map_err(|items| format!("generated Body description refused: {items:?}"))?;
     host_reports.sort_by(|left, right| left.name.cmp(&right.name));
@@ -349,7 +349,7 @@ fn print_receipt(report: &CreationReport) {
     println!(
         "\n{}\n  {}",
         style("Next").bold(),
-        style(format!("cargo xtask body show {}", report.output)).cyan()
+        style(format!("cargo xtask make body show {}", report.output)).cyan()
     );
 }
 

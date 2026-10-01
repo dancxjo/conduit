@@ -213,6 +213,7 @@ fn fixture_offer(
         },
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     };
     let observe = (direction == PortDirection::Input).then(|| HostCallRequirement {
         contract_id: HostCallContractId::from(OBSERVE_OPERATION),
@@ -227,7 +228,8 @@ fn fixture_offer(
         maximum_input_bytes: RESPONSE_BYTES as u32,
         maximum_output_bytes: 0,
     });
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(kind),
@@ -410,13 +412,14 @@ fn run_ordinary_form() {
     let lowered = lower_plan_fragment(fragment).unwrap();
 
     let request = conduit_web::encode_request(&conduit_web::HttpRequest {
-        transaction_id: conduit_web::HttpTransactionId(7),
+        transaction_id: conduit_web::HttpTransactionId::new(7).unwrap(),
         method: conduit_web::HttpMethod::Get,
-        target: conduit_web::HttpTarget {
-            scheme: "http".into(),
-            authority: "192.0.2.9:8080".into(),
-            path_and_query: "/ready".into(),
-        },
+        target: conduit_web::HttpTarget::new(
+            "192.0.2.9:8080".into(),
+            "/ready".into(),
+            conduit_web::HttpScheme::Http,
+        )
+        .unwrap(),
         headers: Vec::new(),
         body: conduit_web::HttpBody::inline(Vec::new()),
     })
@@ -543,7 +546,10 @@ fn run_ordinary_form() {
         }
     }
     let response = conduit_web::decode_response(&observed).unwrap();
-    assert_eq!(response.transaction_id, conduit_web::HttpTransactionId(7));
+    assert_eq!(
+        response.transaction_id,
+        conduit_web::HttpTransactionId::new(7).unwrap()
+    );
     assert_eq!(response.status, 201);
     assert_eq!(response.body.as_inline(), Some(b"ready".as_slice()));
     assert!(kernel.signs().len() > 0);

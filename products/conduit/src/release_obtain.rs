@@ -1,6 +1,6 @@
 //! Installed target-oriented release acquisition from an exact catalog.
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     acquire_local_release_artifact, acquire_release_artifact_with, ReleaseCatalog,
     ReleaseCatalogRefusal, MAXIMUM_RELEASE_CATALOG_BYTES, MAXIMUM_RELEASE_MANIFEST_BYTES,
 };
@@ -9,7 +9,7 @@ use serde::Serialize;
 use std::path::Path;
 
 #[derive(Debug, Serialize)]
-struct ObtainReceipt {
+pub(crate) struct ObtainReceipt {
     schema: &'static str,
     catalog_id: String,
     catalog_generation: u64,
@@ -51,7 +51,7 @@ pub(crate) fn run(
     Ok(())
 }
 
-fn obtain(
+pub(crate) fn obtain(
     target: &str,
     catalog_path: &Path,
     expected_catalog_id: &str,
@@ -141,7 +141,7 @@ fn obtain(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_host_fabrication::{
+    use conduit_host_make::{
         ReleaseArtifactDescriptor, ReleaseCatalogEntry, RELEASE_CATALOG_SCHEMA,
     };
     use sha2::{Digest, Sha256};

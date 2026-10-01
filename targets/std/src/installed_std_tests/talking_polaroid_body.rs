@@ -11,6 +11,9 @@ use conduit_form::{
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
+use conduit_kernel::causal_evidence::{
+    EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit,
+};
 use std::collections::BTreeMap;
 
 struct Clock;
@@ -74,13 +77,13 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
         "conduit-test/body-frame-sink",
     );
     frame_sink.inputs[0].temporal = PortTemporal::Value;
-    let status_source = installed_std::test_structured_selector::offer_named(
+    let mut status_source = installed_std::test_structured_selector::offer_named(
         &text_type,
         PortDirection::Output,
         "conduit-test/body-status-source",
         "conduit-test/unused-status-sink",
     );
-    let status_sink = installed_std::test_structured_selector::offer_named(
+    let mut status_sink = installed_std::test_structured_selector::offer_named(
         &text_type,
         PortDirection::Input,
         "conduit-test/unused-status-source",
@@ -92,11 +95,11 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     conduit_semantic_catalog::install_human_media_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
     for offer in [
-        &image_source,
-        &caption_source,
-        &frame_sink,
-        &status_source,
-        &status_sink,
+        &mut image_source,
+        &mut caption_source,
+        &mut frame_sink,
+        &mut status_source,
+        &mut status_sink,
     ] {
         install_fixture(&mut startup, &mut profile, offer);
     }
@@ -191,6 +194,41 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     assert_eq!(report.requests.len(), 4);
     assert!(report.play.validate_for(&body_plan));
     assert!(output.is_empty());
+
+    let evidence =
+        crate::body_causal_evidence::BodyRunCausalRecord::from_run(&body_plan, &report).unwrap();
+    let retained = evidence.retained_evidence().collect::<Vec<_>>();
+    assert!(!retained.is_empty());
+    for identity in retained {
+        let mut source = None;
+        assert_eq!(
+            evidence.visit(identity, &mut |fact| {
+                if let EvidenceMetadataFact::Source {
+                    document,
+                    start,
+                    end,
+                    line,
+                    column,
+                    end_line,
+                    end_column,
+                } = fact
+                {
+                    source = Some((document, start, end, line, column, end_line, end_column));
+                }
+                true
+            }),
+            EvidenceMetadataVisit::Visited
+        );
+        let (document, start, end, line, column, end_line, end_column) = source.unwrap();
+        assert!(body_plan
+            .forms
+            .iter()
+            .any(|form| form.plan.source_document_id.as_str() == document));
+        assert!(start.is_some_and(|value| value < end.unwrap()));
+        assert!(line.is_some_and(|value| value <= end_line.unwrap()));
+        assert!(column.is_some());
+        assert!(end_column.is_some());
+    }
 }
 
 fn plan(
@@ -246,8 +284,14 @@ fn plan(
 fn install_fixture(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
-    offer: &conduit_core::CapabilityOffer,
+    offer: &mut conduit_core::CapabilityOffer,
 ) {
+    installed_std::test_structured_selector::bind_text_configuration(
+        offer,
+        "value",
+        String::new(),
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
+    );
     startup
         .insert(KindSignature {
             kind: offer.kind_id.as_str().into(),

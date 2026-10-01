@@ -1,0 +1,43 @@
+# Authoritative portable chat state meaning. Rust consumes generated bindings.
+
+type ChatConnectionState =
+    connected
+    | connecting
+    | disconnected
+
+type ChatStateRefusal =
+    invalid_configuration
+    | empty_message
+    | oversize_message
+    | malformed_message
+    | sequence_exhausted
+    | invalid_presentation
+
+type PresenceState =
+    available
+    | away
+    | offline
+    | unknown
+
+type BodyChatRole =
+    human
+    | body
+
+code chat/body-role = BodyChatRole as u8
+
+type BodyChatMessage = Text <= 4096B not in [""]
+
+type BodyChatHistoryItem = {
+    role: BodyChatRole
+    text: BodyChatMessage
+}
+
+type BodyChatRefusal =
+    empty_message
+    | message_bound_exceeded
+    | context_bound_exceeded
+    | malformed_context
+    | wrong_context_schema
+    | history_bound_exceeded
+    | prompt_bound_exceeded
+    | encoding

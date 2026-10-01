@@ -1,18 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { execFileSync, spawnSync } from "node:child_process";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("affected product proof begins after cheap PR entry while promotion stays privileged", () => {
-  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
   const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integrationWorkflow = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   assert.match(candidateWorkflow, /^  pull_request:\s*$/m);
-  assert.match(candidateWorkflow, /products:\n    needs: admission\n    uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(candidateWorkflow, /products:\n    needs: admission\n    if: github\.event\.pull_request\.draft == false\n    uses: \.\/\.github\/workflows\/product-carrier\.yml/);
   assert.match(candidateWorkflow, /development_admission: true/);
-  assert.match(integrationWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(integrationWorkflow, /uses: \.\/\.github\/workflows\/product-carrier\.yml/);
   assert.doesNotMatch(productWorkflow, /^  pull_request:\s*$/m);
   assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);
   assert.match(productWorkflow, /jobs:\n  plan:/);
@@ -20,31 +18,15 @@ test("affected product proof begins after cheap PR entry while promotion stays p
   assert.match(productWorkflow, /git worktree add --detach "\$RUNNER_TEMP\/conduit-ci-controller"/);
   assert.match(productWorkflow, /pages_products_required/);
 
-  const deploy = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const deploy = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   assert.match(deploy, /pull_request_target:\n    types: \[closed\]\n    branches: \[main\]/);
   const closedTrigger = deploy.split("  pull_request_target:\n")[1].split("  workflow_dispatch:")[0];
   assert.doesNotMatch(closedTrigger, /^    paths(?:-ignore)?:/m);
 });
 
-test("host-local audio admission reuses one exact promotion without model downloads", () => {
-  const workflow = readFileSync(".github/workflows/admit-hears-speaks.yml", "utf8");
-  assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /test "\$\(jq -r \.conclusion <<<"\$run"\)" = success/);
-  assert.match(workflow, /test "\$\(jq -r \.head_sha <<<"\$run"\)" = "\$ACCEPTED_SOURCE_SHA"/);
-  assert.match(workflow, /git rev-parse origin\/main\^\{tree\}/);
-  assert.match(workflow, /name: conduit-pages-carrier-with-conduitos/);
-  assert.match(workflow, /gh release download "journey-evidence\/\$ACCEPTED_SOURCE_SHA"/);
-  assert.match(workflow, /sha256sum --check --strict/);
-  assert.match(workflow, /--proof journey-hears-speaks --suite journey-gallery/);
-  assert.match(workflow, /--hears-speaks-evidence-root/);
-  assert.match(workflow, /verify-pages-carrier\.mjs "\$RUNNER_TEMP\/provider-carrier"/);
-  assert.doesNotMatch(workflow, /curl|wget|ollama pull|git clone/);
-});
-
 test("every browser product admits the complete shared presentation theme", () => {
   const themeBytes = readFileSync("products/shared/browser/conduit.css").byteLength;
   for (const path of [
-    "products/tour/browser/tour.application.template.json",
     "products/creche/browser/creche.application.template.json",
     "products/patchbay/html/assets/patchbay.application.template.json",
   ]) {
@@ -56,7 +38,7 @@ test("every browser product admits the complete shared presentation theme", () =
 });
 
 test("product jobs build the immutable PR head and deployments queue", () => {
-  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
   const checkoutCount = [...productWorkflow.matchAll(/uses: actions\/checkout@v7/g)].length;
   const exactHeadCount = [...productWorkflow.matchAll(
     /ref: \$\{\{ env\.CONDUIT_CANDIDATE_SHA \}\}/g,
@@ -78,23 +60,23 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.doesNotMatch(productWorkflow, /github\.event\.pull_request\.(?:head|base)\.sha \|\| inputs\./);
   assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
-  assert.match(
-    productWorkflow,
-    /tour-patchbay-proof:\n    needs: \[plan, browser-runtimes\]/,
-  );
-  assert.doesNotMatch(productWorkflow, /conduit-staged-tour-patchbay/);
-  assert.match(productWorkflow, /--grep-invert/);
-  assert.match(productWorkflow, /shard: tour/);
+  assert.doesNotMatch(productWorkflow, /shard: tour/);
   assert.match(productWorkflow, /shard: browser-host/);
   assert.match(productWorkflow, /shard: creche-machines/);
   assert.match(productWorkflow, /shard: pages/);
   assert.match(productWorkflow, /browser-admission-stage:\n    needs: \[plan, browser-runtimes, browser-release\]/);
-  assert.match(productWorkflow, /browser-release:\n    needs: plan\n    if: needs\.plan\.outputs\.pages_carrier_required == 'true' \|\| needs\.plan\.outputs\.browser_admission_required == 'true'/);
+  assert.match(productWorkflow, /browser-release:\n    needs: plan\n    if: needs\.plan\.outputs\.browser_release_required == 'true'/);
+  assert.match(productWorkflow, /browser_release_required:.*contains\(steps\.impact\.outputs\.browser_admission_matrix, 'creche-workspace'\).*contains\(steps\.impact\.outputs\.browser_admission_matrix, 'pages'\)/);
+  assert.match(productWorkflow, /if: needs\.plan\.outputs\.browser_release_required == 'true'\n        uses: \.\/\.github\/actions\/download-artifact-retry/);
   assert.match(productWorkflow, /stage-creche-product\.sh[^\n]+unused browser-proof/);
   assert.match(productWorkflow, /name: browser-admission-\$\{\{ matrix\.shard \}\}/);
   assert.match(
     productWorkflow,
-    /cargo build --locked[^\n]+-p patchbay-native --bin browser-parts-capstone --bin webchat-server/,
+    /cargo build --locked -p patchbay-html --bin patchbay-static-assets --bin patchbay-html -p patchbay-native --bin browser-parts-capstone/,
+  );
+  assert.match(
+    productWorkflow,
+    /cargo build --locked --bin webchat-server -p conduit-std-host --bin browser-admission-probe --bin protected-line-browser-peer/,
   );
   assert.match(
     productWorkflow,
@@ -116,7 +98,35 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /--retries 0/);
   assert.match(
     productWorkflow,
-    /Retain the browser two-profile fabrication report\n        if: matrix\.shard == 'creche-machines'/,
+    /browser_admission_matrix: \$\{\{ \(!inputs\.development_admission \|\| inputs\.full_suite\) && '\["browser-host","creche-workspace","pages"\]'/,
+  );
+  assert.match(
+    productWorkflow,
+    /shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.browser_admission_matrix\) \}\}/,
+  );
+  const admissionJob = productWorkflow.split("  browser-admission-proof:\n")[1]
+    .split("\n  avr-release:\n")[0];
+  assert.match(admissionJob, /timeout-minutes: 15/);
+  assert.doesNotMatch(admissionJob, /matrix:\n\s+include:/);
+  assert.match(
+    productWorkflow,
+    /BROWSER_ADMISSION_MATRIX: \$\{\{ needs\.plan\.outputs\.browser_admission_matrix \}\}/,
+  );
+  assert.match(
+    productWorkflow,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime[^\n]+--features creche-surface,form-runner/,
+  );
+  assert.match(
+    productWorkflow,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n\s+cp target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm target\/browser-product-runtimes\/patchbay-runtime\.wasm/,
+  );
+  assert.match(
+    productWorkflow,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cp target\/browser-product-runtimes\/patchbay-runtime\.wasm target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm/,
+  );
+  assert.match(
+    productWorkflow,
+    /Retain the browser two-profile make report\n        if: matrix\.shard == 'creche-machines'/,
   );
   assert.match(productWorkflow, /name: conduitos-release-\$\{\{ matrix\.architecture \}\}/);
   for (const architecture of ["x86_64", "aarch64", "ia32", "riscv64", "loongarch64"]) {
@@ -125,19 +135,19 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, journey-gallery, pages-carrier, proof-receipts\]/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, browser-admission-proof, products-stage, browser-proof, pages-carrier\]/);
+  assert.doesNotMatch(productWorkflow, /^  (?:journey|little-life)-evidence:/m);
+  assert.doesNotMatch(productWorkflow, /^  journey-gallery:/m);
   assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
-  assert.match(productWorkflow, /test "\$TOUR_PATCHBAY_RESULT" = success/);
   assert.match(productWorkflow, /test "\$BROWSER_RESULT" = success/);
   assert.match(productWorkflow, /test "\$BROWSER_ADMISSION_RESULT" = success/);
   assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
-  assert.match(productWorkflow, /test "\$RECEIPTS_RESULT" = success/);
 
-  const deployWorkflow = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const deployWorkflow = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   assert.match(
     deployWorkflow,
-    /concurrency:\n  group: tour-and-creche-pages\n  cancel-in-progress: false/,
+    /concurrency:\n  group: pages-deploy\n  cancel-in-progress: false/,
   );
   assert.match(
     deployWorkflow,
@@ -147,20 +157,29 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(deployWorkflow, /name: \$\{\{ needs\.resolve\.outputs\.carrier_name \}\}/);
 
   const promotionWorkflow = readFileSync(".github/workflows/promotion.yml", "utf8");
-  assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n(?:    #.*\n)+    needs: \[products, conduitos-spore-acceptance, three-body-journey\]/);
-  assert.match(promotionWorkflow, /  generative-body-journey:|  three-body-journey:/);
-  assert.match(promotionWorkflow, /conduit-(?:browser|native|generative)-body-journey/);
-  assert.match(promotionWorkflow, /proof\/fixtures\/ollama-http-service\.mjs/);
-  assert.doesNotMatch(promotionWorkflow, /ollama\/ollama:|ollama" pull|gemma3:latest/);
-  assert.match(promotionWorkflow, /sha256sum --check SHA256SUMS/);
-  assert.match(promotionWorkflow, /stage-three-body-journey/);
-  assert.match(promotionWorkflow, /name: conduitos-x86-batch-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.match(promotionWorkflow, /target\/conduitos-x86-batch\/runs\/product-journey\/conduitos\/x86_64\/journey-frames/);
-  assert.match(promotionWorkflow, /stage-conduitos-pages-evidence\.mjs/);
-  assert.match(promotionWorkflow, /name: conduit-journey-gallery-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.match(promotionWorkflow, /verify-pages-carrier\.mjs target\/journey-gallery-carrier/);
-  assert.match(promotionWorkflow, /stage-journey-pages-evidence\.mjs/);
-  assert.match(promotionWorkflow, /name: conduit-pages-carrier-with-conduitos/);
+  assert.match(promotionWorkflow, /promotion:\n    needs: \[boundary, check, products, conduitos-spore-acceptance\]/);
+  assert.doesNotMatch(promotionWorkflow, /generative-body-journey|three-body-journey|journey-documentary/);
+  assert.doesNotMatch(promotionWorkflow, /stage-(?:three-body-journey|journey-pages-evidence|conduitos-pages-evidence)/);
+
+  const journeyWorkflow = readFileSync(".github/workflows/journey-publication.yml", "utf8");
+  assert.match(journeyWorkflow, /workflow_dispatch:/);
+  assert.match(journeyWorkflow, /name: conduit-release-publication-context/);
+  assert.match(journeyWorkflow, /name: \$\{\{ steps\.context\.outputs\.carrier_name \}\}/);
+  assert.match(journeyWorkflow, /run-id: \$\{\{ steps\.context\.outputs\.carrier_run_id \}\}/);
+  assert.match(journeyWorkflow, /test "\$carrier_run_id" = "\$PAGES_RUN_ID"/);
+  assert.match(journeyWorkflow, /conduit-browser-body-journey-/);
+  assert.match(journeyWorkflow, /name: conduitos-x86-batch-/);
+  assert.match(journeyWorkflow, /cargo xtask prove one-form-two-fronts --locked/);
+  assert.match(journeyWorkflow, /cargo xtask prove little-life --locked/);
+  assert.match(journeyWorkflow, /CONDUIT_CHECKOUT_SHA: \$\{\{ steps\.context\.outputs\.source_commit \}\}/);
+  assert.match(journeyWorkflow, /cargo xtask prove gallery/);
+  assert.match(journeyWorkflow, /proof\/fixtures\/ollama-http-service\.mjs/);
+  assert.match(journeyWorkflow, /three-body-journey-contract/);
+  assert.match(journeyWorkflow, /stage-three-body-journey/);
+  assert.match(journeyWorkflow, /stage-conduitos-pages-evidence\.mjs/);
+  assert.match(journeyWorkflow, /Refuse to overwrite a newer accepted release/);
+  assert.match(deployWorkflow, /name: conduit-release-publication-context/);
+  assert.match(deployWorkflow, /gh workflow run journey-publication\.yml --ref main/);
 
   const liveModelWorkflow = readFileSync(".github/workflows/live-local-model-conformance.yml", "utf8");
   assert.match(liveModelWorkflow, /workflow_dispatch:/);
@@ -168,9 +187,9 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(liveModelWorkflow, /host prove-local-model --locked/);
 });
 
-test("standalone locks fail before ESP32 fabrication fans out", () => {
+test("standalone locks fail before ESP32 make fans out", () => {
   const checkWorkflow = readFileSync(".github/workflows/check.yml", "utf8");
-  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
 
   assert.match(
     checkWorkflow,
@@ -185,19 +204,11 @@ test("standalone locks fail before ESP32 fabrication fans out", () => {
 });
 
 function pagesJob(name) {
-  const source = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const source = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   const jobs = source.split("\njobs:\n")[1];
   const body = jobs.match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [\\w-]+:\\n|$(?![\\s\\S]))`, "m"))?.[1];
   assert.ok(body, `missing Pages job ${name}`);
   return body;
-}
-
-function recoveryScript(name) {
-  const body = pagesJob("deploy-first-rescue").split(`      - name: ${name}\n`)[1];
-  assert.ok(body, `missing recovery step ${name}`);
-  const script = body.match(/^        run: \|\n((?:          [^\n]*\n)+)/m)?.[1];
-  assert.ok(script, `missing recovery script ${name}`);
-  return script.replace(/^          /gm, "");
 }
 
 test("Pages execute explicitly selects the carrier even for metadata-only changes", () => {
@@ -212,119 +223,72 @@ test("Pages execute explicitly selects the carrier even for metadata-only change
   assert.match(consumer, /needs: \[resolve, integration-products\]/);
   assert.match(consumer, /needs\.integration-products\.result == 'success'/);
   assert.match(consumer, /name: conduit-pages-carrier/);
+  assert.match(consumer, /if: needs\.resolve\.outputs\.disposition == 'inherited'[\s\S]*?run-id: \$\{\{ needs\.resolve\.outputs\.run_id \}\}/);
+  assert.match(consumer, /if: needs\.resolve\.outputs\.disposition == 'execute'[\s\S]*?name: conduit-pages-carrier/);
   assert.match(consumer, /verify-pages-carrier\.mjs target\/pages-carrier "\$EXPECTED_TREE"/);
   assert.match(consumer, /Install exact current-product truth and reseal the publication carrier/);
   assert.match(consumer, /if: needs\.resolve\.outputs\.direct_main != 'true'/);
   assert.match(consumer, /git fetch --no-tags origin dev/);
   assert.match(consumer, /emit-current-product-truth\.mjs/);
   assert.match(consumer, /target\/pages-carrier-with-truth/);
+  assert.match(consumer, /name: conduit-release-pages-carrier-\$\{\{ needs\.resolve\.outputs\.source_head \}\}/);
+  assert.match(consumer, /path: target\/pages-carrier/);
+  assert.match(consumer, /CARRIER_RUN_ID: \$\{\{ github\.run_id \}\}/);
+  assert.match(consumer, /--arg schema conduit\.release-publication-context\/v2/);
+  assert.match(consumer, /carrier_run_id:\$carrier_run_id/);
   assert.match(
     consumer,
     /needs\.resolve\.outputs\.direct_main == 'true' && 'target\/pages-carrier\/site' \|\| 'target\/pages-carrier-with-truth\/site'/,
   );
 });
 
-test("Pages recovery is restricted to the exact dev audit trigger or accepted release merge", () => {
-  const source = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
-  const push = source.match(/^  push:\n((?:    [^\n]+\n)+)/m)?.[1];
-  assert.equal(push, "    branches: [dev]\n    paths: [.github/release-audit/47372-publication.md]\n");
-  const rescue = pagesJob("deploy-first-rescue");
-  const guard = rescue.match(/^    if: >-\n((?:      [^\n]+\n)+)/m)?.[1];
-  assert.ok(guard);
-  const evaluate = Function("github", `"use strict"; return (${guard.trim()});`);
-  const release = "release/47372b96d31ca8a04e9868a88bdd1919a9cad986";
-  for (const event_name of ["push", "pull_request", "pull_request_target", "workflow_dispatch"]) {
-    for (const ref of ["refs/heads/dev", "refs/heads/main", "refs/heads/feature"]) {
-      for (const merged of [true, false]) {
-        for (const base of ["main", "dev"]) {
-          for (const head of [release, "release/other", "feature"]) {
-            const github = { event_name, ref, event: { pull_request: { merged, base: { ref: base }, head: { ref: head } } } };
-            const expected = event_name === "push" && ref === "refs/heads/dev"
-              || event_name === "pull_request_target" && merged && base === "main" && head === release;
-            assert.equal(evaluate(github), expected, JSON.stringify(github));
-          }
-        }
-      }
-    }
-  }
-  assert.match(rescue, /EXPECTED_MAIN_SHA: 69b39d54c5294f0c2781dded213d52789eff953e/);
-  assert.match(rescue, /ref: f1e0245a8a55116a91c334d4e6f2719d81bc2ff3/);
-  assert.match(rescue, /name: conduit-staged-browser-products/);
-  assert.match(rescue, /run-id: 34522795014/);
-  assert.match(rescue, /digest-mismatch: error/);
-  assert.match(rescue, /continue-on-error: true/);
-  assert.match(rescue, /Rebuild the exact staged release payload after artifact expiry/);
-  assert.match(rescue, /if: steps\.staged-products\.outcome != 'success'/);
-  assert.match(rescue, /cargo build --locked -p conduit-browser-host/);
-  assert.match(rescue, /products\/patchbay\/tools\/stage-patchbay-product\.sh/);
-  assert.ok(rescue.indexOf("Refuse a stale recovery") < rescue.indexOf("Reuse the exact already-built"));
-  assert.ok(rescue.indexOf("Reuse the exact already-built") < rescue.indexOf("Rebuild the exact staged release payload"));
-  assert.ok(rescue.indexOf("Rebuild the exact staged release payload") < rescue.indexOf("Seal the deploy-first Pages carrier"));
-  assert.ok(rescue.indexOf("Recheck current main") < rescue.indexOf("      - name: Deploy Conduit Pages"));
-  assert.doesNotMatch(rescue, /ref: \$\{\{ github\.(?:sha|ref) \}\}|ref: dev\n/);
-});
-
-test("Pages recovery executes freshness and source-integrity checks before publishing", () => {
-  const directory = mkdtempSync(join(tmpdir(), "conduit-pages-recovery-"));
-  const git = (...args) => execFileSync("git", ["-c", "user.name=Conduit proof", "-c", "user.email=proof@example.invalid", ...args], { cwd: directory, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-  const beforeDownload = recoveryScript("Refuse a stale recovery or changed released product source");
-  const beforePublish = recoveryScript("Recheck current main immediately before publication");
-  try {
-    git("init", "-b", "main");
-    git("remote", "add", "origin", directory);
-    writeFileSync(join(directory, "product.txt"), "accepted product\n");
-    git("add", "."); git("commit", "-m", "accepted source");
-    const source = git("rev-parse", "HEAD");
-    mkdirSync(join(directory, ".github/workflows"), { recursive: true });
-    mkdirSync(join(directory, ".github/release-audit"), { recursive: true });
-    writeFileSync(join(directory, ".github/workflows/tour-pages-deploy.yml"), "recovery wiring\n");
-    writeFileSync(join(directory, ".github/release-audit/47372-publication.md"), "accepted recovery\n");
-    git("add", "."); git("commit", "-m", "install recovery");
-    const acceptedMain = git("rev-parse", "HEAD");
-    const run = (script, expectedMain) => spawnSync("bash", ["-e", "-c", script], {
-      cwd: directory, encoding: "utf8",
-      env: { ...process.env, EXPECTED_MAIN_SHA: expectedMain, RELEASE_SOURCE_SHA: source },
-    });
-    for (const script of [beforeDownload, beforePublish]) {
-      const accepted = run(script, acceptedMain);
-      assert.equal(accepted.status, 0, accepted.stderr);
-      assert.notEqual(run(script, "0".repeat(40)).status, 0, "wrong current main must refuse");
-    }
-    writeFileSync(join(directory, "product.txt"), "newer product must not be overwritten\n");
-    git("add", "."); git("commit", "-m", "newer release");
-    assert.notEqual(run(beforeDownload, acceptedMain).status, 0);
-    assert.notEqual(run(beforePublish, acceptedMain).status, 0);
-    assert.notEqual(run(beforeDownload, git("rev-parse", "HEAD")).status, 0,
-      "even an explicitly named new main cannot relabel changed product source");
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
-  }
+test("permanent Pages automation contains no completed deploy-first rescue", () => {
+  const source = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
+  const resolver = readFileSync("tools/ci/resolve-pages-product-run.mjs", "utf8");
+  assert.doesNotMatch(source, /^  push:|^  workflow_run:/m);
+  assert.doesNotMatch(source, /^  deploy-first-rescue:/m);
+  assert.doesNotMatch(source, /47372b96|34522795014|EXPECTED_MAIN_SHA|RELEASE_SOURCE_SHA/);
+  assert.doesNotMatch(resolver, /deployFirstMerge|47372b96/);
 });
 
 
-test("Pages recovery accepts only the successful pre-sync finalizer", () => {
-  const source = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
-  const trigger = source.match(/^  workflow_run:\n((?:    [^\n]+\n)+)/m)?.[1];
-  assert.equal(trigger, "    workflows: [Finalize trusted release automation]\n    types: [completed]\n    branches: [dev]\n");
-  const guard = pagesJob("deploy-first-rescue").match(/^    if: >-\n((?:      [^\n]+\n)+)/m)?.[1];
-  assert.ok(guard);
-  const evaluate = Function("github", `"use strict"; return (${guard.trim()});`);
-  const baseline = {
-    name: "Finalize trusted release automation", event: "workflow_run", conclusion: "success",
-    head_branch: "dev", head_sha: "1ccfd24b2713fbb571630a57addc2551f6b3dd4a",
-    head_repository: { full_name: "dancxjo/conduit" },
-  };
-  const accepts = (run) => evaluate({
-    event_name: "workflow_run", ref: "refs/heads/dev", repository: "dancxjo/conduit",
-    event: { workflow_run: run, pull_request: {} },
-  });
-  assert.equal(accepts(baseline), true);
-  for (const replacement of [
-    { name: "candidate" }, { event: "workflow_dispatch" },
-    { conclusion: "failure" }, { conclusion: "cancelled" }, { conclusion: "skipped" },
-    { head_branch: "main" }, { head_sha: "0".repeat(40) },
-    { head_repository: { full_name: "other/conduit" } },
+test("Crèche/Workspace admission receives its Host prerequisites without selecting Pages", () => {
+  const workflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
+  const build = workflow.split("  browser-runtimes:\n")[1].split("\n  standalone-locks:")[0];
+  const stage = workflow.split("  browser-admission-stage:\n")[1].split("\n  browser-admission-proof:")[0];
+  const cases = [
+    [[], false, false, false],
+    [["unrelated"], false, false, false],
+    [["browser-host"], false, false, true],
+    [["creche-workspace"], true, false, true],
+    [["pages"], true, true, true],
+    [["browser-host", "creche-workspace"], true, false, true],
+    [["browser-host", "creche-workspace", "pages"], true, true, true],
+  ];
+  for (const [source, command, kind] of [
+    [build, "cargo build --locked -p patchbay-html", "binaries"],
+    [stage, "cp target/browser-product-runtimes/patchbay-html", "binaries"],
+    [stage, "products/patchbay/tools/stage-patchbay-product.sh", "pages"],
+    [build, "cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n", "runtime"],
+    [stage, "cp target/browser-product-runtimes/patchbay-runtime.wasm", "runtime"],
   ]) {
-    assert.equal(accepts({ ...baseline, ...replacement }), false, JSON.stringify(replacement));
+    const blocks = [...source.matchAll(/^          if \[\[ ([^\n]+) \]\]; then\n([\s\S]*?)^          fi$/gm)]
+      .filter(([, , body]) => body.includes(command));
+    assert.equal(blocks.length, 1, `one explicit admission gate for ${command}`);
+    const [, condition, body] = blocks[0];
+    if (kind === "binaries" && command.startsWith("cp ")) {
+      assert.match(body, /target\/browser-product-runtimes\/browser-parts-capstone target\/debug\//);
+      assert.match(body, /chmod 755 target\/debug\/patchbay-html target\/debug\/browser-parts-capstone/);
+    }
+    for (const [matrix, binaries, pages, runtime] of cases) {
+      const result = spawnSync("bash", ["-c", `if [[ ${condition} ]]; then printf selected; fi`], {
+        encoding: "utf8",
+        env: { ...process.env, BROWSER_ADMISSION_MATRIX: JSON.stringify(matrix) },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const selected = { binaries, pages, runtime }[kind];
+      assert.equal(result.stdout, selected ? "selected" : "",
+        `${command} for ${JSON.stringify(matrix)}`);
+    }
   }
 });

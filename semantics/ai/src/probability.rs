@@ -1,26 +1,16 @@
 //! Finite claims about uncertainty, samples, and stochastic provenance.
 
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use conduit_data::{SampledSignal, TensorElement, TensorValue};
+
+use crate::{
+    DrawRelationship, LogScoreKind, ProbabilisticDisposition, ProbabilityRefusal, RandomnessProfile,
+};
 
 pub const MAXIMUM_PROBABILITY_SAMPLES: usize = 64;
 pub const MAXIMUM_TRAJECTORY_ALTERNATIVES: usize = 32;
 pub const MAXIMUM_COVARIANCE_DIMENSION: u64 = 256;
 pub const NORMALIZED_WEIGHT_UNITS: u64 = 1_000_000_000;
-pub const MAXIMUM_STOCHASTIC_IDENTITY_BYTES: usize = 128;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RandomnessProfile {
-    Deterministic,
-    ExplicitSeed(u64),
-    ProviderChosen { seed: u64, nonce: String },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DrawRelationship {
-    Independent,
-    Correlated { profile: String },
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StochasticProvenance {
@@ -29,18 +19,6 @@ pub struct StochasticProvenance {
     pub query_identity: [u8; 32],
     pub randomness: RandomnessProfile,
     pub draws: DrawRelationship,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProbabilisticDisposition {
-    Exact,
-    Approximate {
-        method_profile: String,
-    },
-    Truncated {
-        retained_samples: u32,
-        requested_samples: u32,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,13 +70,6 @@ pub struct LogProbability {
     pub disposition: ProbabilisticDisposition,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum LogScoreKind {
-    ProbabilityMass,
-    Density,
-    UnnormalizedScore,
-}
-
 /// Alternative inferred trajectories for one observation. These are model
 /// beliefs, never evidence that any alternative physically occurred.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,35 +90,12 @@ pub struct ProbabilitySummary {
     pub disposition: ProbabilisticDisposition,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ProbabilityRefusal {
-    MissingIdentity,
-    InvalidStochasticProfile,
-    InvalidDisposition,
-    EmptySamples,
-    SampleCountOverflow,
-    InvalidSample,
-    ShapeMismatch,
-    WeightCountMismatch,
-    InvalidWeightSum,
-    InvalidVariance,
-    InvalidCovariance,
-    CovarianceDimensionOverflow,
-    InvalidLogProbability,
-}
-
 impl StochasticProvenance {
     pub fn validate(&self) -> Result<(), ProbabilityRefusal> {
         nonzero(self.model_artifact_identity)?;
         nonzero(self.query_identity)?;
         if self.checkpoint_identity == Some([0; 32]) {
             return Err(ProbabilityRefusal::MissingIdentity);
-        }
-        if let RandomnessProfile::ProviderChosen { nonce, .. } = &self.randomness {
-            identity(nonce)?;
-        }
-        if let DrawRelationship::Correlated { profile } = &self.draws {
-            identity(profile)?;
         }
         Ok(())
     }
@@ -157,17 +105,15 @@ impl ProbabilisticDisposition {
     fn validate(&self, actual_samples: Option<usize>) -> Result<(), ProbabilityRefusal> {
         match self {
             Self::Exact => Ok(()),
-            Self::Approximate { method_profile } => identity(method_profile),
-            Self::Truncated {
-                retained_samples,
-                requested_samples,
-            } if *retained_samples > 0
-                && retained_samples < requested_samples
-                && actual_samples == Some(*retained_samples as usize) =>
+            Self::Approximate(_) => Ok(()),
+            Self::Truncated(payload)
+                if *payload.retained_samples() > 0
+                    && payload.retained_samples() < payload.requested_samples()
+                    && actual_samples == Some(*payload.retained_samples() as usize) =>
             {
                 Ok(())
             }
-            Self::Truncated { .. } => Err(ProbabilityRefusal::InvalidDisposition),
+            Self::Truncated(_) => Err(ProbabilityRefusal::InvalidDisposition),
         }
     }
 }
@@ -379,14 +325,6 @@ fn validate_pair(left: &TensorValue, right: &TensorValue) -> Result<(), Probabil
 fn nonzero(value: [u8; 32]) -> Result<(), ProbabilityRefusal> {
     if value == [0; 32] {
         Err(ProbabilityRefusal::MissingIdentity)
-    } else {
-        Ok(())
-    }
-}
-
-fn identity(value: &str) -> Result<(), ProbabilityRefusal> {
-    if value.is_empty() || value.len() > MAXIMUM_STOCHASTIC_IDENTITY_BYTES {
-        Err(ProbabilityRefusal::InvalidStochasticProfile)
     } else {
         Ok(())
     }

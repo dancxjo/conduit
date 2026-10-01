@@ -4,8 +4,9 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    LocalDate, LocalDateTime, NamedTimeZone, RecurrenceDefinition, TemporalInstant,
-    TemporalRelation, TemporalWindow, TemporalWindowRefusal, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    AvailabilityState, CalendarRefusal, InvitationState, LocalDate, LocalDateTime, NamedTimeZone,
+    ParticipantRole, RecurrenceDefinition, TemporalInstant, TemporalRelation, TemporalWindow,
+    TemporalWindowRefusal, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_CALENDAR_TEXT_BYTES: usize = 1_024;
@@ -20,13 +21,6 @@ pub struct Participant {
     pub invitation: InvitationEvidence,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ParticipantRole {
-    Organizer,
-    Required,
-    Optional,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InvitationEvidence {
     Unknown,
@@ -35,14 +29,6 @@ pub enum InvitationEvidence {
         observed_at: TemporalInstant,
         source_identity: String,
     },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InvitationState {
-    NeedsAction,
-    Accepted,
-    Declined,
-    Tentative,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -92,14 +78,6 @@ pub struct CalendarEvent {
     pub reminders: Vec<ReminderSpecification>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AvailabilityState {
-    Free,
-    Tentative,
-    Busy,
-    Unavailable,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AvailabilityInterval {
     pub participant_identity: String,
@@ -120,20 +98,6 @@ pub struct ParticipantAvailability {
     pub zone: NamedTimeZone,
     pub basis: AvailabilityBasis,
     pub intervals: Vec<AvailabilityInterval>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CalendarRefusal {
-    InvalidIdentity,
-    InvalidText,
-    InvalidTime,
-    InvalidParticipants,
-    InvalidInvitationEvidence,
-    InvalidReminder,
-    InvalidRecurrence,
-    InvalidAvailability,
-    StaleAvailability,
-    IncomparableTime,
 }
 
 impl Participant {

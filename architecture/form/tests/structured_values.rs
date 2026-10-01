@@ -85,7 +85,10 @@ fn sequence_catalog() -> StartupCatalog {
     let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     let mut catalog = StartupCatalog::new();
     catalog
-        .insert_structured_type("Counts", StructuredInfoType::sequence(count, 4).unwrap())
+        .insert_structured_type(
+            "Counts",
+            StructuredInfoType::bounded_sequence(count, 2, 4).unwrap(),
+        )
         .unwrap();
     catalog
         .insert(KindSignature {
@@ -122,7 +125,7 @@ fn collection_record_and_variant_literals_become_one_concrete_f0_value() {
 #[test]
 fn bounded_sequence_literals_keep_actual_length_in_checked_values() {
     for source in [
-        "form counts {\n sink: test/consume-counts([])\n}\n",
+        "form counts {\n sink: test/consume-counts([1, 2])\n}\n",
         "form counts {\n sink: test/consume-counts([1, 2, 3])\n}\n",
     ] {
         let parsed = parse_syntax_document(source);
@@ -133,6 +136,16 @@ fn bounded_sequence_literals_keep_actual_length_in_checked_values() {
             panic!("sequence literal must become one checked structured value");
         };
         assert!(value.try_concrete().is_some());
+    }
+
+    for source in [
+        "form counts {\n sink: test/consume-counts([])\n}\n",
+        "form counts {\n sink: test/consume-counts([1])\n}\n",
+        "form counts {\n sink: test/consume-counts([1, 2, 3, 4, 5])\n}\n",
+    ] {
+        let parsed = parse_syntax_document(source);
+        let diagnostic = check_syntax_document(&parsed, &sequence_catalog()).unwrap_err();
+        assert!(diagnostic.message.contains("permits 2..=4"));
     }
 }
 
@@ -358,7 +371,7 @@ fn leaf_and_total_canonical_byte_bounds_fail_before_checked_identity() {
 
 #[test]
 fn quantity_literals_become_exact_canonical_leaf_bytes_during_form_checking() {
-    let source = "form measured {\n sink: test/consume-quantity-sample({ elapsed: 17ms, frequency: 440Hz })\n}\n";
+    let source = "form measured {\n sink: test/consume-quantity-sample({ elapsed: -17ms, frequency: 440Hz })\n}\n";
     let parsed = parse_syntax_document(source);
     let checked = check_syntax_document(&parsed, &quantity_catalog()).unwrap();
     assert_eq!(parsed.round_trip(), source);
@@ -379,7 +392,7 @@ fn quantity_literals_become_exact_canonical_leaf_bytes_during_form_checking() {
     };
     assert_eq!(
         Quantity::decode(elapsed),
-        Ok(Quantity::new(17, QuantityUnit::Millisecond))
+        Ok(Quantity::new(-17, QuantityUnit::Millisecond))
     );
     assert_eq!(
         Quantity::decode(frequency),
@@ -392,7 +405,7 @@ fn malformed_quantity_literals_refuse_at_the_owned_source_span() {
     for (literal, refusal) in [
         ("17", "MissingUnit"),
         ("17fortnight", "UnknownUnit"),
-        ("1.5s", "UnknownUnit"),
+        ("0.1ns", "Inexact"),
         ("9223372036854775808ms", "InvalidValue"),
     ] {
         let source = format!(

@@ -3,7 +3,7 @@
 use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use conduit_core::{port_id, FrontStartupParameter, Kind};
+use conduit_core::{FrontStartupParameter, Kind};
 
 pub fn json_encode_contract() -> StandardKindContract {
     contract(
@@ -58,31 +58,16 @@ pub fn json_collection_step_semantic_contract() -> Kind {
 }
 
 pub fn json_boolean_summary_semantic_contract() -> Kind {
-    semantic_contract(
-        conduit_web::json_boolean_summary_semantics(),
-        alloc::vec![FrontStartupParameter {
-            name: "field".into(),
-            value_type: conduit_core::kind_id("value/text"),
-            has_default: true,
-        }],
-    )
+    conduit_web::json_boolean_summary_semantic_contract()
 }
 
 fn semantic_contract(
     contract: conduit_web::PortableKindContract,
     startup_parameters: Vec<FrontStartupParameter>,
 ) -> Kind {
-    Kind {
-        startup_parameters,
-        shorthand: Some((port_id("value"), port_id("value"))),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        configuration: Default::default(),
-        semantic_laws: Default::default(),
-        limits: contract.limits,
-    }
+    let mut kind = conduit_web::json_semantic_contract(contract);
+    kind.startup_parameters = startup_parameters;
+    kind
 }
 
 fn contract(
@@ -145,7 +130,10 @@ mod tests {
         ] {
             assert_eq!(
                 contract.shorthand,
-                Some((port_id("value"), port_id("value")))
+                Some((
+                    conduit_core::port_id("value"),
+                    conduit_core::port_id("value"),
+                ))
             );
         }
         let summary = json_boolean_summary_semantic_contract();

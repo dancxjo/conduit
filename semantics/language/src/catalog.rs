@@ -56,10 +56,10 @@ pub fn install_linguistics_catalogs(
         .map_err(|error| error.to_string())?;
 
     profile
-        .insert(tokenize_four_definition())
+        .insert_kind(tokenize_four_semantic_contract())
         .map_err(|error| error.to_string())?;
     profile
-        .insert(annotate_four_definition())
+        .insert_kind(annotate_four_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -96,7 +96,7 @@ pub fn tokenize_four_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: linguistic_limits(),
     }
@@ -170,6 +170,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

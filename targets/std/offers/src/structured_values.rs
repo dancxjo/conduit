@@ -21,11 +21,15 @@ pub const STRUCTURED_PRESENTATION_STD_ARTIFACT: &str = "conduit-presentation/str
 pub fn structured_literal_std_offer(
     type_name: &str,
     value_type: &conduit_core::StructuredInfoType,
+    default_value: &conduit_core::StructuredInfoValue,
 ) -> CapabilityOffer {
-    offer(
-        conduit_semantic_catalog::structured_literal_contract(type_name, value_type),
-        true,
+    let contract = conduit_semantic_catalog::structured_literal_semantic_contract(
+        type_name,
+        value_type,
+        default_value,
     )
+    .expect("structured literal offer requires the exact bounded default");
+    offer(contract, true)
 }
 
 pub fn structured_presentation_std_offer(
@@ -33,15 +37,12 @@ pub fn structured_presentation_std_offer(
     value_type: &conduit_core::StructuredInfoType,
 ) -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::structured_presentation_contract(type_name, value_type),
+        conduit_semantic_catalog::structured_presentation_semantic_contract(type_name, value_type),
         false,
     )
 }
 
-fn offer(
-    contract: conduit_semantic_catalog::StructuredValueContract,
-    source: bool,
-) -> CapabilityOffer {
+fn offer(contract: conduit_core::Kind, source: bool) -> CapabilityOffer {
     let value_kind = contract
         .outputs
         .first()
@@ -51,7 +52,7 @@ fn offer(
         .as_str()
         .to_string();
     BackOfferBuilder::new(
-        contract.into(),
+        contract,
         Back {
             capability_id: CapabilityId::from(format!(
                 "std-{}-{value_kind}",
@@ -101,18 +102,28 @@ mod tests {
 
     #[test]
     fn offers_preserve_exact_portable_fronts() {
-        let value_type = conduit_semantic_catalog::copy_result_type();
+        let value_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+            conduit_core::BOOL_INFO_ID,
+        ))
+        .unwrap();
+        let default_value = conduit_core::StructuredInfoValue::leaf(
+            value_type.clone(),
+            conduit_core::InfoBool::FALSE.encode().to_vec(),
+        )
+        .unwrap();
         for (offer, contract) in [
             (
-                structured_literal_std_offer("FileCopyResult", &value_type),
-                conduit_semantic_catalog::structured_literal_contract(
+                structured_literal_std_offer("FileCopyResult", &value_type, &default_value),
+                conduit_semantic_catalog::structured_literal_semantic_contract(
                     "FileCopyResult",
                     &value_type,
-                ),
+                    &default_value,
+                )
+                .unwrap(),
             ),
             (
                 structured_presentation_std_offer("FileCopyResult", &value_type),
-                conduit_semantic_catalog::structured_presentation_contract(
+                conduit_semantic_catalog::structured_presentation_semantic_contract(
                     "FileCopyResult",
                     &value_type,
                 ),

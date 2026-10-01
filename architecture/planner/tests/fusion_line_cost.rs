@@ -16,16 +16,23 @@ mod common;
 
 struct Fixture {
     form: conduit_form::CheckedForm,
+    semantic_kinds: Vec<conduit_core::Kind>,
     hosts: Vec<conduit_core::HostAdvertisement>,
     line: conduit_core::LineOffer,
 }
 
 fn fixture() -> Fixture {
+    let profile = conduit_semantic_catalog::standard_profile_catalog();
     let form = conduit_form::parse(
-        "form fusion {\n source: time/tick(count = 10, period-ms = 1)\n transform: state/count(0)\n analysis: presentation/count\n source.tick >> transform.bump\n transform.value >> analysis.value\n}\n",
-        &conduit_semantic_catalog::standard_profile_catalog(),
+        "form fusion (\n input: Scalar >> output: Scalar\n) {\n source: math/clamp\n transform: math/scale\n analysis: math/deadband\n input >> source >> transform >> analysis >> output\n}\n",
+        &profile,
     )
     .expect("three-Gear fusion Form checks");
+    let semantic_kinds = vec![
+        conduit_semantic_catalog::math_clamp_semantic_contract(),
+        conduit_semantic_catalog::math_scale_semantic_contract(),
+        conduit_semantic_catalog::math_deadband_semantic_contract(),
+    ];
     let local =
         common::standard_planning_fixture(HostId::from("host/local"), BootId::from("boot/local-1"));
     let remote = common::standard_planning_fixture(
@@ -47,6 +54,7 @@ fn fixture() -> Fixture {
     line.availability.binding_id = line.binding.binding_id.clone();
     Fixture {
         form,
+        semantic_kinds,
         hosts: vec![local, remote],
         line,
     }
@@ -72,7 +80,11 @@ fn capability(fixture: &Fixture, gear: &str, host: usize) -> CapabilityId {
     fixture.hosts[host]
         .capabilities
         .iter()
-        .find(|offer| offer.checked_front() == gear.checked_front())
+        .find(|offer| {
+            offer.kind_id == gear.kind_id
+                && offer.kind_contract_revision == gear.kind_contract_revision
+                && offer.checked_front() == gear.checked_front()
+        })
         .unwrap()
         .capability_id
         .clone()
@@ -143,6 +155,9 @@ fn offer(fixture: &Fixture) -> FusionRealizationOffer {
         execution_profile_id: ExecutionProfileId::from("local/fused-chain-profile@1"),
         implementation_id: ImplementationId::from("local/fused-chain@1"),
         artifact_id: ArtifactId::from("local/fused-chain-artifact@1"),
+        host_calls: vec![],
+        resource_requirements: vec![],
+        authority_requirements: vec![],
         gear_ids: vec![
             GearId::from("fusion/source"),
             GearId::from("fusion/transform"),
@@ -280,6 +295,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
         &candidates(&fixture),
         &basis(&fixture, 2),
         FusionPlanningInputs {
+            semantic_kinds: &fixture.semantic_kinds,
             offers: &[offer(&fixture)],
             observations: &[fusion_observation(120)],
             boundaries: &[],
@@ -287,7 +303,11 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
         },
     )
     .expect("three exact candidates compare");
-    assert_eq!(selection.selected_candidate_id, "all-local-fused");
+    assert_eq!(
+        selection.selected_candidate_id, "all-local-fused",
+        "{:?}",
+        selection.considered
+    );
     assert_eq!(selection.considered[0].total_work_units, 230);
     assert_eq!(selection.considered[1].total_work_units, 120);
     assert_eq!(selection.considered[2].transported_bytes, 100_000);
@@ -337,6 +357,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
         &candidates(&fixture),
         &basis(&fixture, 2),
         FusionPlanningInputs {
+            semantic_kinds: &fixture.semantic_kinds,
             offers: &[offer(&fixture)],
             observations: &[fusion_observation(120)],
             boundaries: &[FusionBoundary {
@@ -394,6 +415,7 @@ fn remote_split_wins_only_when_advantage_exceeds_line_cost() {
         &candidates(&fixture),
         &basis(&fixture, 0),
         FusionPlanningInputs {
+            semantic_kinds: &fixture.semantic_kinds,
             offers: &[offer(&fixture)],
             observations: &[expensive_fusion],
             boundaries: &[],
@@ -429,6 +451,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
             &candidates(&fixture),
             &basis(&fixture, 2),
             FusionPlanningInputs {
+                semantic_kinds: &fixture.semantic_kinds,
                 offers: &[offer(&fixture)],
                 observations: &[fusion_observation(120)],
                 boundaries: &[boundary],
@@ -451,6 +474,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
         &candidates(&fixture),
         &basis(&fixture, 2),
         FusionPlanningInputs {
+            semantic_kinds: &fixture.semantic_kinds,
             offers: &[unsafe_offer],
             observations: &[fusion_observation(1)],
             boundaries: &[],
@@ -460,6 +484,36 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
     .expect("ordinary candidates survive an unsafe fusion offer");
     assert_ne!(selection.selected_candidate_id, "all-local-fused");
 
+    let mut effectful_offer = offer(&fixture);
+    effectful_offer
+        .host_calls
+        .push(conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("test/ambient-effect"),
+            target_kind: None,
+            maximum_in_flight: 1,
+            maximum_input_bytes: 1,
+            maximum_output_bytes: 1,
+        });
+    let selection = select_fusion_candidate(
+        &fixture.form,
+        &fixture.hosts,
+        &candidates(&fixture),
+        &basis(&fixture, 2),
+        FusionPlanningInputs {
+            semantic_kinds: &fixture.semantic_kinds,
+            offers: &[effectful_offer],
+            observations: &[fusion_observation(1)],
+            boundaries: &[],
+            line_offers: std::slice::from_ref(&fixture.line),
+        },
+    )
+    .expect("ordinary candidates survive an effectful fusion Back");
+    let CandidatePlacementDisposition::Rejected(reason) = &selection.considered[1].disposition
+    else {
+        panic!("fusion must refuse an effectful replacement Back")
+    };
+    assert!(reason.contains("BackHostCall"));
+
     let mut stale_offer = offer(&fixture);
     stale_offer.offer_generation = OfferGeneration(2);
     let selection = select_fusion_candidate(
@@ -468,6 +522,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
         &candidates(&fixture),
         &basis(&fixture, 2),
         FusionPlanningInputs {
+            semantic_kinds: &fixture.semantic_kinds,
             offers: &[stale_offer],
             observations: &[fusion_observation(1)],
             boundaries: &[],
@@ -480,4 +535,26 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
         selection.considered[1].disposition,
         CandidatePlacementDisposition::Rejected(_)
     ));
+
+    let incomplete_semantics = &fixture.semantic_kinds[..2];
+    let selection = select_fusion_candidate(
+        &fixture.form,
+        &fixture.hosts,
+        &candidates(&fixture),
+        &basis(&fixture, 2),
+        FusionPlanningInputs {
+            semantic_kinds: incomplete_semantics,
+            offers: &[offer(&fixture)],
+            observations: &[fusion_observation(1)],
+            boundaries: &[],
+            line_offers: std::slice::from_ref(&fixture.line),
+        },
+    )
+    .expect("ordinary candidates survive missing transformation facts");
+    assert_ne!(selection.selected_candidate_id, "all-local-fused");
+    let CandidatePlacementDisposition::Rejected(reason) = &selection.considered[1].disposition
+    else {
+        panic!("fusion must refuse without every exact semantic contract")
+    };
+    assert!(reason.contains("lacks exact semantic transformation facts"));
 }

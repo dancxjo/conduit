@@ -4,29 +4,17 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::semantic_digest;
 use conduit_data::{TensorAxisRole, TensorElement};
 
+use crate::{
+    ModelOperation, ModelOperationCode, ModelPortPresence, ModelPortPresenceCode,
+    ModelSignatureRefusal,
+};
+
 pub const MODEL_SIGNATURE_INFO_ID: &str = "model/signature@1";
 pub const MAXIMUM_MODEL_PORTS: usize = 32;
 pub const MAXIMUM_MODEL_OPERATIONS: usize = 8;
 pub const MAXIMUM_MODEL_ELEMENTS: usize = 8;
 pub const MAXIMUM_MODEL_RANK: usize = 8;
 pub const MAXIMUM_MODEL_IDENTITY_BYTES: usize = 128;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelOperation {
-    Infer,
-    Encode,
-    Decode,
-    Sample,
-    LogProbability,
-    Evaluate,
-    Train,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelPortPresence {
-    Required,
-    Optional,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ModelDimensionConstraint {
@@ -70,20 +58,6 @@ pub struct ModelSignature {
     pub operations: Vec<ModelOperation>,
     pub inputs: Vec<ModelPortConstraint>,
     pub outputs: Vec<ModelPortConstraint>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelSignatureRefusal {
-    InvalidIdentity,
-    InvalidCompatibilityVersion,
-    MissingOperation,
-    TooManyOperations,
-    DuplicateOperation,
-    MissingPort,
-    TooManyPorts,
-    DuplicatePort,
-    InvalidTensorConstraint,
-    InvalidSignalConstraint,
 }
 
 impl ModelSignature {
@@ -136,7 +110,7 @@ impl ModelSignature {
         bytes.extend_from_slice(&self.compatibility_version.to_le_bytes());
         push_len(&mut bytes, self.operations.len());
         for operation in &self.operations {
-            bytes.push(operation_tag(*operation));
+            bytes.push(ModelOperationCode::encode(*operation)[0]);
         }
         encode_ports(&mut bytes, &self.inputs, 0);
         encode_ports(&mut bytes, &self.outputs, 1);
@@ -162,13 +136,6 @@ fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefus
             ModelDimensionConstraint::Bounded { minimum, maximum } => {
                 minimum == 0 || minimum > maximum
             }
-        })
-        || tensor.axes.iter().any(|axis| {
-            matches!(
-                &axis.role,
-                TensorAxisRole::Other(value)
-                    if value.is_empty() || value.len() > MAXIMUM_MODEL_IDENTITY_BYTES
-            )
         })
     {
         return Err(ModelSignatureRefusal::InvalidTensorConstraint);
@@ -204,10 +171,7 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
     for port in ports {
         push_text(output, &port.identity);
         push_text(output, &port.semantic_kind);
-        output.push(match port.presence {
-            ModelPortPresence::Required => 0,
-            ModelPortPresence::Optional => 1,
-        });
+        output.push(ModelPortPresenceCode::encode(port.presence)[0]);
         let tensor = match &port.value {
             ModelValueConstraint::Tensor(value) => {
                 output.push(0);
@@ -260,20 +224,8 @@ fn encode_axis_role(output: &mut Vec<u8>, role: &TensorAxisRole) {
         TensorAxisRole::Channel => output.push(6),
         TensorAxisRole::Other(value) => {
             output.push(7);
-            push_text(output, value);
+            push_text(output, value.identity());
         }
-    }
-}
-
-fn operation_tag(operation: ModelOperation) -> u8 {
-    match operation {
-        ModelOperation::Infer => 0,
-        ModelOperation::Encode => 1,
-        ModelOperation::Decode => 2,
-        ModelOperation::Sample => 3,
-        ModelOperation::LogProbability => 4,
-        ModelOperation::Evaluate => 5,
-        ModelOperation::Train => 6,
     }
 }
 

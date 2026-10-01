@@ -5,18 +5,16 @@
 //! not provide a timer-backed compatibility implementation: deliberate input must
 //! be fulfilled through an admitted Host Call boundary.
 
+use crate::{ToggleConfiguration, Trigger, TriggerConfiguration, MAX_SIGNAL_COUNT};
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    await_trigger_host_call_requirement, kind_id, port_id, resource_requirement,
-    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostCallRequirement, KindId,
-    KindIdentity, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
-    INPUT_RESOURCE_CLASS,
+    await_trigger_host_call_requirement, kind_id, port_id, resource_requirement, CapabilityLimits,
+    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostCallRequirement, Kind,
+    KindConfigurationField, KindConfigurationRule, KindId, KindIdentity, PortDescriptor,
+    PortDirection, ResourceRequirement, ValuePayload, INPUT_RESOURCE_CLASS,
 };
-use serde::{Deserialize, Serialize};
-
-use crate::MAX_SIGNAL_COUNT;
 
 pub const TRIGGER_VALUE_KIND: &str = conduit_time::TICK_VALUE_KIND;
 pub const TRIGGER_KIND: &str = "interaction/trigger";
@@ -45,21 +43,6 @@ pub const TRIGGER_PORT: &str = "trigger";
 pub const TRIGGER_ENCODED_LEN: u32 = 8;
 pub const TRIGGER_CONTRACT_REVISION: &str = "conduit.signal/interaction-trigger@1";
 pub const TRIGGER_EXECUTION_PROFILE: &str = "conduit.signal/trigger-hosted@1";
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Trigger {
-    pub sequence: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TriggerConfiguration {
-    pub count: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ToggleConfiguration {
-    pub initial: bool,
-}
 
 pub fn trigger_kind() -> KindId {
     kind_id(TRIGGER_KIND)
@@ -107,7 +90,33 @@ pub fn trigger_outputs() -> Vec<PortDescriptor> {
         value_kind: trigger_value_kind(),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }]
+}
+
+pub fn trigger_semantic_contract() -> Kind {
+    Kind {
+        startup_parameters: trigger_front_startup_parameters(),
+        shorthand: None,
+        kind_id: trigger_kind(),
+        kind_contract_revision: trigger_contract_revision(),
+        inputs: Vec::new(),
+        outputs: trigger_outputs(),
+        configuration: vec![KindConfigurationField {
+            key: "count".into(),
+            default_value: ConfigurationValue::U64(16),
+            rule: KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: MAX_SIGNAL_COUNT,
+            },
+        }],
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 1,
+            max_queue_bytes: TRIGGER_ENCODED_LEN,
+        },
+    }
 }
 
 pub fn toggle_inputs() -> Vec<PortDescriptor> {
@@ -121,7 +130,7 @@ pub fn toggle_outputs() -> Vec<PortDescriptor> {
 pub fn trigger_configuration_entries(config: &TriggerConfiguration) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "count".to_string(),
-        value: ConfigurationValue::U64(config.count),
+        value: ConfigurationValue::U64(*config.count()),
     }]
 }
 
@@ -142,13 +151,14 @@ pub fn parse_trigger_configuration(
     if count > MAX_SIGNAL_COUNT {
         return Err(crate::SignalProfileError::InvalidConfiguration("count"));
     }
-    Ok(TriggerConfiguration { count })
+    TriggerConfiguration::new(count)
+        .map_err(|_| crate::SignalProfileError::InvalidConfiguration("count"))
 }
 
 pub fn toggle_configuration_entries(config: &ToggleConfiguration) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "initial".to_string(),
-        value: ConfigurationValue::Bool(config.initial),
+        value: ConfigurationValue::Bool(*config.initial()),
     }]
 }
 
@@ -165,14 +175,15 @@ pub fn parse_toggle_configuration(
             _ => {}
         }
     }
-    Ok(ToggleConfiguration {
-        initial: initial.ok_or(crate::SignalProfileError::MissingConfiguration("initial"))?,
-    })
+    ToggleConfiguration::new(
+        initial.ok_or(crate::SignalProfileError::MissingConfiguration("initial"))?,
+    )
+    .map_err(|_| crate::SignalProfileError::InvalidConfiguration("initial"))
 }
 
 pub fn encode_trigger(trigger: &Trigger) -> ValuePayload {
     let mut encoded = Vec::with_capacity(TRIGGER_ENCODED_LEN as usize);
-    encoded.extend_from_slice(&trigger.sequence.to_le_bytes());
+    encoded.extend_from_slice(&trigger.sequence().to_le_bytes());
     ValuePayload {
         value_kind: trigger_value_kind(),
         encoded,
@@ -192,45 +203,19 @@ pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProf
     }
     let mut sequence = [0u8; 8];
     sequence.copy_from_slice(encoded);
-    Ok(Trigger {
-        sequence: u64::from_le_bytes(sequence),
-    })
+    Trigger::new(u64::from_le_bytes(sequence))
+        .map_err(|_| crate::SignalProfileError::InvalidConfiguration("sequence"))
 }
 
 #[cfg(feature = "host-profile")]
 pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog) {
-    use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection};
-
     catalog
-        .insert(KindProjection {
-            kind_id: trigger_kind(),
-            kind_contract_revision: trigger_contract_revision(),
-            inputs: Vec::new(),
-            outputs: trigger_outputs(),
-            configuration: vec![KindConfigurationField {
-                key: "count".to_string(),
-                default_value: ConfigurationValue::U64(16),
-                rule: KindConfigurationRule::U64Range {
-                    minimum: 0,
-                    maximum: MAX_SIGNAL_COUNT,
-                },
-            }],
-        })
+        .insert_kind(trigger_semantic_contract())
         .expect("signal profile kinds are unique");
     conduit_semantic_catalog::install_bool_presentation_catalog(catalog)
         .expect("toggle presentation kind is unique");
     catalog
-        .insert(KindProjection {
-            kind_id: toggle_kind(),
-            kind_contract_revision: toggle_contract_revision(),
-            inputs: toggle_inputs(),
-            outputs: toggle_outputs(),
-            configuration: vec![KindConfigurationField {
-                key: "initial".to_string(),
-                default_value: ConfigurationValue::Bool(false),
-                rule: KindConfigurationRule::Any,
-            }],
-        })
+        .insert_kind(conduit_semantic_catalog::state_toggle_semantic_contract())
         .expect("signal profile kinds are unique");
 }
 
@@ -240,7 +225,7 @@ mod tests {
 
     #[test]
     fn round_trips_trigger_payload() {
-        let trigger = Trigger { sequence: 42 };
+        let trigger = Trigger::new(42).unwrap();
         let payload = encode_trigger(&trigger);
         assert_eq!(payload.encoded.len(), TRIGGER_ENCODED_LEN as usize);
         assert_eq!(decode_trigger(&payload).unwrap(), trigger);
@@ -248,7 +233,7 @@ mod tests {
 
     #[test]
     fn round_trips_trigger_configuration_entries() {
-        let config = TriggerConfiguration { count: 5 };
+        let config = TriggerConfiguration::new(5).unwrap();
         let parsed = parse_trigger_configuration(&trigger_configuration_entries(&config))
             .expect("trigger configuration should parse");
         assert_eq!(parsed, config);
@@ -256,7 +241,7 @@ mod tests {
 
     #[test]
     fn round_trips_toggle_configuration_entries() {
-        let config = ToggleConfiguration { initial: true };
+        let config = ToggleConfiguration::new(true).unwrap();
         let parsed = parse_toggle_configuration(&toggle_configuration_entries(&config))
             .expect("toggle configuration should parse");
         assert_eq!(parsed, config);

@@ -1,13 +1,13 @@
 use super::session::{BrowserChatEffect, BrowserChatSession, InteractionFrame};
 use conduit_kernel::scheduler::{HostCallRequest, SchedulerStatus};
 use conduit_kernel::{BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome};
-use conduit_presentation::{
-    Manifestation, ManifestationLifecycle, PresentationInteraction,
-    PresentationInteractionDisposition,
-};
+use conduit_presentation::{FaceInteraction, FaceInteractionDisposition};
 
 impl BrowserChatSession {
     pub(crate) fn effect(&self) -> BrowserChatEffect {
+        if self.pending_face.is_some() {
+            return BrowserChatEffect::Present;
+        }
         self.current
             .and_then(|request| self.contract(request).ok())
             .map_or(BrowserChatEffect::None, |contract| match contract {
@@ -23,12 +23,14 @@ impl BrowserChatSession {
                 conduit_net::EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_CALL => {
                     BrowserChatEffect::SocketClose
                 }
-                conduit_chat::BROWSER_RENDER_HOST_CALL => BrowserChatEffect::Present,
                 _ => BrowserChatEffect::None,
             })
     }
 
     pub(crate) fn effect_bytes(&self) -> &[u8] {
+        if let Some(offer) = self.pending_face {
+            return self.scheduler.host_value(offer.value).unwrap_or(&[]);
+        }
         self.current
             .and_then(|request| self.scheduler.host_value(request.input.value).ok())
             .unwrap_or(&[])
@@ -73,32 +75,45 @@ impl BrowserChatSession {
         if self.effect() != effect {
             return Err(-220);
         }
+        if effect == BrowserChatEffect::Present {
+            let offer = self.pending_face.take().ok_or(-220)?;
+            let face: conduit_presentation::Presentation =
+                serde_json::from_slice(self.scheduler.host_value(offer.value).map_err(|_| -235)?)
+                    .map_err(|_| -235)?;
+            let (mut mask, mask_effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
+                self.body_id.clone(),
+                self.active_play.host_id.clone(),
+                self.active_play.boot_id.clone(),
+                face,
+                self.wake.clone(),
+                self.body_plan.clone(),
+            )
+            .map_err(|_| -235)?;
+            mask.acknowledge(&crate::workspace_mask::BrowserMaskAcknowledgement {
+                show_id: mask_effect.show_id.clone(),
+                manifestation_id: mask_effect.manifestation_id.clone(),
+                mask_plan_id: mask_effect.mask_plan_id.clone(),
+                active_play_id: mask_effect.mask_play.active_play_id.clone(),
+                placement_id: mask_effect.placement_id.clone(),
+                presentation_id: mask_effect.presentation_id.clone(),
+                presentation_revision: mask_effect.presentation_revision,
+            })
+            .map_err(|_| -235)?;
+            let bytes = serde_json::to_vec(&mask_effect).map_err(|_| -235)?;
+            self.mask = Some(mask);
+            self.interaction_text.clear();
+            self.interaction_text.extend_from_slice(&bytes);
+            self.scheduler
+                .remote_egress_accept(offer.endpoint, offer.cord, offer.sequence)
+                .map_err(|_| -235)?;
+            self.scheduler
+                .remote_egress_delivered(offer.endpoint, offer.cord, offer.sequence)
+                .map_err(|_| -235)?;
+            return self.drive();
+        }
         let request = self.current.take().ok_or(-220)?;
         let output = if effect == BrowserChatEffect::SocketSend {
             Some(request.input)
-        } else if effect == BrowserChatEffect::Present {
-            let prepared = Manifestation::prepared(
-                &self.presentation,
-                &self.plan,
-                self.active_play.clone(),
-                self.renderer_placement.clone(),
-                "chat/document".into(),
-                "browser/document".into(),
-                conduit_core::SignId::from("browser/presentation-prepared"),
-            )
-            .map_err(|_| -235)?;
-            let available = prepared
-                .transition(
-                    ManifestationLifecycle::Available,
-                    conduit_core::SignId::from("browser/presentation-available"),
-                )
-                .map_err(|_| -235)?;
-            let bytes = serde_json::to_vec(&available).map_err(|_| -235)?;
-            let value = self.scheduler.store_host_value(&bytes).map_err(|_| -235)?;
-            self.manifestation = Some(available);
-            self.interaction_text.clear();
-            self.interaction_text.extend_from_slice(&bytes);
-            Some(BoundedValueRef::new(value, 16 * 1024).map_err(|_| -235)?)
         } else {
             None
         };
@@ -128,50 +143,38 @@ impl BrowserChatSession {
         {
             return Err(-223);
         }
-        if self.parked_input.is_none() {
-            return Err(-224);
-        }
         let frame: InteractionFrame = serde_json::from_slice(bytes).map_err(|_| -236)?;
-        let manifestation = self.manifestation.as_ref().ok_or(-237)?;
-        if frame.presentation_id != self.presentation.identity.as_str()
-            || frame.presentation_revision != self.presentation.revision
-        {
-            return Err(-251);
-        }
-        if frame.manifestation_id != manifestation.manifestation_id.as_str() {
-            return Err(-252);
-        }
-        let interaction = PresentationInteraction::new(
-            &self.presentation,
-            manifestation,
-            &frame.input_id,
-            &frame.action_id,
-            &frame.target,
-            &frame.value_kind,
-            frame.value.as_bytes(),
-            frame.sequence,
-        )
-        .map_err(interaction_refusal_code)?;
+        let mask = self.mask.as_mut().ok_or(-237)?;
+        let receipt = mask
+            .interact(&crate::workspace_mask::BrowserMaskInteraction {
+                show_id: frame.show_id,
+                presentation_id: frame.presentation_id,
+                presentation_revision: frame.presentation_revision,
+                action_id: frame.action_id,
+                target: frame.target,
+                arguments: frame.arguments,
+                sequence: frame.sequence,
+            })
+            .map_err(|_| -252)?;
+        let interaction = receipt.correlation.interaction;
         self.interaction_ledger
             .admit(interaction.clone())
             .map_err(interaction_refusal_code)?;
         let encoded = interaction.encode();
-        let value = self
+        match self
             .scheduler
-            .store_host_value(&encoded)
-            .map_err(|_| -225)?;
-        let output = BoundedValueRef::new(
-            value,
-            conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES as u32,
-        )
-        .map_err(|_| -225)?;
-        let input_request = self.parked_input.take().ok_or(-224)?;
-        self.complete_request(
-            input_request,
-            HostCallDisposition::Completed,
-            Some(output),
-            None,
-        )?;
+            .admit_remote_input(
+                self.interaction_boundary.endpoint,
+                self.interaction_boundary.cord,
+                frame.sequence,
+                &encoded,
+            )
+            .map_err(|_| -225)?
+        {
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence }
+                if sequence == frame.sequence => {}
+            _ => return Err(-225),
+        }
         let receive = self.current.take().ok_or(-223)?;
         self.complete_request(
             receive,
@@ -201,23 +204,26 @@ impl BrowserChatSession {
                 detail: 2,
             }),
         )?;
-        if let Some(input) = self.parked_input.take() {
-            self.complete_request(
-                input,
-                HostCallDisposition::Cancelled,
-                None,
-                Some(Failure {
-                    code: FailureCode::Cancelled,
-                    detail: 2,
-                }),
-            )?;
-        }
+        self.scheduler
+            .close_remote_input(
+                self.interaction_boundary.endpoint,
+                self.interaction_boundary.cord,
+            )
+            .map_err(|_| -226)?;
         self.disconnected = true;
         self.drive()
     }
 
     pub(super) fn drive(&mut self) -> Result<(), i32> {
         loop {
+            if let Some(offer) = self
+                .scheduler
+                .remote_egress_offer(self.face_boundary.endpoint, self.face_boundary.cord)
+                .map_err(|_| -267)?
+            {
+                self.pending_face = Some(offer);
+                return Ok(());
+            }
             while let Some(request) = self.scheduler.next_host_request() {
                 self.identity
                     .bind_request(
@@ -228,12 +234,6 @@ impl BrowserChatSession {
                     )
                     .map_err(|_| -227)?;
                 let contract = self.contract(request)?.to_owned();
-                if contract == conduit_chat::BROWSER_INTERACTION_HOST_CALL {
-                    if self.parked_input.replace(request).is_some() {
-                        return Err(-228);
-                    }
-                    continue;
-                }
                 if contract == conduit_net::EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_CALL {
                     if self.parked_receive.replace(request).is_some() {
                         return Err(-233);
@@ -259,7 +259,12 @@ impl BrowserChatSession {
                             })
                             .map_err(|_| -239)?;
                     }
-                    self.presentation = self.chat_state.presentation().map_err(|_| -239)?;
+                    self.presentation = self
+                        .chat_state
+                        .presentation()
+                        .map_err(|_| -239)?
+                        .with_basis(self.presentation.basis.clone())
+                        .map_err(|_| -239)?;
                     let bytes = serde_json::to_vec(&self.presentation).map_err(|_| -239)?;
                     let value = self.scheduler.store_host_value(&bytes).map_err(|_| -232)?;
                     let output = BoundedValueRef::new(
@@ -303,17 +308,22 @@ impl BrowserChatSession {
                         .host_value(request.input.value)
                         .map_err(|_| -232)?
                         .to_vec();
-                    let interaction = PresentationInteraction::decode(&input).map_err(|_| -239)?;
+                    let interaction = FaceInteraction::decode(&input).map_err(|_| -239)?;
+                    let argument = interaction
+                        .arguments
+                        .iter()
+                        .find(|argument| argument.name == conduit_chat::CHAT_MESSAGE_INPUT)
+                        .ok_or(-239)?;
                     let value = self
                         .scheduler
-                        .store_host_value(&interaction.value)
+                        .store_host_value(&argument.value)
                         .map_err(|_| -232)?;
                     let output =
                         BoundedValueRef::new(value, conduit_chat::MAXIMUM_CHAT_MESSAGE_BYTES)
                             .map_err(|_| -232)?;
                     let evidence = self
                         .interaction_ledger
-                        .finish_front(PresentationInteractionDisposition::Accepted {
+                        .finish_front(FaceInteractionDisposition::Accepted {
                             operation_request_id: format!("browser/request/{}", request.request.0),
                         })
                         .map_err(|_| -239)?;
@@ -379,24 +389,26 @@ impl BrowserChatSession {
     }
 }
 
-fn interaction_refusal_code(refusal: conduit_presentation::PresentationInteractionRefusal) -> i32 {
-    use conduit_presentation::PresentationInteractionRefusal as R;
+fn interaction_refusal_code(refusal: conduit_presentation::FaceInteractionRefusal) -> i32 {
+    use conduit_presentation::FaceInteractionRefusal as R;
     match refusal {
-        R::InvalidPresentation => -250,
-        R::StalePresentation => -251,
-        R::StaleManifestation => -252,
-        R::FailedManifestation => -253,
-        R::UnknownInput => -254,
+        R::InvalidFace => -250,
+        R::StaleFace => -251,
+        R::StaleShow => -252,
+        R::FailedShow => -253,
+        R::NoQueuedInteraction => -254,
         R::UnknownAction => -255,
         R::WrongTarget => -256,
         R::UnavailableAction => -257,
         R::RefusedAction => -258,
+        R::DuplicateArgument | R::MissingArgument | R::UnknownArgument => -254,
         R::WrongValueKind => -259,
-        R::EmptyValue => -260,
+        R::ViolatedConstraint => -260,
         R::OversizeValue => -261,
         R::MalformedEncoding => -262,
         R::DuplicateDelivery => -263,
         R::QueuePressure => -264,
         R::EvidenceExhausted => -265,
+        R::ValidatorIncapacity => -266,
     }
 }

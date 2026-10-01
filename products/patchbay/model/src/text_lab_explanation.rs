@@ -280,7 +280,6 @@ fn append_ordinary_path(
     let path = content.subject_with_identity(
         "text-lab/ordinary-path",
         PresentationRole::Info,
-        "keyboard here -> uppercase there -> presentation here",
         "Text Lab placement: keyboard here, uppercase there, presentation here",
     );
     content.line(
@@ -298,7 +297,6 @@ fn append_ordinary_path(
         let unavailable = content.subject_with_identity(
             "text-lab/unavailable",
             PresentationRole::Info,
-            "browser Part unavailable -> unchanged Form currently unrealizable",
             "Text Lab unavailable: browser Part lost; unchanged Form currently unrealizable",
         );
         content.line(
@@ -309,7 +307,6 @@ fn append_ordinary_path(
         let sign = content.subject_with_identity(
             format!("sign/{}", receipt.sign_id),
             PresentationRole::Sign,
-            receipt.code.clone(),
             format!("Causal Text Lab Line-loss Sign {}", receipt.sign_id),
         );
         content.line(
@@ -336,7 +333,8 @@ fn append_ordinary_path(
         identity: "action/text-lab/observe-return-line-loss".into(),
         intent: "conduit.intent/observe-line-loss@1".into(),
         target: path,
-        label: "Observe browser loss".into(),
+        name: "Observe browser loss".into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if loss.is_some() {
             PresentationActionAvailability::Unavailable {

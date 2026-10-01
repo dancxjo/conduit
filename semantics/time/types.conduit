@@ -1,0 +1,183 @@
+# Authoritative portable temporal meaning. Rust consumes generated bindings.
+
+type SuspendBehavior =
+    clock_includes_suspend
+    | clock_excludes_suspend
+    | refuse_after_suspend
+
+type ClockChangeBehavior =
+    reevaluate_window
+    | refuse_after_change
+
+type CivilGapPolicy =
+    skip
+    | use_before
+    | use_after
+    | refuse
+
+type CivilFoldPolicy =
+    earlier
+    | later
+    | both
+    | refuse
+
+type CivilResolutionChoice =
+    unique
+    | gap_before
+    | gap_after
+    | fold_earlier
+    | fold_later
+
+type ParticipantRole =
+    organizer
+    | required
+    | optional
+
+type InvitationState =
+    needs_action
+    | accepted
+    | declined
+    | tentative
+
+type AvailabilityState =
+    free
+    | tentative
+    | busy
+    | unavailable
+
+type HistoricalEntryOrigin =
+    machine_observation
+    | operator_authored
+
+code time/historical-entry-origin = HistoricalEntryOrigin as u8
+
+type HistoricalOverflowPolicy =
+    refuse
+    | evict_oldest_with_gap
+
+code time/historical-overflow-policy = HistoricalOverflowPolicy as u8
+
+type ReplayPolicy =
+    step
+    | original-timing
+    | rate {
+        numerator: U32 in 1..=1000
+        denominator: U32 in 1..=1000
+    }
+
+type TemporalBoundary =
+    inclusive
+    | exclusive
+
+type TemporalWindowPosition =
+    before
+    | within
+    | after
+    | indeterminate
+
+type CalendarRefusal =
+    invalid_identity
+    | invalid_text
+    | invalid_time
+    | invalid_participants
+    | invalid_invitation_evidence
+    | invalid_reminder
+    | invalid_recurrence
+    | invalid_availability
+    | stale_availability
+    | incomparable_time
+
+type MeetingProposalRefusal =
+    invalid_request
+    | invalid_availability
+    | stale_availability
+    | missing_participant
+    | no_common_availability
+    | incomparable_time
+
+type RecurrenceRefusal =
+    invalid_identity
+    | invalid_rule
+    | invalid_limit
+    | invalid_exceptions
+    | invalid_window
+    | incomparable_window
+    | wrong_window_kind
+    | work_limit_exceeded
+    | arithmetic_overflow
+    | civil_resolution_required
+    | invalid_civil_resolution
+    | civil_resolution_mismatch
+
+type ScheduledIntentRefusal =
+    invalid_identity
+    | invalid_occurrence
+    | trigger_occurrence_mismatch
+    | invalid_window
+    | incomparable_observation
+    | wrong_observation_profile
+    | invalid_late_policy
+
+type TemporalWindowRefusal =
+    invalid_instant
+    | incomparable
+    | interval_overflow
+    | reversed
+    | indeterminate_boundary_order
+    | empty
+
+type SequenceNormalizationRefusal =
+    malformed
+    | empty
+    | too-many-values
+    | zero-duration
+
+type PatternComparisonRefusal =
+    malformed
+    | unsupported-metric
+    | tolerance-out-of-range
+    | algorithm-mismatch
+    | length-mismatch
+
+type TimedPatternRefusal =
+    malformed
+    | too-few-events
+    | too-many-events
+    | reordered-or-duplicate-event
+    | interval-overflow
+
+type WorkflowLifecycle =
+    pending
+    | running
+    | completed
+    | failed
+    | cancelled
+    | expired
+
+type ScheduleRefusal =
+    non-temporal-quantity
+    | negative-quantity
+    | inconsistent-lifecycle
+
+type WorkflowTimingOutcome =
+    awaiting
+    | on-time
+    | late {
+        lateness: Duration
+    }
+    | missed-window
+    | clock-uncertain {
+        uncertainty: Duration
+    }
+    | failed
+    | cancelled
+    | expired
+
+type TemplateCollectionRefusal =
+    malformed
+    | name-empty
+    | name-too-long
+    | duplicate-name
+    | collection-full
+    | not-found
+    | corrupt-template

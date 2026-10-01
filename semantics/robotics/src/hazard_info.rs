@@ -66,7 +66,7 @@ impl ContactObservation {
 
 /// Four exact cliff detectors in body order: left, front-left, front-right,
 /// right. Signal values are meaningful only when their matching bit is set in
-/// `signal_available`; unavailable is never encoded as a fabricated zero.
+/// `signal_available`; unavailable is never encoded as a made zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CliffObservation {
     active_sectors: u8,
@@ -180,30 +180,19 @@ impl WheelDropObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum ChargingState {
-    NotCharging = 0,
-    Reconditioning = 1,
-    Full = 2,
-    Trickle = 3,
-    Waiting = 4,
-    Fault = 5,
-}
+use crate::{ChargingState, ChargingStateCode};
 
 impl TryFrom<u8> for ChargingState {
     type Error = InfoDecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::NotCharging),
-            1 => Ok(Self::Reconditioning),
-            2 => Ok(Self::Full),
-            3 => Ok(Self::Trickle),
-            4 => Ok(Self::Waiting),
-            5 => Ok(Self::Fault),
-            other => Err(InfoDecodeError::NonCanonicalEnum(other)),
-        }
+        ChargingStateCode::decode(&[value]).map_err(|_| InfoDecodeError::NonCanonicalEnum(value))
+    }
+}
+
+impl ChargingState {
+    pub const fn wire_tag(self) -> u8 {
+        ChargingStateCode::encode(self)[0]
     }
 }
 
@@ -244,7 +233,7 @@ impl ChargingObservation {
         let charge = self.charge_mah.to_le_bytes();
         let capacity = self.capacity_mah.to_le_bytes();
         [
-            self.state as u8,
+            self.state.wire_tag(),
             self.sources,
             voltage[0],
             voltage[1],

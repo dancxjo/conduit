@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     authority_grant, kind_id, present_authority_requirement, resource_offer, resource_requirement,
-    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, GearId,
+    HostAdvertisement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
     OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
@@ -117,7 +117,8 @@ pub fn live_indicator_advertisement(
         resource_requirement(SERIAL_OPERATION_RESOURCE, 1),
     ];
     requirements.sort();
-    let show = CapabilityOffer {
+    let show = conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(INDICATOR_CAPABILITY),

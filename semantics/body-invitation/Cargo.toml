@@ -1,0 +1,13 @@
+[package]
+name = "conduit-body-invitation-form"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-form = { path = "../../architecture/form" }
+conduit-presentation = { path = "../presentation", default-features = false }
+
+[build-dependencies]
+conduit-form = { path = "../../architecture/form" }

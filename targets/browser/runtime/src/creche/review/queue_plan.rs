@@ -215,42 +215,27 @@ fn line_offers(
 mod tests {
     use super::*;
     use conduit_core::{
-        ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-        ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-        OfferGeneration, PROTOCOL_VERSION,
+        ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
+        HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration,
+        PROTOCOL_VERSION,
     };
-    use conduit_form::KindProjection;
 
-    fn remote_offer(definition: &KindProjection) -> CapabilityOffer {
-        let slug = definition.kind_id.as_str().replace('/', "-");
-        CapabilityOffer {
-            startup_parameters: definition
-                .configuration
-                .iter()
-                .map(|field| conduit_core::FrontStartupParameter {
-                    name: field.key.clone(),
-                    value_type: conduit_core::kind_id(match field.default_value {
-                        ConfigurationValue::Bool(_) => "value/bool",
-                        ConfigurationValue::I64(_) => "value/scalar",
-                        ConfigurationValue::U64(_) => "value/count",
-                        ConfigurationValue::Text(_) => "value/text",
-                        ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                        ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
-                    }),
-                    has_default: true,
-                })
-                .collect(),
-            shorthand: None,
+    fn remote_offer(gear: &conduit_form::CheckedGear) -> CapabilityOffer {
+        let slug = gear.kind_id.as_str().replace('/', "-");
+        conduit_core::capability_offer_from_parts! {
+            semantic_contract: gear.semantic_contract.clone(),
+            startup_parameters: gear.startup_parameters.clone(),
+            shorthand: gear.shorthand.clone(),
             capability_id: CapabilityId::from(format!("voice-host/{slug}")),
-            kind_id: definition.kind_id.clone(),
-            kind_contract_revision: definition.kind_contract_revision.clone(),
+            kind_id: gear.kind_id.clone(),
+            kind_contract_revision: gear.kind_contract_revision.clone(),
             implementation: conduit_core::ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("voice-host/profile@1"),
                 implementation_id: ImplementationId::from(format!("voice-host/{slug}@1")),
                 artifact_id: ArtifactId::from(format!("voice-host/{slug}-artifact@1")),
             },
-            inputs: definition.inputs.clone(),
-            outputs: definition.outputs.clone(),
+            inputs: gear.inputs.clone(),
+            outputs: gear.outputs.clone(),
             host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
@@ -311,7 +296,7 @@ mod tests {
                             | conduit_semantic_catalog::AUDIO_PLAY_KIND
                     )
                 })
-                .map(|gear| remote_offer(profile.get(&gear.kind_id).unwrap()))
+                .map(remote_offer)
                 .collect(),
             planner_capabilities: vec![],
         };
@@ -418,14 +403,14 @@ mod tests {
             conduit_std_offers::body_chat_prompt_std_offer(),
             conduit_std_offers::generated_chunk_to_text_std_offer(),
             conduit_std_offers::generated_speech_commit_offer(),
-            conduit_std_offers::piper_streaming_speech_offer(),
+            conduit_std_offers::deterministic_streaming_speech_offer(),
         ];
         offers.extend(model.capability_offers().unwrap());
         offers
     }
 
     #[test]
-    fn actual_std_voice_offers_cover_every_expanded_remote_conversation_gear() {
+    fn reviewed_fixture_voice_offers_cover_every_expanded_remote_conversation_gear() {
         let source = include_str!("../../../../../../forms/live-conversation/main.conduit");
         let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
             crate::installed_browser::PresentationProfile::Annotation,

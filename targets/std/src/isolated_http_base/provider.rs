@@ -48,7 +48,7 @@ pub fn provider_main() -> Result<(), String> {
         1,
     )
     .map_err(capability_error)?;
-    let handle = table
+    let mut handle = table
         .issue(bootstrap.issue.clone())
         .map_err(capability_error)?;
 
@@ -72,7 +72,7 @@ pub fn provider_main() -> Result<(), String> {
             RequestFrame::Exchange { claim, request } => {
                 exchange(
                     &mut table,
-                    &handle,
+                    &mut handle,
                     &bootstrap,
                     &mut stream,
                     &claim,
@@ -98,7 +98,7 @@ pub fn provider_main() -> Result<(), String> {
 
 fn exchange(
     table: &mut BaseCapabilityTable,
-    handle: &conduit_core::BaseCapabilityHandle,
+    handle: &mut conduit_core::BaseCapabilityHandle,
     bootstrap: &HttpBootstrap,
     stream: &mut TcpStream,
     claim: &BaseOperationClaim,
@@ -115,14 +115,16 @@ fn exchange(
     let request = match conduit_web::decode_request(encoded) {
         Ok(request) => request,
         Err(_) => {
-            table.complete(lease, 0).map_err(capability_error)?;
+            table.complete(handle, lease, 0).map_err(capability_error)?;
             return write(&ResponseFrame::Refused {
                 reason: "request:malformed-or-oversized".into(),
             });
         }
     };
-    if request.target.scheme != "http" || request.target.authority != bootstrap.expected_authority {
-        table.complete(lease, 0).map_err(capability_error)?;
+    if request.target.scheme() != &conduit_web::HttpScheme::Http
+        || request.target.authority() != &bootstrap.expected_authority
+    {
+        table.complete(handle, lease, 0).map_err(capability_error)?;
         return write(&ResponseFrame::Refused {
             reason: "endpoint:wrong-authority".into(),
         });
@@ -131,12 +133,12 @@ fn exchange(
         .map_err(|failure| format!("encode exact HTTP request: {failure:?}"))?;
     stream.write_all(&wire).map_err(io_error)?;
     stream.flush().map_err(io_error)?;
-    let response = crate::hosted_http::wire::read_response(stream, request.transaction_id)
+    let response = crate::hosted_http::wire::read_response(stream, request.transaction_id.clone())
         .map_err(|failure| format!("read exact HTTP response: {failure:?}"))?;
     let response = conduit_web::encode_response(&response)
         .map_err(|_| "encode bounded HTTP response".to_string())?;
     table
-        .complete(lease, response.len() as u32)
+        .complete(handle, lease, response.len() as u32)
         .map_err(capability_error)?;
     write(&ResponseFrame::Completed { response })
 }

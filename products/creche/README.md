@@ -8,9 +8,9 @@ birth, and the transition to ordinary body operation.
 - `model/` remains for compatibility and target-preparation presentation state.
 - `browser/creche.mjs` is redirect-only and owns no lifecycle or durable state.
 - reusable target-selection, spore, and release modules remain packaged for
-  Workspace Host fabrication; they do not constitute a Crèche application.
+  Workspace Host make; they do not constitute a Crèche application.
 - `../../targets/browser/host/` supplies browser hosting; target-specific
-  fabrication and deployment remain with their target families.
+  make and deployment remain with their target families.
 
 Workspace consumes the reviewed [form inventory](../../forms/README.md) and
 births workload revision zero. Artifact construction, flashing, observed boot,

@@ -2,7 +2,19 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+pub use generated::{
+    ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
+    ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
+    ExperienceTemporalRole, KeyTransition, KeyTransitionCode, SourceAvailability,
+    VisualEvidenceClass, VisualExperienceRelationKind,
+};
+
 mod current_experience;
+mod current_experience_trace;
 mod experience_observation;
 mod experience_sources;
 mod experience_temporal;
@@ -20,6 +32,7 @@ mod visual_impression;
 mod visual_observation;
 
 pub use current_experience::*;
+pub use current_experience_trace::*;
 pub use experience_observation::*;
 pub use experience_sources::*;
 pub use experience_temporal::*;

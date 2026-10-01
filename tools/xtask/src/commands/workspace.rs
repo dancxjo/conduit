@@ -16,7 +16,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     if args.check {
         run_step(
             &Step::new(
-                "demo.workspace.rendezvous-host",
+                "journey.workspace.rendezvous-host",
                 "Build the installed host entrance used by running-Host proof",
                 "cargo",
                 &["build", "-p", "conduit"],
@@ -26,7 +26,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         )?;
         run_step(
             &Step::new(
-                "demo.workspace.browser-proof-helpers",
+                "journey.workspace.browser-proof-helpers",
                 "Build the supported Workspace execution and membership proof helpers",
                 "cargo",
                 &[
@@ -57,11 +57,12 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     }
     run_step(
         &Step::new(
-            "demo.workspace.browser-release",
+            "journey.workspace.browser-release",
             "Seal the reviewed compiler-free browser Host distribution",
             "cargo",
             &[
                 "xtask",
+                "make",
                 "host",
                 "release",
                 "--platform",
@@ -75,11 +76,12 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     )?;
     run_step(
         &Step::new(
-            "demo.workspace.release-catalog",
+            "journey.workspace.release-catalog",
             "Seal the Workspace browser Host release catalog",
             "cargo",
             &[
                 "xtask",
+                "make",
                 "host",
                 "release-catalog",
                 "--root",
@@ -91,12 +93,12 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         &root,
         opts,
     )?;
-    // Host release fabrication also builds a narrower browser runtime in the
+    // Host release make also builds a narrower browser runtime in the
     // shared target directory. Build the Workspace-featured runtime last so
     // the staging input cannot be replaced by that intermediate artifact.
     run_step(
         &Step::new(
-            "demo.workspace.runtime",
+            "journey.workspace.runtime",
             "Build the shared Crèche and ordinary body execution runtime",
             "cargo",
             &[
@@ -120,7 +122,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     }
     run_step(
         &Step::new(
-            "demo.workspace.package",
+            "journey.workspace.package",
             "Stage the exact body arrival application",
             "sh",
             &[
@@ -136,7 +138,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     if args.check {
         run_step(
             &Step::new(
-                "demo.workspace.input",
+                "journey.workspace.input",
                 "Check foreground routing and Host retirement",
                 "node",
                 &[
@@ -145,6 +147,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "proof/browser/browser-body-host.test.mjs",
                     "proof/browser/workspace-handoff.test.mjs",
                     "proof/browser/browser-form-effects.test.mjs",
+                    "proof/browser/browser-pitch-tone.test.mjs",
                 ],
             ),
             &root,
@@ -152,7 +155,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         )?;
         run_step(
             &Step::new(
-                "demo.workspace.arrival",
+                "journey.workspace.arrival",
                 "Prove Birth, listening Forms, continuity, and storage refusal",
                 "node",
                 &[
@@ -168,7 +171,8 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "0",
                     "workspace-arrival.spec.mjs",
                     "workspace-birth-naming.spec.mjs",
-                    "workspace-body-execution.spec.mjs",
+                    "sdk-external-body-execution.spec.mjs",
+                    "workspace-mixed-membership.spec.mjs",
                     "workspace-membership.spec.mjs",
                     "workspace-library.spec.mjs",
                     "workspace-resident-applications.spec.mjs",
@@ -180,7 +184,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     } else {
         run_step(
             &Step::new(
-                "demo.workspace.host",
+                "journey.workspace.host",
                 "Open the body arrival experience",
                 "cargo",
                 &[

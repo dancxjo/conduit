@@ -17,12 +17,7 @@ impl ZeroBodyFrontDoor {
         let mut subjects = vec![PresentationSubject {
             identity: host_subject.clone(),
             role: PresentationRole::Host,
-            label: "This computer".into(),
-            accessibility_name: format!(
-                "This host {} boot {}; current body none",
-                host.host_id.as_str(),
-                host.boot_id.as_str()
-            ),
+            name: "This computer".into(),
         }];
         let mut relationships = Vec::new();
         let mut properties = vec![
@@ -52,7 +47,8 @@ impl ZeroBodyFrontDoor {
             identity: format!("action/creche/{}", host.host_id.as_str()),
             intent: "conduit.intent/birth@1".into(),
             target: host_subject.clone(),
-            label: "Name Body and choose Forms".into(),
+            name: "Name Body and choose Forms".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }];
@@ -76,8 +72,7 @@ impl ZeroBodyFrontDoor {
             subjects.push(PresentationSubject {
                 identity: subject.clone(),
                 role: PresentationRole::Capability,
-                label: offer.kind_id.as_str().into(),
-                accessibility_name: format!("Available capability {}", offer.kind_id.as_str()),
+                name: format!("Available capability {}", offer.kind_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: host_subject.clone(),
@@ -95,8 +90,7 @@ impl ZeroBodyFrontDoor {
             subjects.push(PresentationSubject {
                 identity: subject.clone(),
                 role: PresentationRole::Body,
-                label: candidate.label.clone(),
-                accessibility_name: format!("Discoverable Body {}; not joined", candidate.label),
+                name: candidate.label.clone(),
             });
             relationships.push(PresentationRelationship {
                 source: host_subject.clone(),
@@ -132,8 +126,7 @@ impl ZeroBodyFrontDoor {
             subjects.push(PresentationSubject {
                 identity: subject.clone(),
                 role: PresentationRole::Form,
-                label: form.label.clone(),
-                accessibility_name: format!("Openable Form {}; not born", form.label),
+                name: form.label.clone(),
             });
             relationships.push(PresentationRelationship {
                 source: host_subject.clone(),
@@ -166,7 +159,8 @@ impl ZeroBodyFrontDoor {
                     identity: format!("action/open/{}", form.checked_form_id.as_str()),
                     intent: "conduit.intent/open@1".into(),
                     target: subject.clone(),
-                    label: "Open".into(),
+                    name: "Open".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Available,
                 },
@@ -174,7 +168,8 @@ impl ZeroBodyFrontDoor {
                     identity: format!("action/birth/{}", form.checked_form_id.as_str()),
                     intent: "conduit.intent/birth@1".into(),
                     target: subject.clone(),
-                    label: "Birth".into(),
+                    name: "Birth".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: if is_opened {
                         PresentationActionAvailability::Available
@@ -233,7 +228,6 @@ impl ZeroBodyFrontDoor {
                 content.subject_with_identity(
                     &form_subject,
                     PresentationRole::Form,
-                    &open_form,
                     format!("Checked form {} opened from Form {}", open_form, form.label),
                 );
                 content.contains(&subject, &form_subject);
@@ -265,7 +259,8 @@ impl ZeroBodyFrontDoor {
                     identity: format!("action/save/{form_subject}"),
                     intent: "conduit.intent/save@1".into(),
                     target: form_subject,
-                    label: "Save".into(),
+                    name: "Save".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Available,
                 });
@@ -280,8 +275,7 @@ impl ZeroBodyFrontDoor {
             subjects.push(PresentationSubject {
                 identity: subject.clone(),
                 role: PresentationRole::Sign,
-                label: format!("Refused {}", refusal.code),
-                accessibility_name: format!("Front-door refusal Sign {}", refusal.code),
+                name: format!("Front-door refusal Sign {}", refusal.code),
             });
             relationships.push(PresentationRelationship {
                 source: host_subject.clone(),

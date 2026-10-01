@@ -182,6 +182,11 @@ fn decode_node(
     expected: &StructuredInfoType,
     cursor: &mut Cursor<'_>,
 ) -> Result<StructuredInfoValue, StructuredInfoTransportRefusal> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
+        let representation_value = decode_node(representation, cursor)?;
+        return StructuredInfoValue::nominal(expected.clone(), representation_value)
+            .map_err(StructuredInfoTransportRefusal::Semantic);
+    }
     let tag = cursor.byte()?;
     let decoded = match expected.shape() {
         StructuredInfoTypeShape::Leaf(_) if tag == 0 => {
@@ -197,9 +202,13 @@ fn decode_node(
             }
             StructuredInfoValue::collection(expected.clone(), values)
         }
-        StructuredInfoTypeShape::Sequence { element, capacity } if tag == 1 => {
+        StructuredInfoTypeShape::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+        } if tag == 1 => {
             let length = cursor.length()?;
-            if length > usize::from(capacity) {
+            if length < usize::from(minimum_items) || length > usize::from(maximum_items) {
                 return Err(StructuredInfoTransportRefusal::MalformedRepresentation);
             }
             let mut values = Vec::with_capacity(length);

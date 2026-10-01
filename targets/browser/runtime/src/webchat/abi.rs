@@ -46,7 +46,7 @@ pub extern "C" fn conduit_browser_webchat_start(url_len: u32) -> i32 {
         else {
             return ERROR_INPUT;
         };
-        let form_name = fields.next().unwrap_or("webchat-browser-demo");
+        let form_name = fields.next().unwrap_or("chat/browser-client");
         if fields.next().is_some() {
             return ERROR_INPUT;
         }

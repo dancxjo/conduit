@@ -9,8 +9,7 @@ fn subject(identity: &str, role: PresentationRole) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role,
-        label: identity.into(),
-        accessibility_name: format!("{identity} subject"),
+        name: format!("{identity} subject"),
     }
 }
 
@@ -53,7 +52,7 @@ fn navigation(presentation: &Presentation) -> PresentationNavigation {
             NavigationPlace {
                 place: PresentationPlace::Entrance,
                 root_subject: "entrance".into(),
-                label: "Entrance".into(),
+                name: "Entrance".into(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Structure,
                     focusable_subjects: vec!["entrance".into()],
@@ -62,7 +61,7 @@ fn navigation(presentation: &Presentation) -> PresentationNavigation {
             NavigationPlace {
                 place: PresentationPlace::Program,
                 root_subject: "program".into(),
-                label: "Program".into(),
+                name: "Program".into(),
                 aspects: vec![
                     NavigationAspect {
                         aspect: PresentationAspect::Structure,
@@ -81,7 +80,7 @@ fn navigation(presentation: &Presentation) -> PresentationNavigation {
             NavigationPlace {
                 place: PresentationPlace::Body,
                 root_subject: "body".into(),
-                label: "Body".into(),
+                name: "Body".into(),
                 aspects: vec![
                     NavigationAspect {
                         aspect: PresentationAspect::Structure,
@@ -379,7 +378,7 @@ fn changed_navigation_truth_has_a_new_identity_and_stales_the_old_cursor() {
     let navigation = navigation(&presentation);
     let old_cursor = cursor(&presentation, &navigation);
     let mut changed_places = navigation.places.clone();
-    changed_places[1].label = "Current Program".into();
+    changed_places[1].name = "Current Program".into();
     let changed =
         PresentationNavigation::new(&presentation, changed_places, navigation.follows.clone())
             .unwrap();

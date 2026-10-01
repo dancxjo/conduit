@@ -2,17 +2,23 @@
 
 use conduit_body::Body;
 use conduit_core::{
-    kind_id, resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
-    HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration, SignId,
-    PROTOCOL_VERSION,
+    bind_active_play, kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
+    ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
+    PortTemporal, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{parse, ProfileCatalog};
+use conduit_form::{
+    check_syntax_document, expand_canonical_form_for_authoring, parse, parse_syntax_document,
+    KindSignature, ProfileCatalog, StartupCatalog,
+};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    renderer_kind_projection, renderer_offer, Presentation, PresentationBasis,
+    install_mask_form_value_aliases, renderer_kind_projection, renderer_offer,
+    ManifestationLifecycle, MaskForm, MaskShow, PlannedMaskForm, Presentation, PresentationBasis,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
+    PresentationText, RendererRealizationOffer, FACE_INTERACTION_VALUE_KIND,
+    MAX_RENDERER_VALUE_BYTES, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
 pub const WAYLAND_RESOURCE: &str = "conduit.resource/wayland-surface@1";
@@ -100,14 +106,12 @@ pub fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan)
             PresentationSubject {
                 identity: "patchbay/form".into(),
                 role: PresentationRole::Form,
-                label: "Patchbay".into(),
-                accessibility_name: "Patchbay Form".into(),
+                name: "Patchbay Form".into(),
             },
             PresentationSubject {
                 identity: "patchbay/renderer".into(),
                 role: PresentationRole::Gear,
-                label: "Renderer".into(),
-                accessibility_name: "Portable presentation renderer".into(),
+                name: "Portable presentation renderer".into(),
             },
         ],
         vec![PresentationRelationship {
@@ -120,6 +124,194 @@ pub fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan)
             subject: "patchbay/renderer".into(),
             text: "Presentation to Manifestation".into(),
         }],
+    )
+    .unwrap()
+}
+
+fn mask_port(
+    name: &str,
+    kind: &str,
+    direction: PortDirection,
+    temporal: PortTemporal,
+) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id(kind),
+        direction,
+        temporal,
+        abnormal_kind: None,
+    }
+}
+
+fn mask_kind(name: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(name),
+        kind_contract_revision: KindIdentity::from(format!("conduit.test/{name}@1")),
+        inputs,
+        outputs,
+        configuration: vec![],
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 2,
+            max_queue_items: 2,
+            max_queue_bytes: 64 * 1024,
+        },
+    }
+}
+
+/// Plan one ordinary graphical Mask Form and realize an exact available Show.
+/// Interaction tests use this instead of constructing the retired generic
+/// Manifestation boundary directly.
+pub fn available_mask_show(face: &Presentation) -> MaskShow {
+    let definitions = vec![
+        mask_kind(
+            "web/dom",
+            vec![mask_port(
+                "presentation",
+                PRESENTATION_VALUE_KIND,
+                PortDirection::Input,
+                PortTemporal::Value,
+            )],
+            vec![mask_port(
+                "show",
+                SHOW_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
+        mask_kind(
+            "web/input",
+            vec![],
+            vec![mask_port(
+                "interaction",
+                FACE_INTERACTION_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Flow { closes: true },
+            )],
+        ),
+    ];
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    for definition in definitions {
+        startup
+            .insert(KindSignature {
+                kind: definition.kind_id.as_str().into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+        profiles.insert_kind(definition).unwrap();
+    }
+    install_mask_form_value_aliases(&mut startup).unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "form browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        ),
+        &startup,
+    )
+    .unwrap();
+    let authoring = expand_canonical_form_for_authoring(&checked, "browser", &profiles).unwrap();
+    let mask = MaskForm::admit(&authoring).unwrap();
+    let capabilities = authoring
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| {
+            BackOfferBuilder::new(
+                profiles.canonical_kind(&gear.kind_id).unwrap().clone(),
+                Back {
+                    capability_id: CapabilityId::from(format!("cap/{}", gear.gear_id.as_str())),
+                    execution_profile_id: ExecutionProfileId::from("mask/test@1"),
+                    implementation_id: ImplementationId::from(format!(
+                        "implementation/{}",
+                        gear.gear_id.as_str()
+                    )),
+                    artifact_id: ArtifactId::from(format!("artifact/{}", gear.gear_id.as_str())),
+                    host_calls: vec![],
+                    resource_requirements: vec![],
+                    authority_requirements: vec![],
+                },
+            )
+            .build()
+        })
+        .collect();
+    let mask_host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from("host/interaction-mask"),
+        boot_id: BootId::from("boot/interaction-mask"),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("mask/test@1"),
+        bases: vec![],
+        resources: vec![],
+        capabilities,
+        planner_capabilities: vec![],
+    };
+    let placements = conduit_planner::default_expanded_placements(
+        &authoring.expanded,
+        core::slice::from_ref(&mask_host),
+    )
+    .unwrap();
+    let boundary_limits = authoring
+        .front
+        .inputs()
+        .iter()
+        .map(|port| (PortDirection::Input, port))
+        .chain(
+            authoring
+                .front
+                .outputs()
+                .iter()
+                .map(|port| (PortDirection::Output, port)),
+        )
+        .map(|(direction, port)| {
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction,
+                    front_port_id: port.port_id.clone(),
+                    track: conduit_core::ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: 64 * 1024,
+                },
+            )
+        })
+        .collect();
+    let empty_bases = std::collections::BTreeMap::new();
+    let empty_lines = std::collections::BTreeMap::new();
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        &authoring,
+        &[mask_host],
+        &placements,
+        &[],
+        conduit_planner::PlanningOptions {
+            connection_bases: &empty_bases,
+            line_candidates: &empty_lines,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 64 * 1024,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundary_limits,
+    )
+    .unwrap();
+    let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
+    let terminal = planned.show_placement();
+    let active = bind_active_play(&plan.plan_id, &terminal.host_id, &terminal.boot_id, 1);
+    MaskShow::prepared(
+        &planned,
+        face,
+        active,
+        "patchbay/form".into(),
+        "display/interaction-test".into(),
+        SignId::from("interaction/show-prepared"),
+    )
+    .unwrap()
+    .transition(
+        ManifestationLifecycle::Available,
+        SignId::from("interaction/show-available"),
     )
     .unwrap()
 }

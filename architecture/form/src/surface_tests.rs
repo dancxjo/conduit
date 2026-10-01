@@ -1,8 +1,140 @@
 use crate::{
-    parse_syntax_document, Argument, BackStatement, ConstructionRole, CordStage, CstTokenKind,
-    ExpressionSyntax, FormCompletionPolicy, RuntimePortDirection, RuntimePortTemporal,
+    parse_syntax_document, Argument, BackStatement, BinaryOperator, ConstructionRole, CordStage,
+    CstTokenKind, Expression, ExpressionProjection, ExpressionSyntax, FormCompletionPolicy,
+    RuntimePortDirection, RuntimePortTemporal, TypeDefinitionSyntax, TypeExpressionSyntax,
+    TypeVariantPayloadSyntax,
 };
 use alloc::vec::Vec;
+
+#[test]
+fn local_forms_are_lossless_nested_source_syntax() {
+    let source = "form outer {\n form helper (\n  >> value: Count\n  mapped: Count >>\n ) = (. + 1)\n child: helper\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    assert_eq!(document.forms.len(), 1);
+    assert_eq!(document.forms[0].local_forms.len(), 1);
+    assert_eq!(document.forms[0].local_forms[0].name.text, "helper");
+    assert!(document.forms[0].local_forms[0].local_forms.is_empty());
+}
+
+#[test]
+fn kind_parameter_retains_its_exact_named_fore_constraint() {
+    let source = "form each (\n transform: kind (\n  >> value: Text\n  mapped: Text >>\n )\n >> values: Text...|\n mapped: Text...| >>\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let parameter = &document.forms[0].front.kind_parameters[0];
+    assert_eq!(parameter.name.text, "transform");
+    assert_eq!(parameter.front.runtime_ports.len(), 2);
+    assert_eq!(parameter.front.runtime_ports[0].name.text, "value");
+    assert_eq!(parameter.front.runtime_ports[1].name.text, "mapped");
+    assert_eq!(document.round_trip(), source);
+}
+
+#[test]
+fn checked_pattern_refinement_is_lossless_front_syntax() {
+    let source = "form code (\n >> value: Text <= 16B ~ /[A-Z]{2}[0-9]{4}/\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let crate::ValueRefinement::TextPattern { source, .. } =
+        &document.forms[0].front.runtime_ports[0].refinements[0]
+    else {
+        panic!("expected the authored pattern refinement")
+    };
+    assert_eq!(source.text, "[A-Z]{2}[0-9]{4}");
+}
+
+#[test]
+fn portable_lookahead_and_group_profiles_are_lossless_front_syntax() {
+    let source = "form code (\n >> value: Text <= 16B ~ /(?=AB)(?:A)(?<tail>.)/\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let crate::ValueRefinement::TextPattern { source, .. } =
+        &document.forms[0].front.runtime_ports[0].refinements[0]
+    else {
+        panic!("expected the authored pattern refinement")
+    };
+    assert_eq!(source.text, "(?=AB)(?:A)(?<tail>.)");
+}
+
+#[test]
+fn range_membership_and_composition_are_lossless_front_syntax() {
+    let source = "form choice (\n >> value: Count in 1..=4 in [2, 3, 4]\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let refinements = &document.forms[0].front.runtime_ports[0].refinements;
+    assert_eq!(refinements.len(), 2);
+    assert!(matches!(
+        &refinements[0],
+        crate::ValueRefinement::Range {
+            minimum,
+            maximum,
+            minimum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
+            maximum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
+            ..
+        } if minimum.as_ref().is_some_and(|value| value.text == "1")
+            && maximum.as_ref().is_some_and(|value| value.text == "4")
+    ));
+    assert!(matches!(
+        &refinements[1],
+        crate::ValueRefinement::Membership { members, .. }
+            if members.iter().map(|member| member.text.as_str()).collect::<Vec<_>>()
+                == ["2", "3", "4"]
+    ));
+}
+
+#[test]
+fn open_ended_ranges_remain_lossless_until_the_type_supplies_their_bounds() {
+    let source = "form bounded (\n >> low: Count in ..=4\n >> high: Scalar in 1.000000..\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let low = &document.forms[0].front.runtime_ports[0].refinements[0];
+    let high = &document.forms[0].front.runtime_ports[1].refinements[0];
+    assert!(matches!(
+        low,
+        crate::ValueRefinement::Range {
+            minimum: None,
+            maximum: Some(maximum),
+            ..
+        } if maximum.text == "4"
+    ));
+    assert!(matches!(
+        high,
+        crate::ValueRefinement::Range {
+            minimum: Some(minimum),
+            maximum: None,
+            ..
+        } if minimum.text == "1.000000"
+    ));
+}
 
 #[test]
 fn forms_are_live_by_default_and_completion_is_explicit() {
@@ -19,6 +151,150 @@ fn forms_are_live_by_default_and_completion_is_explicit() {
         FormCompletionPolicy::SemanticCompletion
     );
     assert_eq!(document.round_trip(), source);
+}
+
+#[test]
+fn with_headers_and_glyph_opt_out_are_lossless_document_structure() {
+    let source = "sans glyphs\nwith time/every as cadence\nwith math/geometry/{vector2, matrix2}\n\nform example {\n    tick: cadence(1s)\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert!(!document.standard_glyphs);
+    assert_eq!(document.uses.len(), 3);
+    assert_eq!(document.uses[0].path, "time/every");
+    assert_eq!(document.uses[0].alias.text, "cadence");
+    assert_eq!(document.uses[1].path, "math/geometry/vector2");
+    assert_eq!(document.uses[1].alias.text, "vector2");
+    assert_eq!(document.uses[2].path, "math/geometry/matrix2");
+    assert_eq!(document.uses[2].alias.text, "matrix2");
+    assert_eq!(document.round_trip(), source);
+}
+
+#[test]
+fn punctuation_gear_names_are_lossless_but_core_tokens_remain_grammar() {
+    let source = "with time/default as ^^\nform example {\n  @: current/sample\n  input >> ^^ >> @ >> output\n}\n";
+    let parsed = parse_syntax_document(source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    assert_eq!(parsed.round_trip(), source);
+    assert_eq!(parsed.uses[0].alias.text, "^^");
+    let BackStatement::NamedGear(named) = &parsed.forms[0].back[0] else {
+        panic!("expected configured glyph Gear")
+    };
+    assert_eq!(named.name.text, "@");
+
+    for reserved in [">>", ">", "?", "!", "~", "."] {
+        let source = alloc::format!("with time/default as {reserved}\nform example {{\n}}\n");
+        assert!(
+            !parse_syntax_document(&source).diagnostics.is_empty(),
+            "{reserved}"
+        );
+    }
+}
+
+#[test]
+fn authored_imports_have_one_explicit_finite_document_bound() {
+    let mut source = alloc::string::String::new();
+    for index in 0..=crate::MAXIMUM_USE_DECLARATIONS {
+        source.push_str(&alloc::format!("with test/kind-{index}\n"));
+    }
+    source.push_str("form example {\n}\n");
+    let document = parse_syntax_document(&source);
+    assert!(document.forms().is_err());
+    assert!(document.diagnostics[0].message.contains("import bound"));
+}
+
+#[test]
+fn native_semantic_types_are_lossless_finite_syntax_not_rust_shapes() {
+    let source = "type Note = U8 in 0..=127\n\ntype Position = {\n    x: Distance\n    y: Distance\n}\n\ntype MusicEvent =\n    note {\n        velocity: U8 in 0..=127\n        pitches: sequence Note <= 16\n    }\n    | rest\n\nform perform (\n    >> event: MusicEvent\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    assert_eq!(document.types.len(), 3);
+    assert_eq!(document.types[0].name.text, "Note");
+    assert!(matches!(
+        &document.types[0].definition,
+        TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Reference {
+            value_type,
+            refinements,
+            ..
+        }) if value_type.text == "U8" && refinements.len() == 1
+    ));
+    assert!(matches!(
+        &document.types[1].definition,
+        TypeDefinitionSyntax::Record(fields)
+            if fields.iter().map(|field| field.name.text.as_str()).collect::<Vec<_>>() == ["x", "y"]
+    ));
+    let TypeDefinitionSyntax::Variant(cases) = &document.types[2].definition else {
+        panic!("expected closed variant syntax")
+    };
+    assert_eq!(cases.len(), 2);
+    assert_eq!(cases[0].tag.text, "note");
+    assert_eq!(cases[1].tag.text, "rest");
+    assert!(matches!(
+        &match &cases[0].payload {
+            TypeVariantPayloadSyntax::Record(fields) => &fields[1].value_type,
+            _ => panic!("expected record payload"),
+        },
+        TypeExpressionSyntax::Sequence {
+            minimum_items: 0,
+            maximum_items: 16,
+            ..
+        }
+    ));
+    assert_eq!(
+        document.forms[0].front.runtime_ports[0].value_type.text,
+        "MusicEvent"
+    );
+}
+
+#[test]
+fn native_variant_case_can_carry_a_type_directly() {
+    let document = parse_syntax_document(
+        "type Refusal =\n    unavailable\n\ntype Outcome =\n    completed\n    | refused Refusal\n",
+    );
+    assert!(document.diagnostics.is_empty());
+    let TypeDefinitionSyntax::Variant(cases) = &document.types[1].definition else {
+        panic!("expected variant syntax")
+    };
+    assert!(matches!(
+        &cases[1].payload,
+        TypeVariantPayloadSyntax::Type(TypeExpressionSyntax::Reference { value_type, .. })
+            if value_type.text == "Refusal"
+    ));
+}
+
+#[test]
+fn native_sequence_type_requires_one_explicit_finite_cardinality_bound() {
+    for source in [
+        "type Notes = sequence Note\n",
+        "type Notes = sequence Note <= 0\n",
+        "type Notes = sequence Note <= 257\n",
+    ] {
+        let document = parse_syntax_document(source);
+        assert!(!document.diagnostics.is_empty(), "accepted {source}");
+    }
+}
+
+#[test]
+fn legacy_use_keyword_is_not_a_compatibility_spelling() {
+    let document =
+        parse_syntax_document("use time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");
+    assert!(document.uses.is_empty());
+    assert_eq!(document.diagnostics.len(), 1);
+}
+
+#[test]
+fn legacy_without_glyphs_header_is_not_a_compatibility_spelling() {
+    let document = parse_syntax_document("without glyphs\nform example {\n}\n");
+    assert_eq!(document.diagnostics.len(), 1);
+    assert!(document.forms.is_empty());
 }
 
 #[test]
@@ -53,8 +329,20 @@ fn legacy_single_greater_than_is_not_retained_as_a_cord_alias() {
         assert!(document
             .diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.code == "CND-FRM-019"));
+            .any(|diagnostic| diagnostic.code == "CND-FRM-019"
+                && diagnostic.message.contains("use '>>'")));
     }
+}
+
+#[test]
+fn comparisons_do_not_become_legacy_cord_diagnostics() {
+    let source = "form comparison {\n    threshold = 3 > 2\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
 }
 
 #[test]
@@ -81,6 +369,200 @@ fn all_canonical_temporal_modalities_and_finite_bounds_are_retained() {
     assert_eq!(ports[5].temporal, RuntimePortTemporal::CurrentOptional);
     assert_eq!(ports[0].maximum_bytes, Some(256));
     assert_eq!(ports[6].maximum_bytes, Some(4 * 1024));
+}
+
+#[test]
+fn data_references_and_exact_width_integer_types_are_canonical_fore_types() {
+    let source = "form systems (\n    >> saved: &Text\n    >> image: &media/image@4\n    >> word: U32\n    signed: I128 >>\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let ports = &document.forms[0].front.runtime_ports;
+    assert_eq!(ports[0].value_type.text, "&Text");
+    assert_eq!(ports[1].value_type.text, "&media/image@4");
+    assert_eq!(ports[2].value_type.text, "U32");
+    assert_eq!(ports[3].value_type.text, "I128");
+}
+
+#[test]
+fn recursive_or_empty_data_reference_types_are_rejected() {
+    for value_type in ["&", "&&Text"] {
+        let source = alloc::format!("form bad (\n    >> value: {value_type}\n) {{\n}}\n");
+        let document = parse_syntax_document(&source);
+        assert!(document.forms().is_err(), "{value_type}");
+        assert_eq!(document.diagnostics[0].code, "CND-FRM-019");
+    }
+}
+
+#[test]
+fn pure_expression_precedence_and_ternary_are_structural_not_opaque_text() {
+    let source = "form expressions {\n    result = a || b && c | d ^ e & f == g < h >>> 2 + 3 * 4 ? yes : no\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let BackStatement::LocalValue(local) = &document.forms[0].back[0] else {
+        panic!(
+            "expression is a local value: {:?}",
+            document.forms[0].back[0]
+        );
+    };
+    let ExpressionSyntax::Conditional { condition, .. } = &local.value.syntax else {
+        panic!("lowest-precedence ternary is explicit");
+    };
+    assert!(matches!(
+        condition.as_ref(),
+        ExpressionSyntax::Binary {
+            operator: BinaryOperator::BooleanOr,
+            ..
+        }
+    ));
+
+    fn contains_multiply(expression: &ExpressionSyntax) -> bool {
+        match expression {
+            ExpressionSyntax::Binary {
+                operator: BinaryOperator::Multiply,
+                ..
+            } => true,
+            ExpressionSyntax::Binary { left, right, .. } => {
+                contains_multiply(left) || contains_multiply(right)
+            }
+            _ => false,
+        }
+    }
+    assert!(contains_multiply(condition));
+}
+
+#[test]
+fn input_tuple_record_projection_and_semantic_calls_have_distinct_syntax() {
+    let source =
+        "form expressions {\n    tuple = (.field, .0, { reading, scaled: math/sin(.) })\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let BackStatement::LocalValue(local) = &document.forms[0].back[0] else {
+        panic!("expression is a local value");
+    };
+    let ExpressionSyntax::Tuple { values, .. } = &local.value.syntax else {
+        panic!("parenthesized comma expression is a tuple");
+    };
+    assert!(matches!(
+        &values[0],
+        ExpressionSyntax::Projection {
+            member: ExpressionProjection::Field(_),
+            ..
+        }
+    ));
+    assert!(matches!(
+        &values[1],
+        ExpressionSyntax::Projection {
+            member: ExpressionProjection::TupleIndex(_),
+            ..
+        }
+    ));
+    let ExpressionSyntax::Record { fields, .. } = &values[2] else {
+        panic!("third tuple element is a record");
+    };
+    assert!(fields[0].punned);
+    assert!(!fields[1].punned);
+    assert!(matches!(
+        fields[1].value,
+        ExpressionSyntax::SemanticCall { ref kind, .. } if kind.text == "math/sin"
+    ));
+}
+
+#[test]
+fn parenthesized_runtime_expression_is_one_cord_stage() {
+    let source = "form classify (\n    >> reading: Temperature\n    label: Text >>\n) {\n    reading >> (. > 30°C ? \"hot\" : \"fine\") >> label\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let BackStatement::Cord(cord) = &document.forms[0].back[0] else {
+        panic!("body contains one cord");
+    };
+    assert!(matches!(
+        &cord.stages[1],
+        CordStage::PureExpression(Expression {
+            syntax: ExpressionSyntax::Conditional { .. },
+            ..
+        })
+    ));
+}
+
+#[test]
+fn percentage_quantity_suffix_is_not_a_remainder_without_a_right_operand() {
+    let source = "form classify (\n    >> charge: Ratio\n    label: Text >>\n) {\n    charge >> (. > 75% ? \"full\" : \"charging\") >> label\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+}
+
+#[test]
+fn when_terminal_quiescence_and_cancellation_stages_are_not_ordinary_references() {
+    let source = "form controls {\n    temperature >> when(. > limit) >> alarm\n    items| >> finish\n    items! >> explain\n    items; >> resting\n    deadline >> work~\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let cords = document.forms[0]
+        .back
+        .iter()
+        .map(|statement| match statement {
+            BackStatement::Cord(cord) => cord,
+            _ => panic!("control specimen contains only cords"),
+        })
+        .collect::<Vec<_>>();
+    assert!(matches!(cords[0].stages[1], CordStage::When(_)));
+    assert!(matches!(
+        cords[1].stages[0],
+        CordStage::TerminalProjection {
+            terminal: crate::TerminalProjection::NormalClose,
+            ..
+        }
+    ));
+    assert!(matches!(
+        cords[2].stages[0],
+        CordStage::TerminalProjection {
+            terminal: crate::TerminalProjection::Abnormal,
+            ..
+        }
+    ));
+    assert!(matches!(
+        cords[3].stages[0],
+        CordStage::TerminalProjection {
+            terminal: crate::TerminalProjection::Quiescence,
+            ..
+        }
+    ));
+    assert!(matches!(cords[4].stages[1], CordStage::Cancellation { .. }));
+}
+
+#[test]
+fn where_is_not_a_when_compatibility_alias() {
+    let source = "form no-alias {\n    value >> where(. > 0) >> sink\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(document.diagnostics.is_empty());
+    let BackStatement::Cord(cord) = &document.forms[0].back[0] else {
+        panic!("source is a cord");
+    };
+    assert!(matches!(cord.stages[1], CordStage::InlineGear(_)));
 }
 
 #[test]
@@ -269,6 +751,18 @@ fn canonical_front_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
 }
 
 #[test]
+fn named_type_parameters_are_not_runtime_startup_values() {
+    let document = crate::parse_syntax_document(
+        "form identity (\n item: type\n limit: Count = 1\n >> value: item\n result: item >>\n) {\n}\n",
+    );
+    let form = &document.forms().unwrap()[0];
+    assert_eq!(form.front.type_parameters.len(), 1);
+    assert_eq!(form.front.type_parameters[0].name.text, "item");
+    assert_eq!(form.front.startup_parameters.len(), 1);
+    assert_eq!(form.front.startup_parameters[0].name.text, "limit");
+}
+
+#[test]
 fn canonical_duplex_front_has_auxiliary_ports_without_a_shorthand_path() {
     let source = include_str!("../../../forms/socket-client/main.conduit");
     let document = parse_syntax_document(source);
@@ -441,6 +935,32 @@ fn canonical_parser_accepts_multiple_forms_without_semantic_lowering() {
     assert_eq!(forms[0].name.text, "greet");
     assert_eq!(forms[1].name.text, "welcome");
     assert_eq!(document.round_trip(), source);
+}
+
+#[test]
+fn expression_body_is_one_lossless_sugar_for_an_explicit_cord() {
+    let source = "form increment (\n    >> value: U8\n    result: U8 >>\n) = (. + 1)\n";
+    let document = parse_syntax_document(source);
+    assert!(document.diagnostics.is_empty());
+    let BackStatement::Cord(cord) = &document.forms[0].back[0] else {
+        panic!("expression body lowers to one ordinary Cord")
+    };
+    assert!(matches!(
+        cord.stages.as_slice(),
+        [
+            CordStage::Reference(input),
+            CordStage::PureExpression(_),
+            CordStage::Reference(output)
+        ] if input.text == "value" && output.text == "result"
+    ));
+
+    let ambiguous = parse_syntax_document(
+        "form ambiguous (\n    >> left: U8\n    >> right: U8\n    result: U8 >>\n) = (. + 1)\n",
+    );
+    assert_eq!(ambiguous.diagnostics.len(), 1);
+    assert!(ambiguous.diagnostics[0]
+        .message
+        .contains("write an ordinary explicit Form back"));
 }
 
 #[test]

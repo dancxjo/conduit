@@ -30,8 +30,8 @@ use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
-    HostCallOutcome, HostedSignLog, HostedValueStore, NodeId, PortId,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallOutcome, HostedSignLog, HostedValueStore, NodeId,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
@@ -52,7 +52,10 @@ type BrowserKernel = FixedScheduler<
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
     pub(super) failure: Option<conduit_kernel::Failure>,
-    kernel: BrowserKernel,
+    // Hosted preparation may allocate; keeping the fixed-capacity kernel in
+    // one stable allocation avoids copying its bounded tables through native
+    // and Wasm ABI session transitions. Play itself performs no allocation.
+    kernel: Box<BrowserKernel>,
     snapshots: Vec<Option<Box<resource_effect::SnapshotState>>>,
     selectors: Vec<Option<crate::installed_browser::pointer_selector::PreparedSelector>>,
     mappings: Vec<Option<conduit_semantic_catalog::QuantityMapping>>,
@@ -70,6 +73,7 @@ pub(super) struct TourScheduler {
         Vec<Option<Box<crate::installed_browser::template_storage::PreparedTemplateStore>>>,
     structured_selectors:
         Vec<Option<crate::installed_browser::structured_selector::PreparedSelector>>,
+    pure_expressions: Vec<Option<crate::installed_browser::pure_expression::PreparedExpression>>,
     measurement_windows:
         Vec<Option<Box<crate::installed_browser::measurement_window::PreparedWindow>>>,
     measurement_hysteresis:

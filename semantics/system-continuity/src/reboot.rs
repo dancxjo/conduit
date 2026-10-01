@@ -11,7 +11,10 @@ use conduit_observatory::{HostReport, OperationalState};
 use conduit_wire::SessionBinding;
 use serde::{Deserialize, Serialize};
 
-use crate::{DelegatedTransitionGrant, HostInstance};
+use crate::{
+    DelegatedTransitionGrant, HostInstance, LineLossDisposition, RebootDenial, RebootPendingState,
+    RebootProgressError,
+};
 
 pub const REBOOT_OPERATION: &str = "lifecycle/reboot";
 pub const REBOOT_CONTRACT_REVISION: &str = "conduit.lifecycle/reboot@1";
@@ -76,12 +79,14 @@ fn delegated_reboot_contract() -> Kind {
             value_kind: kind_id("lifecycle/reboot-request"),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: PortId::from("receipt"),
             value_kind: kind_id("lifecycle/reboot-receipt"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         semantic_laws: Default::default(),
@@ -116,18 +121,6 @@ pub struct RebootRequest {
     pub selected_line_id: LineId,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RebootDenial {
-    MalformedRequest,
-    Unsupported,
-    Unauthorized,
-    StaleTargetBoot,
-    SessionMismatch,
-    Replay,
-    AttemptLimitReached,
-    TransactionPending,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RebootRejectionReceipt {
     pub request_id: RebootRequestId,
@@ -158,32 +151,6 @@ pub struct RebootCompletionProof {
 pub enum RebootDecision {
     Accepted(RebootAcceptanceReceipt),
     Denied(RebootRejectionReceipt),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RebootPendingState {
-    Idle,
-    Accepted,
-    AwaitingReplacement,
-    Completed,
-    UnknownProofWindowExpired,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RebootProgressError {
-    RequestMismatch,
-    NotAccepted,
-    OldBootNotTerminated,
-    ReplacementHostMismatch,
-    ReplacementBootReused,
-    ReplacementUnavailable,
-    ProofWindowExpired,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum LineLossDisposition {
-    IntentionalTransitionPending,
-    OrdinaryTransportFailure,
 }
 
 /// Finite state for one exact delegated grant. It owns no scheduler, line,

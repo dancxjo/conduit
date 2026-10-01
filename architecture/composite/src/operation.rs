@@ -24,7 +24,7 @@ pub trait KernelOperationFactory: Send + Sync {
     ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct KernelOperationRegistry {
     factories: BTreeMap<ImplementationId, Arc<dyn KernelOperationFactory>>,
 }

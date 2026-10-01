@@ -106,7 +106,7 @@ fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans
                     fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
                         MAXIMUM_CONTEXT_CHARACTERISTIC,
                     )),
-                    value: quantity(24_000, CharacteristicUnit::Tokens),
+                    value: quantity(24, CharacteristicUnit::Items),
                 },
                 PlannerPredicate::Equal {
                     fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(

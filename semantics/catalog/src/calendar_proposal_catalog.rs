@@ -13,8 +13,7 @@ use conduit_core::{
     StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
 };
 
 pub const CALENDAR_PROPOSAL_REQUEST_TYPE: &str = "CalendarMeetingProposalRequest";
@@ -26,6 +25,9 @@ pub const CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_RESULTS: u16 = 3;
 
 pub fn calendar_proposal_semantic_contract() -> Kind {
+    let request_profile = calendar_proposal_request_type()
+        .profile()
+        .expect("reviewed calendar proposal request is bounded");
     Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
@@ -49,8 +51,24 @@ pub fn calendar_proposal_semantic_contract() -> Kind {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
-        configuration: Default::default(),
+        configuration: vec![KindConfigurationField {
+            key: "request".into(),
+            default_value: ConfigurationValue::Structured(
+                conduit_core::StructuredConfigurationValue::new(
+                    request_profile.value_kind().clone(),
+                    default_calendar_proposal_request()
+                        .expect("reviewed default calendar request is valid")
+                        .canonical_bytes()
+                        .expect("reviewed default calendar request is bounded"),
+                )
+                .expect("reviewed default calendar request is canonical"),
+            ),
+            rule: KindConfigurationRule::Structured {
+                profile: request_profile.value_kind().clone(),
+            },
+        }],
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
@@ -309,38 +327,8 @@ pub fn install_calendar_proposal_catalogs(
             }],
         })
         .map_err(|error| error.to_string())?;
-    let request_profile = request.profile().map_err(|error| format!("{error:?}"))?;
     profile
-        .insert(KindProjection {
-            kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
-            kind_contract_revision: KindIdentity::from(CALENDAR_PROPOSAL_REVISION),
-            inputs: vec![],
-            outputs: vec![PortDescriptor {
-                port_id: port_id("proposal"),
-                value_kind: calendar_proposal_result_type()
-                    .profile()
-                    .map_err(|error| format!("{error:?}"))?
-                    .value_kind()
-                    .clone(),
-                direction: PortDirection::Output,
-                temporal: PortTemporal::Value,
-            }],
-            configuration: vec![KindConfigurationField {
-                key: "request".into(),
-                default_value: ConfigurationValue::Structured(
-                    conduit_core::StructuredConfigurationValue::new(
-                        request_profile.value_kind().clone(),
-                        default_calendar_proposal_request()?
-                            .canonical_bytes()
-                            .map_err(|error| format!("encode calendar request: {error:?}"))?,
-                    )
-                    .ok_or_else(|| "default calendar request is invalid".to_string())?,
-                ),
-                rule: KindConfigurationRule::Structured {
-                    profile: request_profile.value_kind().clone(),
-                },
-            }],
-        })
+        .insert_kind(calendar_proposal_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

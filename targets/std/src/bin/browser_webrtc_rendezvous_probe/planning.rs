@@ -73,6 +73,7 @@ pub(super) fn binding(
                 maximum_frame_bytes: 1_024,
             },
         },
+        abnormal_kind: None,
     }
 }
 

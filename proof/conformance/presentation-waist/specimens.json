@@ -1,0 +1,863 @@
+[
+  {
+    "identity": "authored-argument",
+    "pressure": "argument order and meaning-changing progressive disclosure",
+    "ownership": {
+      "truth": "specimens/authored-argument/authoritative-domain-state",
+      "selection": "specimens/authored-argument/current-relevance",
+      "encounter": "specimens/authored-argument/presentation",
+      "realization": {
+        "graphical": "pages and emphasis",
+        "spoken": "paced clauses",
+        "linear": "ordered semantic records"
+      },
+      "show": "specimens/authored-argument/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "claim",
+          "name": "Cells require usable energy",
+          "role": "argument/claim"
+        },
+        {
+          "identity": "evidence",
+          "name": "ATP evidence",
+          "role": "argument/evidence"
+        },
+        {
+          "identity": "qualification",
+          "name": "Not all energy is immediately usable",
+          "role": "argument/qualification"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "evidence",
+          "kind": "argument/supports",
+          "target": "claim"
+        },
+        {
+          "source": "qualification",
+          "kind": "argument/qualifies",
+          "target": "claim"
+        }
+      ],
+      "composition": [
+        {
+          "source": "evidence",
+          "kind": "Subordinate",
+          "target": "claim"
+        },
+        {
+          "source": "qualification",
+          "kind": "RevealAfter",
+          "target": "evidence"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "continue",
+          "intent": "encounter/continue",
+          "target": "qualification",
+          "name": "Continue",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "claim",
+        "evidence supports claim",
+        "qualification follows evidence"
+      ],
+      "can": [
+        "continue"
+      ]
+    }
+  },
+  {
+    "identity": "named-collections",
+    "pressure": "independent access, focus, and activation",
+    "ownership": {
+      "truth": "specimens/named-collections/authoritative-domain-state",
+      "selection": "specimens/named-collections/current-relevance",
+      "encounter": "specimens/named-collections/presentation",
+      "realization": {
+        "graphical": "collection with independently focusable items",
+        "spoken": "named choice prompt",
+        "linear": "collection and action records"
+      },
+      "show": "specimens/named-collections/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "tools",
+          "name": "Tools",
+          "role": "workspace/collection"
+        },
+        {
+          "identity": "editor",
+          "name": "Editor",
+          "role": "workspace/application"
+        },
+        {
+          "identity": "mail",
+          "name": "Mail",
+          "role": "workspace/application"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "tools",
+          "kind": "Contains",
+          "target": "editor"
+        },
+        {
+          "source": "tools",
+          "kind": "Contains",
+          "target": "mail"
+        },
+        {
+          "source": "tools",
+          "kind": "encounter/focuses",
+          "target": "editor"
+        }
+      ],
+      "composition": [
+        {
+          "source": "editor",
+          "kind": "Group",
+          "target": "tools"
+        },
+        {
+          "source": "mail",
+          "kind": "Group",
+          "target": "tools"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "activate-editor",
+          "intent": "encounter/activate-editor",
+          "target": "editor",
+          "name": "Open Editor",
+          "availability": "available"
+        },
+        {
+          "identity": "activate-mail",
+          "intent": "encounter/activate-mail",
+          "target": "mail",
+          "name": "Open Mail",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "Tools contains Editor and Mail",
+        "Editor is focused"
+      ],
+      "can": [
+        "activate-editor",
+        "activate-mail"
+      ]
+    }
+  },
+  {
+    "identity": "source-destination",
+    "pressure": "simultaneous source/destination context and directional action",
+    "ownership": {
+      "truth": "specimens/source-destination/authoritative-domain-state",
+      "selection": "specimens/source-destination/current-relevance",
+      "encounter": "specimens/source-destination/presentation",
+      "realization": {
+        "graphical": "two contextual regions",
+        "spoken": "source and destination named before command",
+        "linear": "role-bearing relationship records"
+      },
+      "show": "specimens/source-destination/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "source",
+          "name": "Archive",
+          "role": "file/location/source"
+        },
+        {
+          "identity": "destination",
+          "name": "Backup",
+          "role": "file/location/destination"
+        },
+        {
+          "identity": "report",
+          "name": "report.txt",
+          "role": "file/item"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "source",
+          "kind": "Contains",
+          "target": "report"
+        },
+        {
+          "source": "report",
+          "kind": "file/copy-destination",
+          "target": "destination"
+        }
+      ],
+      "composition": [
+        {
+          "source": "source",
+          "kind": "Juxtapose",
+          "target": "destination"
+        },
+        {
+          "source": "report",
+          "kind": "Group",
+          "target": "source"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "copy-to-destination",
+          "intent": "encounter/copy-to-destination",
+          "target": "report",
+          "name": "Copy to Backup",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "Archive is source",
+        "Backup is destination",
+        "report.txt is selected"
+      ],
+      "can": [
+        "copy-to-destination"
+      ]
+    }
+  },
+  {
+    "identity": "spreadsheet",
+    "pressure": "addressed values, formula dependency, and recalculation action",
+    "ownership": {
+      "truth": "specimens/spreadsheet/authoritative-domain-state",
+      "selection": "specimens/spreadsheet/current-relevance",
+      "encounter": "specimens/spreadsheet/presentation",
+      "realization": {
+        "graphical": "grid",
+        "spoken": "addressed cell traversal",
+        "linear": "stable identity and dependency records"
+      },
+      "show": "specimens/spreadsheet/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "sheet",
+          "name": "Budget",
+          "role": "data/table"
+        },
+        {
+          "identity": "b2",
+          "name": "B2",
+          "role": "table/cell"
+        },
+        {
+          "identity": "c2",
+          "name": "C2",
+          "role": "table/cell"
+        },
+        {
+          "identity": "total",
+          "name": "Total",
+          "role": "table/cell"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "sheet",
+          "kind": "Contains",
+          "target": "b2"
+        },
+        {
+          "source": "sheet",
+          "kind": "Contains",
+          "target": "c2"
+        },
+        {
+          "source": "sheet",
+          "kind": "Contains",
+          "target": "total"
+        },
+        {
+          "source": "b2",
+          "kind": "calculation/input-to",
+          "target": "total"
+        },
+        {
+          "source": "c2",
+          "kind": "calculation/input-to",
+          "target": "total"
+        }
+      ],
+      "composition": [
+        {
+          "source": "b2",
+          "kind": "Group",
+          "target": "sheet"
+        },
+        {
+          "source": "c2",
+          "kind": "Group",
+          "target": "sheet"
+        },
+        {
+          "source": "total",
+          "kind": "Emphasize",
+          "target": "b2"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "recalculate",
+          "intent": "encounter/recalculate",
+          "target": "sheet",
+          "name": "Recalculate",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "B2 and C2 contribute to Total",
+        "cell addresses are semantic identity"
+      ],
+      "can": [
+        "recalculate"
+      ]
+    }
+  },
+  {
+    "identity": "timeline-editor",
+    "pressure": "parallel tracks, selected clip, and ordered media",
+    "ownership": {
+      "truth": "specimens/timeline-editor/authoritative-domain-state",
+      "selection": "specimens/timeline-editor/current-relevance",
+      "encounter": "specimens/timeline-editor/presentation",
+      "realization": {
+        "graphical": "tracks on a timeline",
+        "spoken": "track summary then selected clip",
+        "linear": "containment and order records"
+      },
+      "show": "specimens/timeline-editor/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "session",
+          "name": "Song",
+          "role": "media/session"
+        },
+        {
+          "identity": "voice",
+          "name": "Voice",
+          "role": "media/track"
+        },
+        {
+          "identity": "music",
+          "name": "Music",
+          "role": "media/track"
+        },
+        {
+          "identity": "clip",
+          "name": "Verse take",
+          "role": "media/clip"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "session",
+          "kind": "Contains",
+          "target": "voice"
+        },
+        {
+          "source": "session",
+          "kind": "Contains",
+          "target": "music"
+        },
+        {
+          "source": "voice",
+          "kind": "Contains",
+          "target": "clip"
+        },
+        {
+          "source": "clip",
+          "kind": "media/precedes",
+          "target": "music"
+        }
+      ],
+      "composition": [
+        {
+          "source": "voice",
+          "kind": "Juxtapose",
+          "target": "music"
+        },
+        {
+          "source": "clip",
+          "kind": "Emphasize",
+          "target": "voice"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "mute-voice",
+          "intent": "encounter/mute-voice",
+          "target": "voice",
+          "name": "Mute Voice",
+          "availability": "available"
+        },
+        {
+          "identity": "trim-clip",
+          "intent": "encounter/trim-clip",
+          "target": "clip",
+          "name": "Trim Verse take",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "Voice and Music coexist",
+        "Verse take is selected on Voice"
+      ],
+      "can": [
+        "mute-voice",
+        "trim-clip"
+      ]
+    }
+  },
+  {
+    "identity": "web-article",
+    "pressure": "document hierarchy, supporting aside, and link action",
+    "ownership": {
+      "truth": "specimens/web-article/authoritative-domain-state",
+      "selection": "specimens/web-article/current-relevance",
+      "encounter": "specimens/web-article/presentation",
+      "realization": {
+        "graphical": "article flow with aside",
+        "spoken": "heading traversal and aside cue",
+        "linear": "document relations"
+      },
+      "show": "specimens/web-article/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "article",
+          "name": "Migration handbook",
+          "role": "document/article"
+        },
+        {
+          "identity": "section",
+          "name": "Before migration",
+          "role": "document/section"
+        },
+        {
+          "identity": "aside",
+          "name": "Back up first",
+          "role": "document/aside"
+        },
+        {
+          "identity": "reference",
+          "name": "Compatibility table",
+          "role": "document/reference"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "article",
+          "kind": "Contains",
+          "target": "section"
+        },
+        {
+          "source": "section",
+          "kind": "Contains",
+          "target": "aside"
+        },
+        {
+          "source": "section",
+          "kind": "Describes",
+          "target": "reference"
+        }
+      ],
+      "composition": [
+        {
+          "source": "aside",
+          "kind": "Subordinate",
+          "target": "section"
+        },
+        {
+          "source": "reference",
+          "kind": "Associate",
+          "target": "section"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "open-reference",
+          "intent": "encounter/open-reference",
+          "target": "reference",
+          "name": "Open compatibility table",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "aside qualifies section",
+        "reference belongs with section"
+      ],
+      "can": [
+        "open-reference"
+      ]
+    }
+  },
+  {
+    "identity": "map",
+    "pressure": "places, route relation, current focus, and navigable destination",
+    "ownership": {
+      "truth": "specimens/map/authoritative-domain-state",
+      "selection": "specimens/map/current-relevance",
+      "encounter": "specimens/map/presentation",
+      "realization": {
+        "graphical": "spatial map",
+        "spoken": "turn sequence with named endpoints",
+        "linear": "route endpoint records"
+      },
+      "show": "specimens/map/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "map",
+          "name": "Downtown",
+          "role": "geography/map"
+        },
+        {
+          "identity": "station",
+          "name": "Central station",
+          "role": "geography/place"
+        },
+        {
+          "identity": "museum",
+          "name": "Museum",
+          "role": "geography/place"
+        },
+        {
+          "identity": "route",
+          "name": "Walking route",
+          "role": "geography/route"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "map",
+          "kind": "Contains",
+          "target": "station"
+        },
+        {
+          "source": "map",
+          "kind": "Contains",
+          "target": "museum"
+        },
+        {
+          "source": "route",
+          "kind": "route/from",
+          "target": "station"
+        },
+        {
+          "source": "route",
+          "kind": "route/to",
+          "target": "museum"
+        }
+      ],
+      "composition": [
+        {
+          "source": "route",
+          "kind": "Associate",
+          "target": "station"
+        },
+        {
+          "source": "route",
+          "kind": "Associate",
+          "target": "museum"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "start-route",
+          "intent": "encounter/start-route",
+          "target": "route",
+          "name": "Start walking route",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "route goes from station to museum"
+      ],
+      "can": [
+        "start-route"
+      ]
+    }
+  },
+  {
+    "identity": "terminal",
+    "pressure": "ordered transcript, command/result distinction, and repeat action",
+    "ownership": {
+      "truth": "specimens/terminal/authoritative-domain-state",
+      "selection": "specimens/terminal/current-relevance",
+      "encounter": "specimens/terminal/presentation",
+      "realization": {
+        "graphical": "monospace transcript",
+        "spoken": "command and result announcements",
+        "linear": "ordered transcript records"
+      },
+      "show": "specimens/terminal/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "session",
+          "name": "Build shell",
+          "role": "terminal/session"
+        },
+        {
+          "identity": "command",
+          "name": "cargo test",
+          "role": "terminal/command"
+        },
+        {
+          "identity": "result",
+          "name": "Tests passed",
+          "role": "terminal/result"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "session",
+          "kind": "Contains",
+          "target": "command"
+        },
+        {
+          "source": "session",
+          "kind": "Contains",
+          "target": "result"
+        },
+        {
+          "source": "result",
+          "kind": "terminal/result-of",
+          "target": "command"
+        }
+      ],
+      "composition": [
+        {
+          "source": "result",
+          "kind": "RevealAfter",
+          "target": "command"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "repeat-command",
+          "intent": "encounter/repeat-command",
+          "target": "command",
+          "name": "Run cargo test again",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "Tests passed is result of cargo test"
+      ],
+      "can": [
+        "repeat-command"
+      ]
+    }
+  },
+  {
+    "identity": "screen-reader",
+    "pressure": "nonvisual landmarks, focus, state, and exact action",
+    "ownership": {
+      "truth": "specimens/screen-reader/authoritative-domain-state",
+      "selection": "specimens/screen-reader/current-relevance",
+      "encounter": "specimens/screen-reader/presentation",
+      "realization": {
+        "graphical": "landmark and status surface",
+        "spoken": "landmark/focus announcement",
+        "linear": "landmark, focus, status records"
+      },
+      "show": "specimens/screen-reader/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "document",
+          "name": "Account settings",
+          "role": "document/root"
+        },
+        {
+          "identity": "security",
+          "name": "Security",
+          "role": "document/region"
+        },
+        {
+          "identity": "mfa",
+          "name": "Multi-factor authentication enabled",
+          "role": "state/status"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "document",
+          "kind": "Contains",
+          "target": "security"
+        },
+        {
+          "source": "security",
+          "kind": "Contains",
+          "target": "mfa"
+        },
+        {
+          "source": "document",
+          "kind": "encounter/focuses",
+          "target": "mfa"
+        }
+      ],
+      "composition": [
+        {
+          "source": "mfa",
+          "kind": "Emphasize",
+          "target": "security"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "change-mfa",
+          "intent": "encounter/change-mfa",
+          "target": "mfa",
+          "name": "Change multi-factor authentication",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "MFA is enabled",
+        "MFA status is focused in Security"
+      ],
+      "can": [
+        "change-mfa"
+      ]
+    }
+  },
+  {
+    "identity": "patchbay",
+    "pressure": "connected ports, exact direction, current observation, and disconnect action",
+    "ownership": {
+      "truth": "specimens/patchbay/authoritative-domain-state",
+      "selection": "specimens/patchbay/current-relevance",
+      "encounter": "specimens/patchbay/presentation",
+      "realization": {
+        "graphical": "spatial jacks and cord",
+        "spoken": "directed connection statement",
+        "linear": "exact endpoint records"
+      },
+      "show": "specimens/patchbay/finite-occurrence"
+    },
+    "presentation": {
+      "subjects": [
+        {
+          "identity": "form",
+          "name": "Text transform",
+          "role": "conduit/form"
+        },
+        {
+          "identity": "input",
+          "name": "Text input",
+          "role": "port/input"
+        },
+        {
+          "identity": "output",
+          "name": "Uppercase output",
+          "role": "port/output"
+        },
+        {
+          "identity": "cord",
+          "name": "Text flow",
+          "role": "conduit/cord"
+        }
+      ],
+      "relationships": [
+        {
+          "source": "form",
+          "kind": "Contains",
+          "target": "input"
+        },
+        {
+          "source": "form",
+          "kind": "Contains",
+          "target": "output"
+        },
+        {
+          "source": "cord",
+          "kind": "cord/from",
+          "target": "input"
+        },
+        {
+          "source": "cord",
+          "kind": "cord/to",
+          "target": "output"
+        }
+      ],
+      "composition": [
+        {
+          "source": "input",
+          "kind": "Juxtapose",
+          "target": "output"
+        },
+        {
+          "source": "cord",
+          "kind": "Associate",
+          "target": "input"
+        }
+      ],
+      "actions": [
+        {
+          "identity": "disconnect",
+          "intent": "encounter/disconnect",
+          "target": "cord",
+          "name": "Disconnect text flow",
+          "availability": "available"
+        }
+      ]
+    },
+    "expected": {
+      "understands": [
+        "Text flow connects input to output",
+        "direction is input to output"
+      ],
+      "can": [
+        "disconnect"
+      ]
+    }
+  }
+]

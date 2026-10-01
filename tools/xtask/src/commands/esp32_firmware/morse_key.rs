@@ -11,7 +11,7 @@ use std::{
 };
 
 use clap::Args;
-use conduit_host_esp32_fabrication::Esp32FamilyTarget;
+use conduit_host_esp32_make::Esp32FamilyTarget;
 use conduit_text::{MorseKeyInterpreter, MorseKeyPhase, MorseKeyTransition, MorsePattern};
 use serde::Serialize;
 
@@ -33,7 +33,7 @@ pub(super) struct MorseKeyArgs {
         default_value = "/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_dcf8355da19ded11a7205f84e259fb3e-if00-port0"
     )]
     port: PathBuf,
-    /// Exact CP2102N serial owned by the C3 fabrication descriptor.
+    /// Exact CP2102N serial owned by the C3 make descriptor.
     #[arg(long, default_value = "dcf8355da19ded11a7205f84e259fb3e")]
     confirm_serial: String,
     /// Planned Morse unit in milliseconds; dot=1, dash=3, letter gap=3, word gap=7.
@@ -172,16 +172,19 @@ pub(super) fn run(args: MorseKeyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn s
         let Some(raw) = parse_transition(&line)? else {
             continue;
         };
-        let transition = MorseKeyTransition {
-            clock_basis: clock_basis.clone(),
-            monotonic_micros: raw.monotonic_micros,
-            phase: if raw.phase == "pressed" {
+        let transition = MorseKeyTransition::new(
+            clock_basis.clone(),
+            raw.monotonic_micros,
+            if raw.phase == "pressed" {
                 MorseKeyPhase::Pressed
             } else {
                 MorseKeyPhase::Released
             },
-            sequence: raw.sequence,
-        };
+            raw.sequence,
+        )
+        .map_err(|error| {
+            format!("physical Morse transition is not valid semantic data: {error:?}")
+        })?;
         interpreter
             .accept(&transition)
             .map_err(|error| format!("physical Morse transition refused: {error:?}"))?;

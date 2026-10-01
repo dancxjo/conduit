@@ -4,11 +4,8 @@ use super::{
     InstalledBack, InstalledScheduler, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS,
     MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
-use conduit_kernel::scheduler::{CordSpec, NodeSpec};
-use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
-    NodeId, PortId,
-};
+use conduit_kernel::scheduler::{AssignedTerminalTransduction, CordSpec, NodeSpec};
+use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(super) struct KernelTables {
@@ -18,6 +15,7 @@ pub(super) struct KernelTables {
     cords: [CordSpec; MAX_CORDS],
     routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
     host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
+    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; MAX_NODES],
 }
 
 impl KernelTables {
@@ -29,17 +27,10 @@ impl KernelTables {
                 input_cords: [None; PORTS],
                 maximum_step_fuel: 1,
             }; MAX_NODES],
-            cords: [CordSpec {
-                cord: CordId(u16::MAX),
-                source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-                sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-                slot_start: u16::MAX,
-                item_capacity: 0,
-                byte_capacity: 0,
-                pressure_policy: Default::default(),
-            }; MAX_CORDS],
+            cords: [CordSpec::inactive(); MAX_CORDS],
             routes: FixedRoutes::new(PORTS as u16),
             host_bindings: FixedHostCallBindings::new(HOST_CALLS_PER_NODE),
+            terminal_transductions: [[None; PORTS]; MAX_NODES],
         };
         for partition in partitions {
             if partition.nodes.len() != partition.node_specs.len() {
@@ -53,6 +44,17 @@ impl KernelTables {
                     .nodes
                     .get_mut(tables.active_nodes)
                     .ok_or_else(|| "combined kernel node capacity exceeded".to_string())? = *spec;
+                for contract in &node.terminal_transductions {
+                    let assigned = contract.assigned();
+                    let input = usize::from(assigned.input.0);
+                    if input >= PORTS
+                        || tables.terminal_transductions[tables.active_nodes][input]
+                            .replace(assigned)
+                            .is_some()
+                    {
+                        return Err("invalid duplicate lowered terminal input".into());
+                    }
+                }
                 tables.active_nodes += 1;
             }
             for cord in &partition.cords {
@@ -101,7 +103,7 @@ impl KernelTables {
         values: HostedValueStore,
         sign: HostedSignLog,
     ) -> Result<InstalledScheduler, String> {
-        InstalledScheduler::new_with_active_counts_and_host_calls(
+        let mut scheduler = InstalledScheduler::new_with_active_counts_and_host_calls(
             self.active_nodes,
             self.active_cords,
             self.nodes,
@@ -112,7 +114,11 @@ impl KernelTables {
             values,
             sign,
         )
-        .map_err(|error| format!("install std scheduler: {error:?}"))
+        .map_err(|error| format!("install std scheduler: {error:?}"))?;
+        scheduler
+            .bind_terminal_transductions(self.terminal_transductions)
+            .map_err(|error| format!("bind std terminal transductions: {error:?}"))?;
+        Ok(scheduler)
     }
 }
 

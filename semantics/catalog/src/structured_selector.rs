@@ -2,8 +2,9 @@
 
 use alloc::vec;
 use conduit_core::{
-    port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const STRUCTURED_SELECTOR_REVISION: &str = "structured-info/selector-operation@1";
@@ -38,14 +39,26 @@ pub fn structured_selector_contract(selector: &StructuredSelector, temporal: Por
             value_kind: input_kind,
             direction: PortDirection::Input,
             temporal,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("output"),
             value_kind: output_kind,
             direction: PortDirection::Output,
             temporal,
+            abnormal_kind: None,
         }],
-        configuration: Default::default(),
+        configuration: vec![KindConfigurationField {
+            key: "selector".into(),
+            default_value: ConfigurationValue::Text(
+                selector
+                    .canonical_hex()
+                    .expect("checked selector has finite canonical configuration"),
+            ),
+            rule: KindConfigurationRule::TextBytes {
+                maximum: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+            },
+        }],
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,

@@ -4,11 +4,10 @@ use super::{
     ISOLATED_HTTP_PROFILE, MAX_FRAME_BYTES, PROTOCOL_VERSION,
 };
 use conduit_core::{
-    ActivePlayIdentity, ArtifactId, AuthorityGrant, BaseCapabilityAuthority, BaseCapabilityScope,
+    ActivePlayIdentity, AuthorityGrant, BaseCapabilityAuthority, BaseCapabilityScope,
     BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseOperationClaim,
     BaseProviderEntry, BaseRegistry, BaseRegistryLimits, CapabilityEnvelopeId,
-    CapabilityIssueRequest, CapabilityOffer, ExecutionProfileId, HostBaseId, HostBaseKindId,
-    ImplementationId, ResourceGenerationId,
+    CapabilityIssueRequest, CapabilityOffer, HostBaseId, HostBaseKindId, ResourceGenerationId,
 };
 use std::io;
 use std::net::{SocketAddr, TcpStream};
@@ -169,7 +168,9 @@ impl IsolatedHttpHost {
         request
             .validate()
             .map_err(|_| "isolated HTTP request exceeds its semantic bounds".to_string())?;
-        if request.target.scheme != "http" || request.target.authority != self.provider.authority {
+        if request.target.scheme() != &conduit_web::HttpScheme::Http
+            || request.target.authority() != &self.provider.authority
+        {
             return Err("isolated HTTP request is outside the selected exact endpoint".into());
         }
         let placement = exact_http_placement(fragment)?;

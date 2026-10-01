@@ -179,8 +179,7 @@ impl TourProduct {
             presentation.subjects.push(PresentationSubject {
                 identity: identity.into(),
                 role,
-                label: label.into(),
-                accessibility_name: label.into(),
+                name: label.into(),
             });
             presentation.relationships.push(PresentationRelationship {
                 source: format!("{selected}/inspection"),

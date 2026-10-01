@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 pub mod acoustic_emergency;
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
+pub mod body_causal_evidence;
 pub mod body_coordination;
 pub mod body_execution;
 mod boot_identity;
@@ -28,10 +29,6 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
-#[cfg(feature = "local-model-proof")]
-pub mod recorded_house_proof;
-#[cfg(feature = "local-model-proof")]
-mod recorded_house_receipt;
 pub mod relay_client;
 pub mod remote_emergency;
 pub mod text_lab_live;
@@ -72,6 +69,28 @@ mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 pub use host_execution::HostedRunAdapters;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalForeInput {
+    pub front_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalForeDelivery {
+    pub front_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+    pub value_kind: conduit_core::KindId,
+    pub sequence: u64,
+    pub bytes: Vec<u8>,
+}
+
+/// A host acknowledges external Fore output only after its exact effect has
+/// been accepted. Returning an error leaves the kernel value undelivered.
+pub trait ExternalForeOutputAdapter {
+    fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String>;
+}
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
@@ -82,10 +101,7 @@ pub mod hosted_model_compute;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
-pub mod hosted_speech;
 pub mod hosted_speech_recognition;
-mod voice_host;
-pub use voice_host::VoiceHostProviders;
 mod hosted_spoken_output_host;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
@@ -95,6 +111,10 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub mod spoken_mask_journey;
+pub mod spoken_mask_runtime;
+#[cfg(test)]
+mod spoken_mask_runtime_tests;
 mod vision_ocr;
 mod vision_tracker;
 
@@ -129,9 +149,9 @@ mod local_model_observation;
 mod local_model_pool_member;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
-#[cfg(feature = "local-model-proof")]
-pub mod piper_plan_play_proof;
 mod run_control;
+#[cfg(feature = "local-model-proof")]
+pub mod spoken_birth_journey;
 pub mod state_value;
 pub use run_control::{
     RejectedRunControlRequest, RunControl, RunControlDisposition, RunControlReceipt,
@@ -276,9 +296,9 @@ pub struct StdRunReport {
     pub receipts: Vec<SignalReceipt>,
     pub kernel: Option<StdKernelExecutionReport>,
     pub control_receipts: Vec<RunControlReceipt>,
-    pub speech_synthesis: Vec<SpeechSynthesisExecutionReceipt>,
     pub speech_recognition: Vec<SpeechRecognitionExecutionReceipt>,
     pub microphone: Vec<hosted_microphone::MicrophoneCaptureReceipt>,
+    pub external_fore_deliveries: Vec<ExternalForeDelivery>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -296,22 +316,8 @@ pub struct SpeechRecognitionExecutionReceipt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SpeechSynthesisExecutionReceipt {
-    pub plan_id: conduit_core::PlanId,
-    pub active_play_id: conduit_core::ActivePlayId,
-    pub placement_id: conduit_core::PlacementId,
-    pub implementation_id: conduit_core::ImplementationId,
-    pub executable_sha256: String,
-    pub model_sha256: String,
-    pub config_sha256: String,
-    pub text_sha256: String,
-    pub pcm_sha256: String,
-    pub frames: u32,
-    pub blocks: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StdKernelExecutionReport {
+    pub active_play: conduit_core::ActivePlayIdentity,
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
     pub kernel_events: u16,
@@ -324,6 +330,7 @@ pub struct StdKernelExecutionReport {
     pub midi_input: Vec<hosted_midi::MidiInputReport>,
     pub midi_output: Vec<hosted_midi::MidiOutputReport>,
     pub identity: conduit_plan_lowering::lowering::KernelExecutionIdentityMap,
+    pub fore_endpoints: Vec<conduit_plan_lowering::lowering::KernelForeEndpointIdentity>,
     #[cfg(test)]
     pub post_play_start_allocations: usize,
 }
@@ -447,13 +454,12 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 
 pub struct StdHost {
     advertisement: HostAdvertisement,
-    image_identity: Option<conduit_host_fabrication::ImageBootIdentity>,
+    image_identity: Option<conduit_host_make::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
     wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
-    speech_synthesis: Option<hosted_speech::PiperSpeechAdapter>,
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
@@ -512,6 +518,16 @@ fn normalize_capability_offers(
 }
 
 impl StdHost {
+    #[cfg(test)]
+    fn install_test_capability(&mut self, offer: conduit_core::CapabilityOffer) {
+        self.advertisement.capabilities.push(offer);
+        self.advertisement
+            .capabilities
+            .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        self.kernel_resources = kernel_preparation::KernelResourceLedger::new(&self.advertisement)
+            .expect("test capability ledger is exact");
+    }
+
     pub fn install_body_conversation_context(
         &mut self,
         context: &conduit_body::BodyConversationContext,
@@ -598,7 +614,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -665,7 +680,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry,
@@ -707,14 +721,6 @@ impl StdHost {
                 .capability_offers()
                 .map_err(|error| format!("local-model capabilities: {error:?}"))?,
         );
-        if offer
-            .supported_profiles
-            .contains(&conduit_ai::LocalModelKindProfile::Generate)
-        {
-            advertisement
-                .capabilities
-                .push(hosted_local_model::generate_text_capability_offer(offer)?);
-        }
         advertisement
             .capabilities
             .push(conduit_std_offers::house_prompt_std_offer());
@@ -751,7 +757,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -793,7 +798,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -835,84 +839,11 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
             calendar: Some(adapter),
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-        })
-    }
-
-    pub fn new_with_piper_speech(
-        config: StdHostConfig,
-        composition: StdHostComposition,
-        adapter: hosted_speech::PiperSpeechAdapter,
-    ) -> Result<Self, String> {
-        if adapter.discovery().sample_rate_hz != 22_050
-            || adapter.limits().maximum_frames < conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2)
-            || adapter.limits().maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
-        {
-            return Err("initialized Piper adapter does not satisfy its offered profile".into());
-        }
-        let mut advertisement =
-            composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement
-            .resources
-            .push(hosted_speech::process_resource_offer());
-        advertisement.capabilities.retain(|offer| {
-            !matches!(
-                offer.implementation.implementation_id.as_str(),
-                conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
-                    | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
-            )
-        });
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::piper_speech_offer());
-        if adapter.limits().maximum_text_bytes
-            >= conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32
-        {
-            advertisement
-                .capabilities
-                .push(conduit_std_offers::piper_streaming_speech_offer());
-        }
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
-        // Unit-test compositions already install this proof sink through
-        // `composition_test_offers`; workspace feature unification must not
-        // advertise the same capability identity a second time.
-        #[cfg(all(feature = "local-model-proof", not(test)))]
-        advertisement
-            .capabilities
-            .push(installed_std::test_speech_sink::offer());
-        advertisement.resources.sort();
-        advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
-        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_synthesis: Some(adapter),
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
@@ -963,7 +894,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1020,7 +950,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1121,85 +1050,6 @@ impl StdHost {
         Ok(())
     }
 
-    pub fn new_with_piper_speech_and_playback(
-        config: StdHostConfig,
-        composition: StdHostComposition,
-        adapter: hosted_speech::PiperSpeechAdapter,
-        playback: hosted_audio::HostedPlaybackSelection,
-    ) -> Result<Self, String> {
-        if adapter.discovery().sample_rate_hz != 22_050
-            || adapter.limits().maximum_frames < conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2)
-            || adapter.limits().maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
-        {
-            return Err("initialized Piper adapter does not satisfy its offered profile".into());
-        }
-        if playback.boot_id != config.boot_id
-            || playback.offer_generation != config.offer_generation
-        {
-            return Err(
-                "playback observation does not match the advertised Boot/generation".into(),
-            );
-        }
-        let mut advertisement = composition::build_advertisement(
-            config,
-            composition,
-            Some(&playback),
-            None,
-            None,
-            false,
-        );
-        advertisement
-            .resources
-            .push(hosted_speech::process_resource_offer());
-        advertisement.capabilities.retain(|offer| {
-            !matches!(
-                offer.implementation.implementation_id.as_str(),
-                conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
-                    | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
-            )
-        });
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::piper_speech_offer());
-        if adapter.limits().maximum_text_bytes
-            >= conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32
-        {
-            advertisement
-                .capabilities
-                .push(conduit_std_offers::piper_streaming_speech_offer());
-        }
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
-        advertisement.resources.sort();
-        advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
-        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: Some(playback),
-            wav_artifact: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_synthesis: Some(adapter),
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-        })
-    }
-
     /// Executes against one platform-extended advertisement that was already
     /// published for this exact host/Boot. Rebuilding from only the generic
     /// composition here would discard admitted platform implementations.
@@ -1213,7 +1063,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1264,7 +1113,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1310,7 +1158,6 @@ impl StdHost {
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1328,12 +1175,12 @@ impl StdHost {
         &self.advertisement
     }
 
-    pub fn image_identity(&self) -> Option<&conduit_host_fabrication::ImageBootIdentity> {
+    pub fn image_identity(&self) -> Option<&conduit_host_make::ImageBootIdentity> {
         self.image_identity.as_ref()
     }
 
     pub fn from_image_binding(
-        binding: conduit_host_fabrication::BoundHostAdvertisement,
+        binding: conduit_host_make::BoundHostAdvertisement,
     ) -> Result<Self, String> {
         let (image_identity, advertisement) = binding.into_parts();
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -1345,7 +1192,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1393,7 +1239,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1511,6 +1356,43 @@ impl StdHost {
             .authority_requirements
             .first()
             .ok_or_else(|| "WAV artifact capability has no authority contract".to_string())?;
+        Ok(conduit_core::AuthorityGrant {
+            grant_id: conduit_core::AuthorityGrantId::from(grant_id),
+            contract_id: requirement.contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
+            subject_kind: requirement.subject_kind.clone(),
+            host_id: self.advertisement.host_id.clone(),
+            boot_id: self.advertisement.boot_id.clone(),
+            capability_id: capability.capability_id.clone(),
+        })
+    }
+
+    pub fn spoken_mask_artifact_authority_grant(
+        &self,
+        grant_id: &str,
+    ) -> Result<conduit_core::AuthorityGrant, String> {
+        let artifact = self
+            .wav_artifact
+            .as_ref()
+            .ok_or_else(|| "std Host has no selected WAV artifact destination".to_string())?;
+        if artifact.boot_id != self.advertisement.boot_id
+            || artifact.offer_generation != self.advertisement.offer_generation
+        {
+            return Err("selected spoken artifact destination is stale for this host".into());
+        }
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION
+            })
+            .ok_or_else(|| "spoken artifact capability is not advertised".to_string())?;
+        let requirement = capability
+            .authority_requirements
+            .first()
+            .ok_or_else(|| "spoken artifact capability has no authority contract".to_string())?;
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),

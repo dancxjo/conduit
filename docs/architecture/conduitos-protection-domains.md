@@ -40,7 +40,7 @@ may use its own typed continuity mechanism; handles never cross that boundary.
 Run:
 
 ```text
-cargo xtask conduitos isolation-proof
+cargo xtask make conduitos isolation-proof
 ```
 
 The harness builds and boots the actual `x86_64-unknown-none` image. The same

@@ -236,7 +236,7 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
             ..
         })
     ));
-    assert!(!source.terminal(RemoteEndpointId(0)).unwrap());
+    assert!(source.terminal(RemoteEndpointId(0)).unwrap().is_none());
     sink.cancel().unwrap();
     source.cancel().unwrap();
 }

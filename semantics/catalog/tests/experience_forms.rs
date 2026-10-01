@@ -1,7 +1,7 @@
 use conduit_core::{
-    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
-    OfferGeneration, PROTOCOL_VERSION,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, HostAdvertisement,
+    HostId, HostProfileId, ImplementationId, ImplementationOffer, OfferGeneration,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -119,7 +119,8 @@ fn one_checked_experiencer_moves_between_compatible_hosts_without_changing_meani
         profile: HostProfileId::from(format!("experience/{name}@1")),
         bases: vec![],
         resources: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: Default::default(),
             startup_parameters: vec![],
             shorthand: None,
             capability_id: CapabilityId::from(format!("experience/{name}/relate-current")),

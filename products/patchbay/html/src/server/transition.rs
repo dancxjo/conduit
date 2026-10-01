@@ -114,7 +114,7 @@ mod tests {
             .presentation
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Form && subject.label == "Text Lab")
+            .find(|subject| subject.role == PresentationRole::Form && subject.name == "Text Lab")
             .unwrap()
             .identity
             .clone();
@@ -147,7 +147,8 @@ mod tests {
             Some("Refused(StalePresentation)")
         );
         assert!(stale.presentation.subjects.iter().any(|subject| {
-            subject.role == PresentationRole::Sign && subject.label == "Refused StalePresentation"
+            subject.role == PresentationRole::Sign
+                && subject.name == "Front-door refusal Sign StalePresentation"
         }));
 
         let birth = server

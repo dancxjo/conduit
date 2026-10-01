@@ -38,7 +38,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         )],
         planner_capabilities: vec![],
         capabilities: vec![
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: trigger_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("trigger-1"),
@@ -51,6 +51,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 },
                 inputs: Vec::new(),
                 outputs: trigger_outputs(),
+                semantic_contract: trigger_semantic_contract().semantic_contract(),
                 host_calls: trigger_host_call_requirements(),
                 resource_requirements: trigger_resource_requirements(),
                 authority_requirements: Vec::new(),
@@ -60,7 +61,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                     max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
                 },
             },
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: toggle_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("toggle-1"),
@@ -69,6 +70,8 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 implementation: conduit_std_offers::state_toggle_offer().implementation,
                 inputs: toggle_inputs(),
                 outputs: toggle_outputs(),
+                semantic_contract: conduit_semantic_catalog::state_toggle_semantic_contract()
+                    .semantic_contract(),
                 host_calls: toggle_host_call_requirements(),
                 resource_requirements: toggle_resource_requirements(),
                 authority_requirements: Vec::new(),

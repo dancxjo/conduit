@@ -9,19 +9,17 @@ const headTree = "27a9e0f98339fce62fc8360095b2f1ea0d5a9b92";
 const mergedTree = "bd48b1d15eab5989a6b452ff23e0b47cde8c67a7";
 const integrationBase = "20ce4bc5448faebb5d0874041e9c0887a273681f";
 
-test("admits promotion, candidate, and legacy product carrier producers only", () => {
+test("admits current product carrier producers only", () => {
   const promotion = { id: 5, path: ".github/workflows/promotion.yml" };
   const candidate = { id: 1, path: ".github/workflows/candidate.yml" };
-  const legacy = { id: 2, path: ".github/workflows/executable-book-pages.yml" };
-  const current = { id: 6, path: ".github/workflows/tour-products.yml" };
+  const current = { id: 6, path: ".github/workflows/product-carrier.yml" };
   assert.deepEqual(productCarrierRuns([
     promotion,
     { id: 3, path: ".github/workflows/check.yml" },
     candidate,
     { id: 4 },
-    legacy,
     current,
-  ]), [promotion, candidate, legacy, current]);
+  ]), [promotion, candidate, current]);
   assert.deepEqual(productCarrierRuns(undefined), []);
 });
 
@@ -38,15 +36,6 @@ test("inherited promotion requires retained nonempty carrier bytes", () => {
     assert.equal(hasRetainedArtifact([artifact], "conduit-pages-carrier"), false);
   }
   assert.equal(hasRetainedArtifact(undefined, "conduit-pages-carrier"), false);
-});
-
-test("recognizes the promotion-only ConduitOS carrier without weakening artifact checks", () => {
-  assert.equal(hasRetainedArtifact([
-    { name: "conduit-pages-carrier-with-conduitos", expired: false, size_in_bytes: 42 },
-  ], "conduit-pages-carrier-with-conduitos"), true);
-  assert.equal(hasRetainedArtifact([
-    { name: "conduit-pages-carrier-with-conduitos", expired: true, size_in_bytes: 42 },
-  ], "conduit-pages-carrier-with-conduitos"), false);
 });
 
 test("selects the successful exact-head run when GitHub omits PR associations", () => {
@@ -110,7 +99,7 @@ test("refuses an unmerged pull or a merged commit without an exact tree", async 
   await assert.rejects(() => resolveMergedPullSource({ merged_at: "now", merge_commit_sha: merged, head: { sha: head } }, async () => ({ tree: { sha: headTree.slice(1) } })), /no exact source, integration base, and merged trees/);
 });
 
-test("an exact current main commit becomes one explicit fabrication source", async () => {
+test("an exact current main commit becomes one explicit make source", async () => {
   const source = await resolveExactMainSource(merged, merged, async (commit) => ({
     sha: commit,
     tree: { sha: mergedTree },

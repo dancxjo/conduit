@@ -232,7 +232,8 @@ fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
 
 #[test]
 fn boolean_contract_projects_a_toggle_with_explicit_choices() {
-    let gear = conduit_form::CheckedGear {
+    let gear = conduit_form::checked_gear_from_parts! {
+        semantic_contract: Default::default(),
         gear_id: conduit_core::GearId::from("controls/pulse"),
         kind_id: conduit_core::kind_id(conduit_semantic_catalog::STATE_TOGGLE_KIND),
         kind_contract_revision: conduit_core::KindIdentity::from(
@@ -242,13 +243,15 @@ fn boolean_contract_projects_a_toggle_with_explicit_choices() {
         shorthand: None,
         inputs: Vec::new(),
         outputs: Vec::new(),
+        terminal_transductions: Vec::new(),
+        resource_ports: Vec::new(),
         configuration: vec![conduit_core::ConfigurationEntry {
             key: "initial".into(),
             value: ConfigurationValue::Bool(true),
         }],
         pool_references: Vec::new(),
     };
-    let controls = crate::front_controls::project_controls(&gear).unwrap();
+    let controls = patchbay_graph::project_front_controls(&gear).unwrap();
     assert!(matches!(
         controls[0].kind,
         FaceControlKind::BooleanChoice {

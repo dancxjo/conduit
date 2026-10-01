@@ -147,10 +147,10 @@ impl PicoControlSource {
             .kernel
             .pop()
             .ok_or_else(|| "R1 control kernel lost admitted input".to_string())?;
-        if merged.signal.sequence != self.session.next_sequence() {
+        if *merged.signal.sequence() != self.session.next_sequence() {
             return Err("R1 control merge sequence disagrees with Session".into());
         }
-        let sequence = merged.signal.sequence;
+        let sequence = *merged.signal.sequence();
         let payload = encode_signal_fixed(&merged.signal);
         self.in_flight = Some(merged);
         Ok((sequence, payload))
@@ -201,7 +201,9 @@ impl PicoControlSource {
     }
 
     fn in_flight_sequence(&self) -> Option<u64> {
-        self.in_flight.as_ref().map(|merged| merged.signal.sequence)
+        self.in_flight
+            .as_ref()
+            .map(|merged| *merged.signal.sequence())
     }
 }
 
@@ -294,7 +296,7 @@ mod tests {
             source.admit_inbound(delivered).unwrap();
             let merged = source.delivered(sequence).unwrap();
             assert_eq!(merged.input.peer, peer);
-            assert_eq!(merged.signal.level, level);
+            assert_eq!(*merged.signal.level(), level);
         }
         let final_sequence = source.final_sequence().unwrap();
         assert_eq!(final_sequence, 6);

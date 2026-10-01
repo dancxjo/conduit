@@ -6,10 +6,9 @@
 
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
-    ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration, RealizationAdvertisement,
-    PROTOCOL_VERSION,
+    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, ImplementationId,
+    ImplementationOffer, KindIdentity, OfferGeneration, RealizationAdvertisement, PROTOCOL_VERSION,
 };
 
 pub const SONG_OPCODE: u8 = 140;
@@ -197,7 +196,10 @@ pub fn live_speaker_advertisement(
         profile: conduit_core::HostProfileId::from(SPEAKER_PROFILE),
         bases: vec![],
         resources,
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: conduit_semantic_catalog::music_play_contract()
+                .into_semantic_contract(conduit_semantic_catalog::MUSIC_PLAY_REVISION)
+                .semantic_contract(),
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(SPEAKER_CAPABILITY),

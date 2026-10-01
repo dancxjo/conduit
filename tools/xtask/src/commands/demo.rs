@@ -5,7 +5,7 @@ use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
 
 pub(crate) const STD_STEP: Step = Step::new(
-    "demo.std",
+    "journey.std",
     "Launch the ordinary std Host with the canonical Hello Form",
     "cargo",
     &[
@@ -19,7 +19,7 @@ pub(crate) const STD_STEP: Step = Step::new(
 );
 
 pub(crate) const TRIPLE_STEP: Step = Step::new(
-    "demo.triple",
+    "journey.triple",
     "Run the three-sink Form locally",
     "cargo",
     &[
@@ -34,67 +34,6 @@ pub(crate) const TRIPLE_STEP: Step = Step::new(
         "--await-terminal",
     ],
 );
-
-pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    let root = workspace_root()?;
-    let product = root.join("target/tour-product");
-    if product.exists() {
-        std::fs::remove_dir_all(&product)?;
-    }
-    run_step(
-        &Step::new(
-            "demo.tour.runtime",
-            "Build the ordinary bounded browser Host runtime",
-            "cargo",
-            &[
-                "build",
-                "-p",
-                "conduit-browser-runtime",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-                "--no-default-features",
-                "--features",
-                "tour-surface",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
-    run_step(
-        &Step::new(
-            "demo.tour.package",
-            "Stage the exact admitted Tour application",
-            "products/tour/tools/stage-tour-product.sh",
-            &[
-                "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
-                "target/tour-product",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
-    run_step(
-        &Step::new(
-            "demo.tour.host",
-            "Open the executable Conduit Tour",
-            "cargo",
-            &[
-                "run",
-                "-p",
-                "conduit-browser-host",
-                "--",
-                "--application",
-                "target/tour-product",
-                "--mount",
-                "/tour/",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
-    Ok(())
-}
 
 pub fn run_std(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_step(&STD_STEP, &workspace_root()?, opts)?;
@@ -114,7 +53,7 @@ pub fn run_patchbay(
     if !args.first_run_proof && args.on == PatchbayHost::Browser {
         run_step(
             &Step::new(
-                "demo.patchbay.browser-host",
+                "journey.patchbay.browser-host",
                 "Build the real browser Host membership runtime",
                 "cargo",
                 &[
@@ -167,7 +106,7 @@ pub fn run_patchbay(
         ][..]
     };
     let step = Step::new(
-        "demo.patchbay",
+        "journey.patchbay",
         if args.first_run_proof {
             "Prove the bounded native Patchbay first-run journey"
         } else if args.on == PatchbayHost::Browser {
@@ -189,7 +128,7 @@ pub fn run_body_membership(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
 pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let step = Step::new(
-        "demo.environment",
+        "journey.environment",
         "Open the bounded authored physical-environment workspace",
         "cargo",
         &[
@@ -198,7 +137,7 @@ pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
             "patchbay-native",
             "--",
             "--environment",
-            "products/patchbay/native/assets/maker-workbench.json",
+            "forms/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -208,7 +147,7 @@ pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
 pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let step = Step::new(
-        "demo.prewake",
+        "journey.prewake",
         "Rehearse the canonical Form against authored simulation truth",
         "cargo",
         &[
@@ -220,7 +159,7 @@ pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> 
             "--form",
             "forms/hello/main.conduit",
             "--environment",
-            "products/patchbay/native/assets/maker-workbench.json",
+            "forms/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -230,7 +169,7 @@ pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> 
 pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let step = Step::new(
-        "demo.text-lab",
+        "journey.text-lab",
         "Open the ordinary native Text Lab through effect-free PREWAKE",
         "cargo",
         &[
@@ -243,7 +182,7 @@ pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
             "--form",
             "forms/text-lab/main.conduit",
             "--environment",
-            "products/patchbay/native/assets/maker-workbench.json",
+            "forms/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;

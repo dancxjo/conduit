@@ -131,10 +131,15 @@ fn observation_values_retain_actual_length_and_exact_domain_truth() {
         assert_eq!(values.len(), 1);
         assert!(!value.canonical_bytes().unwrap().is_empty());
     }
-    let StructuredInfoTypeShape::Sequence { capacity, .. } = texts.value_type().shape() else {
+    let StructuredInfoTypeShape::Sequence {
+        minimum_items,
+        maximum_items,
+        ..
+    } = texts.value_type().shape()
+    else {
         unreachable!()
     };
-    assert_eq!(capacity, 8);
+    assert_eq!((minimum_items, maximum_items), (0, 8));
     assert_eq!(
         visible_text_observations_from_value(&texts, &profile).unwrap(),
         [visible_text()]

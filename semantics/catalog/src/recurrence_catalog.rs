@@ -11,10 +11,7 @@ use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    StartupParameterSignature,
-};
+use conduit_form::{KindSignature, StartupParameterSignature};
 
 pub const RECURRENCE_REQUEST_TYPE: &str = "RecurrenceExpansion";
 pub const RECURRENCE_KIND: &str = "time/expand-recurrence";
@@ -26,6 +23,9 @@ pub const RECURRENCE_MAXIMUM_EXCEPTIONS: u16 = 4;
 pub const RECURRENCE_MAXIMUM_RESOLUTIONS: u16 = 8;
 
 pub fn recurrence_semantic_contract() -> Kind {
+    let request_profile = recurrence_request_type()
+        .profile()
+        .expect("reviewed recurrence request is bounded");
     Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
@@ -49,8 +49,24 @@ pub fn recurrence_semantic_contract() -> Kind {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
-        configuration: Default::default(),
+        configuration: vec![conduit_core::KindConfigurationField {
+            key: "request".into(),
+            default_value: ConfigurationValue::Structured(
+                conduit_core::StructuredConfigurationValue::new(
+                    request_profile.value_kind().clone(),
+                    default_recurrence_request()
+                        .expect("reviewed default recurrence request is valid")
+                        .canonical_bytes()
+                        .expect("reviewed default recurrence request encodes"),
+                )
+                .expect("reviewed default recurrence configuration is valid"),
+            ),
+            rule: conduit_core::KindConfigurationRule::Structured {
+                profile: request_profile.value_kind().clone(),
+            },
+        }],
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
@@ -337,42 +353,8 @@ pub fn install_recurrence_catalogs(
             }],
         })
         .map_err(|error| error.to_string())?;
-    let request_profile = request
-        .profile()
-        .map_err(|error| alloc::format!("{error:?}"))?;
     profile
-        .insert(KindProjection {
-            kind_id: kind_id(RECURRENCE_KIND),
-            kind_contract_revision: KindIdentity::from(RECURRENCE_REVISION),
-            inputs: vec![],
-            outputs: vec![PortDescriptor {
-                port_id: port_id("occurrences"),
-                value_kind: recurrence_result_type()
-                    .profile()
-                    .map_err(|error| alloc::format!("{error:?}"))?
-                    .value_kind()
-                    .clone(),
-                direction: PortDirection::Output,
-                temporal: PortTemporal::Value,
-            }],
-            configuration: vec![KindConfigurationField {
-                key: "request".into(),
-                default_value: ConfigurationValue::Structured(
-                    conduit_core::StructuredConfigurationValue::new(
-                        request_profile.value_kind().clone(),
-                        default_recurrence_request()?
-                            .canonical_bytes()
-                            .map_err(|error| {
-                                alloc::format!("encode default recurrence request: {error:?}")
-                            })?,
-                    )
-                    .ok_or_else(|| "default recurrence configuration is invalid".to_string())?,
-                ),
-                rule: KindConfigurationRule::Structured {
-                    profile: request_profile.value_kind().clone(),
-                },
-            }],
-        })
+        .insert_kind(recurrence_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

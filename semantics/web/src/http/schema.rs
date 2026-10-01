@@ -66,14 +66,7 @@ fn headers_type() -> StructuredInfoType {
 }
 
 fn method_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("http/method@1"),
-        ["delete", "get", "head", "options", "patch", "post", "put"]
-            .into_iter()
-            .map(|tag| case(tag, leaf(UNIT)))
-            .collect(),
-    )
-    .expect("HTTP method schema is finite")
+    HttpMethod::semantic_type().expect("checked native HTTP method type is finite")
 }
 
 fn body_type() -> StructuredInfoType {
@@ -125,7 +118,10 @@ pub(super) fn request_value(
             value_field("headers", headers_value(&request.headers)?),
             value_field("method", method_value(request.method)?),
             value_field("target", target_value(&request.target)?),
-            value_field("transaction_id", count_value(request.transaction_id.0)?),
+            value_field(
+                "transaction_id",
+                count_value(*request.transaction_id.get())?,
+            ),
         ],
     )
 }
@@ -140,7 +136,10 @@ pub(super) fn response_value(
             value_field("body", body_value(&response.body)?),
             value_field("headers", headers_value(&response.headers)?),
             value_field("status", count_value(u64::from(response.status))?),
-            value_field("transaction_id", count_value(response.transaction_id.0)?),
+            value_field(
+                "transaction_id",
+                count_value(*response.transaction_id.get())?,
+            ),
         ],
     )
 }
@@ -173,9 +172,9 @@ fn target_value(target: &HttpTarget) -> Result<StructuredInfoValue, HttpContract
     record(
         target_type(),
         vec![
-            value_field("authority", text_value(&target.authority)?),
-            value_field("path_and_query", text_value(&target.path_and_query)?),
-            value_field("scheme", text_value(&target.scheme)?),
+            value_field("authority", text_value(target.authority())?),
+            value_field("path_and_query", text_value(target.path_and_query())?),
+            value_field("scheme", text_value(target.scheme().as_str())?),
         ],
     )
 }
@@ -201,8 +200,11 @@ fn headers_value(headers: &[HttpHeader]) -> Result<StructuredInfoValue, HttpCont
         let value = record(
             header_type(),
             vec![
-                value_field("name", text_value(&header.name)?),
-                value_field("value", leaf_value(leaf(BYTES), header.value.clone())?),
+                value_field("name", text_value(header.name())?),
+                value_field(
+                    "value",
+                    leaf_value(leaf(BYTES), header.value().as_slice().to_vec())?,
+                ),
             ],
         )?;
         slots.push(
@@ -246,7 +248,8 @@ pub(super) fn request_from_value(
     }
     let fields = record_fields(value)?;
     Ok(HttpRequest {
-        transaction_id: HttpTransactionId(count_field(fields, "transaction_id")?),
+        transaction_id: HttpTransactionId::new(count_field(fields, "transaction_id")?)
+            .map_err(|_| HttpContractError::MalformedEncoding)?,
         method: decode_method(field_value(fields, "method")?)?,
         target: decode_target(field_value(fields, "target")?)?,
         headers: decode_headers(field_value(fields, "headers")?)?,
@@ -262,7 +265,8 @@ pub(super) fn response_from_value(
     }
     let fields = record_fields(value)?;
     Ok(HttpResponse {
-        transaction_id: HttpTransactionId(count_field(fields, "transaction_id")?),
+        transaction_id: HttpTransactionId::new(count_field(fields, "transaction_id")?)
+            .map_err(|_| HttpContractError::MalformedEncoding)?,
         status: u16::try_from(count_field(fields, "status")?)
             .map_err(|_| HttpContractError::InvalidStatus)?,
         headers: decode_headers(field_value(fields, "headers")?)?,
@@ -322,11 +326,17 @@ fn decode_method(value: &StructuredInfoValue) -> Result<HttpMethod, HttpContract
 
 fn decode_target(value: &StructuredInfoValue) -> Result<HttpTarget, HttpContractError> {
     let fields = record_fields(value)?;
-    Ok(HttpTarget {
-        scheme: decode_text(field_value(fields, "scheme")?)?,
-        authority: decode_text(field_value(fields, "authority")?)?,
-        path_and_query: decode_text(field_value(fields, "path_and_query")?)?,
-    })
+    let scheme = match decode_text(field_value(fields, "scheme")?)?.as_str() {
+        "http" => super::HttpScheme::Http,
+        "https" => super::HttpScheme::Https,
+        _ => return Err(HttpContractError::InvalidScheme),
+    };
+    HttpTarget::new(
+        decode_text(field_value(fields, "authority")?)?,
+        decode_text(field_value(fields, "path_and_query")?)?,
+        scheme,
+    )
+    .map_err(|_| HttpContractError::MalformedEncoding)
 }
 
 fn decode_text(value: &StructuredInfoValue) -> Result<String, HttpContractError> {
@@ -347,10 +357,14 @@ fn decode_headers(value: &StructuredInfoValue) -> Result<Vec<HttpHeader>, HttpCo
             "unused" => unused_seen = true,
             "header" if !unused_seen => {
                 let fields = record_fields(payload)?;
-                headers.push(HttpHeader {
-                    name: decode_text(field_value(fields, "name")?)?,
-                    value: leaf_bytes(field_value(fields, "value")?)?.to_vec(),
-                });
+                let value = conduit_form::rust_binding::BoundedBytes::new(leaf_bytes(
+                    field_value(fields, "value")?,
+                )?)
+                .ok_or(HttpContractError::HeaderValueOverflow)?;
+                headers.push(
+                    HttpHeader::new(decode_text(field_value(fields, "name")?)?, value)
+                        .map_err(|_| HttpContractError::MalformedEncoding)?,
+                );
             }
             _ => return Err(HttpContractError::MalformedEncoding),
         }

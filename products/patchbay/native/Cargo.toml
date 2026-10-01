@@ -23,7 +23,8 @@ conduit-std-offers = { path = "../../../targets/std/offers" }
 conduit-wire = { path = "../../../architecture/wire" }
 embedded-graphics = "=0.8.1"
 patchbay-model = { path = "../model" }
-patchbay-hosted = { path = "../hosted" }
+patchbay-graph = { path = "../../../forms/patchbay/graph" }
+patchbay-hosted = { path = "../../../targets/std/patchbay-workbench" }
 serde_json = "1"
 softbuffer = { version = "0.4", default-features = false, features = ["wayland", "wayland-dlopen"] }
 winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }

@@ -1,10 +1,10 @@
 //! Exact two-Host plan for delivering one Patchbay Presentation to a renderer.
 
 use conduit_core::{
-    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    ImplementationOffer, KindIdentity, LineOffer, LineScope, LineSecurity, LinkLimits,
-    OfferGeneration, Plan, PortDirection, PROTOCOL_VERSION,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
+    GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
+    KindIdentity, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    PortDirection, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
@@ -119,7 +119,8 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
         profile: HostProfileId::from("presentation/source-host@1"),
         bases: vec![],
         resources: Vec::new(),
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: Default::default(),
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(PRESENTATION_PROJECT_CAPABILITY),

@@ -29,7 +29,9 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: vec![conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap()],
+        capabilities: vec![
+            conduit_std_offers::state_value_std_offer("Cell", &ty, &initial).unwrap(),
+        ],
     }];
     let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
     let plan = conduit_planner::plan(&form, &hosts, &placements, &[]).unwrap();
@@ -48,7 +50,9 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         StepOutcome::Progress
     );
     assert!(initial_io.test_canonical_output().is_some());
-    let next = initial.canonical_bytes().unwrap();
+    // A leaf State carries the exact primitive payload Kind on its runtime
+    // cord. The structured envelope remains admission/configuration truth.
+    let next = InfoBool::new(true).encode().to_vec();
     let reference = ValueRef {
         slot: 0,
         generation: 0,

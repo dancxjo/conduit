@@ -101,8 +101,7 @@ jobs:
               proof/ci/branch-boundary.spec.mjs \
               proof/ci/browser-product-ownership.test.mjs \
               proof/ci/pr-closing-intent.test.mjs \
-              proof/ci/release-lane-controller.spec.mjs \
-              proof/ci/tour-compatibility.test.mjs
+              proof/ci/release-lane-controller.spec.mjs
             gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" \
               -f name=candidate \
               -f head_sha="$HEAD_SHA" \

@@ -3,10 +3,12 @@
 use alloc::{collections::VecDeque, format, string::String, vec, vec::Vec};
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationInput, PresentationProperty,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText, UTF8_TEXT_VALUE_KIND,
+    PresentationRole, PresentationSubject, PresentationText,
 };
+
+use crate::{ChatConnectionState, ChatStateRefusal};
 
 pub const CHAT_SEND_ACTION: &str = "chat/send";
 pub const CHAT_MESSAGE_INPUT: &str = "chat/message-input";
@@ -23,23 +25,6 @@ pub struct ChatPresentationConfiguration {
     pub status_label: String,
     pub maximum_message_bytes: u32,
     pub maximum_history_items: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChatConnectionState {
-    Connecting,
-    Connected,
-    Disconnected,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChatStateRefusal {
-    InvalidConfiguration,
-    EmptyMessage,
-    OversizeMessage,
-    MalformedMessage,
-    SequenceExhausted,
-    InvalidPresentation,
 }
 
 #[derive(Debug, Clone)]
@@ -161,7 +146,7 @@ impl ChatPresentationState {
                 text: message.clone(),
             });
         }
-        Presentation::new_with_interactions(
+        Presentation::new_with_semantics(
             self.revision,
             empty_basis(),
             subjects,
@@ -187,23 +172,20 @@ impl ChatPresentationState {
                 identity: CHAT_SEND_ACTION.into(),
                 intent: CHAT_SEND_ACTION.into(),
                 target: CHAT_MESSAGE_TARGET.into(),
-                label: self.configuration.submit_label.clone(),
+                name: self.configuration.submit_label.clone(),
+                arguments: vec![conduit_presentation::FaceActionArgument::text(
+                    CHAT_MESSAGE_INPUT.into(),
+                    self.configuration.input_label.clone(),
+                    1,
+                    self.configuration.maximum_message_bytes,
+                )
+                .expect("checked chat configuration has a finite text contract")],
                 disclosure: PresentationDisclosureLevel::CurrentAction,
                 availability: match self.connection {
                     ChatConnectionState::Connected => PresentationActionAvailability::Available,
                     ChatConnectionState::Connecting => unavailable("connection/connecting"),
                     ChatConnectionState::Disconnected => unavailable("connection/disconnected"),
                 },
-            }],
-            vec![PresentationInput {
-                identity: CHAT_MESSAGE_INPUT.into(),
-                target: CHAT_MESSAGE_TARGET.into(),
-                value_kind: UTF8_TEXT_VALUE_KIND.into(),
-                maximum_bytes: self.configuration.maximum_message_bytes,
-                allow_empty: false,
-                label: self.configuration.input_label.clone(),
-                accessibility_name: self.configuration.input_label.clone(),
-                submit_action: CHAT_SEND_ACTION.into(),
             }],
             vec![PresentationDisclosure {
                 subject: "chat/document".into(),
@@ -230,12 +212,11 @@ impl ChatPresentationState {
     }
 }
 
-fn subject(identity: &str, role: PresentationRole, label: &str) -> PresentationSubject {
+fn subject(identity: &str, role: PresentationRole, name: &str) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role,
-        label: label.into(),
-        accessibility_name: label.into(),
+        name: name.into(),
     }
 }
 

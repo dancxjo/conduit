@@ -94,7 +94,7 @@ impl StructuredPresentationHost {
     }
 
     /// A failed or cancelled Play need not have reached every planned presenter.
-    /// Keep effects that happened, but never fabricate an effect for an idle sink.
+    /// Keep effects that happened, but never make an effect for an idle sink.
     pub(super) fn retain_realized_effects(&mut self) {
         self.slots.retain(|slot| slot.request.is_some());
     }

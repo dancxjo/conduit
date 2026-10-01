@@ -1,11 +1,18 @@
 //! Portable mapping from a bounded scalar range to an exact unit-bearing quantity.
 
-use alloc::{format, string::ToString, vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use alloc::format;
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use conduit_core::QuantityDimension;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, Quantity, QuantityDimension, QuantityUnit, Scalar,
-    DISTANCE_INFO_ID, FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    PortTemporal, Quantity, QuantityUnit, Scalar, DISTANCE_INFO_ID, FREQUENCY_INFO_ID,
+    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
+pub use conduit_data::{QuantityMappingRefusal, QuantizationPolicy, RangePolicy};
 
 use crate::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
@@ -17,18 +24,6 @@ pub const DISTANCE_FREQUENCY_MAP_KIND: &str = "math/map-distance-frequency";
 pub const DISTANCE_FREQUENCY_MAP_REVISION: &str = "conduit.std/math-map-distance-frequency@1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RangePolicy {
-    Refuse,
-    Clamp,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QuantizationPolicy {
-    Exact,
-    Nearest,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QuantityMapping {
     pub source_minimum: Scalar,
     pub source_maximum: Scalar,
@@ -38,14 +33,6 @@ pub struct QuantityMapping {
     pub target_unit: QuantityUnit,
     pub range_policy: RangePolicy,
     pub quantization: QuantizationPolicy,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QuantityMappingRefusal {
-    InvalidRange,
-    OutOfRange,
-    Inexact,
-    Overflow,
 }
 
 impl QuantityMapping {
@@ -150,7 +137,10 @@ pub fn distance_frequency_map_contract() -> StandardKindContract {
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
-            max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
+            // One item remains exact; the byte ceiling uses Conduit's ordinary
+            // shared finite Cord admission capacity so this mapping can compose
+            // with larger bounded values without importing their semantics.
+            max_queue_bytes: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
         },
         terminal_behavior:
             KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
@@ -202,10 +192,7 @@ fn install_mapping_contract(
     contract: StandardKindContract,
     revision: &'static str,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().into(),
         startup_parameters: contract
@@ -236,40 +223,7 @@ fn install_mapping_contract(
             .collect(),
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(revision),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: contract
-                .configuration
-                .into_iter()
-                .map(|field| KindConfigurationField {
-                    key: field.key,
-                    default_value: field.default_value,
-                    rule: match field.rule {
-                        KindConfigurationRule::I64Range { minimum, maximum } => {
-                            KindConfigurationRule::I64Range { minimum, maximum }
-                        }
-                        KindConfigurationRule::TextOneOf { values } => {
-                            KindConfigurationRule::TextOneOf { values }
-                        }
-                        KindConfigurationRule::QuantityRange {
-                            minimum,
-                            maximum,
-                            canonical_unit,
-                        } => KindConfigurationRule::QuantityRange {
-                            minimum,
-                            maximum,
-                            canonical_unit,
-                        },
-                        _ => {
-                            unreachable!("quantity mapping uses exact scalar/text/quantity fields")
-                        }
-                    },
-                })
-                .collect(),
-        })
+        .insert_kind(contract.into_semantic_contract(revision))
         .map_err(|error| error.to_string())
 }
 
@@ -359,6 +313,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

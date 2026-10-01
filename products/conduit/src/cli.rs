@@ -1,41 +1,20 @@
 use clap::{Parser, Subcommand, ValueEnum};
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 /// Product command-line entrance for installed Conduit workflows.
 #[derive(Debug, Parser)]
 #[command(
     name = "conduit",
-    about = "Run Forms and grow a living Conduit Body",
-    long_about = "Run Forms and grow a living Conduit Body.\n\nUse `conduit body invite` to issue bounded joining authority, `conduit body accept` on an installed machine to prepare its signed admission request, and `conduit body admit` on the owning machine to commit membership and current presence. Use `conduit host obtain` to resolve a reviewed target release. Body binding remains separate from `conduit host carry`, which downloads, launches, writes, or flashes an exact artifact through an explicit carrier. Inspect durable identity and current runtime truth with `conduit host service status`.",
-    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join > request.json\n  3. conduit body admit request.json --state-dir <OWNER_STATE> --authorize-admission > receipt.json\n  4. conduit body complete-join receipt.json --state-dir <JOINING_STATE> --authorize-membership\n  5. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  6. conduit host carry <CARRIER> --help\n\nInvitation, request, and receipt documents are bounded JSON suitable for standard input/output. Admission reports membership and current offers without creating a plan or Play. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
+    about = "Enter Conduit, run Forms, and inspect exact truth",
+    long_about = "Enter Conduit, run Forms, and inspect exact truth.\n\nWith no command, Conduit enters the current Body named by CONDUIT_STATE_DIR. If that Host does not yet belong to a Body, Conduit enters the birth encounter instead."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
-    pub(crate) command: Command,
+    pub(crate) command: Option<Command>,
 }
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
-    /// Enter Conduit Home through the native presentation available on this host.
-    Home,
-    /// Birth and provision a body through the browser Crèche.
-    Creche,
-    /// Enter the current body through the shared Patchbay front door.
-    Patchbay {
-        /// Select the host realization used to manifest Patchbay.
-        #[arg(long, value_enum, default_value_t = PatchbayHost::Native)]
-        on: PatchbayHost,
-        /// Open exact exported Body biography evidence in an external reader.
-        #[arg(long)]
-        body_evidence: Option<PathBuf>,
-        /// Offer one explicit local body invitation to this browser Host.
-        #[arg(long, requires = "body_evidence")]
-        body_invitation: Option<String>,
-        /// Admit a reviewed form label and canonical source for Body workload changes.
-        #[arg(long, value_names = ["LABEL", "PATH"], num_args = 2, action = clap::ArgAction::Append, requires = "body_evidence")]
-        reviewed_form: Vec<OsString>,
-    },
     /// Check, plan, admit, and execute a form on available local hosts.
     Run {
         /// Authored form to execute.
@@ -46,6 +25,9 @@ pub(crate) enum Command {
         /// Write a neutral runtime report after execution.
         #[arg(long)]
         report: Option<PathBuf>,
+        /// Retain separately validated Plan, Play, and Sign artifacts in a new directory.
+        #[arg(long)]
+        artifacts: Option<PathBuf>,
         /// Exact canonical Body construction source used for Host and Line truth.
         #[arg(long)]
         body: Option<PathBuf>,
@@ -53,20 +35,15 @@ pub(crate) enum Command {
         #[arg(long)]
         await_terminal: bool,
     },
-    /// Check, inspect, or build canonical Host construction truth.
+    /// Inspect this Host or perform one installed Host action.
     Host {
         #[command(subcommand)]
-        command: HostCommand,
+        command: Option<HostCommand>,
     },
-    /// Check, inspect, or build canonical Body construction truth.
+    /// Inspect this Body or perform one durable Body lifecycle operation.
     Body {
         #[command(subcommand)]
-        command: BodyCommand,
-    },
-    /// Operate finite self-hosted rendezvous infrastructure.
-    RendezvousRelay {
-        #[command(subcommand)]
-        command: RendezvousRelayCommand,
+        command: Option<BodyCommand>,
     },
     /// Check a form and render owned diagnostics without executing it.
     Check {
@@ -74,93 +51,54 @@ pub(crate) enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Explain concise source as the ordinary checked semantics it names.
+    Expand {
+        form: PathBuf,
+        /// Emit the structured source-correlation model for editor tooling.
+        #[arg(long)]
+        json: bool,
+    },
     /// Inspect retained Conduit artifacts without executing work.
     Inspect {
-        #[command(subcommand)]
-        command: InspectCommand,
+        /// Artifact whose schema identifies the truth to render.
+        thing: PathBuf,
     },
-    /// Run the protected local file-copy task.
-    Copy {
-        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
-        arguments: Vec<String>,
-    },
-}
-
-#[derive(Debug, Subcommand)]
-pub(crate) enum RendezvousRelayCommand {
-    /// Create one private relay slot and two exact endpoint descriptors.
-    Provision {
-        /// Native socket address used by hosted endpoints to reach the relay.
-        #[arg(long)]
-        relay_address: String,
-        /// Browser/native reachable WSS URL covered by the relay certificate.
-        #[arg(long)]
-        relay_url: String,
-        /// Exact WebPKI/TLS server identity in the relay URL.
-        #[arg(long)]
-        server_identity: String,
-        /// Lowercase or uppercase SHA-256 hex digest of the relay leaf certificate.
-        #[arg(long)]
-        certificate_sha256: String,
-        #[arg(long)]
-        first_host_id: String,
-        #[arg(long)]
-        first_boot_id: String,
-        #[arg(long)]
-        second_host_id: String,
-        #[arg(long)]
-        second_boot_id: String,
-        /// New directory that will receive three private descriptor files.
-        #[arg(long)]
-        output: PathBuf,
-        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
-        expires_in_seconds: u64,
-        #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u8).range(1..=3))]
-        maximum_attempts: u8,
-        /// Explicitly authorize creation of new rendezvous secrets.
-        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
-        authorize_provision: bool,
-    },
-    /// Serve one configured two-endpoint opaque relay slot over pinned WSS.
-    Serve {
-        /// Exact non-loopback socket explicitly exposed by this relay.
-        #[arg(long)]
-        bind: String,
-        /// Browser/native reachable wss URL covered by the TLS certificate.
-        #[arg(long)]
-        public_url: String,
-        /// PEM certificate chain for the relay's pinned outer identity.
-        #[arg(long)]
-        tls_cert: PathBuf,
-        /// PEM private key for the relay's pinned outer identity.
-        #[arg(long)]
-        tls_key: PathBuf,
-        /// Bounded private relay-slot configuration.
-        #[arg(long)]
-        slot: PathBuf,
-        /// Stop if both endpoints do not attach within this many seconds.
-        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
-        accept_timeout_seconds: u64,
-        /// Explicitly authorize listening beyond loopback.
-        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
-        authorize_network: bool,
-    },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
-pub(crate) enum PatchbayHost {
-    Native,
-    Browser,
 }
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostCommand {
+    /// Install one exact reviewed target, or inspect its plan with --dry-run.
+    Install {
+        target: String,
+        #[arg(long)]
+        catalog: PathBuf,
+        #[arg(long)]
+        catalog_id: String,
+        #[arg(long)]
+        mirror: PathBuf,
+        #[arg(long)]
+        cache: PathBuf,
+        #[arg(long = "carrier-descriptor", required = true, num_args = 1..)]
+        carrier_descriptors: Vec<PathBuf>,
+        #[arg(long)]
+        carrier: Option<String>,
+        #[arg(long, default_value_t = 0)]
+        minimum_generation: u64,
+        /// Bounded carrier-specific installation request. Required unless --dry-run.
+        #[arg(long, required_unless_present = "dry_run")]
+        request: Option<PathBuf>,
+        /// Inspect exact stages and authority without performing carrier effects.
+        #[arg(long, action = clap::ArgAction::SetTrue)]
+        dry_run: bool,
+    },
     /// Install, run, or inspect the durable local host owner.
+    #[command(hide = true)]
     Service {
         #[command(subcommand)]
         command: HostServiceCommand,
     },
     /// Obtain one target's reviewed release manifest from HTTPS or an offline mirror.
+    #[command(hide = true)]
     Obtain {
         /// Reviewed target identity to obtain.
         target: String,
@@ -181,22 +119,12 @@ pub(crate) enum HostCommand {
         minimum_generation: u64,
     },
     /// Carry an exact body-bound artifact without rebuilding it.
+    #[command(hide = true)]
     Carry {
         #[command(subcommand)]
         command: CarrierCommand,
     },
-    Check {
-        source: PathBuf,
-    },
-    Show {
-        source: PathBuf,
-    },
-    Build {
-        source: PathBuf,
-        #[arg(long, default_value = "target/host-build")]
-        output: PathBuf,
-    },
-    /// Offer this already-running local host to the browser Crèche.
+    /// Offer this already-running Host to an attended Body invitation.
     Rendezvous {
         /// Installed durable host state owned by the running service.
         #[arg(long)]
@@ -321,6 +249,7 @@ pub(crate) enum RendezvousCarrier {
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostServiceCommand {
     /// Verify and install one reviewed release bundle without replacing durable identity.
+    #[command(hide = true)]
     Install {
         manifest: PathBuf,
         #[arg(long)]
@@ -339,36 +268,6 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         json: bool,
     },
-    /// Configure already-local Whisper, Ollama, and Piper providers for this durable host.
-    ConfigureVoice {
-        #[arg(long)]
-        state_dir: PathBuf,
-        #[arg(long)]
-        whisper_executable: PathBuf,
-        #[arg(long)]
-        whisper_model: PathBuf,
-        #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=32))]
-        whisper_threads: u8,
-        #[arg(long, default_value_t = 60, value_parser = clap::value_parser!(u64).range(1..=120))]
-        whisper_timeout_seconds: u64,
-        #[arg(long)]
-        ollama_model: String,
-        #[arg(long)]
-        admitted_memory_mib: u32,
-        #[arg(long)]
-        piper_executable: PathBuf,
-        #[arg(long)]
-        piper_model: PathBuf,
-        #[arg(long)]
-        piper_config: PathBuf,
-        #[arg(long)]
-        piper_library_path: Option<PathBuf>,
-        #[arg(long, default_value_t = 60, value_parser = clap::value_parser!(u64).range(1..=120))]
-        piper_timeout_seconds: u64,
-        /// Explicitly authorize local provider discovery, warmup, and durable configuration.
-        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
-        authorize_local_voice: bool,
-    },
     /// Make this durable host retain one exact validated Body biography.
     OwnBody {
         /// Exported `conduit.body/biography-evidence@2` document.
@@ -380,7 +279,10 @@ pub(crate) enum HostServiceCommand {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Enter the birth encounter for a Host that does not yet belong to a Body.
+    Birth,
     /// Inspect the body retained by this installed host.
+    #[command(hide = true)]
     Status {
         /// Installed durable host state that owns or has joined the body.
         #[arg(long)]
@@ -397,8 +299,35 @@ pub(crate) enum BodyCommand {
         /// Invitation lifetime; never exceeds the architectural maximum.
         #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
         ttl_seconds: u64,
+        /// Exact network socket for one finite authenticated owner route.
+        #[arg(long)]
+        route_bind: Option<std::net::SocketAddr>,
+        /// Public `wss://` URL carried by the routed invitation.
+        #[arg(long)]
+        route_url: Option<String>,
+        /// TLS certificate whose exact leaf digest authenticates the owner endpoint.
+        #[arg(long)]
+        route_tls_cert: Option<PathBuf>,
+        /// TLS private key for the finite owner route.
+        #[arg(long)]
+        route_tls_key: Option<PathBuf>,
+        /// Explicitly authorize exposing this one-invitation admission route.
+        #[arg(long, action = clap::ArgAction::SetTrue)]
+        authorize_route: bool,
+    },
+    /// Join the Body named by one routed portable invitation.
+    Join {
+        /// Routed invitation JSON path, or `-` to read it from standard input.
+        invitation: PathBuf,
+        /// Installed durable host state that will join the invited Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize this Host to request and retain Body membership.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
     },
     /// Accept one bounded invitation on this installed host and emit an admission request.
+    #[command(hide = true)]
     Accept {
         /// Invitation JSON path, or `-` to read the exact document from standard input.
         invitation: PathBuf,
@@ -410,6 +339,7 @@ pub(crate) enum BodyCommand {
         authorize_join: bool,
     },
     /// Admit one signed request into the body owned by this installed host.
+    #[command(hide = true)]
     Admit {
         /// Admission-request JSON path, or `-` to read the exact document from standard input.
         request: PathBuf,
@@ -421,6 +351,7 @@ pub(crate) enum BodyCommand {
         authorize_admission: bool,
     },
     /// Retain the owner's exact admission receipt as this host's durable membership.
+    #[command(hide = true)]
     CompleteJoin {
         /// Owner-issued `conduit.body/spawn-admission-receipt@1` document.
         receipt: PathBuf,
@@ -430,661 +361,126 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_membership: bool,
     },
-    Check {
-        source: PathBuf,
-    },
-    Show {
-        source: PathBuf,
-    },
-    Build {
-        source: PathBuf,
-        #[arg(long, default_value = "target/body-build")]
-        output: PathBuf,
-    },
-}
-
-#[derive(Debug, Subcommand)]
-pub(crate) enum InspectCommand {
-    /// Render a neutral runtime report.
-    RuntimeReport { report: PathBuf },
 }
 
 #[cfg(test)]
-mod tests {
+mod public_surface_tests {
     use super::*;
-    use clap::CommandFactory;
+    use clap::{CommandFactory, Parser};
 
     #[test]
-    fn installed_help_exposes_the_body_growth_workflow_without_repository_commands() {
-        let mut command = Cli::command();
-        let mut rendered = Vec::new();
-        command.write_long_help(&mut rendered).unwrap();
-        let help = String::from_utf8(rendered).unwrap();
-
-        for entrance in [
-            "conduit body invite",
-            "conduit body accept",
-            "conduit body admit",
-            "conduit body complete-join",
-            "conduit host obtain",
-            "conduit host carry",
-            "conduit host service status",
-        ] {
-            assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
-        }
-        assert!(help.contains("bounded JSON"));
-        assert!(help.contains("without creating a plan or Play"));
-        assert!(help.contains("never implies carrier execution"));
-        assert!(!help.contains("xtask"));
+    fn no_arguments_enters_conduit() {
+        assert!(Cli::try_parse_from(["conduit"])
+            .expect("bare product entrance parses")
+            .command
+            .is_none());
     }
 
     #[test]
-    fn public_command_tree_parses() {
+    fn public_help_names_intent_not_retired_shells_or_protocol_phases() {
+        let help = Cli::command().render_long_help().to_string();
+        for entrance in ["run", "check", "expand", "inspect", "body", "host"] {
+            assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
+        }
+        for retired in ["creche", "patchbay", "copy", "rendezvous-relay"] {
+            assert!(
+                !help.contains(retired),
+                "retired {retired} remains in:\n{help}"
+            );
+        }
+    }
+
+    #[test]
+    fn body_host_and_schema_driven_inspection_parse_without_status_ceremony() {
         assert!(matches!(
-            Cli::try_parse_from([
-                "conduit", "host", "carry", "availability", "download.json", "vm.json",
-            ])
-            .expect("carrier availability parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Carry {
-                    command: CarrierCommand::Availability { descriptors }
-                }
-            } if descriptors.len() == 2
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "body",
-                "complete-join",
-                "receipt.json",
-                "--state-dir",
-                "installed",
-                "--authorize-membership",
-            ])
-            .expect("joining-side membership completion parses")
-            .command,
-            Command::Body {
-                command: BodyCommand::CompleteJoin {
-                    authorize_membership: true,
-                    ..
-                }
-            }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "body",
-                "status",
-                "--state-dir",
-                "installed",
-                "--json",
-            ])
-            .expect("current body status parses")
-            .command,
-            Command::Body {
-                command: BodyCommand::Status { state_dir, json: true }
-            } if state_dir == std::path::Path::new("installed")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "carry",
-                "download",
-                "carrier.json",
-                "artifact.json",
-                "spore.iso",
-                "download.iso",
-            ])
-            .expect("artifact-only carrier parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Carry {
-                    command: CarrierCommand::Download { destination, .. }
-                }
-            } if destination == std::path::Path::new("download.iso")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "carry",
-                "flash-uf2",
-                "carrier.json",
-                "artifact.json",
-                "spore.uf2",
-                "/media/RPI-RP2",
-                "--confirm-volume",
-                "/media/RPI-RP2",
-                "--authorize-flash",
-            ])
-            .expect("consequential RP2040 UF2 carrier parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Carry {
-                    command: CarrierCommand::FlashUf2 {
-                        volume,
-                        confirm_volume,
-                        authorize_flash: true,
-                        ..
-                    }
-                }
-            } if volume == std::path::Path::new("/media/RPI-RP2")
-                && confirm_volume == "/media/RPI-RP2"
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "carry",
-                "launch-vm",
-                "carrier.json",
-                "artifact.json",
-                "spore.iso",
-                "--authorize-launch",
-            ])
-            .expect("consequential VM carrier parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Carry {
-                    command: CarrierCommand::LaunchVm {
-                        authorize_launch: true,
-                        ..
-                    }
-                }
-            }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "carry",
-                "serve-http-boot",
-                "carrier.json",
-                "artifact.json",
-                "spore.iso",
-                "--bind",
-                "0.0.0.0:8080",
-                "--maximum-requests",
-                "2",
-                "--timeout-seconds",
-                "30",
-                "--authorize-serve",
-            ])
-            .expect("consequential HTTP Boot carrier parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Carry {
-                    command: CarrierCommand::ServeHttpBoot {
-                        bind,
-                        maximum_requests: 2,
-                        timeout_seconds: 30,
-                        authorize_serve: true,
-                        ..
-                    }
-                }
-            } if bind == "0.0.0.0:8080"
-        ));
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "home"])
-                .expect("Home entrance parses")
+            Cli::try_parse_from(["conduit", "body"])
+                .expect("bare body inspection parses")
                 .command,
-            Command::Home
+            Some(Command::Body { command: None })
         ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "host"])
+                .expect("bare host inspection parses")
+                .command,
+            Some(Command::Host { command: None })
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "inspect", "run.json"])
+                .expect("artifact inspection parses")
+                .command,
+            Some(Command::Inspect { thing }) if thing == std::path::Path::new("run.json")
+        ));
+    }
+
+    #[test]
+    fn body_help_exposes_joining_intent_without_protocol_phases() {
+        let mut body = Cli::command()
+            .find_subcommand("body")
+            .expect("body command")
+            .clone();
+        let help = body.render_long_help().to_string();
+        for entrance in ["birth", "invite", "join"] {
+            assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
+        }
+        for phase in ["accept", "admit", "complete-join", "status"] {
+            assert!(
+                !help.contains(&format!("\n  {phase}")),
+                "hidden phase {phase} leaked in:\n{help}"
+            );
+        }
+    }
+
+    #[test]
+    fn source_expansion_is_a_public_human_and_machine_entrance() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "expand", "example.conduit"])
+                .expect("human source expansion parses")
+                .command,
+            Some(Command::Expand { form, json: false }) if form == std::path::Path::new("example.conduit")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "expand", "example.conduit", "--json"])
+                .expect("machine source expansion parses")
+                .command,
+            Some(Command::Expand { json: true, .. })
+        ));
+    }
+
+    #[test]
+    fn host_install_is_public_while_protocol_stages_stay_hidden() {
+        let host_help = HostCommand::augment_subcommands(clap::Command::new("host"))
+            .render_long_help()
+            .to_string();
+        assert!(host_help.contains("install"));
+        for hidden in ["obtain", "carry", "service"] {
+            assert!(
+                !host_help.contains(hidden),
+                "hidden {hidden} leaked in:\n{host_help}"
+            );
+        }
         assert!(matches!(
             Cli::try_parse_from([
                 "conduit",
                 "host",
-                "obtain",
-                "conduitos/x86_64/pc",
+                "install",
+                "hosted/linux",
                 "--catalog",
-                "release/catalog.json",
+                "catalog.json",
                 "--catalog-id",
-                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "stable",
                 "--mirror",
-                "release",
+                "mirror",
                 "--cache",
-                "installed-cache",
+                "cache",
+                "--carrier-descriptor",
+                "native.json",
+                "--dry-run",
             ])
-            .expect("installed target obtain entrance parses")
+            .expect("host install dry-run parses")
             .command,
-            Command::Host {
-                command: HostCommand::Obtain { target, .. }
-            } if target == "conduitos/x86_64/pc"
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "body",
-                "accept",
-                "-",
-                "--state-dir",
-                "installed-host",
-                "--authorize-join",
-            ])
-            .expect("scriptable Body invitation acceptance parses")
-            .command,
-            Command::Body {
-                command: BodyCommand::Accept {
-                    invitation,
-                    state_dir,
-                    authorize_join: true,
-                }
-            } if invitation == std::path::Path::new("-")
-                && state_dir == std::path::Path::new("installed-host")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "body",
-                "admit",
-                "-",
-                "--state-dir",
-                "body-owner",
-                "--authorize-admission",
-            ])
-            .expect("scriptable Body admission parses")
-            .command,
-            Command::Body {
-                command: BodyCommand::Admit {
-                    request,
-                    state_dir,
-                    authorize_admission: true,
-                }
-            } if request == std::path::Path::new("-")
-                && state_dir == std::path::Path::new("body-owner")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "creche"])
-                .expect("Crèche entrance parses")
-                .command,
-            Command::Creche
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit", "host", "service", "own-body", "body.json", "--state-dir", "installed-host",
-            ])
-            .expect("durable body ownership entrance parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Service {
-                    command: HostServiceCommand::OwnBody { evidence, state_dir }
-                }
-            } if evidence == std::path::Path::new("body.json")
-                && state_dir == std::path::Path::new("installed-host")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "service",
-                "status",
-                "--state-dir",
-                "installed-host",
-            ])
-            .expect("durable host service entrance parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Service {
-                    command: HostServiceCommand::Status { state_dir, json: false }
-                }
-            } if state_dir == std::path::Path::new("installed-host")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit", "host", "rendezvous", "--state-dir", "installed-host", "--carrier",
-                "secure-websocket", "--bind", "192.0.2.10:7443", "--public-url",
-                "wss://host.example:7443/conduit", "--tls-cert", "host-cert.pem", "--tls-key",
-                "host-key.pem", "--authorize-network",
-            ])
-            .expect("explicit secure LAN rendezvous entrance parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Rendezvous {
-                    carrier: RendezvousCarrier::SecureWebsocket,
-                    authorize_network: true,
-                    bind: Some(bind),
-                    public_url: Some(public_url),
-                    tls_cert: Some(cert),
-                    tls_key: Some(key),
-                    ..
-                }
-            } if bind == "192.0.2.10:7443"
-                && public_url == "wss://host.example:7443/conduit"
-                && cert == std::path::Path::new("host-cert.pem")
-                && key == std::path::Path::new("host-key.pem")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "service",
-                "status",
-                "--state-dir",
-                "installed-host",
-                "--json",
-            ])
-            .expect("scriptable durable host status parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Service {
-                    command: HostServiceCommand::Status { json: true, .. }
-                }
-            }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "rendezvous",
-                "--state-dir",
-                "installed-host",
-                "--timeout-seconds", "30"
-            ])
-                .expect("Host rendezvous entrance parses")
-                .command,
-            Command::Host {
-                command: HostCommand::Rendezvous {
-                    state_dir,
-                    carrier: RendezvousCarrier::Websocket,
-                    timeout_seconds: 30,
-                    bind: None,
-                    public_url: None,
-                    tls_cert: None,
-                    tls_key: None,
-                    relay_descriptor: None,
-                    authorize_network: false,
-                }
-            } if state_dir == std::path::Path::new("installed-host")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "host",
-                "rendezvous",
-                "--state-dir",
-                "installed-host",
-                "--carrier",
-                "relay",
-                "--relay-descriptor",
-                "relay-endpoint.json",
-            ])
-            .expect("outbound protected relay Host entrance parses")
-            .command,
-            Command::Host {
-                command: HostCommand::Rendezvous {
-                    carrier: RendezvousCarrier::Relay,
-                    relay_descriptor: Some(descriptor),
-                    ..
-                }
-            } if descriptor == std::path::Path::new("relay-endpoint.json")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "rendezvous-relay",
-                "provision",
-                "--relay-address",
-                "192.0.2.10:7443",
-                "--relay-url",
-                "wss://relay.example:7443/conduit",
-                "--server-identity",
-                "relay.example",
-                "--certificate-sha256",
-                "1111111111111111111111111111111111111111111111111111111111111111",
-                "--first-host-id",
-                "host/first",
-                "--first-boot-id",
-                "boot/first",
-                "--second-host-id",
-                "host/second",
-                "--second-boot-id",
-                "boot/second",
-                "--output",
-                "private-relay",
-                "--authorize-provision",
-            ])
-            .expect("private relay provisioning entrance parses")
-            .command,
-            Command::RendezvousRelay {
-                command: RendezvousRelayCommand::Provision {
-                    relay_address,
-                    maximum_attempts: 1,
-                    authorize_provision: true,
-                    ..
-                }
-            } if relay_address == "192.0.2.10:7443"
-        ));
-        assert!(Cli::try_parse_from([
-            "conduit",
-            "rendezvous-relay",
-            "provision",
-            "--relay-address",
-            "192.0.2.10:7443",
-            "--relay-url",
-            "wss://relay.example:7443/conduit",
-            "--server-identity",
-            "relay.example",
-            "--certificate-sha256",
-            "1111111111111111111111111111111111111111111111111111111111111111",
-            "--first-host-id",
-            "host/first",
-            "--first-boot-id",
-            "boot/first",
-            "--second-host-id",
-            "host/second",
-            "--second-boot-id",
-            "boot/second",
-            "--output",
-            "private-relay",
-        ])
-        .is_err());
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "rendezvous-relay",
-                "serve",
-                "--bind",
-                "192.0.2.10:7443",
-                "--public-url",
-                "wss://relay.example:7443/conduit",
-                "--tls-cert",
-                "relay-cert.pem",
-                "--tls-key",
-                "relay-key.pem",
-                "--slot",
-                "private-slot.json",
-                "--accept-timeout-seconds",
-                "30",
-                "--authorize-network",
-            ])
-            .expect("bounded user-operated relay entrance parses")
-            .command,
-            Command::RendezvousRelay {
-                command: RendezvousRelayCommand::Serve {
-                    bind,
-                    public_url,
-                    slot,
-                    accept_timeout_seconds: 30,
-                    authorize_network: true,
-                    ..
-                }
-            } if bind == "192.0.2.10:7443"
-                && public_url == "wss://relay.example:7443/conduit"
-                && slot == std::path::Path::new("private-slot.json")
-        ));
-        assert!(Cli::try_parse_from([
-            "conduit",
-            "rendezvous-relay",
-            "serve",
-            "--bind",
-            "192.0.2.10:7443",
-            "--public-url",
-            "wss://relay.example:7443/conduit",
-            "--tls-cert",
-            "relay-cert.pem",
-            "--tls-key",
-            "relay-key.pem",
-            "--slot",
-            "private-slot.json",
-        ])
-        .is_err());
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])
-                .expect("Patchbay browser entrance parses")
-                .command,
-            Command::Patchbay {
-                on: PatchbayHost::Browser,
-                body_evidence: None,
-                body_invitation: None,
-                reviewed_form,
-            } if reviewed_form.is_empty()
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "patchbay",
-                "--on",
-                "browser",
-                "--body-evidence",
-                "roseau.json"
-            ])
-            .expect("exported Body evidence entrance parses")
-            .command,
-            Command::Patchbay {
-                on: PatchbayHost::Browser,
-                body_evidence: Some(path),
-                body_invitation: None,
-                reviewed_form,
-            } if path == std::path::Path::new("roseau.json") && reviewed_form.is_empty()
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit", "patchbay", "--on", "browser", "--body-evidence", "roseau.json",
-                "--reviewed-form", "Greet", "forms/greet/greet.conduit", "--reviewed-form",
-                "Count", "forms/count/count.conduit",
-            ])
-            .expect("reviewed adult Form inventory parses")
-            .command,
-            Command::Patchbay { reviewed_form, .. } if reviewed_form.len() == 4
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "patchbay",
-                "--on",
-                "browser",
-                "--body-evidence",
-                "roseau.json",
-                "--body-invitation",
-                "ws://127.0.0.1:4173/body",
-            ])
-            .expect("explicit local body invitation parses")
-            .command,
-            Command::Patchbay { body_invitation: Some(url), .. }
-                if url == "ws://127.0.0.1:4173/body"
-        ));
-        assert!(Cli::try_parse_from([
-            "conduit",
-            "patchbay",
-            "--on",
-            "browser",
-            "--body-invitation",
-            "ws://127.0.0.1:4173/body",
-        ])
-        .is_err());
-        assert!(Cli::try_parse_from([
-            "conduit",
-            "patchbay",
-            "--on",
-            "browser",
-            "--reviewed-form",
-            "Greet",
-            "forms/greet/greet.conduit",
-        ])
-        .is_err());
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "run", "hello.conduit"])
-                .expect("run command parses")
-                .command,
-            Command::Run { .. }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "run", "finite.conduit", "--await-terminal"])
-                .expect("explicit terminal-wait run parses")
-                .command,
-            Command::Run {
-                await_terminal: true,
-                ..
-            }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "run",
-                "signal.conduit",
-                "--body",
-                "current.body.conduit"
-            ])
-            .expect("Body-backed product run parses")
-            .command,
-            Command::Run { body: Some(_), .. }
-        ));
-        assert!(Cli::try_parse_from([
-            "conduit",
-            "run",
-            "signal.conduit",
-            "--execution-fixture",
-            "two-std-line"
-        ])
-        .is_err());
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "check", "hello.conduit", "--json"])
-                .expect("check command parses")
-                .command,
-            Command::Check { json: true, .. }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "inspect", "runtime-report", "run.json"])
-                .expect("inspect command parses")
-                .command,
-            Command::Inspect { .. }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "host", "build", "linux.host.conduit"])
-                .expect("Host build entrance parses")
-                .command,
-            Command::Host {
-                command: HostCommand::Build { .. }
-            }
-        ));
-        assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "body",
-                "invite",
-                "--state-dir",
-                "installed-host",
-                "--ttl-seconds",
-                "30",
-            ])
-            .expect("scriptable Body invitation parses")
-            .command,
-            Command::Body {
-                command: BodyCommand::Invite {
-                    state_dir,
-                    ttl_seconds: 30,
-                }
-            } if state_dir == std::path::Path::new("installed-host")
-        ));
-        assert!(matches!(
-            Cli::try_parse_from(["conduit", "body", "show", "current.body.conduit"])
-                .expect("Body show entrance parses")
-                .command,
-            Command::Body {
-                command: BodyCommand::Show { .. }
-            }
+            Some(Command::Host {
+                command: Some(HostCommand::Install { dry_run: true, .. })
+            })
         ));
     }
 }

@@ -1,4 +1,4 @@
-//! Fabrication-only preparation of the fixed native graphical text repertoire.
+//! Make-only preparation of the fixed native graphical text repertoire.
 
 use std::{collections::BTreeSet, env, fmt::Write as _, fs, path::PathBuf};
 
@@ -9,8 +9,8 @@ const MAX_FONT_BYTES: usize = 1_048_576;
 const MAX_CODEPOINTS: usize = 1_024;
 const MAX_COVERAGE_BYTES: usize = 4 * 1_048_576;
 const MAX_GLYPH_EDGE: usize = 64;
-const SUBSET: &str = "../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex";
-const NAMES: &str = "../../products/creche/names/catalog.mjs";
+const SUBSET: &str = "../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex";
+const NAMES: &str = "../../forms/birth/names/catalog.mjs";
 const FONTS: &[(&str, &str)] = &[
     (
         "DejaVuSans.ttf",

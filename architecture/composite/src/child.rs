@@ -5,8 +5,8 @@ use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
-    KernelEvent, NodeId, PortId, RemoteEndpointId, ValueStorage,
+    CanonicalValue, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
+    KernelEvent, NodeId, RemoteEndpointId, RemoteTerminalDisposition, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use std::collections::BTreeMap;
@@ -43,6 +43,7 @@ pub(crate) struct BoundaryEndpoint {
     pub cord: CordId,
     pub direction: PortDirection,
     pub value_kind: conduit_core::KindId,
+    pub abnormal_kind: Option<conduit_core::KindId>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
 }
@@ -51,6 +52,12 @@ pub(crate) struct ChildKernel {
     scheduler: ChildScheduler,
     boundaries: BTreeMap<SemanticPortId, BoundaryEndpoint>,
     status: SchedulerStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum BoundaryTerminal {
+    Normal,
+    Abnormal(ValuePayload),
 }
 
 impl ChildKernel {
@@ -139,15 +146,7 @@ impl ChildKernel {
         };
         let mut nodes = [inactive_node; MAX_NODES];
         nodes[..active_nodes].copy_from_slice(&lowered.node_specs);
-        let inactive_cord = CordSpec {
-            cord: CordId(u16::MAX),
-            source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            slot_start: u16::MAX,
-            item_capacity: 0,
-            byte_capacity: 0,
-            pressure_policy: Default::default(),
-        };
+        let inactive_cord = CordSpec::inactive();
         let mut cords = [inactive_cord; MAX_CORDS];
         for (destination, source) in cords.iter_mut().zip(&lowered.cords) {
             *destination = source.spec;
@@ -271,6 +270,25 @@ impl ChildKernel {
             .map_err(debug)
     }
 
+    pub(crate) fn close_boundary_abnormal(
+        &mut self,
+        port_id: &SemanticPortId,
+        terminal: &ValuePayload,
+    ) -> Result<(), String> {
+        let boundary = self
+            .boundaries
+            .get(port_id)
+            .filter(|boundary| boundary.direction == PortDirection::Input)
+            .ok_or_else(|| "unknown composite input front".to_string())?;
+        if boundary.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
+            return Err("composite abnormal input kind differs from its exact front".into());
+        }
+        let terminal = CanonicalValue::new(&terminal.encoded).map_err(debug)?;
+        self.scheduler
+            .close_remote_input_abnormal(boundary.endpoint, boundary.cord, terminal)
+            .map_err(debug)
+    }
+
     pub(crate) fn boundary_output(
         &mut self,
         port_id: &SemanticPortId,
@@ -319,6 +337,39 @@ impl ChildKernel {
                     .remote_egress_delivered(boundary.endpoint, boundary.cord, sequence)
             })
             .map_err(debug)
+    }
+
+    pub(crate) fn boundary_terminal(
+        &self,
+        port_id: &SemanticPortId,
+    ) -> Result<Option<BoundaryTerminal>, String> {
+        let boundary = self
+            .boundaries
+            .get(port_id)
+            .filter(|boundary| boundary.direction == PortDirection::Output)
+            .ok_or_else(|| "unknown composite output front".to_string())?;
+        match self
+            .scheduler
+            .remote_egress_terminal_disposition(boundary.endpoint, boundary.cord)
+            .map_err(debug)?
+        {
+            None => Ok(None),
+            Some(RemoteTerminalDisposition::NormalClose) => Ok(Some(BoundaryTerminal::Normal)),
+            Some(RemoteTerminalDisposition::Abnormal) => {
+                let kind = boundary.abnormal_kind.clone().ok_or_else(|| {
+                    "composite output emitted abnormal truth without an exact kind".to_string()
+                })?;
+                let terminal = self
+                    .scheduler
+                    .remote_egress_abnormal_terminal(boundary.endpoint, boundary.cord)
+                    .map_err(debug)?
+                    .ok_or_else(|| "composite abnormal output omitted its value".to_string())?;
+                Ok(Some(BoundaryTerminal::Abnormal(ValuePayload {
+                    value_kind: kind,
+                    encoded: terminal.as_slice().to_vec(),
+                })))
+            }
+        }
     }
 
     pub(crate) fn cancel(&mut self) -> Result<(), String> {
@@ -380,13 +431,23 @@ impl ChildKernel {
             .map_err(debug)
     }
 
-    pub(crate) fn remote_terminal(
+    pub(crate) fn remote_terminal_disposition(
         &self,
         endpoint: RemoteEndpointId,
         cord: CordId,
-    ) -> Result<bool, String> {
+    ) -> Result<Option<RemoteTerminalDisposition>, String> {
         self.scheduler
-            .remote_egress_terminal(endpoint, cord)
+            .remote_egress_terminal_disposition(endpoint, cord)
+            .map_err(debug)
+    }
+
+    pub(crate) fn remote_abnormal_terminal(
+        &self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+    ) -> Result<Option<CanonicalValue>, String> {
+        self.scheduler
+            .remote_egress_abnormal_terminal(endpoint, cord)
             .map_err(debug)
     }
 
@@ -397,6 +458,17 @@ impl ChildKernel {
     ) -> Result<(), String> {
         self.scheduler
             .close_remote_input(endpoint, cord)
+            .map_err(debug)
+    }
+
+    pub(crate) fn remote_close_abnormal(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        terminal: CanonicalValue,
+    ) -> Result<(), String> {
+        self.scheduler
+            .close_remote_input_abnormal(endpoint, cord, terminal)
             .map_err(debug)
     }
 }

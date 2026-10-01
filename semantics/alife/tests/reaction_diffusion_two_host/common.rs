@@ -7,9 +7,9 @@ use conduit_alife::{
 };
 use conduit_core::{
     kind_id, port_id, process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, Kind, KindIdentity, LinkLimits,
-    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
+    BootId, CapabilityId, CapabilityLimits, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, ImplementationOffer, Kind, KindIdentity, LinkLimits, OfferGeneration,
+    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
@@ -205,6 +205,7 @@ fn port(name: &str, value: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(value),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -221,7 +222,8 @@ fn host(name: &str, kinds: &[&str], profile: &ProfileCatalog) -> HostAdvertiseme
             .iter()
             .map(|kind| {
                 let definition = profile.get(&kind_id(kind)).unwrap();
-                CapabilityOffer {
+                conduit_core::capability_offer_from_parts! {
+                    semantic_contract: Default::default(),
                     startup_parameters: vec![],
                     shorthand: None,
                     capability_id: CapabilityId::from(format!("{name}/{kind}")),

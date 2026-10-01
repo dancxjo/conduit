@@ -54,7 +54,7 @@ export function validateConduitOsReleaseManifest(manifest, profile) {
     refuse("MissingBootloader", "reviewed ConduitOS release omitted its required boot entry identity");
   }
   if (manifest.schema !== "conduit.conduitos/creche-release@1"
-    || manifest.fabrication_package_id !== "conduitos-image@1"
+    || manifest.make_package_id !== "conduitos-image@1"
     || manifest.output !== "disk-image"
     || manifest.builder_adapter !== profile.builderAdapter
     || manifest.deployment_adapter !== profile.deploymentAdapter

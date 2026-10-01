@@ -25,7 +25,7 @@ pub fn install_record_delivery_status_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(record_delivery_status_kind_projection())
+        .insert_kind(record_delivery_status_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -84,6 +84,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 

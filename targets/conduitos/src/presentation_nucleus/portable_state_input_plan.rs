@@ -216,7 +216,8 @@ fn fixture_offer(
     host_calls: Vec<conduit_core::HostCallRequirement>,
     maximum_bytes: u32,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-capability@1", kind.replace('/', "-"))),
@@ -253,5 +254,6 @@ fn port_descriptor(
         value_kind: kind_id(value_kind),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }

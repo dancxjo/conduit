@@ -99,12 +99,15 @@ pub fn prepare(
         sink_placement_id: PlacementId::from("placement/harness/usb-line-sink"),
         sink_port_id: PortId::from("value"),
         value_kind: KindId::from("info/text@1"),
+        resource: None,
+        track: conduit_core::ConnectionTrack::Payload,
         temporal: PortTemporal::Value,
         pressure_policy: Default::default(),
         selected_line: Some(line.clone()),
         admitted_lines: vec![line],
         item_capacity: 1,
         byte_capacity: crate::usb_line_offer::USB_LINE_MAXIMUM_PAYLOAD_BYTES,
+        abnormal_kind: None,
     };
     let plan_id = conduit_core::PlanId::from("plan/usb-line/pre-admission-connectivity-seam");
     let binding = SessionBinding::from_planned_connection(

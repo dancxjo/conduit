@@ -118,7 +118,7 @@ fn lifecycle_timing_outcomes_remain_finite_and_distinct() {
             two,
             zero,
         ),
-        Ok(WorkflowTimingOutcome::Late { lateness: two })
+        Ok(WorkflowTimingOutcome::late(two).unwrap())
     );
     assert_eq!(
         assess_workflow_timing(
@@ -154,7 +154,7 @@ fn lifecycle_timing_outcomes_remain_finite_and_distinct() {
             zero,
             two,
         ),
-        Ok(WorkflowTimingOutcome::ClockUncertain { uncertainty: two })
+        Ok(WorkflowTimingOutcome::clock_uncertain(two).unwrap())
     );
     assert_eq!(
         assess_workflow_timing(
@@ -219,7 +219,8 @@ fn schedule_conformance_offers(profile: &ProfileCatalog) -> Vec<CapabilityOffer>
         .into_iter()
         .map(|kind| {
             let definition = profile.get(&kind_id(kind)).unwrap();
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
+                semantic_contract: Default::default(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from(format!("test/schedule-contract/{kind}@1")),

@@ -168,12 +168,11 @@ fn evidence_signs(purpose: &PurposeState) -> Vec<conduit_core::SignId> {
     signs
 }
 
-fn subject(identity: &str, role: PresentationRole, label: &str) -> PresentationSubject {
+fn subject(identity: &str, role: PresentationRole, name: &str) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role,
-        label: label.into(),
-        accessibility_name: label.into(),
+        name: name.into(),
     }
 }
 

@@ -532,7 +532,12 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
             has_default: true,
         })
         .collect();
-    CapabilityOffer {
+    let semantic_contract = conduit_core::KindSemanticContract {
+        configuration: definition.configuration.clone(),
+        laws: Vec::new(),
+    };
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract,
         startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from(capability),
@@ -566,6 +571,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
         direction,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

@@ -9,7 +9,7 @@ mod single_source;
 pub use execution::*;
 pub use single_source::*;
 
-pub const ASSIGNED_PLAN_SCHEMA: u16 = 2;
+pub const ASSIGNED_PLAN_SCHEMA: u16 = 3;
 pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 124;
 pub const TINY_HOST_TOTAL_BYTES: u16 = 2_560;
 const MAGIC: &[u8; 8] = b"CNDAP001";
@@ -37,6 +37,17 @@ pub enum AssignedPressurePolicy {
     #[default]
     PreserveOrder = 0,
     CoalesceLatest = 1,
+}
+
+/// Allocation-free execution projection of a Cord's semantic track.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[repr(u8)]
+pub enum AssignedConnectionTrack {
+    #[default]
+    Payload = 0,
+    NormalClose = 1,
+    AbnormalTerminal = 2,
+    Quiescence = 3,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -219,7 +230,7 @@ pub fn decode_assigned_plan(
             ASSIGNED_NODE => length == 52,
             ASSIGNED_PORT => length == 37,
             ASSIGNED_CONFIGURATION => length == 27,
-            ASSIGNED_CORD => length == 36,
+            ASSIGNED_CORD => length == 37,
             ASSIGNED_ROUTE => length == 8,
             ASSIGNED_ROUTE_TARGET => length == 6 || length == 7,
             ASSIGNED_HOST_CALL => length == 46,
@@ -236,7 +247,7 @@ pub fn decode_assigned_plan(
         let valid_discriminants = match tag {
             ASSIGNED_PORT => payload[4] <= 1,
             ASSIGNED_CONFIGURATION => payload[18] <= 2,
-            ASSIGNED_CORD => payload[18] <= 1 && payload[23] <= 1,
+            ASSIGNED_CORD => payload[18] <= 1 && payload[23] <= 1 && payload[36] <= 2,
             ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
             ASSIGNED_SIGN => payload[34] <= 2,
             ASSIGNED_REMOTE_ENDPOINT => {

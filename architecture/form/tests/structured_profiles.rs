@@ -99,6 +99,7 @@ fn canonical_expansion_checks_the_resolved_profile_not_the_alias() {
             value_kind,
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![],
     };
@@ -114,4 +115,27 @@ fn canonical_expansion_checks_the_resolved_profile_not_the_alias() {
         .unwrap();
     let error = expand_canonical_form_for_authoring(&checked, "source", &mismatched).unwrap_err();
     assert_eq!(error.code, "CND-FRM-045");
+}
+
+#[test]
+fn checked_document_retains_exact_structured_type_by_semantic_value_kind() {
+    let value_type = event_type(false);
+    let value_kind = value_type.profile().unwrap().value_kind().clone();
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert_structured_type("MusicEvent", value_type.clone())
+        .unwrap();
+    startup
+        .insert_structured_type("RenamedEvent", value_type.clone())
+        .unwrap();
+
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "form event (\n    >> input: MusicEvent\n    output: RenamedEvent >>\n) {\n    input >> output\n}",
+        ),
+        &startup,
+    )
+    .unwrap();
+
+    assert_eq!(checked.structured_type(&value_kind), Some(&value_type));
 }

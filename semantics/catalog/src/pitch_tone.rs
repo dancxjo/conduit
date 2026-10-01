@@ -4,7 +4,7 @@ use crate::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal,
     QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID,
 };
 
@@ -23,6 +23,7 @@ pub fn pitch_tone_contract() -> StandardKindContract {
             value_kind: kind_id(QUANTITY_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),
@@ -39,24 +40,21 @@ pub fn pitch_tone_contract() -> StandardKindContract {
     }
 }
 
+pub fn pitch_tone_semantic_contract() -> Kind {
+    pitch_tone_contract().into_semantic_contract(PITCH_TONE_REVISION)
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_pitch_tone_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    let contract = pitch_tone_contract();
     startup.insert(conduit_form::KindSignature {
         kind: PITCH_TONE_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(conduit_form::KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: PITCH_TONE_REVISION.into(),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![],
-        })
+        .insert_kind(pitch_tone_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

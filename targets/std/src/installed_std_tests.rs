@@ -8,9 +8,12 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 mod audio_playback_conformance;
+mod body_causal_evidence_conformance;
 mod bool_presentation_conformance;
 mod calendar_proposal_conformance;
 mod calendar_provider_conformance;
+mod data_text_conformance;
+mod external_fore_conformance;
 mod final_normalized_pattern_conformance;
 mod gate_conformance;
 mod graphics_conformance;
@@ -28,6 +31,7 @@ mod midi_output_conformance;
 mod navigation_conformance;
 mod pattern_comparison_conformance;
 mod presentation_composition;
+mod pure_expression_conformance;
 mod recurrence_conformance;
 mod remote_fragment_conformance;
 mod remote_vision_conformance;
@@ -37,7 +41,6 @@ mod secret_knock_body_admission;
 mod secret_knock_conformance;
 mod sequence_normalization_conformance;
 mod sound_replanning;
-mod speech_synthesis_conformance;
 mod structured_selector_conformance;
 mod structured_values_conformance;
 mod talking_polaroid_body;
@@ -160,6 +163,267 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         kernel.value_allocation_capacity_after
     );
     assert_eq!(kernel.post_play_start_allocations, 0);
+}
+
+#[test]
+fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
+    let mut host = host("audio-tone-host");
+    let form = parse(
+        "form tone_path {\n source: conduit-test/frequency-source\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n closed: conduit-test/normal-close-sink\n source.frequency >> tone.frequency\n tone.audio >> sink.audio\n tone.audio| >> closed.closed\n}.\n",
+        &installed_std::test_catalog(),
+    )
+    .expect("typed audio/tone fixture parses");
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts).expect("audio/tone placements resolve");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("audio/tone plans with one in-flight PCM block");
+    assert!(plan.fragments[0]
+        .connections
+        .iter()
+        .all(|cord| cord.item_capacity == 1));
+    let tone = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TONE_KIND)
+        .unwrap();
+    assert_eq!(
+        tone.inputs[0].value_kind.as_str(),
+        conduit_core::FREQUENCY_INFO_ID
+    );
+    assert_eq!(
+        tone.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),
+        conduit_audio::audio_tone_terminal_kind_id().as_str()
+    );
+    assert!(!tone.terminal_transductions.is_empty());
+    let mut output = Vec::with_capacity(2_048);
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .expect("Frequency updates execute through the production installed path");
+    assert!(matches!(
+        report.observations.last().map(|o| &o.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.unwrap();
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}
+
+#[test]
+fn canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm() {
+    let mut host = host("pocket-theremin-host");
+    let source = format!(
+        "{}\nform pocket_theremin_proof {{\n source: conduit-test/distance-source\n theremin: pocket-theremin\n sink: conduit-test/tone-pcm-sink\n closed: conduit-test/normal-close-sink\n source.distance >> theremin.distance\n theremin.audio >> sink.audio\n theremin.audio| >> closed.closed\n}}.\n",
+        include_str!("../../../forms/pocket-theremin/main.conduit")
+    );
+    let form = parse(&source, &installed_std::test_catalog())
+        .expect("canonical Pocket Theremin and typed Distance proof parse");
+    let frequency_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+        conduit_core::FREQUENCY_INFO_ID,
+    ))
+    .unwrap();
+    let frequency_initial = conduit_core::StructuredInfoValue::leaf(
+        frequency_type.clone(),
+        conduit_core::Quantity::new(440, conduit_core::QuantityUnit::Hertz)
+            .encode()
+            .to_vec(),
+    )
+    .unwrap();
+    host.install_test_capability(
+        conduit_std_offers::state_value_std_offer("Frequency", &frequency_type, &frequency_initial)
+            .unwrap(),
+    );
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts)
+        .expect("canonical Pocket Theremin production placements resolve");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("canonical Pocket Theremin plans with bounded pressure");
+    let fragment = &plan.fragments[0];
+    assert!(fragment
+        .connections
+        .iter()
+        .all(|cord| cord.item_capacity == 1));
+    let mapping = fragment
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND
+        })
+        .expect("exact Distance-to-Frequency mapping is planned");
+    for (key, expected) in [
+        (
+            "source-minimum",
+            conduit_core::Quantity::new(0, conduit_core::QuantityUnit::Centimeter),
+        ),
+        (
+            "source-maximum",
+            conduit_core::Quantity::new(30, conduit_core::QuantityUnit::Centimeter),
+        ),
+        (
+            "target-minimum",
+            conduit_core::Quantity::new(220, conduit_core::QuantityUnit::Hertz),
+        ),
+        (
+            "target-maximum",
+            conduit_core::Quantity::new(880, conduit_core::QuantityUnit::Hertz),
+        ),
+    ] {
+        assert!(mapping.configuration.iter().any(|entry| {
+            entry.key == key && entry.value == conduit_core::ConfigurationValue::Quantity(expected)
+        }));
+    }
+    assert!(fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TONE_KIND
+    }));
+    assert!(!fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_PLAY_KIND
+    }));
+
+    let report = host
+        .run_fragment_to(
+            fragment.clone(),
+            &mut Vec::with_capacity(2_048),
+            &mut RecordingTimer { waits: Vec::new() },
+        )
+        .expect("changing typed Distance executes through ordinary Plan and Play");
+    assert!(matches!(
+        report
+            .observations
+            .last()
+            .map(|observation| &observation.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.expect("kernel report exists");
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}
+
+#[test]
+fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
+    let mut host = host("audio-tone-cancellation-host");
+    let form = parse(
+        "form tone_cancel {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n recovery: conduit-test/tone-terminal-recovery\n cancel.request >> tone~\n tone.audio! >> recovery.terminal\n}.\n",
+        &installed_std::test_catalog(),
+    ).expect("canonical tone cancellation Form parses");
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts).expect("cancellation placements resolve");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("typed cancellation and abnormal tracks plan");
+    assert_eq!(plan.fragments[0].connections.len(), 2);
+    assert!(plan.fragments[0]
+        .connections
+        .iter()
+        .all(|cord| cord.item_capacity == 1));
+    let cancellation = form
+        .connections
+        .iter()
+        .find(|cord| cord.value_kind.as_str() == conduit_core::CANCELLATION_REQUEST_INFO_ID)
+        .unwrap();
+    let terminal = form
+        .connections
+        .iter()
+        .find(|cord| cord.value_kind == conduit_audio::audio_tone_terminal_kind_id())
+        .unwrap();
+    assert_eq!(cancellation.track, conduit_core::ConnectionTrack::Payload);
+    assert_eq!(
+        terminal.track,
+        conduit_core::ConnectionTrack::AbnormalTerminal
+    );
+    assert_ne!(cancellation.value_kind, terminal.value_kind);
+    let recovery = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == "conduit-test/tone-terminal-recovery")
+        .expect("recovery placement is exact Plan truth");
+    assert!(matches!(
+        recovery
+            .terminal_transductions
+            .iter()
+            .find(|profile| matches!(
+                profile.abnormal,
+                conduit_core::AbnormalTerminalTransduction::Recover
+            ))
+            .map(|profile| &profile.abnormal),
+        Some(conduit_core::AbnormalTerminalTransduction::Recover)
+    ));
+    let mut output = Vec::with_capacity(2_048);
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .expect("semantic cancellation is recovered through the installed runtime");
+    let kernel = report.kernel.unwrap();
+    assert!(kernel
+        .kernel_sign
+        .iter()
+        .any(|event| event.kind == conduit_kernel::KernelEventKind::SemanticAbnormal));
+    assert!(kernel
+        .kernel_sign
+        .iter()
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::SemanticAbnormalRecovered }));
+    assert!(!kernel.kernel_sign.iter().any(|event| matches!(
+        event.kind,
+        conduit_kernel::KernelEventKind::CancellationRequested
+            | conduit_kernel::KernelEventKind::RunCancelled
+    )));
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert!(matches!(
+        report.observations.last().map(|o| &o.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
 }
 
 #[test]
@@ -416,127 +680,6 @@ fn invalid_utf8_fails_before_a_successful_text_presentation() {
     );
     assert!(!String::from_utf8_lossy(&output).contains("Hello\n"));
     assert!(timer.waits.is_empty());
-}
-
-#[test]
-fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
-    let mut catalog = installed_std::test_catalog();
-    let mut startup = conduit_form::StartupCatalog::new();
-    conduit_ai::install_generate_text_catalog(&mut startup, &mut catalog)
-        .expect("generate-text catalog installs");
-    let form = parse(
-        "form generate_demo {\n source: conduit-test/text-source(invalid = false)\n generate: ai/generate-text\n show: presentation/text\n source.text >> generate.prompt\n generate.text >> show.text\n}\n",
-        &catalog,
-    )
-    .expect("generate-text execution form parses");
-
-    let mut advertisement = host("generate-text-host").advertisement().clone();
-    let fixture = conduit_ai::generate_text_base_fixtures()
-        .into_iter()
-        .nth(1)
-        .expect("large local fixture exists");
-    advertisement
-        .capabilities
-        .push(fixture.advertisement.capabilities[0].clone());
-    advertisement
-        .resources
-        .extend(fixture.advertisement.resources);
-    advertisement
-        .resources
-        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts).expect("all operations are realizable");
-    let plan = plan_with_options(
-        &form,
-        &hosts,
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 1,
-            connection_byte_capacity: 64,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
-    )
-    .expect("generate-text form plans through the ordinary planner");
-    let placement = plan.fragments[0]
-        .placements
-        .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND)
-        .expect("generate-text placement exists");
-    assert_eq!(
-        placement.implementation_id.as_str(),
-        conduit_ai::LARGE_LOCAL_IMPLEMENTATION
-    );
-
-    let mut output = Vec::with_capacity(2_048);
-    let mut timer = RecordingTimer { waits: Vec::new() };
-    let mut sign_sequence = 0;
-    let report = installed_std::run_fragment(
-        installed_std::InstalledRunHost {
-            advertisement: &advertisement,
-            playback: None,
-            midi_input: None,
-            midi_output: None,
-            keyboard: None,
-            local_model: None,
-            vector_search: None,
-            calendar: None,
-            body_conversation_context: None,
-        },
-        &plan.fragments[0],
-        0,
-        &mut sign_sequence,
-        &mut output,
-        &mut timer,
-        &crate::RunControl::default(),
-    )
-    .expect("planned generate-text runs through lowering, kernel, and base");
-    assert!(String::from_utf8(output)
-        .expect("fixture output is utf8")
-        .contains("fixture/large-local: Hello\n"));
-    assert_eq!(
-        report.kernel.expect("kernel report").identity.lengths(),
-        (2, 0, 1)
-    );
-    assert!(timer.waits.is_empty());
-
-    let mut substituted = plan.fragments[0].clone();
-    let placement = substituted
-        .placements
-        .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND)
-        .expect("generate-text placement exists");
-    placement.implementation_id =
-        conduit_core::ImplementationId::from(conduit_ai::REMOTE_FRONTIER_IMPLEMENTATION);
-    let mut output = Vec::new();
-    let error = installed_std::run_fragment(
-        installed_std::InstalledRunHost {
-            advertisement: &advertisement,
-            playback: None,
-            midi_input: None,
-            midi_output: None,
-            keyboard: None,
-            local_model: None,
-            vector_search: None,
-            calendar: None,
-            body_conversation_context: None,
-        },
-        &substituted,
-        1,
-        &mut sign_sequence,
-        &mut output,
-        &mut timer,
-        &crate::RunControl::default(),
-    )
-    .expect_err("an implementation absent from the plan cannot substitute at runtime");
-    assert!(
-        error.contains("InvalidFragment"),
-        "unexpected rejection: {error}"
-    );
 }
 
 #[test]

@@ -1,10 +1,12 @@
 //! Portable R3 reranking and structured context-selection fronts.
 
+use crate::R3OfferInvalidity;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, Kind,
+    KindConfigurationField, KindConfigurationRule, KindId, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 
 pub const RERANK_KIND: &str = "retrieval/rerank";
@@ -26,12 +28,6 @@ pub struct R3Contract {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum R3OfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
 }
 
 pub fn rerank_contract() -> R3Contract {
@@ -106,7 +102,12 @@ fn offer(
     if process_identity.len() > MAXIMUM_R3_PROCESS_IDENTITY_BYTES {
         return Err(R3OfferInvalidity::ProcessIdentityTooLarge);
     }
-    Ok(CapabilityOffer {
+    let semantic_contract = match contract.kind_id.as_str() {
+        RERANK_KIND => rerank_semantic_contract().semantic_contract(),
+        CONTEXT_SELECT_KIND => context_select_semantic_contract().semantic_contract(),
+        _ => unreachable!("the R3 offer family is closed"),
+    };
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(
@@ -116,6 +117,7 @@ fn offer(
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        semantic_contract,
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(R3_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation),
@@ -126,6 +128,91 @@ fn offer(
         authority_requirements: vec![],
         limits: contract.limits,
     })
+}
+
+fn rerank_semantic_contract() -> Kind {
+    canonical_kind(
+        rerank_contract(),
+        rerank_startup_parameters(),
+        vec![
+            text_choice(
+                "policy",
+                "rerank/preserve-hybrid-deterministic@1",
+                &[
+                    "rerank/preserve-hybrid-deterministic@1",
+                    "rerank/observed-model-derived@1",
+                ],
+            ),
+            count_field(
+                "maximum-candidates",
+                crate::MAXIMUM_HYBRID_OUTPUT_CANDIDATES.into(),
+            ),
+            count_field(
+                "maximum-work-units",
+                crate::MAXIMUM_RERANKING_WORK_UNITS.into(),
+            ),
+        ],
+    )
+}
+
+fn context_select_semantic_contract() -> Kind {
+    canonical_kind(
+        context_select_contract(),
+        context_startup_parameters(),
+        vec![
+            text_choice(
+                "policy",
+                "context/reranked-diverse@1",
+                &[
+                    "context/reranked-diverse@1",
+                    "context/chronological-diverse@1",
+                ],
+            ),
+            text_choice(
+                "token-accounting-profile",
+                "tokens/reviewed@1",
+                &["tokens/reviewed@1", "tokens/exact-fixture@1"],
+            ),
+            text_choice(
+                "redundancy",
+                "one-per-reviewed-group",
+                &["keep-all", "one-per-reviewed-group"],
+            ),
+            text_choice(
+                "ordering",
+                "reranked",
+                &["reranked", "chronological-oldest-first"],
+            ),
+            count_field("maximum-items", crate::MAXIMUM_CONTEXT_ITEMS as u64),
+            count_field("maximum-bytes", crate::MAXIMUM_CONTEXT_BYTES.into()),
+            count_field(
+                "maximum-tokens",
+                crate::MAXIMUM_CONTEXT_SELECTION_TOKENS.into(),
+            ),
+            count_field(
+                "maximum-work-units",
+                crate::MAXIMUM_CONTEXT_SELECTION_WORK_UNITS.into(),
+            ),
+        ],
+    )
+}
+
+fn canonical_kind(
+    contract: R3Contract,
+    startup_parameters: Vec<FrontStartupParameter>,
+    configuration: Vec<KindConfigurationField>,
+) -> Kind {
+    Kind {
+        startup_parameters,
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration,
+        semantic_laws: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 fn rerank_startup_parameters() -> Vec<FrontStartupParameter> {
@@ -173,6 +260,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -182,7 +270,7 @@ pub fn install_r3_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_form::KindSignature;
 
     startup.insert(KindSignature {
         kind: RERANK_KIND.to_string(),
@@ -205,76 +293,11 @@ pub fn install_r3_catalog(
             count_parameter("maximum-work-units", 65_536),
         ],
     })?;
-    let rerank = rerank_contract();
     profile
-        .insert(KindProjection {
-            kind_id: rerank.kind_id,
-            kind_contract_revision: rerank.kind_contract_revision,
-            inputs: rerank.inputs,
-            outputs: rerank.outputs,
-            configuration: vec![
-                text_choice(
-                    "policy",
-                    "rerank/preserve-hybrid-deterministic@1",
-                    &[
-                        "rerank/preserve-hybrid-deterministic@1",
-                        "rerank/observed-model-derived@1",
-                    ],
-                ),
-                count_field(
-                    "maximum-candidates",
-                    crate::MAXIMUM_HYBRID_OUTPUT_CANDIDATES.into(),
-                ),
-                count_field(
-                    "maximum-work-units",
-                    crate::MAXIMUM_RERANKING_WORK_UNITS.into(),
-                ),
-            ],
-        })
+        .insert_kind(rerank_semantic_contract())
         .map_err(|error| error.to_string())?;
-    let context = context_select_contract();
     profile
-        .insert(KindProjection {
-            kind_id: context.kind_id,
-            kind_contract_revision: context.kind_contract_revision,
-            inputs: context.inputs,
-            outputs: context.outputs,
-            configuration: vec![
-                text_choice(
-                    "policy",
-                    "context/reranked-diverse@1",
-                    &[
-                        "context/reranked-diverse@1",
-                        "context/chronological-diverse@1",
-                    ],
-                ),
-                text_choice(
-                    "token-accounting-profile",
-                    "tokens/reviewed@1",
-                    &["tokens/reviewed@1", "tokens/exact-fixture@1"],
-                ),
-                text_choice(
-                    "redundancy",
-                    "one-per-reviewed-group",
-                    &["keep-all", "one-per-reviewed-group"],
-                ),
-                text_choice(
-                    "ordering",
-                    "reranked",
-                    &["reranked", "chronological-oldest-first"],
-                ),
-                count_field("maximum-items", crate::MAXIMUM_CONTEXT_ITEMS as u64),
-                count_field("maximum-bytes", crate::MAXIMUM_CONTEXT_BYTES.into()),
-                count_field(
-                    "maximum-tokens",
-                    crate::MAXIMUM_CONTEXT_SELECTION_TOKENS.into(),
-                ),
-                count_field(
-                    "maximum-work-units",
-                    crate::MAXIMUM_CONTEXT_SELECTION_WORK_UNITS.into(),
-                ),
-            ],
-        })
+        .insert_kind(context_select_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -297,23 +320,21 @@ fn count_parameter(name: &str, default: u32) -> conduit_form::StartupParameterSi
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::KindConfigurationField {
-    conduit_form::KindConfigurationField {
+fn text_choice(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::Text(default.into()),
-        rule: conduit_form::KindConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn count_field(key: &str, maximum: u64) -> conduit_form::KindConfigurationField {
-    conduit_form::KindConfigurationField {
+fn count_field(key: &str, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::U64(maximum),
-        rule: conduit_form::KindConfigurationRule::U64Range {
+        rule: KindConfigurationRule::U64Range {
             minimum: 1,
             maximum,
         },

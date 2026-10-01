@@ -82,8 +82,9 @@ fn canonical_distance_frequency_keep_is_real_production_language() {
     let retained = expanded
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::LATEST_KIND)
+        .find(|gear| gear.kind_id.as_str() == conduit_core::STATE_VALUE_KIND)
         .unwrap();
+    assert_eq!(retained.kind_id.as_str(), conduit_core::STATE_VALUE_KIND);
     assert_eq!(retained.inputs[0].value_kind.as_str(), FREQUENCY_INFO_ID);
     assert_eq!(retained.outputs[0].value_kind.as_str(), FREQUENCY_INFO_ID);
     assert_eq!(retained.outputs[0].temporal, PortTemporal::Current);
@@ -95,23 +96,19 @@ fn canonical_distance_frequency_keep_is_real_production_language() {
             .map(|entry| &entry.value),
         Some(&ConfigurationValue::Text("play".into()))
     );
-    assert_eq!(
+    assert!(matches!(
         retained
             .configuration
             .iter()
             .find(|entry| entry.key == "initial")
             .map(|entry| &entry.value),
-        Some(&ConfigurationValue::Quantity(Quantity::new(
-            440,
-            QuantityUnit::Hertz
-        )))
-    );
+        Some(ConfigurationValue::Structured(_))
+    ));
 
     assert!(expanded.gears.iter().all(|gear| {
         matches!(
             gear.kind_id.as_str(),
-            conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND
-                | conduit_semantic_catalog::LATEST_KIND
+            conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND | conduit_core::STATE_VALUE_KIND
         )
     }));
 }
@@ -122,9 +119,11 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
         include_str!("../../../proof/fixtures/forms/pocket-theremin-distance-frequency.conduit");
 
     let wrong_dimension = source.replacen("source-maximum = 30cm", "source-maximum = 30Hz", 1);
-    let error = expand_theremin(&wrong_dimension).unwrap_err();
-    assert_eq!(error.code, "CND-FRM-040");
-    assert!(error.message.contains("source-maximum"));
+    let (startup, _) = theremin_catalogs();
+    let syntax = parse_syntax_document(&wrong_dimension);
+    let error = check_syntax_document(&syntax, &startup).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-055");
+    assert!(error.message.contains("Distance"));
 
     let outside_range = source.replacen("source-maximum = 30cm", "source-maximum = 10001cm", 1);
     let error = expand_theremin(&outside_range).unwrap_err();
@@ -132,9 +131,11 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
     assert!(error.message.contains("source-maximum"));
 
     let wrong_keep = source.replacen("Frequency(440Hz)", "Frequency(440cm)", 1);
-    let error = expand_theremin(&wrong_keep).unwrap_err();
-    assert_eq!(error.code, "CND-FRM-040");
-    assert!(error.message.contains("wrong quantity dimension"));
+    let (startup, _) = theremin_catalogs();
+    let syntax = parse_syntax_document(&wrong_keep);
+    let error = check_syntax_document(&syntax, &startup).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-051");
+    assert!(error.message.contains("wrong exact dimension"));
 }
 
 #[test]

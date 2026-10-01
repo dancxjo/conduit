@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     vector_index_resource::validate_identity, EmbeddingProfile, VectorIndexHandle,
-    VectorIndexHealth, VectorIndexMember, VectorIndexResourceRefusal, VectorIndexState,
+    VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexMember, VectorIndexResourceRefusal,
+    VectorIndexState,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,12 +20,6 @@ pub enum VectorIndexLifecycle {
         operation_identity: String,
         started_generation: u64,
     },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VectorIndexMaintenanceKind {
-    Rebuild,
-    Compaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -19,13 +19,11 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
     source.terminal_behavior =
         conduit_semantic_catalog::KindTerminalBehavior::HostInputEndsOrFailsSource;
     profile
-        .insert(conduit_form::KindProjection {
-            kind_id: source.kind_id.clone(),
-            kind_contract_revision: conduit_core::KindIdentity::from("fixture/scalar-flow@1"),
-            inputs: source.inputs.clone(),
-            outputs: source.outputs.clone(),
-            configuration: vec![],
-        })
+        .insert_kind(
+            source
+                .clone()
+                .into_semantic_contract("fixture/scalar-flow@1"),
+        )
         .unwrap();
     let startup = profile.startup_catalog().unwrap();
     let form = conduit_form::parse_with_startup(
@@ -73,7 +71,8 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
         state_id: StateId::from("retained-state"),
         gear_id: GearId::from("retained/cell"),
         value_kind: conduit_core::KindId::from(SCALAR_INFO_ID),
-        initial_value: vec![0; SCALAR_ENCODED_LEN],
+        initial_value: Some(vec![0; SCALAR_ENCODED_LEN]),
+        lifetime: conduit_core::StateLifetime::Step,
         retained: None,
         maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
         continuation: StateContinuation::ExternallyBounded,

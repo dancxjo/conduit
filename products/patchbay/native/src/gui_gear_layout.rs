@@ -2,7 +2,7 @@
 
 use crate::{gui::GearLayout, gui_primitives::PixelRect};
 use embedded_graphics::prelude::Point;
-use patchbay_model::{PatchbayGear, PatchbayGraph};
+use patchbay_graph::{PatchbayGear, PatchbayGraph};
 
 pub(super) struct GearGeometry {
     pub(super) canvas_left: i32,
@@ -85,7 +85,7 @@ fn gear_height(gear: &PatchbayGear, minimum: i32) -> i32 {
     minimum.max(62 + port_rows * 18 + gear.controls.len() as i32 * 40)
 }
 
-fn port_points(ports: &[patchbay_model::PatchbayPort], x: i32, y: i32) -> Vec<(String, Point)> {
+fn port_points(ports: &[patchbay_graph::PatchbayPort], x: i32, y: i32) -> Vec<(String, Point)> {
     ports
         .iter()
         .enumerate()

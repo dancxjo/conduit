@@ -129,6 +129,7 @@ fn output(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction: PortDirection::Output,
         temporal,
+        abnormal_kind: None,
     }
 }
 

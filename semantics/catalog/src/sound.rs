@@ -10,12 +10,15 @@ use crate::{
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use conduit_audio::{
-    AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
-    PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
+    audio_tone_terminal_kind_id, AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID,
+    MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID, PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
+pub use conduit_audio::{CancellationDisposition, PressureDisposition, SoundTerminalBehavior};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
+    ConfigurationValue, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
+    PortDescriptor, PortDirection, PortTemporal, TerminalTransductionProfile,
+    CANCELLATION_REQUEST_INFO_ID, FREQUENCY_INFO_ID,
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +26,10 @@ pub const SOUND_TONE_PLAY_KIND: &str = "sound/tone-play";
 pub const MUSIC_PLAY_KIND: &str = "music/play";
 pub const MUSIC_SYNTH_KIND: &str = "music/synth";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
+pub const AUDIO_TONE_KIND: &str = "audio/tone";
+pub const AUDIO_TONE_REVISION: &str = "conduit.std/audio-tone@1";
+pub const AUDIO_TONE_PCM_FRAMES: u16 = 16;
+pub const AUDIO_TONE_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 32;
 pub const AUDIO_CAPTURE_PUSH_TO_TALK_KIND: &str = "audio/capture-push-to-talk";
 pub const AUDIO_CONVERT_PCM_PROFILE_KIND: &str = "audio/convert-pcm-profile";
 pub const SOUND_TONE_PLAY_REVISION: &str = "conduit.std/sound-tone-play@1";
@@ -63,24 +70,6 @@ pub const MAXIMUM_MUSICAL_EVENT_BYTES: u32 = 16_384;
 pub const MAXIMUM_SIMULTANEOUS_NOTES: u16 = 64;
 pub const MAXIMUM_AUDIO_QUEUE_ITEMS: u16 = 8;
 pub const MAXIMUM_AUDIO_QUEUE_BYTES: u32 = 524_288;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PressureDisposition {
-    WaitWithoutConsumption,
-    RefuseBeforePlay,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CancellationDisposition {
-    CancelAndReleaseFiniteState,
-    DrainThenComplete,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SoundTerminalBehavior {
-    CompletesWhenInputsClose,
-    DrainsAdmittedOutputThenCompletes,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamSemantics {
@@ -227,6 +216,67 @@ pub fn audio_play_contract() -> StandardKindContract {
     )
 }
 
+pub fn audio_tone_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(AUDIO_TONE_KIND),
+        plain_name: "Generate a tone".to_string(),
+        summary: "Transform each current Frequency into one bounded portable PCM block."
+            .to_string(),
+        inputs: vec![
+            PortDescriptor {
+                port_id: port_id("frequency"),
+                value_kind: kind_id(FREQUENCY_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Current,
+                abnormal_kind: None,
+            },
+            PortDescriptor {
+                port_id: port_id("stop"),
+                value_kind: kind_id(CANCELLATION_REQUEST_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Value,
+                abnormal_kind: None,
+            },
+        ],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("audio"),
+            value_kind: kind_id(AUDIO_PCM_INFO_ID),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(audio_tone_terminal_kind_id()),
+        }],
+        configuration: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: AUDIO_TONE_PCM_BLOCK_BYTES,
+        },
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "tone: audio/tone".to_string(),
+    }
+}
+
+pub fn audio_tone_semantic_contract() -> Kind {
+    let mut contract = audio_tone_contract().into_semantic_contract(AUDIO_TONE_REVISION);
+    contract
+        .semantic_laws
+        .push(KindSemanticLaw::TerminalTransduction(
+            TerminalTransductionProfile {
+                input_port_id: port_id("frequency"),
+                output_port_id: port_id("audio"),
+                normal_close: NormalCloseTransduction::NotAccepted,
+                abnormal: AbnormalTerminalTransduction::NotAccepted,
+                cancellation: CancellationTransduction::Request {
+                    disposition_kind: audio_tone_terminal_kind_id(),
+                },
+            },
+        ));
+    contract
+}
+
 /// One explicitly initiated, finite microphone turn. The semantic contract
 /// describes bounded PCM and push-to-talk lifetime; permission, device,
 /// provider, and UI mechanism remain exact host realization facts.
@@ -242,6 +292,7 @@ pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
             value_kind: kind_id(AUDIO_PCM_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         configuration: vec![u64_configuration(
             AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS_KEY,
@@ -284,7 +335,7 @@ pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
     }
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 8] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 9] {
     [
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
         (music_input_contract(), MUSIC_INPUT_REVISION),
@@ -292,6 +343,7 @@ pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str)
         (music_synth_contract(), MUSIC_SYNTH_REVISION),
         (audio_render_demand_contract(), AUDIO_RENDER_DEMAND_REVISION),
         (audio_play_contract(), AUDIO_PLAY_REVISION),
+        (audio_tone_contract(), AUDIO_TONE_REVISION),
         (
             audio_capture_push_to_talk_contract(),
             AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,
@@ -325,6 +377,13 @@ pub fn stream_semantics(kind: &str) -> Option<StreamSemantics> {
             0,
             CancellationDisposition::DrainThenComplete,
             SoundTerminalBehavior::DrainsAdmittedOutputThenCompletes,
+        ),
+        AUDIO_TONE_KIND => (
+            1,
+            AUDIO_TONE_PCM_BLOCK_BYTES,
+            1,
+            CancellationDisposition::CancelAndReleaseFiniteState,
+            SoundTerminalBehavior::CompletesWhenInputsClose,
         ),
         _ => return None,
     };
@@ -376,6 +435,7 @@ pub(super) fn port(name: &str, info: &str, direction: PortDirection) -> PortDesc
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 fn tone_limits() -> CapabilityLimits {

@@ -424,8 +424,7 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
         vec![PresentationSubject {
             identity: "front/main".into(),
             role: PresentationRole::Form,
-            label: "Main".into(),
-            accessibility_name: "Main front".into(),
+            name: "Main front".into(),
         }],
         vec![],
         vec![],

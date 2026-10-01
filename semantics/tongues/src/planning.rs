@@ -46,7 +46,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_speech_catalogs(&mut startup, &mut profile)?;
-    let literal = conduit_text::text_literal_semantics();
+    let literal = conduit_text::text_literal_semantics().into_semantic_contract();
     startup.insert(conduit_form::KindSignature {
         kind: literal.kind_id.as_str().into(),
         startup_parameters: vec![conduit_form::StartupParameterSignature {
@@ -56,25 +56,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
         }],
     })?;
     profile
-        .insert(conduit_form::KindProjection {
-            kind_id: literal.kind_id,
-            kind_contract_revision: conduit_core::KindIdentity::from(
-                conduit_text::TEXT_LITERAL_CONTRACT_REVISION,
-            ),
-            inputs: literal.inputs,
-            outputs: literal.outputs,
-            configuration: literal
-                .configuration
-                .into_iter()
-                .map(|field| conduit_form::KindConfigurationField {
-                    key: field.key.into(),
-                    default_value: field.default_value,
-                    rule: conduit_form::KindConfigurationRule::TextBytes {
-                        maximum: field.maximum_text_bytes,
-                    },
-                })
-                .collect(),
-        })
+        .insert_kind(literal)
         .map_err(|error| error.to_string())?;
 
     let syntax = parse_syntax_document(&source);
@@ -82,14 +64,11 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
     let expanded = expand_canonical_form(&checked, "tongues_text_to_speech", &profile)
         .map_err(|error| error.to_string())?;
     let mut fixture = speech_host_fixture(condition);
-    let literal_contract = conduit_text::text_literal_semantics();
-    let mut literal_offer = conduit_core::CapabilityOffer {
-        startup_parameters: vec![conduit_core::FrontStartupParameter {
-            name: "value".into(),
-            value_type: conduit_core::kind_id("value/text"),
-            has_default: false,
-        }],
-        shorthand: None,
+    let literal_contract = conduit_text::text_literal_semantics().into_semantic_contract();
+    let mut literal_offer = conduit_core::capability_offer_from_parts! {
+        semantic_contract: literal_contract.semantic_contract(),
+        startup_parameters: literal_contract.startup_parameters,
+        shorthand: literal_contract.shorthand,
         capability_id: conduit_core::CapabilityId::from("tongues/text-literal-fixture@1"),
         kind_id: literal_contract.kind_id,
         kind_contract_revision: literal_contract.kind_contract_revision,

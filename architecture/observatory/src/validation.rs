@@ -269,7 +269,7 @@ fn validate_plays(
     Ok(())
 }
 
-fn validate_play_children(plan: &Plan, play: &crate::PlayReport) -> Result<(), String> {
+pub(crate) fn validate_play_children(plan: &Plan, play: &crate::PlayReport) -> Result<(), String> {
     let mut placement_ids = BTreeSet::new();
     for placement in &play.placements {
         if !placement_ids.insert(placement.placement_id.clone()) {
@@ -413,14 +413,14 @@ fn validate_capability_statuses(
     Ok(())
 }
 
-fn plan_contains_placement(plan: &Plan, placement_id: &PlacementId) -> bool {
+pub(crate) fn plan_contains_placement(plan: &Plan, placement_id: &PlacementId) -> bool {
     plan.fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
         .any(|placement| &placement.placement_id == placement_id)
 }
 
-fn plan_contains_connection(plan: &Plan, connection_id: &ConnectionId) -> bool {
+pub(crate) fn plan_contains_connection(plan: &Plan, connection_id: &ConnectionId) -> bool {
     plan_connection(plan, connection_id).is_some()
 }
 
@@ -434,7 +434,7 @@ fn plan_connection<'a>(
         .find(|connection| &connection.connection_id == connection_id)
 }
 
-fn validate_lifecycle(
+pub(crate) fn validate_lifecycle(
     lifecycle: PlanLifecycle,
     terminal: Option<TerminalDisposition>,
     failure_message: Option<&str>,

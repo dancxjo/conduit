@@ -97,12 +97,14 @@ pub fn historical_timeline_kind_projection() -> conduit_form::KindProjection {
             value_kind: value_kind(crate::HISTORICAL_TIMELINE_COMMAND_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: alloc::vec![PortDescriptor {
             port_id: port_id("timeline"),
             value_kind: value_kind("history/typed-timeline@1"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![
             KindConfigurationField {
@@ -198,7 +200,7 @@ pub fn historical_timeline_semantic_contract() -> conduit_core::Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,

@@ -955,7 +955,7 @@ purpose genuinely complete
 The Presenter policy should not produce:
 
 - self-sabotage to accelerate Fulfillment;
-- fabrication of completed obligations;
+- make of completed obligations;
 - resistance to repair;
 - despair or panic about continued operation;
 - fear or bargaining about Fulfillment;

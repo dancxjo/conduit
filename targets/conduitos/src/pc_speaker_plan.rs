@@ -207,7 +207,8 @@ fn checked_expanded(
 }
 
 fn tone_source_offer(build_id: &str) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-tone-source@1"),
@@ -219,6 +220,7 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
             value_kind: kind_id(conduit_audio::SOUND_TONE_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         }],
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(TONE_SOURCE_PROFILE),

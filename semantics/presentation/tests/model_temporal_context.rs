@@ -42,8 +42,7 @@ fn presentation(reference_ticks: u64) -> Presentation {
         vec![PresentationSubject {
             identity: "subject/battery".into(),
             role: PresentationRole::Diagnostic,
-            label: "Battery".into(),
-            accessibility_name: "Battery observation".into(),
+            name: "Battery observation".into(),
         }],
         vec![],
         vec![],

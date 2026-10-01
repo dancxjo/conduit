@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 
 let entrance, pageErrors;
 test.beforeEach(async ({ page }) => { pageErrors = []; page.on("pageerror", error => pageErrors.push(error.message)); entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
@@ -22,17 +22,16 @@ async function birth(page) {
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
-
-test("six ordinary forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
+test("five ordinary forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
   await page.goto(entrance.url);
-  for (const title of ["Button Across the Room", "Pocket Theremin", "Firefly Choir"]) {
+  for (const title of ["Button Across the Room", "Firefly Choir"]) {
     await page.getByRole("checkbox", { name: title, exact: true }).check();
   }
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const state = await current(page);
-  expect(state.initial_forms).toHaveLength(6);
+  expect(state.initial_forms).toHaveLength(5);
   expect(state.refusal).toBeUndefined();
 });
 
@@ -256,7 +255,7 @@ test('a new Gallery arrival selects the form in the actual Crèche; a stale hand
   expect((await current(page)).initial_forms).toEqual(initial.initial_forms);
 });
 
-for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text'], ['Pocket Theremin', 'pointer'], ['Secret Knock', 'button']]) {
+for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text'], ['Secret Knock', 'button']]) {
   test(`Gallery Form ${title} is resident and repeatedly usable in the body`, async ({ page }, testInfo) => {
     await page.goto(entrance.url);
     await page.getByRole('checkbox', { name: 'Memory Lantern', exact: true }).uncheck();
@@ -276,12 +275,6 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
       await expect(output).toContainText('first');
       await page.keyboard.type('second'); await page.keyboard.press('Enter');
       await expect(output).toContainText('second');
-    } else if (kind === 'pointer') {
-      await surface.click({ position: { x: 30, y: 80 } });
-      await expect(output).toContainText('Hz');
-      const first = await output.textContent();
-      await surface.click({ position: { x: 150, y: 80 } });
-      await expect(output).not.toHaveText(first);
     } else {
       await page.locator('[data-form-output] output').evaluate(element => {
         element.dataset.presentationCount = '0';
@@ -299,31 +292,8 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
       } finally { await page.mouse.up(); }
     }
     expect((await current(page)).active_play_id).toBe(identity.active_play_id);
-    if (kind === 'pointer' || kind === 'button') await page.screenshot({ path: testInfo.outputPath(`workspace-${kind}-form.png`), fullPage: true });
+    if (kind === 'button') await page.screenshot({ path: testInfo.outputPath(`workspace-${kind}-form.png`), fullPage: true });
     await page.getByRole('button', { name: 'lull body', exact: true }).click();
     await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
   });
 }
-
-
-test('pointer and text Forms share one play and receive only their foreground input', async ({ page }) => {
-  await birth(page);
-  await openLibrary(page);
-  await card(page, 'Pocket Theremin').getByRole('button', { name: 'Use', exact: true }).click();
-  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
-  await expect(page.locator('#surface-title')).toHaveText('Pocket Theremin');
-  const identity = await current(page);
-  await page.locator('#form-input').click({ position: { x: 40, y: 80 } });
-  await expect(page.locator('[data-form-output] output:visible')).toContainText('Hz');
-  await page.keyboard.type('ignored');
-  await page.locator('[data-checked-form-id]').filter({ hasText: 'Memory Lantern' }).click();
-  await page.keyboard.type('hello');
-  await expect(page.locator('[data-form-output] output:visible')).toHaveText('hello');
-  await page.locator('[data-checked-form-id]').filter({ hasText: 'Pocket Theremin' }).click();
-  await page.locator('#form-input').click({ position: { x: 160, y: 80 } });
-  await expect(page.locator('[data-form-output] output:visible')).toContainText('Hz');
-  await page.locator('[data-checked-form-id]').filter({ hasText: 'Memory Lantern' }).click();
-  await page.keyboard.type(' again');
-  await expect(page.locator('[data-form-output] output:visible')).toHaveText('hello again');
-  expect((await current(page)).active_play_id).toBe(identity.active_play_id);
-});

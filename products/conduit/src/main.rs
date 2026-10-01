@@ -1,90 +1,36 @@
 mod body_product;
 mod cli;
-mod construction;
-mod copy_task;
-#[cfg(test)]
-mod copy_task_tests;
 mod deployment_carrier;
 mod diagnostics;
 mod durable_host;
 mod durable_host_control;
 mod form_source;
+mod host_install;
 mod host_rendezvous;
+mod inspection;
 mod native_package_install;
 mod product_execution;
 #[cfg(test)]
 mod product_execution_tests;
-mod protected_task;
 mod release_obtain;
+#[cfg(test)]
+#[path = "rendezvous_relay.rs"]
 mod rendezvous_relay;
 mod report_artifact;
+mod source_expansion;
 mod std_websocket_line;
 #[cfg(test)]
 mod two_std_line_tests;
 
 use clap::Parser;
-use conduit_observatory::{build_report, render_text_report};
-use std::ffi::OsString;
 use std::io;
 use std::io::{BufRead, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-fn patchbay_process(
-    host: cli::PatchbayHost,
-    body_evidence: Option<&Path>,
-    body_invitation: Option<&str>,
-    reviewed_forms: &[OsString],
-) -> Result<std::process::Command, String> {
-    let executable = match host {
-        cli::PatchbayHost::Native => "patchbay-native",
-        cli::PatchbayHost::Browser => "patchbay-html",
-    };
-    if host == cli::PatchbayHost::Native
-        && (body_evidence.is_some() || body_invitation.is_some() || !reviewed_forms.is_empty())
-    {
-        return Err(
-            "opening exported Body evidence or reviewed forms currently requires `conduit patchbay --on browser`"
-                .into(),
-        );
-    }
-    if body_evidence.is_none() && (body_invitation.is_some() || !reviewed_forms.is_empty()) {
-        return Err(
-            "a body invitation or reviewed forms require exact exported Body evidence".into(),
-        );
-    }
+fn enter_current_body() -> Result<(), String> {
+    let executable = "patchbay-native";
     let mut command = std::process::Command::new(executable);
-    if host == cli::PatchbayHost::Native {
-        command.arg("--front-door");
-    }
-    if let Some(path) = body_evidence {
-        command
-            .arg("--body-evidence")
-            .arg(path)
-            .arg("--external-reader");
-    }
-    if let Some(url) = body_invitation {
-        command.arg("--body-invitation").arg(url);
-    }
-    if !reviewed_forms.len().is_multiple_of(2) {
-        return Err("each reviewed form requires an exact LABEL and PATH".into());
-    }
-    for pair in reviewed_forms.chunks(2) {
-        command.arg("--form").arg(&pair[0]).arg(&pair[1]);
-    }
-    Ok(command)
-}
-
-fn enter_patchbay(
-    host: cli::PatchbayHost,
-    body_evidence: Option<&Path>,
-    body_invitation: Option<&str>,
-    reviewed_forms: &[OsString],
-) -> Result<(), String> {
-    let mut command = patchbay_process(host, body_evidence, body_invitation, reviewed_forms)?;
-    let executable = match host {
-        cli::PatchbayHost::Native => "patchbay-native",
-        cli::PatchbayHost::Browser => "patchbay-html",
-    };
+    command.arg("--front-door");
     let status = command
         .status()
         .map_err(|error| patchbay_unavailable_message(executable, &error))?;
@@ -94,13 +40,37 @@ fn enter_patchbay(
         .ok_or_else(|| format!("{executable} exited with {status}"))
 }
 
+fn current_state_dir() -> Result<PathBuf, String> {
+    let value = std::env::var_os("CONDUIT_STATE_DIR")
+        .ok_or("CONDUIT_STATE_DIR must name this installed Host's durable state")?;
+    if value.is_empty() {
+        return Err("CONDUIT_STATE_DIR must not be empty".into());
+    }
+    Ok(value.into())
+}
+
+fn enter_conduit() -> Result<(), String> {
+    match std::env::var_os("CONDUIT_STATE_DIR") {
+        Some(value) if value.is_empty() => Err("CONDUIT_STATE_DIR must not be empty".into()),
+        Some(value) => {
+            let state_dir = PathBuf::from(value);
+            if durable_host::has_current_body(&state_dir)? {
+                enter_current_body()
+            } else {
+                enter_birth()
+            }
+        }
+        None => enter_birth(),
+    }
+}
+
 fn patchbay_unavailable_message(executable: &str, error: &io::Error) -> String {
     format!(
         "{executable} is unavailable ({error}); install the selected Patchbay renderer alongside the `conduit` product entrance"
     )
 }
 
-fn enter_creche() -> Result<(), String> {
+fn enter_birth() -> Result<(), String> {
     let executable = "conduit-browser-host";
     let conduit = std::env::current_exe()
         .map_err(|error| format!("cannot locate the installed Conduit entrance ({error})"))?;
@@ -110,7 +80,7 @@ fn enter_creche() -> Result<(), String> {
         .join("conduit-creche");
     if !application.join("index.html").is_file() {
         return Err(format!(
-            "the admitted Crèche application is unavailable at {}; install it alongside the Conduit executables",
+            "the admitted birth encounter is unavailable at {}; install it alongside the Conduit executables",
             application.display()
         ));
     }
@@ -130,43 +100,13 @@ fn enter_creche() -> Result<(), String> {
         .ok_or_else(|| format!("{executable} exited with {status}"))
 }
 
-fn home_process() -> std::process::Command {
-    std::process::Command::new("conduit-home")
-}
-
-fn enter_home() -> Result<(), String> {
-    let executable = "conduit-home";
-    let status = home_process()
-        .status()
-        .map_err(|error| {
-            format!(
-                "{executable} is unavailable ({error}); install the native Home application alongside the `conduit` product entrance"
-            )
-        })?;
-    status
-        .success()
-        .then_some(())
-        .ok_or_else(|| format!("{executable} exited with {status}"))
-}
-
-#[cfg(test)]
-mod home_entrance_tests {
-    use super::*;
-
-    #[test]
-    fn public_home_enters_the_packaged_native_application() {
-        let command = home_process();
-        assert_eq!(command.get_program(), "conduit-home");
-        assert_eq!(command.get_args().count(), 0);
-    }
-}
-
-use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
+use crate::report_artifact::{snapshot_from_execution, write_execution_artifacts, write_report};
 
 fn run_with_placements(
     path: &str,
     placements_path: Option<&str>,
     report_path: Option<&Path>,
+    artifact_directory: Option<&Path>,
     body_path: Option<&Path>,
     await_terminal: bool,
 ) -> Result<(), String> {
@@ -210,54 +150,79 @@ fn run_with_placements(
             .join()
             .map_err(|_| "interactive input thread failed".to_string())?;
     }
-    if let Some(report_path) = report_path {
+    if report_path.is_some() || artifact_directory.is_some() {
         let snapshot = snapshot_from_execution(
             execution.advertisements,
             execution.line_offers,
             vec![execution.plan],
             execution.observations,
         );
-        write_report(report_path, &snapshot)?;
+        if let Some(report_path) = report_path {
+            write_report(report_path, &snapshot)?;
+        }
+        if let Some(artifact_directory) = artifact_directory {
+            write_execution_artifacts(
+                artifact_directory,
+                &snapshot,
+                &execution.active_plays,
+                &execution.sign_identities,
+            )?;
+        }
     }
     Ok(())
-}
-
-fn render_runtime_report(path: &Path) -> Result<String, String> {
-    let snapshot = read_report(path)?;
-    let report = build_report(&snapshot)?;
-    Ok(render_text_report(&report))
 }
 
 fn main() {
     let command = cli::Cli::parse().command;
     let result = match command {
-        cli::Command::Home => enter_home(),
-        cli::Command::Creche => enter_creche(),
-        cli::Command::Patchbay {
-            on,
-            body_evidence,
-            body_invitation,
-            reviewed_form,
-        } => enter_patchbay(
-            on,
-            body_evidence.as_deref(),
-            body_invitation.as_deref(),
-            &reviewed_form,
-        ),
-        cli::Command::Run {
+        None => enter_conduit(),
+        Some(cli::Command::Run {
             form,
             placements,
             report,
+            artifacts,
             body,
             await_terminal,
-        } => run_with_placements(
+        }) => run_with_placements(
             &form.to_string_lossy(),
             placements.as_deref().map(Path::to_string_lossy).as_deref(),
             report.as_deref(),
+            artifacts.as_deref(),
             body.as_deref(),
             await_terminal,
         ),
-        cli::Command::Host { command } => match command {
+        Some(cli::Command::Host { command: None }) => current_state_dir().and_then(|state_dir| {
+            durable_host::dispatch(cli::HostServiceCommand::Status {
+                state_dir,
+                json: false,
+            })
+        }),
+        Some(cli::Command::Host {
+            command: Some(command),
+        }) => match command {
+            cli::HostCommand::Install {
+                target,
+                catalog,
+                catalog_id,
+                mirror,
+                cache,
+                carrier_descriptors,
+                carrier,
+                minimum_generation,
+                request,
+                dry_run,
+            } => host_install::run(host_install::InstallRequest {
+                target: &target,
+                catalog: &catalog,
+                catalog_id: &catalog_id,
+                mirror: &mirror,
+                cache: &cache,
+                carrier_descriptors: &carrier_descriptors,
+                carrier: carrier.as_deref(),
+                minimum_generation,
+                realization_request: request.as_deref(),
+                dry_run,
+            }),
             cli::HostCommand::Service { command } => durable_host::dispatch(command),
             cli::HostCommand::Obtain {
                 target,
@@ -298,223 +263,93 @@ fn main() {
                 },
                 relay_descriptor.as_deref(),
             ),
-            command => construction::host(command),
         },
-        cli::Command::Body {
-            command: cli::BodyCommand::Status { state_dir, json },
-        } => durable_host::body_status(&state_dir, json),
-        cli::Command::Body {
+        Some(cli::Command::Body { command: None }) => {
+            current_state_dir().and_then(|state_dir| durable_host::body_status(&state_dir, false))
+        }
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Status { state_dir, json }),
+        }) => durable_host::body_status(&state_dir, json),
+        Some(cli::Command::Body {
             command:
-                cli::BodyCommand::Invite {
+                Some(cli::BodyCommand::Invite {
                     state_dir,
                     ttl_seconds,
-                },
-        } => durable_host::issue_body_invitation(&state_dir, ttl_seconds),
-        cli::Command::Body {
+                    route_bind,
+                    route_url,
+                    route_tls_cert,
+                    route_tls_key,
+                    authorize_route,
+                }),
+        }) => match (route_bind, route_url, route_tls_cert, route_tls_key) {
+            (None, None, None, None) if !authorize_route => {
+                durable_host::issue_body_invitation(&state_dir, ttl_seconds)
+            }
+            (Some(bind), Some(url), Some(certificate), Some(private_key)) => {
+                durable_host::serve_body_invitation_route(
+                    &state_dir,
+                    ttl_seconds,
+                    bind,
+                    &url,
+                    &certificate,
+                    &private_key,
+                    authorize_route,
+                )
+            }
+            _ => Err("a routed invitation requires --route-bind, --route-url, --route-tls-cert, --route-tls-key, and --authorize-route together".into()),
+        },
+        Some(cli::Command::Body {
             command:
-                cli::BodyCommand::Accept {
+                Some(cli::BodyCommand::Join {
                     invitation,
                     state_dir,
                     authorize_join,
-                },
-        } => durable_host::accept_body_invitation(&invitation, &state_dir, authorize_join),
-        cli::Command::Body {
+                }),
+        }) => durable_host::join_body_over_route(&invitation, &state_dir, authorize_join),
+        Some(cli::Command::Body {
             command:
-                cli::BodyCommand::Admit {
+                Some(cli::BodyCommand::Accept {
+                    invitation,
+                    state_dir,
+                    authorize_join,
+                }),
+        }) => durable_host::accept_body_invitation(&invitation, &state_dir, authorize_join),
+        Some(cli::Command::Body {
+            command:
+                Some(cli::BodyCommand::Admit {
                     request,
                     state_dir,
                     authorize_admission,
-                },
-        } => durable_host::admit_body_request(&request, &state_dir, authorize_admission),
-        cli::Command::Body {
+                }),
+        }) => durable_host::admit_body_request(&request, &state_dir, authorize_admission),
+        Some(cli::Command::Body {
             command:
-                cli::BodyCommand::CompleteJoin {
+                Some(cli::BodyCommand::CompleteJoin {
                     receipt,
                     state_dir,
                     authorize_membership,
-                },
-        } => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
-        cli::Command::Body { command } => construction::body(command),
-        cli::Command::RendezvousRelay {
-            command:
-                cli::RendezvousRelayCommand::Provision {
-                    relay_address,
-                    relay_url,
-                    server_identity,
-                    certificate_sha256,
-                    first_host_id,
-                    first_boot_id,
-                    second_host_id,
-                    second_boot_id,
-                    output,
-                    expires_in_seconds,
-                    maximum_attempts,
-                    authorize_provision,
-                },
-        } => rendezvous_relay::provision(rendezvous_relay::ProvisionOptions {
-            relay_address,
-            relay_url,
-            server_identity,
-            certificate_sha256,
-            first_host_id,
-            first_boot_id,
-            second_host_id,
-            second_boot_id,
-            output,
-            expires_in_seconds,
-            maximum_attempts,
-            authorize_provision,
-        }),
-        cli::Command::RendezvousRelay {
-            command:
-                cli::RendezvousRelayCommand::Serve {
-                    bind,
-                    public_url,
-                    tls_cert,
-                    tls_key,
-                    slot,
-                    accept_timeout_seconds,
-                    authorize_network,
-                },
-        } => rendezvous_relay::serve(rendezvous_relay::ServeOptions {
-            bind,
-            public_url,
-            tls_cert,
-            tls_key,
-            slot,
-            accept_timeout_seconds,
-            authorize_network,
-        }),
-        cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
+                }),
+        }) => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
+        Some(cli::Command::Body {
+            command: Some(command),
+        }) => match command {
+            cli::BodyCommand::Birth => enter_birth(),
+            _ => unreachable!("durable Body operations are dispatched above"),
+        },
+        Some(cli::Command::Check { form, json }) => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
             Ok(false) => std::process::exit(1),
             Err(error) => Err(error),
         },
-        cli::Command::Inspect {
-            command: cli::InspectCommand::RuntimeReport { report },
-        } => render_runtime_report(&report).map(|rendered| {
+        Some(cli::Command::Expand { form, json }) => {
+            source_expansion::run(&form, json).map(|rendered| print!("{rendered}"))
+        }
+        Some(cli::Command::Inspect { thing }) => inspection::inspect(&thing).map(|rendered| {
             print!("{rendered}");
         }),
-        cli::Command::Copy { arguments } => copy_task::run(arguments),
     };
     if let Err(err) = result {
         eprintln!("error: {err}");
         std::process::exit(1);
-    }
-}
-
-#[cfg(test)]
-mod patchbay_entrance_tests {
-    use super::*;
-
-    #[test]
-    fn exported_body_evidence_enters_the_browser_external_reader_exactly() {
-        let path = Path::new("roseau-body.json");
-        let command = patchbay_process(cli::PatchbayHost::Browser, Some(path), None, &[]).unwrap();
-        assert_eq!(command.get_program(), "patchbay-html");
-        assert_eq!(
-            command.get_args().collect::<Vec<_>>(),
-            ["--body-evidence", "roseau-body.json", "--external-reader"].map(std::ffi::OsStr::new)
-        );
-    }
-
-    #[test]
-    fn native_front_door_stays_distinct_from_unsupported_evidence_open() {
-        let command = patchbay_process(cli::PatchbayHost::Native, None, None, &[]).unwrap();
-        assert_eq!(command.get_program(), "patchbay-native");
-        assert_eq!(command.get_args().collect::<Vec<_>>(), ["--front-door"]);
-        assert!(patchbay_process(
-            cli::PatchbayHost::Native,
-            Some(Path::new("roseau-body.json")),
-            None,
-            &[],
-        )
-        .unwrap_err()
-        .contains("--on browser"));
-    }
-
-    #[test]
-    fn reviewed_forms_are_forwarded_as_exact_bounded_pairs() {
-        let forms = [
-            OsString::from("Greet"),
-            OsString::from("forms/greet/greet.conduit"),
-            OsString::from("Count"),
-            OsString::from("forms/count/count.conduit"),
-        ];
-        let command = patchbay_process(
-            cli::PatchbayHost::Browser,
-            Some(Path::new("roseau-body.json")),
-            None,
-            &forms,
-        )
-        .unwrap();
-        assert_eq!(
-            command.get_args().collect::<Vec<_>>(),
-            [
-                "--body-evidence",
-                "roseau-body.json",
-                "--external-reader",
-                "--form",
-                "Greet",
-                "forms/greet/greet.conduit",
-                "--form",
-                "Count",
-                "forms/count/count.conduit",
-            ]
-            .map(std::ffi::OsStr::new)
-        );
-        assert!(patchbay_process(
-            cli::PatchbayHost::Browser,
-            Some(Path::new("roseau-body.json")),
-            None,
-            &forms[..1],
-        )
-        .unwrap_err()
-        .contains("LABEL and PATH"));
-        assert!(
-            patchbay_process(cli::PatchbayHost::Browser, None, None, &forms)
-                .unwrap_err()
-                .contains("Body evidence")
-        );
-    }
-
-    #[test]
-    fn exact_body_invitation_is_forwarded_without_joining_in_the_cli() {
-        let command = patchbay_process(
-            cli::PatchbayHost::Browser,
-            Some(Path::new("roseau-body.json")),
-            Some("ws://127.0.0.1:4173/body"),
-            &[],
-        )
-        .unwrap();
-        assert_eq!(
-            command.get_args().collect::<Vec<_>>(),
-            [
-                "--body-evidence",
-                "roseau-body.json",
-                "--external-reader",
-                "--body-invitation",
-                "ws://127.0.0.1:4173/body",
-            ]
-            .map(std::ffi::OsStr::new)
-        );
-        assert!(patchbay_process(
-            cli::PatchbayHost::Native,
-            None,
-            Some("ws://127.0.0.1:4173/body"),
-            &[],
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn unavailable_renderer_guidance_stays_inside_the_installed_product() {
-        let message = patchbay_unavailable_message(
-            "patchbay-html",
-            &io::Error::new(io::ErrorKind::NotFound, "missing"),
-        );
-        assert!(message.contains("alongside the `conduit` product entrance"));
-        assert!(!message.contains("cargo xtask"));
-        assert!(!message.contains("checkout"));
     }
 }

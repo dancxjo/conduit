@@ -179,5 +179,6 @@ fn port(
             .clone(),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }

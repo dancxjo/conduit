@@ -8,6 +8,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, BOOL_INFO_ID,
     SCALAR_INFO_ID,
 };
+pub use conduit_robotics::RoboticsSimulationAvailability;
 use conduit_robotics::{
     BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
     MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM,
@@ -40,13 +41,6 @@ pub const ROBOTICS_MINIMUM_MOTION_TTL_MS: u64 = 10;
 pub const ROBOTICS_MAXIMUM_MOTION_TTL_MS: u64 = 60_000;
 
 const MAXIMUM_VALUE_BYTES: u32 = 12;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RoboticsSimulationAvailability {
-    Fresh,
-    Missing,
-    Stale,
-}
 
 pub fn robotics_simulation_availability(
     entries: &[ConfigurationEntry],
@@ -385,6 +379,7 @@ fn port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Current,
+        abnormal_kind: None,
     }
 }
 
@@ -519,13 +514,14 @@ fn quantity_field(
     }
 }
 
+#[cfg(feature = "form-catalog")]
 pub(crate) fn configuration_type(field: &KindConfigurationField) -> &'static str {
     match &field.default_value {
         ConfigurationValue::Text(_) => "Text",
         ConfigurationValue::U64(_) => "Count",
         ConfigurationValue::I64(_) => "Scalar",
         ConfigurationValue::Quantity(_) => "Quantity",
-        _ => unreachable!("robotics configuration is finite text/integer/quantity"),
+        _ => unreachable!("portable configuration is finite text/integer/quantity"),
     }
 }
 

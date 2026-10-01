@@ -15,7 +15,8 @@ pub(super) static SINK: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         kind_id: KIND.into(),
         kind_contract_revision: "conduit-test/measurement-decision-sink@1".into(),
         capability_id: KIND.into(),
@@ -30,6 +31,7 @@ pub(crate) fn offer() -> CapabilityOffer {
                 .clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         implementation: ImplementationOffer {

@@ -11,7 +11,7 @@ fn every_state_contract_field_is_an_immutable_plan_commitment() {
         |state| state.state_id = StateId::from("other"),
         |state| state.gear_id = GearId::from("other"),
         |state| state.value_kind = KindId::from("other@1"),
-        |state| state.initial_value = vec![8],
+        |state| state.initial_value = Some(vec![8]),
         |state| state.maximum_value_bytes = 2,
         |state| state.continuation = StateContinuation::MaximumTransitions(3),
     ];
@@ -34,6 +34,27 @@ fn larger_state_capacity_requires_a_new_plan_but_not_new_form_identity() {
     assert_ne!(small.plan_id, large.plan_id);
     assert_eq!(small.checked_form_id, large.checked_form_id);
     assert_eq!(small.source_document_id, large.source_document_id);
+}
+
+#[test]
+fn exact_kind_semantics_are_an_immutable_plan_commitment() {
+    let original = seal(fragment());
+    let mut changed_fragment = fragment();
+    changed_fragment.placements[0]
+        .semantic_contract
+        .laws
+        .push(KindSemanticLaw::ExternalEffects(
+            ExternalEffectBehavior::Observable,
+        ));
+    let changed = seal(changed_fragment);
+
+    assert!(verify_plan(&original));
+    assert!(verify_plan(&changed));
+    assert_ne!(original.plan_id, changed.plan_id);
+    assert_ne!(
+        original.fragments[0].fragment_id,
+        changed.fragments[0].fragment_id
+    );
 }
 
 #[test]
@@ -83,7 +104,10 @@ fn retained_provenance_changes_plan_without_replacing_authored_initialization() 
     assert!(verify_plan(&continued));
     assert_ne!(fresh.plan_id, continued.plan_id);
     assert_eq!(fresh.checked_form_id, continued.checked_form_id);
-    assert_eq!(continued.fragments[0].states[0].initial_value, vec![7]);
+    assert_eq!(
+        continued.fragments[0].states[0].initial_value,
+        Some(vec![7])
+    );
     let retained = continued.fragments[0].states[0].retained.as_ref().unwrap();
     assert_eq!(retained.current_value, vec![9]);
     assert_eq!(retained.generation, 17);

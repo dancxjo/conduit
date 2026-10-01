@@ -1,6 +1,9 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use super::timing_configuration::{self, TimingConfiguration};
-use conduit_core::{encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID};
+use conduit_core::{
+    encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID,
+    CANCELLATION_REQUEST_INFO_ID, UNIT_INFO_ID,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
@@ -17,6 +20,12 @@ pub(super) static TIME_TIMEOUT_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::TIME_TIMEOUT_IMPLEMENTATION,
     budget: timeout_budget,
     prepare: prepare_timeout,
+};
+
+pub(super) static TIME_DEADLINE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::TIME_DEADLINE_IMPLEMENTATION,
+    budget: deadline_budget,
+    prepare: prepare_deadline,
 };
 
 pub(super) struct DebounceBack {
@@ -48,6 +57,8 @@ pub(super) struct TimeoutBack {
     closing: bool,
     arm_after_emit: bool,
 }
+
+pub(super) type DeadlineBack = conduit_time::CancellationDeadlineBack;
 
 impl<const PORTS: usize> StepBack<PORTS> for DebounceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
@@ -427,6 +438,12 @@ fn timeout_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     timing_configuration::budget(requests, requests, requests + configuration.maximum_values)
 }
 
+fn deadline_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_deadline(placement)?;
+    let _ = timing_configuration::parse_deadline(placement)?;
+    timing_configuration::budget(1, 1, 1)
+}
+
 fn prepare_debounce(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
@@ -479,6 +496,24 @@ fn prepare_timeout(
     }))
 }
 
+fn prepare_deadline(
+    placement: &PlannedGear,
+    values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate_deadline(placement)?;
+    let duration_ms = timing_configuration::parse_deadline(placement)?;
+    let duration = values
+        .store(&encode_monotonic_duration(duration_ms))
+        .map_err(|error| format!("store admitted time/deadline duration: {error:?}"))?;
+    let request_value = values
+        .store(&[])
+        .map_err(|error| format!("store admitted cancellation request: {error:?}"))?;
+    Ok(InstalledBack::TimeDeadline(DeadlineBack::prepare(
+        duration,
+        request_value,
+    )))
+}
+
 fn store_durations(
     values: &mut conduit_kernel::HostedValueStore,
     configuration: TimingConfiguration,
@@ -511,6 +546,7 @@ fn validate_debounce(placement: &PlannedGear) -> Result<(), String> {
         placement,
         &conduit_std_offers::time_debounce_offer(),
         conduit_semantic_catalog::TIME_DEBOUNCE_KIND,
+        BOOL_INFO_ID,
     )
 }
 
@@ -519,13 +555,28 @@ fn validate_timeout(placement: &PlannedGear) -> Result<(), String> {
         placement,
         &conduit_std_offers::time_timeout_offer(),
         conduit_semantic_catalog::TIME_TIMEOUT_KIND,
+        BOOL_INFO_ID,
     )
+}
+
+fn validate_deadline(placement: &PlannedGear) -> Result<(), String> {
+    validate(
+        placement,
+        &conduit_std_offers::time_deadline_offer(),
+        conduit_semantic_catalog::TIME_DEADLINE_KIND,
+        CANCELLATION_REQUEST_INFO_ID,
+    )?;
+    if placement.inputs.len() != 1 || placement.inputs[0].value_kind.as_str() != UNIT_INFO_ID {
+        return Err("planned time/deadline arm is not exact Unit".to_string());
+    }
+    Ok(())
 }
 
 fn validate(
     placement: &PlannedGear,
     offer: &conduit_core::CapabilityOffer,
     kind: &str,
+    output_kind: &str,
 ) -> Result<(), String> {
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
@@ -550,7 +601,7 @@ fn validate(
             .iter()
             .any(|port| port.direction != PortDirection::Input)
         || placement.outputs.iter().any(|port| {
-            port.direction != PortDirection::Output || port.value_kind.as_str() != BOOL_INFO_ID
+            port.direction != PortDirection::Output || port.value_kind.as_str() != output_kind
         })
     {
         return Err(format!(

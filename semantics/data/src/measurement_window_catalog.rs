@@ -35,7 +35,7 @@ pub fn install_measurement_window_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(measurement_window_kind_projection())
+        .insert_kind(measurement_window_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -78,7 +78,7 @@ pub fn measurement_window_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -114,5 +114,6 @@ fn port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }

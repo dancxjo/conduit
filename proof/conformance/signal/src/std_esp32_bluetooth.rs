@@ -235,6 +235,7 @@ pub fn std_esp32_bluetooth_session_binding_for_host(
             sink_endpoint_id: line.binding.sink.endpoint_id.clone(),
             limits: line.binding.limits,
         },
+        abnormal_kind: None,
     }
     .with_observed_boots(source.boot_id.clone(), runtime_boot)
     .map_err(|error| alloc::format!("runtime Bluetooth binding: {error:?}"))

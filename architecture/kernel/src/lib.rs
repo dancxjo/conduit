@@ -118,7 +118,7 @@ pub struct HostCallOutcome {
     pub failure: Option<Failure>,
 }
 
-pub use scheduler::CanonicalValue;
+pub use scheduler::{CanonicalValue, RemoteTerminalDisposition};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolError {
@@ -613,11 +613,14 @@ pub enum KernelEventKind {
     RemoteInputAdmitted,
     RemoteInputClosed,
     InputClosed,
+    InputAbnormal,
     HostCallRequested,
     HostCallCancellationRequested,
     HostCallCompleted,
     BackCompleted,
     BackFailed,
+    SemanticAbnormal,
+    SemanticAbnormalRecovered,
     CancellationRequested,
     RunCancelled,
 }
@@ -1208,6 +1211,8 @@ fn transient_sign(kind: KernelEventKind) -> bool {
             | KernelEventKind::RemoteInputClosed
             | KernelEventKind::BackCompleted
             | KernelEventKind::BackFailed
+            | KernelEventKind::SemanticAbnormal
+            | KernelEventKind::SemanticAbnormalRecovered
             | KernelEventKind::RunCancelled
     )
 }

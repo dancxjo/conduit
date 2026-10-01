@@ -91,7 +91,7 @@ fn fixed_kernel_preserves_selector_and_candidate_updates_under_capacity_one_pres
 }
 
 #[test]
-fn malformed_and_cancelled_selector_inputs_fail_without_state_fabrication() {
+fn malformed_and_cancelled_selector_inputs_fail_without_state_make() {
     let mut back = StateSelectBack::Select {
         selector: None,
         candidates: [None; 2],

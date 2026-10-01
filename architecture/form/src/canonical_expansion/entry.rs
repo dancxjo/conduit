@@ -55,6 +55,13 @@ pub fn expand_canonical_form_for_authoring_with_backs(
             format!("canonical form '{form_name}' is not defined"),
         )
     })?;
+    if crate::syntax_check::is_local_form_identity(form_name) {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-061",
+            "a local Form is private to its containing source scope and cannot be expanded as a root"
+                .into(),
+        ));
+    }
     let mut environment = BTreeMap::new();
     for parameter in &form.startup_parameters {
         let value = parameter.default.clone().ok_or_else(|| {
@@ -73,6 +80,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
     let fragment = expand_instance(
         form,
         &forms,
+        document.structured_types(),
         catalog,
         backs,
         &environment,
@@ -88,8 +96,9 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         .flat_map(|(front_port, endpoints)| {
             endpoints.iter().map(|endpoint| AuthoringFrontBinding {
                 front_port_id: conduit_core::PortId::from(front_port.as_str()),
-                gear_id: endpoint.gear_id.clone(),
-                gear_port_id: endpoint.port.port_id.clone(),
+                gear_id: endpoint.endpoint.gear_id.clone(),
+                gear_port_id: endpoint.endpoint.port.port_id.clone(),
+                track: endpoint.track,
             })
         })
         .collect();
@@ -98,10 +107,24 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         .iter()
         .map(|(front_port, endpoint)| AuthoringFrontBinding {
             front_port_id: conduit_core::PortId::from(front_port.as_str()),
-            gear_id: endpoint.gear_id.clone(),
-            gear_port_id: endpoint.port.port_id.clone(),
+            gear_id: endpoint.endpoint.gear_id.clone(),
+            gear_port_id: endpoint.endpoint.port.port_id.clone(),
+            track: endpoint.track,
         })
         .collect();
+    let abnormal_export =
+        fragment
+            .abnormal
+            .as_ref()
+            .map(|endpoint| crate::CheckedFormAbnormalExport {
+                value_kind: endpoint
+                    .port
+                    .abnormal_kind
+                    .clone()
+                    .expect("inferred abnormal export has an exact terminal Kind"),
+                gear_id: endpoint.gear_id.clone(),
+                gear_port_id: endpoint.port.port_id.clone(),
+            });
     let mut gears = fragment.gears;
     let mut connections = fragment.connections;
     let mut shared_pools = fragment.shared_pools;
@@ -150,5 +173,6 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         front,
         input_bindings,
         output_bindings,
+        abnormal_export,
     })
 }

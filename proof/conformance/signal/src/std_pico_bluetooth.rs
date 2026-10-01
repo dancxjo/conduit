@@ -183,5 +183,6 @@ pub fn std_pico_bluetooth_session_binding() -> Result<SessionBinding, alloc::str
             sink_endpoint_id: line.binding.sink.endpoint_id.clone(),
             limits: line.binding.limits,
         },
+        abnormal_kind: None,
     })
 }

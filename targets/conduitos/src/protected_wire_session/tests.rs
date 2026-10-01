@@ -117,6 +117,7 @@ fn binding() -> SessionBinding {
                 maximum_frame_bytes: 1024,
             },
         },
+        abnormal_kind: None,
     }
 }
 

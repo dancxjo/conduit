@@ -30,7 +30,7 @@ test("typed lifecycle refusals preserve their category, operation, evidence, and
   }
 });
 
-test("BrowserHost cannot be fabricated outside the admitted Conduit entrance", async () => {
+test("BrowserHost cannot be made outside the admitted Conduit entrance", async () => {
   const { BrowserHost, BrowserPlay } = await import("./browser-sdk.mjs");
   assert.throws(() => new BrowserHost(), /come from Conduit\.browser/);
   assert.throws(() => new BrowserPlay(), /admitted runtime start/);

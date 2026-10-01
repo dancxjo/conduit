@@ -4,10 +4,6 @@ use clap::{Args, Subcommand, ValueEnum};
 
 use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
-#[path = "evidence_home_cross_front.rs"]
-mod home_cross_front;
-#[path = "evidence_journey_audio.rs"]
-mod journey_audio;
 #[path = "evidence_three_body_browser.rs"]
 mod three_body_browser;
 #[path = "evidence_three_body_journey.rs"]
@@ -15,20 +11,10 @@ mod three_body_journey;
 #[path = "evidence_two_fronts.rs"]
 mod two_fronts;
 
-#[derive(Args, Debug)]
-pub struct EvidenceArgs {
-    #[command(subcommand)]
-    command: EvidenceCommand,
-}
-
 #[derive(Subcommand, Debug)]
-enum EvidenceCommand {
+pub(crate) enum EvidenceCommand {
     /// Check the assembled documentary's images, playback, navigation and mobile layout.
     CheckThreeBodyJourney(three_body_browser::BrowserArgs),
-    /// Voice retained model speech into documentary MP3s and measured waveforms.
-    JourneyAudio(journey_audio::JourneyAudioArgs),
-    /// Publish the bounded Home index after every front supplies exact evidence.
-    HomeCrossFront(HomeCrossFrontArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
     ThreeBodyJourney(ThreeBodyJourneyArgs),
     /// Write the canonical exact-commit contract for the three-Body Journey.
@@ -48,33 +34,16 @@ enum EvidenceCommand {
 }
 
 #[derive(Args, Debug)]
-struct HomeCrossFrontArgs {
-    /// One conduit.evidence/home-front@1 receipt; exactly six distinct fronts are required.
-    #[arg(long = "receipt", required = true)]
-    receipts: Vec<PathBuf>,
-
-    /// New file that will receive the verified bounded index.
-    #[arg(
-        long,
-        default_value = "target/conduit-evidence/home-cross-front/index.json"
-    )]
-    output: PathBuf,
-}
-
-#[derive(Args, Debug)]
-struct ThreeBodyJourneyArgs {
-    /// Separately retained real-model documentary; its exact Presenter inputs must match.
-    #[arg(long)]
-    recorded_generative: Option<PathBuf>,
+pub(crate) struct ThreeBodyJourneyArgs {
     /// Exact commit whose three Body tracks are being verified.
     #[arg(long)]
     commit: String,
 
-    /// Shared conduit.evidence/semantic-journey-contract@2 document.
+    /// Shared conduit.evidence/semantic-journey-contract@3 document.
     #[arg(long)]
     contract: PathBuf,
 
-    /// One conduit.evidence/body-journey-track@2 manifest; exactly three are required.
+    /// One conduit.evidence/body-journey-track@6 manifest; exactly three are required.
     #[arg(long = "track", required = true)]
     tracks: Vec<PathBuf>,
 
@@ -84,7 +53,7 @@ struct ThreeBodyJourneyArgs {
 }
 
 #[derive(Args, Debug)]
-struct ThreeBodyJourneyContractArgs {
+pub(crate) struct ThreeBodyJourneyContractArgs {
     /// Exact commit the future track evidence must match.
     #[arg(long)]
     commit: String,
@@ -95,7 +64,7 @@ struct ThreeBodyJourneyContractArgs {
 }
 
 #[derive(Args, Debug)]
-struct StageThreeBodyJourneyArgs {
+pub(crate) struct StageThreeBodyJourneyArgs {
     /// Complete three-Body publication root containing the index, tracks, and artifacts.
     #[arg(long)]
     publication_root: PathBuf,
@@ -110,21 +79,21 @@ struct StageThreeBodyJourneyArgs {
 }
 
 #[derive(Args, Debug)]
-struct TwoFrontsArgs {
+pub(crate) struct TwoFrontsArgs {
     /// New directory that will receive the bounded sibling evidence manifest.
     #[arg(long, default_value = "target/journeys/one-form-two-fronts")]
     output: PathBuf,
 }
 
 #[derive(Args, Debug)]
-struct EvidenceLittleLifeArgs {
+pub(crate) struct EvidenceLittleLifeArgs {
     /// New directory that will receive the exact bounded evidence inventory.
     #[arg(long, default_value = "target/journeys/little-life")]
     output: PathBuf,
 }
 
 #[derive(Args, Debug)]
-struct EvidenceDocsVerifyArgs {
+pub(crate) struct EvidenceDocsVerifyArgs {
     /// Repository root containing README.md and docs/visual-evidence.md.
     #[arg(long, default_value = ".")]
     workspace_root: PathBuf,
@@ -139,7 +108,7 @@ struct EvidenceDocsVerifyArgs {
 }
 
 #[derive(Args, Debug)]
-struct EvidenceGalleryArgs {
+pub(crate) struct EvidenceGalleryArgs {
     /// Optional complete Patchbay evidence directory bound to the checked commit.
     #[arg(long)]
     evidence_root: Option<PathBuf>,
@@ -147,10 +116,6 @@ struct EvidenceGalleryArgs {
     /// Optional complete x86_64 ConduitOS console evidence for the same commit.
     #[arg(long)]
     conduitos_evidence_root: Option<PathBuf>,
-
-    /// Optional complete Hears and Speaks audio evidence for the same commit.
-    #[arg(long)]
-    hears_speaks_evidence_root: Option<PathBuf>,
 
     /// Optional complete One form, Two Fronts evidence for the same commit.
     #[arg(long)]
@@ -170,7 +135,7 @@ struct EvidenceGalleryArgs {
 }
 
 #[derive(Args, Debug)]
-struct EvidenceVerifyArgs {
+pub(crate) struct EvidenceVerifyArgs {
     /// Evidence directory containing manifest.json and its declared outputs.
     #[arg(long)]
     root: PathBuf,
@@ -198,18 +163,12 @@ enum EvidenceResultArg {
     DiagnosticIncomplete,
 }
 
-pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
-    match args.command {
-        EvidenceCommand::HomeCrossFront(args) => home_cross_front::run(args.receipts, args.output),
-        EvidenceCommand::JourneyAudio(args) => journey_audio::run(args),
+pub fn run(command: EvidenceCommand) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
         EvidenceCommand::CheckThreeBodyJourney(args) => three_body_browser::run(args),
-        EvidenceCommand::ThreeBodyJourney(args) => three_body_journey::run(
-            args.commit,
-            args.contract,
-            args.tracks,
-            args.recorded_generative,
-            args.output,
-        ),
+        EvidenceCommand::ThreeBodyJourney(args) => {
+            three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
+        }
         EvidenceCommand::ThreeBodyJourneyContract(args) => {
             three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
         }
@@ -238,7 +197,6 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceCommand::Gallery(args) => evidence::publish_gallery(&evidence::GalleryRequest {
             evidence_root: args.evidence_root,
             conduitos_evidence_root: args.conduitos_evidence_root,
-            hears_speaks_evidence_root: args.hears_speaks_evidence_root,
             two_fronts_evidence_root: args.two_fronts_evidence_root,
             little_life_evidence_root: args.little_life_evidence_root,
             site_root: args.site_root,

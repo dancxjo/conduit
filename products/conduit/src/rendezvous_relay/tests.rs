@@ -1,8 +1,8 @@
 use super::*;
 use conduit_core::PROTOCOL_VERSION;
 use conduit_protected_line::{
-    establish_protected_session, EndpointBinding, ProtectedCarrier, ProtectedSessionPolicy, Role,
-    SessionBinding, SessionLimits,
+    establish_protected_session, EndpointBinding, ProtectedCarrier, ProtectedLineError,
+    ProtectedSessionPolicy, Role, SessionBinding, SessionLimits,
 };
 use conduit_std_host::relay_client::{HostedRelayCarrier, RelayClientDescriptor};
 use conduit_wire::{
@@ -11,6 +11,7 @@ use conduit_wire::{
 use rcgen::{generate_simple_self_signed, CertifiedKey};
 use sha2::{Digest, Sha256};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpListener};
+use std::sync::mpsc;
 use std::thread;
 
 fn options(bind: &str, authorize_network: bool) -> ServeOptions {
@@ -155,6 +156,8 @@ fn remote_execution_session_frames_cross_two_outbound_protected_relay_clients() 
     let address = SocketAddrV4::new(Ipv4Addr::LOCALHOST, port).into();
     let first_url = public_url.clone();
     let first_binding = binding.clone();
+    let (response_seen_tx, response_seen_rx) = mpsc::sync_channel(0);
+    let (close_started_tx, close_started_rx) = mpsc::sync_channel(0);
     let first = thread::spawn(move || {
         let mut carrier = HostedRelayCarrier::connect(RelayClientDescriptor {
             address,
@@ -195,7 +198,12 @@ fn remote_execution_session_frames_cross_two_outbound_protected_relay_clients() 
         let response = decode_session_frame(response, 32, 256).unwrap();
         assert_eq!(response.identity.plan_id, "plan/relay-proof");
         assert_eq!(response.message, SessionMessage::Accepted { sequence: 0 });
-        line.close().unwrap();
+        response_seen_tx.send(()).unwrap();
+        close_started_rx.recv().unwrap();
+        assert!(matches!(
+            line.receive(),
+            Err(ProtectedLineError::OuterCarrierLost)
+        ));
     });
     let mut second_carrier = HostedRelayCarrier::connect(RelayClientDescriptor {
         address,
@@ -242,8 +250,10 @@ fn remote_execution_session_frames_cross_two_outbound_protected_relay_clients() 
     )
     .unwrap();
     second_line.send(&response[..response_length]).unwrap();
-    first.join().unwrap();
+    response_seen_rx.recv().unwrap();
     second_line.close().unwrap();
+    close_started_tx.send(()).unwrap();
+    first.join().unwrap();
     assert_eq!(server.join().unwrap(), Ok(()));
     fs::remove_dir_all(directory).unwrap();
 }
@@ -262,6 +272,7 @@ fn remote_frame(message: SessionMessage<'_>) -> SessionFrame<'_> {
             source_boot_id: "boot/one",
             sink_host_id: "host/second",
             sink_boot_id: "boot/two",
+            abnormal_kind: None,
             value_kind: "text/plain",
             limits: conduit_wire::SessionLimits {
                 maximum_in_flight_items: 1,

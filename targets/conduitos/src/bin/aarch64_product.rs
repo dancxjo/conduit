@@ -10,12 +10,12 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
     allocation::BOOT_ARENA,
     arch, boot, dual_region_composition, dual_region_plan,
-    fabrication::{EMBEDDED_FABRICATION, IMPL_LINEAR_PRESENTER},
     front_door::FrontDoor,
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
+    make::{EMBEDDED_MAKE, IMPL_LINEAR_PRESENTER},
     offer::CpuFeatures,
-    offer_fabrication::ImageBoundHostOffer,
+    offer_make::ImageBoundHostOffer,
     spore_join,
 };
 
@@ -42,10 +42,10 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
             )
             .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     }
-    EMBEDDED_FABRICATION
+    EMBEDDED_MAKE
         .validate(record.runtime_arena.length)
         .unwrap_or_else(|error| refuse(error.as_str()));
-    if !EMBEDDED_FABRICATION.includes(IMPL_LINEAR_PRESENTER) {
+    if !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER) {
         refuse("linear-presenter-absent-from-image");
     }
 
@@ -62,7 +62,7 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     );
     let offer = ImageBoundHostOffer::new(
         &identities,
-        &EMBEDDED_FABRICATION,
+        &EMBEDDED_MAKE,
         CpuFeatures {
             sse2: false,
             rdrand: false,
@@ -84,9 +84,9 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         host_id.clone(),
         boot_id.clone(),
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.build_id,
+        EMBEDDED_MAKE.image_binding,
         form.source_document_id,
         form.checked_form_id,
         5,
@@ -99,8 +99,8 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         host_id,
         boot_id,
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.image_binding,
     )
     .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
     let receipt = presenter
@@ -112,15 +112,14 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         arch::present(b"\n");
     }
 
-    let mut prepared =
-        dual_region_plan::prepare(&identities, &offer, EMBEDDED_FABRICATION.build_id)
-            .unwrap_or_else(|error| refuse(error.as_str()));
+    let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
+        .unwrap_or_else(|error| refuse(error.as_str()));
     let region = boot::spore_module().unwrap_or_else(|| refuse("spore-boot-module-missing"));
     if let Some(join) = spore_join::encode_region(
         region,
-        EMBEDDED_FABRICATION.target,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
+        EMBEDDED_MAKE.target,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.build_id,
         &prepared.advertisement,
     )
     .unwrap_or_else(|error| refuse(error))
@@ -145,11 +144,11 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     .unwrap_or_else(|error| refuse(error.as_str()));
 
     arch::present(b"CONDUIT_AARCH64_PRODUCT {\"schema\":\"conduit.conduitos/aarch64-product@1\",\"status\":\"ready\",\"profile_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.profile_id.as_bytes());
+    arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.build_id.as_bytes());
+    arch::present(EMBEDDED_MAKE.build_id.as_bytes());
     arch::present(b"\",\"image_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.image_binding.as_bytes());
+    arch::present(EMBEDDED_MAKE.image_binding.as_bytes());
     arch::present(b"\",\"host_id\":\"");
     arch::present(identity::hex(&identities.host).as_bytes());
     arch::present(b"\",\"boot_id\":\"");

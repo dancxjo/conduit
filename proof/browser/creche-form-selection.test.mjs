@@ -9,9 +9,8 @@ import {
   searchForms,
   setFormSelected,
   toggleForm,
-} from "../../products/creche/browser/creche-form-selection.mjs";
-import { exportBodyEvidence } from "../../products/creche/browser/creche-graduation.mjs";
-import { initialFormSelectionNotice, selectedCanonicalSource } from "../../products/creche/browser/creche-lifecycle.mjs";
+} from "../../products/workspace/browser/reviewed-form-selection.mjs";
+import { initialFormSelectionNotice, selectedCanonicalSource } from "../../products/workspace/browser/body-bootstrap.mjs";
 
 const inventory = Object.freeze({
   schema: "conduit.creche/reviewed-form-inventory@1",
@@ -24,15 +23,14 @@ const inventory = Object.freeze({
   ],
 });
 
-test("Body Workspace owns bootstrap while Crèche remains a thin compatibility entrance", async () => {
+test("Body Workspace owns bootstrap without Crèche source facades", async () => {
   const workspace = await readFile(new URL("../../products/workspace/browser/workspace.mjs", import.meta.url), "utf8");
-  const lifecycle = await readFile(new URL("../../products/creche/browser/creche-lifecycle.mjs", import.meta.url), "utf8");
-  const selection = await readFile(new URL("../../products/creche/browser/creche-form-selection.mjs", import.meta.url), "utf8");
+  const descriptor = JSON.parse(await readFile(new URL("../../products/creche/browser/creche.application.template.json", import.meta.url), "utf8"));
   assert.match(workspace, /\.\/body-bootstrap\.mjs/);
   assert.match(workspace, /\.\/reviewed-form-selection\.mjs/);
   assert.doesNotMatch(workspace, /products\/creche\/(?:browser\/)?(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)|\.\.\/\.\.\/creche\/browser\/(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)/);
-  assert.match(lifecycle, /^\/\/ Compatibility entrance only\.[^\n]*\nexport \* from "\.\.\/\.\.\/workspace\/browser\/body-bootstrap\.mjs";\n$/);
-  assert.match(selection, /^\/\/ Compatibility entrance only\.[^\n]*\nexport \* from "\.\.\/\.\.\/workspace\/browser\/reviewed-form-selection\.mjs";\n$/);
+  assert.equal(descriptor.resources.find(({ role }) => role === "creche-lifecycle").source, "products/workspace/browser/body-bootstrap.mjs");
+  assert.equal(descriptor.resources.find(({ role }) => role === "creche-form-selection").source, "products/workspace/browser/reviewed-form-selection.mjs");
 });
 
 test("native checkbox values set selection idempotently", () => {
@@ -90,30 +88,4 @@ test("invalid, duplicate, and over-capacity state is explicit", () => {
   assert.throws(() => openFormSelection(inventory, { schema: "wrong", forms: [] }), /malformed/);
   assert.throws(() => toggleForm({ ...inventory, maximum_selection: 0, forms: [] }, [], "clock"), /absent/);
   assert.throws(() => searchForms(inventory, "x".repeat(129)), /bound/);
-});
-
-test("graduation exports the exact bounded Body biography without mutation", async () => {
-  const bodyId = "a".repeat(64);
-  const biography = { schema: "conduit.body/biography-evidence@2", body_id: bodyId, records: [{ sequence: 1, sign_id: "sign/born", kind: { Born: {} } }] };
-  const priorDocument = globalThis.document;
-  const priorCreate = URL.createObjectURL;
-  const priorRevoke = URL.revokeObjectURL;
-  let exportedBlob;
-  let download;
-  let clicked = false;
-  URL.createObjectURL = (blob) => { exportedBlob = blob; return "blob:body-evidence"; };
-  URL.revokeObjectURL = (url) => assert.equal(url, "blob:body-evidence");
-  globalThis.document = { createElement(tag) { assert.equal(tag, "a"); return { click() { clicked = true; }, set download(value) { download = value; }, set href(value) { assert.equal(value, "blob:body-evidence"); } }; } };
-  try {
-    exportBodyEvidence(biography);
-    assert.equal(clicked, true);
-    assert.equal(download, `conduit-body-${bodyId}.json`);
-    assert.deepEqual(JSON.parse(await exportedBlob.text()), biography);
-    assert.throws(() => exportBodyEvidence({ body_id: bodyId }), /unavailable/);
-    assert.throws(() => exportBodyEvidence({ body_id: bodyId, records: [], padding: "x".repeat(65_536) }), /export bound/);
-  } finally {
-    globalThis.document = priorDocument;
-    URL.createObjectURL = priorCreate;
-    URL.revokeObjectURL = priorRevoke;
-  }
 });

@@ -89,7 +89,8 @@ impl StdHost {
             selection.pool_id.as_str(),
             selection.operation_id.as_str()
         );
-        let placement = PlannedGear {
+        let placement = conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from(dynamic_identity.clone()),
             gear_id: GearId::from(dynamic_identity),
             kind_id: capability.kind_id.clone(),
@@ -107,6 +108,7 @@ impl StdHost {
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
+            terminal_transductions: Vec::new(),
             host_calls: capability.host_calls.clone(),
             resources: realization.resources.clone(),
             authority: Vec::new(),

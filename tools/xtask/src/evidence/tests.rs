@@ -1,14 +1,5 @@
 use super::*;
 
-const HEARS_SPEAKS_PROVIDER_RECEIPT: &[u8] = br#"{
-  "providers": {
-    "schema": "conduit.journey/hears-speaks-providers@1",
-    "whisper": {"implementation":"whisper.cpp","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","model_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
-    "local_model": {"runtime_version":"ollama version 1","model_name":"fixture","model_content_identity":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
-    "piper": {"implementation":"piper","executable_sha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","model_sha256":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","config_sha256":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
-  }
-}"#;
-
 fn temporary_root(name: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("conduit-evidence-{name}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
@@ -65,97 +56,6 @@ fn complete_manifest_digest_binds_exact_bytes() {
         "delivered"
     );
     assert!(document.get("timestamp").is_none());
-    fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn complete_hears_speaks_manifest_requires_typed_audio_and_receipts() {
-    let root = temporary_root("hears-speaks");
-    let wav =
-        b"RIFF\x24\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x80>\0\0\0}\0\0\x02\0\x10\0data\0\0\0\0";
-    let declarations = [
-        (
-            "hears-speaks.input-pcm",
-            EvidenceKind::Audio,
-            "input.pcm",
-            "audio/L16; rate=16000; channels=1",
-            b"\0\0".as_slice(),
-        ),
-        (
-            "hears-speaks.input-wav",
-            EvidenceKind::Audio,
-            "input.wav",
-            "audio/wav",
-            wav.as_slice(),
-        ),
-        (
-            "hears-speaks.recognition",
-            EvidenceKind::MachineReadableManifest,
-            "recognition.json",
-            "application/json",
-            b"{}".as_slice(),
-        ),
-        (
-            "hears-speaks.response",
-            EvidenceKind::MachineReadableManifest,
-            "response.json",
-            "application/json",
-            b"{}".as_slice(),
-        ),
-        (
-            "hears-speaks.output-wav",
-            EvidenceKind::Audio,
-            "output.wav",
-            "audio/wav",
-            wav.as_slice(),
-        ),
-        (
-            "hears-speaks.receipt",
-            EvidenceKind::MachineReadableManifest,
-            "receipt.json",
-            "application/json",
-            HEARS_SPEAKS_PROVIDER_RECEIPT,
-        ),
-    ];
-    let mut evidence = EvidenceManifest::new(
-        &root,
-        Path::new(env!("CARGO_MANIFEST_DIR")),
-        "journey-hears-speaks",
-        "journey-gallery",
-    )
-    .unwrap();
-    for (id, kind, path, media_type, bytes) in declarations {
-        fs::write(root.join(path), bytes).unwrap();
-        evidence
-            .declare(EvidenceOutput {
-                id: id.into(),
-                kind,
-                path: path.into(),
-                media_type: media_type.into(),
-                required: true,
-                provenance: EvidenceProvenance {
-                    scenario_id: "hears-speaks.recorded-addressed-house@1".into(),
-                    plan_id: Some("plan".into()),
-                    active_play_id: Some("play".into()),
-                    asserted_semantic_disposition: Some("completed".into()),
-                    proof_class: Some("hosted-recorded-audio-plan-play".into()),
-                    ..Default::default()
-                },
-            })
-            .unwrap();
-    }
-    evidence.finish(EvidenceResult::Complete).unwrap();
-    let document: serde_json::Value =
-        serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
-    let commit = document["git_commit"].as_str().unwrap().to_owned();
-    verify(&VerificationRequest {
-        root: root.clone(),
-        commit,
-        result: ExpectedEvidenceResult::Complete,
-        proof_id: "journey-hears-speaks".into(),
-        suite_id: "journey-gallery".into(),
-    })
-    .unwrap();
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -550,83 +450,6 @@ fn complete_conduitos_evidence(root: &Path, commit: &str) {
     evidence.finish(EvidenceResult::Complete).unwrap();
 }
 
-fn complete_hears_speaks_evidence(root: &Path) {
-    let wav =
-        b"RIFF\x24\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x80>\0\0\0}\0\0\x02\0\x10\0data\0\0\0\0";
-    let files = [
-        (
-            "hears-speaks.input-pcm",
-            EvidenceKind::Audio,
-            "input.pcm",
-            "audio/L16; rate=16000; channels=1",
-            b"\0\0".as_slice(),
-        ),
-        (
-            "hears-speaks.input-wav",
-            EvidenceKind::Audio,
-            "input.wav",
-            "audio/wav",
-            wav.as_slice(),
-        ),
-        (
-            "hears-speaks.recognition",
-            EvidenceKind::MachineReadableManifest,
-            "recognition.json",
-            "application/json",
-            b"{}".as_slice(),
-        ),
-        (
-            "hears-speaks.response",
-            EvidenceKind::MachineReadableManifest,
-            "response.json",
-            "application/json",
-            b"{}".as_slice(),
-        ),
-        (
-            "hears-speaks.output-wav",
-            EvidenceKind::Audio,
-            "output.wav",
-            "audio/wav",
-            wav.as_slice(),
-        ),
-        (
-            "hears-speaks.receipt",
-            EvidenceKind::MachineReadableManifest,
-            "receipt.json",
-            "application/json",
-            HEARS_SPEAKS_PROVIDER_RECEIPT,
-        ),
-    ];
-    let mut evidence = EvidenceManifest::new(
-        root,
-        Path::new(env!("CARGO_MANIFEST_DIR")),
-        "journey-hears-speaks",
-        "journey-gallery",
-    )
-    .unwrap();
-    for (id, kind, path, media_type, bytes) in files {
-        fs::write(root.join(path), bytes).unwrap();
-        evidence
-            .declare(EvidenceOutput {
-                id: id.into(),
-                kind,
-                path: path.into(),
-                media_type: media_type.into(),
-                required: true,
-                provenance: EvidenceProvenance {
-                    scenario_id: "hears-speaks.recorded-addressed-house@1".into(),
-                    plan_id: Some("plan".into()),
-                    active_play_id: Some("play".into()),
-                    asserted_semantic_disposition: Some("completed".into()),
-                    proof_class: Some("hosted-recorded-audio-plan-play".into()),
-                    ..Default::default()
-                },
-            })
-            .unwrap();
-    }
-    evidence.finish(EvidenceResult::Complete).unwrap();
-}
-
 fn complete_two_fronts_evidence(root: &Path) {
     let png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01";
     let presentation = "presentation/two-fronts";
@@ -740,19 +563,16 @@ fn complete_two_fronts_evidence(root: &Path) {
 fn gallery_publishes_current_history_and_provenance() {
     let evidence_root = temporary_root("gallery-evidence");
     let conduitos_root = temporary_root("gallery-conduitos-evidence");
-    let hears_speaks_root = temporary_root("gallery-hears-speaks-evidence");
     let two_fronts_root = temporary_root("gallery-two-fronts-evidence");
     let little_life_root = temporary_root("gallery-little-life-evidence");
     let site_root = temporary_root("gallery-site");
     let commit = complete_browser_evidence(&evidence_root);
     complete_conduitos_evidence(&conduitos_root, &commit);
-    complete_hears_speaks_evidence(&hears_speaks_root);
     complete_two_fronts_evidence(&two_fronts_root);
     complete_little_life_evidence(&little_life_root);
     publish_gallery(&GalleryRequest {
         evidence_root: Some(evidence_root.clone()),
         conduitos_evidence_root: Some(conduitos_root.clone()),
-        hears_speaks_evidence_root: Some(hears_speaks_root.clone()),
         two_fronts_evidence_root: Some(two_fronts_root.clone()),
         little_life_evidence_root: Some(little_life_root.clone()),
         site_root: site_root.clone(),
@@ -768,9 +588,13 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(index.contains("Evidence not yet admitted for this commit"));
     assert!(index.contains("The evidence library"));
     assert!(index.contains("conduit-three-body-flagship@2"));
+    for action in crate::three_body_actions::REQUIRED_ACTIONS {
+        assert!(index.contains(action.title()));
+    }
+    assert_eq!(index.matches("<ol class=\"semantic-spine\">").count(), 1);
+    assert!(!index.contains("presentation Host"));
     assert!(index.contains("journey-card"));
     assert!(index.contains("Follow the evidence"));
-    assert!(index.contains("<audio controls"));
     assert!(index.contains("Current x86_64 ConduitOS emulator console evidence"));
     assert!(scenario.contains("1440x1000"));
     assert!(scenario.contains("Exact provenance"));
@@ -788,7 +612,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(two_fronts_page.contains("Pixel equality, physical display output"));
     assert!(two_fronts_page.contains("What Conduit established"));
     assert!(two_fronts_page.contains("What it does not prove"));
-    assert!(two_fronts_page.contains("cargo xtask evidence one-form-two-fronts"));
+    assert!(two_fronts_page.contains("cargo xtask prove one-form-two-fronts"));
     assert!(two_fronts_page.contains("presentation/two-fronts"));
     assert_eq!(
         fs::read(site_root.join("current/one-form-two-fronts/native.png")).unwrap(),
@@ -806,23 +630,9 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(console_page.contains("QEMU evidence, not physical hardware evidence"));
     assert!(console_page.contains("freestanding-emulator"));
     assert!(console_page.contains(&commit));
-    assert!(console_page.contains("cargo xtask conduitos journey-proof"));
+    assert!(console_page.contains("cargo xtask make conduitos journey-proof"));
     assert!(site_root
         .join("current/conduitos/x86_64/manifest.json")
-        .is_file());
-    let audio_page = fs::read_to_string(site_root.join("current/hears-speaks/index.html")).unwrap();
-    assert!(audio_page.contains("<audio controls"));
-    assert!(audio_page.contains("A question became an answer"));
-    assert!(audio_page.contains("All evidence and exact downloads"));
-    assert!(audio_page.contains("not a live microphone"));
-    assert!(audio_page.contains("What Conduit established"));
-    assert!(audio_page.contains("journey-hears-speaks-local"));
-    assert_eq!(
-        fs::read(site_root.join("current/hears-speaks/output.wav")).unwrap(),
-        fs::read(site_root.join(format!("commits/{commit}/hears-speaks/output.wav"))).unwrap()
-    );
-    assert!(site_root
-        .join("current/hears-speaks/manifest.json")
         .is_file());
     let life_page = fs::read_to_string(site_root.join("current/little-life/index.html")).unwrap();
     assert!(life_page.contains("Generation 0"));
@@ -832,7 +642,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(life_page.contains("Four accepted artifacts, no invented frames"));
     assert!(life_page.contains("not a native graphical renderer"));
     assert!(life_page.contains("What Conduit established"));
-    assert!(life_page.contains("cargo xtask evidence little-life"));
+    assert!(life_page.contains("cargo xtask prove little-life"));
     assert_eq!(
         fs::read(site_root.join("current/little-life/t032.png")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/little-life/t032.png"))).unwrap()
@@ -874,7 +684,6 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(publish_gallery(&GalleryRequest {
         evidence_root: Some(evidence_root.clone()),
         conduitos_evidence_root: None,
-        hears_speaks_evidence_root: None,
         two_fronts_evidence_root: None,
         little_life_evidence_root: None,
         site_root: site_root.clone(),
@@ -887,7 +696,6 @@ fn gallery_publishes_current_history_and_provenance() {
     );
     fs::remove_dir_all(evidence_root).unwrap();
     fs::remove_dir_all(conduitos_root).unwrap();
-    fs::remove_dir_all(hears_speaks_root).unwrap();
     fs::remove_dir_all(two_fronts_root).unwrap();
     fs::remove_dir_all(little_life_root).unwrap();
     fs::remove_dir_all(site_root).unwrap();
@@ -905,7 +713,6 @@ fn gallery_accepts_a_verified_sibling_without_paused_patchbay_evidence() {
     publish_gallery(&GalleryRequest {
         evidence_root: None,
         conduitos_evidence_root: None,
-        hears_speaks_evidence_root: None,
         two_fronts_evidence_root: None,
         little_life_evidence_root: Some(little_life_root.clone()),
         site_root: site_root.clone(),
@@ -936,7 +743,6 @@ fn gallery_refuses_publication_without_any_evidence_input() {
     assert!(publish_gallery(&GalleryRequest {
         evidence_root: None,
         conduitos_evidence_root: None,
-        hears_speaks_evidence_root: None,
         two_fronts_evidence_root: None,
         little_life_evidence_root: None,
         site_root: site_root.clone(),

@@ -11,7 +11,7 @@ pub use layout::{PositionedGlyph, TextLayout};
 mod scene;
 pub use scene::render_scene;
 
-/// Text purpose selects a fixed fabricated profile, never an ambient font.
+/// Text purpose selects a fixed made profile, never an ambient font.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
 pub enum TextRole {
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn naming_catalog_and_uppercase_have_admitted_coverage() {
-        let names = include_str!("../../../../products/creche/names/catalog.mjs");
+        let names = include_str!("../../../../forms/birth/names/catalog.mjs");
         for role in [
             TextRole::Label,
             TextRole::Body,

@@ -8,7 +8,7 @@ The browser host lives in `targets/browser/host/`, its WASM runtime in
 ## Run the suite
 
 ```sh
-cargo xtask check browser-host
+cargo xtask check browser
 ```
 
 To run the proof with its evidence manifest:
@@ -17,10 +17,12 @@ To run the proof with its evidence manifest:
 cargo xtask prove browser-host
 ```
 
-Both commands use the repository's browser tooling and build the required
-product artifacts. Inspect prerequisites with `cargo xtask doctor browser`.
+`check browser` runs deterministic runtime, ABI, SDK, package, and compile
+contracts without launching a browser or fabricating product shells. `prove
+browser-host` stages the required artifacts and runs the pinned live-browser
+evidence matrix. Inspect prerequisites with `cargo xtask doctor browser`.
 For reviewed canonical forms specifically, use
-`cargo xtask forms run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
+`cargo xtask check forms run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
 for capture and publication rules.
 
 Browser acceptance uses pinned Chromium, one worker, zero retries, and ordinary

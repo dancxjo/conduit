@@ -2,7 +2,7 @@
 use super::*;
 use crate::installed_browser::test_json;
 use conduit_core::*;
-use conduit_form::{KindProjection, KindSignature};
+use conduit_form::KindSignature;
 use std::collections::BTreeMap;
 
 fn prepare(
@@ -56,13 +56,7 @@ fn prepare(
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: fixture.kind_id.clone(),
-                kind_contract_revision: fixture.kind_contract_revision.clone(),
-                inputs: fixture.inputs.clone(),
-                outputs: fixture.outputs.clone(),
-                configuration: Default::default(),
-            })
+            .insert_kind(test_json::semantic_kind(&fixture))
             .unwrap();
         host.capabilities.push(fixture);
     }

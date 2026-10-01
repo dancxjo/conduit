@@ -24,6 +24,23 @@ export class InvalidLifecycleError extends ConduitSdkError { readonly category: 
 export class PermissionDeniedError extends ConduitSdkError { readonly category: "PermissionDenied"; }
 export class IncompatibleRuntimeAbiError extends ConduitSdkError { readonly category: "IncompatibleRuntimeAbi"; }
 
+/** Bounded same-origin client for one HTTP-carried Body Face. */
+export class BrowserFaceError extends Error {
+  readonly code: "FaceUnavailable" | "FaceHttpRefusal" | "FaceResponseBound" | "FaceResponseMalformed";
+  readonly operation: string;
+  readonly status: number | null;
+}
+
+export class BrowserFaceClient {
+  constructor(options?: {
+    base?: string | URL;
+    fetch?: typeof globalThis.fetch;
+    maximumResponseBytes?: number;
+  });
+  snapshot(): Promise<Readonly<Record<string, unknown>>>;
+  interact(interaction: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+}
+
 /** Read-only projection of one exact browser Host and Boot incarnation. */
 export class BrowserHost {
   private constructor();
@@ -50,8 +67,75 @@ export class BrowserHost {
   form(source: string): BrowserForm;
   /** Rust expands selected Forms against this exact Host without acquiring resources or making a Plan. */
   review(forms: readonly (BrowserForm | CheckedForm | CheckedSource)[]): Promise<FormWorkloadReview>;
+  /** Participate in one externally owned Body without creating a second Host or Boot. */
+  participate(options: {
+    invitation: string;
+    expectedBodyId?: string | null;
+    retainedCredential?: Readonly<Record<string, unknown>> | null;
+    onCredential?: (credential: Readonly<Record<string, unknown>>) => void | Promise<void>;
+    onState?: (state: string) => void;
+    onBiographyEvidence?: (evidence: Readonly<Record<string, unknown>>) => void;
+    onOfferEvidence?: (evidence: Readonly<Record<string, unknown>>) => void;
+    renewPresence?: boolean;
+    reconnectPresence?: boolean;
+  }): Promise<BrowserBodyParticipation>;
   /** Birth a Body only from Forms checked by this Host's exact Browser runtime. */
   birth(options: { name: string; forms: readonly (BrowserForm | CheckedForm | CheckedSource)[] }): Promise<BrowserBody>;
+  /** Recover the retained Body under this fresh Boot. Returns null when no Body is retained. */
+  recover(): Promise<BrowserBody | null>;
+}
+
+export class BrowserBodyParticipation {
+  private constructor();
+  readonly hostId: string;
+  readonly bootId: string;
+  readonly advertisement: Readonly<Record<string, unknown>>;
+  membershipCredential(): Readonly<Record<string, unknown>> | null;
+  biographyEvidence(): Readonly<Record<string, unknown>> | null;
+  offerEvidence(): Readonly<Record<string, unknown>> | null;
+  state(): string;
+  presenceState(): string;
+  pageLifecycle(): string;
+  freshnessProfile(): Readonly<Record<string, unknown>>;
+  requestOfferEvidence(options: { capabilityIds?: readonly string[]; resourcePoolIds?: readonly string[] }): void;
+  signalWebRtc(options: Readonly<Record<string, unknown>>): void;
+  requestWebRtcGrant(index: number, generation?: number): void;
+  webRtcSessions(): Readonly<Record<string, unknown>>;
+  offerWebRtcValue(identity: string, bytes: Uint8Array | readonly number[]): Promise<Readonly<Record<string, unknown>>>;
+  receiveWebRtcValue(identity: string): Promise<unknown>;
+  pressureNextWebRtcValue(identity: string): unknown;
+  deliverWebRtcValue(identity: string, sequence: number): unknown;
+  waitWebRtcValueDelivered(identity: string, sequence: number): Promise<unknown>;
+  closeWebRtcLine(identity: string): unknown;
+  replanWebRtc(): unknown;
+  publishMediaResource(evidence: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+  executionCapabilities(): readonly string[];
+  prepare(options: {
+    proposal: Readonly<Record<string, unknown>>;
+    inputTarget: Element;
+    outputRoot: Element;
+    externallyManagedPlanIds?: readonly string[];
+  }): BrowserBodyPreparation;
+  close(): number;
+}
+
+export class BrowserBodyPreparation {
+  private constructor();
+  observations(): readonly Readonly<Record<string, unknown>>[];
+  evidence(): Readonly<Record<string, unknown>> | null;
+  /** Immutable exact Plan truth for read-only workbench Masks. */
+  inspection(): Readonly<{
+    schema: "conduit.browser/body-plan-inspection@1";
+    bodyId: string;
+    wakeId: string;
+    planId: string;
+    plan: Readonly<Record<string, unknown>>;
+  }>;
+  start(playIdentity: Readonly<Record<string, unknown>>): {
+    readonly wakeAtStart: Readonly<Record<string, unknown>>;
+    readonly play: BrowserPlay;
+  };
+  close(): Readonly<Record<string, unknown>> | undefined;
 }
 
 export interface FormDiagnostic {
@@ -116,6 +200,20 @@ export class BrowserForm {
   readonly schema: "conduit.browser/form-source@1";
   readonly source: string;
   check(): Promise<CheckedSource>;
+  /** Rust-checked authoring projection; creates no Body, Plan, Play, or authority. */
+  patchbay(): BrowserFormPatchbay;
+}
+
+export interface BrowserFormPatchbay extends Readonly<Record<string, unknown>> {
+  readonly schema: "conduit.patchbay/checked-form-projection@1";
+  readonly source_document_id: string;
+  readonly checked_form_id: string;
+  readonly visible_expanded_form_id: string;
+  readonly form_name: string;
+  readonly front_inputs: readonly BrowserPatchbayPort[];
+  readonly front_outputs: readonly BrowserPatchbayPort[];
+  readonly gears: readonly Readonly<Record<string, unknown>>[];
+  readonly cords: readonly Readonly<Record<string, unknown>>[];
 }
 
 export class BrowserBody {
@@ -125,6 +223,8 @@ export class BrowserBody {
   current(): Promise<Readonly<Record<string, unknown>>>;
   /** Refresh one immutable projection of current Rust Body and Host evidence. */
   snapshot(): Promise<BrowserBodySnapshot>;
+  /** Project the exact checked topology for consumption by a Patchbay Mask. */
+  patchbay(): Promise<BrowserBodyPatchbay>;
   /** Stream retained runtime events; replay is opt-in and notifications are polled/coalesced from bounded evidence. */
   events(options?: { replay?: boolean; pollIntervalMillis?: number; signal?: AbortSignal }): AsyncIterable<BrowserBodyEvent>;
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
@@ -133,6 +233,43 @@ export class BrowserBody {
   lull(): Promise<Readonly<Record<string, unknown>>>;
   install(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
   remove(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
+}
+
+export interface BrowserBodyPatchbay {
+  readonly schema: "conduit.browser/body-patchbay@1";
+  readonly bodyId: string;
+  readonly hostId: string;
+  readonly bootId: string;
+  readonly planId: string | null;
+  readonly playId: string | null;
+  readonly topology: Readonly<{
+    schema: "conduit.patchbay/checked-form-projection@1";
+    source_document_id: string;
+    checked_form_id: string;
+    visible_expanded_form_id: string;
+    form_name: string;
+    front_inputs: readonly BrowserPatchbayPort[];
+    front_outputs: readonly BrowserPatchbayPort[];
+    gears: readonly Readonly<{
+      gear_id: string;
+      kind_id: string;
+      inputs: readonly BrowserPatchbayPort[];
+      outputs: readonly BrowserPatchbayPort[];
+    }>[];
+    cords: readonly Readonly<Record<string, unknown>>[];
+  }>;
+}
+
+export interface BrowserPatchbayPort {
+  readonly port_id: string;
+  readonly info_kind: string;
+  readonly temporal: string;
+  /** Exact Rust-checked contract; null means no additional value refinement. */
+  readonly value_contract: Readonly<{
+    value_kind: string;
+    maximum_bytes: number;
+    constraints: readonly Readonly<Record<string, unknown>>[];
+  }> | null;
 }
 
 export interface BrowserBodySnapshot extends Readonly<Record<string, unknown>> {

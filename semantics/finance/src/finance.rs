@@ -18,28 +18,14 @@ pub const FINANCE_RATE_TYPE: &str = "FinanceRateObservation";
 pub const FINANCE_TRANSACTION_EVENT_TYPE: &str = "FinanceTransactionEvent";
 pub const FINANCE_TRANSACTION_EVENTS_TYPE: &str = "FinanceTransactionEventsThree";
 pub const FINANCE_MONEY_COMPARISON_TYPE: &str = "FinanceMoneyComparison";
-pub const FINANCE_FIXED_DECIMAL_INFO_ID: &str = "finance/fixed-decimal@1";
 pub const FINANCE_MAXIMUM_DECIMAL_SCALE: u8 = 9;
 pub const FINANCE_TRANSACTION_EVENT_COUNT: u16 = 3;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct FixedDecimal {
-    coefficient: i64,
-    scale: u8,
-}
+pub type FixedDecimal = crate::FinanceFixedDecimal;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Currency {
-    Eur,
-    Gbp,
-    Usd,
-}
+pub type Currency = crate::FinanceCurrency;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Money {
-    pub amount: FixedDecimal,
-    pub currency: Currency,
-}
+pub type Money = crate::FinanceMoney;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RateObservation<'a> {
@@ -55,11 +41,11 @@ pub struct RateObservation<'a> {
 pub enum FinanceRefusal {
     CurrencyMismatch { left: Currency, right: Currency },
     RatePairMismatch,
-    ScaleOutOfRange { maximum: u8, actual: u8 },
     Overflow,
     InvalidObservation,
     MalformedInfo,
     Structured(StructuredInfoRefusal),
+    NativeBinding(conduit_form::rust_binding::NativeBindingRefusal),
 }
 
 impl From<StructuredInfoRefusal> for FinanceRefusal {
@@ -68,92 +54,53 @@ impl From<StructuredInfoRefusal> for FinanceRefusal {
     }
 }
 
+impl From<conduit_form::rust_binding::NativeBindingRefusal> for FinanceRefusal {
+    fn from(value: conduit_form::rust_binding::NativeBindingRefusal) -> Self {
+        Self::NativeBinding(value)
+    }
+}
+
 impl FixedDecimal {
-    pub fn new(coefficient: i64, scale: u8) -> Result<Self, FinanceRefusal> {
-        if scale > FINANCE_MAXIMUM_DECIMAL_SCALE {
-            return Err(FinanceRefusal::ScaleOutOfRange {
-                maximum: FINANCE_MAXIMUM_DECIMAL_SCALE,
-                actual: scale,
-            });
-        }
-        Ok(Self { coefficient, scale })
-    }
-
-    pub const fn coefficient(self) -> i64 {
-        self.coefficient
-    }
-
-    pub const fn scale(self) -> u8 {
-        self.scale
-    }
-
-    pub const fn encode(self) -> [u8; 9] {
-        let coefficient = self.coefficient.to_le_bytes();
-        [
-            self.scale,
-            coefficient[0],
-            coefficient[1],
-            coefficient[2],
-            coefficient[3],
-            coefficient[4],
-            coefficient[5],
-            coefficient[6],
-            coefficient[7],
-        ]
-    }
-
-    pub fn decode(encoded: &[u8]) -> Result<Self, FinanceRefusal> {
-        if encoded.len() != 9 {
-            return Err(FinanceRefusal::MalformedInfo);
-        }
-        let coefficient = i64::from_le_bytes(
-            encoded[1..]
-                .try_into()
-                .expect("fixed decimal length checked before decode"),
-        );
-        Self::new(coefficient, encoded[0])
-    }
-
-    pub fn checked_add(self, other: Self) -> Result<Self, FinanceRefusal> {
-        let scale = self.scale.max(other.scale);
+    pub fn checked_add(&self, other: &Self) -> Result<Self, FinanceRefusal> {
+        let scale = (*self.scale()).max(*other.scale());
         let left = self.at_scale(scale)?;
         let right = other.at_scale(scale)?;
-        Self::new(
+        Ok(Self::new(
             left.checked_add(right).ok_or(FinanceRefusal::Overflow)?,
             scale,
-        )
+        )?)
     }
 
-    pub fn checked_cmp(self, other: Self) -> Result<Ordering, FinanceRefusal> {
-        let scale = self.scale.max(other.scale);
+    pub fn checked_cmp(&self, other: &Self) -> Result<Ordering, FinanceRefusal> {
+        let scale = (*self.scale()).max(*other.scale());
         Ok(self.at_scale(scale)?.cmp(&other.at_scale(scale)?))
     }
 
-    pub fn checked_mul(self, other: Self) -> Result<Self, FinanceRefusal> {
+    pub fn checked_mul(&self, other: &Self) -> Result<Self, FinanceRefusal> {
         let scale = self
-            .scale
-            .checked_add(other.scale)
+            .scale()
+            .checked_add(*other.scale())
             .ok_or(FinanceRefusal::Overflow)?;
-        Self::new(
-            self.coefficient
-                .checked_mul(other.coefficient)
+        Ok(Self::new(
+            self.coefficient()
+                .checked_mul(*other.coefficient())
                 .ok_or(FinanceRefusal::Overflow)?,
             scale,
-        )
+        )?)
     }
 
-    fn at_scale(self, scale: u8) -> Result<i64, FinanceRefusal> {
+    fn at_scale(&self, scale: u8) -> Result<i64, FinanceRefusal> {
         let factor = 10_i64
-            .checked_pow(u32::from(scale - self.scale))
+            .checked_pow(u32::from(scale - *self.scale()))
             .ok_or(FinanceRefusal::Overflow)?;
-        self.coefficient
+        self.coefficient()
             .checked_mul(factor)
             .ok_or(FinanceRefusal::Overflow)
     }
 }
 
 impl Currency {
-    pub const fn tag(self) -> &'static str {
+    pub const fn tag(&self) -> &'static str {
         match self {
             Self::Eur => "eur",
             Self::Gbp => "gbp",
@@ -172,34 +119,37 @@ impl Currency {
 }
 
 pub fn add_money(left: Money, right: Money) -> Result<Money, FinanceRefusal> {
-    require_same_currency(left.currency, right.currency)?;
-    Ok(Money {
-        amount: left.amount.checked_add(right.amount)?,
-        currency: left.currency,
-    })
+    require_same_currency(left.currency(), right.currency())?;
+    Ok(Money::new(
+        left.amount().checked_add(right.amount())?,
+        *left.currency(),
+    )?)
 }
 
 pub fn compare_money(left: Money, right: Money) -> Result<Ordering, FinanceRefusal> {
-    require_same_currency(left.currency, right.currency)?;
-    left.amount.checked_cmp(right.amount)
+    require_same_currency(left.currency(), right.currency())?;
+    left.amount().checked_cmp(right.amount())
 }
 
 pub fn convert_money(money: Money, rate: &RateObservation<'_>) -> Result<Money, FinanceRefusal> {
-    if rate.base == rate.quote || money.currency != rate.base {
+    if rate.base == rate.quote || money.currency() != &rate.base {
         return Err(FinanceRefusal::RatePairMismatch);
     }
     if rate.source.is_empty() || rate.profile.is_empty() {
         return Err(FinanceRefusal::InvalidObservation);
     }
-    Ok(Money {
-        amount: money.amount.checked_mul(rate.rate)?,
-        currency: rate.quote,
-    })
+    Ok(Money::new(
+        money.amount().checked_mul(&rate.rate)?,
+        rate.quote,
+    )?)
 }
 
-fn require_same_currency(left: Currency, right: Currency) -> Result<(), FinanceRefusal> {
+fn require_same_currency(left: &Currency, right: &Currency) -> Result<(), FinanceRefusal> {
     if left != right {
-        return Err(FinanceRefusal::CurrencyMismatch { left, right });
+        return Err(FinanceRefusal::CurrencyMismatch {
+            left: *left,
+            right: *right,
+        });
     }
     Ok(())
 }
@@ -225,39 +175,19 @@ fn unit_type() -> StructuredInfoType {
 }
 
 pub fn finance_fixed_decimal_type() -> StructuredInfoType {
-    leaf(FINANCE_FIXED_DECIMAL_INFO_ID)
+    crate::FinanceFixedDecimal::semantic_type().expect("checked native finance fixed-decimal Type")
 }
 
 pub fn finance_currency_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("finance/currency@1"),
-        vec![
-            case("eur", unit_type()),
-            case("gbp", unit_type()),
-            case("usd", unit_type()),
-        ],
-    )
-    .expect("reviewed currency identity")
+    crate::FinanceCurrency::semantic_type().expect("checked native finance currency Type")
 }
 
 pub fn finance_money_type() -> StructuredInfoType {
-    record(
-        "finance/money@1",
-        vec![
-            field("amount", finance_fixed_decimal_type()),
-            field("currency", finance_currency_type()),
-        ],
-    )
+    crate::FinanceMoney::semantic_type().expect("checked native finance money Type")
 }
 
 pub fn finance_instrument_type() -> StructuredInfoType {
-    record(
-        "finance/currency-pair@1",
-        vec![
-            field("base", finance_currency_type()),
-            field("quote", finance_currency_type()),
-        ],
-    )
+    crate::FinanceCurrencyPair::semantic_type().expect("checked native finance currency-pair Type")
 }
 
 pub fn finance_instant_type() -> StructuredInfoType {
@@ -367,15 +297,7 @@ pub fn finance_transaction_events_type() -> StructuredInfoType {
 }
 
 pub fn finance_money_comparison_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("finance/money-comparison@1"),
-        vec![
-            case("equal", unit_type()),
-            case("greater", unit_type()),
-            case("less", unit_type()),
-        ],
-    )
-    .expect("reviewed money comparison")
+    crate::FinanceMoneyComparison::semantic_type().expect("checked native finance comparison Type")
 }
 
 pub(crate) fn finance_unit_type() -> StructuredInfoType {

@@ -108,6 +108,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     let mut replay_controls = empty_slots(active_nodes);
     let mut template_stores = empty_slots(active_nodes);
     let mut structured_selectors = empty_slots(active_nodes);
+    let mut pure_expressions = empty_slots(active_nodes);
     let mut measurement_windows = empty_slots(active_nodes);
     let mut measurement_hysteresis = empty_slots(active_nodes);
     let mut garden_steps = empty_slots(active_nodes);
@@ -185,6 +186,10 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
             crate::installed_browser::structured_selector::PreparedSelector::for_placement(
                 placement,
             )?;
+        pure_expressions[usize::from(node.node.0)] =
+            crate::installed_browser::pure_expression::PreparedExpression::for_placement(
+                placement,
+            )?;
         measurement_windows[usize::from(node.node.0)] =
             crate::installed_browser::measurement_window::PreparedWindow::for_placement(placement)?
                 .map(Box::new);
@@ -238,15 +243,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     {
         *destination = *spec;
     }
-    let inactive_cord = CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-        pressure_policy: Default::default(),
-    };
+    let inactive_cord = CordSpec::inactive();
     let mut cords = [inactive_cord; MAXIMUM_BROWSER_CORDS];
     for (destination, lowered_cord) in cords
         .iter_mut()
@@ -305,7 +302,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     .map_err(debug_error)?;
     Ok(TourScheduler {
         failure: None,
-        kernel,
+        kernel: Box::new(kernel),
         mappings,
         selectors,
         timing,
@@ -317,6 +314,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
         replay_controls,
         template_stores,
         structured_selectors,
+        pure_expressions,
         measurement_windows,
         measurement_hysteresis,
         garden_steps,

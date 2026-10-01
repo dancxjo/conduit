@@ -5,7 +5,7 @@ This bounded experiment asks whether one continuous latent process can explain p
 Run the checked-in experiment through the repository entrance:
 
 ```console
-cargo xtask --json demo tongues-research
+cargo xtask --json prove journey tongues-research
 ```
 
 The command validates the exact derived corpus identity, checks the portable training and bidirectional-inference forms, trains the deterministic paired model, freezes an exact checkpoint, evaluates held-out examples, and only then exposes segment labels to a small diagnostic probe. The JSON report records corpus, preprocessing, objective, seed, work, checkpoint, callable-signature, held-out, uncertainty, and negative-result evidence.
@@ -38,7 +38,7 @@ The real Patchbay learned-Watch proof consumes the exact run and corpus values: 
 Run the finite analysis layer over that same exact frozen checkpoint and corpus derivation:
 
 ```console
-cargo xtask --json demo tongues-analysis
+cargo xtask --json prove journey tongues-analysis
 ```
 
 The generated identity-bound report includes descriptive relative phase and lag over a declared -3..3-bin window, pairing-reversed and alternate-seed controls, label-free turning-point events followed by annotation comparison, three-cluster induction fitted without labels, the frozen lightweight probe, and a thresholded polynomial sparse-dynamics fit evaluated on held-out utterances beside a constant-state baseline. The dedicated `.conduit` form keeps continuous extraction and dynamics analysis upstream of the post-freeze overlay.

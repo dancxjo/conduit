@@ -1,7 +1,7 @@
 //! Independent native-software realization of canonical graphics obligations.
 //!
-//! The browser presenter may bypass this leaf layer by joining semantic
-//! presentation directly. A ConduitOS framebuffer presenter can consume the
+//! The browser Mask may bypass this leaf layer by joining semantic
+//! presentation directly. A ConduitOS framebuffer Mask can consume the
 //! same integer rectangles, clip classes, paint roles, ordering, resolved text,
 //! and canonical icon keys before performing its own admitted raster writes;
 //! framebuffer addresses remain below this contract.
@@ -30,9 +30,9 @@ pub enum NativeGraphicsError {
     CapacityExceeded,
 }
 
-pub struct NativeGraphicsPresenter;
+pub struct NativeGraphicsMask;
 
-impl NativeGraphicsPresenter {
+impl NativeGraphicsMask {
     pub fn normalize<'a>(
         scene: &'a GraphicsScene,
     ) -> Result<[Option<NativeGraphicsObligation<'a>>; MAX_GRAPHICS_COMMANDS], NativeGraphicsError>
@@ -88,7 +88,7 @@ mod tests {
         scene
             .push(GraphicsCommand::path(path, clip, GraphicsPaintRole::Status).unwrap())
             .unwrap();
-        let normalized = NativeGraphicsPresenter::normalize(&scene).unwrap()[0].unwrap();
+        let normalized = NativeGraphicsMask::normalize(&scene).unwrap()[0].unwrap();
         assert_eq!(normalized.path, Some(path));
         assert_eq!(normalized.resolved_content, "");
         assert_eq!(normalized.kind, GraphicsCommandKind::OrthogonalPath);
@@ -126,7 +126,7 @@ mod tests {
                 .unwrap(),
             )
             .unwrap();
-        let normalized = NativeGraphicsPresenter::normalize(&scene).unwrap();
+        let normalized = NativeGraphicsMask::normalize(&scene).unwrap();
         assert_eq!(normalized[0].unwrap().resolved_content, "ready");
         assert_eq!(
             normalized[0].unwrap().clip,

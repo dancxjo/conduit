@@ -4,14 +4,13 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_body::{BodyId, WakeId};
 use conduit_core::{
-    ActivePlayId, BaseImplementationId, CheckedFormId, ExpandedFormId, PlanId, SignId,
-    SourceDocumentId,
+    ActivePlayId, BaseImplementationId, BoundedResourceRef, CheckedFormId, ExpandedFormId, KindId,
+    PlanId, SignId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    PresentationAction, PresentationDisclosure, PresentationInput, PresentationTemporalFact,
-    TemporalReference,
+    PresentationAction, PresentationDisclosure, PresentationTemporalFact, TemporalReference,
 };
 
 pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
@@ -22,6 +21,7 @@ pub const MAX_PRESENTATION_SIGNS: usize = 1_024;
 pub const MAX_PRESENTATION_ID_BYTES: usize = 256;
 pub const MAX_PRESENTATION_TEXT_BYTES: usize = 1_024;
 pub const MAX_PRESENTATION_TOTAL_BYTES: usize = 512 * 1024;
+pub const MAX_PRESENTATION_CONTEXT_BASIS: usize = 16;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PresentationContentId(pub(crate) String);
 
@@ -43,7 +43,35 @@ pub struct PresentationBasis {
     pub sign_ids: Vec<SignId>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Exact renderer-neutral context for one Face projection.
+///
+/// The identity distinguishes contexts; the basis explains that identity using
+/// relationships already present in the Presentation. Neither field grants
+/// authority. Masks and Hosts consume this truth rather than supplying hidden
+/// audience or disclosure state.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PresentationInteractionContext {
+    pub identity: String,
+    pub basis: Vec<PresentationContextBasis>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PresentationContextBasis {
+    pub source: String,
+    pub relationship: PresentationRelationshipKind,
+    pub target: String,
+}
+
+impl PresentationInteractionContext {
+    pub(crate) fn general() -> Self {
+        Self {
+            identity: "presentation/context/general".into(),
+            basis: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PresentationRole {
     Document,
     Body,
@@ -69,23 +97,33 @@ pub enum PresentationRole {
     TextEntry,
     Status,
     Action,
+    /// An exact open domain role not owned by this crate's broad structural
+    /// classifications, such as `biology/cell/organelle`.
+    Semantic(KindId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationSubject {
     pub identity: String,
     pub role: PresentationRole,
-    pub label: String,
-    pub accessibility_name: String,
+    /// The one ordinary bounded human name for this semantic subject.
+    ///
+    /// Masks may render, speak, emboss, or expose this through a platform
+    /// accessibility API. Those are realizations of the same name rather than
+    /// a second accessibility-only truth channel.
+    pub name: String,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PresentationRelationshipKind {
     Contains,
     Connects,
     Describes,
     Realizes,
     Observes,
+    /// An exact open relationship meaning, including semantic order such as
+    /// `education/lesson/precedes`.
+    Semantic(KindId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,6 +147,11 @@ pub enum PresentationPropertyValue {
     Count(u64),
     Signed(i64),
     Flag(bool),
+    /// Exact reusable validation truth, carried without becoming a widget.
+    ValueContract(conduit_core::CheckedValueContract),
+    /// Canonical encoded `&T`: one exact bounded independently addressable
+    /// content generation. It contains no path, URL, handle, or authority.
+    Content(Vec<u8>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,13 +170,15 @@ pub struct Presentation {
     pub identity: PresentationContentId,
     pub revision: u64,
     pub basis: PresentationBasis,
+    #[serde(default = "PresentationInteractionContext::general")]
+    pub interaction_context: PresentationInteractionContext,
     pub subjects: Vec<PresentationSubject>,
     pub relationships: Vec<PresentationRelationship>,
+    #[serde(default)]
+    pub composition: Vec<crate::PresentationCompositionRelation>,
     pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
     pub actions: Vec<PresentationAction>,
-    #[serde(default)]
-    pub inputs: Vec<PresentationInput>,
     pub disclosures: Vec<PresentationDisclosure>,
     #[serde(default)]
     pub temporal_references: Vec<TemporalReference>,
@@ -167,7 +212,7 @@ pub enum PresentationError {
     DuplicateInput,
     UnknownInputTarget,
     UnknownInputAction,
-    InvalidInputLimit,
+    InvalidInputContract,
     UnknownDisclosureSubject,
     ReasonTooLong,
     NonCanonicalSign,
@@ -184,6 +229,14 @@ pub enum PresentationError {
     IncomparableTemporalInstants,
     TemporalIntervalOverflow,
     InvalidTemporalRelation,
+    InvalidSemanticIdentity,
+    InvalidContent,
+    TooManyCompositionRelations,
+    UnknownCompositionSubject,
+    InvalidCompositionRelation,
+    DuplicateCompositionRelation,
+    TooMuchContextBasis,
+    InvalidContextBasis,
 }
 
 impl core::fmt::Display for PresentationError {
@@ -201,6 +254,24 @@ impl Presentation {
     }
 
     pub(crate) fn validate_content(&self) -> Result<(), PresentationError> {
+        validate_id(&self.interaction_context.identity)?;
+        if self.interaction_context.basis.len() > MAX_PRESENTATION_CONTEXT_BASIS {
+            return Err(PresentationError::TooMuchContextBasis);
+        }
+        for statement in &self.interaction_context.basis {
+            validate_id(&statement.source)?;
+            validate_id(&statement.target)?;
+            if let PresentationRelationshipKind::Semantic(identity) = &statement.relationship {
+                validate_semantic_identity(identity)?;
+            }
+            if !self.relationships.iter().any(|relationship| {
+                relationship.source == statement.source
+                    && relationship.target == statement.target
+                    && relationship.kind == statement.relationship
+            }) {
+                return Err(PresentationError::InvalidContextBasis);
+            }
+        }
         if self.subjects.is_empty() {
             return Err(PresentationError::EmptySubjects);
         }
@@ -270,8 +341,10 @@ impl Presentation {
         }
         for subject in &self.subjects {
             validate_id(&subject.identity)?;
-            validate_text(&subject.label)?;
-            validate_text(&subject.accessibility_name)?;
+            if let PresentationRole::Semantic(identity) = &subject.role {
+                validate_semantic_identity(identity)?;
+            }
+            validate_text(&subject.name)?;
         }
         for index in 0..self.subjects.len() {
             if self.subjects[index + 1..]
@@ -284,6 +357,9 @@ impl Presentation {
         for relationship in &self.relationships {
             if !self.has_subject(&relationship.source) || !self.has_subject(&relationship.target) {
                 return Err(PresentationError::UnknownRelationshipSubject);
+            }
+            if let PresentationRelationshipKind::Semantic(identity) = &relationship.kind {
+                validate_semantic_identity(identity)?;
             }
         }
         for item in &self.text {
@@ -300,6 +376,13 @@ impl Presentation {
             match &property.value {
                 PresentationPropertyValue::Identity(value) => validate_id(value)?,
                 PresentationPropertyValue::Text(value) => validate_text(value)?,
+                PresentationPropertyValue::Content(encoded) => {
+                    BoundedResourceRef::validate_encoded(encoded)
+                        .map_err(|_| PresentationError::InvalidContent)?;
+                }
+                PresentationPropertyValue::ValueContract(contract) => contract
+                    .validate_definition()
+                    .map_err(|_| PresentationError::InvalidContent)?,
                 PresentationPropertyValue::BaseImplementationId(_)
                 | PresentationPropertyValue::Count(_)
                 | PresentationPropertyValue::Signed(_)
@@ -307,7 +390,7 @@ impl Presentation {
             }
         }
         self.validate_semantics()?;
-        self.validate_inputs()?;
+        self.validate_rhetorical_composition()?;
         self.validate_temporal()?;
         if self.content_bytes() > MAX_PRESENTATION_TOTAL_BYTES {
             return Err(PresentationError::TooManyBytes);
@@ -355,15 +438,22 @@ impl Presentation {
                     .map(|id| id.as_str().len())
                     .sum::<usize>(),
             )
+            .saturating_add(self.interaction_context.identity.len())
+            .saturating_add(
+                self.interaction_context
+                    .basis
+                    .iter()
+                    .map(|statement| {
+                        statement.source.len()
+                            + statement.target.len()
+                            + relationship_kind_len(&statement.relationship)
+                    })
+                    .sum::<usize>(),
+            )
             .saturating_add(
                 self.subjects
                     .iter()
-                    .map(|subject| {
-                        subject.identity.len()
-                            + subject.label.len()
-                            + subject.accessibility_name.len()
-                            + 1
-                    })
+                    .map(|subject| subject.identity.len() + subject.name.len() + 1)
                     .sum::<usize>(),
             )
             .saturating_add(
@@ -372,6 +462,7 @@ impl Presentation {
                     .map(|relationship| relationship.source.len() + relationship.target.len() + 1)
                     .sum::<usize>(),
             )
+            .saturating_add(self.rhetorical_composition_len())
             .saturating_add(
                 self.properties
                     .iter()
@@ -389,7 +480,6 @@ impl Presentation {
                     .sum::<usize>(),
             )
             .saturating_add(self.semantics_len())
-            .saturating_add(self.inputs_len())
             .saturating_add(self.temporal_len())
     }
 
@@ -420,6 +510,14 @@ pub(crate) fn validate_text(value: &str) -> Result<(), PresentationError> {
     }
 }
 
+fn validate_semantic_identity(value: &KindId) -> Result<(), PresentationError> {
+    validate_id(value.as_str())?;
+    if !value.as_str().contains('/') {
+        return Err(PresentationError::InvalidSemanticIdentity);
+    }
+    Ok(())
+}
+
 fn optional_len(value: Option<&str>) -> usize {
     value.map_or(0, str::len)
 }
@@ -432,5 +530,14 @@ fn property_value_len(value: &PresentationPropertyValue) -> usize {
         PresentationPropertyValue::BaseImplementationId(_) => 1,
         PresentationPropertyValue::Count(_) | PresentationPropertyValue::Signed(_) => 8,
         PresentationPropertyValue::Flag(_) => 1,
+        PresentationPropertyValue::Content(encoded) => encoded.len(),
+        PresentationPropertyValue::ValueContract(contract) => contract.identity_bytes().len(),
+    }
+}
+
+fn relationship_kind_len(value: &PresentationRelationshipKind) -> usize {
+    match value {
+        PresentationRelationshipKind::Semantic(identity) => identity.as_str().len(),
+        _ => 1,
     }
 }

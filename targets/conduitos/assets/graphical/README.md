@@ -36,7 +36,7 @@ canonical validation remain distinct. The primitive font path is retained for
 non-compositor proof appliances; successful ordinary graphical boot emits the
 profile receipt after its first rendered frame and cannot select that path.
 
-Run `cargo xtask conduitos graphical-profile-proof` to fabricate the canonical
+Run `cargo xtask make conduitos graphical-profile-proof` to make the canonical
 live ISO and drive its actual native journey. Its retained screenshots and
 profile receipt are development/emulator evidence, not physical qualification
 or stable-release acceptance. The existing release gallery carries the same
@@ -48,6 +48,6 @@ counts, and storage. `LICENSE.txt` retains the font redistribution license.
 `rasterize.py` is the maintenance generator; it checks the three exact source
 hashes and uses Pillow's basic FreeType layout. Ordinary builds consume the
 checked-in atlas bytes and need neither Python nor installed system fonts.
-The Unifont fallback license and provenance remain in
-`products/patchbay/native/assets/unifont` at the repository root. No archived
-subsystem was recovered for this profile.
+The shared bounded Unifont corpus, license, and provenance live in
+`mechanisms/implementations/bounded-unifont` at the repository root. No
+archived subsystem was recovered for this profile.

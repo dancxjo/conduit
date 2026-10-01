@@ -108,7 +108,7 @@ pub(super) fn ordinary_front_door_lines(
         "CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT  ·  SHIFT-F3 CHOOSE / F3 FOLLOW".into(),
     ];
     for subject in &observation.projected_subjects {
-        lines.push(format!("{:?}  {}", subject.role, subject.label));
+        lines.push(format!("{:?}  {}", subject.role, subject.name));
         crate::temporal_presentation::append_subject_age_lines(presentation, subject, &mut lines);
         for action in observation
             .projected_actions
@@ -129,7 +129,7 @@ pub(super) fn ordinary_front_door_lines(
             } else {
                 String::new()
             };
-            let label = action.label.to_uppercase();
+            let label = action.name.to_uppercase();
             lines.push(format!("  {label}{binding}  ·  {availability}"));
         }
     }

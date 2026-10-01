@@ -84,10 +84,10 @@ fn attached_workbench_retains_exact_evidence_and_refuses_identity_drift() {
         .as_ref()
         .unwrap()
         .as_str();
-    assert!(forms.iter().any(|subject| subject.label == initial_checked));
+    assert!(forms.iter().any(|subject| subject.name == initial_checked));
     assert!(forms
         .iter()
-        .any(|subject| subject.label == "checked/recorder"));
+        .any(|subject| subject.name == "checked/recorder"));
     assert_eq!(
         entrance.presentation.basis.body_id,
         snapshot.presentation.basis.body_id

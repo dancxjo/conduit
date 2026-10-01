@@ -10,14 +10,14 @@ const checkpoints = [
   "front-door-ready", "body-awake", "home-prompt", "home-forms", "home-play-observed", "home-patchbay-open",
   "home-returned",
   "host-current-offers", "quiescent-awaiting-input",
-  "input-continued", "patchbay-current-canvas", "patchbay-edit-requested", "patchbay-presenters-replanned",
+  "input-continued", "workload-revised", "workload-replanned", "patchbay-current-canvas", "patchbay-edit-requested", "patchbay-presenters-replanned",
   "resident-tour-result", "memory-listening", "canvas-retained", "memory-cleared",
   "patchbay-current-canvas-returned", "memory-retained", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
   "line-lost", "tour-opened", "tour-result-visible", "confirmation-transient",
   "confirmation-dismissed", "tour-one-exercise-two", "tour-one-exercise-three",
   "tour-two-exercise-one", "tour-three-exercise-one", "tour-four-exercise-one",
   "tour-four-exercise-two", "tour-chapter-five", "tour-chapter-six", "tour-chapter-seven",
-  "tour-one-exercise-one-returned", "refusal-transient", "refusal-dismissed",
+  "tour-one-exercise-one-returned", "refusal-transient", "refusal-dismissed", "fulfilled",
   "tour-patchbay-open", "chooser-pointer-focused", "pointer-hover-or-focus",
   "pointer-selected", "inspector-focused", "inspector-long-text", "inspector-closed",
 ];
@@ -37,7 +37,7 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /Focused artifact and exact correlation/);
     assert.match(page, /What this proves/);
     assert.match(page, /What it does not prove/);
-    assert.match(page, /cargo xtask conduitos journey-proof/);
+    assert.match(page, /cargo xtask make conduitos journey-proof/);
     assert.match(page, /src="front-door-ready\.png"/);
     assert.match(page, /src="host-current-offers\.png"/);
     assert.match(page, /src="home-prompt\.png"/);

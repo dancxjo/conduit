@@ -11,6 +11,7 @@ use conduit_core::{
     StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindProjection, KindSignature};
+pub use conduit_time::SequenceNormalizationRefusal;
 
 pub const NORMALIZED_SEQUENCE_TYPE: &str = "NormalizedDurationSequence";
 pub const NORMALIZE_SEQUENCE_KIND: &str = "sequence/normalize-relative-duration";
@@ -19,14 +20,6 @@ pub const NORMALIZATION_ALGORITHM: &str = "maximum-relative-millionths-half-up@1
 pub const NORMALIZATION_ALGORITHM_INFO_ID: &str = "sequence/normalization-algorithm@1";
 pub const NORMALIZED_VALUES_INFO_ID: &str = "sequence/relative-millionth-sequence@1";
 pub const NORMALIZED_SCALE: u64 = 1_000_000;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SequenceNormalizationRefusal {
-    Malformed,
-    Empty,
-    TooManyValues,
-    ZeroDuration,
-}
 
 pub fn normalized_duration_sequence_type() -> StructuredInfoType {
     StructuredInfoType::record(
@@ -223,6 +216,7 @@ fn value_port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

@@ -9,13 +9,14 @@ use conduit_core::{
     PortTemporal,
 };
 use conduit_form::{KindSignature, ProfileCatalog, StartupCatalog};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
 use crate::{
     committed_recognition_turn_contract, committed_turn_to_text_contract,
-    streaming_speech_recognition_contract,
+    streaming_speech_recognition_contract, RecognitionTextRefusal, SpeechRecognitionDisposition,
+    SpeechRecognitionRefusal, SpeechRecognitionValueError,
 };
 
 pub const SPEECH_RECOGNIZE_KIND: &str = "speech/recognize";
@@ -31,6 +32,35 @@ pub const MAXIMUM_RECOGNITION_RESULT_BYTES: usize = 4_096;
 pub const RECOGNITION_RESULT_QUEUE_BYTES: u32 = MAXIMUM_RECOGNITION_RESULT_BYTES as u32;
 pub const MAXIMUM_RECOGNITION_FIXTURES: usize = 8;
 pub const MAXIMUM_RECOGNITION_AUDIO_BYTES: usize = 32_768;
+
+// The semantic type owns the meaning; this adapter preserves the established
+// JSON representation of recognition results.
+impl Serialize for SpeechRecognitionDisposition {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(match self {
+            Self::Recognized => "Recognized",
+            Self::NoSpeech => "NoSpeech",
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for SpeechRecognitionDisposition {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match String::deserialize(deserializer)?.as_str() {
+            "Recognized" => Ok(Self::Recognized),
+            "NoSpeech" => Ok(Self::NoSpeech),
+            _ => Err(serde::de::Error::custom(
+                "unknown speech recognition disposition",
+            )),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpeechRecognitionContract {
@@ -62,12 +92,6 @@ impl SpeechRecognitionContract {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum SpeechRecognitionDisposition {
-    Recognized,
-    NoSpeech,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SpeechRecognitionResult {
     pub disposition: SpeechRecognitionDisposition,
     pub text: Option<String>,
@@ -81,32 +105,6 @@ pub enum SpeechRecognitionAttempt {
     Result(SpeechRecognitionResult),
     ResourceUnavailable,
     Failed { audio_sha256: [u8; 32] },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SpeechRecognitionRefusal {
-    EmptyFixtures,
-    TooManyFixtures,
-    EmptyTranscript,
-    TranscriptTooLarge,
-    DuplicateAudio,
-    AudioTooLarge,
-    InvalidPcm,
-    UnsupportedPcmProfile,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SpeechRecognitionValueError {
-    BoundExceeded,
-    Malformed,
-    NonCanonical,
-    InvalidValue,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum RecognitionTextRefusal {
-    InvalidResult,
-    NotRecognized,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -369,5 +367,6 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

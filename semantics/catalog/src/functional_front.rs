@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId, CapabilityOffer,
     ConfigurationValue, ExecutionProfileId, FrontStartupParameter, HostCallRequirement,
-    ImplementationId, Kind, KindIdentity, ResourceRequirement,
+    ImplementationId, ResourceRequirement,
 };
 
 /// Host-supplied identity for one realization of a portable contract.
@@ -26,19 +26,7 @@ pub fn realization_offer(
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
-        Kind {
-            startup_parameters: startup_front(&contract.configuration),
-            shorthand: None,
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(revision),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: contract.configuration,
-            semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
-                contract.terminal_behavior
-            )],
-            limits: contract.limits,
-        },
+        contract.into_semantic_contract(revision),
         Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.execution_profile),
@@ -57,13 +45,17 @@ pub fn startup_front(fields: &[KindConfigurationField]) -> Vec<FrontStartupParam
         .iter()
         .map(|field| FrontStartupParameter {
             name: field.key.clone(),
-            value_type: conduit_core::kind_id(match field.default_value {
-                ConfigurationValue::Bool(_) => "value/bool",
-                ConfigurationValue::U64(_) => "value/count",
-                ConfigurationValue::I64(_) => "value/scalar",
-                ConfigurationValue::Text(_) => "value/text",
-                ConfigurationValue::Quantity(_) => "value/quantity",
-                ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+            value_type: conduit_core::kind_id(match (&field.rule, &field.default_value) {
+                (
+                    conduit_core::KindConfigurationRule::QuantityRange { canonical_unit, .. },
+                    ConfigurationValue::Quantity(_),
+                ) => canonical_unit.dimension().info_id(),
+                (_, ConfigurationValue::Bool(_)) => "value/bool",
+                (_, ConfigurationValue::U64(_)) => "value/count",
+                (_, ConfigurationValue::I64(_)) => "value/scalar",
+                (_, ConfigurationValue::Text(_)) => "value/text",
+                (_, ConfigurationValue::Quantity(_)) => "value/quantity",
+                (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
             }),
             has_default: true,
         })

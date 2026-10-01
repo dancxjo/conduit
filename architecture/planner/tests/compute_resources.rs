@@ -1,6 +1,6 @@
 use conduit_ai::{
-    generate_text_base_fixtures, generate_text_realization_advertisements,
-    install_generate_text_catalog, CPU_EXECUTION_RESOURCE,
+    install_llm_semantic_catalog, llm_generate_base_fixtures,
+    llm_generate_realization_advertisements, CPU_EXECUTION_RESOURCE,
 };
 use conduit_core::{
     seal_plan, ActivePlayId, ArchitectureBaseId, ArchitectureBaseKind, BaseExecutionLaneId,
@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 fn form(source: &str) -> conduit_form::CheckedForm {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    install_generate_text_catalog(&mut startup, &mut profile).expect("catalog installs");
+    install_llm_semantic_catalog(&mut startup, &mut profile).expect("catalog installs");
     conduit_form::parse(source, &profile).expect("compute fixture form checks")
 }
 
@@ -45,8 +45,8 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
 
 #[test]
 fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
-    let checked = form("form answer {\n first: ai/generate-text\n second: ai/generate-text\n}\n");
-    let mut fixture = generate_text_base_fixtures()[0].clone();
+    let checked = form("form answer {\n first: llm/generate\n second: llm/generate\n}\n");
+    let mut fixture = llm_generate_base_fixtures()[0].clone();
     fixture.advertisement.capabilities[0]
         .limits
         .max_active_instances = 2;
@@ -58,7 +58,7 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
         }
     }
     let mut hosts = vec![fixture.advertisement.clone()];
-    let advertisements = generate_text_realization_advertisements(&[fixture]);
+    let advertisements = llm_generate_realization_advertisements(&[fixture]);
     let plan = plan_selected_realizations_with_characteristics(
         &checked,
         &hosts,
@@ -134,8 +134,8 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
 
 #[test]
 fn topology_service_and_architecture_base_are_exact_plan_facts() {
-    let checked = form("form answer {\n generate: ai/generate-text\n}\n");
-    let mut fixture = generate_text_base_fixtures()[0].clone();
+    let checked = form("form answer {\n generate: llm/generate\n}\n");
+    let mut fixture = llm_generate_base_fixtures()[0].clone();
     let capability = &mut fixture.advertisement.capabilities[0];
     let requirement = capability
         .resource_requirements
@@ -172,7 +172,7 @@ fn topology_service_and_architecture_base_are_exact_plan_facts() {
         nominal_clock_hz: Some(1_800_000_000),
     }];
     let hosts = vec![fixture.advertisement.clone()];
-    let advertisements = generate_text_realization_advertisements(&[fixture]);
+    let advertisements = llm_generate_realization_advertisements(&[fixture]);
     let plan = plan_selected_realizations_with_characteristics(
         &checked,
         &hosts,
@@ -242,7 +242,7 @@ fn topology_service_and_architecture_base_are_exact_plan_facts() {
 
 #[test]
 fn shared_service_or_missing_topology_cannot_satisfy_stronger_requirements() {
-    let fixture = generate_text_base_fixtures()[0].clone();
+    let fixture = llm_generate_base_fixtures()[0].clone();
     let offer = fixture
         .advertisement
         .resources
@@ -273,8 +273,8 @@ fn shared_service_or_missing_topology_cannot_satisfy_stronger_requirements() {
 
 #[test]
 fn policy_can_prefer_service_without_conflating_implementation_and_artifact() {
-    let checked = form("form answer {\n generate: ai/generate-text\n}\n");
-    let fixtures = generate_text_base_fixtures();
+    let checked = form("form answer {\n generate: llm/generate\n}\n");
+    let fixtures = llm_generate_base_fixtures();
     let mut shared = fixtures[0].advertisement.clone();
     let mut exclusive = fixtures[1].advertisement.clone();
     exclusive.capabilities[0].implementation.implementation_id = shared.capabilities[0]

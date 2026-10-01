@@ -2,6 +2,28 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
+    DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal, DataSaveTextTerminal,
+    DataSaveTextTerminalCode, FullWindowPolicy, FullWindowPolicyCode, MathScalarRefusal,
+    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
+    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdStateCode,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
+    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
+    ScalarComparison, ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
+    SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther, TensorElement,
+    TensorRefusal,
+};
+
+mod data_catalog;
+mod data_generation;
+mod data_reference;
+mod data_terminal;
 mod measurement_observation_catalog;
 mod measurement_plot;
 mod measurement_plot_back;
@@ -16,6 +38,7 @@ mod measurement_window;
 mod measurement_window_catalog;
 mod measurement_wire;
 mod sampled_signal;
+mod scalar_comparison;
 mod scientific_alignment;
 mod scientific_corpus;
 mod scientific_digest;
@@ -27,6 +50,10 @@ mod tensor;
 mod tensor_catalog;
 mod tensor_codec;
 
+pub use data_catalog::*;
+pub use data_generation::*;
+pub use data_reference::*;
+pub use data_terminal::*;
 pub use measurement_observation_catalog::*;
 pub use measurement_plot::*;
 pub use measurement_plot_back::*;

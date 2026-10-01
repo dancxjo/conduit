@@ -161,10 +161,10 @@ fn grounded_results_are_model_derived_and_citation_fenced() {
     };
     assert_eq!(result.validate_against(&intent(), &context), Ok(()));
 
-    let mut fabricated = result.clone();
-    fabricated.citations[0].span.end += 1;
+    let mut made = result.clone();
+    made.citations[0].span.end += 1;
     assert_eq!(
-        fabricated.validate_against(&intent(), &context),
+        made.validate_against(&intent(), &context),
         Err(RagSemanticRefusal::CitationNotInContext)
     );
 }

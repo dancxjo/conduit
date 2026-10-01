@@ -93,7 +93,7 @@ fn missing_link_binding_fails_toggle_planning() {
     .is_err());
 }
 
-/// EOF from stdin (Ok(0)) must produce a structured error, not a fabricated trigger.
+/// EOF from stdin (Ok(0)) must produce a structured error, not a made trigger.
 #[test]
 fn complete_trigger_wait_rejects_eof() {
     use conduit_kernel::scheduler::SchedulerStatus;
@@ -120,7 +120,7 @@ fn complete_trigger_wait_rejects_eof() {
     assert!(msg.contains("EOF"), "error should mention EOF, got: {msg}");
 }
 
-/// A read error must produce a structured error, not a fabricated trigger.
+/// A read error must produce a structured error, not a made trigger.
 #[test]
 fn complete_trigger_wait_rejects_read_error() {
     use conduit_kernel::scheduler::SchedulerStatus;

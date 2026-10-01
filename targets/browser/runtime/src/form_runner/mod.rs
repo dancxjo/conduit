@@ -145,12 +145,21 @@ impl TourSession {
             )
             .map_err(|error| format!("expand recursive executable-tour Form: {error:?}"))?,
         };
+        let expression_offers =
+            crate::installed_browser::catalogs::offers_for_expanded_pure_expressions(&form)?;
+        let window_offers =
+            crate::installed_browser::catalogs::offers_for_expanded_time_windows(&form)?;
+        let sample_offers =
+            crate::installed_browser::catalogs::offers_for_expanded_time_samples(&form)?;
         let mut host = crate::installed_browser::advertisement_for_presentation(
             host_id.into(),
             boot_id.into(),
             presentation,
         );
         host.capabilities.extend(selector_offers);
+        host.capabilities.extend(expression_offers);
+        host.capabilities.extend(window_offers);
+        host.capabilities.extend(sample_offers);
         host.capabilities
             .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
         let hosts = [host];

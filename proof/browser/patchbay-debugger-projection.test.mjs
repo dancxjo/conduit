@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { projectFlowScene } from "../../products/patchbay/html/assets/flow-scene.js";
+import { projectFlowScene } from "../../forms/patchbay/workbench/browser/flow-scene.js";
 
 function snapshot(reducedMotion = false) {
   const gear = "gear/source";
@@ -10,11 +10,11 @@ function snapshot(reducedMotion = false) {
   const input = "port/sink/in";
   const cord = "cord/source-sink";
   const subjects = [
-    { identity: gear, role: "Gear", label: "Source", accessibility_name: "Source Gear" },
-    { identity: output, role: "Port", label: "out", accessibility_name: "Source output" },
-    { identity: sink, role: "Gear", label: "Sink", accessibility_name: "Sink Gear" },
-    { identity: input, role: "Port", label: "in", accessibility_name: "Sink input" },
-    { identity: cord, role: "Cord", label: "Cord", accessibility_name: "Source to sink Cord" },
+    { identity: gear, role: "Gear", name: "Source Gear" },
+    { identity: output, role: "Port", name: "Source output" },
+    { identity: sink, role: "Gear", name: "Sink Gear" },
+    { identity: input, role: "Port", name: "Sink input" },
+    { identity: cord, role: "Cord", name: "Source to sink Cord" },
   ];
   const property = (subject, name, value) => ({ subject, name, value: { Text: value } });
   return {

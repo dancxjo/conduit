@@ -1,12 +1,11 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
+use conduit_body::BodyLifecycleSession;
 use conduit_body::{
     AdmissionManager, BodyBiographyEvidence, BodyConversationContext, BodyConversationContextBasis,
-    BodyConversationHost, BodyPlayIdentity, BodyState, ResidentForm, SpawnAdmissionProof,
-    SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+    BodyConversationHost, BodyPlayIdentity, BodyState, CurrentHostOfferError, CurrentHostOffers,
+    ResidentForm, SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
 use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
-use conduit_workspace_model::CurrentHostOffers;
-use conduit_workspace_model::WorkspaceBody;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 #[path = "workspace_refusal.rs"]
@@ -19,9 +18,11 @@ const CAPACITY: usize = HOST_OFFERS_BYTES + 256 * 1024;
 thread_local! {
     static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; CAPACITY].into_boxed_slice());
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
-    static BODY: RefCell<Option<WorkspaceBody>> = const { RefCell::new(None) };
+    static BODY: RefCell<Option<BodyLifecycleSession>> = const { RefCell::new(None) };
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
     static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
+    static BROWSER_MASK: RefCell<Option<crate::workspace_mask::BrowserMaskRuntime>> = const { RefCell::new(None) };
+    static MASK_JOURNEY_INITIAL: RefCell<Option<crate::workspace_mask::BrowserMaskObservation>> = const { RefCell::new(None) };
 }
 
 #[derive(Deserialize)]
@@ -109,13 +110,29 @@ enum Request {
     },
     TutorialView {
         revision: u32,
-        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+        playback: conduit_tutorial_form::TutorialPlayback,
     },
     TutorialPresenterInput {
         request_identity: String,
         presentation_revision: u64,
-        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+        playback: conduit_tutorial_form::TutorialPlayback,
     },
+    PresentTutorialMask {
+        host_id: HostId,
+        boot_id: BootId,
+        revision: u64,
+        playback: conduit_tutorial_form::TutorialPlayback,
+    },
+    AcknowledgeTutorialMask {
+        acknowledgement: crate::workspace_mask::BrowserMaskAcknowledgement,
+    },
+    InteractWithTutorialMask {
+        interaction: crate::workspace_mask::BrowserMaskInteraction,
+    },
+    TutorialMaskObservation,
+    TutorialMaskJourney,
+    BeginTutorialMaskJourney,
+    PrepareTutorialMaskReplacement,
     InvitationView {
         invitation_id: String,
         body_id: String,
@@ -189,7 +206,7 @@ enum WorksetEdit {
 struct Snapshot<'a> {
     schema: &'static str,
     evidence: &'a BodyBiographyEvidence,
-    realization: Option<&'a conduit_workspace_model::WorkspaceRealization>,
+    realization: Option<&'a conduit_body::BodyLifecycleRealization>,
     foreground: Option<&'a ResidentForm>,
     foreground_flow: String,
     current_host_offers: Vec<HostAdvertisement>,
@@ -264,7 +281,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     return Err("Workspace already has a body".into());
                 }
                 let evidence = crate::creche::workspace_evidence()?;
-                let body = WorkspaceBody::open(evidence).map_err(debug)?;
+                let body = BodyLifecycleSession::open(evidence).map_err(debug)?;
                 let mut offers = CurrentHostOffers::new();
                 offers
                     .observe(body.evidence(), advertisement)
@@ -291,9 +308,9 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 }
                 let fulfilled = matches!(evidence.body.state, BodyState::Fulfilled { .. });
                 let body = if fulfilled {
-                    WorkspaceBody::open(*evidence).map_err(debug)?
+                    BodyLifecycleSession::open(*evidence).map_err(debug)?
                 } else {
-                    WorkspaceBody::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?
+                    BodyLifecycleSession::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?
                 };
                 let mut offers = CurrentHostOffers::new();
                 if !fulfilled {
@@ -321,7 +338,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 if admission.body_id != evidence.body_id {
                     return Err(Refusal::new("Admission.WrongBody", "Admission state names another body"));
                 }
-                let body = WorkspaceBody::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
+                let body = BodyLifecycleSession::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
                 let mut offers = CurrentHostOffers::new();
                 offers
                     .observe(body.evidence(), advertisement)
@@ -412,7 +429,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &image_content_digest,
                     selection,
                 )
-                .map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                .map_err(|message| Refusal::new("Make.Prepare", &message))?;
                 let response = encode(&prepared)?;
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
                 return Ok(response);
@@ -452,7 +469,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &target_id,
                     image_content_digest.as_deref(),
                     reviewed_image.as_deref(),
-                ).map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                ).map_err(|message| Refusal::new("Make.Prepare", &message))?;
                 let response = encode(&prepared)?;
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
                 return Ok(response);
@@ -545,7 +562,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     });
             }
             Request::TutorialView { revision, playback } => {
-                let semantic = conduit_workspace_model::tutorial::presentation(current, revision, playback)
+                let semantic = conduit_tutorial_form::presentation(current, revision, playback)
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
                 let view = semantic.lower()
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
@@ -557,7 +574,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 presentation_revision,
                 playback,
             } => {
-                let request = conduit_workspace_model::tutorial::generative_request(
+                let request = conduit_tutorial_form::generative_request(
                     current,
                     request_identity,
                     presentation_revision,
@@ -568,9 +585,80 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 })?;
                 return encode(&request);
             }
+            Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
+                let realization = current.realization().ok_or_else(|| Refusal::new("TutorialMaskPrepare", "Body has no active realization"))?;
+                let presentation = conduit_tutorial_form::face_presentation(
+                    current, revision, playback,
+                ).map_err(|error| Refusal::new("TutorialMaskPresentation", format!("{error:?}")))?;
+                let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
+                    current.evidence().body_id.clone(), host_id, boot_id, presentation,
+                    realization.wake.clone(), realization.plan.clone(),
+                ).map_err(|error| Refusal::new("TutorialMaskPrepare", error))?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
+            }
+            Request::AcknowledgeTutorialMask { acknowledgement } => {
+                return BROWSER_MASK.with(|slot| {
+                    let mut slot = slot.borrow_mut();
+                    let runtime = slot.as_mut().ok_or("Browser Mask has not been prepared")?;
+                    runtime.acknowledge(&acknowledgement)
+                        .map_err(|error| Refusal::new("TutorialMaskAcknowledge", error))?;
+                    encode(&runtime.observation())
+                });
+            }
+            Request::InteractWithTutorialMask { interaction } => {
+                return BROWSER_MASK.with(|slot| {
+                    let mut slot = slot.borrow_mut();
+                    let runtime = slot.as_mut().ok_or("Browser Mask has not been prepared")?;
+                    let receipt = runtime.interact(&interaction)
+                        .map_err(|error| Refusal::new("TutorialMaskInteraction", error))?;
+                    encode(&receipt)
+                });
+            }
+            Request::TutorialMaskObservation => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    encode(&runtime.observation())
+                });
+            }
+            Request::TutorialMaskJourney => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    let initial = MASK_JOURNEY_INITIAL.with(|initial| initial.borrow().clone())
+                        .ok_or("Browser Mask journey has no retained initial realization")?;
+                    let outcomes = runtime.actualize_journey(&initial)
+                        .map_err(|error| Refusal::new("TutorialMaskJourney", error))?;
+                    encode(&outcomes)
+                });
+            }
+            Request::BeginTutorialMaskJourney => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    let observation = runtime.observation();
+                    if observation.mask_show.show.lifecycle != conduit_presentation::ManifestationLifecycle::Available
+                        || observation.interaction.is_none() {
+                        return Err(Refusal::new("TutorialMaskJourney", "initial browser Mask lacks DOM acknowledgement or interaction"));
+                    }
+                    MASK_JOURNEY_INITIAL.with(|initial| *initial.borrow_mut() = Some(observation));
+                    encode(&serde_json::json!({"status":"retained"}))
+                });
+            }
+            Request::PrepareTutorialMaskReplacement => {
+                let (runtime, effect) = BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    runtime.replacement(current.evidence().body_id.clone())
+                        .map_err(|error| Refusal::new("TutorialMaskReplacement", error))
+                })?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
+            }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {
-                let semantic = conduit_workspace_model::invitation::InvitationPresentation {
+                let semantic = conduit_body_invitation_form::InvitationPresentation {
                     invitation_id: &invitation_id, body_id: &body_id, body_name: &body_name,
                     expires_at_millis, transfer_uri: &transfer_uri, clipboard_available, share_available,
                 }.view(revision).map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?;
@@ -624,7 +712,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .propose(forms, &host_id, &boot_id)
                     .map_err(debug)?;
                 let bytes = encode(&serde_json::json!({
-                    "schema": "conduit.patchbay/body-execution-proposal@1",
+                    "schema": "conduit.body/execution-proposal@1",
                     "wake": realization.wake, "plan": realization.plan,
                     "body_evidence": candidate.evidence(),
                     "source": source,
@@ -698,7 +786,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
 
 fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
     if transfer_uri.is_empty()
-        || transfer_uri.len() > conduit_workspace_model::invitation::MAX_INVITATION_TRANSFER_BYTES
+        || transfer_uri.len() > conduit_body_invitation_form::MAX_INVITATION_TRANSFER_BYTES
         || !transfer_uri.contains('#')
     {
         return Err(Refusal::new(
@@ -731,7 +819,7 @@ fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
     )
 }
 fn snapshot_value(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     offers: &[HostAdvertisement],
 ) -> Result<serde_json::Value, Refusal> {
     serde_json::to_value(Snapshot {
@@ -745,7 +833,7 @@ fn snapshot_value(
     .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }
 fn durable_value(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     admissions: &AdmissionManager,
 ) -> Result<serde_json::Value, Refusal> {
     serde_json::to_value(DurableSnapshot {
@@ -758,12 +846,12 @@ fn durable_value(
     .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }
 
-fn snapshot(body: &WorkspaceBody) -> Result<Vec<u8>, Refusal> {
+fn snapshot(body: &BodyLifecycleSession) -> Result<Vec<u8>, Refusal> {
     snapshot_with_offers(body, &current_host_offers())
 }
 
 fn snapshot_with_offers(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     offers: &[HostAdvertisement],
 ) -> Result<Vec<u8>, Refusal> {
     encode(&Snapshot {
@@ -786,11 +874,11 @@ fn encode(value: &impl Serialize) -> Result<Vec<u8>, Refusal> {
     }
     Ok(bytes)
 }
-fn debug(error: conduit_workspace_model::WorkspaceBodyError) -> Refusal {
+fn debug(error: conduit_body::BodyLifecycleSessionError) -> Refusal {
     error.into()
 }
 
-fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext, Refusal> {
+fn conversation_context(body: &BodyLifecycleSession) -> Result<BodyConversationContext, Refusal> {
     let evidence = body.evidence();
     let realization = body.realization().ok_or_else(|| {
         Refusal::new(
@@ -867,7 +955,7 @@ fn current_host_offers() -> Vec<HostAdvertisement> {
     HOST_OFFERS.with(|offers| offers.borrow().hosts().to_vec())
 }
 
-fn host_offer_refusal(error: conduit_workspace_model::CurrentHostOfferError) -> Refusal {
+fn host_offer_refusal(error: CurrentHostOfferError) -> Refusal {
     Refusal::new(
         "HostOffer",
         format!("current host offer refused: {error:?}"),

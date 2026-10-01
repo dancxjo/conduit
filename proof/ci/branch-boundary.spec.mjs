@@ -38,6 +38,10 @@ test("x86 gates expensive checks and the release product pipeline without rebuil
   const source = readFileSync(".github/workflows/check.yml", "utf8");
   const jobs = Object.fromEntries([...source.matchAll(/^  ([\w-]+):\n([\s\S]*?)(?=^  [\w-]+:\n|$(?![\s\S]))/gm)]
     .map(([, name, body]) => [name, body]));
+  assert.equal(jobs["browser-tools"], undefined,
+    "permanently disabled browser-tools job must not return");
+  assert.equal(jobs["browser-host"], undefined,
+    "permanently disabled browser-host job must not return");
   const prerequisites = name => (jobs[name].match(/^    needs: (.+)$/m)?.[1] ?? "")
     .replace(/[\[\]]/g, "").split(/,\s*/).filter(Boolean);
   const visit = (name, path = []) => {
@@ -48,8 +52,8 @@ test("x86 gates expensive checks and the release product pipeline without rebuil
   assert.deepEqual(prerequisites("conduitos-x86"),
     ["classify", "conduitos-limine", "conduitos-tools", "conduitos-proof-image"]);
   assert.deepEqual(prerequisites("workspace-check"), ["classify"]);
-  for (const name of ["esp32-firmware", "browser-host",
-    "conduitos-architecture", "conduitos-aarch64-product"]) {
+  for (const name of ["esp32-firmware", "conduitos-architecture",
+    "conduitos-aarch64-product"]) {
     assert.ok(prerequisites(name).includes("conduitos-x86"), name);
     const guard = jobs[name].match(/\(needs\.conduitos-x86\.result == 'success' \|\| !inputs\.full_suite && needs\.conduitos-x86\.result == 'skipped'\)/)?.[0];
     assert.ok(guard, `${name} must refuse failed/cancelled x86 even with always()`);
@@ -66,9 +70,9 @@ test("x86 gates expensive checks and the release product pipeline without rebuil
   assert.match(products, /needs: \[boundary, check\]/);
   assert.match(products, /full_suite: true/);
   assert.doesNotMatch(products, /if:.*always\(/);
-  assert.equal(source.match(/run: cargo xtask conduitos prepare-proof-image --locked/g)?.length, 1);
+  assert.equal(source.match(/run: cargo xtask make conduitos prepare-proof-image --locked/g)?.length, 1);
   assert.match(jobs["conduitos-x86"], /expected-digest: \$\{\{ needs.conduitos-proof-image.outputs.artifact_digest \}\}/);
-  assert.doesNotMatch(jobs["conduitos-x86"], /run: cargo xtask conduitos prepare-proof-image/);
+  assert.doesNotMatch(jobs["conduitos-x86"], /run: cargo xtask make conduitos prepare-proof-image/);
   assert.match(promotion, /--spore target\/conduitos\/x86_64\/creche-export.iso/);
 });
 
@@ -76,21 +80,26 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const candidate = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integration = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   const promotion = readFileSync(".github/workflows/promotion.yml", "utf8");
-  const deploy = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const deploy = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   assert.match(candidate, /branches: \[dev\]/);
+  assert.match(candidate, /types: \[opened, reopened, synchronize, ready_for_review\]/);
   assert.match(candidate, /cargo test --locked --package conduit-xtask-dispatch/);
   assert.match(candidate, /proof\/ci\/release-lane-controller\.spec\.mjs/);
   assert.match(candidate, /uses: \.\/\.github\/workflows\/check\.yml/);
-  assert.match(candidate, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(candidate, /uses: \.\/\.github\/workflows\/product-carrier\.yml/);
   assert.equal(candidate.match(/development_admission: true/g)?.length, 2);
+  assert.equal(candidate.match(/if: github\.event\.pull_request\.draft == false/g)?.length, 2);
   assert.match(candidate, /needs: \[admission, check, products\]/);
-  assert.match(candidate, /Admit only a candidate whose affected integration passed/);
+  assert.match(candidate, /Admit drafts cheaply and merge-ready candidates completely/);
+  assert.match(candidate, /if test "\$DRAFT" = true; then/);
+  assert.match(candidate, /test "\$CHECK_RESULT" = skipped/);
+  assert.match(candidate, /test "\$PRODUCTS_RESULT" = skipped/);
   assert.match(candidate, /test "\$CHECK_RESULT" = success/);
   assert.match(candidate, /test "\$PRODUCTS_RESULT" = success/);
   assert.match(candidate, /group: candidate-\$\{\{ github\.event\.pull_request\.number \}\}/);
   assert.match(candidate, /cancel-in-progress: true/);
   assert.match(integration, /branches: \[dev\]/);
-  assert.match(integration, /tour-products\.yml/);
+  assert.match(integration, /product-carrier\.yml/);
   assert.match(integration, /group: dev-integration\n/);
   assert.match(integration, /cancel-in-progress: false/);
   assert.match(promotion, /branches: \[main\]/);
@@ -167,7 +176,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /gh workflow run promote-dev\.yml --ref main/);
   assert.match(finalizer, /if: steps\.merge\.outputs\.changed == 'true'/);
   assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
-  assert.match(finalizer, /gh workflow run tour-and-creche-pages --ref main/);
+  assert.match(finalizer, /gh workflow run pages-deploy --ref main/);
   assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
   assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
@@ -189,7 +198,6 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /checks: write/);
   assert.match(monitor, /GITHUB_EVENT_PATH="\$event_path" node tools\/ci\/pr-closing-intent\.mjs/);
   assert.match(monitor, /cargo test --locked --package conduit-xtask-dispatch/);
-  assert.match(monitor, /proof\/ci\/tour-compatibility\.test\.mjs/);
   assert.match(monitor, /proof\/ci\/release-lane-controller\.spec\.mjs/);
   assert.match(monitor, /repos\/\$GITHUB_REPOSITORY\/check-runs/);
   assert.match(monitor, /-f name=candidate/);
@@ -212,7 +220,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(monitor, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
   assert.match(monitor, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
-  assert.doesNotMatch(monitor, /gh workflow run tour-and-creche-pages/);
+  assert.doesNotMatch(monitor, /gh workflow run pages-deploy/);
   assert.match(monitor, /gh workflow run dev-integration\.yml --ref dev/);
   const releaseLane = readFileSync(".github/workflows/release-lane.yml", "utf8");
   assert.match(releaseLane, /workflows: \[promotion\]/);
@@ -254,7 +262,7 @@ test("artifact transport gets one bounded retry without hiding repeated failure"
   for (const path of [
     ".github/workflows/check.yml",
     ".github/workflows/promotion.yml",
-    ".github/workflows/tour-products.yml",
+    ".github/workflows/product-carrier.yml",
   ]) {
     const workflow = readFileSync(path, "utf8");
     assert.doesNotMatch(workflow, /uses: actions\/upload-artifact@v7/);
@@ -275,7 +283,7 @@ test("artifact transport gets one bounded retry without hiding repeated failure"
 });
 
 test("cancelled exact heads cannot start more reusable proof jobs", () => {
-  for (const path of [".github/workflows/check.yml", ".github/workflows/tour-products.yml"]) {
+  for (const path of [".github/workflows/check.yml", ".github/workflows/product-carrier.yml"]) {
     const workflow = readFileSync(path, "utf8");
     assert.doesNotMatch(
       workflow,

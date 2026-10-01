@@ -2,7 +2,7 @@ use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID,
+    PortTemporal, BOOL_INFO_ID, UNIT_INFO_ID,
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
@@ -21,6 +21,11 @@ const SOURCE_REVISION: &str = "conduit-test/timing-bool-source@1";
 const SOURCE_PROFILE: &str = "conduit-test/timing-bool-source-kernel@1";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/timing-bool-source-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-timing-bool-source@1";
+const UNIT_SOURCE_KIND: &str = "test/timing-unit-source";
+const UNIT_SOURCE_REVISION: &str = "conduit-test/timing-unit-source@1";
+const UNIT_SOURCE_PROFILE: &str = "conduit-test/timing-unit-source-kernel@1";
+const UNIT_SOURCE_IMPLEMENTATION: &str = "conduit-test/timing-unit-source-kernel@1";
+const UNIT_SOURCE_ARTIFACT: &str = "conduit-std-host/test-timing-unit-source@1";
 
 pub(super) static TEST_TIMING_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
@@ -32,6 +37,12 @@ pub(super) static TEST_TIMING_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
+};
+
+pub(super) static TEST_TIMING_UNIT_SOURCE_FACTORY: BackFactory = BackFactory {
+    implementation_id: UNIT_SOURCE_IMPLEMENTATION,
+    budget: unit_source_budget,
+    prepare: prepare_unit_source,
 };
 
 pub(super) struct TestTimingSinkBack {
@@ -122,7 +133,8 @@ impl TestTimingSinkBack {}
 impl TestTimingSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-timing-bool-sink-v1"),
@@ -138,6 +150,7 @@ pub(super) fn offer() -> CapabilityOffer {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: Vec::new(),
@@ -152,7 +165,8 @@ pub(super) fn offer() -> CapabilityOffer {
 }
 
 pub(super) fn source_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-timing-bool-source-v1"),
@@ -169,6 +183,42 @@ pub(super) fn source_offer() -> CapabilityOffer {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
+        }],
+        host_calls: vec![conduit_core::wait_host_call_requirement()],
+        resource_requirements: vec![conduit_core::resource_requirement(
+            conduit_core::TIMER_RESOURCE_CLASS,
+            1,
+        )],
+        authority_requirements: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: 8,
+        },
+    }
+}
+
+pub(super) fn unit_source_offer() -> CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from("test-timing-unit-source-v1"),
+        kind_id: kind_id(UNIT_SOURCE_KIND),
+        kind_contract_revision: KindIdentity::from(UNIT_SOURCE_REVISION),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(UNIT_SOURCE_PROFILE),
+            implementation_id: ImplementationId::from(UNIT_SOURCE_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(UNIT_SOURCE_ARTIFACT),
+        },
+        inputs: Vec::new(),
+        outputs: vec![PortDescriptor {
+            port_id: port_id("out"),
+            value_kind: kind_id(UNIT_INFO_ID),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         host_calls: vec![conduit_core::wait_host_call_requirement()],
         resource_requirements: vec![conduit_core::resource_requirement(
@@ -185,7 +235,7 @@ pub(super) fn source_offer() -> CapabilityOffer {
 }
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
-    for offer in [offer(), source_offer()] {
+    for offer in [offer(), source_offer(), unit_source_offer()] {
         catalog
             .insert(KindProjection {
                 kind_id: offer.kind_id,
@@ -196,6 +246,36 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
             })
             .expect("timing fixture is exact and unique");
     }
+}
+
+fn unit_source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_exact(placement, &unit_source_offer())?;
+    Ok(BackBudget {
+        value_items: 2,
+        value_bytes: 8,
+        host_requests: 1,
+        sign_items: 32,
+        maximum_value_bytes: 8,
+    })
+}
+
+fn prepare_unit_source(
+    placement: &PlannedGear,
+    store: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate_exact(placement, &unit_source_offer())?;
+    let value = store
+        .store(&[])
+        .map_err(|error| format!("store timing fixture unit: {error:?}"))?;
+    let wait = store
+        .store(&0_u64.to_le_bytes())
+        .map_err(|error| format!("store timing fixture wait: {error:?}"))?;
+    Ok(InstalledBack::TestTimingSource(TestTimingSourceBack {
+        values: vec![value],
+        waits: vec![wait],
+        next: 0,
+        pending: None,
+    }))
 }
 
 fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {

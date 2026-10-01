@@ -23,6 +23,41 @@ fn push_to_talk_is_one_host_neutral_bounded_pcm_flow() {
 }
 
 #[test]
+fn audio_tone_is_exactly_typed_bounded_and_cancellable() {
+    let contract = audio_tone_semantic_contract();
+    assert_eq!(
+        contract.inputs[0].value_kind.as_str(),
+        conduit_core::FREQUENCY_INFO_ID
+    );
+    assert_eq!(contract.inputs[0].temporal, PortTemporal::Current);
+    assert_eq!(contract.limits.max_queue_items, 1);
+    assert_eq!(contract.limits.max_queue_bytes, AUDIO_TONE_PCM_BLOCK_BYTES);
+    assert_eq!(contract.outputs[0].value_kind.as_str(), AUDIO_PCM_INFO_ID);
+    assert_eq!(
+        contract.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),
+        conduit_audio::audio_tone_terminal_kind_id().as_str()
+    );
+    let terminal = contract.terminal_transductions().next().unwrap();
+    assert_eq!(terminal.input_port_id, conduit_core::port_id("frequency"));
+    assert_eq!(terminal.output_port_id, conduit_core::port_id("audio"));
+    assert_eq!(
+        terminal.normal_close,
+        conduit_core::NormalCloseTransduction::NotAccepted
+    );
+    assert_eq!(
+        terminal.abnormal,
+        conduit_core::AbnormalTerminalTransduction::NotAccepted
+    );
+    assert_eq!(
+        terminal.cancellation,
+        conduit_core::CancellationTransduction::Request {
+            disposition_kind: conduit_audio::audio_tone_terminal_kind_id(),
+        }
+    );
+    contract.validate().unwrap();
+}
+
+#[test]
 fn semantic_fronts_are_distinct_and_backend_free() {
     let encoded = alloc::format!("{:?}", sound_contracts_with_revisions());
     for forbidden in [

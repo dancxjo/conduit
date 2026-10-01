@@ -104,7 +104,8 @@ fn advertisement(host: &str, boot: &str, value: Scalar) -> HostAdvertisement {
 }
 
 fn source_offer(value: Scalar) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!(
@@ -120,6 +121,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
             value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),
@@ -129,7 +131,8 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
 }
 
 fn sink_offer(kind: &str) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-capability@1", kind.replace('/', "-"))),
@@ -167,6 +170,7 @@ fn scalar_port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
         direction,
         temporal: PortTemporal::Current,
+        abnormal_kind: None,
     }
 }
 

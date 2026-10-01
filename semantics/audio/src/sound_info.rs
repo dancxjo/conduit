@@ -5,6 +5,8 @@
 
 use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
 
+use crate::{Gate, GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl};
+
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
 pub const MUSIC_NOTE_INFO_ID: &str = "music/note-event@1";
 pub const MUSIC_CONTROL_INFO_ID: &str = "music/control-event@1";
@@ -156,12 +158,6 @@ impl MusicalPitch {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Gate {
-    On,
-    Off,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct NoteOccurrenceId(pub u64);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -207,10 +203,7 @@ impl MusicalNoteEvent {
         let mut out = [0; NOTE_EVENT_ENCODED_LEN];
         out[0..8].copy_from_slice(&self.occurrence.0.to_le_bytes());
         out[8..28].copy_from_slice(&self.pitch.encode());
-        out[28] = match self.gate {
-            Gate::On => 1,
-            Gate::Off => 0,
-        };
+        out[28] = GateCode::encode(self.gate)[0];
         out[29..31].copy_from_slice(&self.velocity.to_le_bytes());
         out[31..39].copy_from_slice(&self.event_time_micros.to_le_bytes());
         out[39..43].copy_from_slice(&self.order.to_le_bytes());
@@ -233,40 +226,14 @@ impl MusicalNoteEvent {
 
 impl Gate {
     fn decode(value: u8) -> Result<Self, SoundInfoError> {
-        match value {
-            0 => Ok(Self::Off),
-            1 => Ok(Self::On),
-            actual => Err(SoundInfoError::InvalidTag {
-                field: "gate",
-                actual,
-            }),
-        }
+        GateCode::decode(&[value]).map_err(|_| SoundInfoError::InvalidTag {
+            field: "gate",
+            actual: value,
+        })
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum MusicalControl {
-    Sustain {
-        down: bool,
-    },
-    PitchBend {
-        amount_millionths: i32,
-        range_microcents: u32,
-    },
-    Modulation {
-        amount_millionths: u32,
-        destination: ModulationDestination,
-    },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ModulationDestination {
-    Pitch,
-    FilterCutoff,
-    Amplitude,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MusicalControlEvent {
     pub control: MusicalControl,
     pub event_time_micros: u64,
@@ -282,22 +249,6 @@ impl MusicalControlEvent {
         if event_time_micros > MAXIMUM_EVENT_TIME_MICROS {
             return Err(SoundInfoError::OutOfRange("event-time-micros"));
         }
-        match control {
-            MusicalControl::PitchBend {
-                amount_millionths,
-                range_microcents,
-            } if !(-1_000_000..=1_000_000).contains(&amount_millionths)
-                || range_microcents > MAXIMUM_PITCH_BEND_RANGE_MICROCENTS =>
-            {
-                return Err(SoundInfoError::OutOfRange("pitch-bend"))
-            }
-            MusicalControl::Modulation {
-                amount_millionths, ..
-            } if amount_millionths > 1_000_000 => {
-                return Err(SoundInfoError::OutOfRange("modulation"))
-            }
-            _ => {}
-        }
         Ok(Self {
             control,
             event_time_micros,
@@ -305,28 +256,22 @@ impl MusicalControlEvent {
         })
     }
 
-    pub fn encode(self) -> [u8; CONTROL_EVENT_ENCODED_LEN] {
+    pub fn encode(&self) -> [u8; CONTROL_EVENT_ENCODED_LEN] {
         let mut out = [0; CONTROL_EVENT_ENCODED_LEN];
-        match self.control {
-            MusicalControl::Sustain { down } => {
+        match &self.control {
+            MusicalControl::Sustain(payload) => {
                 out[0] = 0;
-                out[1] = u8::from(down);
+                out[1] = u8::from(*payload.down());
             }
-            MusicalControl::PitchBend {
-                amount_millionths,
-                range_microcents,
-            } => {
+            MusicalControl::PitchBend(payload) => {
                 out[0] = 1;
-                out[1..5].copy_from_slice(&amount_millionths.to_le_bytes());
-                out[5..9].copy_from_slice(&range_microcents.to_le_bytes());
+                out[1..5].copy_from_slice(&payload.amount_millionths().to_le_bytes());
+                out[5..9].copy_from_slice(&payload.range_microcents().to_le_bytes());
             }
-            MusicalControl::Modulation {
-                amount_millionths,
-                destination,
-            } => {
+            MusicalControl::Modulation(payload) => {
                 out[0] = 2;
-                out[1..5].copy_from_slice(&amount_millionths.to_le_bytes());
-                out[9] = destination.tag();
+                out[1..5].copy_from_slice(&payload.amount_millionths().to_le_bytes());
+                out[9] = ModulationDestinationCode::encode(*payload.destination())[0];
             }
         }
         out[10..18].copy_from_slice(&self.event_time_micros.to_le_bytes());
@@ -334,7 +279,7 @@ impl MusicalControlEvent {
         out
     }
 
-    pub fn semantic_digest(self) -> [u8; 32] {
+    pub fn semantic_digest(&self) -> [u8; 32] {
         semantic_digest(MUSIC_CONTROL_INFO_ID, &self.encode())
     }
 
@@ -344,8 +289,8 @@ impl MusicalControlEvent {
             0 => {
                 require_zero(&encoded[2..10], "sustain-reserved")?;
                 match encoded[1] {
-                    0 => MusicalControl::Sustain { down: false },
-                    1 => MusicalControl::Sustain { down: true },
+                    0 => MusicalControl::sustain(false).expect("boolean control is valid"),
+                    1 => MusicalControl::sustain(true).expect("boolean control is valid"),
                     actual => {
                         return Err(SoundInfoError::InvalidTag {
                             field: "sustain",
@@ -356,17 +301,19 @@ impl MusicalControlEvent {
             }
             1 => {
                 require_zero(&encoded[9..10], "pitch-bend-reserved")?;
-                MusicalControl::PitchBend {
-                    amount_millionths: i32::from_le_bytes(array(encoded, 1)?),
-                    range_microcents: u32::from_le_bytes(array(encoded, 5)?),
-                }
+                MusicalControl::pitch_bend(
+                    i32::from_le_bytes(array(encoded, 1)?),
+                    u32::from_le_bytes(array(encoded, 5)?),
+                )
+                .map_err(|_| SoundInfoError::OutOfRange("pitch-bend"))?
             }
             2 => {
                 require_zero(&encoded[5..9], "modulation-reserved")?;
-                MusicalControl::Modulation {
-                    amount_millionths: u32::from_le_bytes(array(encoded, 1)?),
-                    destination: ModulationDestination::decode(encoded[9])?,
-                }
+                MusicalControl::modulation(
+                    u32::from_le_bytes(array(encoded, 1)?),
+                    ModulationDestination::decode(encoded[9])?,
+                )
+                .map_err(|_| SoundInfoError::OutOfRange("modulation"))?
             }
             actual => {
                 return Err(SoundInfoError::InvalidTag {
@@ -384,23 +331,11 @@ impl MusicalControlEvent {
 }
 
 impl ModulationDestination {
-    const fn tag(self) -> u8 {
-        match self {
-            Self::Pitch => 0,
-            Self::FilterCutoff => 1,
-            Self::Amplitude => 2,
-        }
-    }
     fn decode(actual: u8) -> Result<Self, SoundInfoError> {
-        match actual {
-            0 => Ok(Self::Pitch),
-            1 => Ok(Self::FilterCutoff),
-            2 => Ok(Self::Amplitude),
-            actual => Err(SoundInfoError::InvalidTag {
-                field: "modulation-destination",
-                actual,
-            }),
-        }
+        ModulationDestinationCode::decode(&[actual]).map_err(|_| SoundInfoError::InvalidTag {
+            field: "modulation-destination",
+            actual,
+        })
     }
 }
 
@@ -440,10 +375,7 @@ impl ToneIntent {
         let mut out = [0; TONE_INTENT_ENCODED_LEN];
         out[0..8].copy_from_slice(&self.correlation.to_le_bytes());
         out[8..28].copy_from_slice(&self.pitch.encode());
-        out[28] = match self.gate {
-            Gate::Off => 0,
-            Gate::On => 1,
-        };
+        out[28] = GateCode::encode(self.gate)[0];
         out[29..37].copy_from_slice(&self.event_time_micros.to_le_bytes());
         out[37..41].copy_from_slice(&self.order.to_le_bytes());
         out

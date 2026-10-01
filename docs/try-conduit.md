@@ -1,10 +1,10 @@
 # Try Conduit
 
-Start with the [live Tour](https://dancxjo.github.io/conduit/tour/) or the
+Start with the [body Workspace](https://dancxjo.github.io/conduit/workspace/) or the
 [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
 to see the project before building it. The journey shows a bounded sequence of
 checkpoints from a real QEMU session, including body lifecycle, a hot-plugged line, every
-Tour page and runnable exercise, foreground form switching, and Patchbay.
+resident tutorial checkpoint, foreground form switching, and Patchbay.
 
 The commands below run from a checkout. You do not need an installed `conduit`
 binary or `just`. See [contributor setup](../CONTRIBUTING.md) for prerequisites.
@@ -27,7 +27,7 @@ or gallery evidence, run QEMU, or claim physical hardware proof.
 ## Run a first form
 
 ```bash
-cargo xtask host std
+cargo xtask make host std
 ```
 
 `cargo xtask doctor` is an optional diagnostic across targets; missing browser
@@ -51,7 +51,7 @@ that selection. Explore more examples in [Try forms](try-forms.md).
 ## Explore the workbench and Tour
 
 ```bash
-cargo xtask demo patchbay --on native
+cargo xtask prove journey patchbay --on native
 ```
 
 Patchbay opens a native window. Inspect a form, then use the explicit lifecycle
@@ -61,20 +61,14 @@ then add the WASM target:
 
 ```bash
 rustup target add wasm32-unknown-unknown
-cargo xtask demo patchbay --on browser
+cargo xtask prove journey patchbay --on browser
 ```
 
-To build and open the guided executable Tour locally:
-
-```bash
-cargo xtask demo tour
-```
-
-These commands build the required browser runtime and serve it locally. Keep
+This command builds the required browser runtime and serves it locally. Keep
 the terminal process running while using the page. A separate browser host can
-be launched with `cargo xtask host browser`; each launch has its own runtime
-identity. The [body lifecycle guide](self-hosted-biography.md) explains how Tour,
-Crèche, and Patchbay relate.
+be launched with `cargo xtask make host browser`; each launch has its own
+runtime identity. The [body lifecycle guide](self-hosted-biography.md) explains
+how resident Forms, Crèche compatibility, and Patchbay relate.
 
 ## boot ConduitOS
 
@@ -82,8 +76,8 @@ Install the build and emulator prerequisites listed in the
 [ConduitOS guide](../targets/conduitos/README.md), then run:
 
 ```bash
-cargo xtask conduitos live x86_64
-cargo xtask conduitos live-boot x86_64
+cargo xtask make conduitos live x86_64
+cargo xtask make conduitos live-boot x86_64
 ```
 
 The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`.
@@ -101,48 +95,25 @@ portable Tour application state and action identities; each host supplies its
 own presentation implementation.
 
 ```bash
-cargo xtask conduitos live-matrix
+cargo xtask make conduitos live-matrix
 ```
 
 The matrix describes the supported media and their limits. Additional `ia32`,
 `aarch64`, `riscv64`, and `loongarch64` product ISOs expose serial-console
 sessions; they do not have the x86_64 graphical experience. Board images have
-their own fabrication and physical-proof boundaries. See
-[host fabrication](host-fabrication.md) for those workflows.
+their own make and physical-proof boundaries. See
+[host make](host-make.md) for those workflows.
 
 To capture the reproducible x86_64 journey yourself:
 
 ```bash
-cargo xtask conduitos journey-proof
+cargo xtask make conduitos journey-proof
 ```
 
 This runs QEMU and writes the manifest and checkpoint PNGs under
 `target/conduitos/x86_64/journey-frames/`. The
 [visual evidence guide](visual-evidence.md) explains their provenance. A local
 run does not publish or replace the accepted gallery.
-
-## Hear and answer with local providers
-
-With already-local Whisper, Ollama, and Piper providers, retain one addressed
-recording and its synthesized answer as bounded journey evidence:
-
-```bash
-cargo xtask host journey-hears-speaks \
-  --whisper-executable /path/to/whisper-cli \
-  --whisper-model /path/to/ggml-model.bin \
-  --pcm-s16le-16000-mono /path/to/question.pcm \
-  --ollama-model model:tag --admitted-memory-mib 8192 \
-  --piper-executable /path/to/piper \
-  --piper-model /path/to/voice.onnx \
-  --piper-config /path/to/voice.onnx.json
-```
-
-The command refuses an existing output directory and removes its newly created
-directory if any provider or proof step fails. On success,
-`target/journeys/hears-speaks/` contains the raw and WAV input, recognition and
-response JSON, the exact same-play receipt, the synthesized output WAV, and a
-digest-bound evidence manifest. This is hosted-provider evidence from one
-recorded clip; it is not live-microphone, browser, emulator, or physical proof.
 
 ## Manifest one presentation twice
 
@@ -152,7 +123,7 @@ pinned Chromium DOM/SVG renderer:
 
 ```bash
 npm --prefix proof/browser ci --ignore-scripts --prefer-offline
-cargo xtask evidence one-form-two-fronts
+cargo xtask prove one-form-two-fronts
 ```
 
 The command refuses an existing output directory. On success,
@@ -168,7 +139,7 @@ Retain the deterministic Orbium seed and three checkpoints from one ordinary
 32-step Lenia plan/play:
 
 ```bash
-cargo xtask evidence little-life
+cargo xtask prove little-life
 ```
 
 The exact six-output manifest under `target/journeys/little-life/` contains
@@ -182,7 +153,7 @@ or human-perception proof.
 ## Explore distributed execution
 
 ```bash
-cargo xtask demo toggle
+cargo xtask prove journey toggle
 ```
 
 Open the exact local URL printed by the command, then follow its terminal
@@ -207,8 +178,8 @@ Start with `cargo xtask doctor pico` and the
 BOOTSEL mode, the explicit USB firmware workflow is:
 
 ```bash
-cargo xtask pico build --usb-remote
-cargo xtask pico flash --usb-remote
+cargo xtask make pico build --usb-remote
+cargo xtask make pico flash --usb-remote
 cargo xtask prove std-pico-usb --interactive
 ```
 

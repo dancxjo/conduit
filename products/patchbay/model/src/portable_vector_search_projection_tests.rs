@@ -77,12 +77,10 @@ fn projected_property_names(
         "body/vector-search",
         PresentationRole::Body,
         "Vector search Body",
-        "Vector search Body",
     );
     let form = content.subject_with_identity(
         format!("form/{}", plan.checked_form_id.as_str()),
         PresentationRole::Form,
-        "retrieval",
         "Portable vector retrieval Form",
     );
     content.contains(&body_subject, &form);

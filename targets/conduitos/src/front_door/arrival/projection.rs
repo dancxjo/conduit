@@ -1,6 +1,7 @@
 //! Inspectable Crèche state, with the same action availability as its shared draft.
 use super::{Arrival, Error, FrontDoor};
 use alloc::{format, vec, vec::Vec};
+use conduit_birth_form::BirthPresentation;
 use conduit_presentation::*;
 
 impl Arrival {
@@ -13,8 +14,7 @@ impl Arrival {
         let mut subjects = vec![PresentationSubject {
             identity: host.clone(),
             role: PresentationRole::Host,
-            label: "Crèche".into(),
-            accessibility_name: "A body of your own".into(),
+            name: "Crèche — a body of your own".into(),
         }];
         let mut properties = vec![
             property(
@@ -45,8 +45,7 @@ impl Arrival {
             subjects.push(PresentationSubject {
                 identity: id.clone(),
                 role: PresentationRole::Form,
-                label: choice.title.clone(),
-                accessibility_name: choice.title.clone(),
+                name: choice.title.clone(),
             });
             properties.extend([
                 property(
@@ -126,7 +125,8 @@ fn project_actions(
             identity: action.identity.clone(),
             intent: format!("conduit.intent/{}@1", action.identity),
             target: target.into(),
-            label: action.label.clone(),
+            name: action.label.clone(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: match &action.availability {
                 ActionAvailability::Available => PresentationActionAvailability::Available,

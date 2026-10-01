@@ -10,9 +10,6 @@ use std::collections::BTreeMap;
 pub(crate) type HouseConnectionEndpoints = (GearId, PortId, GearId, PortId);
 
 pub(crate) struct HouseConversationTopology {
-    pub entry: &'static str,
-    /// Exact reviewed source document checked to produce `expanded`.
-    pub source: &'static str,
     pub expanded: ExpandedCanonicalForm,
     pub connection_limits:
         BTreeMap<HouseConnectionEndpoints, conduit_planner::ConnectionQueueLimits>,
@@ -106,8 +103,6 @@ pub(crate) fn build(
         }
     }
     Ok(HouseConversationTopology {
-        entry,
-        source: SOURCE,
         expanded,
         connection_limits,
     })

@@ -81,6 +81,7 @@ pub fn observe_navigation(
                     .clone(),
             ),
             ProjectionItem::Relationship(_)
+            | ProjectionItem::Composition(_)
             | ProjectionItem::Property(_)
             | ProjectionItem::Text(_) => {}
         }

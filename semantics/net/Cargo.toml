@@ -5,12 +5,15 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form", optional = true }
+conduit-form = { path = "../../architecture/form" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [features]
 default = []
-form-catalog = ["dep:conduit-form"]
+form-catalog = []
+
+[build-dependencies]
+conduit-form = { path = "../../architecture/form" }
 
 [dev-dependencies]
 conduit-form = { path = "../../architecture/form" }

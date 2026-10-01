@@ -8,6 +8,7 @@ use conduit_core::{
 
 pub const QUANTITY_MAP_IMPLEMENTATION: &str = "std/kernel-map-quantity@1";
 pub const QUANTITY_MAP_HOST_CALL: &str = "conduit.host/map-quantity@1";
+pub const DISTANCE_FREQUENCY_MAP_IMPLEMENTATION: &str = "std/kernel-map-distance-frequency@1";
 
 pub fn quantity_map_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::quantity_map_semantic_contract();
@@ -26,6 +27,25 @@ pub fn quantity_map_offer() -> CapabilityOffer {
                 maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
                 maximum_output_bytes: QUANTITY_ENCODED_LEN as u32,
             }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
+}
+
+pub fn distance_frequency_map_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::distance_frequency_map_contract()
+            .into_semantic_contract(conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_REVISION),
+        Back {
+            capability_id: CapabilityId::from("map-distance-frequency-v1"),
+            execution_profile_id: ExecutionProfileId::from(
+                "conduit.std/map-distance-frequency-kernel@1",
+            ),
+            implementation_id: ImplementationId::from(DISTANCE_FREQUENCY_MAP_IMPLEMENTATION),
+            artifact_id: ArtifactId::from("conduit-std-host/map-distance-frequency@1"),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

@@ -1,15 +1,256 @@
-//! Maps authoritative Crèche configuration truth into product-owned semantics.
+//! Maps authoritative browser Host configuration truth into presentation semantics.
 
 use std::collections::BTreeSet;
 
-use conduit_creche_model::{
-    BrowserConfigurationActions, BrowserConfigurationChoice, BrowserConfigurationGroup,
-    BrowserConfigurationReview as BrowserConfigurationReviewPresentation,
+use conduit_host_browser_make::BROWSER_IMPLEMENTATIONS;
+use conduit_presentation::{
+    ActionAvailability, ApplicationEventKind, ChoiceMultiplicity, ChoiceOption,
+    EvidenceDisposition, EvidencePresentation, PresentationMechanism, SemanticAction,
+    SemanticApplicationView, SemanticPresentationNode, SemanticPresentationRefusal, StatusKind,
 };
-use conduit_host_browser_fabrication::BROWSER_IMPLEMENTATIONS;
 use serde::Deserialize;
 
 use super::{review, BrowserConfigurationSelection, CATALOG_GENERATION};
+
+const MINIMAL_PRESET_ACTION: &str = "configuration.preset.minimal";
+const INTERACTIVE_PRESET_ACTION: &str = "configuration.preset.interactive";
+const CUSTOM_PRESET_ACTION: &str = "configuration.preset.custom";
+const REVIEW_ACTION: &str = "configuration.review";
+const EDIT_ACTION: &str = "configuration.edit";
+
+struct BrowserConfigurationActions {
+    revision: u32,
+    diagnostic: Option<String>,
+}
+struct BrowserConfigurationChoice {
+    catalog_index: usize,
+    label: String,
+    implementation_id: String,
+    selected: bool,
+    prerequisites: Vec<String>,
+}
+struct BrowserConfigurationGroup {
+    revision: u32,
+    label: String,
+    choices: Vec<BrowserConfigurationChoice>,
+}
+struct BrowserConfigurationReviewPresentation {
+    revision: u32,
+    target_id: String,
+    selected_implementations: Vec<String>,
+    configuration_id: String,
+    profile_id: String,
+    output: String,
+    join_mode: String,
+    canonical_source: String,
+    does_not_create: Vec<String>,
+}
+
+impl BrowserConfigurationActions {
+    fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+        let mut children = vec![
+            node(
+                "configuration-heading",
+                PresentationMechanism::Heading {
+                    text: "Browser Host capabilities".into(),
+                },
+                vec![],
+            ),
+            node(
+                "configuration-presets",
+                PresentationMechanism::ActionGroup {
+                    label: "Configuration presets".into(),
+                },
+                vec![
+                    action("preset-minimal", MINIMAL_PRESET_ACTION, "Minimal"),
+                    action(
+                        "preset-interactive",
+                        INTERACTIVE_PRESET_ACTION,
+                        "Interactive",
+                    ),
+                    action("preset-custom", CUSTOM_PRESET_ACTION, "Custom"),
+                    action("review-browser-configuration", REVIEW_ACTION, "Review Host"),
+                ],
+            ),
+        ];
+        if let Some(diagnostic) = &self.diagnostic {
+            children.push(node(
+                "configuration-diagnostic",
+                PresentationMechanism::Status {
+                    kind: StatusKind::Failure,
+                    title: "Configuration refused".into(),
+                    detail: diagnostic.clone(),
+                },
+                vec![],
+            ));
+        }
+        view(
+            self.revision,
+            node(
+                "browser-configuration",
+                PresentationMechanism::Shell,
+                children,
+            ),
+        )
+    }
+}
+
+impl BrowserConfigurationGroup {
+    fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+        let options = self
+            .choices
+            .iter()
+            .map(|choice| ChoiceOption {
+                identity: choice.implementation_id.clone(),
+                label: format!("{} · {}", choice.label, choice.implementation_id),
+                selected: choice.selected,
+                change_action: semantic_action(
+                    &format!("implementation.change-{}", choice.catalog_index),
+                    "Change implementation selection",
+                    ApplicationEventKind::Change,
+                ),
+            })
+            .collect();
+        let mut children = vec![node(
+            "configuration-group-options",
+            PresentationMechanism::ChoiceGroup {
+                label: self.label.clone(),
+                multiplicity: ChoiceMultiplicity::Independent,
+                options,
+            },
+            vec![],
+        )];
+        for choice in &self.choices {
+            for (index, prerequisite) in choice.prerequisites.iter().enumerate() {
+                children.push(node(
+                    &format!("prerequisite-{}-{index}", choice.catalog_index),
+                    PresentationMechanism::Status {
+                        kind: StatusKind::Warning,
+                        title: "Future runtime condition".into(),
+                        detail: format!("{prerequisite}. Not claimed satisfied here."),
+                    },
+                    vec![],
+                ));
+            }
+        }
+        view(
+            self.revision,
+            node(
+                "configuration-group",
+                PresentationMechanism::Panel {
+                    title: self.label.clone(),
+                },
+                children,
+            ),
+        )
+    }
+}
+
+impl BrowserConfigurationReviewPresentation {
+    fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+        let definitions = [
+            ("Target", self.target_id.clone()),
+            ("Implementations", self.selected_implementations.join(", ")),
+            ("PROFILE", self.profile_id.clone()),
+            ("BrowserBundle output", self.output.clone()),
+            ("Body/Spore join", self.join_mode.clone()),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(index, (term, value))| {
+            node(
+                &format!("review-{index}"),
+                PresentationMechanism::Definition {
+                    term: term.into(),
+                    value,
+                },
+                vec![],
+            )
+        })
+        .collect();
+        view(
+            self.revision,
+            node(
+                "configuration-review",
+                PresentationMechanism::Evidence(EvidencePresentation {
+                    title: "Reviewed browser Host configuration".into(),
+                    disposition: EvidenceDisposition::Succeeded,
+                    identity: self.configuration_id.clone(),
+                    provenance: "checked browser make configuration".into(),
+                }),
+                vec![
+                    node(
+                        "configuration-review-values",
+                        PresentationMechanism::DefinitionTable {
+                            title: "Exact configuration identities".into(),
+                        },
+                        definitions,
+                    ),
+                    node(
+                        "configuration-source",
+                        PresentationMechanism::CodeBlock {
+                            language: "conduit".into(),
+                            code: self.canonical_source.clone(),
+                        },
+                        vec![],
+                    ),
+                    node(
+                        "configuration-absent",
+                        PresentationMechanism::Status {
+                            kind: StatusKind::Ordinary,
+                            title: format!(
+                                "Configuration creates no {}.",
+                                self.does_not_create.join(", ")
+                            ),
+                            detail: String::new(),
+                        },
+                        vec![],
+                    ),
+                    action("edit-browser-configuration", EDIT_ACTION, "Back / Edit"),
+                ],
+            ),
+        )
+    }
+}
+
+fn view(
+    revision: u32,
+    root: SemanticPresentationNode,
+) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+    let view = SemanticApplicationView { revision, root };
+    view.lower()?;
+    Ok(view)
+}
+fn action(key: &str, identity: &str, label: &str) -> SemanticPresentationNode {
+    node(
+        key,
+        PresentationMechanism::Action(semantic_action(
+            identity,
+            label,
+            ApplicationEventKind::Activate,
+        )),
+        vec![],
+    )
+}
+fn semantic_action(identity: &str, label: &str, event: ApplicationEventKind) -> SemanticAction {
+    SemanticAction {
+        identity: identity.into(),
+        event,
+        label: label.into(),
+        availability: ActionAvailability::Available,
+    }
+}
+fn node(
+    key: &str,
+    mechanism: PresentationMechanism,
+    children: Vec<SemanticPresentationNode>,
+) -> SemanticPresentationNode {
+    SemanticPresentationNode {
+        key: key.into(),
+        mechanism,
+        children,
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -139,7 +380,7 @@ mod tests {
     use crate::creche::browser_configuration::DEFAULT_IMPLEMENTATIONS;
 
     #[test]
-    fn configuration_views_are_product_semantics_with_bounded_catalog_inputs() {
+    fn configuration_views_are_target_semantics_with_bounded_catalog_inputs() {
         let encoded = presentation_view(BrowserConfigurationViewRequest {
             revision: 1,
             mode: "group".into(),

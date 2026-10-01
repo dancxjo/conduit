@@ -11,6 +11,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -20,7 +21,8 @@ fn placement(
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
 ) -> PlannedGear {
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
+        semantic_contract: Default::default(),
         placement_id: PlacementId::from(id),
         gear_id: GearId::from(id),
         kind_id: kind_id(kind),
@@ -42,6 +44,7 @@ fn placement(
         },
         inputs,
         outputs,
+        terminal_transductions: Vec::new(),
         host_calls: vec![],
         resources: vec![],
         authority: vec![],
@@ -136,13 +139,17 @@ pub fn wired_plan() -> Plan {
                 sink_placement_id: effect_id,
                 sink_port_id: port_id("request"),
                 value_kind: kind_id(ARGUMENT_KIND),
+                resource: None,
+                track: Default::default(),
                 temporal: PortTemporal::Value,
                 pressure_policy: Default::default(),
                 selected_line: None,
                 admitted_lines: vec![],
                 item_capacity: 1,
                 byte_capacity: 512,
+                abnormal_kind: None,
             }],
+            fore_ports: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![StartupDependency {
                 prerequisite_placement_id: PlacementId::from("placement/effect"),

@@ -8,9 +8,12 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, Scalar, ScalarArithmeticError, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind,
+    KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior, Scalar,
+    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
+pub use conduit_data::MathScalarRefusal;
 
 pub const MATH_CLAMP_KIND: &str = "math/clamp";
 pub const MATH_SCALE_KIND: &str = "math/scale";
@@ -32,37 +35,27 @@ pub const DEFAULT_CLAMP_MAXIMUM: i64 = Scalar::SCALE;
 pub const DEFAULT_SCALE_GAIN: i64 = Scalar::SCALE;
 pub const DEFAULT_DEADBAND_RADIUS: i64 = 50_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MathScalarError {
-    InvalidConfiguration,
-    Overflow,
-}
-
-impl From<ScalarArithmeticError> for MathScalarError {
-    fn from(_: ScalarArithmeticError) -> Self {
-        Self::Overflow
-    }
-}
-
 pub fn clamp_scalar(
     input: Scalar,
     minimum: Scalar,
     maximum: Scalar,
-) -> Result<Scalar, MathScalarError> {
+) -> Result<Scalar, MathScalarRefusal> {
     if minimum > maximum {
-        return Err(MathScalarError::InvalidConfiguration);
+        return Err(MathScalarRefusal::InvalidConfiguration);
     }
     Ok(input.max(minimum).min(maximum))
 }
 
-pub fn scale_scalar(input: Scalar, gain: Scalar) -> Result<Scalar, MathScalarError> {
-    input.checked_mul(gain).map_err(Into::into)
+pub fn scale_scalar(input: Scalar, gain: Scalar) -> Result<Scalar, MathScalarRefusal> {
+    input
+        .checked_mul(gain)
+        .map_err(|_| MathScalarRefusal::Overflow)
 }
 
-pub fn deadband_scalar(input: Scalar, radius: Scalar) -> Result<Scalar, MathScalarError> {
+pub fn deadband_scalar(input: Scalar, radius: Scalar) -> Result<Scalar, MathScalarRefusal> {
     let radius = radius.raw_microunits();
     if radius < 0 {
-        return Err(MathScalarError::InvalidConfiguration);
+        return Err(MathScalarRefusal::InvalidConfiguration);
     }
     let raw = input.raw_microunits();
     Ok(if raw >= -radius && raw <= radius {
@@ -115,6 +108,34 @@ pub fn math_deadband_contract() -> StandardKindContract {
     )
 }
 
+pub fn math_clamp_semantic_contract() -> Kind {
+    pure_semantic_contract(math_clamp_contract(), MATH_CLAMP_CONTRACT_REVISION)
+}
+
+pub fn math_scale_semantic_contract() -> Kind {
+    pure_semantic_contract(math_scale_contract(), MATH_SCALE_CONTRACT_REVISION)
+}
+
+pub fn math_deadband_semantic_contract() -> Kind {
+    pure_semantic_contract(math_deadband_contract(), MATH_DEADBAND_CONTRACT_REVISION)
+}
+
+fn pure_semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    let mut contract = contract.into_semantic_contract(revision);
+    contract.shorthand = Some((port_id(SCALAR_INPUT_PORT), port_id(SCALAR_OUTPUT_PORT)));
+    contract.semantic_laws.extend([
+        KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::None),
+        KindSemanticLaw::TemporalState(TemporalStateBehavior::None),
+        KindSemanticLaw::TimeDependence(SemanticDependence::None),
+        KindSemanticLaw::RandomDependence(SemanticDependence::None),
+        KindSemanticLaw::ResourceDependence(SemanticDependence::None),
+        KindSemanticLaw::Suspension(SuspensionBehavior::Never),
+        KindSemanticLaw::Variability(VariabilityBehavior::DeterministicFromInputs),
+        KindSemanticLaw::Replay(ReplayBehavior::Exact),
+    ]);
+    contract
+}
+
 fn contract(
     kind: &str,
     plain_name: &str,
@@ -157,6 +178,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(SCALAR_INFO_ID),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -165,20 +187,18 @@ pub fn install_math_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    };
-    for (contract, revision) in [
-        (math_clamp_contract(), MATH_CLAMP_CONTRACT_REVISION),
-        (math_scale_contract(), MATH_SCALE_CONTRACT_REVISION),
-        (math_deadband_contract(), MATH_DEADBAND_CONTRACT_REVISION),
+    use conduit_form::{KindSignature, StartupParameterSignature};
+    for contract in [
+        math_clamp_semantic_contract(),
+        math_scale_semantic_contract(),
+        math_deadband_semantic_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: contract
                 .configuration
                 .iter()
-                .map(|field| conduit_form::StartupParameterSignature {
+                .map(|field| StartupParameterSignature {
                     name: field.key.clone(),
                     value_type: "Scalar".to_string(),
                     default: Some(match field.default_value {
@@ -188,28 +208,8 @@ pub fn install_math_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .into_iter()
-            .map(|field| KindConfigurationField {
-                key: field.key,
-                default_value: field.default_value,
-                rule: match field.rule {
-                    KindConfigurationRule::I64Range { minimum, maximum } => {
-                        KindConfigurationRule::I64Range { minimum, maximum }
-                    }
-                    _ => unreachable!("math configuration has signed finite bounds"),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -230,7 +230,7 @@ mod tests {
         assert_eq!(clamp_scalar(Scalar::MAX, negative_one, one), Ok(one));
         assert_eq!(
             clamp_scalar(one, one, negative_one),
-            Err(MathScalarError::InvalidConfiguration)
+            Err(MathScalarRefusal::InvalidConfiguration)
         );
         assert_eq!(
             scale_scalar(
@@ -241,7 +241,7 @@ mod tests {
         );
         assert_eq!(
             scale_scalar(Scalar::MAX, Scalar::from_raw_microunits(2_000_000)),
-            Err(MathScalarError::Overflow)
+            Err(MathScalarRefusal::Overflow)
         );
     }
 
@@ -275,6 +275,13 @@ mod tests {
             assert_eq!(contract.outputs[0].value_kind.as_str(), SCALAR_INFO_ID);
             assert_eq!(contract.inputs[0].temporal, PortTemporal::Value);
             assert_eq!(contract.outputs[0].temporal, PortTemporal::Value);
+        }
+        for contract in [
+            math_clamp_semantic_contract(),
+            math_scale_semantic_contract(),
+            math_deadband_semantic_contract(),
+        ] {
+            assert!(conduit_core::pure_expression_facts(&contract).is_ok());
         }
 
         let mut startup = conduit_form::StartupCatalog::new();

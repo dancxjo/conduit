@@ -214,7 +214,8 @@ mod tests {
     };
 
     fn offer(id: &str) -> CapabilityOffer {
-        CapabilityOffer {
+        crate::capability_offer_from_parts! {
+            semantic_contract: Default::default(),
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(id),

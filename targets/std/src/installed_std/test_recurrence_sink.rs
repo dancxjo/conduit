@@ -68,7 +68,8 @@ pub(crate) fn offer() -> CapabilityOffer {
         .unwrap()
         .value_kind()
         .clone();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "expected".into(),
             value_type: conduit_core::kind_id("value/count"),
@@ -88,6 +89,7 @@ pub(crate) fn offer() -> CapabilityOffer {
             value_kind,
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![],
         host_calls: vec![],

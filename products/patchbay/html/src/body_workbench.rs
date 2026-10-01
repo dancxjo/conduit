@@ -247,8 +247,7 @@ fn workbench_presentation(
     let mut subjects = vec![PresentationSubject {
         identity: body_identity.clone(),
         role: PresentationRole::Body,
-        label: evidence.friendly_name.clone(),
-        accessibility_name: format!("Body {}", evidence.friendly_name),
+        name: evidence.friendly_name.clone(),
     }];
     let mut relationships = Vec::new();
     let mut properties = vec![
@@ -272,7 +271,8 @@ fn workbench_presentation(
                 identity: format!("action/{action_name}/{body_identity}"),
                 intent: action_intent.into(),
                 target: body_identity.clone(),
-                label: action_label.into(),
+                name: action_label.into(),
+                arguments: vec![],
                 disclosure: PresentationDisclosureLevel::CurrentAction,
                 availability: PresentationActionAvailability::Available,
             },
@@ -284,8 +284,7 @@ fn workbench_presentation(
         subjects.push(PresentationSubject {
             identity: form_identity.clone(),
             role: PresentationRole::Form,
-            label: label.clone(),
-            accessibility_name: format!("Form {label}"),
+            name: label.clone(),
         });
         relationships.push(PresentationRelationship {
             source: body_identity.clone(),
@@ -310,7 +309,8 @@ fn workbench_presentation(
             ),
             intent: "conduit.intent/remove-form@1".into(),
             target: form_identity.clone(),
-            label: "Remove from Body".into(),
+            name: "Remove from Body".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: match &evidence.body.state {
                 conduit_body::BodyState::Lulled => PresentationActionAvailability::Available,
@@ -358,8 +358,7 @@ fn workbench_presentation(
         subjects.push(PresentationSubject {
             identity: part_identity.clone(),
             role: PresentationRole::Part,
-            label: part.part_id.as_str().into(),
-            accessibility_name: format!("Body Part {}", part.part_id.as_str()),
+            name: format!("Body Part {}", part.part_id.as_str()),
         });
         relationships.push(PresentationRelationship {
             source: body_identity.clone(),
@@ -371,8 +370,7 @@ fn workbench_presentation(
             subjects.push(PresentationSubject {
                 identity: host_identity.clone(),
                 role: PresentationRole::Host,
-                label: current.host_id.as_str().into(),
-                accessibility_name: format!("Current host {}", current.host_id.as_str()),
+                name: format!("Current host {}", current.host_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: part_identity.clone(),
@@ -391,8 +389,7 @@ fn workbench_presentation(
         subjects.push(PresentationSubject {
             identity: sign_identity.clone(),
             role: PresentationRole::Sign,
-            label: format!("Evidence {}", record.sequence),
-            accessibility_name: format!("Body biography evidence sequence {}", record.sequence),
+            name: format!("Body biography evidence sequence {}", record.sequence),
         });
         relationships.push(PresentationRelationship {
             source: body_identity.clone(),

@@ -59,7 +59,7 @@ fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
         .subjects
         .iter()
         .filter(|subject| subject.role == PresentationRole::Form)
-        .map(|subject| subject.label.as_str())
+        .map(|subject| subject.name.as_str())
         .collect::<Vec<_>>();
     for form in initial {
         assert!(visible_forms.contains(&form.checked_form_id.as_str()));

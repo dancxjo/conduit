@@ -38,12 +38,12 @@ pub(super) const COMMAND_PROOFS: &[CommandProofSpec] = &[
     CommandProofSpec {
         id: "repository.forms",
         exact_inputs: &["forms/inventory.toml", "tools/xtask/src/commands/forms.rs"],
-        input_prefixes: &["forms/", "tools/xtask/src/commands/forms/"],
+        input_prefixes: &["tools/xtask/src/commands/forms/"],
         workspace_packages: &["xtask"],
         heavy_suites: &[HeavySuite::Browser],
     },
     CommandProofSpec {
-        id: "repository.esp32-fabrication",
+        id: "repository.esp32-make",
         exact_inputs: &["tools/xtask/src/commands/esp32_firmware.rs"],
         input_prefixes: &[],
         workspace_packages: &["xtask"],
@@ -61,6 +61,36 @@ pub(super) const COMMAND_PROOFS: &[CommandProofSpec] = &[
 pub(super) fn proofs_for_path(path: &str) -> Vec<&'static CommandProofSpec> {
     COMMAND_PROOFS
         .iter()
-        .filter(|spec| spec.owns(path))
+        .filter(|spec| {
+            spec.owns(path) || (spec.id == "repository.forms" && is_canonical_form_source(path))
+        })
         .collect()
+}
+
+fn is_canonical_form_source(path: &str) -> bool {
+    path.strip_prefix("forms/")
+        .and_then(|path| path.strip_suffix("/main.conduit"))
+        .is_some_and(|slug| !slug.is_empty() && !slug.contains('/'))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repository_forms_owns_only_canonical_authored_sources_under_forms() {
+        assert!(is_canonical_form_source("forms/hello/main.conduit"));
+        assert!(is_canonical_form_source(
+            "forms/not-yet-inventory/main.conduit"
+        ));
+
+        for path in [
+            "forms/little-seismograph/fixture/src/lib.rs",
+            "forms/little-seismograph/fixture/main.conduit",
+            "forms/hello/README.md",
+            "forms/main.conduit",
+        ] {
+            assert!(!is_canonical_form_source(path), "{path}");
+        }
+    }
 }

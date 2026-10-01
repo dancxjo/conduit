@@ -78,7 +78,8 @@ fn offer() -> LocalModelOffer {
 }
 
 fn placement(contract: &LlmSemanticContract) -> PlannedGear {
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
+        semantic_contract: Default::default(),
         placement_id: PlacementId::from("placement/interpreter"),
         gear_id: GearId::from("observer/interpreter"),
         kind_id: contract.kind_id.clone(),
@@ -100,6 +101,7 @@ fn placement(contract: &LlmSemanticContract) -> PlannedGear {
         },
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
+        terminal_transductions: Vec::new(),
         host_calls: vec![],
         resources: vec![],
         authority: vec![],
@@ -201,15 +203,21 @@ fn shared_presentation_keeps_semantics_realization_provenance_and_effect_stages_
     .unwrap();
 
     presentation.validate().unwrap();
-    let port_labels = presentation
+    let port_names = presentation
         .subjects
         .iter()
         .filter(|subject| subject.role == PresentationRole::Port)
-        .map(|subject| subject.label.as_str())
+        .map(|subject| subject.name.as_str())
         .collect::<Vec<_>>();
-    assert_eq!(port_labels, ["request", "result"]);
-    assert!(!port_labels.contains(&"prompt"));
-    assert!(!port_labels.contains(&"completion"));
+    assert_eq!(
+        port_names,
+        [
+            "llm/interpret request carrying llm/interpretation-request@1",
+            "llm/interpret result carrying llm/interpretation-result@1"
+        ]
+    );
+    assert!(!port_names.iter().any(|name| name.contains("prompt")));
+    assert!(!port_names.iter().any(|name| name.contains("completion")));
     assert!(has_text_property(
         &presentation,
         "gear/interpreter",

@@ -1,15 +1,21 @@
 use alloc::vec::Vec;
 
 use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDiagnostic};
-use alloc::format;
 use conduit_core::{
-    kind_id, CheckedFront, FrontStartupParameter, KindId, PortDescriptor, PortDirection,
+    data_reference_kind, kind_id, CheckedFront, CheckedValueContract, FrontStartupParameter,
+    FrontValueContract, FrontValueLocation, KindId, PortDescriptor, PortDirection,
     StructuredInfoRefusal,
 };
 
 use crate::StartupCatalog;
 
+pub(crate) mod refinement;
+use refinement::checked_refinements;
+
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
+    if let Some(value_type) = source_type.strip_prefix('&') {
+        return data_reference_kind(&canonical_value_kind(value_type));
+    }
     match source_type {
         "Text" => kind_id("value/text"),
         "Tick" => kind_id("value/tick@1"),
@@ -19,9 +25,24 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Bytes" => kind_id("value/bytes"),
         "Unit" => kind_id("value/unit"),
         "Quantity" => kind_id("value/quantity"),
+        "U8" => kind_id("value/u8"),
+        "U16" => kind_id("value/u16"),
+        "U32" => kind_id("value/u32"),
+        "U64" => kind_id("value/u64"),
+        "U128" => kind_id("value/u128"),
+        "I8" => kind_id("value/i8"),
+        "I16" => kind_id("value/i16"),
+        "I32" => kind_id("value/i32"),
+        "I64" => kind_id("value/i64"),
+        "I128" => kind_id("value/i128"),
         "Distance" => kind_id(conduit_core::DISTANCE_INFO_ID),
         "Frequency" => kind_id(conduit_core::FREQUENCY_INFO_ID),
-        "Duration" => kind_id(conduit_core::QUANTITY_INFO_ID),
+        "Duration" => kind_id(conduit_core::DURATION_INFO_ID),
+        "Voltage" => kind_id(conduit_core::VOLTAGE_INFO_ID),
+        "Temperature" => kind_id(conduit_core::TEMPERATURE_INFO_ID),
+        "Angle" => kind_id(conduit_core::ANGLE_INFO_ID),
+        "Ratio" => kind_id(conduit_core::RATIO_INFO_ID),
+        "PixelCount" => kind_id(conduit_core::PIXEL_COUNT_INFO_ID),
         "Pool" => kind_id("value/pool-reference"),
         exact => kind_id(exact),
     }
@@ -31,6 +52,14 @@ pub(crate) fn checked_value_kind(
     source_type: &str,
     catalog: &StartupCatalog,
 ) -> Result<KindId, StructuredInfoRefusal> {
+    if let Some(value_type) = source_type.strip_prefix('&') {
+        if value_type.is_empty() || value_type.starts_with('&') {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        return Ok(data_reference_kind(&checked_value_kind(
+            value_type, catalog,
+        )?));
+    }
     if let Some(value_kind) = catalog.value_kind_alias(source_type) {
         return Ok(value_kind.clone());
     }
@@ -49,6 +78,23 @@ pub(crate) fn checked_value_kind(
                 Ok(canonical)
             }
         })
+}
+
+pub(crate) fn checked_value_type(
+    source_type: &str,
+    catalog: &StartupCatalog,
+) -> Result<conduit_core::StructuredInfoType, StructuredInfoRefusal> {
+    if let Some(value_type) = catalog.structured_type(source_type) {
+        return Ok(value_type.clone());
+    }
+    conduit_core::StructuredInfoType::leaf(checked_value_kind(source_type, catalog)?)
+}
+
+pub(crate) fn checked_optional_type(
+    source_type: &str,
+    catalog: &StartupCatalog,
+) -> Result<conduit_core::StructuredInfoType, StructuredInfoRefusal> {
+    conduit_core::optional_info_type(checked_value_type(source_type, catalog)?)
 }
 
 pub(crate) fn checked_front(
@@ -79,6 +125,37 @@ pub(crate) fn checked_front(
             })
         })
         .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
+    let mut value_contracts = form
+        .front
+        .startup_parameters
+        .iter()
+        .filter(|parameter| parameter.maximum_bytes.is_some() || !parameter.refinements.is_empty())
+        .map(|parameter| {
+            let checked = startup_parameters
+                .iter()
+                .find(|checked| checked.name == parameter.name.text)
+                .expect("checked startup parameter preserves its name");
+            let (maximum_bytes, constraints) = checked_refinements(
+                &parameter.refinements,
+                parameter.maximum_bytes,
+                &checked.value_type,
+                parameter.value_type.span,
+            )?;
+            Ok(FrontValueContract {
+                location: FrontValueLocation::Startup(parameter.name.text.clone()),
+                contract: CheckedValueContract::new(
+                    checked.value_type.clone(),
+                    maximum_bytes,
+                    constraints,
+                )
+                .map_err(|error| SyntaxCheckDiagnostic {
+                    code: "CND-FRM-053",
+                    span: parameter.value_type.span,
+                    message: alloc::format!("startup value contract is invalid: {error:?}"),
+                })?,
+            })
+        })
+        .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
     let mut inputs = Vec::new();
     let mut outputs = Vec::new();
     for port in &form.front.runtime_ports {
@@ -102,7 +179,36 @@ pub(crate) fn checked_front(
                 RuntimePortDirection::Output => PortDirection::Output,
             },
             temporal: canonical_port_temporal(port.temporal),
+            abnormal_kind: None,
         };
+        if port.maximum_bytes.is_some() || !port.refinements.is_empty() {
+            let (maximum_bytes, constraints) = checked_refinements(
+                &port.refinements,
+                port.maximum_bytes,
+                &descriptor.value_kind,
+                port.value_type.span,
+            )?;
+            value_contracts.push(FrontValueContract {
+                location: match port.direction {
+                    RuntimePortDirection::Input => {
+                        FrontValueLocation::Input(descriptor.port_id.clone())
+                    }
+                    RuntimePortDirection::Output => {
+                        FrontValueLocation::Output(descriptor.port_id.clone())
+                    }
+                },
+                contract: CheckedValueContract::new(
+                    descriptor.value_kind.clone(),
+                    maximum_bytes,
+                    constraints,
+                )
+                .map_err(|error| SyntaxCheckDiagnostic {
+                    code: "CND-FRM-053",
+                    span: port.value_type.span,
+                    message: alloc::format!("runtime Port value contract is invalid: {error:?}"),
+                })?,
+            });
+        }
         match descriptor.direction {
             PortDirection::Input => inputs.push(descriptor),
             PortDirection::Output => outputs.push(descriptor),
@@ -118,7 +224,8 @@ pub(crate) fn checked_front(
                 conduit_core::port_id(&pair.output_port.text),
             )
         }),
-    ))
+    )
+    .with_value_contracts(value_contracts))
 }
 
 pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_core::PortTemporal {
@@ -133,14 +240,17 @@ pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_co
     }
 }
 
-fn checked_value_kind_with_modality(
+pub(crate) fn checked_value_kind_with_modality(
     source_type: &str,
     optional: bool,
     catalog: &StartupCatalog,
 ) -> Result<KindId, StructuredInfoRefusal> {
     let value_kind = checked_value_kind(source_type, catalog)?;
     Ok(if optional {
-        kind_id(&format!("optional<{}>", value_kind.as_str()))
+        checked_optional_type(source_type, catalog)?
+            .profile()?
+            .value_kind()
+            .clone()
     } else {
         value_kind
     })
@@ -165,13 +275,18 @@ mod tests {
         );
         assert_eq!(
             canonical_value_kind("Duration").as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert_eq!(
             canonical_value_kind("Pool").as_str(),
             "value/pool-reference"
         );
         assert_eq!(canonical_value_kind("test/value").as_str(), "test/value");
+        assert_eq!(canonical_value_kind("U32").as_str(), "value/u32");
+        assert_eq!(
+            canonical_value_kind("&Text").as_str(),
+            "data/generation-reference<value/text>"
+        );
     }
 
     #[test]
@@ -204,6 +319,23 @@ mod tests {
                 .unwrap()
                 .as_str(),
             "weather/exact-map@2"
+        );
+    }
+
+    #[test]
+    fn data_reference_wraps_the_exact_checked_content_type_once() {
+        let mut catalog = StartupCatalog::new();
+        catalog
+            .insert_value_kind_alias("Image", kind_id("media/image@4"))
+            .unwrap();
+
+        assert_eq!(
+            checked_value_kind("&Image", &catalog).unwrap().as_str(),
+            "data/generation-reference<media/image@4>"
+        );
+        assert_eq!(
+            checked_value_kind("&&Image", &catalog),
+            Err(StructuredInfoRefusal::WrongType)
         );
     }
 }

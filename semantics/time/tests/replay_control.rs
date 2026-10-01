@@ -61,14 +61,8 @@ fn original_timing_preserves_history_and_uses_a_separate_playback_clock() {
 
 #[test]
 fn pause_excludes_paused_duration_and_rate_scales_only_playback_schedule() {
-    let mut replay = BoundedReplayController::new(
-        &entries(),
-        ReplayPolicy::Rate {
-            numerator: 2,
-            denominator: 1,
-        },
-    )
-    .unwrap();
+    let mut replay =
+        BoundedReplayController::new(&entries(), ReplayPolicy::rate(1, 2).unwrap()).unwrap();
     replay.start(10).unwrap();
     replay.poll(10).unwrap().unwrap();
     replay.pause(14).unwrap();
@@ -152,16 +146,7 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
         BoundedReplayController::new_with_maximum_duration(&entries(), ReplayPolicy::Step, 0),
         Err(ReplayRefusal::InvalidDurationLimit)
     ));
-    assert!(matches!(
-        BoundedReplayController::new(
-            &entries(),
-            ReplayPolicy::Rate {
-                numerator: 0,
-                denominator: 1
-            }
-        ),
-        Err(ReplayRefusal::InvalidRate)
-    ));
+    assert!(ReplayPolicy::rate(1, 0).is_err());
     let too_many = (0..=MAXIMUM_REPLAY_ENTRIES)
         .map(|index| entry(format!("event/{index}"), index as u64))
         .collect::<Vec<_>>();
@@ -242,10 +227,7 @@ fn replay_policy_is_exact_inspectable_configuration() {
             2,
             3,
         )),
-        Ok(ReplayPolicy::Rate {
-            numerator: 2,
-            denominator: 3,
-        })
+        Ok(ReplayPolicy::rate(3, 2).unwrap())
     );
     assert_eq!(
         replay_policy_from_configuration(&entries(

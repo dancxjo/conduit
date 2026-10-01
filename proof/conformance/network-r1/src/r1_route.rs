@@ -114,6 +114,7 @@ pub fn r1_websocket_probe_binding(pico_boot_id: BootId) -> SessionBinding {
             sink_endpoint_id: link.sink.endpoint_id,
             limits: link.limits,
         },
+        abnormal_kind: None,
     }
 }
 

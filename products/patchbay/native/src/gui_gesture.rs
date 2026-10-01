@@ -9,7 +9,8 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{ApplicationTheme, PatchbayGraph, PatchbayPortCompatibility};
+use patchbay_graph::{PatchbayGraph, PatchbayPortCompatibility};
+use patchbay_model::ApplicationTheme;
 
 #[derive(Default)]
 pub struct GestureView<'a> {

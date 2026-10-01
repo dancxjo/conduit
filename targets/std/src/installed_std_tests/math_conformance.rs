@@ -370,7 +370,7 @@ fn assert_quantity_presented(
 }
 
 #[test]
-fn quantity_refusals_do_not_fabricate_a_connected_presentation() {
+fn quantity_refusals_do_not_make_a_connected_presentation() {
     for (minimum, maximum, expected) in [(0, 1_000_000, "out-of-range"), (-1_000_000, 0, "inexact")]
     {
         let source = format!(

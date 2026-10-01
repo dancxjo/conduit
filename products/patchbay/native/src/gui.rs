@@ -25,21 +25,20 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
-use patchbay_model::{
-    ApplicationTheme, DebuggerPresentation, PatchbayGear, PatchbayGraph, CONDUIT_APPLICATION_THEME,
-};
+use patchbay_graph::{PatchbayGear, PatchbayGraph};
+use patchbay_model::{ApplicationTheme, DebuggerPresentation, CONDUIT_APPLICATION_THEME};
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
 
-pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
-    + patchbay_model::MAX_PATCHBAY_GEARS
-    + patchbay_model::MAX_PATCHBAY_GEARS
-    + patchbay_model::MAX_PATCHBAY_GEARS
-    + patchbay_model::MAX_PATCHBAY_PORTS
-    + patchbay_model::MAX_PATCHBAY_PORTS
-    + patchbay_model::MAX_PATCHBAY_CORDS
+pub const MAX_HIT_TARGETS: usize = patchbay_graph::MAX_PATCHBAY_GEARS
+    + patchbay_graph::MAX_PATCHBAY_GEARS
+    + patchbay_graph::MAX_PATCHBAY_GEARS
+    + patchbay_graph::MAX_PATCHBAY_GEARS
+    + patchbay_graph::MAX_PATCHBAY_PORTS
+    + patchbay_graph::MAX_PATCHBAY_PORTS
+    + patchbay_graph::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
-    + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
+    + patchbay_graph::MAX_PATCHBAY_GEARS * patchbay_graph::MAX_FACE_CONTROLS * 2
     + 9
     + conduit_body::MAX_BODY_PARTS
     + conduit_body::MAX_CANDIDATES
@@ -145,9 +144,7 @@ pub fn draw_patchbay_with_debugger(
         gesture,
         viewport,
     } = view;
-    debug_assert!(Icon::ALL
-        .iter()
-        .all(|icon| !icon.accessibility_name().is_empty()));
+    debug_assert!(Icon::ALL.iter().all(|icon| !icon.name().is_empty()));
     let mut canvas = SoftwareCanvas::new(pixels, width, height);
     let theme = &CONDUIT_APPLICATION_THEME;
     let width = i32::try_from(width).unwrap_or(i32::MAX);
@@ -428,7 +425,7 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
 }
 
 pub(super) fn cord_route_points(
-    cord: &patchbay_model::PatchbayCord,
+    cord: &patchbay_graph::PatchbayCord,
     layout: (
         &[GearLayout<'_>],
         &[CompositionLayout<'_>],

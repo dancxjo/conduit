@@ -7,7 +7,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal,
     BOOL_INFO_ID,
 };
 
@@ -24,6 +24,7 @@ pub fn bool_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),
@@ -40,20 +41,16 @@ pub fn bool_presentation_contract() -> StandardKindContract {
     }
 }
 
+pub fn bool_presentation_semantic_contract() -> Kind {
+    bool_presentation_contract().into_semantic_contract(BOOL_PRESENTATION_CONTRACT_REVISION)
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_bool_presentation_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindConfigurationField, KindProjection};
-    let contract = bool_presentation_contract();
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(BOOL_PRESENTATION_CONTRACT_REVISION),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Vec::<KindConfigurationField>::new(),
-        })
+        .insert_kind(bool_presentation_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

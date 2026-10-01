@@ -22,10 +22,12 @@ mod delivery;
 mod device;
 mod execution;
 mod execution_fusion;
+mod fixed_integer;
 mod front;
 mod implementation;
 mod info;
 mod interop;
+mod kind_effects;
 mod plan_realization;
 mod port;
 mod preparation;
@@ -34,13 +36,16 @@ mod quantity;
 mod resource;
 mod resource_canonical;
 mod resource_content;
+mod resource_port;
 use resource_canonical::push_resource_binding;
 mod plan_fingerprint;
+mod planned_gear;
 mod resource_acquisition;
 mod resource_admission;
 mod resource_collection;
 mod resource_reference;
 mod resource_reference_access;
+mod retry_evidence;
 mod route;
 mod shared_pool;
 mod state_delay;
@@ -52,6 +57,8 @@ mod temporal;
 mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
+mod terminal_info;
+mod value_constraint;
 
 pub use base_capability::*;
 pub use base_registry::*;
@@ -60,8 +67,13 @@ pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
 pub use configuration::{
-    ConfigurationEntry, ConfigurationValue, KindConfigurationField, KindConfigurationRule,
-    KindSemanticLaw, KindTerminalBehavior, StructuredConfigurationValue,
+    AbnormalTerminalTransduction, CancellationTransduction, ConfigurationEntry, ConfigurationValue,
+    ExternalEffectBehavior, FiniteTerminalEmission, KeyedJoinCapacityBehavior,
+    KeyedJoinOutputOrder, KeyedJoinPairing, KeyedJoinSemanticLaw, KeyedJoinUnmatchedCloseBehavior,
+    KindConfigurationField, KindConfigurationRule, KindSemanticContract, KindSemanticLaw,
+    KindTerminalBehavior, NormalCloseTransduction, ReplayBehavior, SemanticDependence,
+    StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
+    TerminalTransductionProfile, VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;
@@ -70,12 +82,14 @@ pub use delivery::*;
 pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
-pub use front::{CheckedFront, FrontStartupParameter};
+pub use fixed_integer::*;
+pub use front::{CheckedFront, FrontStartupParameter, FrontValueContract, FrontValueLocation};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };
 pub use info::*;
 pub use interop::*;
+pub use kind_effects::*;
 pub use plan_realization::FormBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
@@ -86,8 +100,10 @@ pub use resource_acquisition::*;
 pub use resource_admission::*;
 pub use resource_collection::*;
 pub use resource_content::*;
+pub use resource_port::*;
 pub use resource_reference::*;
 pub use resource_reference_access::*;
+pub use retry_evidence::*;
 pub use route::*;
 pub use shared_pool::*;
 pub use state_delay::*;
@@ -97,6 +113,8 @@ pub use temporal::*;
 pub use temporal_civil_conversion::*;
 pub use temporal_clock::*;
 pub use temporal_quantity::*;
+pub use terminal_info::*;
+pub use value_constraint::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
@@ -232,6 +250,30 @@ pub struct FormIdentity {
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
+}
+
+/// Exact authored UTF-8 extent retained as provenance, not semantic meaning.
+/// Portable fixed-width coordinates keep Plans inspectable across Hosts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SourceSpan {
+    pub start: u64,
+    pub end: u64,
+    pub line: u64,
+    pub column: u64,
+    pub end_line: u64,
+    pub end_column: u64,
+}
+
+impl SourceSpan {
+    pub const fn is_valid(self) -> bool {
+        self.start < self.end
+            && self.line > 0
+            && self.column > 0
+            && self.end_line > 0
+            && self.end_column > 0
+            && (self.line < self.end_line
+                || (self.line == self.end_line && self.column < self.end_column))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -414,8 +456,13 @@ pub struct CapabilityOffer {
     pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub semantic_contract: KindSemanticContract,
     #[serde(flatten)]
     pub implementation: ImplementationOffer,
+    /// Exact keep-duration support of this Back. Absence means that the Back
+    /// makes no retained-State promise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state_retention: Option<StateRetentionSupport>,
     pub host_calls: Vec<HostCallRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
     pub authority_requirements: Vec<AuthorityRequirement>,
@@ -505,6 +552,10 @@ pub struct PlannedGear {
     pub gear_id: GearId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindIdentity,
+    /// Authored provenance where one exists. Generated realization machinery
+    /// remains honestly spanless rather than borrowing a nearby location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_span: Option<SourceSpan>,
     pub execution_profile_id: ExecutionProfileId,
     pub configuration: Vec<ConfigurationEntry>,
     pub host_id: HostId,
@@ -521,6 +572,9 @@ pub struct PlannedGear {
     pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub semantic_contract: KindSemanticContract,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub terminal_transductions: Vec<TerminalTransductionProfile>,
     pub host_calls: Vec<HostCallRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,
@@ -615,6 +669,16 @@ pub struct PlannedConnection {
     pub sink_placement_id: PlacementId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+    /// Resource authority contract and exact admitted source binding. The
+    /// opaque bearer remains local to the issuing capability table.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resource: Option<PlannedResourceConnection>,
+    /// Exact typed semantic abnormal truth promised by the source Fore port.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abnormal_kind: Option<KindId>,
+    /// Exact semantic track carried by this Cord.
+    #[serde(default)]
+    pub track: ConnectionTrack,
     #[serde(default)]
     pub temporal: PortTemporal,
     #[serde(default)]
@@ -628,6 +692,61 @@ pub struct PlannedConnection {
     pub admitted_lines: Vec<AdmittedLine>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedResourceConnection {
+    pub contract: ResourcePortContract,
+    /// Exact placement owning the admitted possession before Cord acceptance.
+    pub owner_placement_id: PlacementId,
+    /// Serializable inspection/provenance only; never the bearer authority.
+    pub source_binding: ResourceBinding,
+}
+
+/// One finite external binding of an ordinary Form's checked Front.
+///
+/// This is plan truth, not ambient host wiring: planning seals the exact
+/// internal placement and Port which an admitted caller may feed or observe.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedForePort {
+    pub front_port_id: PortId,
+    pub direction: PortDirection,
+    pub placement_id: PlacementId,
+    pub gear_port_id: PortId,
+    pub value_kind: KindId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value_contract: Option<CheckedValueContract>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abnormal_kind: Option<KindId>,
+    #[serde(default)]
+    pub track: ConnectionTrack,
+    #[serde(default)]
+    pub temporal: PortTemporal,
+    #[serde(default)]
+    pub pressure_policy: DeliveryPressurePolicy,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ConnectionTrack {
+    #[default]
+    Payload,
+    NormalClose,
+    AbnormalTerminal,
+    Quiescence,
+}
+
+impl ConnectionTrack {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Payload => "payload",
+            Self::NormalClose => "normal-close",
+            Self::AbnormalTerminal => "abnormal-terminal",
+            Self::Quiescence => "quiescence",
+        }
+    }
 }
 
 impl PlannedConnection {
@@ -660,6 +779,9 @@ pub struct PlanFragment {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub states: Vec<PlannedStateBoundary>,
     pub connections: Vec<PlannedConnection>,
+    /// Plan-sealed external Fore bindings for this Host fragment.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fore_ports: Vec<PlannedForePort>,
     #[serde(default)]
     pub shared_pools: Vec<PlannedSharedPool>,
     pub startup_dependencies: Vec<StartupDependency>,
@@ -1029,6 +1151,17 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
         .count();
     own_matches == 1
+        && verify_fragment_fore_ports(fragment)
+        && fragment.placements.iter().all(|placement| {
+            placement.terminal_transductions.iter().all(|profile| {
+                capability_offer::validate_terminal_transduction_ports(
+                    &placement.inputs,
+                    &placement.outputs,
+                    profile,
+                )
+                .is_ok()
+            })
+        })
         && state_delay::verify_fragment_state(fragment)
         && execution::verify_execution_regions(fragment)
         && execution_fusion::verify(fragment)
@@ -1041,6 +1174,84 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
             &fragment.realization_backs,
             &commitments,
         ) == fragment.plan_id
+}
+
+fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
+    fragment
+        .fore_ports
+        .iter()
+        .enumerate()
+        .all(|(index, boundary)| {
+            boundary.item_capacity > 0
+                && boundary.byte_capacity > 0
+                && !fragment.fore_ports[..index].iter().any(|prior| {
+                    let same_fore = prior.front_port_id == boundary.front_port_id
+                        && prior.direction == boundary.direction
+                        && prior.track == boundary.track;
+                    same_fore
+                        && (boundary.direction != PortDirection::Input
+                            || boundary.track != ConnectionTrack::Payload
+                            || (prior.placement_id == boundary.placement_id
+                                && prior.gear_port_id == boundary.gear_port_id))
+                })
+                && fragment.placements.iter().any(|placement| {
+                    placement.placement_id == boundary.placement_id
+                        && match boundary.direction {
+                            PortDirection::Input => &placement.inputs,
+                            PortDirection::Output => &placement.outputs,
+                        }
+                        .iter()
+                        .any(|port| {
+                            if port.port_id != boundary.gear_port_id {
+                                return false;
+                            }
+                            let port_contract_matches = match boundary.track {
+                                ConnectionTrack::Payload => {
+                                    port.value_kind == boundary.value_kind
+                                        && port.abnormal_kind == boundary.abnormal_kind
+                                        && port.temporal == boundary.temporal
+                                }
+                                ConnectionTrack::AbnormalTerminal => {
+                                    port.abnormal_kind.as_ref() == Some(&boundary.value_kind)
+                                        && boundary.temporal == PortTemporal::Value
+                                }
+                                ConnectionTrack::NormalClose => {
+                                    port.temporal == (PortTemporal::Flow { closes: true })
+                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.temporal == PortTemporal::Value
+                                }
+                                ConnectionTrack::Quiescence => {
+                                    matches!(port.temporal, PortTemporal::Flow { .. })
+                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.temporal == PortTemporal::Value
+                                }
+                            };
+                            if !port_contract_matches {
+                                return false;
+                            }
+                            let location = match (boundary.direction, boundary.track) {
+                                (PortDirection::Input, ConnectionTrack::AbnormalTerminal) => {
+                                    FrontValueLocation::InputAbnormal(port.port_id.clone())
+                                }
+                                (PortDirection::Output, ConnectionTrack::AbnormalTerminal) => {
+                                    FrontValueLocation::OutputAbnormal(port.port_id.clone())
+                                }
+                                (PortDirection::Input, _) => {
+                                    FrontValueLocation::Input(port.port_id.clone())
+                                }
+                                (PortDirection::Output, _) => {
+                                    FrontValueLocation::Output(port.port_id.clone())
+                                }
+                            };
+                            let internal_contract = placement
+                                .checked_port_front()
+                                .value_contract(&location)
+                                .cloned();
+                            boundary.track == ConnectionTrack::NormalClose
+                                || internal_contract == boundary.value_contract
+                        })
+                })
+        })
 }
 
 fn push_string(canonical: &mut Vec<u8>, value: &str) {

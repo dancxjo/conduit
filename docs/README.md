@@ -7,7 +7,6 @@ current capabilities, practical workflows, and detailed design references.
 
 - [Project introduction](../README.md): the idea, working products, and a first command.
 - [body Workspace](https://dancxjo.github.io/conduit/workspace/): birth or return to a body and use its resident tutorial and inspection forms.
-- [Interactive Tour compatibility entrance](https://dancxjo.github.io/conduit/tour/): learn by running real forms in a browser.
 - [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/): 17 narrated emulator screenshots with runtime evidence.
 - [Current status](../STATUS.md): what exists and the limits of its proof.
 - [Roadmap](roadmap.md): current open work and paused campaigns.
@@ -20,9 +19,9 @@ current capabilities, practical workflows, and detailed design references.
 | [Try Conduit](try-conduit.md) | Local hosted, browser, Patchbay, and ConduitOS entrances |
 | [Try forms](try-forms.md) and [form collection](../forms/README.md) | Examples, authoring, and checking reusable programs |
 | [Product surfaces](../products/README.md) | body Workspace, compatibility/development surfaces, and the CLI |
-| [Targets](../targets/README.md) | Platform setup, fabrication, and target-specific proof |
+| [Targets](../targets/README.md) | Platform setup, make, and target-specific proof |
 | [body building](body-building.md) | body-bound target artifacts and deployment boundaries |
-| [host fabrication](host-fabrication.md) | PROFILE, BUILD, IMAGE, and fabrication packages |
+| [host make](host-make.md) | PROFILE, BUILD, IMAGE, and make packages |
 | [Supply-chain export](supply-chain-export.md) | OCI transport, in-toto/SLSA provenance, and proof separation |
 | [User-operated relay](user-operated-relay.md) | Provision and run one private outbound-only remote rendezvous path |
 | [Visual evidence](visual-evidence.md) | Screenshots, provenance, reproduction, and publication |
@@ -36,8 +35,8 @@ clearly identifies historical milestone designs.
 | Topic | References |
 |---|---|
 | Runtime and hosts | [host architecture](host-architecture.md), [compute resources](r2-compute-resources.md), [timing](timing-profile.md) |
-| Human interfaces | [Presenter boundary](presenter-hourglass.md), [input semantics](input-semantics.md), [browser application boundary](browser-application-presentation-boundary.md) |
-| Ownership | [Repository layout](repository-layout.md), [browser product ownership](browser-product-source-ownership.md) |
+| Human interfaces | [Face, Mask, and Show](presenter-hourglass.md), [input semantics](input-semantics.md) |
+| Ownership | [Repository layout](repository-layout.md), [target families](../targets/README.md) |
 | body evidence | [Self-hosted biography](self-hosted-biography.md), [body lifecycle contracts](architecture/body-lifecycle-waists.md) |
 
 ## Develop and verify

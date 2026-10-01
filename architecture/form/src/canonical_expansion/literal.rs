@@ -6,6 +6,7 @@ pub(super) fn expand_literal(
     source_span: crate::Span,
     source_form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -48,9 +49,11 @@ pub(super) fn expand_literal(
     };
     let instance = instantiate_gear(
         &gear,
+        None,
         &name,
         source_form,
         forms,
+        structured_types,
         catalog,
         backs,
         environment,

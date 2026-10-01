@@ -59,6 +59,7 @@ pub enum ResourceReferenceRefusal {
     InvalidExpiry,
     IncomparableExpiry,
     EncodingTooLarge,
+    InsufficientEncodingCapacity,
     MalformedEncoding,
     UnsupportedEncodingVersion,
 }
@@ -66,9 +67,12 @@ pub enum ResourceReferenceRefusal {
 /// Validated allocation-free access to the fields needed to admit encoded content.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EncodedResourceReference<'a> {
+    pub identity: ResourceSemanticIdentity,
+    pub version: ResourceVersionIdentity,
     pub content_profile: &'a str,
     pub access_class: &'a str,
     pub extent: ResourceExtent,
+    pub has_expiry: bool,
 }
 
 impl ResourceSemanticIdentity {
@@ -118,10 +122,12 @@ impl BoundedResourceRef {
         if cursor.u8()? != RESOURCE_REFERENCE_ENCODING_VERSION {
             return Err(ResourceReferenceRefusal::UnsupportedEncodingVersion);
         }
-        if cursor.digest()? == [0; RESOURCE_REFERENCE_DIGEST_BYTES] {
+        let identity = cursor.digest()?;
+        if identity == [0; RESOURCE_REFERENCE_DIGEST_BYTES] {
             return Err(ResourceReferenceRefusal::ZeroSemanticIdentity);
         }
-        if cursor.digest()? == [0; RESOURCE_REFERENCE_DIGEST_BYTES] {
+        let version = cursor.digest()?;
+        if version == [0; RESOURCE_REFERENCE_DIGEST_BYTES] {
             return Err(ResourceReferenceRefusal::ZeroVersionIdentity);
         }
         let content_profile = cursor.identity_ref()?;
@@ -143,8 +149,8 @@ impl BoundedResourceRef {
         if extent.bytes > MAXIMUM_REFERENCED_BYTES {
             return Err(ResourceReferenceRefusal::ByteBoundExceeded);
         }
-        match cursor.u8()? {
-            0 => {}
+        let has_expiry = match cursor.u8()? {
+            0 => false,
             1 => {
                 let _ticks = cursor.u64()?;
                 decode_scale(cursor.u8()?)?;
@@ -157,16 +163,20 @@ impl BoundedResourceRef {
                 {
                     return Err(ResourceReferenceRefusal::InvalidExpiry);
                 }
+                true
             }
             _ => return Err(ResourceReferenceRefusal::MalformedEncoding),
-        }
+        };
         if !cursor.finished() {
             return Err(ResourceReferenceRefusal::MalformedEncoding);
         }
         Ok(EncodedResourceReference {
+            identity: ResourceSemanticIdentity::from_digest(identity),
+            version: ResourceVersionIdentity::from_digest(version),
             content_profile,
             access_class,
             extent,
+            has_expiry,
         })
     }
 
@@ -214,30 +224,61 @@ impl BoundedResourceRef {
     }
 
     pub fn encode(&self) -> Result<Vec<u8>, ResourceReferenceRefusal> {
-        self.validate()?;
-        let mut bytes = Vec::new();
+        let required = self.encoded_len()?;
+        let mut bytes = Vec::with_capacity(required);
+        self.encode_into(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    /// Encode into caller-prepared storage without permitting hidden growth.
+    pub fn encode_into(&self, bytes: &mut Vec<u8>) -> Result<(), ResourceReferenceRefusal> {
+        let required = self.encoded_len()?;
+        if bytes.capacity() < required {
+            return Err(ResourceReferenceRefusal::InsufficientEncodingCapacity);
+        }
+        bytes.clear();
         bytes.push(RESOURCE_REFERENCE_ENCODING_VERSION);
         bytes.extend_from_slice(&self.identity.digest());
         bytes.extend_from_slice(&self.lifetime.version.digest());
-        push_identity(&mut bytes, self.content_profile.as_str());
-        push_identity(&mut bytes, self.access_class.as_str());
+        push_identity(bytes, self.content_profile.as_str());
+        push_identity(bytes, self.access_class.as_str());
         bytes.extend_from_slice(&self.extent.bytes.to_le_bytes());
-        push_optional_u64(&mut bytes, self.extent.items);
+        push_optional_u64(bytes, self.extent.items);
         match &self.lifetime.expires_at {
             None => bytes.push(0),
             Some(expiry) => {
                 bytes.push(1);
                 bytes.extend_from_slice(&expiry.ticks.to_le_bytes());
                 bytes.push(encode_scale(expiry.scale));
-                push_identity(&mut bytes, &expiry.clock_basis);
+                push_identity(bytes, &expiry.clock_basis);
                 bytes.extend_from_slice(&expiry.resolution_ticks.to_le_bytes());
                 bytes.extend_from_slice(&expiry.uncertainty_ticks.to_le_bytes());
             }
         }
-        if bytes.len() > MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES {
+        debug_assert_eq!(bytes.len(), required);
+        Ok(())
+    }
+
+    pub fn encoded_len(&self) -> Result<usize, ResourceReferenceRefusal> {
+        self.validate()?;
+        let expiry_bytes = self
+            .lifetime
+            .expires_at
+            .as_ref()
+            .map_or(1, |expiry| 1 + 8 + 1 + 2 + expiry.clock_basis.len() + 8 + 8);
+        let length = 1usize
+            .checked_add(2 * RESOURCE_REFERENCE_DIGEST_BYTES)
+            .and_then(|value| value.checked_add(2 + self.content_profile.as_str().len()))
+            .and_then(|value| value.checked_add(2 + self.access_class.as_str().len()))
+            .and_then(|value| {
+                value.checked_add(8 + if self.extent.items.is_some() { 9 } else { 1 })
+            })
+            .and_then(|value| value.checked_add(expiry_bytes))
+            .ok_or(ResourceReferenceRefusal::EncodingTooLarge)?;
+        if length > MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES {
             return Err(ResourceReferenceRefusal::EncodingTooLarge);
         }
-        Ok(bytes)
+        Ok(length)
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, ResourceReferenceRefusal> {

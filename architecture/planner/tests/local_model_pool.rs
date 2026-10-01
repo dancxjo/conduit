@@ -1,15 +1,16 @@
+mod common;
+
 use std::collections::BTreeMap;
 
 use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
-    HostCallContractId, HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
-    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PlanningRequestAuthority,
-    PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId, PoolRealizationHealth,
-    PoolRealizationObservation, PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth,
-    ResourceObservation, SharedPoolId, SignId, PROTOCOL_VERSION,
-    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
-    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannerCapabilityOffer,
+    PlannerLimits, PlannerProfileId, PlanningRequestAuthority, PlayUnsatisfiedReason,
+    PoolMemberLimits, PoolOperationId, PoolRealizationHealth, PoolRealizationObservation,
+    PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth, ResourceObservation,
+    SharedPoolId, SignId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
+    SHARED_POOL_ADMIT_HOST_CALL_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
@@ -28,13 +29,16 @@ use conduit_planner::{
 };
 use serde::Serialize;
 
+use common::local_model::dual_local_model_providers;
+
 const SOURCE: &str = r#"
-form model-worker (
+form llm/generate (
     maximum-input-bytes: Count = 4096
-    maximum-context-tokens: Count = 4096
-    maximum-output-tokens: Count = 512
-    temperature-milli: Count = 0
-    prompt: Text >> text: Text
+    maximum-context-items: Count = 1
+    maximum-output-bytes: Count = 1024
+    maximum-work-units: Count = 4096
+    maximum-history-items: Count = 0
+    request: llm/generation-request@1 >> result: llm/generated-result@1
 ) {
 }
 
@@ -45,7 +49,7 @@ form consumer (
 }
 
 form model-service {
-    pool workers: model-worker(size = 2)
+    pool workers: llm/generate(size = 2)
     client: consumer(workers)
 }
 "#;
@@ -90,7 +94,8 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
         profile: HostProfileId::from("test/consumer@1"),
         bases: vec![],
         resources: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: Default::default(),
             startup_parameters: front.startup_parameters().to_vec(),
             shorthand: front
                 .shorthand()
@@ -218,7 +223,7 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
     let form = expanded();
     let observer = &form.gears[0];
     let consumer = consumer_host(&observer.checked_front());
-    let fixtures = conduit_ai::generate_text_base_fixtures();
+    let fixtures = dual_local_model_providers();
     let hosts = vec![
         consumer.clone(),
         fixtures[0].advertisement.clone(),
@@ -243,7 +248,7 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
             &consumer,
             worker,
             1,
-            4_096,
+            262_144,
         );
         request.contract.scope = conduit_core::LineScope::LocalNetwork;
         request.contract.security = conduit_core::LineSecurity::AuthenticatedEncrypted;
@@ -256,7 +261,7 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
             worker,
             &consumer,
             1,
-            4_096,
+            262_144,
         );
         result.contract.scope = conduit_core::LineScope::LocalNetwork;
         result.contract.security = conduit_core::LineSecurity::AuthenticatedEncrypted;
@@ -302,7 +307,7 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
         &selection,
         consumer,
         conduit_core::PoolMemberSessionDirection::Input,
-        &conduit_core::PortId::from("prompt"),
+        &conduit_core::PortId::from("request"),
     )
     .unwrap();
     let output = conduit_wire::SessionBinding::from_selected_pool_operation(
@@ -310,7 +315,7 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
         &selection,
         consumer,
         conduit_core::PoolMemberSessionDirection::Output,
-        &conduit_core::PortId::from("text"),
+        &conduit_core::PortId::from("result"),
     )
     .unwrap();
     assert_eq!(
@@ -327,7 +332,7 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
         &selection,
         &conduit_core::PlacementId::from("unplanned-consumer"),
         conduit_core::PoolMemberSessionDirection::Input,
-        &conduit_core::PortId::from("prompt"),
+        &conduit_core::PortId::from("request"),
     )
     .is_err());
 }
@@ -434,11 +439,11 @@ fn selected_signs(
 }
 
 #[test]
-fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
+fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     let form = expanded();
     let observer = &form.gears[0];
     let consumer = consumer_host(&observer.checked_front());
-    let fixtures = conduit_ai::generate_text_base_fixtures();
+    let fixtures = dual_local_model_providers();
     let hosts = vec![
         consumer,
         fixtures[0].advertisement.clone(),
@@ -458,6 +463,25 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     assert_eq!(planned.realization_envelope.len(), 2);
     assert_eq!(planned.realization_envelope[0].member_capacity, 1);
     assert_eq!(planned.realization_envelope[1].member_capacity, 1);
+    for (realization, fixture) in planned.realization_envelope.iter().zip(&fixtures) {
+        let offer = &fixture.advertisement.capabilities[0];
+        assert_eq!(realization.host_id, fixture.advertisement.host_id);
+        assert_eq!(realization.boot_id, fixture.advertisement.boot_id);
+        assert_eq!(realization.capability_id, offer.capability_id);
+        assert_eq!(
+            realization.implementation_id,
+            offer.implementation.implementation_id
+        );
+        assert_eq!(realization.artifact_id, offer.implementation.artifact_id);
+        assert!(realization
+            .artifact_id
+            .as_str()
+            .ends_with(&fixture.provider.identity.model_content_identity));
+    }
+    assert_ne!(
+        planned.realization_envelope[0].artifact_id,
+        planned.realization_envelope[1].artifact_id
+    );
 
     let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
     let lowered = &lowered.shared_pools[0];
@@ -507,23 +531,23 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     let first = select(&mut pool, key(1), &observations, &mut signs).unwrap();
     let first_signs = selected_signs(&first, &signs, &observation_sign_ids);
     pool.trigger(first.member).unwrap();
-    assert_eq!(first.member.placement.realization, 0);
+    let first_realization = first.member.placement.realization;
     let second = select(&mut pool, key(2), &observations, &mut signs).unwrap();
     let second_signs = selected_signs(&second, &signs, &observation_sign_ids);
     pool.trigger(second.member).unwrap();
-    assert_eq!(second.member.placement.realization, 1);
+    assert_ne!(second.member.placement.realization, first_realization);
     pool.request_release(second.member).unwrap();
     pool.complete_release(second.member).unwrap();
 
     pool.fail_member(first.member).unwrap();
     let mut lost = observations.clone();
     for observation in &mut lost {
-        if observation.realization == 0 {
+        if observation.realization == first_realization {
             observation.health = LoweredObservationHealth::Unavailable;
         }
     }
     assert_eq!(
-        pool.population_for_realization(0),
+        pool.population_for_realization(first_realization),
         1,
         "failed work is not replayed"
     );
@@ -531,7 +555,21 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     let later_signs = selected_signs(&later, &signs, &observation_sign_ids);
     pool.trigger(later.member).unwrap();
     assert_eq!(later.member.key, key(3));
-    assert_eq!(later.member.placement.realization, 1);
+    assert_ne!(later.member.placement.realization, first_realization);
+    let fallback_selection = PoolSelectionEvidence {
+        plan_id: plan.plan_id.clone(),
+        pool_id: planned.pool_id.clone(),
+        operation_id: PoolOperationId::from("model-request/3"),
+        selected_realization: Some(later.member.placement.realization),
+        observation_sign_ids: later_signs
+            .iter()
+            .map(|identity| SignId::from(identity.as_str()))
+            .collect(),
+        disposition: PoolSelectionDisposition::Selected,
+        sign_id: SignId::from("sign/model-pool-selected/3"),
+    };
+    assert_eq!(fallback_selection.validate(&plan), Ok(()));
+    assert_eq!(fallback_selection.plan_id, plan.plan_id);
     assert_eq!(
         select(&mut pool, key(4), &lost, &mut signs),
         Err(PoolSelectionError::CapacityUnavailable {
@@ -597,10 +635,10 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         .iter()
         .any(|realization| realization.host_id == hosts[2].host_id));
 
-    let replacement_hosts = vec![
-        hosts[0].clone(),
-        with_capacity(fixtures[1].advertisement.clone(), 2),
-    ];
+    let mut recovered_provider = with_capacity(fixtures[1].advertisement.clone(), 2);
+    recovered_provider.boot_id = BootId::from("boot/wide/2");
+    recovered_provider.offer_generation = OfferGeneration(2);
+    let replacement_hosts = vec![hosts[0].clone(), recovered_provider];
     let replacement = build_plan(&replacement_hosts);
     assert_ne!(replacement.plan_id, plan.plan_id);
     assert_ne!(replacement.plan_id, a_only.plan_id);
@@ -622,8 +660,28 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         &BootId::from("boot/consumer/1"),
         2,
     );
+    let replacement_events = [
+        conduit_core::ControlLoopEvent::PlanningSucceeded {
+            prior_plan_id: plan.plan_id.clone(),
+            replacement_plan_id: replacement.plan_id.clone(),
+            request_sign_id: SignId::from("sign/model-pool-replan-request/5"),
+            sign_id: SignId::from("sign/model-pool-replan-succeeded/5"),
+        },
+        conduit_core::ControlLoopEvent::PlanSuperseded {
+            prior_plan_id: plan.plan_id.clone(),
+            replacement_plan_id: replacement.plan_id.clone(),
+            sign_id: SignId::from("sign/model-pool-plan-superseded/5"),
+        },
+        conduit_core::ControlLoopEvent::PlanRealized {
+            plan_id: replacement.plan_id.clone(),
+            sign_id: SignId::from("sign/model-pool-plan-realized/5"),
+        },
+    ];
+    assert!(replacement_events
+        .iter()
+        .all(|event| event.validate().is_ok()));
     retain_receipt(&DeterministicReceipt {
-        schema: "conduit.local-model-pool-proof/v1",
+        schema: "conduit.llm-generate-pool-proof/v1",
         proof_class: "deterministic-hosted-integration",
         physical_evidence: false,
         body_id: "body/local-model-pool-fixture",

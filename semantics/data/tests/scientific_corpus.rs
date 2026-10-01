@@ -166,10 +166,16 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
         target_anchor: 0,
         source_ticks: 1,
         target_ticks: 480,
-        quality: ClockRelationQuality::Estimated {
-            maximum_error: Quantity::new(1, QuantityUnit::Millisecond),
-        },
+        quality: ClockRelationQuality::estimated(Quantity::new(1, QuantityUnit::Millisecond))
+            .unwrap(),
     };
+    let mut zero_error_relation = relation.clone();
+    zero_error_relation.quality =
+        ClockRelationQuality::estimated(Quantity::new(0, QuantityUnit::Millisecond)).unwrap();
+    assert_eq!(
+        zero_error_relation.validate(),
+        Err(ScientificAlignmentRefusal::InvalidRelation)
+    );
     let (source_frame, target_frame) = frames();
     let calibration = calibration();
     calibration.validate(&source_frame, &target_frame).unwrap();

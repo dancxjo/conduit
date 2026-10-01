@@ -5,7 +5,7 @@ use crate::keyboard_text_backs::{
 };
 use alloc::vec::Vec;
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, PortId, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, ValueStorage,
     scheduler::{CordSpec, NodeSpec},
 };
 
@@ -151,15 +151,7 @@ pub(super) fn prepare(
     {
         *target = *spec;
     }
-    let mut cords = [CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-        pressure_policy: Default::default(),
-    }; CORDS];
+    let mut cords = [CordSpec::inactive(); CORDS];
     for (target, cord) in cords
         .iter_mut()
         .zip(parts.iter().flat_map(|part| &part.cords))

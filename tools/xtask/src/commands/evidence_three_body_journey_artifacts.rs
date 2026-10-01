@@ -1,105 +1,6 @@
 //! Root-confined, bounded documentary artifact verification.
 use super::*;
 
-pub(super) fn require_documentary(
-    tracks: &[BodyTrack],
-    recording: Option<&BodyTrack>,
-) -> Result<(), String> {
-    for track in tracks {
-        if matches!(
-            track.track_id.as_str(),
-            "native-graphical" | "browser-graphical"
-        ) {
-            for step in &track.steps {
-                if !step
-                    .evidence
-                    .iter()
-                    .any(|item| item.evidence_class == "screenshot")
-                {
-                    return Err(format!(
-                        "{} lacks a screenshot at {}",
-                        track.track_id, step.step_id
-                    ));
-                }
-            }
-        } else if track.track_id == "hosted-generative" && recording.is_none() {
-            return Err(
-                "human-facing publication requires retained live conversational media".into(),
-            );
-        }
-    }
-    Ok(())
-}
-
-pub(super) fn read_recording(
-    source: &Path,
-    tracks: &[BodyTrack],
-    sources: &[PathBuf],
-) -> Result<BodyTrack, String> {
-    let recording: BodyTrack = read_bounded_json(source)?;
-    let position = tracks
-        .iter()
-        .position(|track| track.track_id == "hosted-generative")
-        .ok_or("live recording requires a generative release track")?;
-    let current = &tracks[position];
-    if recording.track_id != "hosted-generative"
-        || recording.embodiment != "hosted-open-weight-model-body"
-        || recording.journey_id != current.journey_id
-        || recording.body_id != current.body_id
-        || !valid_commit(&recording.git_commit)
-        || recording.steps.len() != current.steps.len()
-    {
-        return Err("live documentary has a different journey, Body or proof class".into());
-    }
-    verify_artifacts(&recording, source)?;
-    let root = source.parent().ok_or("recording lacks parent")?;
-    let current_root = sources[position]
-        .parent()
-        .ok_or("current track lacks parent")?;
-    for (recorded, release) in recording.steps.iter().zip(&current.steps) {
-        if recorded.step_id != release.step_id || recorded.assertion != release.assertion {
-            return Err("live documentary step does not match release semantics".into());
-        }
-        if matches!(
-            recorded.step_id.as_str(),
-            "body.absent" | "bootstrap.started"
-        ) {
-            continue;
-        }
-        let original = recorded
-            .evidence
-            .iter()
-            .find(|item| item.evidence_class == "presenter-receipt")
-            .ok_or("live documentary lacks its original Presenter request")?;
-        let observed = release
-            .evidence
-            .iter()
-            .find(|item| item.evidence_class == "presenter-receipt")
-            .ok_or("release must retain every documentary Presenter request")?;
-        let original: serde_json::Value = read_bounded_json(&root.join(&original.path))?;
-        let observed: serde_json::Value = read_bounded_json(&current_root.join(&observed.path))?;
-        if original["proof_class"] != "live-local-model"
-            || original["request"].is_null()
-            || original["request"] != observed["request"]
-        {
-            return Err(format!(
-                "{} live recording has stale Presenter inputs",
-                recorded.step_id
-            ));
-        }
-        for class in ["transcript", "audio", "waveform"] {
-            if !recorded
-                .evidence
-                .iter()
-                .any(|item| item.evidence_class == class)
-            {
-                return Err(format!("{} lacks documentary {class}", recorded.step_id));
-            }
-        }
-    }
-    Ok(recording)
-}
-
 pub(super) fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), String> {
     let root = source
         .parent()
@@ -108,7 +9,7 @@ pub(super) fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), S
         .map_err(|error| format!("resolve Body track root: {error}"))?;
     let mut artifact_ids = BTreeSet::new();
     let mut artifact_paths = BTreeSet::new();
-    for evidence in track.steps.iter().flat_map(|step| &step.evidence) {
+    for evidence in track.receipts.iter().flat_map(|step| &step.evidence) {
         validate_relative_path(&evidence.path)?;
         if !artifact_ids.insert(evidence.artifact_id.as_str())
             || !artifact_paths.insert(&evidence.path)

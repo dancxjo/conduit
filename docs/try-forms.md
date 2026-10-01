@@ -9,9 +9,9 @@ Run these commands from the repository root after
 [contributor setup](../CONTRIBUTING.md):
 
 ```bash
-cargo xtask host std
-cargo xtask forms check
-cargo xtask forms report --output target/form-conformance.json
+cargo xtask make host std
+cargo xtask check forms check
+cargo xtask check forms report --output target/form-conformance.json
 ```
 
 The first runs Hello on the native host. The second parses and checks the
@@ -43,20 +43,58 @@ form count (
 }
 ```
 
+## Write semantic ranges
+
+A native Type may omit either end of a numeric range:
+
+```conduit
+type Positive = Scalar in 0..
+type AtMostOne = Scalar in ..=1
+type TemperatureAboveAbsoluteZero = Temperature in -273.15°C..
+type Percentage = Scalar in 0..=100
+```
+
+`0..` means “no semantic upper bound”; it does not mean “up to the largest
+integer in Rust.” Likewise, `..=1` has no semantic lower bound. A bounded range
+still names both ends. The fully open spelling `in ..` is rejected because it
+adds no meaning beyond the unrefined primitive Type.
+
+Open meaning does not reserve infinite memory. The checked contract separately
+records the finite maximum encoding accepted by the selected code.
+Fixed-width values therefore cost their fixed extent. A semantically valid
+value outside a selected code refuses during lowering or admission.
+Any future arbitrary-precision code must admit and charge its actual
+encoded extent. Sequence cardinality, stream backlog, and retained state remain
+explicitly bounded or governed independently of the element domain.
+
+Variants may carry another semantic Type directly:
+
+```conduit
+type LocalModelTerminal =
+    produced
+    | refused LocalModelRefusal
+    | failed LocalModelFailure
+    | cancelled
+```
+
+The payload remains the named Type; Conduitese does not invent an anonymous
+record or make Rust own the relationship. Use `{ ... }` only when the variant
+itself owns a record payload.
+
 For an interactive authoring surface, open the native Text Lab:
 
 ```bash
-cargo xtask demo text-lab
+cargo xtask prove journey text-lab
 ```
 
 It begins with an effect-free rehearsal; inspect the selected environment and
-use the explicit execution controls when ready. The [Tour](https://dancxjo.github.io/conduit/tour/)
-and its form Gallery provide another route through the examples.
+use the explicit execution controls when ready. The body Workspace provides
+the current browser route through reviewed resident forms.
 
 ## Run the declared proofs
 
 ```bash
-cargo xtask forms run --deterministic
+cargo xtask check forms run --deterministic
 ```
 
 This runs the deterministic checks declared by the inventory. Those checks
@@ -68,7 +106,7 @@ For the declared browser-safe cases:
 
 ```bash
 cargo xtask doctor browser
-cargo xtask forms run --browser
+cargo xtask check forms run --browser
 ```
 
 This mode prepares the browser fixtures and executes eligible inventory cases.
@@ -87,7 +125,7 @@ it does not establish attached-board or physical acceptance.
 
 ## Find something to add
 
-Use the inventory and `cargo xtask catalog matrix` to distinguish authored
+Use the inventory and `cargo xtask check catalog matrix` to distinguish authored
 forms, installed implementations, and missing realizations. A good contribution
 can improve an example, add a meaningful negative check, or complete one
 missing implementation. Follow the [contributor guide](../CONTRIBUTING.md) and

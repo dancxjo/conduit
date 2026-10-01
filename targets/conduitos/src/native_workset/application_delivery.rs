@@ -68,12 +68,12 @@ impl PatchbayTargets {
             .map_err(|_| super::play::PlayRefusal::Kernel)
     }
 
-    pub(super) fn set_presenter_topology(
+    pub(super) fn set_mask_topology(
         &mut self,
-        topology: &patchbay_application::PatchbayPresenterTopology,
+        topology: &patchbay_application::PatchbayMaskTopology,
     ) {
         for port in self.ports.iter_mut().flatten() {
-            port.set_presenter_topology(topology.clone());
+            port.set_mask_topology(topology.clone());
         }
     }
 }

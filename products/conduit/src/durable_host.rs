@@ -2,7 +2,7 @@
 
 use crate::cli::HostServiceCommand;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
+use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -13,20 +13,22 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
+pub(crate) const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
 const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
+const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
 #[path = "durable_host_membership.rs"]
 mod membership;
-#[path = "durable_host_voice.rs"]
-mod voice;
+#[path = "durable_body_join_route.rs"]
+mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
+pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
@@ -86,35 +88,6 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         }),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
-        HostServiceCommand::ConfigureVoice {
-            state_dir,
-            whisper_executable,
-            whisper_model,
-            whisper_threads,
-            whisper_timeout_seconds,
-            ollama_model,
-            admitted_memory_mib,
-            piper_executable,
-            piper_model,
-            piper_config,
-            piper_library_path,
-            piper_timeout_seconds,
-            authorize_local_voice,
-        } => voice::configure(
-            &state_dir,
-            whisper_executable,
-            whisper_model,
-            whisper_threads,
-            whisper_timeout_seconds,
-            ollama_model,
-            admitted_memory_mib,
-            piper_executable,
-            piper_model,
-            piper_config,
-            piper_library_path,
-            piper_timeout_seconds,
-            authorize_local_voice,
-        ),
         HostServiceCommand::OwnBody {
             evidence,
             state_dir,
@@ -127,12 +100,40 @@ pub(crate) struct InstalledHostIdentity {
     pub(crate) release_bundle_sha256: String,
 }
 
+pub(crate) fn has_current_body(state_dir: &Path) -> Result<bool, String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    Ok(installation.body_state.is_some() || installation.joined_body_state.is_some())
+}
+
+pub(crate) fn inspect_installation(path: &Path) -> Result<String, String> {
+    let installation = read_installation(path)?;
+    Ok(format!(
+        "Host {}\nrelease {}\nproduct {}\nbody {}\n",
+        installation.host_id,
+        installation.release_bundle_sha256,
+        installation.product_executable,
+        current_body_id(&installation).unwrap_or("none"),
+    ))
+}
+
 pub(crate) fn install_and_activate(
     manifest: &Path,
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
     let installation = install(manifest, state_dir)?;
     activate_service(state_dir)?;
+    Ok(InstalledHostIdentity {
+        host_id: installation.host_id,
+        release_bundle_sha256: installation.release_bundle_sha256,
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn install_for_activation_test(
+    manifest: &Path,
+    state_dir: &Path,
+) -> Result<InstalledHostIdentity, String> {
+    let installation = install(manifest, state_dir)?;
     Ok(InstalledHostIdentity {
         host_id: installation.host_id,
         release_bundle_sha256: installation.release_bundle_sha256,
@@ -328,12 +329,7 @@ fn prepare_runtime(
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
     };
-    let host = match voice::load(state_dir)? {
-        Some(providers) => {
-            StdHost::new_with_voice_providers(config, StdHostComposition::reference(), providers)?
-        }
-        None => StdHost::new_with_config(config),
-    };
+    let host = StdHost::new_with_config(config);
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
         host_id: host.advertisement().host_id.as_str().into(),
@@ -910,7 +906,7 @@ mod tests {
         let manifest = serde_json::json!({
             "schema": RELEASE_SCHEMA,
             "target_id": "std/x86_64/computer",
-            "fabrication_package_id": "hosted-native@1",
+            "make_package_id": "hosted-native@1",
             "output": "native-bundle",
             "builder_adapter": "fixture/build@1",
             "deployment_adapter": "fixture/install@1",
@@ -942,6 +938,25 @@ mod tests {
         assert!(Path::new(&second.product_executable).is_file());
         assert!(Path::new(&second.product_executable).starts_with(state.join("releases")));
         assert!(!state.join("bin").exists());
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn installation_inspection_uses_validated_retained_host_truth() {
+        let (manifest, state) = fixture();
+        let installation = install(&manifest, &state).unwrap();
+        let rendered = inspect_installation(&state.join("installation.json")).unwrap();
+
+        assert!(rendered.contains(&format!("Host {}", installation.host_id)));
+        assert!(rendered.contains(&format!("release {}", installation.release_bundle_sha256)));
+        assert!(rendered.contains("body none"));
+
+        fs::write(
+            state.join("installation.json"),
+            br#"{"schema":"conduit.install/durable-host@1"}"#,
+        )
+        .unwrap();
+        assert!(inspect_installation(&state.join("installation.json")).is_err());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
@@ -1210,6 +1225,7 @@ mod tests {
                 schema: INVITATION_SCHEMA.into(),
                 claim: invitation.claim(),
                 secret: secret_bytes,
+                rendezvous: None,
             })
             .unwrap(),
         )
@@ -1218,7 +1234,11 @@ mod tests {
         accept_body_invitation(&path, &state, true).unwrap();
 
         let pending: serde_json::Value = serde_json::from_slice(
-            &bounded_read(&state.join("body/pending-join.json"), 256 * 1024).unwrap(),
+            &bounded_read(
+                &state.join("body/pending-join.json"),
+                MAXIMUM_BODY_ADMISSION_BYTES,
+            )
+            .unwrap(),
         )
         .unwrap();
         assert_eq!(pending["invitation"]["claim"]["body_id"], body_id.as_str());
@@ -1291,12 +1311,17 @@ mod tests {
                 schema: INVITATION_SCHEMA.into(),
                 claim: invitation.claim(),
                 secret: secret_bytes,
+                rendezvous: None,
             },
         )
         .unwrap();
         accept_body_invitation(&invitation_path, &joining_state, true).unwrap();
         let pending: invitation::PendingBodyJoin = serde_json::from_slice(
-            &bounded_read(&joining_state.join("body/pending-join.json"), 256 * 1024).unwrap(),
+            &bounded_read(
+                &joining_state.join("body/pending-join.json"),
+                MAXIMUM_BODY_ADMISSION_BYTES,
+            )
+            .unwrap(),
         )
         .unwrap();
         let request_path = owner_body_dir.join("request.json");

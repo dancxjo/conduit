@@ -82,10 +82,10 @@ impl LiveLocalModelPoolReceipt {
         if self.prompt_content_retained {
             return Err("live local-model receipt retained prompt content".into());
         }
-        if self.member_kind_id != "ai/generate-text"
-            || self.member_kind_contract_revision != "conduit.ai/generate-text@1"
+        if self.member_kind_id != "llm/generate"
+            || self.member_kind_contract_revision != "conduit.llm/generate@1"
         {
-            return Err("live receipt does not name the canonical ai/generate-text front".into());
+            return Err("live receipt does not name the canonical llm/generate front".into());
         }
         if self.physical_evidence {
             return Err("Workspace receipt cannot self-assert attended physical evidence".into());
@@ -243,8 +243,8 @@ mod tests {
             "source_document_id": "source/1", "checked_form_id": "checked/1",
             "expanded_form_id": "expanded/1", "plan_id": "plan/1", "play_id": "play/1",
             "pool_id": "pool/1",
-            "member_kind_id": "ai/generate-text",
-            "member_kind_contract_revision": "conduit.ai/generate-text@1",
+            "member_kind_id": "llm/generate",
+            "member_kind_contract_revision": "conduit.llm/generate@1",
             "realization_envelope": [realization(0), realization(1)],
             "operations": [operation(0), operation(1)],
             "prompt_content_retained": false, "physical_evidence": false
@@ -252,9 +252,15 @@ mod tests {
     }
 
     #[test]
-    fn accepts_two_exact_hosts_and_rejects_single_host_or_plaintext_claim() {
+    fn accepts_two_exact_hosts_and_rejects_legacy_kind_single_host_or_plaintext_claim() {
         let valid: LiveLocalModelPoolReceipt = serde_json::from_value(receipt()).unwrap();
         valid.validate().unwrap();
+
+        let mut legacy = receipt();
+        legacy["member_kind_id"] = serde_json::json!("ai/generate-text");
+        legacy["member_kind_contract_revision"] = serde_json::json!("conduit.ai/generate-text@1");
+        let legacy: LiveLocalModelPoolReceipt = serde_json::from_value(legacy).unwrap();
+        assert!(legacy.validate().unwrap_err().contains("llm/generate"));
 
         let mut one = receipt();
         one["operations"][1]["realization"] = serde_json::json!(0);

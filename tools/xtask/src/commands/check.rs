@@ -1,4 +1,4 @@
-use clap::{Args, ValueEnum};
+use clap::{Args, Subcommand, ValueEnum};
 use std::collections::BTreeSet;
 
 #[path = "../suites/todo.rs"]
@@ -21,8 +21,21 @@ use crate::{
 #[derive(Args, Debug)]
 pub struct CheckArgs {
     /// Which check suite to execute (default: workspace).
-    #[arg(default_value = "workspace")]
-    pub suite: CheckSuite,
+    pub suite: Option<CheckSuite>,
+
+    /// Inspect or validate one repository-owned semantic scope.
+    #[command(subcommand)]
+    pub scope: Option<CheckScope>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum CheckScope {
+    /// Inspect mechanically derived portable kind coverage by Host profile.
+    Catalog(crate::commands::catalog::CatalogArgs),
+    /// Check and report the explicit reviewed form inventory.
+    Forms(crate::commands::forms::FormsArgs),
+    /// Check Pete's reviewed workload and Host make closure without physical access.
+    Pete,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,7 +48,6 @@ pub enum CheckSuite {
     WorkspacePortable,
     WorkspacePico,
     Browser,
-    BrowserHost,
     Sim,
     KernelTakeover,
     PlanningS2,
@@ -71,7 +83,7 @@ pub enum CheckSuite {
 pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;
 
-    match args.suite {
+    match args.suite.unwrap_or(CheckSuite::Workspace) {
         CheckSuite::Workspace => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -89,9 +101,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
         CheckSuite::WorkspacePortable => run_workspace_shard(WorkspaceShard::Portable, &root, opts),
         CheckSuite::WorkspacePico => run_workspace_shard(WorkspaceShard::Pico, &root, opts),
-        CheckSuite::Browser | CheckSuite::BrowserHost => {
-            run_suite(BROWSER_CHECK_STEPS, &root, opts)
-        }
+        CheckSuite::Browser => run_suite(BROWSER_CHECK_STEPS, &root, opts),
         CheckSuite::Sim => run_suite(SIM_READINESS_STEPS, &root, opts),
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
@@ -376,7 +386,7 @@ const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
         "security-acceptance.conduitos",
         "Attack x86_64 kernel memory, sibling domains, MMIO, I/O, and handles",
         "cargo",
-        &["xtask", "conduitos", "isolation-proof"],
+        &["xtask", "make", "conduitos", "isolation-proof"],
     ),
 ];
 
@@ -451,12 +461,6 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
             "--locked",
             "quantity",
         ],
-    ),
-    Step::new(
-        "quantity-mapping.inventory-bound",
-        "Preserve bounded browser inventory navigation as installed offers grow",
-        "node",
-        &["--test", "proof/browser/tour-inventory-pagination.test.mjs"],
     ),
     Step::new(
         "quantity-mapping.chromium",

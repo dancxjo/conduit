@@ -208,11 +208,6 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
         verify_conduitos_console(&root, &manifest, &request.commit)?;
     }
     if request.result == ExpectedEvidenceResult::Complete
-        && request.proof_id == "journey-hears-speaks"
-    {
-        verify_hears_speaks(&root, &manifest)?;
-    }
-    if request.result == ExpectedEvidenceResult::Complete
         && request.proof_id == "journey-one-form-two-fronts"
     {
         verify_one_form_two_fronts(&root, &manifest)?;
@@ -632,123 +627,6 @@ fn verify_little_life_execution(root: &Path, identity: (&str, &str)) -> Result<(
         .ok_or("Little Life execution report lacks a completed Plan terminal")?;
     if terminal.get("active_play_id").and_then(Value::as_str) != Some(identity.1) {
         return Err("Little Life execution Play disagrees with manifest provenance".into());
-    }
-    Ok(())
-}
-
-fn verify_hears_speaks(root: &Path, manifest: &Manifest) -> Result<(), String> {
-    let expected = [
-        (
-            "hears-speaks.input-pcm",
-            EvidenceKind::Audio,
-            "audio/L16; rate=16000; channels=1",
-        ),
-        ("hears-speaks.input-wav", EvidenceKind::Audio, "audio/wav"),
-        (
-            "hears-speaks.recognition",
-            EvidenceKind::MachineReadableManifest,
-            "application/json",
-        ),
-        (
-            "hears-speaks.response",
-            EvidenceKind::MachineReadableManifest,
-            "application/json",
-        ),
-        ("hears-speaks.output-wav", EvidenceKind::Audio, "audio/wav"),
-        (
-            "hears-speaks.receipt",
-            EvidenceKind::MachineReadableManifest,
-            "application/json",
-        ),
-    ];
-    if manifest.outputs.len() != expected.len() {
-        return Err("complete hears/speaks evidence must contain exactly six outputs".into());
-    }
-    for (id, kind, media_type) in expected {
-        let output = manifest
-            .outputs
-            .iter()
-            .find(|output| output.id == id)
-            .ok_or_else(|| format!("complete hears/speaks evidence is missing '{id}'"))?;
-        if !output.required
-            || output.kind != kind
-            || output.media_type != media_type
-            || output.provenance.scenario_id != "hears-speaks.recorded-addressed-house@1"
-            || output.provenance.proof_class.as_deref() != Some("hosted-recorded-audio-plan-play")
-            || output.provenance.asserted_semantic_disposition.as_deref() != Some("completed")
-            || [
-                output.provenance.plan_id.as_deref(),
-                output.provenance.active_play_id.as_deref(),
-            ]
-            .into_iter()
-            .any(|value| value.is_none_or(str::is_empty))
-        {
-            return Err(format!(
-                "hears/speaks output '{id}' lacks exact typed provenance"
-            ));
-        }
-    }
-    for id in ["hears-speaks.input-wav", "hears-speaks.output-wav"] {
-        let output = manifest
-            .outputs
-            .iter()
-            .find(|output| output.id == id)
-            .unwrap();
-        let bytes = fs::read(root.join(&output.path))
-            .map_err(|error| format!("read hears/speaks WAV: {error}"))?;
-        if bytes.len() < 44 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
-            return Err(format!("hears/speaks output '{id}' is not a bounded WAV"));
-        }
-    }
-    verify_hears_speaks_providers(root)?;
-    Ok(())
-}
-
-fn verify_hears_speaks_providers(root: &Path) -> Result<(), String> {
-    let receipt: Value = serde_json::from_slice(
-        &fs::read(root.join("receipt.json"))
-            .map_err(|error| format!("read hears/speaks receipt: {error}"))?,
-    )
-    .map_err(|error| format!("decode hears/speaks receipt: {error}"))?;
-    if receipt.pointer("/providers/schema").and_then(Value::as_str)
-        != Some("conduit.journey/hears-speaks-providers@1")
-    {
-        return Err("hears/speaks receipt lacks provider provenance".into());
-    }
-    for pointer in [
-        "/providers/whisper/executable_sha256",
-        "/providers/whisper/model_sha256",
-        "/providers/local_model/model_content_identity",
-        "/providers/piper/executable_sha256",
-        "/providers/piper/model_sha256",
-        "/providers/piper/config_sha256",
-    ] {
-        let value = receipt
-            .pointer(pointer)
-            .and_then(Value::as_str)
-            .unwrap_or("");
-        let digest = value.strip_prefix("sha256:").unwrap_or(value);
-        if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err(format!(
-                "hears/speaks provider identity '{pointer}' is not a SHA-256 digest"
-            ));
-        }
-    }
-    for pointer in [
-        "/providers/whisper/implementation",
-        "/providers/local_model/runtime_version",
-        "/providers/local_model/model_name",
-        "/providers/piper/implementation",
-    ] {
-        if receipt
-            .pointer(pointer)
-            .and_then(Value::as_str)
-            .is_none_or(str::is_empty)
-        {
-            return Err(format!(
-                "hears/speaks provider identity '{pointer}' is missing"
-            ));
-        }
     }
     Ok(())
 }

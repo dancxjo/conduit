@@ -40,6 +40,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             time_throttle_contract(),
             "conduit.std/time-throttle-bool-leading@1",
         ),
+        (time_deadline_contract(), TIME_DEADLINE_CONTRACT_REVISION),
         (
             tick_presentation_contract(),
             TICK_PRESENTATION_CONTRACT_REVISION,
@@ -52,9 +53,9 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             text_presentation_contract(),
             "conduit.std/presentation-text@1",
         ),
-        (key_event_tee_contract(), "conduit.input/key-tee@1"),
-        (keymap_contract(), "conduit.input/keymap@1"),
-        (chords_contract(), "conduit.input/chords@1"),
+        (key_event_tee_contract(), KEY_EVENT_TEE_REVISION),
+        (keymap_contract(), KEYMAP_REVISION),
+        (chords_contract(), CHORDS_REVISION),
         (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
         (state_toggle_contract(), "conduit.std/state-toggle@1"),
         (
@@ -66,6 +67,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             "conduit.std/state-latest-scalar@2",
         ),
         (flow_tee_scalar_contract(), "conduit.std/flow-tee-scalar@2"),
+        (flow_first_scalar_contract(), FLOW_FIRST_CONTRACT_REVISION),
         (
             flow_gate_scalar_contract(),
             "conduit.std/flow-gate-scalar@1",
@@ -90,6 +92,10 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             "conduit.std/math-deadband-scalar@1",
         ),
         (quantity_map_contract(), QUANTITY_MAP_REVISION),
+        (
+            distance_frequency_map_contract(),
+            DISTANCE_FREQUENCY_MAP_REVISION,
+        ),
         (quantity_info_wrap_contract(), QUANTITY_INFO_WRAP_REVISION),
         (layout_viewport_contract(), "conduit.std/layout-frame@1"),
         (layout_inset_contract(), "conduit.std/layout-frame@1"),
@@ -151,5 +157,6 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
         (copy_file_contract(), "conduit.std/file-copy@1"),
         (json_encode_contract(), "conduit.std/json-encode@1"),
         (json_decode_contract(), "conduit.std/json-decode@1"),
+        (audio_tone_contract(), AUDIO_TONE_REVISION),
     ]
 }

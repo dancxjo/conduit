@@ -27,12 +27,15 @@ fn connection_with_routes(selected: AdmittedLine, lines: Vec<AdmittedLine>) -> P
         sink_placement_id: conduit_core::PlacementId::from("sink-placement"),
         sink_port_id: PortId::from("in"),
         value_kind: KindId::from("value"),
+        resource: None,
+        track: Default::default(),
         temporal: PortTemporal::Flow { closes: true },
         pressure_policy: Default::default(),
         selected_line: Some(selected),
         admitted_lines: lines,
         item_capacity: 1,
         byte_capacity: 64,
+        abnormal_kind: None,
     }
 }
 

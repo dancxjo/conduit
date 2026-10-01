@@ -11,10 +11,11 @@ Ordinary application composition lives directly under `src/`. Historical
 deterministic capstone specimens are fenced under `src/proof/`, compiled only
 for this package's tests, and are not re-exported as Pete's reusable API.
 
-Repository proofs enter through `cargo xtask pete`. The std host supports
-live observation plus bounded speaker, indicator, and reduced-safety drive
-verticals. Each entrance requires exact host, boot, base, and robot identities
-and retains machine evidence without promoting it into Pico W or human proof.
+The static workload check enters through `cargo xtask check pete`; physical
+proofs enter through `cargo xtask prove pete`. The std host supports live
+observation plus bounded speaker, indicator, and reduced-safety drive verticals.
+Each entrance requires exact host, boot, base, and robot identities and retains
+machine evidence without promoting it into Pico W or human proof.
 
 The historical Netherwick project's Brainstem revision and its responsibility migration ledger
 remain recorded in the [migration ledger](../../docs/architecture/pete-brainstem-migration.md). The old

@@ -16,15 +16,22 @@ use crate::{
 };
 
 pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
+    debug_assert!(args.command.is_none());
+    let proof = args.proof.ok_or_else(|| {
+        StepError::prereq(
+            "prove.target",
+            "name a proof target, or use `cargo xtask prove --list`",
+        )
+    })?;
     let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;
-    if args.live_receipt.is_some() && args.proof != ProveTarget::LocalModelPool {
+    if args.live_receipt.is_some() && proof != ProveTarget::LocalModelPool {
         return Err(StepError::prereq(
             "prove.live-receipt",
             "--live-receipt is valid only for prove local-model-pool",
         ));
     }
 
-    match args.proof {
+    match proof {
         ProveTarget::BluetoothLine => crate::commands::bluetooth::run(&args, &root, opts),
         ProveTarget::BluetoothPico => crate::commands::bluetooth::run_pico(&args, &root, opts),
         ProveTarget::BodyMembership => run_suite(PROVE_BODY_MEMBERSHIP_STEPS, &root, opts),
@@ -70,7 +77,9 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                         if let Err(error) = declare_patchbay_capture_manifest(&mut evidence)
                             .and_then(|()| import_patchbay_captures(&mut evidence, false))
                         {
-                            eprintln!("xtask evidence import error after proof failure: {error}");
+                            eprintln!(
+                                "xtask proof evidence import error after proof failure: {error}"
+                            );
                         }
                     }
                     if [
@@ -89,7 +98,9 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                     if let Err(evidence_error) =
                         evidence.finish(EvidenceResult::DiagnosticIncomplete)
                     {
-                        eprintln!("xtask evidence error after proof failure: {evidence_error}");
+                        eprintln!(
+                            "xtask proof evidence error after proof failure: {evidence_error}"
+                        );
                     }
                     Err(proof_error)
                 }
@@ -471,7 +482,7 @@ fn run_patchbay_front_door(
             .map_err(|error| StepError::prereq("prove.patchbay-front-door.evidence", error)),
         Err(proof_error) => {
             if let Err(error) = evidence.finish(EvidenceResult::DiagnosticIncomplete) {
-                eprintln!("xtask evidence error after proof failure: {error}");
+                eprintln!("xtask proof evidence error after proof failure: {error}");
             }
             Err(proof_error)
         }
