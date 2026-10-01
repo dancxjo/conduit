@@ -82,10 +82,7 @@ fn stale_dns_and_connection_outcomes_are_nominal_and_not_line_or_socket_identity
     let (_, result, _) = deterministic_network_fixture();
     assert!(matches!(
         result,
-        DnsResult::Stale {
-            age_seconds: 31,
-            ..
-        }
+        DnsResult::Stale(stale) if *stale.age_seconds() == 31
     ));
     for value_type in [dns_result_type(), network_connection_state_type()] {
         let bytes = value_type.canonical_bytes().unwrap();
