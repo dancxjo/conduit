@@ -248,10 +248,10 @@ fn render_command(
                 let start = segment[0];
                 let end = segment[1];
                 let rect = LayoutRect {
-                    x: start.x.min(end.x),
-                    y: start.y.min(end.y),
-                    width: (i32::from(start.x) - i32::from(end.x)).unsigned_abs() as u16 + 1,
-                    height: (i32::from(start.y) - i32::from(end.y)).unsigned_abs() as u16 + 1,
+                    x: *start.x().min(end.x()),
+                    y: *start.y().min(end.y()),
+                    width: (i32::from(*start.x()) - i32::from(*end.x())).unsigned_abs() as u16 + 1,
+                    height: (i32::from(*start.y()) - i32::from(*end.y())).unsigned_abs() as u16 + 1,
                 };
                 if let Some(visible) = clipped(rect, command.clip, format) {
                     fill(target, visible, color, receipt)?;

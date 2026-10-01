@@ -34,9 +34,9 @@ pub use generated::{
     FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceText, GeneratedActionAffordance,
     GeneratedContentRole, GeneratedManifestationDisposition, GraphicsClipClass,
     GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode,
-    GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole, GraphicsTextRoleCode,
-    LayoutAlignment, LayoutAxis, PresentationDisclosureLevel, PresentationMechanismKind,
-    PresentationTemporalRole, StatusKind, ThemeColor,
+    GraphicsPoint, GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole,
+    GraphicsTextRoleCode, LayoutAlignment, LayoutAxis, PresentationDisclosureLevel,
+    PresentationMechanismKind, PresentationTemporalRole, StatusKind, ThemeColor,
 };
 
 mod application_event;
