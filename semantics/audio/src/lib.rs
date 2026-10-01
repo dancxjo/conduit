@@ -27,10 +27,11 @@ mod generated {
 
 pub use generated::{
     AudioRenderDemand, AudioToneTerminal, AudioToneTerminalCode, BeatReference,
-    CancellationDisposition, Gate, GateCode, IncompatibilityReason, ModulationDestination,
-    ModulationDestinationCode, MusicalControl, MusicalControlEvent, MusicalControlModulation,
-    MusicalControlPitchBend, MusicalControlSustain, MusicalNoteEvent, MusicalPitch,
-    NoteOccurrenceId, PcmChannelLayout, PcmChannelLayoutCode, PcmClipProfile,
+    CancellationDisposition, Gate, GateCode, IncompatibilityReason, InstrumentAnalogEvent,
+    InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
+    ModulationDestination, ModulationDestinationCode, MusicalControl, MusicalControlEvent,
+    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, MusicalNoteEvent,
+    MusicalPitch, NoteOccurrenceId, PcmChannelLayout, PcmChannelLayoutCode, PcmClipProfile,
     PcmCompatibilityProfile, PcmFrameHeader, PcmSampleRepresentation, PcmSampleRepresentationCode,
     PressureDisposition, RhythmRecoveryState, SoundSeam, SoundStreamState, SoundTerminalBehavior,
     TimingClassification, TimingFeedback, ToneIntent,
