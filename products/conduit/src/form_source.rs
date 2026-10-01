@@ -62,6 +62,22 @@ impl CanonicalSource {
         self.expand_entry_with_backs(false)
     }
 
+    // Used by the binary diagram entrance; the library compiles this module independently.
+    #[allow(dead_code)]
+    pub(crate) fn expand_entry_for_authoring(
+        &self,
+    ) -> Result<conduit_form::ExpandedAuthoringForm, String> {
+        let checked = self.check()?;
+        let entry = checked
+            .forms
+            .last()
+            .ok_or_else(|| "canonical Form source contains no Form".to_string())?
+            .name
+            .clone();
+        conduit_form::expand_canonical_form_for_authoring(&checked, &entry, &self.profiles)
+            .map_err(|diagnostic| diagnostic.to_string())
+    }
+
     // Used by the library entrance; the binary compiles this module independently.
     #[allow(dead_code)]
     pub(crate) fn expand_entry_recursive(&self) -> Result<ExpandedCanonicalForm, String> {
