@@ -37,6 +37,14 @@ type MusicalPitch = {
     detune-microcents: I32 in -24000000..=24000000
 }
 
+type ToneIntent = {
+    correlation: U64 in 1..=18446744073709551615
+    pitch: MusicalPitch
+    gate: Gate
+    event-time-micros: U64 in 0..=18446744073709551614
+    order: U32
+}
+
 type PcmSampleRepresentation =
     signed16-little-endian
     | signed24-little-endian

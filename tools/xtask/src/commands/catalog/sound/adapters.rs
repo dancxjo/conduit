@@ -380,11 +380,11 @@ fn validate_reference_policy() -> Result<(), CatalogError> {
     let release = adapter
         .apply(reference_note(2, Gate::Off, 0, 3)?)
         .map_err(|error| adapter_error("release", error))?;
-    if first_output[1].is_none_or(|tone| tone.gate != Gate::On)
-        || overlap[0].is_none_or(|tone| tone.correlation != 1 || tone.gate != Gate::Off)
-        || overlap[1].is_none_or(|tone| tone.correlation != 2 || tone.pitch != second.pitch)
-        || release[0].is_none_or(|tone| tone.correlation != 2 || tone.gate != Gate::Off)
-        || release[1].is_none_or(|tone| tone.correlation != 1 || tone.pitch != first.pitch)
+    if first_output[1].is_none_or(|tone| tone.gate() != Gate::On)
+        || overlap[0].is_none_or(|tone| tone.correlation() != 1 || tone.gate() != Gate::Off)
+        || overlap[1].is_none_or(|tone| tone.correlation() != 2 || tone.pitch() != second.pitch)
+        || release[0].is_none_or(|tone| tone.correlation() != 2 || tone.gate() != Gate::Off)
+        || release[1].is_none_or(|tone| tone.correlation() != 1 || tone.pitch() != first.pitch)
     {
         return Err(CatalogError::new(
             "sound-adapter-reference-mismatch",

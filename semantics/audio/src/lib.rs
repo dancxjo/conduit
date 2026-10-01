@@ -18,7 +18,7 @@ pub use generated::{
     MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, MusicalPitch,
     PcmChannelLayout, PcmChannelLayoutCode, PcmClipProfile, PcmSampleRepresentation,
     PcmSampleRepresentationCode, PressureDisposition, SoundSeam, SoundStreamState,
-    SoundTerminalBehavior,
+    SoundTerminalBehavior, ToneIntent,
 };
 
 mod audio_info;

@@ -11,7 +11,7 @@ use core::{
 
 use crate::{
     Gate, GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl,
-    MusicalControlEvent, MusicalPitch,
+    MusicalControlEvent, MusicalPitch, ToneIntent,
 };
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
@@ -329,45 +329,14 @@ impl ModulationDestination {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ToneIntent {
-    pub correlation: u64,
-    pub pitch: MusicalPitch,
-    pub gate: Gate,
-    pub event_time_micros: u64,
-    pub order: u32,
-}
-
 impl ToneIntent {
-    pub fn new(
-        correlation: u64,
-        pitch: MusicalPitch,
-        gate: Gate,
-        event_time_micros: u64,
-        order: u32,
-    ) -> Result<Self, SoundInfoError> {
-        if correlation == 0 {
-            return Err(SoundInfoError::OutOfRange("correlation"));
-        }
-        if event_time_micros > MAXIMUM_EVENT_TIME_MICROS {
-            return Err(SoundInfoError::OutOfRange("event-time-micros"));
-        }
-        Ok(Self {
-            correlation,
-            pitch,
-            gate,
-            event_time_micros,
-            order,
-        })
-    }
-
     pub fn encode(self) -> [u8; TONE_INTENT_ENCODED_LEN] {
         let mut out = [0; TONE_INTENT_ENCODED_LEN];
-        out[0..8].copy_from_slice(&self.correlation.to_le_bytes());
-        out[8..28].copy_from_slice(&self.pitch.encode());
-        out[28] = GateCode::encode(self.gate)[0];
-        out[29..37].copy_from_slice(&self.event_time_micros.to_le_bytes());
-        out[37..41].copy_from_slice(&self.order.to_le_bytes());
+        out[0..8].copy_from_slice(&self.correlation().to_le_bytes());
+        out[8..28].copy_from_slice(&self.pitch().encode());
+        out[28] = GateCode::encode(self.gate())[0];
+        out[29..37].copy_from_slice(&self.event_time_micros().to_le_bytes());
+        out[37..41].copy_from_slice(&self.order().to_le_bytes());
         out
     }
 
@@ -384,6 +353,13 @@ impl ToneIntent {
             u64::from_le_bytes(array(encoded, 29)?),
             u32::from_le_bytes(array(encoded, 37)?),
         )
+        .map_err(|_| SoundInfoError::OutOfRange("tone-intent"))
+    }
+}
+
+impl Hash for ToneIntent {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.encode().hash(state);
     }
 }
 
