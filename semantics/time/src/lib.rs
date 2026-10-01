@@ -7,8 +7,8 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
-    ClockChangeBehavior, HistoricalEntryOrigin, HistoricalEntryOriginCode,
+    AvailabilityState, CalendarRefusal, CandidateConflict, CivilFoldPolicy, CivilGapPolicy,
+    CivilResolutionChoice, ClockChangeBehavior, HistoricalEntryOrigin, HistoricalEntryOriginCode,
     HistoricalOverflowPolicy, HistoricalOverflowPolicyCode, InvitationState,
     MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, PulseObservation,
     RecurrenceRefusal, ReplayCommand, ReplayCommandFail, ReplayPolicy, ReplayPolicyRate,
