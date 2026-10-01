@@ -1,10 +1,11 @@
 use alloc::string::{String, ToString};
+use core::cmp::Ordering;
 
 use conduit_core::{BootId, HostId, ResourcePoolId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    NetworkJoinError, MAXIMUM_CREDENTIAL_BYTES, MAXIMUM_JOIN_INPUT_BYTES,
+    NetworkAttachmentId, NetworkJoinError, MAXIMUM_CREDENTIAL_BYTES, MAXIMUM_JOIN_INPUT_BYTES,
     MAXIMUM_JOIN_OUTPUT_BYTES, MAXIMUM_SSID_BYTES, NETWORK_JOIN_WIRE_VERSION,
 };
 
@@ -15,18 +16,48 @@ const NETWORK_ATTACHMENT_WIRE_VERSION: u8 = 1;
 const NETWORK_ATTACHMENT_WIRE_HEADER_BYTES: usize = 21;
 const MAXIMUM_ATTACHMENT_COMPONENT_BYTES: usize = 96;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct NetworkAttachmentId(String);
-
 impl From<&str> for NetworkAttachmentId {
     fn from(value: &str) -> Self {
-        Self(value.to_string())
+        Self::new(value.to_string())
+            .expect("network attachment identity must satisfy its native bound")
     }
 }
 
 impl NetworkAttachmentId {
     pub fn as_str(&self) -> &str {
-        &self.0
+        self.get()
+    }
+}
+
+impl PartialOrd for NetworkAttachmentId {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for NetworkAttachmentId {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.get().cmp(other.get())
+    }
+}
+
+impl Serialize for NetworkAttachmentId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.get())
+    }
+}
+
+impl<'de> Deserialize<'de> for NetworkAttachmentId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::new(value)
+            .map_err(|_| serde::de::Error::custom("invalid network attachment identity"))
     }
 }
 

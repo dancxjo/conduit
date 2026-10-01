@@ -1143,6 +1143,7 @@ dependencies = [
  "conduit-form",
  "conduit-planner",
  "conduit-text",
+ "postcard",
  "serde",
  "serde_json",
 ]

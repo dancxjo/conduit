@@ -1,5 +1,7 @@
 # Authoritative portable application-network vocabulary.
 
+type NetworkAttachmentId = Text <= 96B not in [""]
+
 type NetworkTransport =
     tcp
     | udp
