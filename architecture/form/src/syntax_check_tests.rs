@@ -1203,6 +1203,7 @@ fn native_record_where_laws_must_be_boolean_and_follow_fields() {
     for source in [
         "type Bad = {\n    value: U32\n    where .value + 1\n}\n",
         "type Bad = {\n    where true\n    value: U32\n}\n",
+        "type Bad = {\n    value: U32\n    where .value > 0\n    where .value > 0\n}\n",
     ] {
         let parsed = parse_syntax_document(source);
         assert!(

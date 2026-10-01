@@ -33,6 +33,16 @@ pub(super) fn compile(
     let mut invariants = declaration.invariants.iter().collect::<Vec<_>>();
     invariants
         .sort_by_key(|invariant| crate::syntax_identity::canonical_expression(&invariant.syntax));
+    for duplicate in invariants.windows(2) {
+        if crate::syntax_identity::canonical_expression(&duplicate[0].syntax)
+            == crate::syntax_identity::canonical_expression(&duplicate[1].syntax)
+        {
+            return Err(diagnostic(
+                duplicate[1].span,
+                "a Type where law is declared more than once".into(),
+            ));
+        }
+    }
     invariants
         .into_iter()
         .map(|invariant| {

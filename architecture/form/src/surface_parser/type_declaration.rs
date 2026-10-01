@@ -78,6 +78,14 @@ impl Parser<'_> {
                 if !allow_invariants || fields.is_empty() || source.trim().is_empty() {
                     return Err(self.invalid_statement(text, start));
                 }
+                if invariants.len() >= conduit_core::MAXIMUM_STRUCTURED_RECORD_FIELDS {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "semantic record type has too many where laws".into(),
+                        ),
+                        self.line_span(line),
+                    ));
+                }
                 invariants.push(self.expression_at(source, text, start)?);
                 self.index += 1;
                 continue;
