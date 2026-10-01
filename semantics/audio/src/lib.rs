@@ -14,10 +14,10 @@ mod generated {
 
 pub use generated::{
     AudioToneTerminal, AudioToneTerminalCode, CancellationDisposition, Gate, GateCode,
-    ModulationDestination, ModulationDestinationCode, MusicalControl, MusicalControlModulation,
-    MusicalControlPitchBend, MusicalControlSustain, PcmChannelLayout, PcmChannelLayoutCode,
-    PcmClipProfile, PcmSampleRepresentation, PcmSampleRepresentationCode, PressureDisposition,
-    SoundSeam, SoundStreamState, SoundTerminalBehavior,
+    ModulationDestination, ModulationDestinationCode, MusicalControl, MusicalControlEvent,
+    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, PcmChannelLayout,
+    PcmChannelLayoutCode, PcmClipProfile, PcmSampleRepresentation, PcmSampleRepresentationCode,
+    PressureDisposition, SoundSeam, SoundStreamState, SoundTerminalBehavior,
 };
 
 mod audio_info;
