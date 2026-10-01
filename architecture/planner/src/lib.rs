@@ -72,6 +72,9 @@ mod degraded_profile;
 mod diagnostic;
 mod diversity;
 mod dormant_readmission;
+mod dormant_readmission_explanation;
+#[cfg(test)]
+mod dormant_readmission_explanation_tests;
 mod fact_policy;
 mod functional_compatibility;
 mod fusion;
@@ -168,6 +171,10 @@ pub use dormant_readmission::{
     DormantEquipmentHistory, DormantReadmissionEvidence, DormantReadmissionRefusal,
     RequiredDormantLine, MAXIMUM_DORMANT_ABSENT_GENERATIONS, MAXIMUM_DORMANT_ID_BYTES,
     MAXIMUM_DORMANT_REQUIRED_LINES, MAXIMUM_DORMANT_SIGNS,
+};
+pub use dormant_readmission_explanation::{
+    explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
+    MAXIMUM_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{

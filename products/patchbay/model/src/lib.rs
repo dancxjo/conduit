@@ -28,7 +28,6 @@ mod debugger_watch;
 #[cfg(test)]
 mod debugger_watch_tests;
 mod degraded_profile_explanation;
-mod dormant_readmission_explanation;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
@@ -149,10 +148,6 @@ pub use degraded_profile_explanation::{
     explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
     DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
     MAX_DEGRADED_PROFILE_EXPLANATION_BYTES,
-};
-pub use dormant_readmission_explanation::{
-    explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
-    MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
