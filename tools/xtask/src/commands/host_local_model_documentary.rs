@@ -76,7 +76,7 @@ pub(super) fn retain(
                 .ok_or("missing evidence")?
                 .push(json!({
                     "artifact_id": format!("hosted-generative/{step_id}/{class}"),
-                    "evidence_class": class, "assertion_rung": "generated-manifestation",
+                    "evidence_class": class, "assertion_rung": "generated-show",
                     "documentary_description": description, "path": path,
                     "sha256": format!("sha256:{:x}", Sha256::digest(&bytes)),
                 }));
