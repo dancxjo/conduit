@@ -1,7 +1,9 @@
 use conduit_composite::{
-    FlowSelectCoordinator, KernelCompositeDefinition, KernelOperationBudget,
-    KernelOperationFactory, KernelOperationRegistry, PlannedActivationChildPoolHost,
-    PreparedActivationChildPool, PreparedPlannedActivationComposite,
+    AdmittedKernelCompositeHostRequest, BoundedActivationHost, BoundedFoldActivationHost,
+    BoundedScanActivationHost, FlowSelectCoordinator, KernelCompositeDefinition,
+    KernelCompositeHostRequest, KernelOperationBudget, KernelOperationFactory,
+    KernelOperationRegistry, PlannedActivationChildPoolHost, PreparedActivationChildPool,
+    PreparedPlannedActivationComposite,
 };
 use conduit_core::{
     prepare_plan_on_hosts, ActivePlayId, HostPreparationRefusal, Plan, PlanFragment,
@@ -232,8 +234,20 @@ impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for HostCallBack {
         _: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
     ) -> StepOutcome {
         if self.pending {
-            if io.host_completion().is_some() {
+            if let Some(completion) = io.host_completion() {
+                let output = completion.1.output;
                 io.consume_host_completion().expect("present completion");
+                if let Some(output) = output {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.send(PortId(0), output.value).is_err() {
+                        return StepOutcome::Fail(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::InvalidLifecycle,
+                            detail: 3,
+                        });
+                    }
+                }
                 return StepOutcome::Complete;
             }
             return StepOutcome::Await;
@@ -243,6 +257,9 @@ impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for HostCallBack {
         };
         let input = BoundedValueRef::new(value, 1).expect("one-byte fixture input");
         io.consume(PortId(0)).expect("present fixture input");
+        if io.input(PortId(1)).is_some() {
+            io.consume(PortId(1)).expect("present fixture item");
+        }
         io.request_host_call(RequestId(0), HostCallId(0), input)
             .expect("planned fixture Host Call");
         self.pending = true;
@@ -373,6 +390,7 @@ fn fold_or_scan_plan(scan: bool) -> Plan {
     ];
     child_fragment.sign_storage_budget =
         conduit_core::mandatory_sign_storage_requirement(&child_fragment.expected_sign).unwrap();
+    install_host_call_obligation(&mut child_fragment);
     let front = |name: &str, direction, gear_port: &str| conduit_core::PlannedForePort {
         front_port_id: conduit_core::port_id(name),
         direction,
@@ -464,6 +482,33 @@ fn fold_or_scan_plan(scan: bool) -> Plan {
         vec![entry],
         vec![outer],
     )
+}
+
+fn install_host_call_obligation(fragment: &mut PlanFragment) {
+    fragment.placements[0].host_calls = vec![conduit_core::HostCallRequirement {
+        contract_id: conduit_core::HostCallContractId::from("fixture/call@1"),
+        target_kind: Some(conduit_core::kind_id("fixture/subject")),
+        maximum_in_flight: 1,
+        maximum_input_bytes: 1,
+        maximum_output_bytes: 1,
+    }];
+    fragment.placements[0].resources = vec![conduit_core::ResourceBinding {
+        pool_id: conduit_core::ResourcePoolId::from("fixture/pool"),
+        class_id: conduit_core::ResourceClassId::from("fixture/class"),
+        units: 1,
+        protected: None,
+        compute: None,
+        content: None,
+    }];
+    fragment.placements[0].authority = vec![conduit_core::AuthorityBinding {
+        grant_id: conduit_core::AuthorityGrantId::from("fixture/grant"),
+        contract_id: conduit_core::AuthorityContractId::from("fixture/authority@1"),
+        host_call_contract_id: conduit_core::HostCallContractId::from("fixture/call@1"),
+        subject_kind: conduit_core::kind_id("fixture/subject"),
+        host_id: conduit_core::HostId::from("host"),
+        boot_id: conduit_core::BootId::from("boot"),
+        capability_id: conduit_core::CapabilityId::from("state"),
+    }];
 }
 
 #[test]
@@ -730,4 +775,191 @@ fn fold_and_scan_are_reachable_only_through_their_receipt_backed_variants() {
             assert!(prepared.into_fold().is_ok());
         }
     }
+}
+
+trait CallForwarding {
+    fn next_call(&mut self) -> Option<KernelCompositeHostRequest>;
+    fn step_call(&mut self);
+    fn view_call(&self, request: &KernelCompositeHostRequest) -> bool;
+    fn reject_call(&self, request: &KernelCompositeHostRequest) -> bool;
+    fn admit_call(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> AdmittedKernelCompositeHostRequest;
+    fn input_call(&self, request: &AdmittedKernelCompositeHostRequest) -> bool;
+    fn complete_bytes_call(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> bool;
+}
+
+macro_rules! call_forwarding {
+    ($type:ty) => {
+        impl CallForwarding for $type {
+            fn next_call(&mut self) -> Option<KernelCompositeHostRequest> {
+                self.next_host_request()
+            }
+            fn step_call(&mut self) {
+                self.step().unwrap();
+            }
+            fn view_call(&self, request: &KernelCompositeHostRequest) -> bool {
+                self.host_request_view(request).is_ok()
+            }
+            fn reject_call(&self, request: &KernelCompositeHostRequest) -> bool {
+                let obligation = self.host_request_obligation(request).unwrap();
+                self.admit_host_request(request, &obligation.host, &[], &obligation.authorities)
+                    .is_err()
+            }
+            fn admit_call(
+                &self,
+                request: &KernelCompositeHostRequest,
+            ) -> AdmittedKernelCompositeHostRequest {
+                let obligation = self.host_request_obligation(request).unwrap();
+                self.admit_host_request(
+                    request,
+                    &obligation.host,
+                    &obligation.resources,
+                    &obligation.authorities,
+                )
+                .unwrap()
+            }
+            fn input_call(&self, request: &AdmittedKernelCompositeHostRequest) -> bool {
+                self.host_request_input(request).is_ok()
+            }
+            fn complete_bytes_call(
+                &mut self,
+                request: &AdmittedKernelCompositeHostRequest,
+                bytes: &[u8],
+            ) -> bool {
+                self.complete_host_call_bytes(request, bytes).is_ok()
+            }
+        }
+    };
+}
+
+call_forwarding!(BoundedActivationHost);
+call_forwarding!(FlowSelectCoordinator);
+call_forwarding!(BoundedFoldActivationHost);
+call_forwarding!(BoundedScanActivationHost);
+
+fn prove_forwarded_call(host: &mut impl CallForwarding) {
+    let request = loop {
+        host.step_call();
+        if let Some(request) = host.next_call() {
+            break request;
+        }
+    };
+    assert!(host.view_call(&request));
+    assert!(host.reject_call(&request));
+    assert!(host.view_call(&request));
+    let admitted = host.admit_call(&request);
+    assert!(host.input_call(&admitted));
+    assert!(!host.complete_bytes_call(&admitted, &[1, 2]));
+    assert!(host.input_call(&admitted));
+    assert!(host.complete_bytes_call(&admitted, &[1]));
+    assert!(!host.complete_bytes_call(&admitted, &[1]));
+}
+
+fn prepared_call_composite(plan: &Plan, id: &str) -> PreparedPlannedActivationComposite {
+    let mut host = Host::new();
+    let mut prepared = prepare_plan_on_hosts(plan, &mut [&mut host]).unwrap();
+    host.registry.install(HostCallFactory).unwrap();
+    let pool =
+        PreparedActivationChildPool::prepare_on_host(plan, &mut prepared, id, &mut host).unwrap();
+    PreparedPlannedActivationComposite::prepare(plan, id, pool).unwrap()
+}
+
+#[test]
+fn every_coordinator_forwards_call_lifecycle_without_play_time_allocation() {
+    let each_plan = activation_plan();
+    let mut each = prepared_call_composite(&each_plan, "each")
+        .into_unary()
+        .unwrap();
+    let mut select = FlowSelectCoordinator::from_prepared_activation(
+        prepared_call_composite(&each_plan, "each")
+            .into_unary()
+            .unwrap(),
+    )
+    .unwrap();
+    let fold_plan = fold_or_scan_plan(false);
+    let mut fold = prepared_call_composite(&fold_plan, "fold")
+        .into_fold()
+        .unwrap();
+    let scan_plan = fold_or_scan_plan(true);
+    let mut scan = prepared_call_composite(&scan_plan, "scan")
+        .into_scan()
+        .unwrap();
+    let boolean = conduit_core::ValuePayload {
+        value_kind: conduit_core::kind_id(conduit_core::BOOL_INFO_ID),
+        encoded: vec![7],
+    };
+    let byte = conduit_core::ValuePayload {
+        value_kind: conduit_core::kind_id("fixture/byte@1"),
+        encoded: vec![7],
+    };
+    let mut fold_final = conduit_core::ValuePayload {
+        value_kind: conduit_core::kind_id("fixture/byte@1"),
+        encoded: Vec::with_capacity(1),
+    };
+    let mut scan_output = conduit_core::ValuePayload {
+        value_kind: conduit_core::kind_id("fixture/byte@1"),
+        encoded: Vec::with_capacity(1),
+    };
+
+    let allocations = allocations_during(|| {
+        each.activate(1, &boolean).unwrap();
+        prove_forwarded_call(&mut each);
+        for _ in 0..16 {
+            each.step().unwrap();
+            if let Some((sequence, output)) = each.output().unwrap() {
+                assert_eq!(output.encoded, &[1]);
+                each.complete_output(sequence).unwrap();
+                break;
+            }
+        }
+
+        select.admit(2, boolean).unwrap();
+        prove_forwarded_call(&mut select);
+        for _ in 0..16 {
+            select.step().unwrap();
+            if let Some((sequence, output)) = select.output() {
+                assert_eq!(output.encoded, &[7]);
+                select.complete_output(sequence).unwrap();
+                break;
+            }
+        }
+
+        fold.admit(&byte).unwrap();
+        prove_forwarded_call(&mut fold);
+        fold.close_input().unwrap();
+        for _ in 0..16 {
+            if matches!(
+                fold.step().unwrap(),
+                conduit_composite::BoundedFoldState::FinalReady
+            ) {
+                break;
+            }
+        }
+        assert!(fold.final_value_into(&mut fold_final).unwrap());
+        assert_eq!(fold_final.encoded, &[1]);
+
+        scan.admit(&byte).unwrap();
+        prove_forwarded_call(&mut scan);
+        for _ in 0..16 {
+            if matches!(
+                scan.step().unwrap(),
+                conduit_composite::BoundedScanState::OutputReady
+            ) {
+                break;
+            }
+        }
+        assert!(scan.output_into(&mut scan_output).unwrap());
+        assert_eq!(scan_output.encoded, &[1]);
+        scan.complete_output().unwrap();
+    });
+    assert_eq!(
+        allocations, 0,
+        "coordinator Host Call forwarding allocated {allocations} times"
+    );
 }
