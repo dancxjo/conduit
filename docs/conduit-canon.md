@@ -130,6 +130,27 @@ to Type identity, and must hold at every generated construction boundary. It is
 not an assertion, target hook, handwritten validator, or escape from bounded
 evaluation.
 
+A native Type may bind checked portable Type parameters and concrete source may
+instantiate them:
+
+```conduit
+type Pair<T> = {
+    left: T
+    right: T
+}
+
+type TextPair = Pair<Text>
+```
+
+Parameters range only over finite checked semantic
+Types. Checking substitutes them through the complete structural definition
+and its laws, rejects unused, duplicate, missing, excess, unknown, recursive,
+or unbounded applications, and leaves no open parameter or dynamic dispatcher
+for play. Each concrete identity includes the exact generic declaration and
+the exact semantic arguments. A generated binding may use target generics or
+finite monomorphized types; that representation choice is absent from Type
+identity.
+
 A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A fore is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 
 ### resource, state, and line

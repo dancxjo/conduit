@@ -9,10 +9,11 @@ use conduit_core::{
     data_reference_kind, kind_id, CheckedValueContract, KindId, StructuredFieldType,
     StructuredInfoType, StructuredVariantCase,
 };
-use sha2::{Digest, Sha256};
-
+mod generic;
+mod identity;
 mod invariant;
 mod use_contract;
+use identity::{schema_identity, schema_identity_for_record, schema_identity_for_variant};
 pub(crate) use use_contract::{install_import_aliases, validate_concrete_value};
 
 #[derive(Clone)]
@@ -25,9 +26,10 @@ pub(crate) fn check_native_types(
     declarations: &[TypeSyntax],
     base: &StartupCatalog,
 ) -> Result<(Vec<CheckedNativeType>, StartupCatalog), SyntaxCheckDiagnostic> {
+    let (declarations, public_names) = generic::instantiate(declarations)?;
     let mut catalog = base.clone();
     let mut by_name = alloc::collections::BTreeMap::new();
-    for declaration in declarations {
+    for declaration in &declarations {
         if by_name
             .insert(declaration.name.text.as_str(), declaration)
             .is_some()
@@ -44,7 +46,7 @@ pub(crate) fn check_native_types(
     let mut active = Vec::new();
     let mut complete = BTreeSet::new();
     let mut compiled = alloc::collections::BTreeMap::new();
-    for declaration in declarations {
+    for declaration in &declarations {
         compile_named(
             declaration.name.text.as_str(),
             &by_name,
@@ -56,6 +58,7 @@ pub(crate) fn check_native_types(
     }
     let checked = declarations
         .iter()
+        .filter(|declaration| public_names.contains(&declaration.name.text))
         .map(|declaration| {
             compiled
                 .remove(declaration.name.text.as_str())
@@ -155,6 +158,7 @@ fn compile_definition(
         TypeDefinitionSyntax::Scalar(expression) => compile_expression(expression, catalog)?,
         TypeDefinitionSyntax::Record(fields) => compile_record(
             &declaration.name.text,
+            declaration.generic_context.as_deref(),
             fields,
             &declaration.invariants,
             catalog,
@@ -175,6 +179,7 @@ fn compile_definition(
                     }
                     TypeVariantPayloadSyntax::Record(fields) => compile_record(
                         &alloc::format!("{}/{}", declaration.name.text, case.tag.text),
+                        declaration.generic_context.as_deref(),
                         fields,
                         &[],
                         catalog,
@@ -190,7 +195,11 @@ fn compile_definition(
                         .map_err(|error| bounded(case.span, error))?,
                 );
             }
-            let identity = schema_identity_for_variant(&declaration.name.text, &compiled_cases);
+            let identity = schema_identity_for_variant(
+                &declaration.name.text,
+                declaration.generic_context.as_deref(),
+                &compiled_cases,
+            );
             CompiledRepresentation {
                 value_type: StructuredInfoType::variant(identity, compiled_cases)
                     .map_err(|error| bounded(declaration.span, error))?,
@@ -202,6 +211,7 @@ fn compile_definition(
         TypeDefinitionSyntax::Scalar(_) => {
             let identity = schema_identity(
                 &declaration.name.text,
+                declaration.generic_context.as_deref(),
                 &compiled.value_type,
                 &compiled.contracts,
             );
@@ -228,6 +238,7 @@ fn compile_definition(
 
 fn compile_record(
     semantic_name: &str,
+    generic_context: Option<&str>,
     fields: &[TypeFieldSyntax],
     invariants: &[crate::Expression],
     catalog: &StartupCatalog,
@@ -246,8 +257,13 @@ fn compile_record(
                 .map_err(|error| bounded(field.span, error))?,
         );
     }
-    let identity =
-        schema_identity_for_record(semantic_name, &compiled_fields, &contracts, invariants);
+    let identity = schema_identity_for_record(
+        semantic_name,
+        generic_context,
+        &compiled_fields,
+        &contracts,
+        invariants,
+    );
     Ok(CompiledRepresentation {
         value_type: StructuredInfoType::record(identity, compiled_fields)
             .map_err(|error| bounded(span, error))?,
@@ -262,10 +278,15 @@ fn compile_expression(
     match expression {
         TypeExpressionSyntax::Reference {
             value_type,
+            arguments,
             maximum_bytes,
             refinements,
             span,
         } => {
+            debug_assert!(
+                arguments.is_empty(),
+                "generic applications are resolved before checking"
+            );
             let representation = crate::value_type::checked_value_type(&value_type.text, catalog)
                 .map_err(|_| {
                 diagnostic(
@@ -403,91 +424,6 @@ fn prefix_contracts(
             contract: contract.contract,
         })
         .collect()
-}
-
-fn schema_identity_for_record(
-    name: &str,
-    fields: &[StructuredFieldType],
-    contracts: &[NativeTypeValueContract],
-    invariants: &[crate::Expression],
-) -> KindId {
-    let mut canonical = b"conduit.native-type.record@1\0".to_vec();
-    push(&mut canonical, name.as_bytes());
-    for field in fields {
-        push(&mut canonical, field.name().as_bytes());
-        push(
-            &mut canonical,
-            &field
-                .value_type()
-                .canonical_bytes()
-                .expect("checked field type"),
-        );
-    }
-    push_contracts(&mut canonical, contracts);
-    let mut invariant_meanings = invariants
-        .iter()
-        .map(|invariant| crate::syntax_identity::canonical_expression(&invariant.syntax))
-        .collect::<Vec<_>>();
-    invariant_meanings.sort();
-    for invariant in invariant_meanings {
-        push(&mut canonical, invariant.as_bytes());
-    }
-    semantic_id(name, &canonical)
-}
-
-fn schema_identity_for_variant(name: &str, cases: &[StructuredVariantCase]) -> KindId {
-    let mut canonical = b"conduit.native-type.variant@1\0".to_vec();
-    push(&mut canonical, name.as_bytes());
-    for case in cases {
-        push(&mut canonical, case.tag().as_bytes());
-        push(
-            &mut canonical,
-            &case
-                .payload_type()
-                .canonical_bytes()
-                .expect("checked case type"),
-        );
-    }
-    semantic_id(name, &canonical)
-}
-
-fn schema_identity(
-    name: &str,
-    representation: &StructuredInfoType,
-    contracts: &[NativeTypeValueContract],
-) -> KindId {
-    let mut canonical = b"conduit.native-type.scalar@1\0".to_vec();
-    push(&mut canonical, name.as_bytes());
-    push(
-        &mut canonical,
-        &representation
-            .canonical_bytes()
-            .expect("checked representation"),
-    );
-    push_contracts(&mut canonical, contracts);
-    semantic_id(name, &canonical)
-}
-
-fn push_contracts(canonical: &mut Vec<u8>, contracts: &[NativeTypeValueContract]) {
-    for contract in contracts {
-        push(canonical, contract.representation_path.as_bytes());
-        push(canonical, &contract.contract.identity_bytes());
-    }
-}
-
-fn push(out: &mut Vec<u8>, bytes: &[u8]) {
-    out.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
-    out.extend_from_slice(bytes);
-}
-
-fn semantic_id(name: &str, canonical: &[u8]) -> KindId {
-    let digest = Sha256::digest(canonical);
-    let mut suffix = String::with_capacity(64);
-    for byte in digest {
-        use core::fmt::Write;
-        write!(&mut suffix, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    KindId::from(alloc::format!("type/{name}@{suffix}"))
 }
 
 fn bounded(span: crate::Span, error: conduit_core::StructuredInfoRefusal) -> SyntaxCheckDiagnostic {

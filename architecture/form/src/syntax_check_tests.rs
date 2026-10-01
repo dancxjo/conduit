@@ -1377,6 +1377,128 @@ fn native_fixed_collection_checks_to_exact_structured_collection_truth() {
 }
 
 #[test]
+fn generic_native_types_monomorphize_to_exact_finite_checked_meaning() {
+    let source = "type Envelope<T> = {\n    direct: T\n    maybe: T?\n    history: sequence T <= 3\n    exact: collection T = 2\n}\n\ntype Event<T> =\n    empty\n    | one T\n    | many {\n        values: sequence T <= 2\n    }\n\ntype TextEnvelope = Envelope<Text <= 16B>\ntype TextEvent = Event<Text <= 16B>\n";
+    let first = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
+        .expect("generic applications check to concrete Types");
+    let second =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    assert_eq!(first.native_types.len(), 2);
+    assert_eq!(first.native_types, second.native_types);
+    assert_ne!(
+        first.native_types[0].identity,
+        first.native_types[1].identity
+    );
+    assert!(first.native_types.iter().all(|native| {
+        !native.identity.as_str().contains("runtime") && native.value_type.canonical_bytes().is_ok()
+    }));
+    assert!(first.native_types[0]
+        .value_contracts
+        .iter()
+        .map(|contract| contract.representation_path.as_str())
+        .any(|path| path.contains(".history[]")));
+
+    let bytes = check_syntax_document(
+        &parse_syntax_document(
+            "type Boxed<T> = {\n value: T\n}\ntype Value = Boxed<Bytes <= 16B>\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_ne!(
+        first.native_types[0].identity,
+        bytes.native_types[0].identity
+    );
+
+    let renamed_declaration = check_syntax_document(
+        &parse_syntax_document(
+            "type Renamed<T> = {\n direct: T\n maybe: T?\n history: sequence T <= 3\n exact: collection T = 2\n}\ntype TextEnvelope = Renamed<Text <= 16B>\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_ne!(
+        first.native_types[0].identity, renamed_declaration.native_types[0].identity,
+        "the exact generic declaration participates in concrete identity"
+    );
+}
+
+#[test]
+fn generic_native_types_refuse_each_invalid_parameter_contract() {
+    let cases = [
+        (
+            "type Pair<T, T> = {\n value: T\n}\ntype Use = Pair<U8, U16>\n",
+            "duplicated",
+        ),
+        ("type Phantom<T> = U8\ntype Use = Phantom<U8>\n", "unused"),
+        (
+            "type Pair<T> = {\n value: T\n}\ntype Use = Pair<U8, U16>\n",
+            "expects 1 arguments",
+        ),
+        (
+            "type Plain = U8\ntype Use = Plain<U8>\n",
+            "does not accept generic arguments",
+        ),
+        (
+            "type Use = Missing<U8>\n",
+            "generic semantic Type 'Missing' is not in scope",
+        ),
+        (
+            "type Loop<T> = Loop<T>?\ntype Use = Loop<U8>\n",
+            "recursive or unbounded generic",
+        ),
+    ];
+    for (source, expected) in cases {
+        let parsed = parse_syntax_document(source);
+        let refusal = check_syntax_document(&parsed, &StartupCatalog::new())
+            .expect_err("invalid generic contract must refuse");
+        assert!(
+            refusal.message.contains(expected),
+            "expected {expected:?}, got {:?}",
+            refusal.message
+        );
+    }
+}
+
+#[test]
+fn generic_family_aliases_share_canonical_concrete_references() {
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "type Item<T> = {\n value: T\n}\ntype Batch<T> = {\n items: sequence Item<T> <= 4\n}\ntype TextItem = Item<Text <= 8B>\ntype TextBatch = Batch<Text <= 8B>\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_eq!(checked.native_types.len(), 2);
+    let batch = checked
+        .native_types
+        .iter()
+        .find(|native| native.name == "TextBatch")
+        .unwrap();
+    let conduit_core::StructuredInfoTypeShape::Record { fields, .. } = batch.value_type.shape()
+    else {
+        panic!("batch is a record")
+    };
+    let conduit_core::StructuredInfoTypeShape::Sequence { element, .. } =
+        fields[0].value_type().shape()
+    else {
+        panic!("items is a sequence")
+    };
+    let conduit_core::StructuredInfoTypeShape::Record { schema, .. } = element.shape() else {
+        panic!("concrete item alias remains a record")
+    };
+    assert_eq!(
+        schema,
+        &checked
+            .native_types
+            .iter()
+            .find(|native| native.name == "TextItem")
+            .unwrap()
+            .identity
+    );
+}
+
+#[test]
 fn native_types_work_in_keeps_and_data_refs_without_structural_interchange() {
     let mut catalog = StartupCatalog::new();
     catalog

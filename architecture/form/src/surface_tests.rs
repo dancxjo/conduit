@@ -320,6 +320,31 @@ fn native_fixed_collection_requires_one_exact_finite_length() {
 }
 
 #[test]
+fn generic_native_type_syntax_is_lossless_and_target_neutral() {
+    let source = "type Pair<T, U> = {\n    left: T\n    right: U?\n}\n\ntype TextPair = Pair<Text, collection U8 = 4>\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    assert_eq!(
+        document.types[0]
+            .parameters
+            .iter()
+            .map(|parameter| parameter.text.as_str())
+            .collect::<Vec<_>>(),
+        ["T", "U"]
+    );
+    assert!(matches!(
+        &document.types[1].definition,
+        TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Reference { arguments, .. })
+            if arguments.len() == 2
+    ));
+}
+
+#[test]
 fn legacy_use_keyword_is_not_a_compatibility_spelling() {
     let document =
         parse_syntax_document("use time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");

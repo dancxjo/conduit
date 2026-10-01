@@ -21,7 +21,12 @@ fn ecmascript_inspects_records_references_optionals_and_bounds() {
                  ancestors: sequence Digest <= 16\n\
              }\n\
              type FiniteFloat = F32 finite\n\
-             type Probability = F32 finite in 0.0..=1.0\n",
+             type Probability = F32 finite in 0.0..=1.0\n\
+             type Envelope<T> = {\n\
+                 value: T\n\
+                 history: sequence T <= 2\n\
+             }\n\
+             type TextEnvelope = Envelope<Text <= 16B>\n",
         ),
         &StartupCatalog::new(),
     )
@@ -67,6 +72,12 @@ const quietNaN = types.inspectIeee('value/ieee754-binary32', Uint8Array.of(1, 0,
 if (!quietNaN.nan || quietNaN.finite || quietNaN.bits !== 0x7fc00001n) process.exit(32);
 const smallestSubnormal = types.inspectIeee('value/ieee754-binary32', Uint8Array.of(1, 0, 0, 0));
 if (!smallestSubnormal.finite || smallestSubnormal.exponent !== 0n || smallestSubnormal.fraction !== 1n) process.exit(33);
+const generic = types.lookupType('TextEnvelope');
+if (generic.shape.kind !== 'record') process.exit(34);
+const genericFields = Object.fromEntries(generic.shape.fields.map(field => [field.name, field.value]));
+if (genericFields.value.identity !== 'value/text') process.exit(35);
+if (genericFields.history.kind !== 'sequence' || genericFields.history.maximumItems !== 2) process.exit(36);
+if (generic.contracts.map(contract => contract.path).sort().join(',') !== '.history[],.value') process.exit(37);
 "#;
     let output = Command::new("node")
         .args([

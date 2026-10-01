@@ -21,10 +21,16 @@ impl Parser<'_> {
             .split_once('=')
             .map(|(name, body)| (name.trim(), body.trim()))
             .ok_or_else(|| self.invalid_statement(header, start))?;
-        if !is_name(name) {
+        let (name_text, parameter_names) =
+            split_generic_application(name).ok_or_else(|| self.invalid_statement(header, start))?;
+        if !is_name(name_text) || parameter_names.iter().any(|parameter| !is_name(parameter)) {
             return Err(self.invalid_statement(header, start));
         }
-        let name = self.spanned_at(name, header, start);
+        let name = self.spanned_at(name_text, header, start);
+        let parameters = parameter_names
+            .into_iter()
+            .map(|parameter| self.spanned_at(parameter, header, start))
+            .collect();
         let declaration_start = start;
 
         let (definition, invariants) = if body == "{" {
@@ -45,6 +51,8 @@ impl Parser<'_> {
         let end = self.lines[self.index.saturating_sub(1)];
         Ok(TypeSyntax {
             name,
+            parameters,
+            generic_context: None,
             definition,
             invariants,
             span: self.span(declaration_start, end.start + end.text.len()),
@@ -242,22 +250,88 @@ impl Parser<'_> {
                 span,
             });
         }
-        let (value_type, refinements) = self.parse_value_refinements(source, line, start)?;
-        let (value_type, explicit_bound) =
-            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
+        if let Some((value_type, argument_sources)) =
+            split_generic_application(source).filter(|(_, arguments)| !arguments.is_empty())
+        {
+            if !is_name(value_type) && !value_type.split('/').all(is_name) {
+                return Err(self.invalid_statement(line, start));
+            }
+            let arguments = argument_sources
+                .into_iter()
+                .map(|argument| self.parse_type_expression(argument, line, start))
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(TypeExpressionSyntax::Reference {
+                value_type: self.spanned(value_type, offset),
+                arguments,
+                maximum_bytes: None,
+                refinements: Vec::new(),
+                span,
+            });
+        }
+        let (reference, refinements) = self.parse_value_refinements(source, line, start)?;
+        let (reference, explicit_bound) =
+            split_type_bound(reference).ok_or_else(|| self.invalid_statement(line, start))?;
+        let (value_type, argument_sources) = split_generic_application(reference)
+            .ok_or_else(|| self.invalid_statement(line, start))?;
         if value_type.is_empty()
             || value_type.chars().any(char::is_whitespace)
             || (!is_name(value_type) && !value_type.split('/').all(is_name))
         {
             return Err(self.invalid_statement(line, start));
         }
+        let arguments = argument_sources
+            .into_iter()
+            .map(|argument| self.parse_type_expression(argument, line, start))
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(TypeExpressionSyntax::Reference {
             value_type: self.spanned(value_type, offset),
+            arguments,
             maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
             refinements,
             span,
         })
     }
+}
+
+fn split_generic_application(source: &str) -> Option<(&str, Vec<&str>)> {
+    let source = source.trim();
+    let Some(open) = source.find('<') else {
+        return Some((source, Vec::new()));
+    };
+    if !source.ends_with('>') || open == 0 {
+        return None;
+    }
+    let name = source[..open].trim();
+    let body = &source[open + 1..source.len() - 1];
+    let mut arguments = Vec::new();
+    let mut depth = 0_u16;
+    let mut start = 0;
+    for (index, character) in body.char_indices() {
+        match character {
+            '<' if body.as_bytes().get(index + 1) != Some(&b'=') => {
+                depth = depth.checked_add(1)?;
+            }
+            '>' => depth = depth.checked_sub(1)?,
+            ',' if depth == 0 => {
+                let argument = body[start..index].trim();
+                if argument.is_empty() {
+                    return None;
+                }
+                arguments.push(argument);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    if depth != 0 {
+        return None;
+    }
+    let argument = body[start..].trim();
+    if argument.is_empty() {
+        return None;
+    }
+    arguments.push(argument);
+    Some((name, arguments))
 }
 
 fn parse_collection_bound(source: &str) -> Option<u16> {

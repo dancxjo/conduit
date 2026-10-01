@@ -4,8 +4,8 @@ use conduit_core::{
 use conduit_data::{
     data_load_text_contract, data_load_text_projection, data_save_text_contract,
     data_save_text_projection, DataGenerationNamespace, DataGenerationNamespaceRefusal,
-    DataGenerationRefusal, DataGenerationStore, DataLoadTextTerminal, DataReference,
-    DataReferenceRefusal, DataSaveTextTerminal, PreparedDataGenerationStore,
+    DataGenerationRefusal, DataGenerationStore, DataGenerationTextValue, DataLoadTextTerminal,
+    DataReference, DataReferenceRefusal, DataSaveTextTerminal, PreparedDataGenerationStore,
     DATA_LOAD_TEXT_TERMINAL_INFO_ID, DATA_SAVE_TEXT_TERMINAL_INFO_ID, DATA_TEXT_CONTRACT_REVISION,
     DATA_TEXT_TERMINAL_ENCODED_LEN, MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES,
     MAXIMUM_DATA_REFERENCE_ENCODED_BYTES, MAXIMUM_DATA_TEXT_BYTES,
@@ -13,6 +13,22 @@ use conduit_data::{
 
 fn namespace(name: &str) -> DataGenerationNamespace {
     DataGenerationNamespace::new(name).unwrap()
+}
+
+#[test]
+fn generated_generic_generation_value_preserves_concrete_text_meaning() {
+    let value = DataGenerationTextValue::new(namespace("notes"), "portable".into()).unwrap();
+    assert_eq!(value.value(), "portable");
+    assert_eq!(value.namespace().digest(), namespace("notes").digest());
+    let encoded = conduit_form::rust_binding::NativeRustBinding::encode(value.clone()).unwrap();
+    assert_eq!(
+        <DataGenerationTextValue as conduit_form::rust_binding::NativeRustBinding>::decode(
+            &encoded
+        )
+        .unwrap(),
+        value
+    );
+    assert!(DataGenerationTextValue::new(namespace("notes"), "x".repeat(4097)).is_err());
 }
 
 fn text(value: &str) -> ValuePayload {
