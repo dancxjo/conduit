@@ -1,10 +1,8 @@
 //! Portable finite named collections of normalized patterns.
 
-use alloc::{string::String, vec, vec::Vec};
-use conduit_core::{
-    kind_id, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape,
-};
+use alloc::{string::String, vec::Vec};
+use conduit_core::{StructuredInfoType, StructuredInfoValue};
+use conduit_form::rust_binding::NativeRustBinding;
 pub use conduit_time::TemplateCollectionRefusal;
 
 pub const MAXIMUM_NAMED_TEMPLATES: u16 = 8;
@@ -24,20 +22,20 @@ pub fn named_pattern_template_slot_type() -> StructuredInfoType {
 }
 
 pub fn named_pattern_template_collection_type() -> StructuredInfoType {
-    StructuredInfoType::collection(
-        named_pattern_template_slot_type(),
-        Some(MAXIMUM_NAMED_TEMPLATES),
-    )
-    .unwrap()
+    conduit_time::NamedPatternTemplateSlots::semantic_type()
+        .expect("checked named pattern template slots Type")
 }
 
 pub fn empty_named_pattern_template_collection() -> StructuredInfoValue {
     let placeholder = crate::normalized_value(&[1]).expect("placeholder normalized pattern");
     let slots = (0..MAXIMUM_NAMED_TEMPLATES)
-        .map(|_| slot_value(false, "", placeholder.clone()).expect("inactive template slot"))
+        .map(|_| DecodedSlot {
+            active: false,
+            name: String::new(),
+            pattern: placeholder.clone(),
+        })
         .collect();
-    StructuredInfoValue::collection(named_pattern_template_collection_type(), slots)
-        .expect("fixed bounded template collection")
+    encode_collection(slots).expect("fixed bounded template collection")
 }
 
 pub fn insert_named_pattern_template(
@@ -98,18 +96,31 @@ fn decode_collection(
     if collection.value_type() != &named_pattern_template_collection_type() {
         return Err(TemplateCollectionRefusal::Malformed);
     }
-    let values = match collection.shape() {
-        StructuredInfoValueShape::Collection(values)
-            if values.len() == usize::from(MAXIMUM_NAMED_TEMPLATES) =>
-        {
-            values
-        }
-        _ => return Err(TemplateCollectionRefusal::Malformed),
-    };
-    let slots = values
+    let native = conduit_time::NamedPatternTemplateSlots::from_structured(collection.clone())
+        .map_err(|_| TemplateCollectionRefusal::Malformed)?;
+    let slots = native
+        .get()
         .iter()
-        .map(decode_slot)
-        .collect::<Result<Vec<_>, _>>()?;
+        .map(|slot| {
+            Ok(DecodedSlot {
+                active: *slot.active(),
+                name: slot.name().clone(),
+                pattern: slot
+                    .pattern()
+                    .clone()
+                    .into_structured()
+                    .map_err(|_| TemplateCollectionRefusal::Malformed)?,
+            })
+        })
+        .collect::<Result<Vec<_>, TemplateCollectionRefusal>>()?;
+    for slot in &slots {
+        if slot.active {
+            validate_name(&slot.name)?;
+            validate_pattern(&slot.pattern)?;
+        } else if !slot.name.is_empty() {
+            return Err(TemplateCollectionRefusal::Malformed);
+        }
+    }
     for (index, left) in slots.iter().enumerate() {
         if left.active
             && slots[index + 1..]
@@ -120,33 +131,6 @@ fn decode_collection(
         }
     }
     Ok(slots)
-}
-
-fn decode_slot(value: &StructuredInfoValue) -> Result<DecodedSlot, TemplateCollectionRefusal> {
-    if value.value_type() != &named_pattern_template_slot_type() {
-        return Err(TemplateCollectionRefusal::Malformed);
-    }
-    let fields = match value.shape() {
-        StructuredInfoValueShape::Record(fields) => fields,
-        _ => return Err(TemplateCollectionRefusal::Malformed),
-    };
-    let active = conduit_core::InfoBool::decode(leaf(field(fields, "active")?)?)
-        .map_err(|_| TemplateCollectionRefusal::Malformed)?
-        .get();
-    let name = core::str::from_utf8(leaf(field(fields, "name")?)?)
-        .map_err(|_| TemplateCollectionRefusal::Malformed)?;
-    let pattern = field(fields, "pattern")?.clone();
-    if active {
-        validate_name(name)?;
-        validate_pattern(&pattern)?;
-    } else if !name.is_empty() {
-        return Err(TemplateCollectionRefusal::Malformed);
-    }
-    Ok(DecodedSlot {
-        active,
-        name: name.into(),
-        pattern,
-    })
 }
 
 fn validate_pattern(pattern: &StructuredInfoValue) -> Result<(), TemplateCollectionRefusal> {
@@ -173,84 +157,20 @@ fn encode_collection(
 ) -> Result<StructuredInfoValue, TemplateCollectionRefusal> {
     let values = slots
         .into_iter()
-        .map(|slot| slot_value(slot.active, &slot.name, slot.pattern))
+        .map(|slot| {
+            let pattern = conduit_time::NormalizedDurationSequence::from_structured(slot.pattern)
+                .map_err(|_| TemplateCollectionRefusal::Malformed)?;
+            conduit_time::NamedPatternTemplateSlot::new(slot.active, slot.name, pattern)
+                .map_err(|_| TemplateCollectionRefusal::Malformed)
+        })
         .collect::<Result<Vec<_>, _>>()?;
-    StructuredInfoValue::collection(named_pattern_template_collection_type(), values)
+    let values: [conduit_time::NamedPatternTemplateSlot; 8] = values
+        .try_into()
+        .map_err(|_| TemplateCollectionRefusal::Malformed)?;
+    conduit_time::NamedPatternTemplateSlots::new(values)
+        .map_err(|_| TemplateCollectionRefusal::Malformed)?
+        .into_structured()
         .map_err(|_| TemplateCollectionRefusal::Malformed)
-}
-
-fn slot_value(
-    active: bool,
-    name: &str,
-    pattern: StructuredInfoValue,
-) -> Result<StructuredInfoValue, TemplateCollectionRefusal> {
-    StructuredInfoValue::record(
-        named_pattern_template_slot_type(),
-        vec![
-            byte_leaf_field(
-                "active",
-                conduit_core::BOOL_INFO_ID,
-                if active {
-                    conduit_core::InfoBool::TRUE
-                } else {
-                    conduit_core::InfoBool::FALSE
-                }
-                .encode()
-                .to_vec(),
-            )?,
-            leaf_field("name", conduit_core::TEXT_INFO_ID, name)?,
-            StructuredFieldValue::new("pattern", pattern)
-                .map_err(|_| TemplateCollectionRefusal::Malformed)?,
-        ],
-    )
-    .map_err(|_| TemplateCollectionRefusal::Malformed)
-}
-
-fn leaf_field(
-    name: &str,
-    kind: &str,
-    value: &str,
-) -> Result<StructuredFieldValue, TemplateCollectionRefusal> {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id(kind)).unwrap(),
-            value.as_bytes().to_vec(),
-        )
-        .map_err(|_| TemplateCollectionRefusal::Malformed)?,
-    )
-    .map_err(|_| TemplateCollectionRefusal::Malformed)
-}
-
-fn byte_leaf_field(
-    name: &str,
-    kind: &str,
-    value: Vec<u8>,
-) -> Result<StructuredFieldValue, TemplateCollectionRefusal> {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(StructuredInfoType::leaf(kind_id(kind)).unwrap(), value)
-            .map_err(|_| TemplateCollectionRefusal::Malformed)?,
-    )
-    .map_err(|_| TemplateCollectionRefusal::Malformed)
-}
-
-fn field<'a>(
-    fields: &'a [StructuredFieldValue],
-    name: &str,
-) -> Result<&'a StructuredInfoValue, TemplateCollectionRefusal> {
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(StructuredFieldValue::value)
-        .ok_or(TemplateCollectionRefusal::Malformed)
-}
-
-fn leaf(value: &StructuredInfoValue) -> Result<&[u8], TemplateCollectionRefusal> {
-    match value.shape() {
-        StructuredInfoValueShape::Leaf(value) => Ok(value),
-        _ => Err(TemplateCollectionRefusal::Malformed),
-    }
 }
 
 #[cfg(test)]
