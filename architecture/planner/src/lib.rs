@@ -69,9 +69,15 @@ mod degradation;
 #[cfg(test)]
 mod degradation_explanation_tests;
 mod degraded_profile;
+mod degraded_profile_explanation;
+#[cfg(test)]
+mod degraded_profile_explanation_tests;
 mod diagnostic;
 mod diversity;
 mod dormant_readmission;
+mod dormant_readmission_explanation;
+#[cfg(test)]
+mod dormant_readmission_explanation_tests;
 mod fact_policy;
 mod functional_compatibility;
 mod fusion;
@@ -82,6 +88,7 @@ mod observations;
 mod performance_policy;
 mod policy;
 mod policy_composition;
+mod policy_explanation;
 mod profile;
 pub mod proof;
 mod protected_resources;
@@ -89,6 +96,7 @@ mod realization;
 mod realization_families;
 mod realization_recovery;
 mod recursive_recovery;
+mod recursive_recovery_explanation;
 mod replanning;
 mod requirements;
 mod resource_binding;
@@ -102,6 +110,9 @@ pub mod wcet;
 use startup::startup_order;
 mod style;
 mod survival_policy;
+mod survival_policy_explanation;
+#[cfg(test)]
+mod survival_policy_explanation_tests;
 
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::validate_protected_resource_grants;
@@ -155,6 +166,11 @@ pub use degraded_profile::{
     MAXIMUM_DEGRADED_PROFILE_DIMENSIONS, MAXIMUM_DEGRADED_PROFILE_ID_BYTES,
     MAXIMUM_DEGRADED_PROFILE_LABEL_BYTES,
 };
+pub use degraded_profile_explanation::{
+    explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
+    DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
+    MAXIMUM_DEGRADED_PROFILE_EXPLANATION_BYTES,
+};
 pub use diagnostic::structured_planner_diagnostic;
 pub use diversity::{
     classify_diversity, prove_diverse_replacement, select_surviving_diverse_candidate,
@@ -168,6 +184,10 @@ pub use dormant_readmission::{
     DormantEquipmentHistory, DormantReadmissionEvidence, DormantReadmissionRefusal,
     RequiredDormantLine, MAXIMUM_DORMANT_ABSENT_GENERATIONS, MAXIMUM_DORMANT_ID_BYTES,
     MAXIMUM_DORMANT_REQUIRED_LINES, MAXIMUM_DORMANT_SIGNS,
+};
+pub use dormant_readmission_explanation::{
+    explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
+    MAXIMUM_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{
@@ -201,6 +221,11 @@ pub use policy_composition::{
     PolicyScope, PolicySourceId, PolicySourceRevision, ReviewedObservation,
     ScopedRealizationSelection, MAXIMUM_POLICY_SOURCES, MAXIMUM_RETAINED_POLICY_OBSERVATIONS,
 };
+pub use policy_explanation::{
+    PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
+    PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
+    MAX_STYLE_EXPLANATION_CLAUSES,
+};
 pub use profile::{
     plan_with_advertised_profile, BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS,
     FULL_PLANNER_PROFILE,
@@ -220,6 +245,10 @@ pub use recursive_recovery::{
     prove_recursive_recovery, RecursiveRecoveryCandidate, RecursiveRecoveryEvidence,
     RecursiveRecoveryLimits, RecursiveRecoveryRefusal,
 };
+pub use recursive_recovery_explanation::{
+    explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
+    MAXIMUM_RECURSIVE_RECOVERY_EXPLANATION_BYTES,
+};
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
 pub use retry::{admit_explicit_retry, RetryAdmission, RetryAdmissionBasis};
@@ -237,6 +266,10 @@ pub use survival_policy::{
     SurvivalPlanningMode, SurvivalPlanningPolicy, SurvivalPolicyRefusal, SurvivalTradeoff,
     WorkloadResourceRequest, MAXIMUM_SCARCE_RESOURCE_REQUESTS, MAXIMUM_SURVIVAL_CANDIDATES,
     MAXIMUM_SURVIVAL_POLICY_ID_BYTES, MAXIMUM_SURVIVAL_TRADEOFFS,
+};
+pub use survival_policy_explanation::{
+    explain_survival_plan_selection, SurvivalPolicyExplanation, SurvivalPolicyExplanationError,
+    MAXIMUM_SURVIVAL_POLICY_EXPLANATION_BYTES,
 };
 pub use wcet::{
     admit_deadline_region, validate_replan, DeadlineAdmission, DeadlineRegion, TimingDependency,

@@ -1,17 +1,18 @@
-use conduit_planner::{
-    SurvivalCandidateDisposition, SurvivalCandidateEvidence, SurvivalPlanSelection,
-    SurvivalPlanningMode, SurvivalTradeoff,
+use conduit_core::PlanId;
+
+use crate::{
+    explain_survival_plan_selection, SurvivalCandidateDisposition, SurvivalCandidateEvidence,
+    SurvivalPlanSelection, SurvivalPlanningMode, SurvivalTradeoff,
 };
-use patchbay_model::explain_survival_plan_selection;
 
 #[test]
-fn patchbay_names_policy_tradeoffs_and_fresh_plan_without_a_fallback_flag() {
+fn names_policy_tradeoffs_and_fresh_plan_without_a_fallback_flag() {
     let selection = SurvivalPlanSelection {
         policy_id: "policy/voyager/survival@1".into(),
         policy_revision: 3,
         mode: SurvivalPlanningMode::Survival,
-        selected_plan_id: conduit_core::PlanId::from("plan/surviving-five-hop"),
-        previous_plan_id: Some(conduit_core::PlanId::from("plan/lost-direct")),
+        selected_plan_id: PlanId::from("plan/surviving-five-hop"),
+        previous_plan_id: Some(PlanId::from("plan/lost-direct")),
         fresh_plan: true,
         selected_disposition: SurvivalCandidateDisposition::FullyCompatible,
         principal_tradeoffs: vec![
@@ -21,11 +22,11 @@ fn patchbay_names_policy_tradeoffs_and_fresh_plan_without_a_fallback_flag() {
         ],
         candidate_evidence: vec![
             (
-                conduit_core::PlanId::from("plan/lost-direct"),
+                PlanId::from("plan/lost-direct"),
                 SurvivalCandidateEvidence::RejectedUnavailablePrerequisite,
             ),
             (
-                conduit_core::PlanId::from("plan/surviving-five-hop"),
+                PlanId::from("plan/surviving-five-hop"),
                 SurvivalCandidateEvidence::Selected,
             ),
         ],

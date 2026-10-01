@@ -12,6 +12,9 @@ use conduit_form::{
     parse_syntax_document, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
 };
 
+#[cfg(test)]
+mod tests;
+
 pub use conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND;
 
 const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n";

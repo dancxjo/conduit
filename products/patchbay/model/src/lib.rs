@@ -27,8 +27,6 @@ mod debugger_timeline_tests;
 mod debugger_watch;
 #[cfg(test)]
 mod debugger_watch_tests;
-mod degraded_profile_explanation;
-mod dormant_readmission_explanation;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
@@ -65,7 +63,6 @@ mod palette;
 mod parts_truth_explanation_tests;
 mod parts_view;
 mod patchbay_backs;
-mod policy_explanation;
 mod portable_composition;
 mod portable_content;
 mod portable_correlations;
@@ -86,13 +83,11 @@ pub mod proof;
 mod recursive_form_demonstration;
 #[cfg(test)]
 mod recursive_form_projection_tests;
-mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
-mod survival_policy_explanation;
 mod text_lab_explanation;
 pub use lifecycle_explanation::*;
 mod text_lab_explanation_loss;
@@ -144,15 +139,6 @@ pub use debugger_watch::{
     DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
     DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
     DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
-};
-pub use degraded_profile_explanation::{
-    explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
-    DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
-    MAX_DEGRADED_PROFILE_EXPLANATION_BYTES,
-};
-pub use dormant_readmission_explanation::{
-    explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
-    MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
@@ -229,11 +215,6 @@ pub use patchbay_workbench_host_contract::{
     ControlReceiptProjection, PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile,
     PlayExecutionProjection,
 };
-pub use policy_explanation::{
-    PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
-    PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
-    MAX_STYLE_EXPLANATION_CLAUSES,
-};
 pub use portable_composition::{
     constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
 };
@@ -253,10 +234,6 @@ pub use presentation_layout::{
 };
 pub use prewake::*;
 pub use recursive_form_demonstration::recursive_form_demonstration;
-pub use recursive_recovery_explanation::{
-    explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
-    MAX_RECURSIVE_RECOVERY_EXPLANATION_BYTES,
-};
 pub use renderer_conformance::{
     compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
     ENTRANCE_EQUIVALENCE_SCHEMA, ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID,
@@ -274,10 +251,6 @@ pub use route_demo::{DistributedRouteDemo, RouteDemoError};
 pub use route_presentation::{
     DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
     RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
-};
-pub use survival_policy_explanation::{
-    explain_survival_plan_selection, SurvivalPolicyExplanation, SurvivalPolicyExplanationError,
-    MAX_SURVIVAL_POLICY_EXPLANATION_BYTES,
 };
 pub use text_lab_explanation::{
     text_lab_split_explanation, text_lab_split_loss_explanation, TextLabSplitExplanation,

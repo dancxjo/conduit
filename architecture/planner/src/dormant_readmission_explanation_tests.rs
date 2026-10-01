@@ -2,8 +2,11 @@ use conduit_core::{
     AuthorityGrantId, BootId, CapabilityId, GearId, HostId, ImplementationId, OfferGeneration,
     PlanId, SignId,
 };
-use conduit_planner::{CurrentDormantCandidate, DormantReadmissionEvidence};
-use patchbay_model::{explain_dormant_readmission, DormantReadmissionExplanationError};
+
+use crate::{
+    explain_dormant_readmission, CurrentDormantCandidate, DormantReadmissionEvidence,
+    DormantReadmissionExplanationError,
+};
 
 fn evidence() -> DormantReadmissionEvidence {
     DormantReadmissionEvidence {
@@ -31,7 +34,7 @@ fn evidence() -> DormantReadmissionEvidence {
 }
 
 #[test]
-fn patchbay_names_unused_current_and_selection_truth_without_legacy_rank() {
+fn names_unused_current_and_selection_truth_without_legacy_rank() {
     let explanation = explain_dormant_readmission(&evidence()).unwrap();
     assert!(explanation.unused_before);
     assert!(explanation.available_now);
@@ -60,7 +63,7 @@ fn patchbay_names_unused_current_and_selection_truth_without_legacy_rank() {
 }
 
 #[test]
-fn patchbay_refuses_laundered_history_or_nonreplacement_evidence() {
+fn refuses_laundered_history_or_nonreplacement_evidence() {
     let mut reused_boot = evidence();
     reused_boot.historical_boot_reused = true;
     assert_eq!(

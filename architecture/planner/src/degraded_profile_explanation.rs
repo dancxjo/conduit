@@ -1,21 +1,21 @@
-//! Human-readable Patchbay truth for reviewed degraded-profile admission.
+//! Human-readable truth for reviewed degraded-profile admission.
 
-use conduit_core::{verify_plan, Plan};
-use conduit_planner::{
-    DegradedProfileRefusal, PlannerFactValue, ServiceProfileAdmission, ServiceProfileDisposition,
+use crate::{
+    prelude::*, DegradedProfileRefusal, PlannerFactValue, ServiceProfileAdmission,
+    ServiceProfileDisposition,
 };
-use serde::{Deserialize, Serialize};
+use conduit_core::{verify_plan, Plan};
 
-pub const MAX_DEGRADED_PROFILE_EXPLANATION_BYTES: usize = 4_096;
+pub const MAXIMUM_DEGRADED_PROFILE_EXPLANATION_BYTES: usize = 4_096;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DegradedProfileState {
     Full,
     Degraded,
     Unrealizable,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProfileDimensionExplanation {
     pub characteristic_id: String,
     pub human_name: String,
@@ -24,7 +24,7 @@ pub struct ProfileDimensionExplanation {
     pub surviving: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DegradedProfileExplanation {
     pub state: DegradedProfileState,
     pub profile_id: String,
@@ -111,7 +111,7 @@ pub fn explain_degraded_profile(
         placement.implementation_id.as_str(),
         admission.policy_id.as_deref().unwrap_or("full compatibility"),
     );
-    if summary.len() > MAX_DEGRADED_PROFILE_EXPLANATION_BYTES {
+    if summary.len() > MAXIMUM_DEGRADED_PROFILE_EXPLANATION_BYTES {
         return Err(DegradedProfileExplanationError::EvidenceTooLarge);
     }
     Ok(DegradedProfileExplanation {
