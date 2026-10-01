@@ -159,6 +159,7 @@ are satisfied.
 | Family | Native source | Generated binding | Consumers switched | Duplicate removed | Proof |
 |---|---|---|---|---|---|
 | Finance currency, comparison, pair, fixed decimal and money | `semantics/finance/types.conduit` | generated at build time | yes | yes | native binding and finance behavior suites |
+| Finance rate observation and bounded source/profile identities | `semantics/finance/types.conduit` | generated at build time | yes | yes | exact native round trips and text-boundary proof plus finance conversion/reference suites |
 | Calendar participant role, invitation state and availability state | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus calendar, AI and std Host suites |
 | Historical origin/overflow and temporal window boundary/position vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and time behavior suites |
 | Timed-pattern refusal vocabulary extracted from the catalog | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus timed-pattern catalog and std/browser consumer suites |

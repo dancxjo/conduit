@@ -65,14 +65,14 @@ pub fn convert_money_values(
         return Err(FinanceRefusal::MalformedInfo);
     }
     let instrument = record_field(rate, "instrument")?;
-    let observation = RateObservation {
-        base: Currency::from_tag(variant_tag(record_field(instrument, "base")?)?)?,
-        quote: Currency::from_tag(variant_tag(record_field(instrument, "quote")?)?)?,
-        rate: FixedDecimal::from_structured(record_field(rate, "rate")?.clone())?,
-        observed_ticks: parse_count(record_field(record_field(rate, "observed_at")?, "ticks")?)?,
-        source: leaf_text(record_field(rate, "source")?)?,
-        profile: leaf_text(record_field(rate, "profile")?)?,
-    };
+    let observation = RateObservation::new(
+        Currency::from_tag(variant_tag(record_field(instrument, "base")?)?)?,
+        parse_count(record_field(record_field(rate, "observed_at")?, "ticks")?)?,
+        crate::FinanceRateProfile::new(leaf_text(record_field(rate, "profile")?)?.into())?,
+        Currency::from_tag(variant_tag(record_field(instrument, "quote")?)?)?,
+        FixedDecimal::from_structured(record_field(rate, "rate")?.clone())?,
+        crate::FinanceRateSource::new(leaf_text(record_field(rate, "source")?)?.into())?,
+    )?;
     money_value(convert_money(decode_money_value(money)?, &observation)?)
 }
 
@@ -88,31 +88,31 @@ pub fn decode_money_value(value: &StructuredInfoValue) -> Result<Money, FinanceR
     )?)
 }
 
-pub fn deterministic_rate_observation() -> Result<RateObservation<'static>, FinanceRefusal> {
-    Ok(RateObservation {
-        base: Currency::Eur,
-        quote: Currency::Usd,
-        rate: FixedDecimal::new(108_250, 5)?,
-        observed_ticks: 1_788_000_000,
-        source: "fixture/ecb-reference",
-        profile: "finance/exact-decimal-rate@1",
-    })
+pub fn deterministic_rate_observation() -> Result<RateObservation, FinanceRefusal> {
+    Ok(RateObservation::new(
+        Currency::Eur,
+        1_788_000_000,
+        crate::FinanceRateProfile::new("finance/exact-decimal-rate@1".into())?,
+        Currency::Usd,
+        FixedDecimal::new(108_250, 5)?,
+        crate::FinanceRateSource::new("fixture/ecb-reference".into())?,
+    )?)
 }
 
 fn rate_observation_value(
-    observation: &RateObservation<'_>,
+    observation: &RateObservation,
 ) -> Result<StructuredInfoValue, FinanceRefusal> {
     record_value(
         finance_rate_type(),
         vec![
             (
                 "instrument",
-                instrument_value(observation.base, observation.quote)?,
+                instrument_value(*observation.base(), *observation.quote())?,
             ),
-            ("observed_at", instant_value(observation.observed_ticks)?),
-            ("profile", text_value(observation.profile)),
-            ("rate", observation.rate.clone().into_structured()?),
-            ("source", text_value(observation.source)),
+            ("observed_at", instant_value(*observation.observed_ticks())?),
+            ("profile", text_value(observation.profile().get())),
+            ("rate", observation.rate().clone().into_structured()?),
+            ("source", text_value(observation.source().get())),
         ],
     )
 }
