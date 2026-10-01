@@ -28,6 +28,7 @@ pub enum PlannedActivationCompositeError {
     MissingActivation,
     WrongActivationKind,
     StaleOrSubstitutedHandoff,
+    SubstitutedChildDefinition { index: usize },
     HostPreparation(HostPreparationRefusal),
     ChildPreparation(crate::KernelCompositeError),
     Unary(BoundedActivationError),
@@ -78,6 +79,12 @@ impl PreparedActivationChildPool {
             .map_err(PlannedActivationCompositeError::HostPreparation)?;
         if returned.len() != maximum_items {
             return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
+        }
+        if let Some(index) = returned
+            .iter()
+            .position(|child| !child.has_exact_definition(&definition))
+        {
+            return Err(PlannedActivationCompositeError::SubstitutedChildDefinition { index });
         }
         let mut ready = Vec::with_capacity(maximum_items);
         ready.append(&mut returned);

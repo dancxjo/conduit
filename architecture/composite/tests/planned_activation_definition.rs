@@ -28,6 +28,7 @@ struct Host {
     identity: PreparationHostIdentity,
     receipts: Vec<PreparedFragmentReceipt>,
     registry: KernelOperationRegistry,
+    substituted_definition: Option<KernelCompositeDefinition>,
 }
 
 impl Host {
@@ -41,6 +42,7 @@ impl Host {
             },
             receipts: vec![],
             registry: KernelOperationRegistry::new(),
+            substituted_definition: None,
         }
     }
 }
@@ -57,10 +59,14 @@ impl PlannedActivationChildPoolHost for Host {
                 return Err(HostPreparationRefusal::PreparedBindingMismatch);
             }
         }
+        let child_definition = self.substituted_definition.as_ref().unwrap_or(definition);
         let ready = (0..maximum_items)
             .map(|_| {
-                conduit_composite::KernelCompositeHost::prepare(definition.clone(), &self.registry)
-                    .map_err(|_| HostPreparationRefusal::ImplementationUnavailable)
+                conduit_composite::KernelCompositeHost::prepare(
+                    child_definition.clone(),
+                    &self.registry,
+                )
+                .map_err(|_| HostPreparationRefusal::ImplementationUnavailable)
             })
             .collect::<Result<Vec<_>, _>>()?;
         for receipt in receipts {
@@ -600,6 +606,54 @@ fn child_pool_refuses_current_boot_and_offer_drift_before_consuming_receipts() {
             .is_err()
     );
     assert_eq!(host.receipts.len(), retained);
+}
+
+#[test]
+fn child_pool_refuses_host_substituted_kernel_definitions_after_exact_receipt_consumption() {
+    let plan = activation_plan();
+    let mut host = Host::new();
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let exact =
+        KernelCompositeDefinition::from_planned_activation(&plan, &prepared, "each").unwrap();
+    let mut substituted = exact.clone();
+    let mut fragment = substituted.internal_plan.fragments[0].clone();
+    fragment.host_id = conduit_core::HostId::from("substituted-host");
+    fragment.boot_id = conduit_core::BootId::from("substituted-boot");
+    fragment.offer_generation = conduit_core::OfferGeneration(99);
+    let placement = &mut fragment.placements[0];
+    placement.host_calls[0].contract_id =
+        conduit_core::HostCallContractId::from("substituted/call@1");
+    placement.resources[0].pool_id = conduit_core::ResourcePoolId::from("substituted-pool");
+    placement.authority[0].grant_id = conduit_core::AuthorityGrantId::from("substituted-grant");
+    placement.authority[0].host_call_contract_id =
+        conduit_core::HostCallContractId::from("substituted/call@1");
+    placement.authority[0].host_id = conduit_core::HostId::from("substituted-host");
+    placement.authority[0].boot_id = conduit_core::BootId::from("substituted-boot");
+    substituted.internal_plan = common::seal(fragment);
+    substituted.host_id = conduit_core::HostId::from("substituted-host");
+    substituted.boot_id = conduit_core::BootId::from("substituted-boot");
+    substituted.offer_generation = conduit_core::OfferGeneration(99);
+    for front in substituted
+        .boundary
+        .input_fronts
+        .iter_mut()
+        .chain(&mut substituted.boundary.output_fronts)
+    {
+        front.internal_child = conduit_core::HostId::from("substituted-host");
+    }
+    host.registry.install(HostCallFactory).unwrap();
+    host.substituted_definition = Some(substituted);
+
+    let result =
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host);
+    match result {
+        Err(conduit_composite::PlannedActivationCompositeError::SubstitutedChildDefinition {
+            index: 0,
+        }) => {}
+        Err(error) => panic!("unexpected refusal: {error:?}"),
+        Ok(_) => panic!("substituted child definition was accepted"),
+    }
+    assert!(prepared.take_subordinate_receipts("each").is_empty());
 }
 
 #[test]

@@ -181,6 +181,10 @@ pub struct KernelCompositeHost {
 }
 
 impl KernelCompositeHost {
+    pub(crate) fn has_exact_definition(&self, definition: &KernelCompositeDefinition) -> bool {
+        &self.definition == definition
+    }
+
     pub fn prepare(
         definition: KernelCompositeDefinition,
         registry: &KernelOperationRegistry,
