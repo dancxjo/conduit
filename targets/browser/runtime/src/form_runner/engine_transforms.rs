@@ -16,6 +16,70 @@ pub(in crate::form_runner) fn complete_transform(
     operation: &HostCallRequirement,
     request: HostCallRequest,
 ) -> Result<bool, String> {
+    if operation.contract_id.as_str() == crate::installed_browser::audio_gain::UPDATE_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let outcome = match scheduler.audio_gains[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("audio gain was not prepared before Play")?
+            .update(input)
+        {
+            Ok(()) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_call(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
+    if operation.contract_id.as_str() == crate::installed_browser::audio_gain::SCALE_OPERATION {
+        let result = scheduler.audio_gains[usize::from(request.node.0)]
+            .as_ref()
+            .ok_or("audio gain was not prepared before Play")?
+            .scale(
+                scheduler
+                    .kernel
+                    .host_value(request.input.value)
+                    .map_err(debug_error)?,
+            );
+        let outcome = match result {
+            Ok((bytes, length)) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(&bytes[..length])
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_call(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if operation.contract_id.as_str() == crate::installed_browser::audio_tone::UPDATE_OPERATION {
         let input = scheduler
             .kernel

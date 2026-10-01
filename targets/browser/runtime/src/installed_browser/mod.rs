@@ -1,7 +1,7 @@
 //! Finite implementation registry installed by the ordinary browser Host.
 
 pub(crate) mod application;
-mod audio_gain;
+pub(crate) mod audio_gain;
 pub(crate) mod audio_io;
 pub(crate) mod audio_tone;
 mod back;

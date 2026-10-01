@@ -256,6 +256,10 @@ fn render(frequency: i128, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_B
     }
     Some((encoded, next))
 }
+#[cfg(test)]
+pub(crate) fn test_block() -> [u8; BLOCK_BYTES] {
+    render(440_000, 0, 0).unwrap().0
+}
 const fn fail(detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
