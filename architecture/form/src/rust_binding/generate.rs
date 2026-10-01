@@ -32,9 +32,15 @@ pub struct RustBindingOptions {
     /// Copy record bindings whose generated getters retain an established
     /// by-value Rust API instead of returning references.
     pub copy_record_value_getters: BTreeSet<String>,
+    /// Authored record Types whose generated fields retain an established
+    /// public Rust API. This visibility is binding-only compatibility truth.
+    pub public_record_fields: BTreeSet<String>,
     /// Optional Rust constructor argument order for retaining an established
     /// record API. Semantic record identity remains canonically field-ordered.
     pub record_constructor_orders: BTreeMap<String, Vec<String>>,
+    /// Optional Rust constructor names for records whose established public
+    /// constructor maps domain-specific refusals before native validation.
+    pub record_constructor_names: BTreeMap<String, String>,
     /// Optional Rust enum declaration order for preserving an established
     /// Serde variant-index ABI. Keys are authored Type names and values are an
     /// exhaustive, unique list of authored variant tags. This is binding-only
@@ -283,7 +289,12 @@ fn emit_type(
             for field in fields {
                 writeln!(
                     out,
-                    "    {}: {},",
+                    "    {}{}: {},",
+                    if options.public_record_fields.contains(&value_type.name) {
+                        "pub "
+                    } else {
+                        ""
+                    },
                     rust_snake_identifier(field.name())?,
                     rust_type(field.value_type(), names)?
                 )
@@ -389,6 +400,11 @@ fn emit_type(
                 .record_constructor_orders
                 .get(&value_type.name)
                 .map(Vec::as_slice),
+            constructor_name: options
+                .record_constructor_names
+                .get(&value_type.name)
+                .map(String::as_str)
+                .unwrap_or("new"),
         },
     )?;
     Ok(())

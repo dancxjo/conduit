@@ -14,21 +14,21 @@ pub fn pcm_as_sampled_signal(
     payload: &[u8],
 ) -> Result<SampledSignal, SoundInfoError> {
     header.validate_payload(payload)?;
-    let channels = u64::from(header.layout.channels());
-    let element = match header.representation {
+    let channels = u64::from(header.layout().channels());
+    let element = match header.representation() {
         PcmSampleRepresentation::Signed16LittleEndian => TensorElement::I16,
         PcmSampleRepresentation::Signed24LittleEndian => TensorElement::I24,
         PcmSampleRepresentation::Float32LittleEndian => TensorElement::F32,
     };
     Ok(SampledSignal {
-        clock_identity: format!("audio/pcm-clock/{}", header.clock_id),
-        start: SignalStart::SampleIndex(header.start_frame),
+        clock_identity: format!("audio/pcm-clock/{}", header.clock_id()),
+        start: SignalStart::SampleIndex(header.start_frame()),
         cadence: SignalCadence::Regular {
-            samples: u64::from(header.sample_rate_hz),
+            samples: u64::from(header.sample_rate_hz()),
             per: Quantity::new(1, QuantityUnit::Second),
         },
-        sample_count: u64::from(header.frame_count),
-        continuity: if header.discontinuity {
+        sample_count: u64::from(header.frame_count()),
+        continuity: if header.discontinuity() {
             SignalContinuity::discontinuous("audio/declared-discontinuity".to_string())
                 .expect("reviewed discontinuity identity")
         } else {
@@ -36,7 +36,7 @@ pub fn pcm_as_sampled_signal(
         },
         samples: TensorValue {
             element,
-            dimensions: vec![u64::from(header.frame_count), channels],
+            dimensions: vec![u64::from(header.frame_count()), channels],
             axes: vec![
                 TensorAxis {
                     role: TensorAxisRole::Time,
@@ -46,7 +46,7 @@ pub fn pcm_as_sampled_signal(
                 TensorAxis {
                     role: TensorAxisRole::Channel,
                     identity: Some(
-                        match header.layout {
+                        match header.layout() {
                             PcmChannelLayout::Mono => "mono",
                             PcmChannelLayout::StereoLeftRight => "stereo-left-right",
                         }

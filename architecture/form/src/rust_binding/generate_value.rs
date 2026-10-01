@@ -17,6 +17,7 @@ pub(super) struct RecordBindingOptions<'a> {
     pub value_getters: bool,
     pub direct_checked: bool,
     pub constructor_order: Option<&'a [String]>,
+    pub constructor_name: &'a str,
 }
 
 pub(super) fn emit_value_impl(
@@ -54,6 +55,7 @@ pub(super) fn emit_value_impl(
                 fields,
                 names,
                 record_options.constructor_order,
+                record_options.constructor_name,
             )?
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
@@ -196,7 +198,7 @@ fn emit_record_constructor(
         fields.iter().collect::<Vec<_>>()
     };
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
-    write!(out, "    pub fn new(").expect("String writing is infallible");
+    write!(out, "    pub fn {}(", options.constructor_name).expect("String writing is infallible");
     for (index, field) in ordered_fields.iter().enumerate() {
         if index > 0 {
             out.push_str(", ");
