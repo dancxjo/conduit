@@ -50,12 +50,12 @@ fn host_local_admission_and_join_refuse_missing_duplicate_stale_and_wrong_truth(
     let partitioned =
         partition_reaction_diffusion_generation(&initial(), partition.clone()).unwrap();
     let (contract, cells) = partitioned
-        .region_work_basis(ReactionDiffusionRegionId(10))
+        .region_work_basis(ReactionDiffusionRegionId::new(10).unwrap())
         .unwrap();
     let first = partitioned
         .boundaries
         .iter()
-        .find(|boundary| boundary.destination_region == ReactionDiffusionRegionId(10))
+        .find(|boundary| boundary.destination_region == ReactionDiffusionRegionId::new(10).unwrap())
         .unwrap()
         .clone();
 
@@ -79,7 +79,7 @@ fn host_local_admission_and_join_refuse_missing_duplicate_stale_and_wrong_truth(
         Err(ReactionDiffusionPartitionRefusal::StaleBoundaryGeneration)
     );
     let mut wrong = first;
-    wrong.destination_region = ReactionDiffusionRegionId(20);
+    wrong.destination_region = ReactionDiffusionRegionId::new(20).unwrap();
     assert_eq!(
         ReactionDiffusionRegionWork::new(contract, cells)
             .unwrap()
@@ -158,14 +158,14 @@ fn unequal_partition() -> ReactionDiffusionPartition {
     ReactionDiffusionPartition {
         regions: vec![
             ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId(10),
+                region_id: ReactionDiffusionRegionId::new(10).unwrap(),
                 origin_x: 0,
                 origin_y: 0,
                 width: 3,
                 height: 10,
             },
             ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId(20),
+                region_id: ReactionDiffusionRegionId::new(20).unwrap(),
                 origin_x: 3,
                 origin_y: 0,
                 width: 5,

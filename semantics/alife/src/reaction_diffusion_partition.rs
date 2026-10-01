@@ -2,17 +2,38 @@
 
 use alloc::vec;
 use alloc::vec::Vec;
+use core::{
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+};
 
 use crate::{
     GrayScottParameters, ReactionDiffusionBoundaryEdge, ReactionDiffusionCell,
     ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionRefusal,
-    REACTION_DIFFUSION_MAXIMUM_BOUNDARIES, REACTION_DIFFUSION_MAXIMUM_CELLS,
-    REACTION_DIFFUSION_MAXIMUM_EXTENT, REACTION_DIFFUSION_MAXIMUM_REGIONS,
-    REACTION_DIFFUSION_MINIMUM_EXTENT,
+    ReactionDiffusionRegionId, REACTION_DIFFUSION_MAXIMUM_BOUNDARIES,
+    REACTION_DIFFUSION_MAXIMUM_CELLS, REACTION_DIFFUSION_MAXIMUM_EXTENT,
+    REACTION_DIFFUSION_MAXIMUM_REGIONS, REACTION_DIFFUSION_MINIMUM_EXTENT,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ReactionDiffusionRegionId(pub u16);
+impl Copy for ReactionDiffusionRegionId {}
+
+impl PartialOrd for ReactionDiffusionRegionId {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ReactionDiffusionRegionId {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.get().cmp(other.get())
+    }
+}
+
+impl Hash for ReactionDiffusionRegionId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.get().hash(state);
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ReactionDiffusionRegion {

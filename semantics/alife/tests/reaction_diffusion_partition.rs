@@ -90,11 +90,19 @@ fn boundary_codec_retains_exact_directed_generation_truth() {
         56
     );
     assert!(generation.boundaries.iter().any(|boundary| {
-        boundary.destination_region == ReactionDiffusionRegionId(10)
-            && boundary.source_region == ReactionDiffusionRegionId(20)
+        boundary.destination_region == ReactionDiffusionRegionId::new(10).unwrap()
+            && boundary.source_region == ReactionDiffusionRegionId::new(20).unwrap()
             && boundary.destination_edge == conduit_alife::ReactionDiffusionBoundaryEdge::East
     }));
     let encoded = boundary.encode().unwrap();
+    assert_eq!(
+        &encoded[40..42],
+        &boundary.source_region.get().to_le_bytes()
+    );
+    assert_eq!(
+        &encoded[42..44],
+        &boundary.destination_region.get().to_le_bytes()
+    );
     assert_eq!(
         ReactionDiffusionBoundaryState::decode(&encoded),
         Ok(boundary.clone())
@@ -151,14 +159,15 @@ fn every_missing_duplicate_stale_and_mismatched_boundary_refuses() {
     );
 
     let mut wrong_destination = valid.clone();
-    wrong_destination.boundaries[0].destination_region = ReactionDiffusionRegionId(99);
+    wrong_destination.boundaries[0].destination_region =
+        ReactionDiffusionRegionId::new(99).unwrap();
     assert_eq!(
         wrong_destination.validate(),
         Err(ReactionDiffusionPartitionRefusal::WrongBoundaryDestination)
     );
 
     let mut wrong_source = valid.clone();
-    wrong_source.boundaries[0].source_region = ReactionDiffusionRegionId(99);
+    wrong_source.boundaries[0].source_region = ReactionDiffusionRegionId::new(99).unwrap();
     assert_eq!(
         wrong_source.validate(),
         Err(ReactionDiffusionPartitionRefusal::WrongBoundarySource)
@@ -260,7 +269,7 @@ fn region(
     height: u16,
 ) -> ReactionDiffusionRegion {
     ReactionDiffusionRegion {
-        region_id: ReactionDiffusionRegionId(id),
+        region_id: ReactionDiffusionRegionId::new(id).unwrap(),
         origin_x,
         origin_y,
         width,
