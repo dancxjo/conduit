@@ -13,7 +13,6 @@ use conduit_observatory::{
 
 mod build_birth;
 mod control;
-mod conversation_request_evidence;
 mod cross_host_renderer;
 mod form_editor;
 mod form_editor_catalogs;
@@ -93,7 +92,6 @@ pub use conduit_presentation::{
     MaskWardrobeControlEvidence, ThemeColor, CONDUIT_APPLICATION_THEME,
 };
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
-pub use conversation_request_evidence::ConversationRequestEvidence;
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,

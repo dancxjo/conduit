@@ -1,5 +1,6 @@
 //! Privacy-preserving evidence for the body truth consumed by a chat request.
 
+use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -13,8 +14,8 @@ pub struct ConversationRequestEvidence {
     pub private_prompt_retained: bool,
 }
 
-impl From<&conduit_chat::BodyChatGenerationRequest> for ConversationRequestEvidence {
-    fn from(request: &conduit_chat::BodyChatGenerationRequest) -> Self {
+impl From<&crate::BodyChatGenerationRequest> for ConversationRequestEvidence {
+    fn from(request: &crate::BodyChatGenerationRequest) -> Self {
         let mut model_context_sha256 = String::with_capacity(64);
         for byte in request.model_context_sha256 {
             use core::fmt::Write;
@@ -36,6 +37,7 @@ impl From<&conduit_chat::BodyChatGenerationRequest> for ConversationRequestEvide
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
     use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
     use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 
@@ -70,8 +72,8 @@ mod tests {
             lines: vec![],
             recent_sign_ids: vec![],
         };
-        let encoded = conduit_chat::encode_body_conversation_context(&context).unwrap();
-        let mut state = conduit_chat::BodyChatPromptState::new(&encoded, 2).unwrap();
+        let encoded = crate::encode_body_conversation_context(&context).unwrap();
+        let mut state = crate::BodyChatPromptState::new(&encoded, 2).unwrap();
         let request = state.request(b"private message").unwrap();
         let evidence = ConversationRequestEvidence::from(&request);
         let serialized = serde_json::to_string(&evidence).unwrap();

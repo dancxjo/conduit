@@ -2,7 +2,7 @@
 
 use conduit_ai::GeneratedTextFlowEvidence;
 
-use crate::ConversationRequestEvidence;
+use conduit_chat::ConversationRequestEvidence;
 
 pub const LIVE_CONVERSATION_FLOW_SCHEMA: &str = "conduit.patchbay/live-conversation-flow@1";
 pub const MAXIMUM_PRESENTED_RECOGNITION_EVENTS: usize = 32;
