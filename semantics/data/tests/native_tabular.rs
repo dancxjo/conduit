@@ -1,6 +1,11 @@
+use conduit_core::{
+    kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity,
+};
 use conduit_data::{
-    TabularColumnType, TabularPersonRowSlot, TabularQueryResultFour, TabularQueryStatus,
     deterministic_person_provider, deterministic_query_error, filter_active_rows,
+    materialized_query_outcome, TabularColumnType, TabularPersonRowSlot, TabularQueryOutcomeFour,
+    TabularQueryResultFour, TabularQueryStatus,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -47,4 +52,26 @@ fn native_filter_preserves_errors_and_pads_filtered_rows() {
 
     let error = deterministic_query_error("offline", "provider unavailable").expect("error");
     assert_eq!(filter_active_rows(&error).expect("preserved error"), error);
+}
+
+#[test]
+fn materialized_outcome_round_trips_the_exact_resource_reference() {
+    let reference = BoundedResourceRef {
+        identity: ResourceSemanticIdentity::from_digest([1; 32]),
+        content_profile: kind_id("tabular/result@1"),
+        access_class: ResourceClassId::from("tabular/result"),
+        extent: ResourceExtent {
+            bytes: 128,
+            items: Some(4),
+        },
+        lifetime: ResourceLifetime {
+            version: ResourceVersionIdentity::from_digest([2; 32]),
+            expires_at: None,
+        },
+    };
+    let structured = materialized_query_outcome(&reference).expect("native outcome");
+    assert_eq!(
+        TabularQueryOutcomeFour::from_structured(structured).expect("round trip"),
+        TabularQueryOutcomeFour::Materialized(reference)
+    );
 }
