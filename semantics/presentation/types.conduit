@@ -118,6 +118,30 @@ type FaceUtteranceClauseKind =
     | action
     | action_argument
 
+type FaceUtteranceProvenance =
+    subject {
+        identity: Text <= 256B not in [""]
+    }
+    | relationship {
+        index: U32
+    }
+    | composition {
+        identity: Text <= 256B not in [""]
+    }
+    | text {
+        index: U32
+    }
+    | action {
+        identity: Text <= 256B not in [""]
+    }
+    | action_argument {
+        action_identity: Text <= 256B not in [""]
+        argument_name: Text <= 256B not in [""]
+    }
+    | property {
+        index: U32
+    }
+
 type PresentationDisclosureLevel =
     primary
     | current_action
@@ -155,3 +179,8 @@ type GeneratedManifestationDisposition =
 type GeneratedContentRole =
     speech
     | presented_thought
+
+type GeneratedActionAffordance = {
+    action_identity: Text <= 128B not in [""]
+    source_presentation_revision: U64
+}

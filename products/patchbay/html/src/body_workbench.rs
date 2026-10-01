@@ -4,6 +4,7 @@
 
 use conduit_body_make::{
     BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError, CurrentBodyFrame,
+    ReadableBodyHistory, ReadableBodyHistoryError,
 };
 use conduit_core::{BootId, HostId, ImplementationId, PlanId, SignId};
 use conduit_presentation::{
@@ -13,8 +14,8 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 use patchbay_model::{
-    FormCandidate, PatchbayNavigationProjection, ReadableBodyHistory, RendererAdapterIdentity,
-    RendererAdapterKind, RendererExecution,
+    FormCandidate, PatchbayNavigationProjection, RendererAdapterIdentity, RendererAdapterKind,
+    RendererExecution,
 };
 
 use crate::{
@@ -27,7 +28,7 @@ pub const BODY_WORKBENCH_SCHEMA: &str = "conduit.patchbay/browser-body-workbench
 #[derive(Debug)]
 pub enum BodyWorkbenchError {
     Entrance(BodyEvidenceEntranceError),
-    History(patchbay_model::ReadableBodyHistoryError),
+    History(ReadableBodyHistoryError),
     Encode(serde_json::Error),
     IdentityMismatch,
     Snapshot(SnapshotError),

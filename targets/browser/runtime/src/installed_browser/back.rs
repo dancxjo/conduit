@@ -9,12 +9,12 @@ use conduit_kernel::{
 };
 
 pub(crate) struct BrowserBack {
-    step: Box<dyn StepBack<{ super::BROWSER_PORTS_PER_GEAR }>>,
+    step: Box<dyn StepBack<{ super::BROWSER_PORTS_PER_GEAR }> + Send>,
 }
 
 impl BrowserBack {
     pub(crate) fn installed_step(
-        back: impl StepBack<{ super::BROWSER_PORTS_PER_GEAR }> + 'static,
+        back: impl StepBack<{ super::BROWSER_PORTS_PER_GEAR }> + Send + 'static,
     ) -> Self {
         Self {
             step: Box::new(back),

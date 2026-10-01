@@ -146,9 +146,9 @@ pub(super) fn finish(
         affordances: wire
             .suggested_action_identities
             .into_iter()
-            .map(|action_identity| GeneratedActionAffordance {
-                action_identity,
-                source_presentation_revision: source_revision,
+            .map(|action_identity| {
+                GeneratedActionAffordance::new(action_identity, source_revision)
+                    .expect("validated source Face action identity remains bounded")
             })
             .collect(),
         correlations,
@@ -276,7 +276,10 @@ mod tests {
             manifestation.generation_run_identity,
             "run/ollama-present/4"
         );
-        assert_eq!(manifestation.affordances[0].action_identity, "body.inspect");
+        assert_eq!(
+            manifestation.affordances[0].action_identity(),
+            "body.inspect"
+        );
         assert_eq!(manifestation.content[0].source_text_index, 0);
         assert_eq!(manifestation.content[0].bytes, b"I am awake.");
         assert!(matches!(

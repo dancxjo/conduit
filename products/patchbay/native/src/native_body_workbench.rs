@@ -5,10 +5,9 @@
 use crate::arguments::NativeBodyEntrance;
 use conduit_body_make::{
     BodyEvidenceAttachment, BodyEvidenceEntrance, CurrentBodyFrame, CurrentBodyLifecycle,
-    CurrentBodyLifecycleAction,
+    CurrentBodyLifecycleAction, ReadableBodyHistory, ReadableBodyHistoryError,
 };
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::ReadableBodyHistory;
 use winit::keyboard::{Key, NamedKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -329,7 +328,7 @@ pub enum NativeBodyWorkbenchError {
     InvalidRevision,
     StaleRevision { current: u64, offered: u64 },
     Entrance(conduit_body_make::BodyEvidenceEntranceError),
-    History(patchbay_model::ReadableBodyHistoryError),
+    History(ReadableBodyHistoryError),
     ProgramIdentityMismatch,
 }
 

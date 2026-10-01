@@ -31,6 +31,14 @@ ordinary domain-owned contribution. The browser runtime carries the specimens
 through an ordinary graphical Mask Form into a current Show, but that remains
 Mask-mechanism coverage rather than evidence that a domain derived the Face.
 
+The production Tutorial supplies the constrained-participation pressure case.
+Its Face is derived from current Body truth with an exact application Form and
+Plan basis, then crosses the ordinary browser Mask Form into an available,
+correlated Show. Oversized and malformed values refuse before the interaction
+Fore emits anything; one valid value produces the exact Show-bound
+`FaceInteraction`. This proves the inward Face-admission path without turning
+the browser, its attributes, or its Host effect into validation authority.
+
 There is no transparent JavaScript stand-in for either Mask. In particular, the
 current spoken Mask can ground generated wording in exact Face text, but this
 matrix has not proved that it traverses Face relationships, rhetorical

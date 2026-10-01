@@ -43,7 +43,7 @@ const RECOVERY_STEP: Step = Step::new(
 
 const PATCHBAY_STEP: Step = Step::new(
     "integrate.patchbay",
-    "Project real Body planning and biography truth through Patchbay",
+    "Project real Body planning truth through Patchbay",
     "cargo",
     &[
         "test",
@@ -51,9 +51,14 @@ const PATCHBAY_STEP: Step = Step::new(
         "patchbay-model",
         "--test",
         "body_button_planning",
-        "--test",
-        "readable_body_history",
     ],
+);
+
+const BODY_HISTORY_STEP: Step = Step::new(
+    "integrate.body-history",
+    "Project exact Body biography truth into bounded readable history",
+    "cargo",
+    &["test", "-p", "conduit-body-make", "readable_history"],
 );
 
 const BROWSER_STEP: Step = Step::new(
@@ -100,6 +105,11 @@ const CHECKS: &[IntegrationCheck] = &[
         reproduce: "cargo test -p conduit-body --test lifecycle --test biography_wakes",
     },
     IntegrationCheck {
+        label: "Body history",
+        step: &BODY_HISTORY_STEP,
+        reproduce: "cargo test -p conduit-body-make readable_history",
+    },
+    IntegrationCheck {
         label: "local multi-placement",
         step: &TRIPLE_STEP,
         reproduce: "cargo xtask prove journey triple",
@@ -112,8 +122,7 @@ const CHECKS: &[IntegrationCheck] = &[
     IntegrationCheck {
         label: "Patchbay",
         step: &PATCHBAY_STEP,
-        reproduce:
-            "cargo test -p patchbay-model --test body_button_planning --test readable_body_history",
+        reproduce: "cargo test -p patchbay-model --test body_button_planning",
     },
 ];
 
@@ -290,10 +299,10 @@ mod tests {
     #[test]
     fn integration_checks_reuse_the_supported_entrances() {
         assert_eq!(CHECKS[1].step.id, "journey.std");
-        assert_eq!(CHECKS[3].step.id, "journey.triple");
-        assert!(CHECKS[3].step.args.contains(&"--await-terminal"));
+        assert_eq!(CHECKS[4].step.id, "journey.triple");
+        assert!(CHECKS[4].step.args.contains(&"--await-terminal"));
         assert_eq!(
-            CHECKS[4].reproduce,
+            CHECKS[5].reproduce,
             "cargo xtask prove r1-new-plan-recovery"
         );
     }

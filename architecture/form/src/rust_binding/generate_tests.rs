@@ -179,6 +179,82 @@ fn selected_record_retains_copy_and_serde_binding_traits() {
 }
 
 #[test]
+fn constrained_copy_record_validation_does_not_clone_the_candidate() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Bounded = {\n    value: U32 in 1..=8\n}\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            copy_record_types: ["Bounded".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("let structured = candidate.into_structured()?;"));
+    assert!(!generated
+        .source
+        .contains("let structured = candidate.clone().into_structured()?;"));
+}
+
+#[test]
+fn selected_serde_record_can_retain_deny_unknown_fields() {
+    let types = checked_types();
+    let generated = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            serde_record_types: ["Toggle".into()].into(),
+            serde_deny_unknown_record_types: ["Toggle".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated.source.contains(
+        "#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]\n#[serde(deny_unknown_fields)]\npub struct Toggle"
+    ));
+
+    assert!(matches!(
+        generate_rust_bindings(
+            &types,
+            &RustBindingOptions {
+                serde_deny_unknown_record_types: ["Toggle".into()].into(),
+                ..RustBindingOptions::default()
+            }
+        ),
+        Err(RustBindingGenerationError::InvalidSemanticType)
+    ));
+}
+
+#[test]
+fn selected_constrained_record_validates_direct_integer_bounds_without_structured_allocation() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Bounded = {\n    value: U64 in 1..=8\n}\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            direct_checked_record_constructors: ["Bounded".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert!(generated.source.contains("value >= 1u64 && value <= 8u64"));
+    assert!(generated
+        .source
+        .contains("ValueConstraintRefusal::FixedIntegerRange"));
+    assert!(!generated
+        .source
+        .contains("let structured = candidate.clone().into_structured()?;"));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(

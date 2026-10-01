@@ -204,8 +204,8 @@ impl BodyBiographyEvidence {
                 }
                 BodyBiographyRecordKind::Graduated {
                     choice,
-                    patchbay_plan_id,
-                    patchbay_implementation_id,
+                    reader_plan_id,
+                    reader_implementation_id,
                 } => {
                     let graduation = self
                         .graduation
@@ -214,8 +214,8 @@ impl BodyBiographyEvidence {
                     if graduation.sequence != record.sequence
                         || graduation.sign_id != record.sign_id
                         || &graduation.choice != choice
-                        || &graduation.patchbay_plan_id != patchbay_plan_id
-                        || &graduation.patchbay_implementation_id != patchbay_implementation_id
+                        || &graduation.reader_plan_id != reader_plan_id
+                        || &graduation.reader_implementation_id != reader_implementation_id
                     {
                         return Err(BodyBiographyError::InvalidEvidence);
                     }

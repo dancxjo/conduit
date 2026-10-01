@@ -80,7 +80,10 @@ fn factory_checks_exact_identity_and_needs_no_lifetime_output_allocation() {
             .map(|(_, value)| value)
             .expect("exact pulse output");
         let pulse = conduit_time::decode_pulse_observation(value.as_slice()).unwrap();
-        assert_eq!((pulse.sequence, pulse.period_ms), (sequence as u32, 320));
+        assert_eq!(
+            (*pulse.sequence(), *pulse.period_ms()),
+            (sequence as u32, 320)
+        );
     }
     let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(

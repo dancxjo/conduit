@@ -26,6 +26,7 @@ conduit-human = { path = "../../../semantics/human" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-body-make = { path = "../../../make/body" }
 conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
+conduit-composite = { path = "../../../architecture/composite" }
 conduit-ai = { path = "../../../semantics/ai", features = ["form-catalog"] }
 conduit-tongues = { path = "../../../semantics/tongues" }
 conduit-form = { path = "../../../architecture/form" }

@@ -40,8 +40,8 @@ fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
             sequence: 4,
             sign_id: SignId::from("sign/roseau/graduated"),
             choice: BodyGraduationChoice::ExternalReader,
-            patchbay_plan_id: None,
-            patchbay_implementation_id: None,
+            reader_plan_id: None,
+            reader_implementation_id: None,
         })
         .unwrap();
     serde_json::to_vec(&evidence).unwrap()

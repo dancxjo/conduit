@@ -1,6 +1,6 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_net::{
-    ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkJoinError, NetworkTransport,
+    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsTtl, NetworkJoinError, NetworkTransport,
     RecordTranscriptDirection, RecordTranscriptTerminal,
 };
 
@@ -76,4 +76,40 @@ fn application_network_vocabularies_are_native_semantic_types() {
     ] {
         round_trip_owned(value);
     }
+}
+
+#[test]
+fn dns_query_round_trips_and_owns_its_exact_bounds() {
+    let query = DnsQuery::new(
+        "fixture.local".into(),
+        443,
+        DnsRecordKind::Address,
+        NetworkTransport::Tcp,
+    )
+    .unwrap();
+    let structured = query.clone().into_structured().unwrap();
+    assert_eq!(structured.value_type(), &DnsQuery::semantic_type().unwrap());
+    assert_eq!(DnsQuery::from_structured(structured).unwrap(), query);
+
+    assert!(DnsQuery::new(
+        String::new(),
+        443,
+        DnsRecordKind::Address,
+        NetworkTransport::Tcp,
+    )
+    .is_err());
+    assert!(DnsQuery::new(
+        "x".repeat(254),
+        443,
+        DnsRecordKind::Address,
+        NetworkTransport::Tcp,
+    )
+    .is_err());
+    assert!(DnsQuery::new(
+        "fixture.local".into(),
+        0,
+        DnsRecordKind::Address,
+        NetworkTransport::Tcp,
+    )
+    .is_err());
 }

@@ -145,18 +145,18 @@ pub fn project_body_biography(
                 ),
             ),
             BodyBiographyRecordKind::Graduated {
-                choice: BodyGraduationChoice::HostedPatchbay,
-                patchbay_plan_id,
-                patchbay_implementation_id,
+                choice: BodyGraduationChoice::HostedReader,
+                reader_plan_id,
+                reader_implementation_id,
             } => (
                 "Graduated from the Crèche",
                 format!(
-                    "Patchbay was placed by Plan {} using implementation {}. The durable body evidence remains independent of this reader.",
-                    patchbay_plan_id
+                    "A reader was placed by Plan {} using implementation {}. The durable body evidence remains independent of this reader.",
+                    reader_plan_id
                         .as_ref()
                         .expect("validated hosted graduation")
                         .as_str(),
-                    patchbay_implementation_id
+                    reader_implementation_id
                         .as_ref()
                         .expect("validated hosted graduation")
                         .as_str()
@@ -167,7 +167,7 @@ pub fn project_body_biography(
                 ..
             } => (
                 "Graduated from the Crèche",
-                "No Patchbay was hosted. A compatible reader can project this same durable body evidence later."
+                "No reader was hosted. A compatible reader can project this same durable body evidence later."
                     .into(),
             ),
             BodyBiographyRecordKind::EmergencyConfigured { configuration } => {

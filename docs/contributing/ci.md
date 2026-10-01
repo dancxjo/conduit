@@ -81,8 +81,9 @@ known-bad attempt promptly while preserving its exact failure evidence. Only
 after that attempt is terminal may a repair advance the release branch and run
 as a fresh exact head. A healthy running attempt is never cancelled by newer
 development. A release with no progress for 15 minutes
-or more than 45 minutes total is escalated once through a
-`release-liveness/repair-needed` issue. After merge, automation returns release fixes to `dev`.
+or more than 45 minutes total remains the lane owner and is reported as stuck
+in the release-lane workflow summary. The watchdog does not open GitHub issues
+for liveness observations. After merge, automation returns release fixes to `dev`.
 The next successful development integration starts the next batch. A ten-minute
 admission check also revisits current evidence if completion occurred while the
 release or synchronization was still open; it never retries failed proof.
@@ -90,7 +91,7 @@ release or synchronization was still open; it never retries failed proof.
 **Promote dev to main** runs this same admission check, including successful
 integration, open ownership, and accepted-fix checks. It cannot bypass proof.
 
-The existing lane watchdog still handles early failure, stuck-run escalation,
+The existing lane watchdog still handles early failure, stuck-run classification,
 and superseded unstarted runs left by the old multi-PR policy. New admission
 does not manufacture those queues. Installing this change does not authorize
 discarding existing release repairs; finish or explicitly resolve those PRs.
@@ -133,7 +134,7 @@ proof.
 | `dev-integration` failed | The latest combined development tree has a bug | Repair it through an ordinary PR |
 | `promotion` failed | The current release batch is not releasable | Fix the release branch |
 | `promotion` passed | The exact repaired release head is releasable | None; auto-merge continues |
-| `promotion` stuck | The lane exceeded its bounded progress window | Follow the deduplicated release-liveness issue |
+| `promotion` stuck | The lane exceeded its bounded progress window | Inspect the release-lane workflow summary and current promotion run |
 
 Proof keys, receipts, artifact digests, and runner identities are machine-facing
 diagnostics. They may appear inside a failed job, but they are not contributor

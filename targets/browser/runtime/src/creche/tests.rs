@@ -319,11 +319,16 @@ fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choic
     assert_eq!(hosted.body_id, born.body_id);
     let evidence = hosted.graduation.unwrap();
     assert_eq!(evidence.choice, "host-patchbay");
-    assert!(evidence.patchbay_plan_id.is_some());
+    assert!(evidence.reader_plan_id.is_some());
     assert_eq!(
-        evidence.patchbay_implementation_id.as_deref(),
+        evidence.reader_implementation_id.as_deref(),
         Some("browser/patchbay-surface@1")
     );
+    let durable_wire = serde_json::to_string(&evidence).unwrap();
+    assert!(durable_wire.contains("\"patchbay_plan_id\""));
+    assert!(durable_wire.contains("\"patchbay_implementation_id\""));
+    assert!(!durable_wire.contains("reader_plan_id"));
+    assert!(!durable_wire.contains("reader_implementation_id"));
     assert!(!evidence.creche_required);
     let biography = session::biography().unwrap();
     biography.validate().unwrap();
@@ -332,7 +337,7 @@ fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choic
     assert!(matches!(
         biography.records.last().unwrap().kind,
         conduit_body::BodyBiographyRecordKind::Graduated {
-            choice: conduit_body::BodyGraduationChoice::HostedPatchbay,
+            choice: conduit_body::BodyGraduationChoice::HostedReader,
             ..
         }
     ));
@@ -347,7 +352,7 @@ fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choic
     assert_eq!(external.body_id, born.body_id);
     let evidence = external.graduation.unwrap();
     assert_eq!(evidence.choice, "external-reader");
-    assert!(evidence.patchbay_plan_id.is_none());
+    assert!(evidence.reader_plan_id.is_none());
     let biography = session::biography().unwrap();
     let reopened: conduit_body::BodyBiographyEvidence =
         serde_json::from_str(&serde_json::to_string(&biography).unwrap()).unwrap();
@@ -357,8 +362,8 @@ fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choic
         reopened.records.last().unwrap().kind,
         conduit_body::BodyBiographyRecordKind::Graduated {
             choice: conduit_body::BodyGraduationChoice::ExternalReader,
-            patchbay_plan_id: None,
-            patchbay_implementation_id: None,
+            reader_plan_id: None,
+            reader_implementation_id: None,
         }
     ));
 }

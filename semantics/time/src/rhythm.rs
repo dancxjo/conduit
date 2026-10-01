@@ -1,5 +1,7 @@
 //! Portable, finite rhythm observation and phase-following semantics.
 
+use crate::PulseObservation;
+
 pub const PULSE_OBSERVATION_VALUE_KIND: &str = "time/pulse-observation@1";
 pub const RHYTHM_STATE_VALUE_KIND: &str = "time/rhythm-state@1";
 pub const PULSE_OBSERVE_KIND: &str = "time/pulse-observe";
@@ -16,10 +18,9 @@ pub const MAXIMUM_PHASE_ADJUSTMENT_MS: i16 = 64;
 pub const MAXIMUM_PERIOD_ADJUSTMENT_MS: i16 = 16;
 pub const SYNCHRONIZATION_WINDOW_MS: i16 = 320;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PulseObservation {
-    pub sequence: u32,
-    pub period_ms: u16,
+pub(crate) fn pulse_observation(sequence: u32, period_ms: u16) -> PulseObservation {
+    PulseObservation::new(period_ms, sequence)
+        .expect("U32 and U16 have no narrower native constraint")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,8 +49,8 @@ pub enum RhythmError {
 
 pub fn encode_pulse_observation(value: PulseObservation) -> [u8; PULSE_OBSERVATION_ENCODED_LEN] {
     let mut bytes = [0; PULSE_OBSERVATION_ENCODED_LEN];
-    bytes[..4].copy_from_slice(&value.sequence.to_le_bytes());
-    bytes[4..].copy_from_slice(&value.period_ms.to_le_bytes());
+    bytes[..4].copy_from_slice(&value.sequence().to_le_bytes());
+    bytes[4..].copy_from_slice(&value.period_ms().to_le_bytes());
     bytes
 }
 
@@ -57,11 +58,11 @@ pub fn decode_pulse_observation(bytes: &[u8]) -> Result<PulseObservation, Rhythm
     if bytes.len() != PULSE_OBSERVATION_ENCODED_LEN {
         return Err(RhythmError::WrongObservationLength(bytes.len()));
     }
-    let value = PulseObservation {
-        sequence: u32::from_le_bytes(bytes[..4].try_into().unwrap()),
-        period_ms: u16::from_le_bytes(bytes[4..].try_into().unwrap()),
-    };
-    validate_period(value.period_ms)?;
+    let value = pulse_observation(
+        u32::from_le_bytes(bytes[..4].try_into().unwrap()),
+        u16::from_le_bytes(bytes[4..].try_into().unwrap()),
+    );
+    validate_period(*value.period_ms())?;
     Ok(value)
 }
 
@@ -96,8 +97,8 @@ pub fn synchronize(
     arrival_ms: u32,
 ) -> Result<SynchronizationOutcome, RhythmError> {
     validate_period(state.period_ms)?;
-    validate_period(peer.period_ms)?;
-    if peer.sequence != state.expected_peer_sequence {
+    validate_period(*peer.period_ms())?;
+    if *peer.sequence() != state.expected_peer_sequence {
         return Ok(SynchronizationOutcome::Stale);
     }
     state.expected_peer_sequence = state.expected_peer_sequence.wrapping_add(1);
@@ -111,7 +112,7 @@ pub fn synchronize(
         -i32::from(MAXIMUM_PHASE_ADJUSTMENT_MS),
         i32::from(MAXIMUM_PHASE_ADJUSTMENT_MS),
     ) as i16;
-    let period_delta = i32::from(peer.period_ms) - i32::from(state.period_ms);
+    let period_delta = i32::from(*peer.period_ms()) - i32::from(state.period_ms);
     let period_adjustment = clamp_i32(
         rounded_quarter(period_delta),
         -i32::from(MAXIMUM_PERIOD_ADJUSTMENT_MS),
@@ -184,10 +185,7 @@ mod tests {
 
     #[test]
     fn codecs_are_exact_and_reject_invalid_values() {
-        let pulse = PulseObservation {
-            sequence: 42,
-            period_ms: 240,
-        };
+        let pulse = pulse_observation(42, 240);
         assert_eq!(
             decode_pulse_observation(&encode_pulse_observation(pulse)),
             Ok(pulse)
@@ -202,10 +200,7 @@ mod tests {
             Err(RhythmError::WrongObservationLength(5))
         );
         assert_eq!(
-            decode_pulse_observation(&encode_pulse_observation(PulseObservation {
-                sequence: 0,
-                period_ms: 1
-            })),
+            decode_pulse_observation(&encode_pulse_observation(pulse_observation(0, 1))),
             Err(RhythmError::PeriodOutsideBounds(1))
         );
     }
@@ -214,14 +209,7 @@ mod tests {
     fn asymmetric_adjustments_are_bounded_and_deterministic() {
         let mut late = state(1_000, 240, 4);
         assert_eq!(
-            synchronize(
-                &mut late,
-                PulseObservation {
-                    sequence: 4,
-                    period_ms: 320
-                },
-                1_100
-            ),
+            synchronize(&mut late, pulse_observation(4, 320), 1_100),
             Ok(SynchronizationOutcome::Adjusted {
                 phase_ms: 50,
                 period_ms: 16
@@ -230,14 +218,7 @@ mod tests {
         assert_eq!((late.next_pulse_at_ms, late.period_ms), (1_050, 256));
         let mut early = state(1_000, 240, 4);
         assert_eq!(
-            synchronize(
-                &mut early,
-                PulseObservation {
-                    sequence: 4,
-                    period_ms: 160
-                },
-                900
-            ),
+            synchronize(&mut early, pulse_observation(4, 160), 900),
             Ok(SynchronizationOutcome::Adjusted {
                 phase_ms: -50,
                 period_ms: -16
@@ -250,25 +231,11 @@ mod tests {
     fn stale_missing_pressure_and_outside_window_remain_distinct() {
         let mut rhythm = state(1_000, 240, 9);
         assert_eq!(
-            synchronize(
-                &mut rhythm,
-                PulseObservation {
-                    sequence: 8,
-                    period_ms: 240
-                },
-                1_000
-            ),
+            synchronize(&mut rhythm, pulse_observation(8, 240), 1_000),
             Ok(SynchronizationOutcome::Stale)
         );
         assert_eq!(
-            synchronize(
-                &mut rhythm,
-                PulseObservation {
-                    sequence: 9,
-                    period_ms: 240
-                },
-                1_400
-            ),
+            synchronize(&mut rhythm, pulse_observation(9, 240), 1_400),
             Ok(SynchronizationOutcome::OutsideWindow)
         );
         assert_eq!(missing_outcome(), SynchronizationOutcome::Missing);

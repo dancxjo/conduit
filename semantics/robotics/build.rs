@@ -12,7 +12,15 @@ fn main() {
     let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
         &checked.codes,
-        &RustBindingOptions::default(),
+        &RustBindingOptions {
+            copy_record_types: [
+                "AccelerationObservation".into(),
+                "ContactObservation".into(),
+                "ProximityObservation".into(),
+            ]
+            .into(),
+            ..RustBindingOptions::default()
+        },
     )
     .expect("robotics semantic Types and codes must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))

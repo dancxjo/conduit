@@ -8,7 +8,8 @@ mod generated {
 }
 
 pub use generated::{
-    BeaconKind, BeaconKindCode, ChargingState, ChargingStateCode, RoboticsSimulationAvailability,
+    AccelerationObservation, BeaconKind, BeaconKindCode, ChargingState, ChargingStateCode,
+    ContactObservation, ProximityObservation, RoboticsSimulationAvailability,
 };
 
 mod hazard_info;

@@ -35,10 +35,7 @@ fn nominal_period_and_order_are_exact_without_sampling_an_ambient_clock() {
     let configuration = PulseObservationConfiguration::parse(&entries(320)).unwrap();
     assert_eq!(
         configuration.observe(0, 0),
-        Ok(PulseObservation {
-            sequence: 0,
-            period_ms: 320
-        })
+        Ok(PulseObservation::new(320, 0).unwrap())
     );
     assert_eq!(
         configuration.observe(0, 1),
@@ -60,9 +57,6 @@ fn nominal_period_and_order_are_exact_without_sampling_an_ambient_clock() {
     ));
     assert_eq!(
         configuration.observe(2, 2),
-        Ok(PulseObservation {
-            sequence: 2,
-            period_ms: 320
-        })
+        Ok(PulseObservation::new(320, 2).unwrap())
     );
 }

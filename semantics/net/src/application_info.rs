@@ -1,6 +1,6 @@
 //! Portable application-network Info below HTTP and separate from Conduit Lines.
 
-use crate::{ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkTransport};
+use crate::{ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsTtl, NetworkTransport};
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase};
 
@@ -22,14 +22,6 @@ pub enum NetworkAddress {
 pub struct NetworkEndpoint {
     pub address: NetworkAddress,
     pub port: u16,
-    pub transport: NetworkTransport,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DnsQuery {
-    pub name: String,
-    pub port: u16,
-    pub record_kind: DnsRecordKind,
     pub transport: NetworkTransport,
 }
 
@@ -84,10 +76,6 @@ pub enum NetworkConnectionState {
 
 impl DnsQuery {
     pub fn validate(&self) -> Result<(), ApplicationNetworkRefusal> {
-        validate_name(&self.name)?;
-        if self.port == 0 {
-            return Err(ApplicationNetworkRefusal::InvalidPort);
-        }
         Ok(())
     }
 }
@@ -192,28 +180,8 @@ pub fn network_endpoint_type() -> StructuredInfoType {
     )
 }
 
-fn dns_record_kind_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("net/dns-record-kind@1"),
-        vec![
-            case("a", unit_type()),
-            case("aaaa", unit_type()),
-            case("address", unit_type()),
-        ],
-    )
-    .expect("reviewed DNS record kind")
-}
-
 pub fn dns_query_type() -> StructuredInfoType {
-    record(
-        "net/dns-query@1",
-        vec![
-            field("name", text_type()),
-            field("port", leaf("net/port@1")),
-            field("record_kind", dns_record_kind_type()),
-            field("transport", network_transport_type()),
-        ],
-    )
+    DnsQuery::semantic_type().expect("checked native DNS query Type")
 }
 
 fn dns_resolution_type() -> StructuredInfoType {
@@ -320,12 +288,13 @@ pub fn deterministic_network_fixture() -> (DnsQuery, DnsResult, NetworkEndpoint)
         ttl: DnsTtl::known_seconds(30).expect("fixture TTL is valid"),
     };
     (
-        DnsQuery {
-            name: "fixture.local".into(),
-            port: 7,
-            record_kind: DnsRecordKind::Address,
-            transport: NetworkTransport::Tcp,
-        },
+        DnsQuery::new(
+            "fixture.local".into(),
+            7,
+            DnsRecordKind::Address,
+            NetworkTransport::Tcp,
+        )
+        .expect("bounded fixture DNS query"),
         DnsResult::Stale {
             resolution,
             age_seconds: 31,

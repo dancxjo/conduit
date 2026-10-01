@@ -75,6 +75,11 @@ type TemporalWindowPosition =
     | after
     | indeterminate
 
+type PulseObservation = {
+    sequence: U32
+    period_ms: U16
+}
+
 type CalendarRefusal =
     invalid_identity
     | invalid_text

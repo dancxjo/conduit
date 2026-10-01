@@ -113,33 +113,28 @@ fn source_destination_meaning_becomes_general_provenanced_clauses() {
     for (expected, provenance) in [
         (
             "Role file/location/source: Archive.",
-            FaceUtteranceProvenance::Subject {
-                identity: "source".into(),
-            },
+            FaceUtteranceProvenance::subject("source".into()).unwrap(),
         ),
         (
             "Archive contains report.txt.",
-            FaceUtteranceProvenance::Relationship { index: 1 },
+            FaceUtteranceProvenance::relationship(1).unwrap(),
         ),
         (
             "report.txt has relationship file/copy-destination to Backup.",
-            FaceUtteranceProvenance::Relationship { index: 0 },
+            FaceUtteranceProvenance::relationship(0).unwrap(),
         ),
         (
             "Consider Archive and Backup together.",
-            FaceUtteranceProvenance::Composition {
-                identity: "composition/source-and-destination".into(),
-            },
+            FaceUtteranceProvenance::composition("composition/source-and-destination".into())
+                .unwrap(),
         ),
         (
             "The selected report remains unchanged.",
-            FaceUtteranceProvenance::Text { index: 0 },
+            FaceUtteranceProvenance::text(0).unwrap(),
         ),
         (
             "Available action: Copy to Backup, for report.txt.",
-            FaceUtteranceProvenance::Action {
-                identity: "copy-to-destination".into(),
-            },
+            FaceUtteranceProvenance::action("copy-to-destination".into()).unwrap(),
         ),
     ] {
         let clause = plan
@@ -413,10 +408,11 @@ fn exact_inward_participation_contract_survives_aural_projection() {
             .iter()
             .find(|clause| {
                 clause.provenance
-                    == FaceUtteranceProvenance::ActionArgument {
-                        action_identity: "sample/configure".into(),
-                        argument_name: name.into(),
-                    }
+                    == FaceUtteranceProvenance::action_argument(
+                        "sample/configure".into(),
+                        name.into(),
+                    )
+                    .unwrap()
             })
             .unwrap_or_else(|| panic!("missing aural Face argument {name}"));
         assert!(clause.text.contains(expected), "{}", clause.text);
@@ -538,7 +534,7 @@ fn exact_properties_survive_both_linear_and_aural_masks() {
         let clause = properties
             .iter()
             .find(|clause| {
-                clause.provenance == FaceUtteranceProvenance::Property { index: index as u32 }
+                clause.provenance == FaceUtteranceProvenance::property(index as u32).unwrap()
             })
             .unwrap_or_else(|| panic!("missing aural property {index}"));
         assert!(clause.text.contains(expected), "{}", clause.text);

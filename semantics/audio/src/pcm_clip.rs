@@ -1,8 +1,6 @@
 //! Canonical finite PCM clip composed from exact contiguous PCM frames.
 
-use crate::{
-    PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, PCM_FRAME_HEADER_ENCODED_LEN,
-};
+use crate::{PcmClipProfile, PcmFrameHeader, PCM_FRAME_HEADER_ENCODED_LEN};
 use alloc::vec::Vec;
 
 pub const AUDIO_PCM_CLIP_INFO_ID: &str = "audio/pcm-clip@1";
@@ -26,14 +24,6 @@ pub enum PcmClipError {
     FrameCountOverflow,
     DeclaredExtentMismatch,
     TrailingBytes,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PcmClipProfile {
-    pub representation: PcmSampleRepresentation,
-    pub sample_rate_hz: u32,
-    pub layout: PcmChannelLayout,
-    pub clock_id: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,20 +129,21 @@ fn validate_frames<'a>(frames: &[&'a [u8]]) -> Result<PcmClip<'a>, PcmClipError>
         if header.discontinuity {
             return Err(PcmClipError::Discontinuity);
         }
-        let current = PcmClipProfile {
-            representation: header.representation,
-            sample_rate_hz: header.sample_rate_hz,
-            layout: header.layout,
-            clock_id: header.clock_id,
-        };
+        let current = PcmClipProfile::new(
+            header.clock_id,
+            header.layout,
+            header.representation,
+            header.sample_rate_hz,
+        )
+        .map_err(|_| PcmClipError::MalformedFrame)?;
         if let Some(first) = profile {
-            if current.representation != first.representation
-                || current.sample_rate_hz != first.sample_rate_hz
-                || current.layout != first.layout
+            if current.representation() != first.representation()
+                || current.sample_rate_hz() != first.sample_rate_hz()
+                || current.layout() != first.layout()
             {
                 return Err(PcmClipError::MixedProfile);
             }
-            if current.clock_id != first.clock_id {
+            if current.clock_id() != first.clock_id() {
                 return Err(PcmClipError::MixedClock);
             }
         } else {
@@ -185,6 +176,7 @@ fn validate_frames<'a>(frames: &[&'a [u8]]) -> Result<PcmClip<'a>, PcmClipError>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{PcmChannelLayout, PcmSampleRepresentation};
 
     fn frame(start: u64, samples: &[i16]) -> Vec<u8> {
         let payload = samples
@@ -213,7 +205,7 @@ mod tests {
         let decoded = decode_pcm_clip(&encoded).unwrap();
         assert_eq!(decoded.blocks.len(), 2);
         assert_eq!(decoded.frame_count, 5);
-        assert_eq!(decoded.profile.sample_rate_hz, 16_000);
+        assert_eq!(*decoded.profile.sample_rate_hz(), 16_000);
         assert_eq!(decoded.blocks[1].payload, &[4, 0, 5, 0]);
         assert_eq!(encode_pcm_clip(&[&first, &second]).unwrap(), encoded);
     }

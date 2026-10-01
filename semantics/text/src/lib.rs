@@ -17,7 +17,7 @@ mod generated {
 pub use generated::{
     AddressConfigurationError, AddressDetection, AddressDetectionAddressed,
     AddressDetectionRefusal, AddressValueError, MorseError, MorseKeyPhase, MorseKeyRefusal,
-    MorseKeyRefusalInvalidPattern, MorseKeyTransition,
+    MorseKeyRefusalInvalidPattern, MorseKeyTransition, MorseSegment,
 };
 
 mod addressed_utterance;

@@ -84,10 +84,7 @@ mod tests {
             period_ms: 240,
             expected_peer_sequence: 4,
         };
-        let peer = conduit_time::PulseObservation {
-            sequence: 4,
-            period_ms: 280,
-        };
+        let peer = conduit_time::PulseObservation::new(280, 4).unwrap();
         let local_bytes = conduit_time::encode_rhythm_state(local);
         let mut local_io = StepIo::test_frame(
             [Some(input(local_bytes.len())), None],

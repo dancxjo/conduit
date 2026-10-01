@@ -125,7 +125,7 @@ fn body_workbench_fixture_snapshot_with_forms(
         .append_membership_events(membership, &[(admitted, 2), (joined, 3)])
         .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
     let choice = if hosted {
-        BodyGraduationChoice::HostedPatchbay
+        BodyGraduationChoice::HostedReader
     } else {
         BodyGraduationChoice::ExternalReader
     };
@@ -135,8 +135,8 @@ fn body_workbench_fixture_snapshot_with_forms(
             sequence: 4,
             sign_id: SignId::from("sign/roseau/graduated"),
             choice,
-            patchbay_plan_id: hosted.then(|| PlanId::from(PLAN)),
-            patchbay_implementation_id: hosted.then(|| ImplementationId::from(IMPLEMENTATION)),
+            reader_plan_id: hosted.then(|| PlanId::from(PLAN)),
+            reader_implementation_id: hosted.then(|| ImplementationId::from(IMPLEMENTATION)),
         })
         .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
     let encoded = serde_json::to_vec(&evidence).map_err(BodyWorkbenchError::Encode)?;

@@ -1,8 +1,12 @@
 use super::*;
+use conduit_body::{
+    AuthenticatedHostObservation, BodyBiographyEvidence, BodyLifecycleSession, BodyMembership,
+    BodyPlayIdentity, MembershipProofId, PartId,
+};
 use conduit_core::{
-    encode_count, CheckedFormId, CheckedValueContract, ExpandedFormId, IntervalEndpoint, PlanId,
-    Quantity, QuantityUnit, SourceDocumentId, ValueConstraint, COUNT_ENCODED_LEN, COUNT_INFO_ID,
-    DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
+    bind_sign, encode_count, CheckedFormId, CheckedValueContract, ExpandedFormId, IntervalEndpoint,
+    PlanId, Quantity, QuantityUnit, SourceDocumentId, ValueConstraint, COUNT_ENCODED_LEN,
+    COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
 use conduit_form::TextPatternExpression;
 use conduit_presentation::{
@@ -297,6 +301,90 @@ fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
     (body, wake, body_plan)
 }
 
+fn production_tutorial_basis() -> (
+    BodyLifecycleSession,
+    conduit_body::Wake,
+    conduit_body::BodyPlan,
+) {
+    let host_id = HostId::from("host/browser");
+    let boot_id = BootId::from("boot/browser");
+    let planned = plan::planned_mask(
+        host_id.clone(),
+        boot_id.clone(),
+        plan::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let resident = conduit_body::ResidentForm::new(
+        planned.mask.form_identity.source_document_id.clone(),
+        planned.mask.form_identity.checked_form_id.clone(),
+    );
+    let body = conduit_body::Body::born(
+        resident.source_document_id.clone(),
+        resident.checked_form_id.clone(),
+        1,
+        SignId::from("sign/production-tutorial-born"),
+    )
+    .unwrap();
+    let mut membership = BodyMembership::new(body.body_id.clone()).unwrap();
+    let mut evidence =
+        BodyBiographyEvidence::born(body.clone(), membership.clone(), "Roseau".into()).unwrap();
+    let part = PartId::bind(&body.body_id, "browser", 1).unwrap();
+    let proof = MembershipProofId::bind("proof/browser").unwrap();
+    let admitted = membership
+        .admit(
+            &body.body_id,
+            membership.revision,
+            part.clone(),
+            proof.clone(),
+            SignId::from("sign/production-tutorial-admitted"),
+        )
+        .unwrap();
+    let present = membership
+        .observe_present(
+            &body.body_id,
+            membership.revision,
+            &part,
+            AuthenticatedHostObservation {
+                host_id: host_id.clone(),
+                boot_id: boot_id.clone(),
+                offer_generation: OfferGeneration(1),
+                proof_id: proof,
+                sequence: 1,
+            },
+            SignId::from("sign/production-tutorial-present"),
+        )
+        .unwrap();
+    evidence
+        .append_membership_events(membership, &[(admitted, 2), (present, 3)])
+        .unwrap();
+    let mut session = BodyLifecycleSession::open(evidence).unwrap();
+    let proposal = session
+        .propose(
+            vec![conduit_body::BodyFormPlan {
+                form: resident,
+                plan: planned.plan,
+            }],
+            &host_id,
+            &boot_id,
+        )
+        .unwrap()
+        .clone();
+    let play = BodyPlayIdentity::bind(&proposal.plan, 1);
+    let sign =
+        |sequence| bind_sign(&host_id, &boot_id, Some(&play.active_play_id), sequence).sign_id;
+    let wake = proposal
+        .wake
+        .body_plan_ready(&proposal.plan, sign(0))
+        .unwrap()
+        .body_play_started(&proposal.plan, &play, sign(1))
+        .unwrap();
+    session
+        .started(&host_id, &boot_id, play, wake.clone())
+        .unwrap();
+    (session, wake, proposal.plan)
+}
+
 fn face_specimens() -> Vec<FaceSpecimen> {
     serde_json::from_str(include_str!(
         "../../../../proof/conformance/presentation-waist/specimens.json"
@@ -535,6 +623,84 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     assert_eq!(journey[7].plan_id, journey[6].plan_id);
     assert!(journey[7].show_id.is_some());
     assert!(journey[9].show_id.is_some());
+}
+
+#[test]
+fn production_tutorial_face_admits_one_show_bound_browser_interaction() {
+    let (body, wake, body_plan) = production_tutorial_basis();
+    let face = conduit_tutorial_form::face_presentation(
+        &body,
+        13,
+        conduit_tutorial_form::TutorialPlayback::Playing,
+    )
+    .unwrap();
+    let action = face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/tutorial-next@1")
+        .expect("production tutorial Face exposes its current action")
+        .clone();
+    let argument = action
+        .arguments
+        .first()
+        .expect("production tutorial action owns its input contract")
+        .clone();
+    let (mut runtime, effect) = BrowserMaskRuntime::prepare(
+        body.evidence().body.body_id.clone(),
+        HostId::from("host/browser"),
+        BootId::from("boot/browser"),
+        face.clone(),
+        wake,
+        body_plan,
+    )
+    .expect("ordinary browser Mask plans the production tutorial Face");
+    runtime
+        .acknowledge(&acknowledgement(&effect))
+        .expect("exact browser acknowledgement makes the production Show available");
+
+    let proposed = |value: Vec<u8>, sequence| BrowserMaskInteraction {
+        show_id: effect.show_id.clone(),
+        presentation_id: effect.presentation_id.clone(),
+        presentation_revision: effect.presentation_revision,
+        action_id: action.identity.clone(),
+        target: action.target.clone(),
+        arguments: vec![FaceInteractionArgument {
+            name: argument.name.clone(),
+            value_kind: argument.contract.value_kind.as_str().into(),
+            value,
+        }],
+        sequence,
+    };
+
+    assert_eq!(
+        runtime.interact(&proposed(vec![b'x'; 257], 1)).unwrap_err(),
+        "browser Mask interaction refused: OversizeValue"
+    );
+    assert_eq!(
+        runtime.interact(&proposed(vec![0xff], 2)).unwrap_err(),
+        "browser Mask interaction refused: MalformedEncoding"
+    );
+    assert!(runtime.observation().interaction.is_none());
+
+    let receipt = runtime
+        .interact(&proposed(action.name.as_bytes().to_vec(), 3))
+        .expect("valid production participation crosses the ordinary Mask interaction Fore");
+    assert_eq!(receipt.semantic_action, action);
+    assert_eq!(receipt.correlation.presentation_id, face.identity);
+    assert_eq!(receipt.correlation.presentation_revision, face.revision);
+    assert_eq!(receipt.correlation.interaction.show_id, effect.show_id);
+    assert_eq!(
+        receipt.correlation.interaction.arguments[0].name,
+        "input/tutorial-action"
+    );
+    assert_eq!(
+        runtime
+            .observation()
+            .interaction
+            .expect("accepted interaction remains in bounded Mask evidence")
+            .correlation,
+        receipt.correlation
+    );
 }
 
 #[test]

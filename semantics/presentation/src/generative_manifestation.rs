@@ -1,6 +1,6 @@
 //! Candidate output and accountable semantic validation for generative Masks.
 
-use crate::GenerativePresenterRefusal;
+use crate::{GeneratedActionAffordance, GenerativePresenterRefusal};
 pub use crate::{GeneratedContentRole, GeneratedManifestationDisposition};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{BootId, CapabilityId, HostId, ImplementationId, PlacementId, PlanId};
@@ -10,13 +10,6 @@ use sha2::{Digest, Sha256};
 pub const MAX_GENERATED_CONTENT_SEGMENTS: usize = 8;
 pub const MAX_GENERATED_AFFORDANCES: usize = 32;
 pub const MAX_GENERATED_CORRELATIONS: usize = 128;
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct GeneratedActionAffordance {
-    pub action_identity: String,
-    pub source_presentation_revision: u64,
-}
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -278,8 +271,7 @@ impl GeneratedManifestationCandidate {
             hash_bytes(&mut state, &segment.bytes);
         }
         for affordance in &self.affordances {
-            hash_bytes(&mut state, affordance.action_identity.as_bytes());
-            state.update(affordance.source_presentation_revision.to_be_bytes());
+            hash_action_affordance(&mut state, affordance);
         }
         for correlation in &self.correlations {
             crate::generated_correlation::hash_correlation(&mut state, correlation);
@@ -298,4 +290,29 @@ impl GeneratedManifestationCandidate {
 fn hash_bytes(state: &mut Sha256, bytes: &[u8]) {
     state.update((bytes.len() as u64).to_be_bytes());
     state.update(bytes);
+}
+
+fn hash_action_affordance(state: &mut Sha256, affordance: &GeneratedActionAffordance) {
+    hash_bytes(state, affordance.action_identity().as_bytes());
+    state.update(affordance.source_presentation_revision().to_be_bytes());
+}
+
+#[cfg(test)]
+mod action_affordance_digest_tests {
+    use super::*;
+
+    #[test]
+    fn action_affordance_retains_the_v1_manual_digest_bytes_and_order() {
+        let value = GeneratedActionAffordance::new("lesson/answer".into(), 4).unwrap();
+        let mut state = Sha256::new();
+        hash_action_affordance(&mut state, &value);
+        assert_eq!(
+            <[u8; 32]>::from(state.finalize()),
+            [
+                0xbd, 0xbc, 0x41, 0xf3, 0x1a, 0xc5, 0xf9, 0xa9, 0xc7, 0x43, 0x34, 0x34, 0x89, 0x21,
+                0x28, 0x7f, 0x7f, 0x7a, 0x7f, 0x05, 0xe7, 0xd5, 0x58, 0x57, 0x3c, 0xe3, 0x0e, 0xf2,
+                0x74, 0xc3, 0xc3, 0xe1,
+            ]
+        );
+    }
 }

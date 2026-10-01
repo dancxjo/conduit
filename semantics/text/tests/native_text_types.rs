@@ -1,5 +1,7 @@
 use conduit_form::rust_binding::NativeRustBinding;
-use conduit_text::{AddressDetection, AddressDetectionRefusal, MorseKeyPhase, MorseKeyTransition};
+use conduit_text::{
+    AddressDetection, AddressDetectionRefusal, MorseKeyPhase, MorseKeyTransition, MorseSegment,
+};
 
 #[test]
 fn morse_key_phase_round_trips_through_its_exact_native_type() {
@@ -11,6 +13,17 @@ fn morse_key_phase_round_trips_through_its_exact_native_type() {
         );
         assert_eq!(MorseKeyPhase::from_structured(structured).unwrap(), phase);
     }
+}
+
+#[test]
+fn morse_segment_round_trips_through_its_exact_native_record() {
+    let segment = MorseSegment::new(true, 3).unwrap();
+    let structured = segment.clone().into_structured().unwrap();
+    assert_eq!(
+        structured.value_type(),
+        &MorseSegment::semantic_type().unwrap()
+    );
+    assert_eq!(MorseSegment::from_structured(structured).unwrap(), segment);
 }
 
 #[test]

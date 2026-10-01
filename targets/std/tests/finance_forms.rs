@@ -106,8 +106,8 @@ fn cross_currency_requires_one_explicit_exact_rate_observation() {
         Err(FinanceRefusal::MalformedInfo)
     );
     let rate = deterministic_rate_observation().unwrap();
-    assert_eq!(rate.source, "fixture/ecb-reference");
-    assert_eq!(rate.profile, "finance/exact-decimal-rate@1");
+    assert_eq!(rate.source().get(), "fixture/ecb-reference");
+    assert_eq!(rate.profile().get(), "finance/exact-decimal-rate@1");
     assert_eq!(
         convert_money(dollars, &rate),
         Err(FinanceRefusal::RatePairMismatch)

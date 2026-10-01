@@ -35,8 +35,8 @@ fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
             sequence: 2,
             sign_id: SignId::from("sign/graduated"),
             choice: BodyGraduationChoice::ExternalReader,
-            patchbay_plan_id: None,
-            patchbay_implementation_id: None,
+            reader_plan_id: None,
+            reader_implementation_id: None,
         })
         .unwrap();
 

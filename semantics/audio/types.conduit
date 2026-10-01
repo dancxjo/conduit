@@ -25,6 +25,12 @@ type MusicalControl =
         destination: ModulationDestination
     }
 
+type MusicalControlEvent = {
+    control: MusicalControl
+    event-time-micros: U64 in 0..=18446744073709551614
+    order: U32
+}
+
 type PcmSampleRepresentation =
     signed16-little-endian
     | signed24-little-endian
@@ -33,6 +39,13 @@ type PcmSampleRepresentation =
 type PcmChannelLayout =
     mono
     | stereo-left-right
+
+type PcmClipProfile = {
+    representation: PcmSampleRepresentation
+    sample-rate-hz: U32 in 8000..=192000
+    layout: PcmChannelLayout
+    clock-id: U64 in 1..=18446744073709551615
+}
 
 type PressureDisposition =
     wait_without_consumption

@@ -155,7 +155,6 @@ export function decideReleaseLane(snapshot, options = {}) {
     close: [],
     start: null,
     finalize: [],
-    escalate: [],
   };
 
   for (const item of classified) {
@@ -232,17 +231,6 @@ export function decideReleaseLane(snapshot, options = {}) {
       ...retainedQueue.classification.evidence,
       state: "queued",
     });
-  }
-
-  for (const stuck of classified.filter(({ classification }) => classification.state === "stuck")) {
-    const key = `release-stuck:${stuck.classification.evidence.runId}`;
-    if (!(snapshot.escalations ?? []).includes(key)) {
-      actions.escalate.push({
-        key,
-        reason: stuck.classification.reason,
-        ...stuck.classification.evidence,
-      });
-    }
   }
 
   return {
