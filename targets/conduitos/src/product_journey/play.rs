@@ -218,6 +218,7 @@ impl ProductJourney {
             let control = crate::mask_control::MaskControl::graphical(
                 self.host_id.clone(),
                 self.boot_id.clone(),
+                self.surface_provider.take(),
             )
             .map_err(|_| JourneyError::Kernel)?;
             let selector = crate::mask_control::patchbay_selector(prepared.plan())

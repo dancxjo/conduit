@@ -208,10 +208,10 @@ impl FiniteHostedVisionBase {
         let disposition = if text_end == original_bytes {
             VisualImpressionDisposition::Complete
         } else {
-            VisualImpressionDisposition::Truncated {
-                original_bytes: u32::try_from(original_bytes)
-                    .map_err(|_| HostedVisionRefusal::InvalidOutput)?,
-            }
+            VisualImpressionDisposition::truncated(
+                u32::try_from(original_bytes).map_err(|_| HostedVisionRefusal::InvalidOutput)?,
+            )
+            .map_err(|_| HostedVisionRefusal::InvalidOutput)?
         };
         let impression = VisualImpression {
             source_image: source_image.clone(),

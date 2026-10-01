@@ -204,7 +204,7 @@ fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> Ret
     let temporal_evidence = temporal_evidence(case);
     let outcome = HybridFusionPolicy {
         identity: "fusion/r6-explicit-rrf@1".into(),
-        strategy: FusionStrategy::ReciprocalRank { rank_constant: 60 },
+        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
         required_mechanisms: case.mechanisms.clone(),
         temporal_hard_filter: case.hard_filter.clone(),
         maximum_candidates_per_stage: 16,

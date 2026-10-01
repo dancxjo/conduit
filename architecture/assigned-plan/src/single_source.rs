@@ -9,8 +9,8 @@ use crate::{
     sha256, AssignedIdentity, AssignedPlanMaxima, AssignedPlanRefusal, AssignedPlanView,
     ASSIGNED_CONFIGURATION, ASSIGNED_CORD, ASSIGNED_HOST_CALL, ASSIGNED_NODE,
     ASSIGNED_PLAN_COUNT_KINDS, ASSIGNED_PLAN_HEADER_BYTES, ASSIGNED_PLAN_SCHEMA, ASSIGNED_PORT,
-    ASSIGNED_REMOTE_ENDPOINT, ASSIGNED_RESOURCE, ASSIGNED_ROUTE, ASSIGNED_ROUTE_TARGET,
-    ASSIGNED_SIGN, ASSIGNED_STARTUP, ASSIGNED_TERMINAL, MAGIC,
+    ASSIGNED_REMOTE_ENDPOINT, ASSIGNED_RESOURCE, ASSIGNED_RESOURCE_CORD, ASSIGNED_ROUTE,
+    ASSIGNED_ROUTE_TARGET, ASSIGNED_SIGN, ASSIGNED_STARTUP, ASSIGNED_TERMINAL, MAGIC,
 };
 
 #[derive(Clone, Copy)]
@@ -75,7 +75,7 @@ fn validate_envelope(
         return Err(AssignedPlanRefusal::WrongBoot);
     }
     let mut counts = [0; ASSIGNED_PLAN_COUNT_KINDS];
-    counts.copy_from_slice(&bytes[80..92]);
+    counts.copy_from_slice(&bytes[80..80 + ASSIGNED_PLAN_COUNT_KINDS]);
     if counts != required.counts {
         return Err(AssignedPlanRefusal::ExtraRecords);
     }
@@ -86,7 +86,9 @@ fn validate_envelope(
         }
         index += 1;
     }
-    if sha256::digest(&bytes[ASSIGNED_PLAN_HEADER_BYTES..]) != bytes[92..124] {
+    let digest_start = 80 + ASSIGNED_PLAN_COUNT_KINDS;
+    let digest_end = digest_start + 32;
+    if sha256::digest(&bytes[ASSIGNED_PLAN_HEADER_BYTES..]) != bytes[digest_start..digest_end] {
         return Err(AssignedPlanRefusal::DigestMismatch);
     }
     Ok(())
@@ -104,7 +106,7 @@ fn decode_records(
     let host = identity_at(bytes, 48)?;
     let boot = identity_at(bytes, 64)?;
     let mut counts = [0; ASSIGNED_PLAN_COUNT_KINDS];
-    counts.copy_from_slice(&bytes[80..92]);
+    counts.copy_from_slice(&bytes[80..80 + ASSIGNED_PLAN_COUNT_KINDS]);
     let mut seen = [0_u8; ASSIGNED_PLAN_COUNT_KINDS];
     let mut resources = [false; 8];
     if required.resources.len() > resources.len() {
@@ -178,7 +180,7 @@ fn decode_records(
                     }
                 }
             }
-            ASSIGNED_SIGN => length == 37 && payload[34] <= 2,
+            ASSIGNED_SIGN => length == 37 && payload[34] <= 3,
             ASSIGNED_STARTUP => {
                 (length == 5 && payload[0] == 0) || (length == 3 && payload[0] == 1)
             }
@@ -187,7 +189,8 @@ fn decode_records(
             | ASSIGNED_CORD
             | ASSIGNED_ROUTE
             | ASSIGNED_ROUTE_TARGET
-            | ASSIGNED_REMOTE_ENDPOINT => false,
+            | ASSIGNED_REMOTE_ENDPOINT
+            | ASSIGNED_RESOURCE_CORD => false,
             _ => false,
         };
         if !valid {
@@ -255,7 +258,7 @@ mod tests {
     extern crate std;
     use self::std::vec::Vec;
 
-    const COUNTS: [u8; ASSIGNED_PLAN_COUNT_KINDS] = [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2];
+    const COUNTS: [u8; ASSIGNED_PLAN_COUNT_KINDS] = [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2, 0];
 
     #[test]
     fn exact_single_source_profile_accepts_one_generic_plan_and_refuses_inventory_drift() {
@@ -332,7 +335,7 @@ mod tests {
         bytes[32..48].copy_from_slice(&[2; 16]);
         bytes[48..64].copy_from_slice(&[3; 16]);
         bytes[64..80].copy_from_slice(&[4; 16]);
-        bytes[80..92].copy_from_slice(&COUNTS);
+        bytes[80..80 + ASSIGNED_PLAN_COUNT_KINDS].copy_from_slice(&COUNTS);
         bytes.extend_from_slice(&records);
         let length = bytes.len() as u16;
         bytes[10..12].copy_from_slice(&length.to_le_bytes());
@@ -348,6 +351,7 @@ mod tests {
 
     fn refresh_digest(bytes: &mut [u8]) {
         let digest = sha256::digest(&bytes[ASSIGNED_PLAN_HEADER_BYTES..]);
-        bytes[92..124].copy_from_slice(&digest);
+        let digest_start = 80 + ASSIGNED_PLAN_COUNT_KINDS;
+        bytes[digest_start..digest_start + 32].copy_from_slice(&digest);
     }
 }

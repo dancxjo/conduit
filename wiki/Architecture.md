@@ -35,20 +35,34 @@ KindPath := Name ("/" Name)+
 
 Apply ordinary identifier/source-size bounds rather than a small aesthetic depth limit.
 
-**Fore** is the canonical architecture noun for the stable checked callable boundary of a Kind/Form:
+**Fore** is the canonical user-facing noun for the checked callable signature of a Kind/Plot:
 
 ~~~text
-Kind = semantic meaning
-Fore = how the Kind/Form is called
-Back = one realization behind that Fore
-Face = the Body's human-facing semantic encounter and control grammar
+Kind = semantic meaning of the work
+Fore = the function-like signature through which it is called
+Back = one concrete realization compatible with that Fore
 ~~~
 
-A Kind/Form has a Fore and a Back. A Body has a Face.
+The Fore is not merely an internal compiler boundary. It is the callable surface presented to authors. For an authored Plot, the parenthesized declaration is its Fore; catalog Kinds expose the same concept.
 
-`Fore` is architecture/spec vocabulary; it need not appear as an authored keyword. The parenthesized Form boundary is its Fore.
+A checked Fore includes the public calling facts that participate in functional compatibility:
 
-Shared Fore shape alone does not make different Kinds substitutable.
+~~~text
+startup parameters
+  names, order, value types, required/default shape
+
+runtime ports
+  names, directions, value types, temporal shapes
+
+declared shorthand
+  input -> output path, where present
+~~~
+
+`fore` need not be a literal source keyword for the concept to be user-facing: the signature itself is the Fore.
+
+**Face is unrelated to Fore.** Face belongs to the separate human-interaction/presentation architecture; it is not a renamed callable boundary and should not be taught as part of this vocabulary lineage.
+
+Shared Fore shape alone does not make different Kinds semantically substitutable. Equal Fores mean they can be called the same way; semantic contract identity says whether they mean the same work.
 
 Provenance: #3998, #4037.
 
@@ -62,10 +76,10 @@ Keep each noun at one altitude:
 
 ~~~text
 Kind      semantic contract: what something means
-Fore      stable checked callable boundary of a Kind/Form
-Back      one realization of that Kind/Fore
+Fore      user-visible checked callable signature of a Kind/Plot
+Back      one concrete realization compatible with that Kind/Fore
 Gear      one configured occurrence/invocation of a Kind in a Form
-Port      typed directional semantic point on a Gear/Fore
+Port      typed directional point named by a Fore and used by a Gear
 Cord      semantic connection between compatible Ports
 info      general typed/structured value carried through Cords
 data      independently addressable content generation (section 6A), not the generic payload noun
@@ -99,8 +113,8 @@ Historical tickets may contain earlier nouns. Current meaning is:
 
 ~~~text
 generic architectural Data     -> info
-old semantic Face/Front        -> fore (callable Kind/Form boundary)
-Body human-facing semantic surface -> face
+old/internal callable Front    -> fore (user-visible callable signature)
+Body human-facing semantic surface -> face (separate presentation concept; unrelated to fore)
 Presenter                      -> mask
 presentation Manifestation     -> show
 HostOperation                  -> host call

@@ -13,6 +13,11 @@ pub struct RustBindingOptions {
     /// This never participates in semantic identity and requires the consuming
     /// crate to provide `serde` with derive support.
     pub derive_serde_for_variants: bool,
+    /// Optional Rust enum declaration order for preserving an established
+    /// Serde variant-index ABI. Keys are authored Type names and values are an
+    /// exhaustive, unique list of authored variant tags. This is binding-only
+    /// compatibility truth and never changes native Type identity.
+    pub serde_variant_orders: BTreeMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -239,8 +244,32 @@ fn emit_type(
             writeln!(out, "}}\n").expect("String writing is infallible");
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
-            let unit_only = cases.iter().all(|case| unit_type(case.payload_type()));
-            for case in cases {
+            let ordered_cases =
+                if let Some(order) = options.serde_variant_orders.get(&value_type.name) {
+                    if order.len() != cases.len() {
+                        return Err(RustBindingGenerationError::InvalidSemanticType);
+                    }
+                    let mut seen = BTreeSet::new();
+                    let mut ordered = Vec::with_capacity(cases.len());
+                    for tag in order {
+                        if !seen.insert(tag) {
+                            return Err(RustBindingGenerationError::InvalidSemanticType);
+                        }
+                        ordered.push(
+                            cases
+                                .iter()
+                                .find(|case| case.tag() == tag)
+                                .ok_or(RustBindingGenerationError::InvalidSemanticType)?,
+                        );
+                    }
+                    ordered
+                } else {
+                    cases.iter().collect::<Vec<_>>()
+                };
+            let unit_only = ordered_cases
+                .iter()
+                .all(|case| unit_type(case.payload_type()));
+            for case in &ordered_cases {
                 if matches!(
                     case.payload_type().shape(),
                     StructuredInfoTypeShape::Record { .. }
@@ -255,7 +284,7 @@ fn emit_type(
                     )?;
                 }
             }
-            let copy_payloads = cases.iter().all(|case| {
+            let copy_payloads = ordered_cases.iter().all(|case| {
                 !matches!(
                     case.payload_type().shape(),
                     StructuredInfoTypeShape::Record { .. }
@@ -276,7 +305,7 @@ fn emit_type(
             };
             writeln!(out, "#[derive({derives})]\npub enum {rust_name} {{")
                 .expect("String writing is infallible");
-            for case in cases {
+            for case in &ordered_cases {
                 let variant = rust_pascal_identifier(case.tag())?;
                 if unit_type(case.payload_type()) {
                     writeln!(out, "    {variant},").expect("String writing is infallible");

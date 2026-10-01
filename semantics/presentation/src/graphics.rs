@@ -1,9 +1,9 @@
 //! Fixed-capacity graphical leaf obligations below semantic presentation.
 
 use crate::{
-    GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode,
-    GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole, GraphicsTextRoleCode, LayoutRect,
-    PresentationIconKey, MAX_LAYOUT_EXTENT,
+    GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
+    GraphicsPaintRoleCode, GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole,
+    GraphicsTextRoleCode, LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT,
 };
 mod path;
 pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
@@ -19,13 +19,6 @@ pub const MAX_GRAPHICS_SCENE_BYTES: usize =
 // Version 2 carries one explicit graphical text-role byte per command. Old
 // scene encodings refuse rather than silently changing text layout on replay.
 const VERSION: u8 = 2;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GraphicsClipClass {
-    FullyVisible,
-    PartiallyClipped,
-    FullyClipped,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GraphicsError {

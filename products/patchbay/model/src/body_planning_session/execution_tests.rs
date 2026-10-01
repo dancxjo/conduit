@@ -1,6 +1,8 @@
-use super::*;
+use crate::FormCandidate;
 use conduit_body::{
-    Body, BodyLifecycleError, RemoteProofClass, Wake, WakeLifecycle, MAX_WAKE_PLANS,
+    Body, BodyExecutionClaim, BodyExecutionClaimError, BodyLifecycleError, BodyPlanningSession,
+    BodyPlanningSessionError, BodyPlanningTransition, BodyWorkset, RemoteProofClass, Wake,
+    WakeLifecycle, MAX_WAKE_PLANS,
 };
 use conduit_core::{bind_sign, SignId};
 
@@ -20,9 +22,10 @@ fn proposal() -> BodyPlanningSession {
     );
     let workset = BodyWorkset::one(resident).unwrap();
     let host = conduit_std_host::StdHost::new();
-    let forms = plan_body_workset_on_host(
+    let planning = candidate.body_planning_form().unwrap();
+    let forms = conduit_body_make::plan_body_workset_on_host(
         &workset,
-        &[candidate],
+        &[planning],
         host.advertisement(),
         &["conduit.base/local@1".into()],
     )

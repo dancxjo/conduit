@@ -1,7 +1,9 @@
 use super::Parser;
 use crate::prelude::*;
 use crate::surface_lex::{is_name, top_level_positions};
-use crate::syntax::{ConstructionRole, ConstructionSyntax, LocalValue};
+use crate::syntax::{
+    ConstructionDirectiveSyntax, ConstructionRole, ConstructionSyntax, LocalValue,
+};
 use crate::{eof_span, FormError, Span};
 
 pub(super) fn parse_construction(
@@ -32,6 +34,7 @@ pub(super) fn parse_construction(
     let start = header_start;
     parser.index += 1;
     let mut declarations = Vec::new();
+    let mut directives = Vec::new();
     while parser.index < parser.lines.len() {
         let line = parser.lines[parser.index];
         let (text, line_start) = line.statement();
@@ -41,6 +44,7 @@ pub(super) fn parse_construction(
                 role,
                 name: parser.spanned(name_text, name_start),
                 declarations,
+                directives,
                 span: parser.span(start, line.start + line.text.len()),
             });
         }
@@ -49,6 +53,13 @@ pub(super) fn parse_construction(
             continue;
         }
         let Some(equal) = top_level_positions(text, '=').first().copied() else {
+            if role == ConstructionRole::Body {
+                if let Some(directive) = parse_body_directive(parser, text, line_start) {
+                    directives.push(directive?);
+                    parser.index += 1;
+                    continue;
+                }
+            }
             return Err(parser.invalid_statement(text, line_start));
         };
         let name = text[..equal].trim();
@@ -64,4 +75,38 @@ pub(super) fn parse_construction(
         parser.index += 1;
     }
     Err((FormError::MissingBlockEnd, eof_span(parser.source)))
+}
+
+fn parse_body_directive(
+    parser: &Parser<'_>,
+    text: &str,
+    line_start: usize,
+) -> Option<Result<ConstructionDirectiveSyntax, (FormError, Span)>> {
+    if let Some(value) = text.strip_prefix("wear ") {
+        let parts = value.split(" else ").collect::<Vec<_>>();
+        if parts.len() > 2 || parts.iter().any(|part| !is_name(part.trim())) {
+            return Some(Err(parser.invalid_statement(text, line_start)));
+        }
+        let mask = parts[0].trim();
+        let fallback = parts.get(1).map(|value| value.trim());
+        return Some(Ok(ConstructionDirectiveSyntax::BodyWear {
+            mask: parser.spanned_at(mask, text, line_start),
+            fallback: fallback.map(|value| parser.spanned_at(value, text, line_start)),
+            span: parser.span(line_start, line_start + text.len()),
+        }));
+    }
+    if let Some(value) = text.strip_prefix("want ") {
+        let masks = value.split(" over ").map(str::trim).collect::<Vec<_>>();
+        if masks.len() < 2 || masks.iter().any(|mask| !is_name(mask)) {
+            return Some(Err(parser.invalid_statement(text, line_start)));
+        }
+        return Some(Ok(ConstructionDirectiveSyntax::BodyWant {
+            masks: masks
+                .into_iter()
+                .map(|mask| parser.spanned_at(mask, text, line_start))
+                .collect(),
+            span: parser.span(line_start, line_start + text.len()),
+        }));
+    }
+    None
 }

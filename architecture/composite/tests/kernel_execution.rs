@@ -1,13 +1,19 @@
 use conduit_composite::{
     BoundedActivationAdmission, BoundedActivationHost, BoundedActivationState,
-    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost, KernelCompositeStatus,
-    KernelOperationBudget, KernelOperationFactory, KernelOperationRegistry,
+    BoundedFoldActivationHost, BoundedFoldState, BoundedScanActivationHost, BoundedScanAdmission,
+    BoundedScanState, KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
+    KernelCompositeStatus, KernelOperationBudget, KernelOperationFactory, KernelOperationRegistry,
 };
 use conduit_core::{
     kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
     CapabilityLimits, FailureReason, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor, PortDirection,
-    ValuePayload, PROTOCOL_VERSION,
+    ImplementationId, KindIdentity, OfferGeneration, PlacementId, PlannedActivation,
+    PlannedActivationCancellationPolicy, PlannedActivationFront, PlannedActivationLimits,
+    PlannedActivationTerminalPolicy, PlannedFoldAbnormalPolicy, PlannedFoldActivation,
+    PlannedFoldCancellationPolicy, PlannedFoldTerminalPolicy, PlannedGear,
+    PlannedScanAbnormalPolicy, PlannedScanActivation, PlannedScanCancellationPolicy,
+    PlannedScanTerminalPolicy, PortDescriptor, PortDirection, SignStorageBudget, ValuePayload,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
@@ -19,6 +25,8 @@ use std::collections::BTreeMap;
 const ECHO_KIND: &str = "test/kernel-composite-echo";
 const VALUE_KIND: &str = "value/bytes";
 const IMPLEMENTATION: &str = "test/kernel-composite-echo-v1";
+const COMBINE_KIND: &str = "test/kernel-composite-combine";
+const COMBINE_IMPLEMENTATION: &str = "test/kernel-composite-combine-v1";
 
 fn descriptor(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
@@ -181,6 +189,8 @@ struct Echo;
 
 struct Fail;
 
+struct Combine;
+
 impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Fail {
     fn step(
         &mut self,
@@ -225,6 +235,73 @@ impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Echo {
     }
 }
 
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Combine {
+    fn step(
+        &mut self,
+        io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        _input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        match (io.input(KernelPortId(0)), io.input(KernelPortId(1))) {
+            (Some(_accumulator), Some(item)) => {
+                if !io.output_ready(KernelPortId(0)) {
+                    return StepOutcome::Await;
+                }
+                if io.consume(KernelPortId(0)).is_err()
+                    || io.consume(KernelPortId(1)).is_err()
+                    || io.send(KernelPortId(0), item).is_err()
+                {
+                    return StepOutcome::Fail(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::InvalidLifecycle,
+                        detail: 20,
+                    });
+                }
+                StepOutcome::Progress
+            }
+            (None, None)
+                if io.input_closed(KernelPortId(0)) && io.input_closed(KernelPortId(1)) =>
+            {
+                if io.consume_closed(KernelPortId(0)).is_err()
+                    || io.consume_closed(KernelPortId(1)).is_err()
+                {
+                    return StepOutcome::Fail(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::InvalidLifecycle,
+                        detail: 21,
+                    });
+                }
+                StepOutcome::Complete
+            }
+            _ => StepOutcome::Await,
+        }
+    }
+}
+
+struct CombineFactory;
+
+impl KernelOperationFactory for CombineFactory {
+    fn implementation_id(&self) -> &ImplementationId {
+        static ID: std::sync::OnceLock<ImplementationId> = std::sync::OnceLock::new();
+        ID.get_or_init(|| COMBINE_IMPLEMENTATION.into())
+    }
+
+    fn budget(&self, _placement: &PlannedGear) -> Result<KernelOperationBudget, String> {
+        Ok(KernelOperationBudget {
+            value_items: 0,
+            value_bytes: 0,
+            maximum_value_bytes: 16,
+            host_requests: 0,
+            sign_items: 8,
+        })
+    }
+
+    fn prepare(
+        &self,
+        _placement: &PlannedGear,
+        _values: &mut HostedValueStore,
+    ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
+        Ok(Box::new(Combine))
+    }
+}
+
 fn registry() -> KernelOperationRegistry {
     let mut registry = KernelOperationRegistry::new();
     registry
@@ -252,6 +329,382 @@ fn value(bytes: &[u8]) -> ValuePayload {
         value_kind: kind_id(VALUE_KIND),
         encoded: bytes.to_vec(),
     }
+}
+
+fn fold_definition() -> KernelCompositeDefinition {
+    fold_definition_with_abnormal(None)
+}
+
+fn fold_definition_with_abnormal(
+    abnormal: Option<conduit_core::KindId>,
+) -> KernelCompositeDefinition {
+    let with_abnormal = |name, direction| descriptor(name, direction);
+    let accumulator = with_abnormal("accumulator", PortDirection::Input);
+    let item = with_abnormal("item", PortDirection::Input);
+    let combined = with_abnormal("combined", PortDirection::Output);
+    let mut catalog = ProfileCatalog::new();
+    catalog
+        .insert(KindProjection {
+            kind_id: kind_id(COMBINE_KIND),
+            kind_contract_revision: KindIdentity::from("test/kernel-composite-combine@1"),
+            inputs: vec![accumulator.clone(), item.clone()],
+            outputs: vec![combined.clone()],
+            configuration: vec![],
+        })
+        .unwrap();
+    let form = parse(
+        "form test/fold-combine (\n >> accumulator: value/bytes\n >> item: value/bytes\n combined: value/bytes >>\n) {\n combine: test/kernel-composite-combine\n accumulator >> combine.accumulator\n item >> combine.item\n combine.combined >> combined\n}\n",
+        &catalog,
+    )
+    .unwrap();
+    let mut host = advertisement("combine-child", "combine-boot");
+    host.capabilities[0].capability_id = CapabilityId::from("combine");
+    host.capabilities[0].kind_id = kind_id(COMBINE_KIND);
+    host.capabilities[0].kind_contract_revision =
+        KindIdentity::from("test/kernel-composite-combine@1");
+    host.capabilities[0].implementation.implementation_id = COMBINE_IMPLEMENTATION.into();
+    host.capabilities[0].inputs = vec![accumulator, item];
+    host.capabilities[0].outputs = vec![combined];
+    let placements = PlacementChoices {
+        by_gear: BTreeMap::from([(
+            GearId::from("test/fold-combine/combine"),
+            PlacementChoice {
+                host_id: host.host_id.clone(),
+                capability_id: CapabilityId::from("combine"),
+            },
+        )]),
+    };
+    let internal_plan = plan_with_line_offers(
+        &form,
+        &[host],
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        2,
+        16,
+        &[],
+    )
+    .unwrap();
+    let mut definition = KernelCompositeDefinition::from_authored_export(
+        HostId::from("fold-composite"),
+        BootId::from("fold-composite-boot"),
+        OfferGeneration(1),
+        HostProfileId::from("composite/kernel"),
+        ImplementationId::from("composite/kernel-fold-v1"),
+        ArtifactId::from("composite/kernel-fold-artifact-v1"),
+        &form,
+        &CapabilityId::from("run"),
+        internal_plan,
+        FailureReason::CompositeCapabilityFailed,
+    )
+    .unwrap();
+    if let Some(abnormal) = abnormal {
+        for fragment in &mut definition.internal_plan.fragments {
+            for front in &mut fragment.fore_ports {
+                front.abnormal_kind = Some(abnormal.clone());
+            }
+        }
+        let plan = &definition.internal_plan;
+        definition.internal_plan = conduit_core::seal_plan_with_activation_entries(
+            conduit_core::FormIdentity {
+                source_document_id: plan.source_document_id.clone(),
+                checked_form_id: plan.checked_form_id.clone(),
+                expanded_form_id: plan.expanded_form_id.clone(),
+            },
+            plan.completion_policy,
+            plan.realization_backs.clone(),
+            plan.activations.clone(),
+            plan.fragments.clone(),
+        );
+        for front in definition
+            .boundary
+            .input_fronts
+            .iter_mut()
+            .chain(definition.boundary.output_fronts.iter_mut())
+        {
+            front.external_port.abnormal_kind = Some(abnormal.clone());
+        }
+    }
+    definition
+}
+
+fn fold_registry() -> KernelOperationRegistry {
+    let mut registry = KernelOperationRegistry::new();
+    registry.install(CombineFactory).unwrap();
+    registry
+}
+
+fn planned_fold(definition: &KernelCompositeDefinition) -> PlannedFoldActivation {
+    let sign_budget = definition.internal_plan.fragments.iter().fold(
+        SignStorageBudget {
+            item_capacity: 0,
+            byte_capacity: 0,
+        },
+        |mut total, fragment| {
+            total.item_capacity += fragment.sign_storage_budget.item_capacity;
+            total.byte_capacity += fragment.sign_storage_budget.byte_capacity;
+            total
+        },
+    );
+    let front = |name| PlannedActivationFront {
+        front_port_id: conduit_core::port_id(name),
+        value_kind: kind_id(VALUE_KIND),
+        abnormal_kind: None,
+    };
+    PlannedFoldActivation {
+        activation_id: "flow/fold-combine".into(),
+        owner_placement_id: PlacementId::from("flow/fold"),
+        selected_plan_id: definition.internal_plan.plan_id.clone(),
+        selected_plan: Box::new(definition.internal_plan.clone()),
+        accumulator_input: front("accumulator"),
+        item_input: front("item"),
+        output: front("combined"),
+        initial_accumulator: b"0".to_vec(),
+        retained_accumulator_bytes: 16,
+        retained_item_bytes: 16,
+        limits: PlannedActivationLimits {
+            maximum_items: 2,
+            maximum_active: 1,
+            maximum_queue_items: 1,
+            maximum_queue_bytes: 64,
+        },
+        terminal_policy: PlannedFoldTerminalPolicy::DrainThenEmitAccumulatorExactlyOnce,
+        abnormal_policy: PlannedFoldAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+        cancellation_policy: PlannedFoldCancellationPolicy::DiscardAccumulatorWithoutEmission,
+        effect_multiplicity:
+            conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+        per_activation_sign_budget: sign_budget,
+    }
+}
+
+fn run_fold_to_ready(host: &mut BoundedFoldActivationHost) {
+    for _ in 0..128 {
+        if *host.step().unwrap() == BoundedFoldState::FinalReady {
+            return;
+        }
+    }
+    panic!("bounded fold did not drain to its final value")
+}
+
+#[test]
+fn bounded_fold_empty_emits_initial_exactly_once() {
+    let definition = fold_definition();
+    let mut host = BoundedFoldActivationHost::prepare(
+        &planned_fold(&definition),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    let capacities = host.allocation_capacities();
+    assert_eq!(capacities, (2, 2));
+    host.close_input().unwrap();
+    assert_eq!(host.final_value().unwrap(), Some(value(b"0")));
+    assert_eq!(host.final_value().unwrap(), None);
+}
+
+#[test]
+fn bounded_fold_orders_two_items_and_bounds_one_queued_item() {
+    let definition = fold_definition();
+    let mut host = BoundedFoldActivationHost::prepare(
+        &planned_fold(&definition),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    let capacities = host.allocation_capacities();
+    assert_eq!(capacities, (2, 2));
+    assert_eq!(
+        host.admit(&value(b"1")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"2")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::Full
+    );
+    for _ in 0..128 {
+        if *host.step().unwrap() == BoundedFoldState::Idle {
+            break;
+        }
+    }
+    assert_eq!(host.allocation_capacities(), capacities);
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::MaximumItemsExceeded { maximum_items: 2 }
+    );
+    host.close_input().unwrap();
+    run_fold_to_ready(&mut host);
+    assert_eq!(host.final_value().unwrap(), Some(value(b"2")));
+    assert_eq!(host.final_value().unwrap(), None);
+}
+
+#[test]
+fn bounded_fold_abnormal_and_cancel_discard_without_partial_value() {
+    let abnormal = kind_id("failure/fold");
+    let definition = fold_definition_with_abnormal(Some(abnormal.clone()));
+    let mut planned = planned_fold(&definition);
+    planned.accumulator_input.abnormal_kind = Some(abnormal.clone());
+    planned.item_input.abnormal_kind = Some(abnormal.clone());
+    planned.output.abnormal_kind = Some(abnormal.clone());
+
+    let mut host =
+        BoundedFoldActivationHost::prepare(&planned, definition.clone(), &fold_registry()).unwrap();
+    host.admit(&value(b"1")).unwrap();
+    host.cancel().unwrap();
+    assert_eq!(*host.step().unwrap(), BoundedFoldState::Cancelled);
+    assert_eq!(host.final_value().unwrap(), None);
+
+    let mut host =
+        BoundedFoldActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
+    host.admit(&value(b"1")).unwrap();
+    let terminal = ValuePayload {
+        value_kind: abnormal,
+        encoded: b"exact".to_vec(),
+    };
+    host.terminate_input(terminal.clone()).unwrap();
+    assert_eq!(*host.step().unwrap(), BoundedFoldState::Abnormal(terminal));
+    assert_eq!(host.final_value().unwrap(), None);
+}
+
+fn planned_scan(
+    definition: &KernelCompositeDefinition,
+    maximum_items: u16,
+) -> PlannedScanActivation {
+    let fold = planned_fold(definition);
+    PlannedScanActivation {
+        activation_id: "flow/scan-combine".into(),
+        owner_placement_id: PlacementId::from("flow/scan"),
+        selected_plan_id: fold.selected_plan_id,
+        selected_plan: fold.selected_plan,
+        accumulator_input: fold.accumulator_input,
+        item_input: fold.item_input,
+        output: fold.output,
+        initial_accumulator: fold.initial_accumulator,
+        retained_accumulator_bytes: fold.retained_accumulator_bytes,
+        retained_item_bytes: fold.retained_item_bytes,
+        limits: PlannedActivationLimits {
+            maximum_items,
+            ..fold.limits
+        },
+        terminal_policy: PlannedScanTerminalPolicy::DrainThenCloseWithoutExtraEmission,
+        abnormal_policy: PlannedScanAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+        cancellation_policy: PlannedScanCancellationPolicy::DiscardAccumulatorWithoutEmission,
+        effect_multiplicity: fold.effect_multiplicity,
+        per_activation_sign_budget: fold.per_activation_sign_budget,
+    }
+}
+
+fn drain_scan_output(host: &mut BoundedScanActivationHost) -> ValuePayload {
+    for _ in 0..128 {
+        if *host.step().unwrap() == BoundedScanState::OutputReady {
+            break;
+        }
+    }
+    let mut output = ValuePayload {
+        value_kind: kind_id(VALUE_KIND),
+        encoded: Vec::with_capacity(16),
+    };
+    assert!(host.output_into(&mut output).unwrap());
+    host.complete_output().unwrap();
+    output
+}
+
+#[test]
+fn bounded_scan_repeated_n_emits_each_progression_without_growth_or_extra_values() {
+    let definition = fold_definition();
+    let mut host = BoundedScanActivationHost::prepare(
+        &planned_scan(&definition, 2),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    let pools = host.allocation_capacities();
+    let storage = host.storage_capacities();
+    assert!(!host.output_into(&mut value(b"")).unwrap());
+    assert_eq!(
+        host.admit(&value(b"1")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"1"));
+    assert_eq!(
+        host.admit(&value(b"2")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"2"));
+    assert_eq!(host.allocation_capacities(), pools);
+    assert_eq!(host.storage_capacities(), storage);
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        BoundedScanAdmission::MaximumItemsExceeded { maximum_items: 2 }
+    );
+    host.close_input().unwrap();
+    assert_eq!(*host.step().unwrap(), BoundedScanState::Complete);
+    assert!(!host.output_into(&mut value(b"")).unwrap());
+}
+
+#[test]
+fn bounded_scan_distinguishes_pressure_from_n_plus_one() {
+    let definition = fold_definition();
+    let mut host = BoundedScanActivationHost::prepare(
+        &planned_scan(&definition, 3),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    assert_eq!(
+        host.admit(&value(b"1")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"2")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        BoundedScanAdmission::Full
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"1"));
+    assert_eq!(drain_scan_output(&mut host), value(b"2"));
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"3"));
+    assert_eq!(
+        host.admit(&value(b"4")).unwrap(),
+        BoundedScanAdmission::MaximumItemsExceeded { maximum_items: 3 }
+    );
+}
+
+#[test]
+fn bounded_scan_abnormal_and_cancel_discard_pending_output() {
+    let abnormal = kind_id("failure/fold");
+    let definition = fold_definition_with_abnormal(Some(abnormal.clone()));
+    let mut planned = planned_scan(&definition, 2);
+    planned.accumulator_input.abnormal_kind = Some(abnormal.clone());
+    planned.item_input.abnormal_kind = Some(abnormal.clone());
+    planned.output.abnormal_kind = Some(abnormal.clone());
+    let mut cancelled =
+        BoundedScanActivationHost::prepare(&planned, definition.clone(), &fold_registry()).unwrap();
+    cancelled.admit(&value(b"1")).unwrap();
+    cancelled.cancel().unwrap();
+    assert_eq!(*cancelled.step().unwrap(), BoundedScanState::Cancelled);
+    assert!(!cancelled.output_into(&mut value(b"")).unwrap());
+    let mut failed =
+        BoundedScanActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
+    failed.admit(&value(b"1")).unwrap();
+    let terminal = ValuePayload {
+        value_kind: abnormal,
+        encoded: b"exact".to_vec(),
+    };
+    failed.terminate_input(terminal.clone()).unwrap();
+    assert_eq!(
+        *failed.step().unwrap(),
+        BoundedScanState::Abnormal(terminal)
+    );
+    assert!(!failed.output_into(&mut value(b"")).unwrap());
 }
 
 fn run_until_output(host: &mut KernelCompositeHost) -> (u64, ValuePayload) {
@@ -421,6 +874,7 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
         &registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     assert_eq!(activations.contract().maximum_active, 1);
@@ -432,6 +886,8 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
         kind_id(VALUE_KIND)
     );
     assert_eq!(activations.contract().output_abnormal_kind, None);
+    let capacities = activations.allocation_capacities();
+    assert_eq!(capacities, (2, 2));
 
     assert_eq!(
         activations.activate(7, &value(b"first")).unwrap(),
@@ -444,7 +900,7 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
     for _ in 0..64 {
         activations.step().unwrap();
         if let Some((sequence, output)) = activations.output().unwrap() {
-            assert_eq!((sequence, output), (7, value(b"first")));
+            assert_eq!((sequence, output), (7, &value(b"first")));
             activations.complete_output(sequence).unwrap();
             break;
         }
@@ -461,6 +917,92 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
         activations.activate(8, &value(b"second")).unwrap(),
         BoundedActivationAdmission::Accepted { sequence: 8 }
     );
+    for _ in 0..64 {
+        activations.step().unwrap();
+        if let Some((sequence, output)) = activations.output().unwrap() {
+            assert_eq!((sequence, output), (8, &value(b"second")));
+            activations.complete_output(sequence).unwrap();
+            break;
+        }
+    }
+    for _ in 0..64 {
+        if matches!(
+            activations.step().unwrap(),
+            BoundedActivationState::Succeeded { sequence: 8 }
+        ) {
+            break;
+        }
+    }
+    assert_eq!(activations.allocation_capacities(), capacities);
+    assert_eq!(
+        activations.activate(9, &value(b"overflow")).unwrap(),
+        BoundedActivationAdmission::MaximumItemsExceeded {
+            sequence: 9,
+            maximum_items: 2,
+        }
+    );
+    assert_eq!(activations.allocation_capacities(), capacities);
+}
+
+fn planned_activation(definition: &KernelCompositeDefinition) -> PlannedActivation {
+    let sign_budget = definition.internal_plan.fragments.iter().fold(
+        SignStorageBudget {
+            item_capacity: 0,
+            byte_capacity: 0,
+        },
+        |mut total, fragment| {
+            total.item_capacity += fragment.sign_storage_budget.item_capacity;
+            total.byte_capacity += fragment.sign_storage_budget.byte_capacity;
+            total
+        },
+    );
+    PlannedActivation {
+        activation_id: "flow/each-transform".into(),
+        owner_placement_id: PlacementId::from("flow/each"),
+        selected_plan_id: definition.internal_plan.plan_id.clone(),
+        selected_plan: Box::new(definition.internal_plan.clone()),
+        input: PlannedActivationFront {
+            front_port_id: conduit_core::port_id("input"),
+            value_kind: kind_id(VALUE_KIND),
+            abnormal_kind: None,
+        },
+        output: PlannedActivationFront {
+            front_port_id: conduit_core::port_id("output"),
+            value_kind: kind_id(VALUE_KIND),
+            abnormal_kind: None,
+        },
+        limits: PlannedActivationLimits {
+            maximum_items: 2,
+            maximum_active: 1,
+            maximum_queue_items: 1,
+            maximum_queue_bytes: 16,
+        },
+        terminal_policy: PlannedActivationTerminalPolicy::DrainThenPropagateExact,
+        cancellation_policy:
+            PlannedActivationCancellationPolicy::CancelActiveAndRejectLateCompletion,
+        effect_multiplicity:
+            conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+        per_activation_sign_budget: sign_budget,
+    }
+}
+
+#[test]
+fn bounded_activation_prepares_only_the_exact_planned_subgraph() {
+    let definition = definition();
+    let planned = planned_activation(&definition);
+    let prepared =
+        BoundedActivationHost::prepare_planned(&planned, definition.clone(), &registry()).unwrap();
+    assert_eq!(
+        prepared.contract().selected_plan_id,
+        planned.selected_plan_id
+    );
+
+    let mut widened = planned.clone();
+    widened.limits.maximum_queue_bytes += 1;
+    assert!(matches!(
+        BoundedActivationHost::prepare_planned(&widened, definition, &registry()),
+        Err(conduit_composite::BoundedActivationError::PlannedContractMismatch)
+    ));
 }
 
 #[test]
@@ -470,6 +1012,7 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         &failing_registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     failed.activate(3, &value(b"fault")).unwrap();
@@ -483,6 +1026,7 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         &registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     cancelled.activate(4, &value(b"cancel")).unwrap();
@@ -500,6 +1044,7 @@ fn bounded_activation_drains_one_owed_value_before_normal_close() {
         &registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     assert_eq!(
@@ -515,7 +1060,7 @@ fn bounded_activation_drains_one_owed_value_before_normal_close() {
     for _ in 0..64 {
         each.step().unwrap();
         if let Some((sequence, output)) = each.output().unwrap() {
-            assert_eq!((sequence, output), (11, value(b"owed")));
+            assert_eq!((sequence, output), (11, &value(b"owed")));
             each.complete_output(sequence).unwrap();
             break;
         }

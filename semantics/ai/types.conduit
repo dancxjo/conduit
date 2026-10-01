@@ -205,6 +205,28 @@ type SourceSpanUnit =
     bytes
     | items
 
+type SourceExtractionProfile =
+    text_utf8 {
+        overlap_bytes: U32
+    }
+    | structured_items {
+        overlap_items: U32
+    }
+    | resource_metadata {
+        overlap_items: U32
+    }
+
+type FusionStrategy =
+    reciprocal_rank {
+        rank_constant: U16 in 1..=65535
+    }
+
+type RelationResultProfile =
+    deterministic
+    | probabilistic {
+        maximum_samples: U32 in 1..=4294967295
+    }
+
 type ContextSelectionRationale =
     exact_match
     | semantic_candidate

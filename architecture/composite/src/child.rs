@@ -320,6 +320,32 @@ impl ChildKernel {
         )))
     }
 
+    pub(crate) fn boundary_output_into(
+        &mut self,
+        port_id: &SemanticPortId,
+        output: &mut ValuePayload,
+    ) -> Result<Option<u64>, String> {
+        let boundary = self
+            .boundaries
+            .get(port_id)
+            .filter(|boundary| boundary.direction == PortDirection::Output)
+            .ok_or_else(|| "unknown composite output front".to_string())?;
+        let Some(offer) = self
+            .scheduler
+            .remote_egress_offer(boundary.endpoint, boundary.cord)
+            .map_err(debug)?
+        else {
+            return Ok(None);
+        };
+        let bytes = self.scheduler.values().get(offer.value).map_err(debug)?;
+        if output.value_kind != boundary.value_kind || bytes.len() > output.encoded.capacity() {
+            return Err("prepared composite output buffer differs from its exact front".into());
+        }
+        output.encoded.clear();
+        output.encoded.extend_from_slice(bytes);
+        Ok(Some(offer.sequence))
+    }
+
     pub(crate) fn deliver_boundary(
         &mut self,
         port_id: &SemanticPortId,

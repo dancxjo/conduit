@@ -700,6 +700,7 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "libm",
+ "postcard",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -806,8 +807,14 @@ dependencies = [
 name = "conduit-body-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
+ "conduit-core",
  "conduit-form",
  "conduit-host-make",
+ "conduit-planner",
+ "conduit-semantic-catalog",
+ "conduit-std-host",
+ "conduit-std-offers",
  "conduit-workspace-make",
  "serde",
  "serde_json",
@@ -932,6 +939,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-kernel",
  "conduit-little-seismograph-fixture",
 ]
 
@@ -1082,7 +1090,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "postcard",
  "serde",
+ "serde_json",
  "sha2 0.10.9",
 ]
 
@@ -1154,6 +1164,19 @@ dependencies = [
  "conduit-signal-conformance",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-patchbay-workbench-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "conduit-presentation",
+ "conduit-semantic-catalog",
+ "conduit-std-offers",
+ "conduit-text",
 ]
 
 [[package]]
@@ -1245,6 +1268,7 @@ dependencies = [
  "conduit-form",
  "conduit-planner",
  "conduit-time",
+ "postcard",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -2619,6 +2643,7 @@ dependencies = [
  "atomic-polyfill",
  "hash32 0.2.1",
  "rustc_version",
+ "serde",
  "spin",
  "stable_deref_trait",
 ]
@@ -3866,6 +3891,7 @@ name = "patchbay-html"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-body-make",
  "conduit-browser-host",
  "conduit-core",
  "conduit-kernel",
@@ -3889,6 +3915,7 @@ dependencies = [
  "conduit-ai",
  "conduit-birth-form",
  "conduit-body",
+ "conduit-body-make",
  "conduit-browser-runtime",
  "conduit-chat",
  "conduit-core",
@@ -3899,6 +3926,7 @@ dependencies = [
  "conduit-little-seismograph-fixture",
  "conduit-net",
  "conduit-observatory",
+ "conduit-patchbay-workbench-conformance",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
@@ -4124,6 +4152,7 @@ dependencies = [
  "cobs",
  "embedded-io 0.4.0",
  "embedded-io 0.6.1",
+ "heapless 0.7.17",
  "serde",
 ]
 
@@ -6599,6 +6628,7 @@ dependencies = [
  "conduit-midi",
  "conduit-net",
  "conduit-observatory",
+ "conduit-patchbay-workbench-conformance",
  "conduit-pete",
  "conduit-plan-lowering",
  "conduit-planner",
@@ -6625,7 +6655,6 @@ dependencies = [
  "flate2",
  "httparse",
  "libc",
- "patchbay-model",
  "resvg",
  "rustls",
  "serde",

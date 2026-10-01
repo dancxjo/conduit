@@ -13,9 +13,13 @@ use conduit_core::{
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
-    expand_canonical_form, expand_canonical_form_with_backs, CanonicalBackCatalog, CheckedForm,
-    CheckedSyntaxDocument, ExpandedAuthoringForm, ExpandedCanonicalForm, ProfileCatalog,
+    expand_canonical_form, expand_canonical_form_for_authoring_with_backs,
+    expand_canonical_form_with_backs, CanonicalBackCatalog, CheckedForm, CheckedSyntaxDocument,
+    ExpandedAuthoringForm, ExpandedCanonicalForm, ProfileCatalog,
 };
+
+mod activations;
+pub use activations::plan_expanded_canonical_with_activations;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForeBoundaryKey {

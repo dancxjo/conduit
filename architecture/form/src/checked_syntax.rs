@@ -269,7 +269,23 @@ pub struct CheckedCanonicalGear {
     pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
     pub retained: Option<Box<CheckedRetainedValue>>,
+    pub activation: Option<CheckedActivation>,
     pub source_span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedActivation {
+    pub mode: crate::ActivationSyntax,
+    pub selected_form: String,
+    pub input: conduit_core::PortDescriptor,
+    pub accumulator_input: Option<conduit_core::PortDescriptor>,
+    pub output: conduit_core::PortDescriptor,
+    pub initial_accumulator: Option<CanonicalStartupValue>,
+    pub initial_accumulator_bytes: Option<Vec<u8>>,
+    pub input_contract: conduit_core::CheckedValueContract,
+    pub output_contract: conduit_core::CheckedValueContract,
+    pub abnormal_contract: Option<conduit_core::CheckedValueContract>,
+    pub accumulator_contract: Option<conduit_core::CheckedValueContract>,
 }
 
 /// Canonical checked meaning of one authored `keep` declaration.
@@ -294,6 +310,7 @@ impl PartialEq for CheckedCanonicalGear {
             && self.startup_parameters == other.startup_parameters
             && self.startup_bindings == other.startup_bindings
             && self.retained == other.retained
+            && self.activation == other.activation
     }
 }
 
@@ -503,6 +520,26 @@ pub struct ExpandedCanonicalForm {
     pub provenance: Vec<ExpandedGearProvenance>,
     pub provenance_digest: String,
     pub realization_backs: Vec<conduit_core::FormBack>,
+    pub activations: Vec<ExpandedActivation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpandedActivation {
+    pub activation_id: String,
+    pub owner_gear_id: conduit_core::GearId,
+    pub mode: crate::ActivationSyntax,
+    pub selected_form: String,
+    pub selected_checked_form_id: CheckedFormId,
+    pub input: conduit_core::PortDescriptor,
+    pub accumulator_input: Option<conduit_core::PortDescriptor>,
+    pub output: conduit_core::PortDescriptor,
+    pub initial_accumulator: Option<CanonicalStartupValue>,
+    pub initial_accumulator_bytes: Option<Vec<u8>>,
+    pub input_contract: conduit_core::CheckedValueContract,
+    pub output_contract: conduit_core::CheckedValueContract,
+    pub abnormal_contract: Option<conduit_core::CheckedValueContract>,
+    pub accumulator_contract: Option<conduit_core::CheckedValueContract>,
+    pub source_span: Span,
 }
 
 /// Canonical graph expansion for authoring an open Back.

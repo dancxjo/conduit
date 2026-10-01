@@ -186,7 +186,7 @@ fn chunk() -> Chunk<ExtractedSourceValue> {
 fn policy() -> HybridFusionPolicy {
     HybridFusionPolicy {
         identity: POLICY_IDENTITY.into(),
-        strategy: FusionStrategy::ReciprocalRank { rank_constant: 60 },
+        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
         required_mechanisms: vec![
             RetrievalMechanism::VectorSimilarity,
             RetrievalMechanism::Lexical,

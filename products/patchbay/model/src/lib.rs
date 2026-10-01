@@ -14,7 +14,6 @@ use conduit_observatory::{
 mod body_biography;
 mod body_biography_entrance;
 mod body_planning_session;
-mod body_workload_session;
 mod build_birth;
 mod control;
 mod conversation_request_evidence;
@@ -65,7 +64,6 @@ mod mask_control;
 #[cfg(test)]
 mod mask_control_tests;
 mod mask_inspection;
-mod mask_plans;
 #[cfg(test)]
 mod mask_plans_tests;
 #[cfg(test)]
@@ -98,6 +96,7 @@ mod presentation_layout;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
+mod recursive_form_demonstration;
 #[cfg(test)]
 mod recursive_form_projection_tests;
 mod recursive_recovery_explanation;
@@ -129,21 +128,14 @@ pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
 };
-pub use body_planning_session::{
-    body_planning_requirements, plan_body_workset_on_host, BodyExecutionClaim,
-    BodyExecutionClaimError, BodyExecutionPhase, BodyPlanningHost, BodyPlanningRequirements,
-    BodyPlanningSession, BodyPlanningSessionError, BodyPlanningSessionSnapshot,
-    BodyPlanningTransition,
-};
-pub use body_workload_session::{
-    BodyWorkloadChange, BodyWorkloadChangeKind, PatchbayBodyWorkloadError,
-    PatchbayBodyWorkloadSession,
-};
 pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
     PatchbayMode, MAX_BUILD_DOCUMENT_LINES,
 };
 pub use conduit_body::WakeLifecycle;
+pub use conduit_patchbay_workbench_conformance::{
+    patchbay_mask_plans, PatchbayMaskPlans, PATCHBAY_PRESENTATION_KIND,
+};
 pub use conduit_presentation::{
     ApplicationTheme, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError,
     MaskWardrobeControlEvidence, ThemeColor, CONDUIT_APPLICATION_THEME,
@@ -258,7 +250,6 @@ pub use maker_environment::{
 };
 pub use mask_control::*;
 pub use mask_inspection::*;
-pub use mask_plans::*;
 pub use mask_topology::*;
 pub use mask_topology_projection::*;
 pub use palette::{
@@ -310,6 +301,7 @@ pub use readable_body_history::{
     ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES,
     MAX_BODY_HISTORY_TITLE_BYTES,
 };
+pub use recursive_form_demonstration::recursive_form_demonstration;
 pub use recursive_recovery_explanation::{
     explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
     MAX_RECURSIVE_RECOVERY_EXPLANATION_BYTES,

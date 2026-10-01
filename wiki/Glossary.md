@@ -18,10 +18,10 @@ A type may have more than one form. A current value in a keep may change while a
 | term | meaning |
 |---|---|
 | **kind** | reusable semantic contract for executable work |
-| **fore** | stable checked outward/callable boundary of a kind or plot |
-| **back** | one concrete realization behind a compatible fore |
+| **fore** | user-visible checked callable signature of a kind or plot |
+| **back** | one concrete realization compatible with a fore |
 | **gear** | one configured occurrence of a kind in a plot |
-| **port** | typed directional semantic point on a gear/fore |
+| **port** | typed directional point named by a fore and used by gears |
 | **cord** | semantic connection between compatible ports |
 | **line** | finite concrete carriage that may realize a cord across hosts |
 | **base** | concrete mechanism/resource boundary beneath a host |
@@ -64,7 +64,7 @@ A host can reboot without becoming a new body; a body can lose a host without ne
 | **mask** | planned user-agent realization of a face |
 | **show** | one finite concrete manifestation through a mask |
 
-A face is not a widget tree, and a show is not authoritative merely because it is visible.
+A face is not a widget tree, and a show is not authoritative merely because it is visible. **Face is not a synonym, ancestor, or presentation-side version of fore; the concepts are unrelated.**
 
 ## Source and system nouns
 
@@ -119,7 +119,7 @@ Historical repository material may use older names.
 | historical | current |
 |---|---|
 | generic architectural **Data** | **info** |
-| callable **Face/Front** | **fore** |
+| callable **Front** | **fore** |
 | executable **Form** | **plot** |
 | representation contract | **form** |
 | body human-facing semantic surface | **face** |

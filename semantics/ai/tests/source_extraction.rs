@@ -97,7 +97,7 @@ fn utf8_text_extraction_is_deterministic_bounded_and_lineage_exact() {
         &source,
         &requirement(&source),
         &binding(&source),
-        SourceExtractionProfile::TextUtf8 { overlap_bytes: 2 },
+        SourceExtractionProfile::text_utf8(2).unwrap(),
         limits(8),
         &payload,
     )
@@ -106,7 +106,7 @@ fn utf8_text_extraction_is_deterministic_bounded_and_lineage_exact() {
         &source,
         &requirement(&source),
         &binding(&source),
-        SourceExtractionProfile::TextUtf8 { overlap_bytes: 2 },
+        SourceExtractionProfile::text_utf8(2).unwrap(),
         limits(8),
         &payload,
     )
@@ -135,7 +135,7 @@ fn extraction_receipt_codec_is_canonical_bounded_and_fail_closed() {
         &source,
         &requirement(&source),
         &binding(&source),
-        SourceExtractionProfile::TextUtf8 { overlap_bytes: 2 },
+        SourceExtractionProfile::text_utf8(2).unwrap(),
         limits(8),
         &SourcePayload::Text("alpha βeta gamma".as_bytes().to_vec()),
     )
@@ -167,7 +167,7 @@ fn structured_and_non_text_metadata_profiles_preserve_item_ranges() {
         &structured_source,
         &requirement(&structured_source),
         &binding(&structured_source),
-        SourceExtractionProfile::StructuredItems { overlap_items: 1 },
+        SourceExtractionProfile::structured_items(1).unwrap(),
         limits(8),
         &SourcePayload::StructuredItems(records),
     )
@@ -193,7 +193,7 @@ fn structured_and_non_text_metadata_profiles_preserve_item_ranges() {
         &metadata_source,
         &requirement(&metadata_source),
         &binding(&metadata_source),
-        SourceExtractionProfile::ResourceMetadata { overlap_items: 0 },
+        SourceExtractionProfile::resource_metadata(0).unwrap(),
         limits(32),
         &SourcePayload::ResourceMetadata(metadata),
     )
@@ -220,7 +220,7 @@ fn source_mutation_deletion_duplicate_text_and_range_shift_remain_exact() {
             source,
             &requirement(source),
             &binding(source),
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+            SourceExtractionProfile::text_utf8(0).unwrap(),
             limits(chunk_bytes),
             &payload,
         )
@@ -246,7 +246,7 @@ fn source_mutation_deletion_duplicate_text_and_range_shift_remain_exact() {
             &changed,
             &requirement(&changed),
             &stale_binding,
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+            SourceExtractionProfile::text_utf8(0).unwrap(),
             limits(9),
             &payload,
         ),
@@ -261,7 +261,7 @@ fn source_mutation_deletion_duplicate_text_and_range_shift_remain_exact() {
             &original,
             &requirement(&original),
             &lost,
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+            SourceExtractionProfile::text_utf8(0).unwrap(),
             limits(9),
             &payload,
         ),
@@ -288,7 +288,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     };
     assert_eq!(
         run(
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+            SourceExtractionProfile::text_utf8(0).unwrap(),
             limits(4),
             &malformed,
         ),
@@ -296,7 +296,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     );
     assert_eq!(
         run(
-            SourceExtractionProfile::StructuredItems { overlap_items: 0 },
+            SourceExtractionProfile::structured_items(0).unwrap(),
             limits(4),
             &data,
         ),
@@ -306,7 +306,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     too_small.maximum_source_bytes = 3;
     assert_eq!(
         run(
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+            SourceExtractionProfile::text_utf8(0).unwrap(),
             too_small,
             &data,
         ),
@@ -316,7 +316,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     one_chunk.maximum_chunks = 1;
     assert_eq!(
         run(
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+            SourceExtractionProfile::text_utf8(0).unwrap(),
             one_chunk,
             &data,
         ),
@@ -326,7 +326,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     output.maximum_output_bytes = 3;
     assert_eq!(
         run(
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 1 },
+            SourceExtractionProfile::text_utf8(1).unwrap(),
             output,
             &data,
         ),
@@ -335,16 +335,12 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     let mut work = limits(4);
     work.maximum_work_units = 7;
     assert_eq!(
-        run(
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
-            work,
-            &data,
-        ),
+        run(SourceExtractionProfile::text_utf8(0).unwrap(), work, &data,),
         Err(SourceExtractionRefusal::WorkBoundExceeded)
     );
     assert_eq!(
         run(
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 4 },
+            SourceExtractionProfile::text_utf8(4).unwrap(),
             limits(4),
             &data,
         ),
@@ -357,7 +353,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
             &empty_source,
             &requirement(&empty_source),
             &binding(&empty_source),
-            SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+            SourceExtractionProfile::text_utf8(0).unwrap(),
             limits(4),
             &SourcePayload::Text(Vec::new()),
         ),

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   createBodyBoundZip,
   readBodyBoundZip,
-} from "../../products/creche/browser/creche-native-zip.mjs";
+} from "../../products/workspace/browser/creche-native-zip.mjs";
 
 test("two Bodies produce distinct ordinary ZIP packages with recoverable provisioning", async () => {
   const release = Object.freeze({

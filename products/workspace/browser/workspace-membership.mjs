@@ -1,7 +1,7 @@
-import { connectRendezvousHost } from "../../creche/browser/creche-rendezvous.mjs";
-import { createPhysicalHostRunner } from "../../creche/browser/creche-physical.mjs";
-import { createPhysicalHostTargetCatalog } from "../../creche/browser/creche-target-catalog.mjs";
-import { createInstalledCrecheTargetCatalog } from "../../creche/browser/creche-installed-targets.mjs";
+import { connectRendezvousHost } from "./creche-rendezvous.mjs";
+import { createPhysicalHostRunner } from "./creche-physical.mjs";
+import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
+import { createInstalledCrecheTargetCatalog } from "./creche-installed-targets.mjs";
 import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
 import { createBrowserConfigurationOutfitter } from "./workspace-host-configuration.mjs";
 

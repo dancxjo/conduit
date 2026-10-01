@@ -19,7 +19,7 @@ conduit-audio = { path = "../../../semantics/audio" }
 conduit-body-invitation-form = { path = "../../../semantics/body-invitation" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-birth-form = { path = "../../../forms/birth" }
-conduit-data = { path = "../../../semantics/data" }
+conduit-data = { path = "../../../semantics/data", features = ["kernel-step"] }
 conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph/fixture" }
 conduit-form-library = { path = "../../../semantics/form-library" }
 conduit-human = { path = "../../../semantics/human" }

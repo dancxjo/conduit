@@ -45,8 +45,10 @@ pub(super) fn expand_literal(
             value: value.clone(),
         }],
         retained: None,
+        activation: None,
         source_span,
     };
+    let mut generated_activations = Vec::new();
     let instance = instantiate_gear(
         &gear,
         None,
@@ -65,6 +67,7 @@ pub(super) fn expand_literal(
         connections,
         shared_pools,
         provenance,
+        &mut generated_activations,
         gear_ids,
     )?;
     stage_for_instance(&name, &instance, None)

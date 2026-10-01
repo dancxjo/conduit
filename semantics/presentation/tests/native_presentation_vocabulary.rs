@@ -1,8 +1,9 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_presentation::{
     AdmittedNavigationDestination, ChoiceMultiplicity, EvidenceDisposition,
-    FaceUtteranceClauseKind, PresentationDisclosureLevel, PresentationMechanismKind,
-    PresentationTemporalRole, StatusKind,
+    FaceUtteranceClauseKind, GeneratedContentRole, GeneratedManifestationDisposition,
+    GraphicsClipClass, LayoutAlignment, LayoutAxis, PresentationDisclosureLevel,
+    PresentationMechanismKind, PresentationTemporalRole, StatusKind,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -102,5 +103,105 @@ fn presentation_vocabularies_round_trip_through_exact_native_types() {
         PresentationTemporalRole::Ingestion,
     ] {
         assert_round_trip(value);
+    }
+    for value in [LayoutAxis::Horizontal, LayoutAxis::Vertical] {
+        assert_round_trip(value);
+    }
+    for value in [
+        LayoutAlignment::Start,
+        LayoutAlignment::Center,
+        LayoutAlignment::End,
+    ] {
+        assert_round_trip(value);
+    }
+    for value in [
+        GraphicsClipClass::FullyVisible,
+        GraphicsClipClass::PartiallyClipped,
+        GraphicsClipClass::FullyClipped,
+    ] {
+        assert_round_trip(value);
+    }
+    for value in [
+        GeneratedManifestationDisposition::Produced,
+        GeneratedManifestationDisposition::Truncated,
+        GeneratedManifestationDisposition::Refused,
+        GeneratedManifestationDisposition::Failed,
+        GeneratedManifestationDisposition::Cancelled,
+        GeneratedManifestationDisposition::ProviderLost,
+    ] {
+        assert_round_trip(value);
+    }
+    for value in [
+        GeneratedContentRole::Speech,
+        GeneratedContentRole::PresentedThought,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn generated_manifestation_vocabularies_preserve_serde_and_postcard_shapes() {
+    let dispositions = [
+        (
+            GeneratedManifestationDisposition::Produced,
+            "\"Produced\"",
+            vec![0],
+        ),
+        (
+            GeneratedManifestationDisposition::Truncated,
+            "\"Truncated\"",
+            vec![1],
+        ),
+        (
+            GeneratedManifestationDisposition::Refused,
+            "\"Refused\"",
+            vec![2],
+        ),
+        (
+            GeneratedManifestationDisposition::Failed,
+            "\"Failed\"",
+            vec![3],
+        ),
+        (
+            GeneratedManifestationDisposition::Cancelled,
+            "\"Cancelled\"",
+            vec![4],
+        ),
+        (
+            GeneratedManifestationDisposition::ProviderLost,
+            "\"ProviderLost\"",
+            vec![5],
+        ),
+    ];
+    for (value, json, bytes) in dispositions {
+        assert_eq!(serde_json::to_string(&value).unwrap(), json);
+        assert_eq!(postcard::to_allocvec(&value).unwrap(), bytes);
+        assert_eq!(
+            serde_json::from_str::<GeneratedManifestationDisposition>(json).unwrap(),
+            value
+        );
+        assert_eq!(
+            postcard::from_bytes::<GeneratedManifestationDisposition>(&bytes).unwrap(),
+            value
+        );
+    }
+    for (value, json, bytes) in [
+        (GeneratedContentRole::Speech, "\"Speech\"", vec![0]),
+        (
+            GeneratedContentRole::PresentedThought,
+            "\"PresentedThought\"",
+            vec![1],
+        ),
+    ] {
+        assert_eq!(serde_json::to_string(&value).unwrap(), json);
+        assert_eq!(postcard::to_allocvec(&value).unwrap(), bytes);
+        assert_eq!(
+            serde_json::from_str::<GeneratedContentRole>(json).unwrap(),
+            value
+        );
+        assert_eq!(
+            postcard::from_bytes::<GeneratedContentRole>(&bytes).unwrap(),
+            value
+        );
     }
 }

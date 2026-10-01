@@ -129,3 +129,29 @@ type PresentationTemporalRole =
     event
     | observation
     | ingestion
+
+type LayoutAxis =
+    horizontal
+    | vertical
+
+type LayoutAlignment =
+    start
+    | center
+    | end
+
+type GraphicsClipClass =
+    fully_visible
+    | partially_clipped
+    | fully_clipped
+
+type GeneratedManifestationDisposition =
+    produced
+    | truncated
+    | refused
+    | failed
+    | cancelled
+    | provider_lost
+
+type GeneratedContentRole =
+    speech
+    | presented_thought

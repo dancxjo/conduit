@@ -135,7 +135,7 @@ fn visual_impression_value_unchecked(
         vec![
             (
                 "disposition",
-                impression_disposition_value(impression.disposition)?,
+                impression_disposition_value(&impression.disposition)?,
             ),
             ("model", text_value(&impression.model_id)?),
             (
@@ -412,15 +412,15 @@ fn evidence_class_value(
 }
 
 fn impression_disposition_value(
-    disposition: VisualImpressionDisposition,
+    disposition: &VisualImpressionDisposition,
 ) -> Result<StructuredInfoValue, VisualValueRefusal> {
     let (tag, payload) = match disposition {
         VisualImpressionDisposition::Complete => (
             "complete",
             StructuredInfoValue::leaf(unit_type(), Vec::new())?,
         ),
-        VisualImpressionDisposition::Truncated { original_bytes } => {
-            ("truncated", count_value(original_bytes)?)
+        VisualImpressionDisposition::Truncated(truncated) => {
+            ("truncated", count_value(*truncated.original_bytes())?)
         }
     };
     Ok(StructuredInfoValue::variant(

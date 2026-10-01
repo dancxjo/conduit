@@ -1,8 +1,11 @@
-//! One canonical Patchbay meaning with direct and ordinary Back realizations.
+//! Deterministic direct and recursive realization proof for the Patchbay Form.
+//!
+//! This crate owns proof construction only. Patchbay meaning remains in the
+//! resident Form and graph crates, while concrete offers remain target-owned.
 
 use conduit_core::{
-    resource_offer, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration, Plan,
-    SignId, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    resource_offer, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
+    OfferGeneration, Plan, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
@@ -12,6 +15,7 @@ use conduit_form::{
 pub use conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND;
 
 const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayMaskPlans {
     pub direct_expanded: conduit_form::ExpandedCanonicalForm,
@@ -23,7 +27,7 @@ pub struct PatchbayMaskPlans {
 }
 
 pub fn patchbay_mask_plans() -> Result<PatchbayMaskPlans, String> {
-    let (startup, profile) = catalogs()?;
+    let (startup, profile) = patchbay_catalogs()?;
     let checked = check_syntax_document(&parse_syntax_document(USER_SOURCE), &startup)
         .map_err(|error| format!("check Patchbay specimen: {error:?}"))?;
     let direct_expanded = expand_canonical_form(&checked, "patchbay-capstone", &profile)
@@ -46,81 +50,23 @@ pub fn patchbay_mask_plans() -> Result<PatchbayMaskPlans, String> {
     })
 }
 
-/// Production Patchbay input for inspecting the ordinary recursive
-/// realization of the Patchbay presentation Front itself.
-pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentation, String> {
-    let proof = patchbay_mask_plans()?;
-    let (startup, profile) = catalogs()?;
-    let editor = crate::FormEditor::from_source_with_catalogs(
-        "patchbay-recursive-form.conduit".into(),
-        USER_SOURCE.into(),
-        startup.clone(),
-        profile,
-    )
-    .map_err(|error| error.to_string())?;
-    let mut graph = crate::PatchbayGraph::from_expanded(&proof.recursive_expanded)
-        .map_err(|error| error.to_string())?;
-    for back in &proof.recursive_expanded.realization_backs {
-        let front = reviewed_back_front(back, &startup)?;
-        let projection = crate::project_recursive_form_gear(
-            &proof.recursive_expanded,
-            &back.invocation_path,
-            front,
-            false,
-        )
-        .map_err(|error| format!("recursive Form projection: {error:?}"))?;
-        graph
-            .admit_recursive_form(&projection)
-            .map_err(|error| error.to_string())?;
-    }
-    let request = crate::PatchbayRequestId::new("patchbay/recursive-form-plan")
-        .map_err(|error| format!("{error:?}"))?;
-    let plan = crate::PlanDocument::from_plan(request, &proof.recursive)
-        .map_err(|error| format!("{error:?}"))?;
-    let body = conduit_body::Body::born(
-        proof.recursive.source_document_id.clone(),
-        proof.recursive.checked_form_id.clone(),
-        0,
-        SignId::from("patchbay/recursive-form/born"),
-    )
-    .map_err(|error| error.to_string())?;
-    let (body, wake) = body
-        .wake(1, SignId::from("patchbay/recursive-form/woke"))
-        .map_err(|error| error.to_string())?;
-    let wake = wake
-        .plan_ready(
-            &proof.recursive,
-            SignId::from("patchbay/recursive-form/planned"),
-        )
-        .map_err(|error| error.to_string())?;
-    let presentation =
-        crate::PatchbayPresentation::new(1, editor.view(), Some(plan), None, None, Vec::new())
-            .map_err(|error| error.to_string())?
-            .with_graph(graph)
-            .map_err(|error| error.to_string())?
-            .to_portable(&body, &wake)
-            .map_err(|error| error.to_string())?;
-    let body_subject = format!("body/{}", body.body_id.as_str());
-    let mut subjects = presentation.subjects;
-    subjects.push(conduit_presentation::PresentationSubject {
-        identity: body_subject,
-        role: conduit_presentation::PresentationRole::Body,
-        name: "Recursive Form demonstration Body".into(),
-    });
-    conduit_presentation::Presentation::new_with_semantics(
-        presentation.revision,
-        presentation.basis,
-        subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
-        presentation.actions,
-        presentation.disclosures,
-    )
-    .map_err(|error| error.to_string())
+pub fn patchbay_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_presentation_composition_catalogs(
+        &mut startup,
+        &mut profile,
+    )?;
+    conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
+    Ok((startup, profile))
 }
 
-fn reviewed_back_front(
+pub fn reviewed_patchbay_back_front(
     back: &conduit_core::FormBack,
     startup: &StartupCatalog,
 ) -> Result<conduit_core::CheckedFront, String> {
@@ -174,27 +120,9 @@ fn plan(
         form,
         core::slice::from_ref(host),
         &placements,
-        &[conduit_core::BaseImplementationId::from(
-            "conduit.base/local@1",
-        )],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .map_err(|error| error.to_string())
-}
-
-fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
-    let mut startup = StartupCatalog::new();
-    let mut profile = ProfileCatalog::new();
-    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_presentation_composition_catalogs(
-        &mut startup,
-        &mut profile,
-    )?;
-    conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
-    Ok((startup, profile))
 }
 
 fn backs(

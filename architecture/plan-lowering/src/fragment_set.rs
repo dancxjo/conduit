@@ -266,11 +266,18 @@ fn reindex(
     for resource in &mut part.resources {
         resource.node.0 = add("node-index", resource.node.0, nodes)?;
     }
+    for resource in &mut part.resource_cords {
+        resource.source_node.0 = add("node-index", resource.source_node.0, nodes)?;
+        resource.sink_node.0 = add("node-index", resource.sink_node.0, nodes)?;
+    }
     for sign in &mut part.signs {
         sign.expectation.0 = add("sign-expectation-index", sign.expectation.0, signs)?;
         match &mut sign.target {
             SignExpectationTarget::Node(node) => node.0 = add("node-index", node.0, nodes)?,
             SignExpectationTarget::Cord(cord) => cord.0 = add("cord-index", cord.0, cords)?,
+            SignExpectationTarget::Resource { node, .. } => {
+                node.0 = add("node-index", node.0, nodes)?
+            }
             SignExpectationTarget::Fragment => {}
         }
     }
@@ -287,6 +294,9 @@ fn reindex(
         node.0 = add("node-index", node.0, nodes)?;
     }
     for (node, _, _) in &mut part.identity.resources {
+        node.0 = add("node-index", node.0, nodes)?;
+    }
+    for (node, _, _) in &mut part.identity.resource_connections {
         node.0 = add("node-index", node.0, nodes)?;
     }
     Ok(())

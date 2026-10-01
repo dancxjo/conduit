@@ -683,6 +683,41 @@ fn canonical_document_roles_share_tokens_declarations_values_and_diagnostics() {
 }
 
 #[test]
+fn body_wardrobe_directives_are_role_specific_lossless_syntax() {
+    let source = "with masks/native-graphical as graphical\nwith masks/spoken as spoken\nbody roseau {\n  wear graphical else spoken\n  want graphical over spoken\n}\n";
+    let document = parse_syntax_document(source);
+    assert_eq!(document.round_trip(), source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let [body] = document.constructions().unwrap() else {
+        panic!("one Body is required");
+    };
+    assert_eq!(body.directives.len(), 2);
+    let crate::ConstructionDirectiveSyntax::BodyWear { mask, fallback, .. } = &body.directives[0]
+    else {
+        panic!("first directive should wear a Mask");
+    };
+    assert_eq!(mask.text, "graphical");
+    assert_eq!(fallback.as_ref().unwrap().text, "spoken");
+    let crate::ConstructionDirectiveSyntax::BodyWant { masks, .. } = &body.directives[1] else {
+        panic!("second directive should order policy");
+    };
+    assert_eq!(
+        masks
+            .iter()
+            .map(|mask| mask.text.as_str())
+            .collect::<Vec<_>>(),
+        vec!["graphical", "spoken"]
+    );
+
+    let host = parse_syntax_document("host bad {\n  wear graphical else spoken\n}\n");
+    assert!(!host.diagnostics.is_empty());
+}
+
+#[test]
 fn canonical_clock_form_round_trips_with_named_and_inline_gears() {
     let source = "# canonical source\nform clock-demo {\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n";
     let document = parse_syntax_document(source);

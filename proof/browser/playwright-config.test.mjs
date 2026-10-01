@@ -13,7 +13,7 @@ test("browser proof ports remain bounded decimal loopback ports", () => {
 
 test("browser proof shards select one bounded result child", () => {
   assert.equal(browserProofShard(), "default");
-  assert.equal(browserProofShard("creche-machines_2"), "creche-machines_2");
+  assert.equal(browserProofShard("workspace-machines_2"), "workspace-machines_2");
   for (const invalid of ["", "../escape", "tour/output", "Tour", "x".repeat(49)]) {
     assert.throws(() => browserProofShard(invalid), /CONDUIT_BROWSER_PROOF_SHARD/);
   }

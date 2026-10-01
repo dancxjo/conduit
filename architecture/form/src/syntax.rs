@@ -200,7 +200,22 @@ pub struct ConstructionSyntax {
     pub role: ConstructionRole,
     pub name: SpannedText,
     pub declarations: Vec<LocalValue>,
+    /// Role-specific declarative policy which is not a runtime expression.
+    pub directives: Vec<ConstructionDirectiveSyntax>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConstructionDirectiveSyntax {
+    BodyWear {
+        mask: SpannedText,
+        fallback: Option<SpannedText>,
+        span: Span,
+    },
+    BodyWant {
+        masks: Vec<SpannedText>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -214,6 +229,15 @@ pub struct FormSyntax {
     /// identities before Fore checking and canonical expansion.
     pub local_forms: Vec<FormSyntax>,
     pub back: Vec<BackStatement>,
+    /// Authored expression-body spelling retained only for source inspection.
+    /// The ordinary cord in `back` remains the sole checked meaning.
+    pub expression_body: Option<ExpressionBodySyntax>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpressionBodySyntax {
+    pub expression: Expression,
     pub span: Span,
 }
 
@@ -381,7 +405,37 @@ pub struct NamedGear {
     pub name: SpannedText,
     pub invocation: Invocation,
     pub retained: Option<Box<RetainedValue>>,
+    pub activation: Option<ActivationSyntax>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActivationSyntax {
+    Each {
+        maximum_items: u16,
+    },
+    Select {
+        maximum_items: u16,
+    },
+    Fold {
+        initial: Box<Expression>,
+        maximum_items: u16,
+    },
+    Scan {
+        initial: Box<Expression>,
+        maximum_items: u16,
+    },
+}
+
+impl ActivationSyntax {
+    pub fn maximum_items(&self) -> u16 {
+        match self {
+            Self::Each { maximum_items }
+            | Self::Select { maximum_items }
+            | Self::Fold { maximum_items, .. }
+            | Self::Scan { maximum_items, .. } => *maximum_items,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -65,7 +65,7 @@ fn extract(
         source,
         &requirement(source),
         binding,
-        SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+        SourceExtractionProfile::text_utf8(0).unwrap(),
         SourceExtractionLimits {
             maximum_source_bytes: 32,
             maximum_source_items: 1,

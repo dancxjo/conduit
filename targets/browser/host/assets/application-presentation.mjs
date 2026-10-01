@@ -261,7 +261,7 @@ function eventValue(event) {
 const NAVIGATION_DESTINATIONS = Object.freeze({
   home: "/conduit",
   tour: "/conduit/workspace/",
-  creche: "/conduit/creche/",
+  creche: "/conduit/workspace/",
   patchbay: "/conduit/patchbay/",
   source: "https://github.com/dancxjo/conduit",
 });

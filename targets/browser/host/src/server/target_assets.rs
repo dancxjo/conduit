@@ -32,13 +32,13 @@ pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static 
         "GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1" => RP2040_BOOTSEL,
         "GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1" => RP2040_SPAWN,
         "GET /targets/rp2040/browser-deployment/make.mjs HTTP/1.1" => RP2040_MAKE,
-        "GET /creche/artifacts/pico-w-signal-pico-local.json HTTP/1.1" => {
+        "GET /workspace/artifacts/pico-w-signal-pico-local.json HTTP/1.1" => {
             return Some((
                 "application/json; charset=utf-8",
                 RP2040_PICO_LOCAL_MANIFEST,
             ));
         }
-        "GET /creche/artifacts/pico-w-signal-pico-local.uf2 HTTP/1.1" => {
+        "GET /workspace/artifacts/pico-w-signal-pico-local.uf2 HTTP/1.1" => {
             return Some(("application/octet-stream", RP2040_PICO_LOCAL_UF2));
         }
         "GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1" => ESP32_INDEX,

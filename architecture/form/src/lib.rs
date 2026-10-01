@@ -1252,6 +1252,8 @@ fn hex(nibble: u8) -> char {
 mod surface_tests;
 
 #[cfg(test)]
+mod activation_tests;
+#[cfg(test)]
 mod behavior_parameter_tests;
 #[cfg(test)]
 mod generic_form_tests;

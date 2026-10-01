@@ -1,5 +1,7 @@
 //! Fixed-capacity portable presentation geometry.
 
+use crate::{LayoutAlignment, LayoutAxis};
+
 pub const LAYOUT_FRAME_KIND: &str = "presentation/layout-frame@1";
 pub const MAX_LAYOUT_CHILDREN: usize = 8;
 pub const MAX_LAYOUT_EXTENT: u16 = i16::MAX as u16;
@@ -19,19 +21,6 @@ pub struct LayoutFrame {
     pub viewport: LayoutRect,
     pub child_count: u8,
     pub children: [LayoutRect; MAX_LAYOUT_CHILDREN],
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LayoutAxis {
-    Horizontal,
-    Vertical,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LayoutAlignment {
-    Start,
-    Center,
-    End,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
