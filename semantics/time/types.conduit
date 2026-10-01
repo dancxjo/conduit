@@ -65,6 +65,17 @@ type ReplayPolicy =
         denominator: U32 in 1..=1000
     }
 
+type ReplayCommand =
+    start
+    | stop
+    | pause
+    | resume
+    | restart
+    | step
+    | fail {
+        code: U16
+    }
+
 type TemporalBoundary =
     inclusive
     | exclusive
