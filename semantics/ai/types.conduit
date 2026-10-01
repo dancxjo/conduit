@@ -156,6 +156,10 @@ type FiniteF32 = F32 finite
 
 type NonnegativeFiniteF32 = F32 finite in 0.0..
 
+type SimilarityScore =
+    similarity FiniteF32
+    | squared_distance FiniteF32
+
 type SimilarityThreshold =
     minimum_similarity FiniteF32
     | maximum_squared_distance NonnegativeFiniteF32

@@ -2,7 +2,7 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    CompatibleMetrics, EmbeddingNormalization, FiniteEmbedding, SimilarityMetric,
+    CompatibleMetrics, EmbeddingNormalization, FiniteEmbedding, SimilarityMetric, SimilarityScore,
     SimilarityThreshold, StructuredResultInvalidity, TemporalProvenance, TemporalRetrievalIntent,
     VectorRefusal, MAXIMUM_EMBEDDING_DIMENSIONS,
 };
@@ -61,12 +61,6 @@ pub struct SimilarityQuery {
     pub threshold: Option<SimilarityThreshold>,
     pub filters: Vec<MetadataFilter>,
     pub temporal_intent: Option<TemporalRetrievalIntent>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum SimilarityScore {
-    Similarity(f32),
-    SquaredDistance(f32),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -250,7 +244,7 @@ impl SimilarityQuery {
             .compatibility(&candidate.profile, self.metric)?;
         let value = match self.metric {
             SimilarityMetric::DotProductSimilarity => {
-                SimilarityScore::Similarity(dot(&self.embedding.values, &candidate.values)?)
+                similarity_score(dot(&self.embedding.values, &candidate.values)?)?
             }
             SimilarityMetric::CosineSimilarity => {
                 let numerator = dot(&self.embedding.values, &candidate.values)?;
@@ -259,7 +253,7 @@ impl SimilarityQuery {
                 if left == 0.0 || right == 0.0 {
                     return Err(VectorRefusal::ZeroVector);
                 }
-                SimilarityScore::Similarity(numerator / libm::sqrtf(left * right))
+                similarity_score(numerator / libm::sqrtf(left * right))?
             }
             SimilarityMetric::SquaredEuclideanDistance => {
                 let mut total = 0.0;
@@ -267,7 +261,7 @@ impl SimilarityQuery {
                     let delta = left - right;
                     total += delta * delta;
                 }
-                SimilarityScore::SquaredDistance(total)
+                squared_distance_score(total)?
             }
         };
         if !score_value(value).is_finite() {
@@ -284,11 +278,11 @@ impl SimilarityQuery {
             (
                 Some(SimilarityThreshold::MinimumSimilarity(minimum)),
                 SimilarityScore::Similarity(value),
-            ) => Ok(value >= finite_f32(minimum)),
+            ) => Ok(finite_f32(value) >= finite_f32(minimum)),
             (
                 Some(SimilarityThreshold::MaximumSquaredDistance(maximum)),
                 SimilarityScore::SquaredDistance(value),
-            ) => Ok(value <= nonnegative_f32(maximum)),
+            ) => Ok(finite_f32(value) <= nonnegative_f32(maximum)),
             _ => Err(VectorRefusal::ThresholdMetricMismatch),
         }
     }
@@ -305,6 +299,20 @@ impl SimilarityThreshold {
         let value = crate::NonnegativeFiniteF32::new(conduit_core::IeeeF32::from(value))
             .map_err(|_| VectorRefusal::InvalidThreshold)?;
         Self::maximum_squared_distance(value).map_err(|_| VectorRefusal::InvalidThreshold)
+    }
+}
+
+impl SimilarityScore {
+    pub fn from_similarity(value: f32) -> Result<Self, VectorRefusal> {
+        similarity_score(value)
+    }
+
+    pub fn from_squared_distance(value: f32) -> Result<Self, VectorRefusal> {
+        squared_distance_score(value)
+    }
+
+    pub fn value(self) -> f32 {
+        score_value(self)
     }
 }
 
@@ -336,10 +344,10 @@ pub fn canonical_hit_order<T>(
 ) -> core::cmp::Ordering {
     let score_order = match (left.score, right.score) {
         (SimilarityScore::Similarity(left), SimilarityScore::Similarity(right)) => {
-            right.total_cmp(&left)
+            finite_f32(right).total_cmp(&finite_f32(left))
         }
         (SimilarityScore::SquaredDistance(left), SimilarityScore::SquaredDistance(right)) => {
-            left.total_cmp(&right)
+            finite_f32(left).total_cmp(&finite_f32(right))
         }
         (SimilarityScore::Similarity(_), SimilarityScore::SquaredDistance(_)) => {
             core::cmp::Ordering::Less
@@ -369,8 +377,22 @@ fn dot(left: &[f32], right: &[f32]) -> Result<f32, VectorRefusal> {
 
 fn score_value(score: SimilarityScore) -> f32 {
     match score {
-        SimilarityScore::Similarity(value) | SimilarityScore::SquaredDistance(value) => value,
+        SimilarityScore::Similarity(value) | SimilarityScore::SquaredDistance(value) => {
+            finite_f32(value)
+        }
     }
+}
+
+fn similarity_score(value: f32) -> Result<SimilarityScore, VectorRefusal> {
+    let value = crate::FiniteF32::new(conduit_core::IeeeF32::from(value))
+        .map_err(|_| VectorRefusal::NonFiniteScore)?;
+    SimilarityScore::similarity(value).map_err(|_| VectorRefusal::NonFiniteScore)
+}
+
+fn squared_distance_score(value: f32) -> Result<SimilarityScore, VectorRefusal> {
+    let value = crate::FiniteF32::new(conduit_core::IeeeF32::from(value))
+        .map_err(|_| VectorRefusal::NonFiniteScore)?;
+    SimilarityScore::squared_distance(value).map_err(|_| VectorRefusal::NonFiniteScore)
 }
 
 fn validate_score_metric(
