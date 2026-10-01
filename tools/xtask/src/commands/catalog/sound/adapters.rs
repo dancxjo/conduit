@@ -454,15 +454,15 @@ mod tests {
         let first = note(1, Gate::On, 7, 1);
         let second = note(2, Gate::On, 60_000, 2);
         let first_output = adapter.apply(first).unwrap();
-        assert_eq!(first_output[1].unwrap().gate, Gate::On);
+        assert_eq!(first_output[1].unwrap().gate(), Gate::On);
         let overlap = adapter.apply(second).unwrap();
-        assert_eq!(overlap[0].unwrap().correlation, 1);
-        assert_eq!(overlap[0].unwrap().gate, Gate::Off);
-        assert_eq!(overlap[1].unwrap().correlation, 2);
-        assert_eq!(overlap[1].unwrap().pitch, second.pitch);
+        assert_eq!(overlap[0].unwrap().correlation(), 1);
+        assert_eq!(overlap[0].unwrap().gate(), Gate::Off);
+        assert_eq!(overlap[1].unwrap().correlation(), 2);
+        assert_eq!(overlap[1].unwrap().pitch(), second.pitch);
         let release = adapter.apply(note(2, Gate::Off, 0, 3)).unwrap();
-        assert_eq!(release[0].unwrap().correlation, 2);
-        assert_eq!(release[1].unwrap().correlation, 1);
-        assert_eq!(release[1].unwrap().pitch, first.pitch);
+        assert_eq!(release[0].unwrap().correlation(), 2);
+        assert_eq!(release[1].unwrap().correlation(), 1);
+        assert_eq!(release[1].unwrap().pitch(), first.pitch);
     }
 }
