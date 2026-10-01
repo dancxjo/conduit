@@ -1390,6 +1390,7 @@ dependencies = [
  "conduit-body",
  "conduit-browser-runtime",
  "conduit-chat",
+ "conduit-composite",
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
