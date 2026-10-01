@@ -4,6 +4,8 @@ type KeyTransition =
     pressed
     | released
 
+type KeyModifiers = U8
+
 type KeymapRefusal =
     unknown_compose_sequence
     | empty_unicode_entry
