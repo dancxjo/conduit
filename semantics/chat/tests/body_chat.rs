@@ -122,10 +122,10 @@ fn model_summary_is_stable_across_internal_ids_and_changes_with_human_truth() {
     ids_changed.current_plan_id = Some(PlanId::from("opaque/plan"));
     ids_changed.active_play_id = Some(ActivePlayId::from("opaque/play"));
     let relevant = conduit_chat::BodyConversationalSummary::project(&ids_changed).unwrap();
-    assert_eq!(relevant.present_hosts, 0);
-    assert_eq!(relevant.offline_hosts, 1);
-    assert_eq!(relevant.active_forms, 2);
-    assert_eq!(relevant.execution, "playing");
+    assert_eq!(*relevant.present_hosts(), 0);
+    assert_eq!(*relevant.offline_hosts(), 1);
+    assert_eq!(*relevant.active_forms(), 2);
+    assert_eq!(relevant.execution(), "playing");
     assert_ne!(baseline, relevant.canonical_bytes().unwrap());
 }
 
@@ -159,9 +159,9 @@ fn model_summary_counts_degraded_lines_without_exposing_line_or_host_ids() {
     let encoded = summary.canonical_bytes().unwrap();
     assert_eq!(
         (
-            summary.ready_lines,
-            summary.unavailable_lines,
-            summary.unknown_lines
+            *summary.ready_lines(),
+            *summary.unavailable_lines(),
+            *summary.unknown_lines()
         ),
         (1, 1, 1)
     );
