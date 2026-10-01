@@ -45,6 +45,7 @@ pub use inspection::{
 };
 mod topology;
 mod topology_projection;
+mod workbench_layout;
 pub use debugger_control::{
     DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
     MAX_DEBUGGER_BREAKPOINT_SUBJECTS, MAX_DEBUGGER_CONTROL_REASON_BYTES,
@@ -90,6 +91,10 @@ pub use presentation_layout::{
 };
 pub use topology::*;
 pub use topology_projection::project_mask_topology;
+pub use workbench_layout::{
+    CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
+    MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
+};
 #[cfg(test)]
 mod topology_tests;
 

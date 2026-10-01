@@ -434,7 +434,7 @@ fn reverse_front_is_renderer_local_and_keeps_the_demo_graph_intact() {
         graph.expanded_form_id.clone(),
         gear.identity.clone(),
     );
-    let mut layout = patchbay_model::PatchbayLayout::default();
+    let mut layout = patchbay_application::PatchbayLayout::default();
     layout.move_gear(&graph, &subject, 310, 140).unwrap();
 
     assert!(layout.flip_gear(&graph, &subject).unwrap());
@@ -573,7 +573,7 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
         graph.cords.clone(),
     );
     let subject = graph.subject_ref(&graph.gears[0].identity).unwrap();
-    let mut layout = patchbay_model::PatchbayLayout::default();
+    let mut layout = patchbay_application::PatchbayLayout::default();
     layout.move_gear(&graph, &subject, 500, 300).unwrap();
     let mut pixels = vec![BACKGROUND; 1100 * 720];
     let targets = draw_patchbay(
