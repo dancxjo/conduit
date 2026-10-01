@@ -1,7 +1,7 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_net::{
-    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsTtl, NetworkJoinError, NetworkTransport,
-    RecordTranscriptDirection, RecordTranscriptTerminal,
+    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsTtl, NetworkAttachmentId,
+    NetworkJoinError, NetworkTransport, RecordTranscriptDirection, RecordTranscriptTerminal,
 };
 
 fn round_trip<T>(value: T)
@@ -10,6 +10,42 @@ where
 {
     let encoded = value.encode().unwrap();
     assert_eq!(T::decode(&encoded).unwrap(), value);
+}
+
+#[test]
+fn network_attachment_identity_is_native_bounded_text_with_stable_json() {
+    let identity = NetworkAttachmentId::new("attachment/network-1".into()).unwrap();
+    let structured = identity.clone().into_structured().unwrap();
+    assert_eq!(
+        structured.value_type(),
+        &NetworkAttachmentId::semantic_type().unwrap()
+    );
+    assert_eq!(
+        NetworkAttachmentId::from_structured(structured).unwrap(),
+        identity
+    );
+    assert_eq!(
+        serde_json::to_string(&identity).unwrap(),
+        "\"attachment/network-1\""
+    );
+    assert_eq!(
+        serde_json::from_str::<NetworkAttachmentId>("\"attachment/network-1\"").unwrap(),
+        identity
+    );
+    let mut postcard_golden = vec![20];
+    postcard_golden.extend_from_slice(b"attachment/network-1");
+    assert_eq!(postcard::to_allocvec(&identity).unwrap(), postcard_golden);
+    assert_eq!(
+        postcard::from_bytes::<NetworkAttachmentId>(&postcard_golden).unwrap(),
+        identity
+    );
+
+    assert!(NetworkAttachmentId::new(String::new()).is_err());
+    assert!(NetworkAttachmentId::new("x".repeat(96)).is_ok());
+    assert!(NetworkAttachmentId::new("x".repeat(97)).is_err());
+    assert!(
+        serde_json::from_str::<NetworkAttachmentId>(&format!("\"{}\"", "x".repeat(97))).is_err()
+    );
 }
 
 fn round_trip_owned<T>(value: T)
