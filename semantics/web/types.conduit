@@ -26,6 +26,25 @@ type HttpHeader = {
     value: Bytes <= 512B
 }
 
+type HttpBody =
+    inline-bytes Bytes <= 4096B
+    | resource ResourceRef
+
+type HttpRequest = {
+    transaction-id: HttpTransactionId
+    method: HttpMethod
+    target: HttpTarget
+    headers: sequence HttpHeader <= 16
+    body: HttpBody
+}
+
+type HttpResponse = {
+    transaction-id: HttpTransactionId
+    status: U16 in 100..=599
+    headers: sequence HttpHeader <= 16
+    body: HttpBody
+}
+
 type HttpExchangeFailure =
     name_resolution
     | route_unavailable

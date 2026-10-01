@@ -19,7 +19,7 @@ pub(crate) fn encode_request(request: &HttpRequest) -> Result<Vec<u8>, HttpExcha
     out.extend_from_slice(b" HTTP/1.1\r\nHost: ");
     out.extend_from_slice(request.target.authority().as_bytes());
     out.extend_from_slice(b"\r\nConnection: close\r\nAccept-Encoding: identity\r\n");
-    for header in &request.headers {
+    for header in request.headers.iter() {
         out.extend_from_slice(header.name().as_bytes());
         out.extend_from_slice(b": ");
         out.extend_from_slice(header.value().as_slice());
@@ -35,7 +35,7 @@ pub(super) fn encode_response(response: &HttpResponse) -> Result<Vec<u8>, HttpEx
     let mut out = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192) + body.len());
     out.extend_from_slice(format!("HTTP/1.1 {} Conduit\r\n", response.status).as_bytes());
     out.extend_from_slice(b"Connection: close\r\n");
-    for header in &response.headers {
+    for header in response.headers.iter() {
         out.extend_from_slice(header.name().as_bytes());
         out.extend_from_slice(b": ");
         out.extend_from_slice(header.value().as_slice());
@@ -64,7 +64,8 @@ pub(crate) fn read_response(
     Ok(HttpResponse {
         transaction_id,
         status,
-        headers,
+        headers: conduit_web::http_headers(headers)
+            .map_err(|_| HttpExchangeFailure::ResponseHeaderOverflow)?,
         body: HttpBody::inline(body),
     })
 }
@@ -90,15 +91,13 @@ pub(super) fn read_request(
         .find(|header| header.name() == "host")
         .and_then(|header| String::from_utf8(header.value().as_slice().to_vec()).ok())
         .ok_or(HttpExchangeFailure::ProviderLost)?;
-    let semantic_headers = headers
-        .into_iter()
-        .filter(|header| {
-            !matches!(
-                header.name().as_str(),
-                "host" | "connection" | "accept-encoding"
-            )
-        })
-        .collect();
+    let semantic_headers = conduit_web::http_headers(headers.into_iter().filter(|header| {
+        !matches!(
+            header.name().as_str(),
+            "host" | "connection" | "accept-encoding"
+        )
+    }))
+    .map_err(|_| HttpExchangeFailure::ResponseHeaderOverflow)?;
     Ok(HttpRequest {
         transaction_id,
         method,
