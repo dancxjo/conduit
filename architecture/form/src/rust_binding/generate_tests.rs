@@ -26,7 +26,7 @@ type Interval = {
 
 type Observation = {
     note: Note?
-    evidence: &Text
+    evidence: Bytes
 }
 
 type MusicEvent =
@@ -86,6 +86,41 @@ fn selected_record_can_retain_established_public_fields() {
         .contains("pub struct Position {\n    pub x:"));
     assert!(generated.source.contains("    pub y:"));
     assert!(generated.source.contains("pub struct Chord {\n    notes:"));
+}
+
+#[test]
+fn exact_reference_leaves_use_validated_native_bindings() {
+    let source = "type Image = Bytes\ntype References = {\n    text: &Text\n    image: &Image\n    resource: ResourceRef\n}\n";
+    let mut catalog = crate::StartupCatalog::new();
+    catalog
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_core::kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
+        )
+        .unwrap();
+    let checked =
+        crate::check_syntax_document(&crate::parse_syntax_document(source), &catalog).unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+
+    assert!(generated
+        .source
+        .contains("text: conduit_data::DataReference"));
+    assert!(generated
+        .source
+        .contains("image: conduit_data::DataReference"));
+    assert!(generated
+        .source
+        .contains("resource: conduit_core::BoundedResourceRef"));
+    assert!(generated
+        .source
+        .contains("conduit_data::DataReference::decode_for"));
+    assert!(generated
+        .source
+        .contains("conduit_core::BoundedResourceRef::decode(encoded)"));
+    assert!(!generated.source.contains("text: BoundedBytes"));
+    assert!(!generated.source.contains("image: BoundedBytes"));
+    assert!(!generated.source.contains("resource: BoundedBytes"));
 }
 
 #[test]

@@ -588,7 +588,10 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
         Some(PrimitiveInfoKind::Bytes) | None
             if identity.starts_with("data/generation-reference<") =>
         {
-            "BoundedBytes<4096>"
+            "conduit_data::DataReference"
+        }
+        None if identity == conduit_core::RESOURCE_REFERENCE_INFO_ID => {
+            "conduit_core::BoundedResourceRef"
         }
         Some(PrimitiveInfoKind::Bytes) => "BoundedBytes<4096>",
         Some(
@@ -617,6 +620,13 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
         }
     };
     Ok(value.into())
+}
+
+pub(super) fn data_reference_content_kind(identity: &str) -> Option<&str> {
+    identity
+        .strip_prefix("data/generation-reference<")
+        .and_then(|identity| identity.strip_suffix('>'))
+        .filter(|identity| !identity.is_empty())
 }
 
 pub(super) fn unit_type(value_type: &StructuredInfoType) -> bool {
