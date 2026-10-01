@@ -1,7 +1,9 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_tongues::{
-    RecognitionTextRefusal, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionDisposition,
-    SpeechRecognitionRefusal, SpeechRecognitionValueError, StreamingRecognitionRefusal,
+    no_speech_result, recognized_result, RecognitionTextRefusal, SpeechCommitReason,
+    SpeechCommitRefusal, SpeechRecognitionAttempt, SpeechRecognitionAudioDigest,
+    SpeechRecognitionDisposition, SpeechRecognitionRefusal, SpeechRecognitionResult,
+    SpeechRecognitionValueError, StreamingRecognitionRefusal,
 };
 
 fn round_trip<T>(value: T)
@@ -92,4 +94,30 @@ fn established_json_representations_remain_exact_boundary_adapters() {
         serde_json::from_str::<SpeechRecognitionDisposition>("\"Recognized\"").unwrap(),
         SpeechRecognitionDisposition::Recognized
     );
+}
+
+#[test]
+fn recognition_results_and_attempts_are_native_payload_rich_types() {
+    let recognized = recognized_result(
+        [7; 32],
+        320,
+        "fixture/provider@1".into(),
+        "Hello Margret".into(),
+    )
+    .unwrap();
+    round_trip(recognized.clone());
+    round_trip(no_speech_result([0; 32], 320, "fixture/provider@1".into()).unwrap());
+    round_trip(SpeechRecognitionAttempt::result(recognized).unwrap());
+    round_trip(
+        SpeechRecognitionAttempt::failed(SpeechRecognitionAudioDigest::new([9; 32]).unwrap())
+            .unwrap(),
+    );
+    round_trip(SpeechRecognitionAttempt::ResourceUnavailable);
+
+    assert!(matches!(
+        recognized_result([1; 32], 1, "fixture/provider@1".into(), "hello".into(),).unwrap(),
+        SpeechRecognitionResult::Recognized(_)
+    ));
+    assert!(recognized_result([1; 32], 1, "fixture/provider@1".into(), "x".repeat(257),).is_err());
+    assert!(no_speech_result([1; 32], 786_433, "fixture/provider@1".into()).is_err());
 }

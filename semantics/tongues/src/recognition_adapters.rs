@@ -22,9 +22,8 @@ use std::{
 
 use crate::{
     decode_speech_recognition_result, encode_recognition_event, RecognitionEvent,
-    SpeechRecognitionDisposition, MAXIMUM_RECOGNITION_EVENT_BYTES,
-    MAXIMUM_RECOGNITION_RESULT_BYTES, MAXIMUM_STREAMING_AUDIO_BYTES,
-    STREAMING_SPEECH_RECOGNIZE_KIND,
+    MAXIMUM_RECOGNITION_EVENT_BYTES, MAXIMUM_RECOGNITION_RESULT_BYTES,
+    MAXIMUM_STREAMING_AUDIO_BYTES, STREAMING_SPEECH_RECOGNIZE_KIND,
 };
 use speaking::{SegmentId, TextRole};
 
@@ -264,15 +263,13 @@ pub fn recognition_result_to_terminal_event(
 ) -> Result<Vec<u8>, RecognitionAdapterRefusal> {
     let result = decode_speech_recognition_result(encoded_result)
         .map_err(|_| RecognitionAdapterRefusal::InvalidResult)?;
-    let event = match result.disposition {
-        SpeechRecognitionDisposition::Recognized => {
-            let text = result
-                .text
-                .ok_or(RecognitionAdapterRefusal::InvalidResult)?;
+    let event = match result {
+        crate::SpeechRecognitionResult::Recognized(result) => {
+            let text = result.text().get().clone();
             let mut identity = Sha256::new();
             identity.update(b"conduit-single-shot-recognition-segment-v1\0");
-            identity.update(result.audio_sha256);
-            identity.update(result.provider_identity.as_bytes());
+            identity.update(result.audio_sha256().get());
+            identity.update(result.provider_identity().get().as_bytes());
             RecognitionEvent::CommittedSegment {
                 role: TextRole::Recognition,
                 segment_id: SegmentId(format!("recognition/single-shot/{:x}", identity.finalize())),
@@ -283,7 +280,7 @@ pub fn recognition_result_to_terminal_event(
                 confidence: None,
             }
         }
-        SpeechRecognitionDisposition::NoSpeech => RecognitionEvent::Completed,
+        crate::SpeechRecognitionResult::NoSpeech(_) => RecognitionEvent::Completed,
     };
     encode_recognition_event(&event).map_err(|_| RecognitionAdapterRefusal::Encoding)
 }
@@ -306,7 +303,7 @@ fn port(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{encode_speech_recognition_result, SpeechRecognitionResult};
+    use crate::encode_speech_recognition_result;
 
     #[test]
     fn explicit_adapters_preserve_temporal_direction() {
@@ -327,13 +324,15 @@ mod tests {
 
     #[test]
     fn single_shot_result_becomes_one_tongues_recognition_commit() {
-        let encoded = encode_speech_recognition_result(&SpeechRecognitionResult {
-            disposition: SpeechRecognitionDisposition::Recognized,
-            text: Some("Hello Margret".into()),
-            audio_sha256: [7; 32],
-            audio_extent_bytes: 320,
-            provider_identity: "fixture/provider@1".into(),
-        })
+        let encoded = encode_speech_recognition_result(
+            &crate::recognized_result(
+                [7; 32],
+                320,
+                "fixture/provider@1".into(),
+                "Hello Margret".into(),
+            )
+            .unwrap(),
+        )
         .unwrap();
         let event = crate::decode_recognition_event(
             &recognition_result_to_terminal_event(&encoded).unwrap(),
@@ -360,13 +359,9 @@ mod tests {
 
     #[test]
     fn single_shot_no_speech_completes_without_a_user_turn() {
-        let encoded = encode_speech_recognition_result(&SpeechRecognitionResult {
-            disposition: SpeechRecognitionDisposition::NoSpeech,
-            text: None,
-            audio_sha256: [0; 32],
-            audio_extent_bytes: 320,
-            provider_identity: "fixture/provider@1".into(),
-        })
+        let encoded = encode_speech_recognition_result(
+            &crate::no_speech_result([0; 32], 320, "fixture/provider@1".into()).unwrap(),
+        )
         .unwrap();
         let event = crate::decode_recognition_event(
             &recognition_result_to_terminal_event(&encoded).unwrap(),
