@@ -15,7 +15,7 @@ const CONTACT_HOST_CALL_IDENTITY: AssignedIdentity = AssignedIdentity([
 pub const MAX_ENCODED_BYTES: usize = 544;
 const RESOURCE_IDS: [u16; 3] = [0, 1, 2];
 const MAXIMA: AssignedPlanMaxima = AssignedPlanMaxima::SINGLE_SOURCE;
-const EXACT_COUNTS: [u8; 12] = [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2];
+const EXACT_COUNTS: [u8; 13] = [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2, 0];
 
 pub type ValidatedContactPlan = AssignedSingleSourceView;
 
