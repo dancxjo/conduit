@@ -371,10 +371,10 @@ fn region_value(region: ImageRegion) -> Result<StructuredInfoValue, VisualValueR
     record_value(
         pixel_region_type(),
         vec![
-            ("height", count_value(region.height)?),
-            ("width", count_value(region.width)?),
-            ("x", count_value(region.x)?),
-            ("y", count_value(region.y)?),
+            ("height", count_value(*region.height())?),
+            ("width", count_value(*region.width())?),
+            ("x", count_value(*region.x())?),
+            ("y", count_value(*region.y())?),
         ],
     )
 }

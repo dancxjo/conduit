@@ -156,10 +156,10 @@ impl FiniteHostedVisionBase {
                     "object candidate {:?} confidence {} region {},{},{},{}; ",
                     object.candidate_label,
                     object.confidence_permille,
-                    object.region.x,
-                    object.region.y,
-                    object.region.width,
-                    object.region.height,
+                    object.region.x(),
+                    object.region.y(),
+                    object.region.width(),
+                    object.region.height(),
                 ),
             )?;
             push_sign(&mut signs, &object.provenance.observation_sign_id)?;
@@ -181,10 +181,10 @@ impl FiniteHostedVisionBase {
                     "track {:?} confidence {} region {},{},{},{}; ",
                     track.track_id,
                     track.continuity_confidence_permille,
-                    track.current_region.x,
-                    track.current_region.y,
-                    track.current_region.width,
-                    track.current_region.height,
+                    track.current_region.x(),
+                    track.current_region.y(),
+                    track.current_region.width(),
+                    track.current_region.height(),
                 ),
             )?;
             push_sign(&mut signs, &track.provenance.observation_sign_id)?;

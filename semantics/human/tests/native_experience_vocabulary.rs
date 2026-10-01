@@ -2,8 +2,8 @@ use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
     ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
-    ExperienceTemporalRole, HumanMediaKind, KeymapRefusal, SourceAvailability, VisualEvidenceClass,
-    VisualExperienceRelationKind, VisualImpressionDisposition,
+    ExperienceTemporalRole, HumanMediaKind, ImageRegion, KeymapRefusal, SourceAvailability,
+    VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -12,6 +12,16 @@ where
 {
     let structured = value.clone().into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn image_region_round_trips_exact_full_domain_coordinates() {
+    for region in [
+        ImageRegion::new(0, 0, 0, 0).unwrap(),
+        ImageRegion::new(u16::MAX, u16::MAX, u16::MAX, u16::MAX).unwrap(),
+    ] {
+        assert_round_trip(region);
+    }
 }
 
 #[test]

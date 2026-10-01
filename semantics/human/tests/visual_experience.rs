@@ -44,12 +44,7 @@ fn provenance(class: VisualEvidenceClass, id: &str) -> VisualObservationProvenan
 }
 
 fn region() -> ImageRegion {
-    ImageRegion {
-        x: 10,
-        y: 20,
-        width: 100,
-        height: 80,
-    }
+    ImageRegion::from_xywh(10, 20, 100, 80).unwrap()
 }
 
 fn limits() -> VisualExperienceLimits {

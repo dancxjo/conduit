@@ -48,12 +48,7 @@ fn provenance(class: VisualEvidenceClass, suffix: &str) -> VisualObservationProv
 }
 
 fn region() -> ImageRegion {
-    ImageRegion {
-        x: 10,
-        y: 20,
-        width: 100,
-        height: 80,
-    }
+    ImageRegion::from_xywh(10, 20, 100, 80).unwrap()
 }
 
 #[test]
@@ -118,7 +113,7 @@ fn geometry_confidence_profile_and_evidence_class_refuse_exactly() {
         confidence_permille: 800,
         provenance: provenance(VisualEvidenceClass::StatisticalCandidate, "object"),
     };
-    object.region.x = 600;
+    object.region = ImageRegion::from_xywh(600, 20, 100, 80).unwrap();
     assert_eq!(
         object.validate(&profile),
         Err(VisualObservationRefusal::InvalidRegion)
