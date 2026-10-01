@@ -92,6 +92,7 @@ mod realization;
 mod realization_families;
 mod realization_recovery;
 mod recursive_recovery;
+mod recursive_recovery_explanation;
 mod replanning;
 mod requirements;
 mod resource_binding;
@@ -226,6 +227,10 @@ pub use realization_recovery::{
 pub use recursive_recovery::{
     prove_recursive_recovery, RecursiveRecoveryCandidate, RecursiveRecoveryEvidence,
     RecursiveRecoveryLimits, RecursiveRecoveryRefusal,
+};
+pub use recursive_recovery_explanation::{
+    explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
+    MAXIMUM_RECURSIVE_RECOVERY_EXPLANATION_BYTES,
 };
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
