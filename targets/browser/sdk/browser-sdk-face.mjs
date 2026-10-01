@@ -61,7 +61,7 @@ export class BrowserFaceClient {
     }
     const operation = `BrowserFace.${path}`;
     let response;
-    try { response = await this.#fetch(new URL(path, this.#base), options); }
+    try { response = await Reflect.apply(this.#fetch, globalThis, [new URL(path, this.#base), options]); }
     catch (cause) {
       throw new BrowserFaceError({ code: "FaceUnavailable", message: `Browser Face ${path} is unavailable`, operation, cause });
     }
