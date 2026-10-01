@@ -18,7 +18,9 @@ pub struct BrowserMaskJourneyOutcome {
 
 struct BrowserJourney<'a> {
     initial: &'a BrowserMaskObservation,
-    replacement: &'a BrowserMaskRuntime,
+    alternate_show: &'a BrowserMaskObservation,
+    replacement: &'a BrowserMaskObservation,
+    restored: &'a BrowserMaskObservation,
     alternate: MaskForm,
     initial_routes: AdmittedMaskFormRoutes,
     unavailable_routes: AdmittedMaskFormRoutes,
@@ -34,6 +36,13 @@ impl BrowserJourney<'_> {
         event: impl Into<String>,
         receipt_ids: Vec<String>,
     ) -> BrowserMaskJourneyOutcome {
+        let retains_fresh_show = matches!(
+            action,
+            MaskJourneyAction::InspectInitialShow
+                | MaskJourneyAction::PreferAlternateMask
+                | MaskJourneyAction::InspectReplannedShow
+                | MaskJourneyAction::InspectRestoredShow
+        );
         BrowserMaskJourneyOutcome {
             action_id: action.id(),
             concrete_event: event.into(),
@@ -45,7 +54,9 @@ impl BrowserJourney<'_> {
                 .map(|v| v.mask_form.checked_form_id.as_str().into()),
             plan_id: self.control.active_plan_id.clone(),
             selected_route_id: self.control.selected.as_ref().map(|v| v.route_id.clone()),
-            show_id: self.current_show.clone(),
+            show_id: retains_fresh_show
+                .then(|| self.current_show.clone())
+                .flatten(),
             receipt_ids,
         }
     }
@@ -121,13 +132,19 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                 {
                     return Err("preference selected an unsealed route".into());
                 }
+                self.current_show = Some(self.alternate_show.mask_show.show_id.as_str().into());
                 self.retain(
                     action,
-                    "sealed fallback selected without Plan mutation",
-                    vec![format!(
-                        "wardrobe-revision/{}",
-                        e.resulting_wardrobe.revision
-                    )],
+                    "sealed fallback executed as a fresh acknowledged DOM Show without Plan mutation",
+                    vec![
+                        format!("wardrobe-revision/{}", e.resulting_wardrobe.revision),
+                        self.alternate_show
+                            .mask_show
+                            .show
+                            .manifestation_id
+                            .as_str()
+                            .into(),
+                    ],
                 )
             }
             MaskJourneyAction::WithdrawSelectedRoute => {
@@ -175,10 +192,10 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                 action,
                 format!(
                     "Host {} Boot {} offered replacement realization",
-                    self.replacement.play.host_id.as_str(),
-                    self.replacement.play.boot_id.as_str()
+                    self.replacement.mask_play.host_id.as_str(),
+                    self.replacement.mask_play.boot_id.as_str()
                 ),
-                vec![self.replacement.play.boot_id.as_str().into()],
+                vec![self.replacement.mask_play.boot_id.as_str().into()],
             ),
             MaskJourneyAction::AdmitReplacementPlan => {
                 let old = self.control.active_plan_id.clone();
@@ -200,14 +217,20 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                 )
             }
             MaskJourneyAction::InspectReplannedShow => {
-                if self.replacement.show.show.lifecycle != ManifestationLifecycle::Available {
+                if self.replacement.mask_show.show.lifecycle != ManifestationLifecycle::Available {
                     return Err("replacement Show lacks DOM acknowledgement".into());
                 }
-                self.current_show = Some(self.replacement.show.show_id.as_str().into());
+                self.current_show = Some(self.replacement.mask_show.show_id.as_str().into());
                 self.retain(
                     action,
                     "replacement DOM Show inspected",
-                    vec![self.replacement.show.show.manifestation_id.as_str().into()],
+                    vec![self
+                        .replacement
+                        .mask_show
+                        .show
+                        .manifestation_id
+                        .as_str()
+                        .into()],
                 )
             }
             MaskJourneyAction::DoffAlternateMask => {
@@ -216,7 +239,7 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                     MaskWardrobeAction::Doff(self.alternate.form_identity.clone()),
                     &routes,
                 )?;
-                self.current_show = Some(self.replacement.show.show_id.as_str().into());
+                self.current_show = None;
                 self.retain(
                     action,
                     "alternate Mask doffed; sealed initial route restored",
@@ -226,29 +249,64 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                     )],
                 )
             }
-            MaskJourneyAction::InspectRestoredShow => self.retain(
-                action,
-                "restored acknowledged DOM Show inspected",
-                vec![self.replacement.show.show.manifestation_id.as_str().into()],
-            ),
+            MaskJourneyAction::InspectRestoredShow => {
+                if self.restored.mask_show.show.lifecycle != ManifestationLifecycle::Available {
+                    return Err("restored Show lacks DOM acknowledgement".into());
+                }
+                self.current_show = Some(self.restored.mask_show.show_id.as_str().into());
+                self.retain(
+                    action,
+                    "restored acknowledged DOM Show inspected",
+                    vec![self
+                        .restored
+                        .mask_show
+                        .show
+                        .manifestation_id
+                        .as_str()
+                        .into()],
+                )
+            }
         })
     }
 }
 
 pub(super) fn actualize(
-    initial: &BrowserMaskObservation,
-    replacement: &BrowserMaskRuntime,
+    observations: &[BrowserMaskObservation],
 ) -> Result<Vec<BrowserMaskJourneyOutcome>, String> {
-    if initial.presentation.identity != replacement.presentation.identity
-        || initial.presentation.revision != replacement.presentation.revision
+    let [initial, alternate_show, replacement, restored] = observations else {
+        return Err("browser Mask journey requires four acknowledged Show occurrences".into());
+    };
+    if observations.iter().any(|observation| {
+        observation.presentation.identity != initial.presentation.identity
+            || observation.presentation.revision != initial.presentation.revision
+            || observation.mask_show.show.lifecycle != ManifestationLifecycle::Available
+    }) {
+        return Err(
+            "browser Mask journey changed Face truth or retained an unacknowledged Show".into(),
+        );
+    }
+    if initial.body_plan.plan_id != alternate_show.body_plan.plan_id
+        || initial.body_plan.plan_id == replacement.body_plan.plan_id
+        || replacement.body_plan.plan_id != restored.body_plan.plan_id
     {
-        return Err("replacement changed Presentation truth".into());
+        return Err(
+            "browser Mask journey did not preserve its same-Plan and replacement boundaries".into(),
+        );
+    }
+    if observations
+        .iter()
+        .map(|observation| observation.mask_show.show_id.as_str())
+        .collect::<std::collections::BTreeSet<_>>()
+        .len()
+        != observations.len()
+    {
+        return Err("browser Mask journey reused a retained Show occurrence".into());
     }
     if initial.body_plan.plan_id == replacement.body_plan.plan_id {
         return Err("replacement reused Plan".into());
     }
     let initial_mask = initial.planned_mask.mask.clone();
-    let alternate = replacement.alternate.mask.clone();
+    let alternate = initial.alternate.mask.clone();
     let initial_routes = plan::admitted_routes(
         &initial.body_plan,
         &initial.planned_mask,
@@ -265,8 +323,8 @@ pub(super) fn actualize(
     )?;
     let replacement_routes = plan::admitted_routes(
         &replacement.body_plan,
-        &replacement.planned,
         &replacement.alternate,
+        &replacement.planned_mask,
         true,
         true,
     )?;
@@ -293,7 +351,9 @@ pub(super) fn actualize(
     .map_err(|e| format!("start control: {e:?}"))?;
     let mut embodiment = BrowserJourney {
         initial,
+        alternate_show,
         replacement,
+        restored,
         alternate,
         initial_routes,
         unavailable_routes,

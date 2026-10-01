@@ -22,7 +22,7 @@ thread_local! {
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
     static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
     static BROWSER_MASK: RefCell<Option<crate::workspace_mask::BrowserMaskRuntime>> = const { RefCell::new(None) };
-    static MASK_JOURNEY_INITIAL: RefCell<Option<crate::workspace_mask::BrowserMaskObservation>> = const { RefCell::new(None) };
+    static MASK_JOURNEY_SHOWS: RefCell<Option<Vec<crate::workspace_mask::BrowserMaskObservation>>> = const { RefCell::new(None) };
 }
 
 #[derive(Deserialize)]
@@ -132,7 +132,9 @@ enum Request {
     TutorialMaskObservation,
     TutorialMaskJourney,
     BeginTutorialMaskJourney,
+    PrepareTutorialMaskAlternate,
     PrepareTutorialMaskReplacement,
+    PrepareTutorialMaskRestored,
     InvitationView {
         invitation_id: String,
         body_id: String,
@@ -598,12 +600,31 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return encode(&effect);
             }
             Request::AcknowledgeTutorialMask { acknowledgement } => {
+                let journey_full = MASK_JOURNEY_SHOWS.with(|shows| {
+                    shows
+                        .borrow()
+                        .as_ref()
+                        .is_some_and(|shows| shows.len() >= 4)
+                });
+                if journey_full {
+                    return Err(Refusal::new(
+                        "TutorialMaskJourney",
+                        "browser Mask journey already retained its four finite Show occurrences",
+                    ));
+                }
                 return BROWSER_MASK.with(|slot| {
                     let mut slot = slot.borrow_mut();
                     let runtime = slot.as_mut().ok_or("Browser Mask has not been prepared")?;
                     runtime.acknowledge(&acknowledgement)
                         .map_err(|error| Refusal::new("TutorialMaskAcknowledge", error))?;
-                    encode(&runtime.observation())
+                    let observation = runtime.observation();
+                    MASK_JOURNEY_SHOWS.with(|shows| {
+                        let mut shows = shows.borrow_mut();
+                        if let Some(shows) = shows.as_mut() {
+                            shows.push(observation.clone());
+                        }
+                    });
+                    encode(&observation)
                 });
             }
             Request::InteractWithTutorialMask { interaction } => {
@@ -626,10 +647,12 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return BROWSER_MASK.with(|slot| {
                     let slot = slot.borrow();
                     let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
-                    let initial = MASK_JOURNEY_INITIAL.with(|initial| initial.borrow().clone())
-                        .ok_or("Browser Mask journey has no retained initial realization")?;
-                    let outcomes = runtime.actualize_journey(&initial)
+                    let shows = MASK_JOURNEY_SHOWS
+                        .with(|shows| shows.borrow().clone())
+                        .ok_or("Browser Mask journey has not retained its Show occurrences")?;
+                    let outcomes = runtime.actualize_journey(&shows)
                         .map_err(|error| Refusal::new("TutorialMaskJourney", error))?;
+                    MASK_JOURNEY_SHOWS.with(|shows| *shows.borrow_mut() = None);
                     encode(&outcomes)
                 });
             }
@@ -642,9 +665,19 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                         || observation.interaction.is_none() {
                         return Err(Refusal::new("TutorialMaskJourney", "initial browser Mask lacks DOM acknowledgement or interaction"));
                     }
-                    MASK_JOURNEY_INITIAL.with(|initial| *initial.borrow_mut() = Some(observation));
+                    MASK_JOURNEY_SHOWS.with(|shows| *shows.borrow_mut() = Some(vec![observation]));
                     encode(&serde_json::json!({"status":"retained"}))
                 });
+            }
+            Request::PrepareTutorialMaskAlternate => {
+                let (runtime, effect) = BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    runtime.alternate(current.evidence().body_id.clone())
+                        .map_err(|error| Refusal::new("TutorialMaskAlternate", error))
+                })?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
             }
             Request::PrepareTutorialMaskReplacement => {
                 let (runtime, effect) = BROWSER_MASK.with(|slot| {
@@ -652,6 +685,16 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
                     runtime.replacement(current.evidence().body_id.clone())
                         .map_err(|error| Refusal::new("TutorialMaskReplacement", error))
+                })?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
+            }
+            Request::PrepareTutorialMaskRestored => {
+                let (runtime, effect) = BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    runtime.restored(current.evidence().body_id.clone())
+                        .map_err(|error| Refusal::new("TutorialMaskRestored", error))
                 })?;
                 BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
                 return encode(&effect);

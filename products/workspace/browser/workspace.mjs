@@ -432,18 +432,23 @@ export async function startApplication(application) {
       maskObservation: session.tutorialMaskObservation,
       maskJourney() {
         session.beginTutorialMaskJourney();
-        const mask = session.prepareTutorialMaskReplacement();
-        tutorial.dataset.maskShowId = mask.show_id;
-        tutorial.dataset.maskManifestationId = mask.manifestation_id;
-        tutorial.dataset.maskPlanId = mask.mask_plan_id;
-        tutorial.dataset.maskPlayId = mask.mask_play.active_play_id;
-        tutorial.dataset.maskPlacementId = mask.placement_id;
-        tutorial.dataset.presentationId = mask.presentation_id;
-        tutorial.dataset.presentationRevision = String(mask.presentation_revision);
-        session.acknowledgeTutorialMask({ show_id: mask.show_id, manifestation_id: mask.manifestation_id,
-          mask_plan_id: mask.mask_plan_id, active_play_id: mask.mask_play.active_play_id,
-          placement_id: mask.placement_id, presentation_id: mask.presentation_id,
-          presentation_revision: mask.presentation_revision });
+        const realize = prepare => {
+          const mask = prepare();
+          tutorial.dataset.maskShowId = mask.show_id;
+          tutorial.dataset.maskManifestationId = mask.manifestation_id;
+          tutorial.dataset.maskPlanId = mask.mask_plan_id;
+          tutorial.dataset.maskPlayId = mask.mask_play.active_play_id;
+          tutorial.dataset.maskPlacementId = mask.placement_id;
+          tutorial.dataset.presentationId = mask.presentation_id;
+          tutorial.dataset.presentationRevision = String(mask.presentation_revision);
+          session.acknowledgeTutorialMask({ show_id: mask.show_id, manifestation_id: mask.manifestation_id,
+            mask_plan_id: mask.mask_plan_id, active_play_id: mask.mask_play.active_play_id,
+            placement_id: mask.placement_id, presentation_id: mask.presentation_id,
+            presentation_revision: mask.presentation_revision });
+        };
+        realize(session.prepareTutorialMaskAlternate);
+        realize(session.prepareTutorialMaskReplacement);
+        realize(session.prepareTutorialMaskRestored);
         return session.tutorialMaskJourney();
       },
       state: () => structuredClone(playback), settled: () => saving.then(session.settled) });

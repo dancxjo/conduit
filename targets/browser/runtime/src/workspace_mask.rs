@@ -118,6 +118,7 @@ pub struct BrowserMaskRuntime {
     planned: PlannedMaskForm,
     alternate: PlannedMaskForm,
     body_plan: BodyPlan,
+    basis_plan: BodyPlan,
     wake: Wake,
     play: ActivePlayIdentity,
     presentation: Presentation,
@@ -141,6 +142,27 @@ impl BrowserMaskRuntime {
         presentation: Presentation,
         wake: Wake,
         base_plan: BodyPlan,
+    ) -> Result<(Self, BrowserMaskEffect), String> {
+        Self::prepare_route(
+            body_id,
+            host_id,
+            boot_id,
+            presentation,
+            wake,
+            base_plan,
+            false,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_route(
+        body_id: BodyId,
+        host_id: HostId,
+        boot_id: BootId,
+        presentation: Presentation,
+        wake: Wake,
+        base_plan: BodyPlan,
+        select_alternate: bool,
     ) -> Result<(Self, BrowserMaskEffect), String> {
         let planned = plan::planned_mask(
             host_id.clone(),
@@ -187,6 +209,11 @@ impl BrowserMaskRuntime {
             }],
         )
         .map_err(|e| format!("seal browser Mask Body Plan: {e:?}"))?;
+        let (planned, alternate) = if select_alternate {
+            (alternate, planned)
+        } else {
+            (planned, alternate)
+        };
         let routes = plan::admitted_routes(&body_plan, &planned, &alternate, true, true)?;
         let mask = planned.mask.clone();
         let wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![], vec![])
@@ -322,6 +349,7 @@ impl BrowserMaskRuntime {
                 planned,
                 alternate,
                 body_plan,
+                basis_plan: base_plan,
                 wake,
                 play,
                 presentation,
@@ -473,19 +501,44 @@ impl BrowserMaskRuntime {
 
     pub fn actualize_journey(
         &self,
-        initial: &BrowserMaskObservation,
+        observations: &[BrowserMaskObservation],
     ) -> Result<Vec<BrowserMaskJourneyOutcome>, String> {
-        journey::actualize(initial, self)
+        journey::actualize(observations)
+    }
+
+    pub fn alternate(&self, body_id: BodyId) -> Result<(Self, BrowserMaskEffect), String> {
+        Self::prepare_route(
+            body_id,
+            self.play.host_id.clone(),
+            self.play.boot_id.clone(),
+            self.presentation.clone(),
+            self.wake.clone(),
+            self.basis_plan.clone(),
+            true,
+        )
     }
 
     pub fn replacement(&self, body_id: BodyId) -> Result<(Self, BrowserMaskEffect), String> {
-        Self::prepare(
+        Self::prepare_route(
             body_id,
             self.play.host_id.clone(),
             BootId::from(format!("{}/mask-replacement", self.play.boot_id.as_str())),
             self.presentation.clone(),
             self.wake.clone(),
             self.body_plan.clone(),
+            true,
+        )
+    }
+
+    pub fn restored(&self, body_id: BodyId) -> Result<(Self, BrowserMaskEffect), String> {
+        Self::prepare_route(
+            body_id,
+            self.play.host_id.clone(),
+            self.play.boot_id.clone(),
+            self.presentation.clone(),
+            self.wake.clone(),
+            self.basis_plan.clone(),
+            false,
         )
     }
 }
