@@ -13,7 +13,11 @@ fn main() {
         &checked.native_types,
         &checked.codes,
         &RustBindingOptions {
-            copy_record_types: ["AccelerationObservation".into()].into(),
+            copy_record_types: [
+                "AccelerationObservation".into(),
+                "ProximityObservation".into(),
+            ]
+            .into(),
             ..RustBindingOptions::default()
         },
     )

@@ -292,7 +292,7 @@ fn portable_observation(
         cliff_signal_available,
         cliff_signals,
         dropped_wheels: group.wheel_drop.dropped_wheels(),
-        proximity_body_sectors: group.proximity.active_body_sectors(),
+        proximity_body_sectors: *group.proximity.active_body_sectors(),
         virtual_wall_present: group.virtual_wall.is_some(),
         infrared_code: group.infrared.map(|beacon| beacon.code),
         pressed_buttons: group.buttons.pressed(),

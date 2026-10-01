@@ -26,3 +26,7 @@ type AccelerationObservation = {
     y-left-mm-s2: I32 in -200000..=200000
     z-up-mm-s2: I32 in -200000..=200000
 }
+
+type ProximityObservation = {
+    active-body-sectors: U8 in 0..=31
+}
