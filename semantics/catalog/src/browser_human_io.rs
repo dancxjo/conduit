@@ -6,11 +6,12 @@ use crate::human_media_catalog::install_camera_catalogs;
 use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, BoundedResourceRef, CapabilityLimits, Kind, KindId, KindIdentity,
-    PortDescriptor, PortDirection, PortTemporal, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
-    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES, RESOURCE_REFERENCE_INFO_ID,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, StructuredVariantCase,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 
 pub const IMAGE_TEXT_COMPOSE_KIND: &str = "media/compose-image-text";
 pub const IMAGE_TEXT_COMPOSE_REVISION: &str = "conduit.human/image-text-compose@1";
@@ -114,27 +115,8 @@ pub enum ImageTextValueRefusal {
 }
 
 pub fn image_observation_reference_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("human/image-observation-reference@1"),
-        vec![
-            StructuredFieldType::new(
-                "content",
-                StructuredInfoType::leaf(kind_id(RESOURCE_REFERENCE_INFO_ID)).unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldType::new(
-                "height",
-                StructuredInfoType::leaf(kind_id("value/count")).unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldType::new(
-                "width",
-                StructuredInfoType::leaf(kind_id("value/count")).unwrap(),
-            )
-            .unwrap(),
-        ],
-    )
-    .expect("image observation reference type")
+    conduit_human::ImageObservationReference::semantic_type()
+        .expect("checked human image reference Type remains decodable")
 }
 
 pub fn image_text_record_type() -> StructuredInfoType {
@@ -306,41 +288,17 @@ fn metadata_type() -> StructuredInfoType {
 pub fn image_observation_value(
     image: &conduit_human::ImageObservationReference,
 ) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
-    StructuredInfoValue::record(
-        image_observation_reference_type(),
-        vec![
-            field_value(
-                "content",
-                leaf_value(
-                    RESOURCE_REFERENCE_INFO_ID,
-                    image
-                        .content
-                        .encode()
-                        .map_err(|_| ImageTextValueRefusal::Malformed)?,
-                )?,
-            ),
-            field_value("height", count_value(image.height)?),
-            field_value("width", count_value(image.width)?),
-        ],
-    )
-    .map_err(|_| ImageTextValueRefusal::Malformed)
+    image
+        .clone()
+        .into_structured()
+        .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
 pub fn image_observation_from_value(
     value: &StructuredInfoValue,
 ) -> Result<conduit_human::ImageObservationReference, ImageTextValueRefusal> {
-    if value.value_type() != &image_observation_reference_type() {
-        return Err(ImageTextValueRefusal::Malformed);
-    }
-    let fields = record_fields(value)?;
-    Ok(conduit_human::ImageObservationReference {
-        content: BoundedResourceRef::decode(leaf_bytes(field(fields, "content")?)?)
-            .map_err(|_| ImageTextValueRefusal::Malformed)?,
-        height: u16::try_from(count_from(field(fields, "height")?)?)
-            .map_err(|_| ImageTextValueRefusal::Malformed)?,
-        width: u16::try_from(count_from(field(fields, "width")?)?)
-            .map_err(|_| ImageTextValueRefusal::Malformed)?,
-    })
+    conduit_human::ImageObservationReference::from_structured(value.clone())
+        .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
 fn metadata_slot_type() -> StructuredInfoType {
@@ -427,10 +385,6 @@ fn leaf_value(
     .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
-fn count_value(value: u16) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
-    leaf_value("value/count", u64::from(value).to_le_bytes().to_vec())
-}
-
 fn field_value(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {
     StructuredFieldValue::new(name, value).expect("reviewed image-text field name is finite")
 }
@@ -460,13 +414,6 @@ fn leaf_bytes(value: &StructuredInfoValue) -> Result<&[u8], ImageTextValueRefusa
         StructuredInfoValueShape::Leaf(bytes) => Ok(bytes),
         _ => Err(ImageTextValueRefusal::Malformed),
     }
-}
-
-fn count_from(value: &StructuredInfoValue) -> Result<u64, ImageTextValueRefusal> {
-    leaf_bytes(value)?
-        .try_into()
-        .map(u64::from_le_bytes)
-        .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
 fn text_from(value: &StructuredInfoValue) -> Result<String, ImageTextValueRefusal> {
