@@ -95,7 +95,7 @@ families are explicit exceptions.
 | `semantics/audio/**` | pitch, note/control events, tone intent, PCM semantic profile/frame/clip, channel layout, gate and terminal meaning | prepared renderers and implementation state are M; codec-only errors are W | remaining payload records and bounded PCM shapes |
 | `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery and presentation state | browser-family installers and state machines are M; fixtures are C | bounded records and terminal review |
 | `semantics/data/**` | observations, provenance, measurements, windows, thresholds, plots, tensors, datasets, cadence/continuity, quantity-mapping policy and data-reference domain values | stores/prepared stores and operators are M; wire/codec refusals are W; corpus fixtures are C | remaining payload records, bounded collections and references |
-| `semantics/finance/**` | currency, fixed decimal, money, rates | fixtures are C | rates and remaining typed terminal families |
+| `semantics/finance/**` | currency, fixed decimal, money, rates, quotes and transaction events | fixtures are C | terminal family review |
 | `semantics/human/**` | input events, modifiers, regions, visual/text/object/motion observations, experience and interaction values | acquisition offers/plans/reservations and active instances are R; initialized implementations are M; codecs are W; conformance vectors are C | bounded strings/collections and remaining payload migration |
 | `semantics/language/**` | typed linguistic terminal payloads | parser/recognizer machinery is M | remaining typed terminal payload review |
 | `semantics/net/**` | addresses, endpoints, DNS, attachment info, record-delivery observations and transcript entries | sockets/connections/queues/trackers are M; protocol frames and typed-record codecs are W | records and bounded network values |
@@ -160,6 +160,7 @@ are satisfied.
 |---|---|---|---|---|---|
 | Finance currency, comparison, pair, fixed decimal and money | `semantics/finance/types.conduit` | generated at build time | yes | yes | native binding and finance behavior suites |
 | Finance rate observation and bounded source/profile identities | `semantics/finance/types.conduit` | generated at build time | yes | yes | exact native round trips and text-boundary proof plus finance conversion/reference suites |
+| Finance observed instant, quote freshness/quote and fixed transaction-event family | `semantics/finance/types.conduit` | generated at build time | yes | yes | exact native identities and round trips, bounded identifiers/sources and finance reference suites |
 | Calendar participant role, invitation state and availability state | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus calendar, AI and std Host suites |
 | Historical origin/overflow and temporal window boundary/position vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and time behavior suites |
 | Pulse observation record | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native record round trip plus canonical six-byte codec and time/browser behavior suites |

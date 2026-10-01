@@ -1,10 +1,6 @@
 //! Host-neutral exact finite monetary semantics without floats or provider symbols.
 
-use alloc::{vec, vec::Vec};
-use conduit_core::{
-    kind_id, StructuredFieldType, StructuredInfoRefusal, StructuredInfoType, StructuredVariantCase,
-    QUANTITY_INFO_ID,
-};
+use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 use core::cmp::Ordering;
 
 pub const FINANCE_FIXED_DECIMAL_TYPE: &str = "FinanceFixedDecimal";
@@ -142,26 +138,6 @@ fn require_same_currency(left: &Currency, right: &Currency) -> Result<(), Financ
     Ok(())
 }
 
-fn leaf(kind: &str) -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(kind)).expect("reviewed finance leaf")
-}
-
-fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).expect("reviewed finance field")
-}
-
-fn case(name: &str, payload_type: StructuredInfoType) -> StructuredVariantCase {
-    StructuredVariantCase::new(name, payload_type).expect("reviewed finance case")
-}
-
-fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
-    StructuredInfoType::record(kind_id(kind), fields).expect("reviewed finance record")
-}
-
-fn unit_type() -> StructuredInfoType {
-    leaf("value/unit")
-}
-
 pub fn finance_fixed_decimal_type() -> StructuredInfoType {
     crate::FinanceFixedDecimal::semantic_type().expect("checked native finance fixed-decimal Type")
 }
@@ -179,115 +155,34 @@ pub fn finance_instrument_type() -> StructuredInfoType {
 }
 
 pub fn finance_instant_type() -> StructuredInfoType {
-    record(
-        "finance/observed-instant@1",
-        vec![
-            field("basis", leaf("value/text")),
-            field("resolution_ticks", leaf("value/count")),
-            field("scale", leaf("time/scale@1")),
-            field("ticks", leaf("value/count")),
-            field("uncertainty_ticks", leaf("value/count")),
-        ],
-    )
-}
-
-fn freshness_detail_type() -> StructuredInfoType {
-    record(
-        "finance/quote-freshness-detail@1",
-        vec![
-            field("age", leaf(QUANTITY_INFO_ID)),
-            field("reference", finance_instant_type()),
-        ],
-    )
+    crate::FinanceObservedInstant::semantic_type()
+        .expect("checked native finance observed-instant Type")
 }
 
 pub fn finance_freshness_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("finance/quote-freshness@1"),
-        vec![
-            case("fresh", freshness_detail_type()),
-            case("stale", freshness_detail_type()),
-        ],
-    )
-    .expect("reviewed quote freshness")
+    crate::FinanceQuoteFreshness::semantic_type()
+        .expect("checked native finance quote-freshness Type")
 }
 
 pub fn finance_quote_type() -> StructuredInfoType {
-    record(
-        "finance/quote@1",
-        vec![
-            field("ask", finance_money_type()),
-            field("bid", finance_money_type()),
-            field("freshness", finance_freshness_type()),
-            field("instrument", finance_instrument_type()),
-            field("observed_at", finance_instant_type()),
-            field("source", leaf("value/text")),
-        ],
-    )
+    crate::FinanceQuote::semantic_type().expect("checked native finance quote Type")
 }
 
 pub fn finance_rate_type() -> StructuredInfoType {
-    record(
-        "finance/rate-observation@1",
-        vec![
-            field("instrument", finance_instrument_type()),
-            field("observed_at", finance_instant_type()),
-            field("profile", leaf("value/text")),
-            field("rate", finance_fixed_decimal_type()),
-            field("source", leaf("value/text")),
-        ],
-    )
+    crate::FinanceRateObservation::semantic_type()
+        .expect("checked native finance rate-observation Type")
 }
 
 pub fn finance_transaction_event_type() -> StructuredInfoType {
-    let placed = record(
-        "finance/transaction-placed@1",
-        vec![
-            field("amount", finance_money_type()),
-            field("observed_at", finance_instant_type()),
-            field("order_id", leaf("value/text")),
-        ],
-    );
-    let filled = record(
-        "finance/transaction-filled@1",
-        vec![
-            field("amount", finance_money_type()),
-            field("observed_at", finance_instant_type()),
-            field("order_id", leaf("value/text")),
-            field("price", finance_money_type()),
-        ],
-    );
-    let rejected = record(
-        "finance/transaction-rejected@1",
-        vec![
-            field("observed_at", finance_instant_type()),
-            field("order_id", leaf("value/text")),
-            field("reason", leaf("value/text")),
-        ],
-    );
-    StructuredInfoType::variant(
-        kind_id("finance/transaction-event@1"),
-        vec![
-            case("filled", filled),
-            case("placed", placed),
-            case("rejected", rejected),
-        ],
-    )
-    .expect("reviewed transaction variants")
+    crate::FinanceTransactionEvent::semantic_type()
+        .expect("checked native finance transaction-event Type")
 }
 
 pub fn finance_transaction_events_type() -> StructuredInfoType {
-    StructuredInfoType::collection(
-        finance_transaction_event_type(),
-        Some(FINANCE_TRANSACTION_EVENT_COUNT),
-    )
-    .expect("three deterministic transaction events")
+    crate::FinanceTransactionEventsThree::semantic_type()
+        .expect("checked native finance transaction-events Type")
 }
 
 pub fn finance_money_comparison_type() -> StructuredInfoType {
     crate::FinanceMoneyComparison::semantic_type().expect("checked native finance comparison Type")
-}
-
-pub(crate) fn finance_unit_type() -> StructuredInfoType {
-    unit_type()
 }
