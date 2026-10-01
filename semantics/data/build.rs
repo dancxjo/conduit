@@ -28,14 +28,25 @@ fn main() {
             copy_record_types: [
                 "DataGenerationNamespace".into(),
                 "MeasurementPlotPoint".into(),
+                "MeasurementPlotProfile".into(),
                 "MeasurementThresholdPolicy".into(),
             ]
             .into(),
             copy_nominal_types: ["DataGenerationDigest".into()].into(),
             hash_nominal_types: ["DataGenerationDigest".into()].into(),
             copy_record_value_getters: ["DataGenerationNamespace".into()].into(),
+            public_record_fields: ["MeasurementPlotProfile".into()].into(),
             record_constructor_names: [("DataGenerationNamespace".into(), "from_digest".into())]
                 .into(),
+            record_constructor_orders: [(
+                "MeasurementPlotSeries".into(),
+                vec![
+                    "projected-points".into(),
+                    "source-sample-count".into(),
+                    "omitted-sample-count".into(),
+                ],
+            )]
+            .into(),
             ..RustBindingOptions::default()
         },
     )

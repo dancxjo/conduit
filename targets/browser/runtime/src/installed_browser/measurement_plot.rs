@@ -87,7 +87,7 @@ fn profile(placement: &PlannedGear) -> Result<MeasurementPlotProfile, Failure> {
             conduit_core::ConfigurationEntry {
                 key,
                 value: ConfigurationValue::U64(value),
-            } if key == "points" => usize::try_from(*value).ok(),
+            } if key == "points" => u16::try_from(*value).ok(),
             _ => None,
         })
         .ok_or(failure(10))?;

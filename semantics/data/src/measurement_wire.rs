@@ -121,7 +121,7 @@ pub fn encode_measurement_plot_series(
     );
     bytes.extend_from_slice(&(series.source_samples() as u64).to_le_bytes());
     bytes.extend_from_slice(&(series.omitted_samples() as u64).to_le_bytes());
-    for point in series.points() {
+    for point in series.points().iter() {
         bytes.extend_from_slice(&point.source_index().to_le_bytes());
         bytes.extend_from_slice(&point.time_millionths().to_le_bytes());
         bytes.extend_from_slice(&point.value_millionths().to_le_bytes());
