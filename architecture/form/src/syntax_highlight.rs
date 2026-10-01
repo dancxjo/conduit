@@ -198,7 +198,7 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
         "form" | "host" | "body" | "pack" | "ship" | "need" | "version" | "pool" | "with"
-        | "as" | "from" | "sans" | "glyphs" | "in" | "not" | "type" | "code" | "kind" => {
+        | "as" | "from" | "sans" | "glyphs" | "in" | "not" | "is" | "type" | "code" | "kind" => {
             SyntaxHighlightKind::Keyword
         }
         "true" | "false" => SyntaxHighlightKind::Literal,
@@ -310,6 +310,21 @@ mod tests {
         let pieces = pieces(source, &spans);
         assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "in")));
     }
+
+    #[test]
+    fn typed_variant_case_operator_is_a_lossless_language_keyword() {
+        let source = ".transition is KeyTransition.pressed";
+        let spans = highlight_syntax(source).unwrap();
+        assert!(pieces(source, &spans).contains(&(SyntaxHighlightKind::Keyword, "is")));
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &source[span.start..span.end])
+                .collect::<String>(),
+            source
+        );
+    }
+
     fn pieces<'a>(
         source: &'a str,
         spans: &'a [SyntaxHighlightSpan],

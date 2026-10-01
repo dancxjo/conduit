@@ -7,8 +7,8 @@ use crate::{
 };
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{
-    StructuredInfoType, MAXIMUM_STRUCTURED_INFO_DEPTH, MAXIMUM_STRUCTURED_INFO_NODES,
-    MAXIMUM_STRUCTURED_NAME_BYTES,
+    StructuredInfoType, StructuredInfoTypeShape, MAXIMUM_STRUCTURED_INFO_DEPTH,
+    MAXIMUM_STRUCTURED_INFO_NODES, MAXIMUM_STRUCTURED_NAME_BYTES,
 };
 
 const HEADER: &[u8] = b"conduit.pure-expression.program.v2";
@@ -175,6 +175,22 @@ impl<'a> Cursor<'a> {
                 kind: self.text()?,
                 arguments: self.nodes(depth, remaining_nodes)?,
             },
+            11 => {
+                let value = Box::new(self.node(depth + 1, remaining_nodes)?);
+                let case = self.text()?;
+                let StructuredInfoTypeShape::Variant { cases, .. } = value.value_type.shape()
+                else {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                };
+                if !matches!(
+                    value_type.shape(),
+                    StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == "value/bool"
+                ) || !cases.iter().any(|candidate| candidate.tag() == case)
+                {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                PortableExpressionOperation::VariantCaseTest { value, case }
+            }
             _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
         };
         Ok(PortableExpressionNode {

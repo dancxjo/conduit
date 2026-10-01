@@ -55,6 +55,10 @@ pub enum PortableExpressionOperation {
         kind: String,
         arguments: Vec<PortableExpressionNode>,
     },
+    VariantCaseTest {
+        value: Box<PortableExpressionNode>,
+        case: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -159,6 +163,24 @@ fn node(
             operator: *operator,
             operand: Box::new(node(operand, checked)?),
         },
+        ExpressionSyntax::Binary {
+            operator,
+            left,
+            right,
+            ..
+        } if *operator == BinaryOperator::CaseIs => {
+            let ExpressionSyntax::Projection {
+                member: ExpressionProjection::Field(case),
+                ..
+            } = right.as_ref()
+            else {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            };
+            PortableExpressionOperation::VariantCaseTest {
+                value: Box::new(node(left, checked)?),
+                case: case.text.clone(),
+            }
+        }
         ExpressionSyntax::Binary {
             operator,
             left,
@@ -302,6 +324,11 @@ fn push_node(
             push_text(encoded, kind);
             push_nodes(encoded, arguments)?;
         }
+        PortableExpressionOperation::VariantCaseTest { value, case } => {
+            encoded.push(11);
+            push_node(encoded, value)?;
+            push_text(encoded, case);
+        }
     }
     Ok(())
 }
@@ -363,5 +390,6 @@ const fn binary_tag(operator: BinaryOperator) -> u8 {
         BinaryOperator::BitOr => 15,
         BinaryOperator::BooleanAnd => 16,
         BinaryOperator::BooleanOr => 17,
+        BinaryOperator::CaseIs => panic!(),
     }
 }

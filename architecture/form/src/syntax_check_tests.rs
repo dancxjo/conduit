@@ -1214,6 +1214,158 @@ fn native_record_where_laws_must_be_boolean_and_follow_fields() {
 }
 
 #[test]
+fn typed_variant_case_tests_resolve_nominal_cases_at_the_reference() {
+    let source = "type Transition =\n    pressed\n    | released\n\ntype Event = {\n    transition: Transition\n    active: Boolean\n    where .active == (.transition is Transition.pressed)\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
+        .expect("qualified case belongs to the exact projected variant Type");
+    let event = checked
+        .native_types
+        .iter()
+        .find(|value| value.name == "Event")
+        .unwrap();
+    assert_eq!(event.invariants.len(), 1);
+    let encoded = event.invariants[0].canonical_bytes().unwrap();
+    let decoded = crate::PortableExpressionProgram::from_canonical_bytes(&encoded).unwrap();
+    assert_eq!(decoded, event.invariants[0]);
+    let transition = checked
+        .native_types
+        .iter()
+        .find(|value| value.name == "Transition")
+        .unwrap();
+    let event_value = |tag: &str, active: bool| {
+        let payload_type = match transition.value_type.shape() {
+            conduit_core::StructuredInfoTypeShape::Variant { cases, .. } => cases
+                .iter()
+                .find(|case| case.tag() == tag)
+                .unwrap()
+                .payload_type()
+                .clone(),
+            _ => unreachable!(),
+        };
+        let payload = conduit_core::StructuredInfoValue::leaf(payload_type, Vec::new()).unwrap();
+        let transition_value =
+            conduit_core::StructuredInfoValue::variant(transition.value_type.clone(), tag, payload)
+                .unwrap();
+        conduit_core::StructuredInfoValue::record(
+            event.value_type.clone(),
+            vec![
+                conduit_core::StructuredFieldValue::new(
+                    "active",
+                    conduit_core::StructuredInfoValue::leaf(
+                        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                            conduit_core::BOOL_INFO_ID,
+                        ))
+                        .unwrap(),
+                        conduit_core::InfoBool::new(active).encode().to_vec(),
+                    )
+                    .unwrap(),
+                )
+                .unwrap(),
+                conduit_core::StructuredFieldValue::new("transition", transition_value).unwrap(),
+            ],
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+    };
+    for (tag, active, expected) in [
+        ("pressed", true, true),
+        ("pressed", false, false),
+        ("released", false, true),
+        ("released", true, false),
+    ] {
+        let input = event_value(tag, active);
+        assert_eq!(
+            conduit_core::InfoBool::decode(&event.invariants[0].evaluate(&input).unwrap())
+                .unwrap()
+                .get(),
+            expected,
+        );
+        let mut prepared =
+            crate::PreparedPortableExpressionEvaluator::new(&event.invariants[0]).unwrap();
+        assert_eq!(
+            conduit_core::InfoBool::decode(prepared.evaluate(&input).unwrap())
+                .unwrap()
+                .get(),
+            expected,
+        );
+    }
+
+    for (reference, message) in [
+        ("Transition.presed", "variant Type has no such case"),
+        ("Other.pressed", "different nominal variant Type"),
+    ] {
+        let source = source.replace("Transition.pressed", reference);
+        let error = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
+            .unwrap_err();
+        assert!(error.message.contains(message), "{}", error.message);
+        assert_eq!(
+            &source[error.span.start..error.span.end],
+            reference
+                .rsplit('.')
+                .next()
+                .filter(|_| reference.contains("presed"))
+                .unwrap_or("Other")
+        );
+    }
+}
+
+#[test]
+fn payload_case_test_is_independent_of_payload_and_projection_stays_checked() {
+    let source = "type Outcome =\n    message Text\n    | idle\n\ntype Envelope = {\n    outcome: Outcome\n    where .outcome is Outcome.message\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
+        .expect("payload case identity does not require a dummy payload");
+    let outcome = checked
+        .native_types
+        .iter()
+        .find(|value| value.name == "Outcome")
+        .unwrap();
+    let envelope = checked
+        .native_types
+        .iter()
+        .find(|value| value.name == "Envelope")
+        .unwrap();
+    for payload in ["first", "different contents"] {
+        let payload = conduit_core::StructuredInfoValue::leaf(
+            conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                conduit_core::TEXT_INFO_ID,
+            ))
+            .unwrap(),
+            payload.as_bytes().to_vec(),
+        )
+        .unwrap();
+        let value = conduit_core::StructuredInfoValue::variant(
+            outcome.value_type.clone(),
+            "message",
+            payload,
+        )
+        .unwrap();
+        let input = conduit_core::StructuredInfoValue::record(
+            envelope.value_type.clone(),
+            vec![conduit_core::StructuredFieldValue::new("outcome", value).unwrap()],
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        assert_eq!(
+            envelope.invariants[0].evaluate(&input).unwrap(),
+            conduit_core::InfoBool::TRUE.encode(),
+        );
+    }
+
+    let invalid_projection = source.replace(
+        ".outcome is Outcome.message",
+        ".outcome.message == \"ignored\"",
+    );
+    let error = check_syntax_document(
+        &parse_syntax_document(&invalid_projection),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert!(error.message.contains("projection does not match"));
+}
+
+#[test]
 fn pure_expressions_admit_only_explicit_integer_widening_and_variant_tags() {
     let source = "type Direction =\n    mono\n    | stereo\n\ntype Frame = {\n    count: U16\n    width: U32\n    direction: Direction\n    where value/u32(.count) <= .width\n    where variant/tag(.direction) != \"\"\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())

@@ -45,6 +45,25 @@ only translation to a separately governed protocol or mechanism. “The mapping
 is small” and “Rust already serializes it” do not establish an external
 boundary.
 
+### Variant case identity
+
+Pure expressions and `where` laws test a variant case with a qualified typed
+reference:
+
+```conduit
+.transition is KeyTransition.pressed
+```
+
+The left operand remains the complete variant value. The test compares only
+its case identity, so payload-bearing cases need no dummy payload and payload
+contents do not participate. `Type.case` resolves against the operand's exact
+nominal Type; an unknown case, a stale renamed case, or a case qualified by a
+different Type refuses at that reference during checking.
+
+`variant/tag(value)` remains explicit text reflection for display, logging,
+and compatibility code. It is not the semantic case-test surface, and native
+contracts should not compare its result with string literals.
+
 The ordinary compact form derives iota tags from authored variant order:
 
 ```conduit

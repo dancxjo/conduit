@@ -145,6 +145,18 @@ fn evaluate_node(
                 .collect::<Result<Vec<_>, _>>()?;
             intrinsic_call(kind, arguments, &node.value_type)?
         }
+        PortableExpressionOperation::VariantCaseTest { value, case } => {
+            let value = evaluate_node(value, input, input_type)?;
+            let variant = StructuredInfoValue::from_canonical_bytes(&value.encoded)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+            let StructuredInfoValueShape::Variant { tag, .. } = variant.shape() else {
+                return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+            };
+            primitive_value(
+                &node.value_type,
+                InfoBool::new(tag == case).encode().to_vec(),
+            )?
+        }
     };
     if value.value_type != node.value_type {
         Err(PortableExpressionEvaluationRefusal::InvalidProgram)

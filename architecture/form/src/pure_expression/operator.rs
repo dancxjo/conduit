@@ -3,6 +3,12 @@
 use crate::BinaryOperator;
 
 pub(super) fn binary(tail: &str) -> Option<(BinaryOperator, u8, usize)> {
+    if tail
+        .strip_prefix("is")
+        .is_some_and(|rest| rest.chars().next().is_some_and(char::is_whitespace))
+    {
+        return Some((BinaryOperator::CaseIs, 7, 2));
+    }
     [
         ("<<<", BinaryOperator::ShiftLeft, 9),
         (">>>", BinaryOperator::ShiftRight, 9),

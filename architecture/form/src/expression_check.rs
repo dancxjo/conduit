@@ -547,6 +547,54 @@ fn binary(
     context: &ExpressionTypeContext<'_>,
     node_types: &mut Vec<CheckedExpressionNodeType>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if operator == BinaryOperator::CaseIs {
+        let left_type = infer(left, None, context, node_types)?;
+        let Some(kind) = left_type.value_kind() else {
+            return refuse(left.span(), "case test requires one exact semantic variant");
+        };
+        let Some(value_type) = context.structured_types.get(kind) else {
+            return refuse(left.span(), "case test requires one exact semantic variant");
+        };
+        let StructuredInfoTypeShape::Variant { schema, cases } = value_type.shape() else {
+            return refuse(left.span(), "case test requires one exact semantic variant");
+        };
+        let ExpressionSyntax::Projection {
+            value,
+            member: ExpressionProjection::Field(case),
+            ..
+        } = right
+        else {
+            return refuse(
+                right.span(),
+                "case reference must be qualified as Type.case",
+            );
+        };
+        let ExpressionSyntax::Atomic(value_type) = value.as_ref() else {
+            return refuse(
+                right.span(),
+                "case reference must be qualified as Type.case",
+            );
+        };
+        let expected_name = schema
+            .as_str()
+            .strip_prefix("type/")
+            .and_then(|name| name.split_once('@').map(|(name, _)| name))
+            .unwrap_or(schema.as_str());
+        if value_type.text != expected_name {
+            return refuse(
+                value_type.span,
+                "case reference belongs to a different nominal variant Type",
+            );
+        }
+        if !cases.iter().any(|candidate| candidate.tag() == case.text) {
+            return refuse(case.span, "variant Type has no such case");
+        }
+        node_types.push(CheckedExpressionNodeType {
+            span: right.span(),
+            value_type: left_type,
+        });
+        return Ok(boolean());
+    }
     if matches!(
         operator,
         BinaryOperator::BooleanAnd | BinaryOperator::BooleanOr

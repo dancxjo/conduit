@@ -501,6 +501,37 @@ fn pure_expression_precedence_and_ternary_are_structural_not_opaque_text() {
 }
 
 #[test]
+fn typed_variant_case_test_round_trips_as_an_equality_precedence_expression() {
+    let source =
+        "form case_test {\n    matches = .transition is KeyTransition.pressed && .enabled\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let BackStatement::LocalValue(local) = &document.forms[0].back[0] else {
+        panic!("case test is an ordinary local expression");
+    };
+    let ExpressionSyntax::Binary {
+        operator: BinaryOperator::BooleanAnd,
+        left,
+        ..
+    } = &local.value.syntax
+    else {
+        panic!("Boolean composition remains outermost");
+    };
+    assert!(matches!(
+        left.as_ref(),
+        ExpressionSyntax::Binary {
+            operator: BinaryOperator::CaseIs,
+            ..
+        }
+    ));
+}
+
+#[test]
 fn input_tuple_record_projection_and_semantic_calls_have_distinct_syntax() {
     let source =
         "form expressions {\n    tuple = (.field, .0, { reading, scaled: math/sin(.) })\n}\n";

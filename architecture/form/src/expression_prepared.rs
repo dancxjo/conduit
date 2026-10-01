@@ -13,8 +13,10 @@ use conduit_core::{
 };
 use core::cmp::Ordering;
 
+mod case_test;
 mod nominal;
 mod structured;
+use case_test::PreparedVariantCaseTest;
 use structured::PreparedStructuredExpression;
 
 /// A prepared primitive-only evaluator. Construction owns every allocation;
@@ -65,6 +67,7 @@ enum PreparedOperation {
         when_false: Box<PreparedNode>,
     },
     Projection(PreparedProjection),
+    VariantCaseTest(PreparedVariantCaseTest),
 }
 
 struct PreparedProjection {
@@ -235,6 +238,9 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
         PortableExpressionOperation::Projection { .. } => {
             PreparedOperation::Projection(prepare_projection(node)?)
         }
+        PortableExpressionOperation::VariantCaseTest { value, case } => {
+            PreparedOperation::VariantCaseTest(PreparedVariantCaseTest::new(value, case)?)
+        }
         _ => {
             return Err(Refusal::UnsupportedType(
                 "structured expression runtime".into(),
@@ -381,6 +387,7 @@ fn evaluate_node(
         PreparedOperation::Projection(projection) => {
             PrimitiveValue::new(expected, projection.evaluate(input)?)?
         }
+        PreparedOperation::VariantCaseTest(test) => test.evaluate(input)?,
     };
     if value.kind == expected {
         Ok(value)

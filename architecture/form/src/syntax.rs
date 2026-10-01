@@ -664,6 +664,8 @@ pub enum BinaryOperator {
     BitOr,
     BooleanAnd,
     BooleanOr,
+    /// Typed variant case identity (`value is Type.case`).
+    CaseIs,
 }
 
 impl ExpressionSyntax {
