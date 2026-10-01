@@ -2,20 +2,24 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::clone_on_copy)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+
+    impl Copy for SynchronizationOutcomeAdjusted {}
+    impl Copy for SynchronizationOutcome {}
 }
 pub use generated::{
     AvailabilityState, CalendarRefusal, CandidateConflict, CivilFoldPolicy, CivilGapPolicy,
-    CivilResolutionChoice, ClockChangeBehavior, HistoricalEntryOrigin, HistoricalEntryOriginCode,
-    HistoricalOverflowPolicy, HistoricalOverflowPolicyCode, InvitationState,
-    MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, PulseObservation,
-    RecurrenceRefusal, ReplayCommand, ReplayCommandFail, ReplayPolicy, ReplayPolicyRate,
-    ScheduleRefusal, ScheduledIntentRefusal, SequenceNormalizationRefusal, SuspendBehavior,
-    TemplateCollectionRefusal, TemporalBoundary, TemporalWindowPosition, TemporalWindowRefusal,
-    TimedPatternRefusal, WorkflowLifecycle, WorkflowTimingOutcome,
-    WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
+    CivilResolutionChoice, CivilResolutionPolicy, ClockChangeBehavior, HistoricalEntryOrigin,
+    HistoricalEntryOriginCode, HistoricalOverflowPolicy, HistoricalOverflowPolicyCode,
+    InvitationState, MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal,
+    PulseObservation, RecurrenceRefusal, ReplayCommand, ReplayCommandFail, ReplayPolicy,
+    ReplayPolicyRate, ReplayState, ReplayStateFailed, RhythmState, ScheduleRefusal,
+    ScheduledIntentRefusal, SequenceNormalizationRefusal, SuspendBehavior, SynchronizationOutcome,
+    SynchronizationOutcomeAdjusted, TemplateCollectionRefusal, TemporalBoundary,
+    TemporalWindowPosition, TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
+    WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
 };
 
 mod timed_pattern_refusal;

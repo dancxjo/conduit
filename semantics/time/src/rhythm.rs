@@ -1,6 +1,6 @@
 //! Portable, finite rhythm observation and phase-following semantics.
 
-use crate::PulseObservation;
+use crate::{PulseObservation, RhythmState, SynchronizationOutcome};
 
 pub const PULSE_OBSERVATION_VALUE_KIND: &str = "time/pulse-observation@1";
 pub const RHYTHM_STATE_VALUE_KIND: &str = "time/rhythm-state@1";
@@ -21,23 +21,6 @@ pub const SYNCHRONIZATION_WINDOW_MS: i16 = 320;
 pub(crate) fn pulse_observation(sequence: u32, period_ms: u16) -> PulseObservation {
     PulseObservation::new(period_ms, sequence)
         .expect("U32 and U16 have no narrower native constraint")
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RhythmState {
-    pub sequence: u32,
-    pub next_pulse_at_ms: u32,
-    pub period_ms: u16,
-    pub expected_peer_sequence: u32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SynchronizationOutcome {
-    Adjusted { phase_ms: i16, period_ms: i16 },
-    OutsideWindow,
-    Stale,
-    Missing,
-    Pressure,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,10 +107,8 @@ pub fn synchronize(
     state.period_ms = (i32::from(state.period_ms) + i32::from(period_adjustment))
         .clamp(i32::from(MINIMUM_PERIOD_MS), i32::from(MAXIMUM_PERIOD_MS))
         as u16;
-    Ok(SynchronizationOutcome::Adjusted {
-        phase_ms: phase_adjustment,
-        period_ms: period_adjustment,
-    })
+    SynchronizationOutcome::adjusted(phase_adjustment, period_adjustment)
+        .map_err(|_| RhythmError::PeriodOutsideBounds(state.period_ms))
 }
 
 pub fn missing_outcome() -> SynchronizationOutcome {
@@ -210,19 +191,13 @@ mod tests {
         let mut late = state(1_000, 240, 4);
         assert_eq!(
             synchronize(&mut late, pulse_observation(4, 320), 1_100),
-            Ok(SynchronizationOutcome::Adjusted {
-                phase_ms: 50,
-                period_ms: 16
-            })
+            Ok(SynchronizationOutcome::adjusted(50, 16).unwrap())
         );
         assert_eq!((late.next_pulse_at_ms, late.period_ms), (1_050, 256));
         let mut early = state(1_000, 240, 4);
         assert_eq!(
             synchronize(&mut early, pulse_observation(4, 160), 900),
-            Ok(SynchronizationOutcome::Adjusted {
-                phase_ms: -50,
-                period_ms: -16
-            })
+            Ok(SynchronizationOutcome::adjusted(-50, -16).unwrap())
         );
         assert_eq!((early.next_pulse_at_ms, early.period_ms), (950, 224));
     }

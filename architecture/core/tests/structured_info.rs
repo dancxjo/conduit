@@ -262,6 +262,37 @@ fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
 }
 
 #[test]
+fn borrowed_validation_accepts_nominal_types_and_checks_their_representation() {
+    let representation_type =
+        StructuredInfoType::collection(leaf_type("value/count"), Some(1)).unwrap();
+    let nominal_type = StructuredInfoType::nominal(
+        KindId::from("test/nominal-counts@1"),
+        representation_type.clone(),
+    )
+    .unwrap();
+    let representation = StructuredInfoValue::collection(
+        representation_type,
+        vec![leaf("value/count", &encode_count(7))],
+    )
+    .unwrap();
+    let value = StructuredInfoValue::nominal(nominal_type, representation).unwrap();
+    let canonical = value.canonical_bytes().unwrap();
+
+    let validated = validate_canonical_structured_value(&canonical).unwrap();
+    assert_eq!(
+        validated.type_semantic_digest(),
+        value.value_type().semantic_digest().unwrap()
+    );
+
+    let mut malformed = canonical;
+    malformed.push(0xff);
+    assert_eq!(
+        validate_canonical_structured_value(&malformed),
+        Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+    );
+}
+
+#[test]
 fn exact_structured_type_round_trips_without_a_value_node() {
     let value_type = StructuredInfoType::record(
         KindId::from("test/type-round-trip@1"),

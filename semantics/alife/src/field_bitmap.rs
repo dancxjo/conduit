@@ -31,7 +31,7 @@ mod tests {
     #[test]
     fn q16_field_maps_deterministically_without_presentation_facts() {
         let field = LeniaFieldState::from_cells(
-            LeniaFieldId([7; 16]),
+            LeniaFieldId::from_bytes([7; 16]),
             3,
             32,
             32,

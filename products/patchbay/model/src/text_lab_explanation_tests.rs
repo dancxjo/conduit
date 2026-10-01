@@ -1,5 +1,6 @@
 use crate::{
-    text_lab_split_explanation, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    prepare_renderer_execution, text_lab_split_explanation, RendererAdapterIdentity,
+    RendererAdapterKind,
 };
 use conduit_core::{BootId, HostId, SignId};
 use conduit_presentation::{PresentationDepth, PresentationPlace, PresentationRole};
@@ -115,7 +116,7 @@ fn unchanged_text_lab_explains_split_program_and_body_without_mixing_domains() {
 fn native_and_html_adapters_consume_the_same_text_lab_presentation_vocabulary() {
     let explanation = text_lab_split_explanation("ws://127.0.0.1:1/conduit").unwrap();
     let render = |adapter, name: &str| {
-        RendererExecution::prepare(
+        prepare_renderer_execution(
             explanation.presentation.clone(),
             adapter,
             RendererAdapterIdentity {

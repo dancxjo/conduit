@@ -1,5 +1,5 @@
 use conduit_ai::{
-    EmbeddingNormalization, ExactVectorSearchRefusal, SimilarityMetric,
+    EmbeddingNormalization, ExactVectorSearchRefusal, SimilarityMetric, SimilarityScore,
     TemporalEvidenceSelectionRefusal, VectorIndexResourceRefusal, VectorRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
@@ -10,6 +10,30 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn similarity_scores_round_trip_exact_finite_ieee_values() {
+    for score in [
+        SimilarityScore::from_similarity(0.0).unwrap(),
+        SimilarityScore::from_similarity(-0.0).unwrap(),
+        SimilarityScore::from_similarity(f32::MAX).unwrap(),
+        SimilarityScore::from_squared_distance(-1.0).unwrap(),
+        SimilarityScore::from_squared_distance(f32::MIN_POSITIVE).unwrap(),
+    ] {
+        assert_round_trip(score);
+    }
+
+    for value in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        assert_eq!(
+            SimilarityScore::from_similarity(value),
+            Err(VectorRefusal::NonFiniteScore)
+        );
+        assert_eq!(
+            SimilarityScore::from_squared_distance(value),
+            Err(VectorRefusal::NonFiniteScore)
+        );
+    }
 }
 
 #[test]

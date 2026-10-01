@@ -2,23 +2,12 @@
 
 use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError};
 
+use crate::ExperienceTemporalRefusal;
 use crate::{ExperienceTemporalPolicy, ExperienceTemporalRole};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceTemporalRefusal {
-    InvalidPolicy,
-    InvalidInstant,
-    IncomparableClock,
-    IntervalOverflow,
-    FutureObservation,
-    IndeterminateAge,
-}
 
 impl ExperienceTemporalPolicy {
     pub fn validate(self) -> Result<(), ExperienceTemporalRefusal> {
-        if *self.maximum_recent_age_ticks() <= *self.maximum_current_age_ticks() {
-            return Err(ExperienceTemporalRefusal::InvalidPolicy);
-        }
+        // Construction and native decoding already prove the authored invariant.
         Ok(())
     }
 

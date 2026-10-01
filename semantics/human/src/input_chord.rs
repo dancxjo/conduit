@@ -3,7 +3,8 @@
 use conduit_core::{semantic_digest, InfoDecodeError};
 
 use crate::{
-    ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, KeyEvent, KeyModifiers, KeyTransition,
+    ChordInfo, ChordPhase, ChordPhaseCode, ControlChordModifier, CoreChordId, CoreChordIdCode,
+    KeyEvent, KeyModifiers, KeyTransition,
 };
 
 pub const CHORD_INFO_ID: &str = "input/chord@1";
@@ -25,50 +26,63 @@ impl CoreChordId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ChordInfo {
-    modifiers: KeyModifiers,
-    usage: u8,
-    phase: ChordPhase,
-    chord_id: CoreChordId,
-}
-
 impl ChordInfo {
     pub fn from_key_event(event: KeyEvent) -> Option<Self> {
         if event.transition() != KeyTransition::Pressed {
             return None;
         }
-        let chord_id = core_chord_id(event.modifiers_after(), event.usage())?;
-        Some(Self {
-            modifiers: event.modifiers_after(),
-            usage: event.usage(),
-            phase: ChordPhase::Triggered,
-            chord_id,
-        })
+        Self::from_parts(
+            event.modifiers_after(),
+            event.usage(),
+            core_chord_id(event.modifiers_after(), event.usage())?,
+        )
     }
 
     pub const fn modifiers(self) -> KeyModifiers {
-        self.modifiers
+        match self {
+            Self::CancelOrEscape(value)
+            | Self::ClearOrRefresh(value)
+            | Self::RepeatOrReplan(value) => value.modifiers(),
+            Self::Palette | Self::Inspect => KeyModifiers::LEFT_ALT,
+            Self::Plan | Self::Command | Self::Activate => KeyModifiers::LEFT_GUI,
+        }
     }
 
     pub const fn usage(self) -> u8 {
-        self.usage
+        match self {
+            Self::CancelOrEscape(_) => 0x0a,
+            Self::ClearOrRefresh(_) => 0x0f,
+            Self::RepeatOrReplan(_) => 0x15,
+            Self::Palette | Self::Plan => 0x13,
+            Self::Inspect => 0x0c,
+            Self::Command => 0x2c,
+            Self::Activate => 0x28,
+        }
     }
 
     pub const fn phase(self) -> ChordPhase {
-        self.phase
+        ChordPhase::Triggered
     }
 
     pub const fn chord_id(self) -> CoreChordId {
-        self.chord_id
+        match self {
+            Self::CancelOrEscape(_) => CoreChordId::CancelOrEscape,
+            Self::ClearOrRefresh(_) => CoreChordId::ClearOrRefresh,
+            Self::RepeatOrReplan(_) => CoreChordId::RepeatOrReplan,
+            Self::Palette => CoreChordId::Palette,
+            Self::Inspect => CoreChordId::Inspect,
+            Self::Plan => CoreChordId::Plan,
+            Self::Command => CoreChordId::Command,
+            Self::Activate => CoreChordId::Activate,
+        }
     }
 
     pub const fn encode(self) -> [u8; CHORD_ENCODED_LEN] {
         [
-            self.modifiers.bits(),
-            self.usage,
-            ChordPhaseCode::encode(self.phase)[0],
-            CoreChordIdCode::encode(self.chord_id)[0],
+            self.modifiers().bits(),
+            self.usage(),
+            ChordPhaseCode::encode(self.phase())[0],
+            CoreChordIdCode::encode(self.chord_id())[0],
         ]
     }
 
@@ -91,12 +105,95 @@ impl ChordInfo {
         if core_chord_id(modifiers, encoded[1]) != Some(chord_id) {
             return Err(InfoDecodeError::InconsistentValue("canonical-chord-id"));
         }
-        Ok(Self {
-            modifiers,
-            usage: encoded[1],
-            phase,
-            chord_id,
-        })
+        if phase != ChordPhase::Triggered {
+            return Err(InfoDecodeError::InconsistentValue("canonical-chord-phase"));
+        }
+        Self::from_parts(modifiers, encoded[1], chord_id)
+            .ok_or(InfoDecodeError::InconsistentValue("canonical-chord-id"))
+    }
+
+    fn from_parts(modifiers: KeyModifiers, usage: u8, chord_id: CoreChordId) -> Option<Self> {
+        match chord_id {
+            CoreChordId::CancelOrEscape if usage == 0x0a => Some(Self::CancelOrEscape(
+                ControlChordModifier::from_modifiers(modifiers)?,
+            )),
+            CoreChordId::ClearOrRefresh if usage == 0x0f => Some(Self::ClearOrRefresh(
+                ControlChordModifier::from_modifiers(modifiers)?,
+            )),
+            CoreChordId::RepeatOrReplan if usage == 0x15 => Some(Self::RepeatOrReplan(
+                ControlChordModifier::from_modifiers(modifiers)?,
+            )),
+            CoreChordId::Palette
+                if usage == 0x13 && modifiers.bits() == KeyModifiers::LEFT_ALT.bits() =>
+            {
+                Some(Self::Palette)
+            }
+            CoreChordId::Inspect
+                if usage == 0x0c && modifiers.bits() == KeyModifiers::LEFT_ALT.bits() =>
+            {
+                Some(Self::Inspect)
+            }
+            CoreChordId::Plan
+                if usage == 0x13 && modifiers.bits() == KeyModifiers::LEFT_GUI.bits() =>
+            {
+                Some(Self::Plan)
+            }
+            CoreChordId::Command
+                if usage == 0x2c && modifiers.bits() == KeyModifiers::LEFT_GUI.bits() =>
+            {
+                Some(Self::Command)
+            }
+            CoreChordId::Activate
+                if usage == 0x28 && modifiers.bits() == KeyModifiers::LEFT_GUI.bits() =>
+            {
+                Some(Self::Activate)
+            }
+            _ => None,
+        }
+    }
+}
+
+impl PartialOrd for ChordInfo {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ChordInfo {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.encode().cmp(&other.encode())
+    }
+}
+
+impl core::hash::Hash for ChordInfo {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::hash::Hash::hash(&self.encode(), state);
+    }
+}
+
+impl ControlChordModifier {
+    const fn from_modifiers(modifiers: KeyModifiers) -> Option<Self> {
+        match modifiers.bits() {
+            value if value == KeyModifiers::LEFT_CONTROL.bits() => Some(Self::Left),
+            value if value == KeyModifiers::RIGHT_CONTROL.bits() => Some(Self::Right),
+            value
+                if value
+                    == KeyModifiers::LEFT_CONTROL.bits() | KeyModifiers::RIGHT_CONTROL.bits() =>
+            {
+                Some(Self::Both)
+            }
+            _ => None,
+        }
+    }
+
+    const fn modifiers(self) -> KeyModifiers {
+        match self {
+            Self::Left => KeyModifiers::LEFT_CONTROL,
+            Self::Right => KeyModifiers::RIGHT_CONTROL,
+            Self::Both => KeyModifiers::from_bits(
+                KeyModifiers::LEFT_CONTROL.bits() | KeyModifiers::RIGHT_CONTROL.bits(),
+            ),
+        }
     }
 }
 

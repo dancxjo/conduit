@@ -8,7 +8,7 @@
 use alloc::{vec, vec::Vec};
 use sha2::{Digest, Sha256};
 
-use crate::{LeniaBoundary, LeniaParameters};
+use crate::{LeniaBoundary, LeniaFieldId, LeniaParameters};
 
 pub const SCALAR_FIELD2_INFO_ID: &str = "alife/scalar-field2@1";
 pub const LENIA_NUMERIC_PROFILE: &str = "alife/fixed-q16.16@1";
@@ -24,9 +24,6 @@ const LENIA_FIELD_MAGIC: [u8; 8] = *b"CNDLEN01";
 const LENIA_PROFILE_TAG: u32 = 0x5131_3631;
 const LENIA_FIELD_HEADER_BYTES: usize = 48;
 const LENIA_FIELD_DIGEST_DOMAIN: &[u8] = b"conduit.alife.scalar-field2.v1";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct LeniaFieldId(pub [u8; 16]);
 
 impl LeniaParameters {
     pub const ORBIUM: Self = Self {
@@ -51,7 +48,9 @@ impl LeniaParameters {
             || self.dt_q16 == 0
             || self.dt_q16 > LENIA_Q16_ONE
         {
-            return Err(LeniaRefusal::InvalidParameters);
+            return Err(LeniaRefusal::Value(
+                crate::LeniaValueRefusal::InvalidParameters,
+            ));
         }
         Ok(())
     }
@@ -76,18 +75,46 @@ pub struct LeniaFieldState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LeniaRefusal {
+pub enum LeniaCodecRefusal {
     WrongLength { expected: usize, actual: usize },
     WrongMagic,
     WrongNumericProfile,
-    InvalidDimensions,
-    CellCountMismatch,
-    CellOutOfRange,
-    InvalidParameters,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LeniaWorkerRefusal {
     Uninitialized,
-    GenerationOverflow,
-    ArithmeticOverflow,
-    InvalidSeed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LeniaRefusal {
+    Value(crate::LeniaValueRefusal),
+    Codec(LeniaCodecRefusal),
+    Worker(LeniaWorkerRefusal),
+}
+
+impl From<crate::LeniaValueRefusal> for LeniaRefusal {
+    fn from(value: crate::LeniaValueRefusal) -> Self {
+        Self::Value(value)
+    }
+}
+
+impl From<LeniaCodecRefusal> for LeniaRefusal {
+    fn from(value: LeniaCodecRefusal) -> Self {
+        Self::Codec(value)
+    }
+}
+
+impl From<LeniaWorkerRefusal> for LeniaRefusal {
+    fn from(value: LeniaWorkerRefusal) -> Self {
+        Self::Worker(value)
+    }
+}
+
+impl LeniaRefusal {
+    fn wrong_length(expected: usize, actual: usize) -> Self {
+        Self::Codec(LeniaCodecRefusal::WrongLength { expected, actual })
+    }
 }
 
 impl LeniaFieldState {
@@ -116,7 +143,9 @@ impl LeniaFieldState {
     pub fn validate(&self) -> Result<(), LeniaRefusal> {
         let count = validate_lenia_dimensions(self.width, self.height)?;
         if self.cells.len() != count {
-            return Err(LeniaRefusal::CellCountMismatch);
+            return Err(LeniaRefusal::Value(
+                crate::LeniaValueRefusal::CellCountMismatch,
+            ));
         }
         validate_cells(&self.cells)
     }
@@ -164,7 +193,9 @@ impl LeniaFieldState {
         generations: u16,
     ) -> Result<Self, LeniaRefusal> {
         if generations == 0 || generations > 64 {
-            return Err(LeniaRefusal::InvalidParameters);
+            return Err(LeniaRefusal::Value(
+                crate::LeniaValueRefusal::InvalidParameters,
+            ));
         }
         let encoded = self.encode()?;
         let mut engine = LeniaEngine::new(parameters)?;
@@ -213,8 +244,8 @@ impl LeniaEngine {
 
     pub fn initialize(&mut self, encoded: &[u8]) -> Result<(), LeniaRefusal> {
         let header = decode_lenia_field_header(encoded)?;
-        let count =
-            usize::try_from(header.cell_count).map_err(|_| LeniaRefusal::CellCountMismatch)?;
+        let count = usize::try_from(header.cell_count)
+            .map_err(|_| LeniaRefusal::Value(crate::LeniaValueRefusal::CellCountMismatch))?;
         for (destination, source) in self.current[..count].iter_mut().zip(decode_cells(encoded)?) {
             *destination = source?;
         }
@@ -227,11 +258,12 @@ impl LeniaEngine {
     }
 
     pub fn step_into(&mut self, output: &mut Vec<u8>) -> Result<(), LeniaRefusal> {
-        let field_id = self.field_id.ok_or(LeniaRefusal::Uninitialized)?;
-        let generation = self
-            .generation
-            .checked_add(1)
-            .ok_or(LeniaRefusal::GenerationOverflow)?;
+        let field_id = self.field_id.ok_or(LeniaRefusal::Worker(
+            crate::LeniaWorkerRefusal::Uninitialized,
+        ))?;
+        let generation = self.generation.checked_add(1).ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::GenerationOverflow,
+        ))?;
         crate::lenia_evolution::evolve_generation(
             &self.current[..self.cell_count],
             &mut self.next[..self.cell_count],
@@ -263,35 +295,36 @@ impl LeniaEngine {
 
 pub fn decode_lenia_field_header(encoded: &[u8]) -> Result<LeniaFieldHeader, LeniaRefusal> {
     if encoded.len() < LENIA_FIELD_HEADER_BYTES {
-        return Err(LeniaRefusal::WrongLength {
-            expected: LENIA_FIELD_HEADER_BYTES,
-            actual: encoded.len(),
-        });
+        return Err(LeniaRefusal::wrong_length(
+            LENIA_FIELD_HEADER_BYTES,
+            encoded.len(),
+        ));
     }
     if encoded[0..8] != LENIA_FIELD_MAGIC {
-        return Err(LeniaRefusal::WrongMagic);
+        return Err(LeniaRefusal::Codec(crate::LeniaCodecRefusal::WrongMagic));
     }
     if read_u32(encoded, 8)? != LENIA_PROFILE_TAG || encoded[44..48] != [0; 4] {
-        return Err(LeniaRefusal::WrongNumericProfile);
+        return Err(LeniaRefusal::Codec(
+            crate::LeniaCodecRefusal::WrongNumericProfile,
+        ));
     }
     let width = read_u16(encoded, 12)?;
     let height = read_u16(encoded, 14)?;
     let expected_count = validate_lenia_dimensions(width, height)?;
     let cell_count = read_u32(encoded, 40)?;
     if usize::try_from(cell_count).ok() != Some(expected_count) {
-        return Err(LeniaRefusal::CellCountMismatch);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellCountMismatch,
+        ));
     }
     let expected = LENIA_FIELD_HEADER_BYTES + expected_count * 4;
     if encoded.len() != expected {
-        return Err(LeniaRefusal::WrongLength {
-            expected,
-            actual: encoded.len(),
-        });
+        return Err(LeniaRefusal::wrong_length(expected, encoded.len()));
     }
     let mut field_id = [0; 16];
     field_id.copy_from_slice(&encoded[24..40]);
     Ok(LeniaFieldHeader {
-        field_id: LeniaFieldId(field_id),
+        field_id: LeniaFieldId::from_bytes(field_id),
         generation: read_u64(encoded, 16)?,
         width,
         height,
@@ -314,7 +347,9 @@ impl<'a> LeniaFieldView<'a> {
         for index in 0..header.cell_count as usize {
             let value = read_u32(encoded, LENIA_FIELD_HEADER_BYTES + index * 4)?;
             if value > LENIA_Q16_ONE {
-                return Err(LeniaRefusal::CellOutOfRange);
+                return Err(LeniaRefusal::Value(
+                    crate::LeniaValueRefusal::CellOutOfRange,
+                ));
             }
         }
         Ok(Self { header, encoded })
@@ -322,7 +357,9 @@ impl<'a> LeniaFieldView<'a> {
 
     pub fn cell(&self, index: usize) -> Result<u32, LeniaRefusal> {
         if index >= self.header.cell_count as usize {
-            return Err(LeniaRefusal::CellCountMismatch);
+            return Err(LeniaRefusal::Value(
+                crate::LeniaValueRefusal::CellCountMismatch,
+            ));
         }
         read_u32(self.encoded, LENIA_FIELD_HEADER_BYTES + index * 4)
     }
@@ -339,11 +376,15 @@ pub(crate) fn validate_lenia_dimensions(width: u16, height: u16) -> Result<usize
     if !(LENIA_MINIMUM_EXTENT..=LENIA_MAXIMUM_EXTENT).contains(&width)
         || !(LENIA_MINIMUM_EXTENT..=LENIA_MAXIMUM_EXTENT).contains(&height)
     {
-        return Err(LeniaRefusal::InvalidDimensions);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::InvalidDimensions,
+        ));
     }
     let count = usize::from(width) * usize::from(height);
     if count > LENIA_MAXIMUM_CELLS as usize {
-        return Err(LeniaRefusal::InvalidDimensions);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::InvalidDimensions,
+        ));
     }
     Ok(count)
 }
@@ -355,7 +396,9 @@ fn encode_field_into(
 ) -> Result<(), LeniaRefusal> {
     let count = validate_lenia_dimensions(header.width, header.height)?;
     if cells.len() != count || header.cell_count as usize != count {
-        return Err(LeniaRefusal::CellCountMismatch);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellCountMismatch,
+        ));
     }
     validate_cells(cells)?;
     output.clear();
@@ -364,7 +407,7 @@ fn encode_field_into(
     output.extend_from_slice(&header.width.to_le_bytes());
     output.extend_from_slice(&header.height.to_le_bytes());
     output.extend_from_slice(&header.generation.to_le_bytes());
-    output.extend_from_slice(&header.field_id.0);
+    output.extend_from_slice(header.field_id.get());
     output.extend_from_slice(&header.cell_count.to_le_bytes());
     output.extend_from_slice(&[0; 4]);
     for value in cells {
@@ -381,7 +424,9 @@ fn decode_cells(
         let value = read_u32(encoded, LENIA_FIELD_HEADER_BYTES + index * 4)?;
         (value <= LENIA_Q16_ONE)
             .then_some(value)
-            .ok_or(LeniaRefusal::CellOutOfRange)
+            .ok_or(LeniaRefusal::Value(
+                crate::LeniaValueRefusal::CellOutOfRange,
+            ))
     }))
 }
 
@@ -390,7 +435,9 @@ fn validate_cells(cells: &[u32]) -> Result<(), LeniaRefusal> {
         .iter()
         .all(|value| *value <= LENIA_Q16_ONE)
         .then_some(())
-        .ok_or(LeniaRefusal::CellOutOfRange)
+        .ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellOutOfRange,
+        ))
 }
 
 fn read_u16(encoded: &[u8], offset: usize) -> Result<u16, LeniaRefusal> {
@@ -398,10 +445,7 @@ fn read_u16(encoded: &[u8], offset: usize) -> Result<u16, LeniaRefusal> {
         .get(offset..offset + 2)
         .and_then(|value| value.try_into().ok())
         .map(u16::from_le_bytes)
-        .ok_or(LeniaRefusal::WrongLength {
-            expected: offset + 2,
-            actual: encoded.len(),
-        })
+        .ok_or_else(|| LeniaRefusal::wrong_length(offset + 2, encoded.len()))
 }
 
 fn read_u32(encoded: &[u8], offset: usize) -> Result<u32, LeniaRefusal> {
@@ -409,10 +453,7 @@ fn read_u32(encoded: &[u8], offset: usize) -> Result<u32, LeniaRefusal> {
         .get(offset..offset + 4)
         .and_then(|value| value.try_into().ok())
         .map(u32::from_le_bytes)
-        .ok_or(LeniaRefusal::WrongLength {
-            expected: offset + 4,
-            actual: encoded.len(),
-        })
+        .ok_or_else(|| LeniaRefusal::wrong_length(offset + 4, encoded.len()))
 }
 
 fn read_u64(encoded: &[u8], offset: usize) -> Result<u64, LeniaRefusal> {
@@ -420,10 +461,7 @@ fn read_u64(encoded: &[u8], offset: usize) -> Result<u64, LeniaRefusal> {
         .get(offset..offset + 8)
         .and_then(|value| value.try_into().ok())
         .map(u64::from_le_bytes)
-        .ok_or(LeniaRefusal::WrongLength {
-            expected: offset + 8,
-            actual: encoded.len(),
-        })
+        .ok_or_else(|| LeniaRefusal::wrong_length(offset + 8, encoded.len()))
 }
 
 #[cfg(test)]

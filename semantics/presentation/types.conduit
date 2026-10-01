@@ -1,5 +1,62 @@
 # Authoritative portable presentation meaning. Rust consumes generated bindings.
 
+type Point2 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+}
+
+type Point3 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+    z: Quantity
+}
+
+type Vector2 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+}
+
+type Vector3 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+    z: Quantity
+}
+
+type Extent2 = {
+    height: Quantity
+    width: Quantity
+}
+
+type Rect2 = {
+    extent: Extent2
+    origin: Point2
+}
+
+type Transform2 = {
+    from_frame: Text
+    offset_x: Quantity
+    offset_y: Quantity
+    to_frame: Text
+}
+
+type Path2Four = {
+    points: collection Point2 = 4
+}
+
+type RoboticsPose2 = {
+    heading: Quantity
+    position: Point2
+}
+
+type ImageRegion2 = {
+    label: Text
+    region: Rect2
+}
+
 type GraphicsCommandKind =
     rect
     | text
@@ -154,6 +211,27 @@ type PresentationTemporalRole =
     | observation
     | ingestion
 
+# Renderer-neutral rhetoric among exact Presentation subjects. The open
+# semantic case names meaning; it does not prescribe layout or a renderer.
+type PresentationCompositionKind =
+    group
+    | contrast
+    | juxtapose
+    | emphasize
+    | subordinate
+    | associate
+    | reveal_after
+    | semantic {
+        identity: Text <= 256B not in [""]
+    }
+
+type PresentationCompositionRelation = {
+    identity: Text <= 256B not in [""]
+    source: Text <= 256B not in [""]
+    target: Text <= 256B not in [""]
+    kind: PresentationCompositionKind
+}
+
 type LayoutAxis =
     horizontal
     | vertical
@@ -162,6 +240,27 @@ type LayoutAlignment =
     start
     | center
     | end
+
+type LayoutRect = {
+    x: I16
+    y: I16
+    width: U16
+    height: U16
+}
+
+type LayoutFrame = {
+    viewport: LayoutRect
+    child_count: U8
+    children: collection LayoutRect = 8
+}
+
+type LayoutError =
+    too_many_children
+    | extent_out_of_bounds
+    | undersized_extent
+    | coordinate_overflow
+    | malformed_encoding
+    | non_canonical_encoding
 
 type GraphicsClipClass =
     fully_visible
@@ -190,6 +289,79 @@ type GeneratedManifestationDisposition =
 type GeneratedContentRole =
     speech
     | presented_thought
+
+type PresentationPlace =
+    entrance
+    | program
+    | body
+
+code presentation/place = PresentationPlace as u8
+
+type PresentationAspect =
+    structure
+    | plan
+    | play
+    | signs
+
+code presentation/aspect = PresentationAspect as u8
+
+type PresentationDepth =
+    primary
+    | context
+    | detail
+    | exact
+
+code presentation/depth = PresentationDepth as u8
+
+type NavigationRefusal =
+    stale_presentation
+    | unknown_place
+    | unknown_aspect
+    | unknown_subject
+    | unknown_relationship
+    | history_exhausted
+    | history_full
+    | invalid_truth
+
+code presentation/navigation-refusal = NavigationRefusal as u8
+
+type MaskWardrobeLifetime =
+    wake
+    | body
+
+code presentation/mask-wardrobe-lifetime = MaskWardrobeLifetime as u8
+
+type MaskPlanningDisposition =
+    not_required
+    | replacement_required
+
+code presentation/mask-planning-disposition = MaskPlanningDisposition as u8
+
+type MaskWardrobeError =
+    stale_revision
+    | capacity_exceeded
+    | duplicate_mask
+    | unknown_mask
+    | unknown_preference
+    | invalid_lifetime_scope
+    | invalid_route
+    | duplicate_route
+    | stale_selection
+
+code presentation/mask-wardrobe-error = MaskWardrobeError as u8
+
+type FaceContributionRole =
+    foreground
+    | tutorial
+    | inspection
+    | transient
+
+code presentation/face-contribution-role = FaceContributionRole as u8
+
+type GenerativeNarratorRole =
+    transient_first_person_body_narrator
+
+code presentation/generative-narrator-role = GenerativeNarratorRole as u8
 
 type GeneratedActionAffordance = {
     action_identity: Text <= 128B not in [""]
@@ -260,6 +432,11 @@ type ApplicationEventKind =
     | input
     | toggle
     | submit
+
+type ApplicationAction = {
+    id: Text <= 48B not in [""]
+    event: ApplicationEventKind
+}
 
 code presentation/application-event-kind = ApplicationEventKind as u8 from 1
 

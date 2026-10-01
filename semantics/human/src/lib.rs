@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-#[allow(clippy::clone_on_copy, dead_code)]
+#[allow(clippy::clone_on_copy, clippy::too_many_arguments, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 
@@ -54,15 +54,19 @@ mod generated {
     }
 }
 pub use generated::{
-    ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
-    ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageRegion,
-    ImageTextMetadata, InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
+    ChordInfo, ChordPhase, ChordPhaseCode, ControlChordModifier, CoreChordId, CoreChordIdCode,
+    CurrentExperienceProjection, ExperienceAvailability, ExperienceBodyInput, ExperienceCertainty,
+    ExperienceDomain, ExperienceHumanInput, ExperienceHypothesisInput, ExperienceInferenceInput,
+    ExperienceMemoryInput, ExperienceOrigin, ExperienceRelationKind, ExperienceSourceStatus,
+    ExperienceTemporalPolicy, ExperienceTemporalRefusal, ExperienceTemporalRole, HumanMediaKind,
+    ImageObservationReference, ImageObservationRefusal, ImageRegion, ImageTextContentDigest,
+    ImageTextMetadata, ImageTextMetadataEntries, ImageTextRecord, ImageTextRefusal,
+    InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
     InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
-    InteractionBoundKind as BoundKind, InteractionRefusal, KeyModifiers, KeyTransition,
-    KeyTransitionCode, KeymapRefusal, OptionAvailability, OptionAvailabilityUnavailable,
-    RealizationRangePolicy, ScalarQuantization, SourceAvailability, VisualEvidenceClass,
-    VisualExperienceRelationKind, VisualImpressionDisposition,
+    InteractionBoundKind as BoundKind, InteractionRefusal, KeyEvent, KeyModifiers, KeyTransition,
+    KeyTransitionCode, KeymapDisposition, KeymapRefusal, OptionAvailability,
+    OptionAvailabilityUnavailable, RealizationRangePolicy, ScalarQuantization, SourceAvailability,
+    TextFragment, VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
     VisualImpressionDispositionTruncated,
 };
 
@@ -88,7 +92,6 @@ pub use current_experience::*;
 pub use current_experience_trace::*;
 pub use experience_observation::*;
 pub use experience_sources::*;
-pub use experience_temporal::*;
 pub use experience_updates::*;
 pub use human_interaction::*;
 pub use human_media::*;

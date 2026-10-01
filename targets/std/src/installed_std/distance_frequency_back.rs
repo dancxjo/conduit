@@ -33,7 +33,11 @@ impl DistanceFrequencyBack {
         let numerator = source_offset * target_span;
         // Millihertz is the canonical exact Frequency resolution. Choose the
         // nearest representable value, with ties away from the lower bound.
-        let offset = (numerator + source_span / 2) / source_span;
+        let offset = if numerator >= 0 {
+            (numerator + source_span / 2) / source_span
+        } else {
+            (numerator - source_span / 2) / source_span
+        };
         let value =
             i64::try_from(i128::from(self.target_minimum_mhz) + offset).map_err(|_| 5_u16)?;
         Ok(Quantity::new(value, QuantityUnit::Millihertz))
@@ -119,9 +123,7 @@ fn prepared(placement: &PlannedGear) -> Result<DistanceFrequencyBack, String> {
         target_maximum_mhz: configuration(placement, "target-maximum", QuantityUnit::Millihertz)?,
         closed: false,
     };
-    if value.source_minimum_um >= value.source_maximum_um
-        || value.target_minimum_mhz > value.target_maximum_mhz
-    {
+    if value.source_minimum_um >= value.source_maximum_um {
         return Err("distance-frequency mapping bounds are reversed".into());
     }
     Ok(value)
@@ -178,6 +180,25 @@ mod tests {
         assert_eq!(
             mapping().map(Quantity::new(300_001, QuantityUnit::Micrometer)),
             Err(4)
+        );
+    }
+
+    #[test]
+    fn descending_theremin_range_reaches_both_exact_endpoints() {
+        let mapping = DistanceFrequencyBack {
+            source_minimum_um: 0,
+            source_maximum_um: 300_000,
+            target_minimum_mhz: 1_760_000,
+            target_maximum_mhz: 110_000,
+            closed: false,
+        };
+        assert_eq!(
+            mapping.map(Quantity::new(0, QuantityUnit::Centimeter)),
+            Ok(Quantity::new(1_760_000, QuantityUnit::Millihertz))
+        );
+        assert_eq!(
+            mapping.map(Quantity::new(30, QuantityUnit::Centimeter)),
+            Ok(Quantity::new(110_000, QuantityUnit::Millihertz))
         );
     }
 }

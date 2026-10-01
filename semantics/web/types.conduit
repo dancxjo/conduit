@@ -26,6 +26,25 @@ type HttpHeader = {
     value: Bytes <= 512B
 }
 
+type HttpBody =
+    inline-bytes Bytes <= 4096B
+    | resource ResourceRef
+
+type HttpRequest = {
+    transaction-id: HttpTransactionId
+    method: HttpMethod
+    target: HttpTarget
+    headers: sequence HttpHeader <= 16
+    body: HttpBody
+}
+
+type HttpResponse = {
+    transaction-id: HttpTransactionId
+    status: U16 in 100..=599
+    headers: sequence HttpHeader <= 16
+    body: HttpBody
+}
+
 type HttpExchangeFailure =
     name_resolution
     | route_unavailable
@@ -70,3 +89,38 @@ type HttpContractError =
     | malformed_encoding
     | encoded_value_overflow
     | trailing_bytes
+
+type JsonRefusal =
+    malformed_syntax
+    | invalid_utf8
+    | depth_overflow
+    | array_item_overflow
+    | object_member_overflow
+    | node_overflow
+    | key_byte_overflow
+    | string_byte_overflow
+    | total_string_byte_overflow
+    | encoded_byte_overflow
+    | numeric_overflow
+    | duplicate_key
+    | non_canonical_value
+
+type JsonCollectionRefusal =
+    invalid_request
+    | invalid_collection
+    | invalid_command
+    | unknown_operation
+    | invalid_index
+    | missing_index
+    | missing_field
+    | not_boolean
+    | collection_full
+    | invalid_value JsonRefusal
+
+type JsonSummaryRefusal =
+    invalid_field
+    | not_collection
+    | not_record
+    | missing_field
+    | not_boolean
+    | invalid_value JsonRefusal

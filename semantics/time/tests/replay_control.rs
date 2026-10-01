@@ -81,7 +81,7 @@ fn step_restart_failure_and_invalid_state_are_explicit() {
     assert_eq!(replay.poll(5), Err(ReplayRefusal::InvalidState));
     assert_eq!(replay.step(99).unwrap().ordinal, 0);
     replay.fail(7).unwrap();
-    assert_eq!(replay.state(), ReplayState::Failed { code: 7 });
+    assert_eq!(replay.state(), ReplayState::failed(7).unwrap());
     assert_eq!(replay.step(100), Err(ReplayRefusal::InvalidState));
     replay.restart();
     replay.start(200).unwrap();

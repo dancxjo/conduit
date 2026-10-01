@@ -193,9 +193,9 @@ mod tests {
     #[test]
     fn direct_presenter_matches_normalized_reference_vectors() {
         let cases = [
-            LayoutFrame::viewport(10, 4, 3, 2, 2).unwrap(),
-            LayoutFrame::viewport(32, 16, MAX_LAYOUT_CHILDREN as u8, 4, 3).unwrap(),
-            LayoutFrame::viewport(8, 8, 0, 0, 0).unwrap(),
+            LayoutFrame::for_viewport(10, 4, 3, 2, 2).unwrap(),
+            LayoutFrame::for_viewport(32, 16, MAX_LAYOUT_CHILDREN as u8, 4, 3).unwrap(),
+            LayoutFrame::for_viewport(8, 8, 0, 0, 0).unwrap(),
         ];
         for frame in cases {
             assert_eq!(
@@ -211,7 +211,7 @@ mod tests {
                 Ok(frame.stack())
             );
         }
-        let frame = LayoutFrame::viewport(20, 12, 2, 4, 3).unwrap();
+        let frame = LayoutFrame::for_viewport(20, 12, 2, 4, 3).unwrap();
         assert_eq!(
             DirectLayoutEvaluator::evaluate(frame, DirectLayoutOperation::Inset(2)),
             frame.inset(2)
@@ -226,7 +226,7 @@ mod tests {
             ),
             frame.align(LayoutAlignment::Center, LayoutAlignment::End)
         );
-        let undersized = LayoutFrame::viewport(3, 3, 3, 1, 1).unwrap();
+        let undersized = LayoutFrame::for_viewport(3, 3, 3, 1, 1).unwrap();
         assert_eq!(
             DirectLayoutEvaluator::evaluate(undersized, DirectLayoutOperation::Row(2)),
             Err(LayoutError::UndersizedExtent)

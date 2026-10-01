@@ -412,7 +412,8 @@ fn composition_kind(kind: &str) -> PresentationCompositionKind {
         "Subordinate" => PresentationCompositionKind::Subordinate,
         "Associate" => PresentationCompositionKind::Associate,
         "RevealAfter" => PresentationCompositionKind::RevealAfter,
-        semantic => PresentationCompositionKind::Semantic(kind_id(semantic)),
+        semantic => PresentationCompositionKind::semantic(semantic.to_owned())
+            .expect("specimen semantic composition identity is bounded"),
     }
 }
 

@@ -4,6 +4,7 @@ mod deployment_carrier;
 mod diagnostics;
 mod durable_host;
 mod durable_host_control;
+mod form_diagram;
 mod form_source;
 mod host_install;
 mod host_rendezvous;
@@ -334,6 +335,11 @@ fn main() {
         Some(cli::Command::Expand { form, json }) => {
             source_expansion::run(&form, json).map(|rendered| print!("{rendered}"))
         }
+        Some(cli::Command::Diagram {
+            form,
+            format,
+            output,
+        }) => form_diagram::run(&form, format, output.as_deref()),
         Some(cli::Command::Inspect { thing }) => inspection::inspect(&thing).map(|rendered| {
             print!("{rendered}");
         }),

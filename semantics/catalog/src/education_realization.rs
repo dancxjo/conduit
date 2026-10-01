@@ -1,16 +1,15 @@
 //! Deterministic arithmetic and rhythm-feedback realizations for education Info.
 
-use alloc::{string::ToString, vec};
+use alloc::string::ToString;
 use conduit_audio::{TimingClassification, TimingFeedback};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoValue};
 use conduit_form::rust_binding::NativeRustBinding;
 
-use crate::education_value::record_value;
 use crate::{
-    education_rhythm_feedback_type, timing_feedback_type, EducationAssessment,
-    EducationAssessmentOutcome, EducationEvidenceClass, EducationFeedbackProvenance, EducationHint,
-    EducationHints, EducationLessonFeedback, EducationOptionalHint, EducationProgress,
-    EducationProgressState, EducationQuestion, EducationResponse,
+    timing_feedback_type, EducationAssessment, EducationAssessmentOutcome, EducationEvidenceClass,
+    EducationFeedbackProvenance, EducationHint, EducationHints, EducationLessonFeedback,
+    EducationOptionalHint, EducationProgress, EducationProgressState, EducationQuestion,
+    EducationResponse, EducationRhythmFeedback,
 };
 
 pub const ARITHMETIC_RESPONSE_PROFILE: &str = "education/response/integer-text@1";
@@ -281,14 +280,7 @@ pub fn adapt_rhythm_feedback(
         "adapter/music-timing",
     )?;
     let progress = progress_value(&question_identity, progress_state)?;
-    record_value(
-        education_rhythm_feedback_type(),
-        vec![
-            ("feedback", feedback.into_structured()?),
-            ("progress", progress.into_structured()?),
-            ("timing", timing.clone()),
-        ],
-    )
+    Ok(EducationRhythmFeedback::new(feedback, progress, timing_binding)?.into_structured()?)
 }
 
 fn first_hint(question: &EducationQuestion) -> Result<Option<EducationHint>, EducationInfoRefusal> {

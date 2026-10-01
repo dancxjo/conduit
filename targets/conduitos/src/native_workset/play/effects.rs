@@ -18,7 +18,10 @@ impl NativeWorksetPlay {
             Effect::Keymap => {
                 let event = KeyEvent::decode(input).map_err(|_| PlayRefusal::Kernel)?;
                 match self.keymaps[form].apply(event) {
-                    KeymapDisposition::Text(text) => self.output(request, Some(text.as_bytes())),
+                    KeymapDisposition::Text(text) => {
+                        let mut utf8 = [0; 4];
+                        self.output(request, Some(text.encode_utf8(&mut utf8)))
+                    }
                     KeymapDisposition::NoText | KeymapDisposition::Cancelled => {
                         self.output(request, None)
                     }

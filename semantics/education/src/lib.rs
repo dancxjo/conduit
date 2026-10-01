@@ -14,6 +14,7 @@ pub use generated::{
     EducationOptionalHintProvided, EducationProgress, EducationProgressState, EducationQuestion,
     EducationRefusedResponse, EducationResponse, EducationResponseAnswer, EducationResponseEvent,
     EducationResponseHintRequest, EducationResponseRefused, EducationResponseTimeout,
+    EducationRhythmFeedback,
 };
 
 pub type EducationHints = conduit_form::rust_binding::BoundedSequence<EducationHint, 3>;
@@ -87,6 +88,10 @@ pub fn education_progress_state_type() -> conduit_core::StructuredInfoType {
 
 pub fn education_progress_type() -> conduit_core::StructuredInfoType {
     EducationProgress::semantic_type().expect("checked education progress Type")
+}
+
+pub fn education_rhythm_feedback_type() -> conduit_core::StructuredInfoType {
+    EducationRhythmFeedback::semantic_type().expect("checked education rhythm-feedback Type")
 }
 
 #[cfg(test)]
@@ -247,5 +252,53 @@ mod tests {
                 outcome
             );
         }
+    }
+
+    #[test]
+    fn rhythm_feedback_reuses_audio_native_identity_and_round_trips() {
+        let assessment = EducationAssessment::new(
+            "evaluation/rhythm".to_string(),
+            EducationAssessmentOutcome::Correct,
+            "question/rhythm/1".to_string(),
+            "response/rhythm/1".to_string(),
+            conduit_core::Quantity::new(1_000_000, conduit_core::QuantityUnit::Millionth),
+        )
+        .unwrap();
+        let feedback = EducationLessonFeedback::new(
+            assessment,
+            EducationOptionalHint::Absent,
+            "On time".to_string(),
+            EducationFeedbackProvenance::new(
+                EducationEvidenceClass::Deterministic,
+                "education/rhythm".to_string(),
+                "revision/1".to_string(),
+                "fixture/rhythm".to_string(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let progress = EducationProgress::new(
+            1,
+            "question/rhythm/1".to_string(),
+            EducationProgressState::Completed,
+        )
+        .unwrap();
+        let timing = conduit_audio::TimingFeedback::new(
+            1,
+            conduit_audio::TimingClassification::OnTime,
+            0,
+            1_000,
+            true,
+            1_000,
+            conduit_audio::RhythmRecoveryState::OnBeat,
+        )
+        .unwrap();
+        let value = EducationRhythmFeedback::new(feedback, progress, timing).unwrap();
+        let structured = value.clone().into_structured().unwrap();
+        assert_eq!(structured.value_type(), &education_rhythm_feedback_type());
+        assert_eq!(
+            EducationRhythmFeedback::from_structured(structured).unwrap(),
+            value
+        );
     }
 }

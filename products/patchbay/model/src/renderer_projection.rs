@@ -15,7 +15,7 @@ pub const MAX_RENDERER_DIAGNOSTICS: usize = 128;
 pub const MAX_RENDERER_SIGNS: usize = 512;
 pub const MAX_RENDERER_ROUTES: usize = 32;
 pub const MAX_RENDERER_ROUTE_CANDIDATES: usize = 512;
-pub const MAX_RENDERER_TOPOLOGY_ITEMS: usize = 1_024;
+pub const MAX_RENDERER_TOPOLOGY_ITEMS: usize = 1_280;
 pub const MAX_RENDERER_INSPECTION_LINES: usize = 512;
 pub const MAX_RENDERER_PLAN_ITEMS: usize = 4_096;
 

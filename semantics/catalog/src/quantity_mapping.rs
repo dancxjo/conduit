@@ -22,6 +22,8 @@ pub const QUANTITY_MAP_KIND: &str = "math/map-quantity";
 pub const QUANTITY_MAP_REVISION: &str = "conduit.std/math-map-quantity@1";
 pub const DISTANCE_FREQUENCY_MAP_KIND: &str = "math/map-distance-frequency";
 pub const DISTANCE_FREQUENCY_MAP_REVISION: &str = "conduit.std/math-map-distance-frequency@1";
+pub const NORMALIZED_DISTANCE_MAP_KIND: &str = "math/map-normalized-distance";
+pub const NORMALIZED_DISTANCE_MAP_REVISION: &str = "conduit.std/math-map-normalized-distance@1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QuantityMapping {
@@ -151,6 +153,17 @@ pub fn distance_frequency_map_contract() -> StandardKindContract {
     }
 }
 
+pub fn normalized_distance_map_contract() -> StandardKindContract {
+    let mut contract = quantity_map_contract();
+    contract.kind_id = kind_id(NORMALIZED_DISTANCE_MAP_KIND);
+    contract.plain_name = "Map normalized control to distance".into();
+    contract.summary = "Map one normalized scalar into one exact bounded Distance.".into();
+    contract.outputs[0].value_kind = kind_id(DISTANCE_INFO_ID);
+    contract.outputs[0].temporal = PortTemporal::Flow { closes: true };
+    contract.example = "map: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = \"cm\", range-policy = \"clamp\", quantization = \"nearest\")".into();
+    contract
+}
+
 pub fn quantity_map_semantic_contract() -> Kind {
     let contract = quantity_map_contract();
     Kind {
@@ -175,6 +188,10 @@ pub fn install_quantity_mapping_catalog(
 ) -> Result<(), alloc::string::String> {
     for (contract, revision) in [
         (quantity_map_contract(), QUANTITY_MAP_REVISION),
+        (
+            normalized_distance_map_contract(),
+            NORMALIZED_DISTANCE_MAP_REVISION,
+        ),
         (
             distance_frequency_map_contract(),
             DISTANCE_FREQUENCY_MAP_REVISION,

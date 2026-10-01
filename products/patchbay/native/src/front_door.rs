@@ -3,10 +3,10 @@
 use super::PatchbayApplication;
 use crate::front_door_follow::{exact_current_follow, NativeFollowRefusal};
 use conduit_core::SignId;
-use conduit_presentation::{NavigationOperation, NavigationState, Presentation};
+use conduit_presentation::{NavigationOperation, NavigationState, Presentation, RendererExecution};
 use patchbay_application::PatchbayNavigationProjection;
 use patchbay_model::{
-    RendererAdapterIdentity, RendererAdapterKind, RendererExecution, ZeroBodyFrontDoor,
+    prepare_renderer_execution, RendererAdapterIdentity, RendererAdapterKind, ZeroBodyFrontDoor,
 };
 
 pub(super) struct NativeFrontDoorPresentation {
@@ -84,7 +84,7 @@ impl PatchbayApplication {
         &self,
         presentation: Presentation,
     ) -> Result<RendererExecution, String> {
-        RendererExecution::prepare(
+        prepare_renderer_execution(
             presentation,
             RendererAdapterKind::NativeWayland,
             RendererAdapterIdentity {

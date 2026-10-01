@@ -37,6 +37,20 @@ a { color:var(--muted); text-decoration:none; }
 .surface-invitation { color:var(--muted); font-size:.9rem; margin:0; }
 #form-input { margin:1.5rem 0; min-height:17rem; padding:2rem; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow-wrap:anywhere; cursor:text; }
 #form-input:focus { outline:1px solid var(--line); outline-offset:0; border-radius:.35rem; }
+#form-input[data-pocket-theremin] {
+  position:relative; min-height:min(62vh,34rem); overflow:hidden; cursor:crosshair;
+  touch-action:none; user-select:none; border:1px solid #526778; border-radius:1rem;
+  background:
+    radial-gradient(circle at 50% 50%, rgb(134 209 244 / 16%), transparent 38%),
+    repeating-radial-gradient(ellipse at 50% 50%, transparent 0 2.8rem, rgb(134 209 244 / 10%) 3rem 3.05rem),
+    linear-gradient(135deg,#071019,#172938 58%,#0b1118);
+}
+#form-input[data-pocket-theremin]::before,
+#form-input[data-pocket-theremin]::after { position:absolute; z-index:0; color:#b9cad5; font:600 .68rem/1.3 ui-monospace,monospace; letter-spacing:.08em; text-transform:uppercase; pointer-events:none; }
+#form-input[data-pocket-theremin]::before { content:'high pitch  ←  pitch hand  →  low pitch'; left:1rem; right:1rem; bottom:1rem; }
+#form-input[data-pocket-theremin]::after { content:'near volume loop · mute'; top:1rem; left:1rem; writing-mode:vertical-rl; }
+#form-input[data-pocket-theremin] > * { position:relative; z-index:1; }
+#form-input[data-pocket-theremin] .input-prompt { color:#dff5ff; text-shadow:0 0 1.2rem #86d1f4; }
 .input-prompt { color:var(--muted); font-size:2rem; }
 #form-input:has(output:not(:empty):not([hidden])) .input-prompt { display:none; }
 .signal-manifestation { max-width:100%; color:var(--amber); }

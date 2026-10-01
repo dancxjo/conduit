@@ -5,6 +5,16 @@ use alloc::collections::BTreeSet;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
+#[cfg(test)]
+mod explanation;
+#[cfg(test)]
+mod explanation_tests;
+#[cfg(test)]
+pub use explanation::{
+    PatchbayCapstoneBaseline, PatchbayHeterogeneousCapstoneExplanation,
+    MAX_CAPSTONE_EXPLANATION_BYTES,
+};
+
 pub const MAXIMUM_CAPSTONE_DECISIONS: usize = 16;
 pub const MAXIMUM_CAPSTONE_DEVICE_CLASSES: usize = 16;
 pub const MAXIMUM_CAPSTONE_ID_BYTES: usize = 256;

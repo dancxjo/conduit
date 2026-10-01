@@ -79,7 +79,7 @@ pub fn constrained_frame_layout(
     width: u16,
     height: u16,
 ) -> Result<LayoutFrame, conduit_presentation::LayoutError> {
-    LayoutFrame::viewport(width, height, 2, 24, 12)?
+    LayoutFrame::for_viewport(width, height, 2, 24, 12)?
         .inset(4)?
         .align(LayoutAlignment::Center, LayoutAlignment::Center)
 }

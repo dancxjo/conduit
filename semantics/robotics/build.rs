@@ -27,6 +27,9 @@ fn main() {
                 "ProximityObservation".into(),
                 "RangeObservation".into(),
                 "WheelDropObservation".into(),
+                "NavigationValidity".into(),
+                "NavigationWaypoint".into(),
+                "NavigationTrajectorySegment".into(),
             ]
             .into(),
             copy_record_value_getters: [
@@ -78,7 +81,22 @@ fn main() {
                 ),
             ]
             .into(),
-            public_record_fields: ["BeaconObservation".into(), "ChargingObservation".into()].into(),
+            public_record_fields: [
+                "BeaconObservation".into(),
+                "ChargingObservation".into(),
+                "NavigationValidity".into(),
+                "NavigationTime".into(),
+                "NavigationPose".into(),
+                "NavigationGoal".into(),
+                "NavigationTraversability4x4".into(),
+                "NavigationWaypoint".into(),
+                "NavigationRoute".into(),
+                "NavigationDecisionIdentity".into(),
+                "NavigationTrajectorySegment".into(),
+                "NavigationTrajectory".into(),
+                "NavigationBoundedMotionIntent".into(),
+            ]
+            .into(),
             record_constructor_names: [
                 ("BeaconObservation".into(), "new_native".into()),
                 ("ChargingObservation".into(), "new_native".into()),

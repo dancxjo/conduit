@@ -3,8 +3,9 @@
 use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
 use conduit_semantic_catalog::GearPalette;
+use patchbay_application::{ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID};
 use patchbay_model::{
-    LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    prepare_renderer_execution, LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind,
     ZeroBodyFrontDoor,
 };
 
@@ -21,8 +22,8 @@ pub fn front_door_snapshot() -> Result<RendererSnapshot, String> {
 pub fn one_form_two_fronts_snapshot() -> Result<RendererSnapshot, String> {
     let mut session = ZeroBodyFrontDoor::with_identity(
         std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
-        HostId::from(patchbay_model::ONE_FORM_TWO_FACES_HOST_ID),
-        BootId::from(patchbay_model::ONE_FORM_TWO_FACES_BOOT_ID),
+        HostId::from(ONE_FORM_TWO_FACES_HOST_ID),
+        BootId::from(ONE_FORM_TWO_FACES_BOOT_ID),
     )?;
     let form = session
         .form_ids()
@@ -38,7 +39,7 @@ pub(crate) fn snapshot_for_zero_body_front_door(
 ) -> Result<RendererSnapshot, String> {
     let projection = session.project()?;
     let navigation = projection.navigation;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         projection.presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
@@ -67,7 +68,7 @@ pub(crate) fn snapshot_for_front_door(
 ) -> Result<RendererSnapshot, String> {
     let projection = session.project()?;
     let navigation = projection.navigation;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         projection.presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {

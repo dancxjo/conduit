@@ -3,7 +3,11 @@
 use alloc::{string::String, vec::Vec};
 use conduit_core::{BoundedResourceRef, TemporalInstant};
 
-use crate::ReplayPolicy;
+use crate::{ReplayPolicy, ReplayState};
+
+// This finite state remains a plain copy value at the controller boundary.
+impl Copy for crate::ReplayStateFailed {}
+impl Copy for ReplayState {}
 
 pub const MAXIMUM_REPLAY_ENTRIES: usize = 64;
 pub const MAXIMUM_REPLAY_IDENTITY_BYTES: usize = 128;
@@ -23,15 +27,6 @@ pub struct HistoricalReplayEntry {
     pub event_time: TemporalInstant,
     pub origin: crate::HistoricalEntryOrigin,
     pub value: BoundedResourceRef,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ReplayState {
-    Stopped,
-    Running,
-    Paused,
-    Completed,
-    Failed { code: u16 },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -323,13 +318,10 @@ impl BoundedReplayController {
     }
 
     pub fn fail(&mut self, code: u16) -> Result<(), ReplayRefusal> {
-        if matches!(
-            self.state,
-            ReplayState::Completed | ReplayState::Failed { .. }
-        ) {
+        if matches!(self.state, ReplayState::Completed | ReplayState::Failed(..)) {
             return Err(ReplayRefusal::InvalidState);
         }
-        self.state = ReplayState::Failed { code };
+        self.state = ReplayState::failed(code).expect("u16 replay failure codes are exact");
         Ok(())
     }
 

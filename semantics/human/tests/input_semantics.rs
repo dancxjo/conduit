@@ -13,7 +13,10 @@ fn press(usage: u8, modifiers: u8) -> KeyEvent {
 
 fn text(value: KeymapDisposition) -> String {
     match value {
-        KeymapDisposition::Text(value) => String::from_utf8(value.as_bytes().to_vec()).unwrap(),
+        KeymapDisposition::Text(value) => {
+            let mut bytes = [0; 4];
+            String::from_utf8(value.encode_utf8(&mut bytes).to_vec()).unwrap()
+        }
         other => panic!("expected text, found {other:?}"),
     }
 }

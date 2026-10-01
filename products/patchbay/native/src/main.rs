@@ -1,9 +1,11 @@
 //! Native window/event-loop adapter for Patchbay.
 
 use conduit_core::SignId;
+use conduit_presentation::RendererExecution;
 use patchbay_model::{
-    BuildBirthController, DistributedRouteDemo, FormEditor, PatchbayInteraction, PatchbayModel,
-    PatchbayTopology, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    prepare_renderer_execution, BuildBirthController, DistributedRouteDemo, FormEditor,
+    PatchbayInteraction, PatchbayModel, PatchbayTopology, RendererAdapterIdentity,
+    RendererAdapterKind,
 };
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
@@ -114,11 +116,11 @@ struct PatchbayApplication {
     topology_lines: Vec<String>,
     form_editor: Option<FormEditor>,
     semantic_history: Option<semantic_history::SemanticHistory>,
-    environment: Option<patchbay_model::AuthoredEnvironment>,
+    environment: Option<conduit_workspace_make::AuthoredEnvironment>,
     environment_path: Option<std::path::PathBuf>,
     selected_environment_part: Option<String>,
     environment_drag: Option<(String, (f64, f64))>,
-    pending_environment_link: Option<(String, patchbay_model::EnvironmentLinkKind)>,
+    pending_environment_link: Option<(String, conduit_workspace_make::EnvironmentLinkKind)>,
     environment_name_editing: bool,
     observed_environment_snapshot: Option<conduit_observatory::ObservatorySnapshot>,
     prewake: Option<patchbay_model::PrewakeController>,

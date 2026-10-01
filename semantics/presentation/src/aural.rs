@@ -343,9 +343,9 @@ fn composition_clause(
         PresentationCompositionKind::RevealAfter => {
             format!("Encounter {source} after {target}.")
         }
-        PresentationCompositionKind::Semantic(identity) => format!(
+        PresentationCompositionKind::Semantic(payload) => format!(
             "{source} has presentation relationship {} to {target}.",
-            identity.as_str()
+            payload.identity()
         ),
     }
 }

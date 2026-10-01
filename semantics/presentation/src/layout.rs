@@ -1,6 +1,6 @@
 //! Fixed-capacity portable presentation geometry.
 
-use crate::{LayoutAlignment, LayoutAxis};
+use crate::{LayoutAlignment, LayoutAxis, LayoutError, LayoutFrame, LayoutRect};
 
 pub const LAYOUT_FRAME_KIND: &str = "presentation/layout-frame@1";
 pub const MAX_LAYOUT_CHILDREN: usize = 8;
@@ -8,33 +8,20 @@ pub const MAX_LAYOUT_EXTENT: u16 = i16::MAX as u16;
 pub const MAX_LAYOUT_FRAME_BYTES: usize = 10 + MAX_LAYOUT_CHILDREN * 8;
 const LAYOUT_FRAME_VERSION: u8 = 1;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct LayoutRect {
-    pub x: i16,
-    pub y: i16,
-    pub width: u16,
-    pub height: u16,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LayoutFrame {
-    pub viewport: LayoutRect,
-    pub child_count: u8,
-    pub children: [LayoutRect; MAX_LAYOUT_CHILDREN],
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LayoutError {
-    TooManyChildren,
-    ExtentOutOfBounds,
-    UndersizedExtent,
-    CoordinateOverflow,
-    MalformedEncoding,
-    NonCanonicalEncoding,
+#[allow(clippy::derivable_impls)]
+impl Default for LayoutRect {
+    fn default() -> Self {
+        Self {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+        }
+    }
 }
 
 impl LayoutFrame {
-    pub fn viewport(
+    pub fn for_viewport(
         width: u16,
         height: u16,
         child_count: u8,

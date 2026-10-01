@@ -78,7 +78,7 @@
       "role": "reviewed-form-inventory",
       "kind": "content",
       "path": "forms/initial-body.conduit",
-      "maximum_bytes": 16384,
+      "maximum_bytes": 24576,
       "dependencies": []
     },
     {

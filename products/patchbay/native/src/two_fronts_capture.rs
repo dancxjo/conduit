@@ -3,9 +3,9 @@
 use crate::{png_capture::write_rgb_png, presentation::ordinary_front_door_lines, render};
 use conduit_core::{BootId, HostId, SignId};
 use conduit_presentation::ManifestationLifecycle;
+use patchbay_application::{ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID};
 use patchbay_model::{
-    RendererAdapterIdentity, RendererAdapterKind, RendererExecution, ZeroBodyFrontDoor,
-    ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID,
+    prepare_renderer_execution, RendererAdapterIdentity, RendererAdapterKind, ZeroBodyFrontDoor,
 };
 use std::io::Write;
 use std::path::Path;
@@ -33,7 +33,7 @@ pub(super) fn run(root: &Path) -> Result<(), String> {
     session.open_form(&form, session.revision())?;
     let projection = session.project()?;
     let lines = ordinary_front_door_lines(&projection.presentation, &projection.navigation, None)?;
-    let mut execution = RendererExecution::prepare(
+    let mut execution = prepare_renderer_execution(
         projection.presentation.clone(),
         RendererAdapterKind::NativeWayland,
         RendererAdapterIdentity {

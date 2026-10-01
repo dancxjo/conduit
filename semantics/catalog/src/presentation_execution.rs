@@ -14,7 +14,7 @@ pub fn execute_layout_source(placement: &PlannedGear) -> Result<LayoutFrame, Str
     if placement.kind_id.as_str() != super::LAYOUT_VIEWPORT_KIND {
         return Err("layout source is not layout/viewport".into());
     }
-    LayoutFrame::viewport(
+    LayoutFrame::for_viewport(
         u16_config(placement, super::WIDTH_KEY)?,
         u16_config(placement, super::HEIGHT_KEY)?,
         u8::try_from(u16_config(placement, super::CHILDREN_KEY)?)

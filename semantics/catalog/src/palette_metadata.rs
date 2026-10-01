@@ -9,14 +9,15 @@ pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
 use conduit_presentation::BITMAP_PRESENTATION_KIND;
 
 use crate::{
-    APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND, AUDIO_RENDER_DEMAND_KIND,
-    AUDIO_TONE_KIND, BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND,
-    DISTANCE_FREQUENCY_MAP_KIND, FIRST_KIND, GATE_KIND, GRAPHICS_ICON_KIND,
-    GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND,
-    KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND,
-    LAYOUT_ROW_KIND, LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND,
-    LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND,
-    MUSIC_SYNTH_KIND, PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND,
+    APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND, AUDIO_CONTINUOUS_TONE_KIND,
+    AUDIO_GAIN_KIND, AUDIO_RENDER_DEMAND_KIND, AUDIO_TONE_KIND, BOOL_PRESENTATION_KIND,
+    CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, DISTANCE_FREQUENCY_MAP_KIND, FIRST_KIND,
+    GATE_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND,
+    GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND,
+    LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
+    LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
+    MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND,
+    NORMALIZED_DISTANCE_MAP_KIND, PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND,
     PATCHBAY_PRESENTATION_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND,
     PRESENTATION_ICON_KIND, QUANTITY_MAP_KIND, RETAINED_APPLICATION_KIND, ROBOTICS_DOCK_KIND,
     ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_ACCELERATION_KIND,
@@ -110,6 +111,16 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::Transform,
             &["audio", "tone", "frequency", "pcm"],
             PaletteIconKey::Type,
+        ),
+        AUDIO_CONTINUOUS_TONE_KIND => metadata(
+            PaletteCategory::Transform,
+            &["audio", "continuous", "tone", "frequency", "pcm"],
+            PaletteIconKey::Type,
+        ),
+        AUDIO_GAIN_KIND => metadata(
+            PaletteCategory::Transform,
+            &["audio", "gain", "volume", "pcm"],
+            PaletteIconKey::ChartColumnsIncreasing,
         ),
         MUSIC_SYNTH_KIND => metadata(
             PaletteCategory::Transform,
@@ -264,6 +275,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         QUANTITY_MAP_KIND => metadata(
             PaletteCategory::Transform,
             &["map", "quantity", "unit", "range"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        NORMALIZED_DISTANCE_MAP_KIND => metadata(
+            PaletteCategory::Transform,
+            &["map", "normalized", "distance", "range"],
             PaletteIconKey::ChartColumnsIncreasing,
         ),
         DISTANCE_FREQUENCY_MAP_KIND => metadata(

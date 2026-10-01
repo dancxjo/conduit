@@ -42,9 +42,9 @@ pub(crate) fn build_kernel_into(
 ) -> Result<(usize, u64), LeniaRefusal> {
     let mut length = 0;
     let total = build_kernel_with(parameters, |sample| {
-        let destination = output
-            .get_mut(length)
-            .ok_or(LeniaRefusal::CellCountMismatch)?;
+        let destination = output.get_mut(length).ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellCountMismatch,
+        ))?;
         *destination = sample;
         length += 1;
         Ok(())
@@ -67,8 +67,8 @@ fn build_kernel_with(
             }
             let distance_q16 = integer_sqrt((distance_squared as u128) << 32)?
                 / u128::from(parameters.kernel_radius);
-            let distance_q16 =
-                u32::try_from(distance_q16).map_err(|_| LeniaRefusal::ArithmeticOverflow)?;
+            let distance_q16 = u32::try_from(distance_q16)
+                .map_err(|_| LeniaRefusal::Value(crate::LeniaValueRefusal::ArithmeticOverflow))?;
             let difference = distance_q16.abs_diff(parameters.kernel_mu_q16);
             let exponent = gaussian_exponent(difference, parameters.kernel_sigma_q16)?;
             let weight = exp_negative_q16(exponent);
@@ -80,12 +80,16 @@ fn build_kernel_with(
                 })?;
                 total = total
                     .checked_add(u64::from(weight))
-                    .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+                    .ok_or(LeniaRefusal::Value(
+                        crate::LeniaValueRefusal::ArithmeticOverflow,
+                    ))?;
             }
         }
     }
     if total == 0 {
-        return Err(LeniaRefusal::InvalidParameters);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::InvalidParameters,
+        ));
     }
     Ok(total)
 }
@@ -100,7 +104,9 @@ pub(crate) fn evolve_generation(
     kernel_weight: u64,
 ) -> Result<(), LeniaRefusal> {
     if current.len() != width * height || next.len() != current.len() || kernel_weight == 0 {
-        return Err(LeniaRefusal::CellCountMismatch);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellCountMismatch,
+        ));
     }
     for y in 0..height {
         for x in 0..width {
@@ -112,9 +118,13 @@ pub(crate) fn evolve_generation(
                     .checked_add(
                         u128::from(sample.weight)
                             .checked_mul(u128::from(current[source_y * width + source_x]))
-                            .ok_or(LeniaRefusal::ArithmeticOverflow)?,
+                            .ok_or(LeniaRefusal::Value(
+                                crate::LeniaValueRefusal::ArithmeticOverflow,
+                            ))?,
                     )
-                    .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+                    .ok_or(LeniaRefusal::Value(
+                        crate::LeniaValueRefusal::ArithmeticOverflow,
+                    ))?;
             }
             next[y * width + x] =
                 evolve_cell(current[y * width + x], weighted, parameters, kernel_weight)?;
@@ -138,16 +148,22 @@ pub(crate) fn evolve_region_generation(
     } = dimensions;
     let expanded_width = region_width
         .checked_add(halo * 2)
-        .ok_or(LeniaRefusal::CellCountMismatch)?;
+        .ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellCountMismatch,
+        ))?;
     let expanded_height = region_height
         .checked_add(halo * 2)
-        .ok_or(LeniaRefusal::CellCountMismatch)?;
+        .ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellCountMismatch,
+        ))?;
     if expanded.len() != expanded_width * expanded_height
         || next.len() != region_width * region_height
         || halo != usize::from(parameters.kernel_radius)
         || kernel_weight == 0
     {
-        return Err(LeniaRefusal::CellCountMismatch);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellCountMismatch,
+        ));
     }
     for y in 0..region_height {
         for x in 0..region_width {
@@ -155,17 +171,25 @@ pub(crate) fn evolve_region_generation(
             let center_y = y + halo;
             let mut weighted = 0_u128;
             for sample in kernel {
-                let source_x = usize::try_from(center_x as isize + sample.dx as isize)
-                    .map_err(|_| LeniaRefusal::CellCountMismatch)?;
-                let source_y = usize::try_from(center_y as isize + sample.dy as isize)
-                    .map_err(|_| LeniaRefusal::CellCountMismatch)?;
+                let source_x =
+                    usize::try_from(center_x as isize + sample.dx as isize).map_err(|_| {
+                        LeniaRefusal::Value(crate::LeniaValueRefusal::CellCountMismatch)
+                    })?;
+                let source_y =
+                    usize::try_from(center_y as isize + sample.dy as isize).map_err(|_| {
+                        LeniaRefusal::Value(crate::LeniaValueRefusal::CellCountMismatch)
+                    })?;
                 weighted = weighted
                     .checked_add(
                         u128::from(sample.weight)
                             .checked_mul(u128::from(expanded[source_y * expanded_width + source_x]))
-                            .ok_or(LeniaRefusal::ArithmeticOverflow)?,
+                            .ok_or(LeniaRefusal::Value(
+                                crate::LeniaValueRefusal::ArithmeticOverflow,
+                            ))?,
                     )
-                    .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+                    .ok_or(LeniaRefusal::Value(
+                        crate::LeniaValueRefusal::ArithmeticOverflow,
+                    ))?;
             }
             next[y * region_width + x] = evolve_cell(
                 expanded[center_y * expanded_width + center_x],
@@ -186,7 +210,7 @@ fn evolve_cell(
 ) -> Result<u32, LeniaRefusal> {
     let potential =
         u32::try_from((weighted + u128::from(kernel_weight / 2)) / u128::from(kernel_weight))
-            .map_err(|_| LeniaRefusal::ArithmeticOverflow)?;
+            .map_err(|_| LeniaRefusal::Value(crate::LeniaValueRefusal::ArithmeticOverflow))?;
     let difference = potential.abs_diff(parameters.growth_mu_q16);
     let exponent = gaussian_exponent(difference, parameters.growth_sigma_q16)?;
     let bell = i64::from(exp_negative_q16(exponent));
@@ -194,7 +218,9 @@ fn evolve_cell(
     let delta = multiply_signed_q16(i64::from(parameters.dt_q16), growth)?;
     let value = i64::from(current)
         .checked_add(delta)
-        .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+        .ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::ArithmeticOverflow,
+        ))?;
     Ok(value.clamp(0, i64::from(LENIA_Q16_ONE)) as u32)
 }
 
@@ -202,16 +228,22 @@ fn gaussian_exponent(difference_q16: u32, sigma_q16: u32) -> Result<u32, LeniaRe
     let numerator = u128::from(difference_q16)
         .checked_mul(u128::from(difference_q16))
         .and_then(|value| value.checked_mul(u128::from(LENIA_Q16_ONE)))
-        .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+        .ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::ArithmeticOverflow,
+        ))?;
     let denominator = u128::from(sigma_q16)
         .checked_mul(u128::from(sigma_q16))
         .and_then(|value| value.checked_mul(2))
-        .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+        .ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::ArithmeticOverflow,
+        ))?;
     if denominator == 0 {
-        return Err(LeniaRefusal::InvalidParameters);
+        return Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::InvalidParameters,
+        ));
     }
     u32::try_from((numerator + denominator / 2) / denominator)
-        .map_err(|_| LeniaRefusal::ArithmeticOverflow)
+        .map_err(|_| LeniaRefusal::Value(crate::LeniaValueRefusal::ArithmeticOverflow))
 }
 
 /// Deterministic integer approximation `(1 + x/256)^-256` of `exp(-x)`.
@@ -232,13 +264,16 @@ fn exp_negative_q16(exponent_q16: u32) -> u32 {
 fn multiply_signed_q16(left: i64, right: i64) -> Result<i64, LeniaRefusal> {
     let product = i128::from(left)
         .checked_mul(i128::from(right))
-        .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+        .ok_or(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::ArithmeticOverflow,
+        ))?;
     let rounded = if product >= 0 {
         product + i128::from(LENIA_Q16_ONE / 2)
     } else {
         product - i128::from(LENIA_Q16_ONE / 2)
     };
-    i64::try_from(rounded / i128::from(LENIA_Q16_ONE)).map_err(|_| LeniaRefusal::ArithmeticOverflow)
+    i64::try_from(rounded / i128::from(LENIA_Q16_ONE))
+        .map_err(|_| LeniaRefusal::Value(crate::LeniaValueRefusal::ArithmeticOverflow))
 }
 
 fn wrapped(position: usize, delta: i32, extent: usize) -> usize {

@@ -33,14 +33,13 @@ fn request(scheme: &str, authority: &str) -> alloc::vec::Vec<u8> {
         transaction_id: HttpTransactionId::new(44).unwrap(),
         method: HttpMethod::Post,
         target: HttpTarget::new(authority.into(), "/v1/check?q=1".into(), scheme).unwrap(),
-        headers: alloc::vec![
-            conduit_web::HttpHeader::new(
-                "x-test".into(),
-                conduit_form::rust_binding::BoundedBytes::new(b"yes").unwrap(),
-            )
-            .unwrap()
-        ],
-        body: conduit_web::HttpBody::inline(b"hello".to_vec()),
+        headers: conduit_web::http_headers([conduit_web::HttpHeader::new(
+            "x-test".into(),
+            conduit_form::rust_binding::BoundedBytes::new(b"yes").unwrap(),
+        )
+        .unwrap()])
+        .unwrap(),
+        body: conduit_web::HttpBody::inline(b"hello"),
     })
     .unwrap()
 }
@@ -212,7 +211,7 @@ fn semantic_response_matches_the_shared_http_contract() {
     let response = HttpResponse {
         transaction_id: HttpTransactionId::new(44).unwrap(),
         status: 204,
-        headers: alloc::vec::Vec::new(),
+        headers: Default::default(),
         body: conduit_web::HttpBody::inline(alloc::vec::Vec::new()),
     };
     assert!(conduit_web::encode_response(&response).is_ok());

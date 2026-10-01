@@ -122,7 +122,8 @@ impl BoundedHostCalls {
         let event = KeyEvent::decode(input).map_err(|_| BoundedHostCallError::InvalidInput)?;
         match self.keymap.apply(event) {
             KeymapDisposition::Text(fragment) => {
-                BoundedOutput::from_slice(fragment.as_bytes()).map(Some)
+                let mut utf8 = [0; 4];
+                BoundedOutput::from_slice(fragment.encode_utf8(&mut utf8)).map(Some)
             }
             KeymapDisposition::NoText | KeymapDisposition::Cancelled => Ok(None),
             KeymapDisposition::Refused(

@@ -1,8 +1,8 @@
 //! Bounded local feedback control over a portable trajectory.
 
 use crate::{
-    BoundedMotionIntent, ControlDecision, NavigationPose, NavigationRefusal, NavigationTime,
-    NavigationTrajectory, TrajectorySegment, NAVIGATION_MAXIMUM_SEGMENTS,
+    ControlDecision, NavigationPose, NavigationRefusal, NavigationTime, NavigationTrajectory,
+    TrajectorySegment, NAVIGATION_MAXIMUM_SEGMENTS,
 };
 
 pub fn local_control(
@@ -15,14 +15,12 @@ pub fn local_control(
         || pose.clock_identity != time.clock_identity
         || trajectory.clock_identity != time.clock_identity
     {
-        return Ok(ControlDecision::PoseStale {
-            goal_identity: trajectory.goal_identity.clone(),
-        });
+        return ControlDecision::pose_stale(trajectory.goal_identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidTrajectory);
     }
     if time.now_ms > trajectory.valid_until_ms {
-        return Ok(ControlDecision::TrajectoryExpired {
-            goal_identity: trajectory.goal_identity.clone(),
-        });
+        return ControlDecision::trajectory_expired(trajectory.goal_identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidTrajectory);
     }
     if pose.frame != trajectory.frame
         || trajectory.segments.is_empty()
@@ -43,7 +41,7 @@ pub fn local_control(
         .expect("nonempty trajectory was validated");
     let tolerance = i128::from(trajectory.position_tolerance_mm);
     let segment = if distance_squared(nearest) <= tolerance * tolerance {
-        trajectory.segments.get(nearest_index + 1).copied()
+        trajectory.segments.at(nearest_index + 1).cloned()
     } else {
         Some(*nearest)
     };
@@ -62,9 +60,8 @@ fn terminal_heading_control(
         pose.heading_microdegrees,
     );
     if error.abs() <= i64::from(trajectory.heading_tolerance_microdegrees) {
-        return Ok(ControlDecision::Arrived {
-            goal_identity: trajectory.goal_identity.clone(),
-        });
+        return ControlDecision::arrived(trajectory.goal_identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidTrajectory);
     }
     let segment = trajectory.segments[0];
     let maximum = i64::from(segment.maximum_angular_step_microdegrees);
@@ -108,14 +105,14 @@ fn motion(
     linear: i64,
     angular: i64,
 ) -> Result<ControlDecision, NavigationRefusal> {
-    Ok(ControlDecision::Motion(BoundedMotionIntent {
-        goal_identity: trajectory.goal_identity.clone(),
-        linear_mm: i32::try_from(linear).map_err(|_| NavigationRefusal::InvalidTrajectory)?,
-        angular_microdegrees: i32::try_from(angular)
-            .map_err(|_| NavigationRefusal::InvalidTrajectory)?,
-        interval_ms: segment.interval_ms,
-        ttl_ms: segment.interval_ms,
-    }))
+    ControlDecision::motion(
+        i32::try_from(angular).map_err(|_| NavigationRefusal::InvalidTrajectory)?,
+        trajectory.goal_identity.clone(),
+        segment.interval_ms,
+        i32::try_from(linear).map_err(|_| NavigationRefusal::InvalidTrajectory)?,
+        segment.interval_ms,
+    )
+    .map_err(|_| NavigationRefusal::InvalidTrajectory)
 }
 
 fn normalized_heading_error(target: i32, current: i32) -> i64 {

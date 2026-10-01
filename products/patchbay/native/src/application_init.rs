@@ -101,7 +101,7 @@ impl PatchbayApplication {
             .map_err(|error| format!("distributed route demo: {error:?}"))?;
         let renderer_execution = (arguments.distributed_route_demo || arguments.distributed_play)
             .then(|| {
-                RendererExecution::prepare(
+                prepare_renderer_execution(
                     patchbay_model::portable_demonstration_with_adapter(
                         &patchbay_hosted::HostedPatchbayAdapter,
                     )?,

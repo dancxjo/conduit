@@ -1,6 +1,6 @@
 use conduit_alife::{
-    GrayScottParameters, LeniaBoundary, LeniaParameters, LeniaRefusal, ReactionDiffusionRefusal,
-    LENIA_Q16_ONE,
+    GrayScottParameters, LeniaBoundary, LeniaParameters, LeniaRefusal, LeniaValueRefusal,
+    ReactionDiffusionRefusal, ReactionDiffusionValueRefusal, LENIA_Q16_ONE,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -32,7 +32,10 @@ fn lenia_parameters_round_trip_exact_native_bounds_and_retain_owner_validation()
     assert!(LeniaParameters::new(17, 0, 1, 0, 1, 1, LeniaBoundary::Wrap).is_err());
     let mut bypassed = LeniaParameters::ORBIUM;
     bypassed.dt_q16 = 0;
-    assert_eq!(bypassed.validate(), Err(LeniaRefusal::InvalidParameters));
+    assert_eq!(
+        bypassed.validate(),
+        Err(LeniaRefusal::Value(LeniaValueRefusal::InvalidParameters))
+    );
 }
 
 #[test]
@@ -62,6 +65,8 @@ fn gray_scott_parameters_round_trip_bounds_and_own_relational_law() {
     };
     assert_eq!(
         relationally_invalid.validate(),
-        Err(ReactionDiffusionRefusal::InvalidParameters)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::InvalidParameters
+        ))
     );
 }

@@ -83,3 +83,45 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
     let mut values = HostedValueStore::new(4, 9, 36).unwrap();
     assert!((installation.prepare)(&altered, &mut values).is_err());
 }
+
+#[test]
+fn browser_normalized_distance_mapping_is_prepared_before_play() {
+    let source = r#"form normalized-distance-test {
+ input: scalar/literal(value = 250000)
+ map: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = "cm", range-policy = "clamp", quantization = "nearest")
+ input.value >> map.in
+}"#;
+    let (_, catalog) = crate::installed_browser::catalogs().unwrap();
+    let form = conduit_form::parse(source, &catalog).unwrap();
+    let hosts = [crate::installed_browser::advertisement(
+        "quantity-browser".into(),
+        "quantity-boot".into(),
+    )];
+    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let fragment = conduit_planner::plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &crate::installed_browser::local_bases(),
+        conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .unwrap()
+    .fragments
+    .remove(0);
+    let lowered = lower_plan_fragment(&fragment).unwrap();
+    let mut scheduler = prepare_scheduler(&fragment, &lowered).unwrap();
+
+    assert!(drive(&mut scheduler, &fragment).is_ok());
+    assert!(scheduler
+        .signs()
+        .events()
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostCallCompleted }));
+}

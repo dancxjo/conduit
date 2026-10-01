@@ -380,6 +380,7 @@ dependencies = [
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-core",
  "conduit-form",
 ]
@@ -506,6 +507,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "serde",
  "sha2",
 ]
 
@@ -657,6 +659,7 @@ name = "conduit-wire"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
 ]
 
 [[package]]

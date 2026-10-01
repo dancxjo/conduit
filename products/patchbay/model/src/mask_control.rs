@@ -5,9 +5,11 @@ use conduit_body::{
     BodyPlanningSessionError, BodyPlanningTransition, BodyPlayIdentity, WakeLifecycle,
 };
 use conduit_core::SignId;
-use conduit_presentation::{Manifestation, Presentation};
+use conduit_presentation::{Manifestation, Presentation, RendererExecution};
 
-use crate::{RendererAdapterIdentity, RendererAdapterKind, RendererExecution};
+use crate::{
+    prepare_renderer_execution_with_offer_generation, RendererAdapterIdentity, RendererAdapterKind,
+};
 use patchbay_application::{MaskTopology, MaskTopologyRefusal};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -249,7 +251,7 @@ impl MaskControlSession {
     ) -> Result<RendererExecution, MaskControlError> {
         let sequence = self.sequence;
         self.sequence = self.sequence.saturating_add(1);
-        let mut execution = RendererExecution::prepare_with_offer_generation(
+        let mut execution = prepare_renderer_execution_with_offer_generation(
             self.presentation.clone(),
             kind,
             identity,

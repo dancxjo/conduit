@@ -1,0 +1,42 @@
+# Portable purpose projection. Body lifecycle and fulfillment state remain
+# architectural runtime truth; these Types own only the exact typed Fore.
+
+type PurposeObligationState =
+    pending
+    | satisfied
+    | repair_required
+    | evidence_missing
+    | uncertain
+    | disputed
+
+type PurposeEvidenceSignIdentities = collection Text = 8
+
+type PurposeObligation = {
+    obligation_identity: Text
+    summary: Text
+    state: PurposeObligationState
+    evidence_sign_identities: PurposeEvidenceSignIdentities
+}
+
+type PurposeObligations = collection PurposeObligation = 32
+
+type PurposeState = {
+    purpose_identity: Text
+    revision: Count
+    summary: Text
+    obligations: PurposeObligations
+}
+
+type FulfillmentReadinessDisposition =
+    not_ready
+    | ready
+    | unavailable
+
+type FulfillmentReadinessReasonIdentities = collection Text = 32
+
+type FulfillmentReadiness = {
+    purpose_identity: Text
+    purpose_revision: Count
+    disposition: FulfillmentReadinessDisposition
+    reason_obligation_identities: FulfillmentReadinessReasonIdentities
+}

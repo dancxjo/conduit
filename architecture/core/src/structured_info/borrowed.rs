@@ -83,6 +83,11 @@ fn split_type<'a>(
             let (_, rest) = split_type(cursor.remaining, depth + 1, nodes)?;
             cursor.remaining = rest;
         }
+        5 => {
+            checked_name(cursor.text()?)?;
+            let (_, rest) = split_type(cursor.remaining, depth + 1, nodes)?;
+            cursor.remaining = rest;
+        }
         tag @ (2 | 3) => {
             checked_name(cursor.text()?)?;
             let count = cursor.length()?;
@@ -123,7 +128,17 @@ fn validate_value(
     }
     *nodes -= 1;
     let mut kind = Cursor::new(type_bytes);
-    match (kind.byte()?, value.byte()?) {
+    let type_tag = kind.byte()?;
+    if type_tag == 5 {
+        checked_name(kind.text()?)?;
+        let mut scratch = MAXIMUM_STRUCTURED_INFO_NODES;
+        let (representation, rest) = split_type(kind.remaining, depth + 1, &mut scratch)?;
+        if !rest.is_empty() {
+            return Err(malformed());
+        }
+        return validate_value(representation, value, depth + 1, nodes);
+    }
+    match (type_tag, value.byte()?) {
         (0, 0) => {
             let identity = kind.text()?;
             checked_name(identity)?;

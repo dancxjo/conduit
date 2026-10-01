@@ -2,11 +2,13 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{BoundedResourceRef, KindId, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES};
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    ImageObservationReference, ImageTextMetadata, ImageTextRecord, ImageTextRefusal,
-    MAXIMUM_IMAGE_TEXT_CAPTION_BYTES, MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES,
-    MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES, MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES,
+    ImageObservationReference, ImageTextContentDigest, ImageTextMetadata, ImageTextMetadataEntries,
+    ImageTextRecord, ImageTextRefusal, MAXIMUM_IMAGE_TEXT_CAPTION_BYTES,
+    MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES, MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES,
+    MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES,
 };
 
 pub const IMAGE_TEXT_ENCODING_VERSION: u8 = 1;
@@ -51,10 +53,11 @@ impl ImageTextRecord {
             + 1
             + self
                 .metadata
+                .get()
                 .iter()
                 .map(|entry| 1 + entry.key().len() + 2 + entry.value().len())
                 .sum::<usize>()
-            + self.content_digest.len();
+            + self.content_digest.get().len();
         if required > MAXIMUM_IMAGE_TEXT_ENCODED_BYTES {
             return Err(ImageTextCodecRefusal::EncodingTooLarge);
         }
@@ -68,12 +71,12 @@ impl ImageTextRecord {
         writer.bytes(&self.image.width.to_le_bytes());
         writer.bytes(&self.image.height.to_le_bytes());
         writer.bytes_u16(self.caption.as_bytes());
-        writer.u8(self.metadata.len() as u8);
-        for entry in &self.metadata {
+        writer.u8(self.metadata.get().len() as u8);
+        for entry in self.metadata.get().iter() {
             writer.bytes_u8(entry.key().as_bytes());
             writer.bytes_u16(entry.value().as_bytes());
         }
-        writer.bytes(&self.content_digest);
+        writer.bytes(self.content_digest.get());
         Ok(writer.written())
     }
 
@@ -124,6 +127,9 @@ impl ImageTextRecord {
         if !cursor.finished() {
             return Err(ImageTextCodecRefusal::Malformed);
         }
+        let metadata = BoundedSequence::try_from_iter(metadata).map_err(|_| {
+            ImageTextCodecRefusal::InvalidRecord(ImageTextRefusal::TooManyMetadataEntries)
+        })?;
         let record = Self {
             image: ImageObservationReference {
                 content,
@@ -131,8 +137,11 @@ impl ImageTextRecord {
                 height,
             },
             caption,
-            metadata,
-            content_digest,
+            metadata: ImageTextMetadataEntries::new(metadata).map_err(|_| {
+                ImageTextCodecRefusal::InvalidRecord(ImageTextRefusal::TooManyMetadataEntries)
+            })?,
+            content_digest: ImageTextContentDigest::new(content_digest)
+                .expect("the decoder read exactly 32 digest bytes"),
         };
         record
             .validate(expected_image_profile)

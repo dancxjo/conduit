@@ -210,12 +210,13 @@ mod tests {
                 .send_response(&HttpResponse {
                     transaction_id: request.transaction_id,
                     status: 503,
-                    headers: vec![HttpHeader::new(
+                    headers: conduit_web::http_headers([HttpHeader::new(
                         "content-type".into(),
                         conduit_form::rust_binding::BoundedBytes::new(b"text/plain").unwrap(),
                     )
-                    .unwrap()],
-                    body: conduit_web::HttpBody::inline(b"still HTTP data".to_vec()),
+                    .unwrap()])
+                    .unwrap(),
+                    body: conduit_web::HttpBody::inline(b"still HTTP data"),
                 })
                 .unwrap();
         });
@@ -230,8 +231,8 @@ mod tests {
                     conduit_web::HttpScheme::Http,
                 )
                 .unwrap(),
-                headers: Vec::new(),
-                body: conduit_web::HttpBody::inline(b"bounded".to_vec()),
+                headers: Default::default(),
+                body: conduit_web::HttpBody::inline(b"bounded"),
             })
             .unwrap();
         server.join().unwrap();
@@ -250,7 +251,7 @@ mod tests {
             transaction_id: HttpTransactionId::new(1).unwrap(),
             method: HttpMethod::Get,
             target: HttpTarget::new(authority, "/".into(), scheme).unwrap(),
-            headers: Vec::new(),
+            headers: Default::default(),
             body: conduit_web::HttpBody::inline(Vec::new()),
         };
         assert_eq!(

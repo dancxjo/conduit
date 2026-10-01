@@ -17,11 +17,13 @@ mod value;
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedSequenceCapacityRefusal, BoundedText};
 pub use conduit_core as semantic_core;
 pub use generate::{
-    generate_rust_bindings, generate_rust_bindings_with_codes, RustBindingGenerationError,
-    RustBindingModule, RustBindingOptions,
+    generate_rust_bindings, generate_rust_bindings_with_codes,
+    generate_rust_bindings_with_external_bindings, ExternalNativeRustBinding,
+    ExternalRustBindingGenerationError, RustBindingGenerationError, RustBindingModule,
+    RustBindingOptions,
 };
 pub use generate_package::{
-    generate_locked_package_rust_bindings, ExternalNativeRustBinding, LockedPackageBindingSource,
+    generate_locked_package_rust_bindings, LockedPackageBindingSource,
     LockedPackageRustBindingInput, LockedRustBindingGenerationError,
 };
 pub use primitive::{primitive_from_structured, primitive_into_structured, NativePrimitive};
