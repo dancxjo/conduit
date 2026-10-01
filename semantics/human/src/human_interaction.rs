@@ -3,6 +3,7 @@
 //! These contracts describe semantic state and proposals. Presentation, renderer-local focus,
 //! manifestation, application acceptance, and resulting state remain separate identities.
 
+use crate::{BoundKind, InteractionApplicationOutcome, InteractionRefusal, OptionAvailability};
 use alloc::{collections::VecDeque, string::String, vec::Vec};
 use conduit_core::{KindId, QuantityUnit, StructuredInfoValue};
 
@@ -24,29 +25,6 @@ pub const MAXIMUM_INTERACTION_VALUE_BYTES: usize = 65_536;
 pub const MAXIMUM_INTERACTION_OPTIONS: usize = 256;
 pub const MAXIMUM_INTERACTION_SELECTIONS: usize = 64;
 pub const MAXIMUM_INTERACTION_QUEUE: usize = 8;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum InteractionRefusal {
-    InvalidIdentity,
-    InvalidContract,
-    InvalidDomain,
-    InvalidCurrentState,
-    ValueBoundExceeded,
-    WrongValueKind,
-    MalformedValue,
-    StaleState,
-    RemovedOption,
-    UnavailableOption,
-    InvalidCardinality,
-    InvalidCombination,
-    ConcurrentStateChange,
-    OutOfRange,
-    UnsupportedGranularity,
-    DuplicateProposal,
-    QueuePressure,
-    ResultPressure,
-    UnknownProposal,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InteractionValue {
@@ -78,12 +56,6 @@ impl InteractionValue {
                 .map_err(|_| InteractionRefusal::MalformedValue)?,
         )
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BoundKind {
-    Inclusive,
-    Exclusive,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,12 +127,6 @@ impl InteractionContract {
         encode_family(&mut output, &self.family);
         output
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OptionAvailability {
-    Available,
-    Unavailable { reason_code: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -305,14 +271,6 @@ impl HumanInteractionProposal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum InteractionApplicationOutcome {
-    Accepted { resulting_state_identity: String },
-    Refused { reason_code: String },
-    Failed { reason_code: String },
-    Cancelled,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InteractionApplicationResult {
     pub result_identity: String,
     pub proposal_identity: String,
@@ -338,19 +296,17 @@ impl InteractionApplicationResult {
         let mut output = Vec::new();
         field(&mut output, self.proposal_identity.as_bytes());
         match &self.outcome {
-            InteractionApplicationOutcome::Accepted {
-                resulting_state_identity,
-            } => {
+            InteractionApplicationOutcome::Accepted(accepted) => {
                 output.push(0);
-                field(&mut output, resulting_state_identity.as_bytes());
+                field(&mut output, accepted.resulting_state_identity().as_bytes());
             }
-            InteractionApplicationOutcome::Refused { reason_code } => {
+            InteractionApplicationOutcome::Refused(refused) => {
                 output.push(1);
-                field(&mut output, reason_code.as_bytes());
+                field(&mut output, refused.reason_code().as_bytes());
             }
-            InteractionApplicationOutcome::Failed { reason_code } => {
+            InteractionApplicationOutcome::Failed(failed) => {
                 output.push(2);
-                field(&mut output, reason_code.as_bytes());
+                field(&mut output, failed.reason_code().as_bytes());
             }
             InteractionApplicationOutcome::Cancelled => output.push(3),
         }

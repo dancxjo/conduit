@@ -99,9 +99,9 @@ fn executable_many_choice_flow_emits_values_and_rejects_invalid_combinations() {
     );
     flow.admit(valid.clone()).unwrap();
     let result = flow
-        .finish_front(InteractionApplicationOutcome::Accepted {
-            resulting_state_identity: "interaction-state/accepted".into(),
-        })
+        .finish_front(
+            InteractionApplicationOutcome::accepted("interaction-state/accepted".into()).unwrap(),
+        )
         .unwrap();
     assert_eq!(result.proposal_identity, valid.proposal_identity);
 }

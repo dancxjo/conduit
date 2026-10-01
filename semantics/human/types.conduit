@@ -106,3 +106,54 @@ type VisualExperienceRelationKind =
     relates
     | supports
     | contradicts
+
+type InteractionRefusal =
+    invalid_identity
+    | invalid_contract
+    | invalid_domain
+    | invalid_current_state
+    | value_bound_exceeded
+    | wrong_value_kind
+    | malformed_value
+    | stale_state
+    | removed_option
+    | unavailable_option
+    | invalid_cardinality
+    | invalid_combination
+    | concurrent_state_change
+    | out_of_range
+    | unsupported_granularity
+    | duplicate_proposal
+    | queue_pressure
+    | result_pressure
+    | unknown_proposal
+
+type InteractionBoundKind =
+    inclusive
+    | exclusive
+
+type OptionAvailability =
+    available
+    | unavailable {
+        reason_code: Text <= 128B not in [""]
+    }
+
+type InteractionApplicationOutcome =
+    accepted {
+        resulting_state_identity: Text <= 128B not in [""]
+    }
+    | refused {
+        reason_code: Text <= 128B not in [""]
+    }
+    | failed {
+        reason_code: Text <= 128B not in [""]
+    }
+    | cancelled
+
+type RealizationRangePolicy =
+    refuse
+    | clamp
+
+type ScalarQuantization =
+    exact
+    | nearest
