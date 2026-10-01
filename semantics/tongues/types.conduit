@@ -46,3 +46,11 @@ type LiveConversationSpeechRequirements = {
     speakable-segment-bytes: U32
     synthesized-pcm-bytes: U32
 }
+
+# One finite provider-neutral model request projected from addressed House context.
+# The identity is the fixed `house-model-request/` prefix plus a SHA-256 digest.
+type HouseGenerationRequest = {
+    request-identity: Text <= 84B not in [""]
+    encoded-request: Text <= 128KiB not in [""]
+    maximum-output-bytes: U64 in 1..=65536
+}
