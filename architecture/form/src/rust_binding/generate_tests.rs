@@ -1053,6 +1053,89 @@ fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
     );
 }
 
+#[test]
+fn ordinary_generation_refuses_missing_drifted_and_unused_external_bindings() {
+    use super::{
+        generate_rust_bindings_with_external_bindings, ExternalRustBindingGenerationError,
+    };
+    let checked = |source: &str, catalog: &crate::StartupCatalog| {
+        crate::check_syntax_document(&crate::parse_syntax_document(source), catalog).unwrap()
+    };
+    let foreign = checked(
+        "type Foreign = {\n    value: U8\n}\n",
+        &crate::StartupCatalog::new(),
+    )
+    .native_types
+    .into_iter()
+    .next()
+    .unwrap();
+    let unrelated = checked(
+        "type Unrelated = {\n    value: U16\n}\n",
+        &crate::StartupCatalog::new(),
+    )
+    .native_types
+    .into_iter()
+    .next()
+    .unwrap();
+    let mut catalog = crate::StartupCatalog::new();
+    catalog
+        .insert_structured_type("Foreign", foreign.value_type.clone())
+        .unwrap();
+    let owned = checked("type Owned = {\n    foreign: Foreign\n}\n", &catalog);
+    let binding = ExternalNativeRustBinding {
+        semantic_identity: foreign.identity.as_str(),
+        rust_type_path: "dependency::Foreign",
+    };
+    let options = RustBindingOptions::default();
+    assert!(matches!(
+        generate_rust_bindings_with_external_bindings(
+            &owned.native_types,
+            &[foreign.value_type.clone()],
+            &[],
+            &options,
+        ),
+        Err(ExternalRustBindingGenerationError::MissingExternalBinding(identity))
+            if identity == foreign.identity.as_str()
+    ));
+    assert!(matches!(
+        generate_rust_bindings_with_external_bindings(
+            &owned.native_types,
+            &[foreign.value_type.clone()],
+            &[ExternalNativeRustBinding {
+                semantic_identity: "type:drifted",
+                rust_type_path: "dependency::Foreign",
+            }],
+            &options,
+        ),
+        Err(ExternalRustBindingGenerationError::ExternalBindingIdentityDrift(identity))
+            if identity == "type:drifted"
+    ));
+    assert!(matches!(
+        generate_rust_bindings_with_external_bindings(
+            &owned.native_types,
+            &[foreign.value_type.clone(), unrelated.value_type.clone()],
+            &[
+                binding,
+                ExternalNativeRustBinding {
+                    semantic_identity: unrelated.identity.as_str(),
+                    rust_type_path: "dependency::Unrelated",
+                },
+            ],
+            &options,
+        ),
+        Err(ExternalRustBindingGenerationError::UnusedExternalBinding(identity))
+            if identity == unrelated.identity.as_str()
+    ));
+    let generated = generate_rust_bindings_with_external_bindings(
+        &owned.native_types,
+        &[foreign.value_type],
+        &[binding],
+        &options,
+    )
+    .unwrap();
+    assert!(generated.source.contains("foreign: dependency::Foreign"));
+}
+
 fn compile_external_binding_round_trip(dependency: &str, root: &str) {
     use std::ffi::OsStr;
     use std::fs;

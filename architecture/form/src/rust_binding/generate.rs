@@ -67,6 +67,22 @@ pub struct RustBindingModule {
     pub semantic_type_bytes: BTreeMap<String, Vec<u8>>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ExternalNativeRustBinding<'a> {
+    pub semantic_identity: &'a str,
+    pub rust_type_path: &'a str,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExternalRustBindingGenerationError {
+    MissingExternalBinding(String),
+    DuplicateExternalBinding(String),
+    UnusedExternalBinding(String),
+    ExternalBindingIdentityDrift(String),
+    InvalidExternalRustPath(String),
+    Generation(RustBindingGenerationError),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RustBindingGenerationError {
     EmptyTypeSet,
@@ -89,6 +105,149 @@ pub fn generate_rust_bindings_with_codes(
     options: &RustBindingOptions,
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
     generate_rust_bindings_with_external_names(types, codes, options, &BTreeMap::new())
+}
+
+/// Generates bindings for source-owned Types while reusing exact native Rust
+/// bindings for referenced Types owned by another semantic crate.
+pub fn generate_rust_bindings_with_external_bindings(
+    types: &[CheckedNativeType],
+    external_types: &[StructuredInfoType],
+    external_bindings: &[ExternalNativeRustBinding<'_>],
+    options: &RustBindingOptions,
+) -> Result<RustBindingModule, ExternalRustBindingGenerationError> {
+    let external_names = validate_external_bindings(types, external_types, external_bindings)?;
+    generate_rust_bindings_with_external_names(types, &[], options, &external_names)
+        .map_err(ExternalRustBindingGenerationError::Generation)
+}
+
+pub(super) fn validate_external_bindings(
+    types: &[CheckedNativeType],
+    external_types: &[StructuredInfoType],
+    external_bindings: &[ExternalNativeRustBinding<'_>],
+) -> Result<BTreeMap<String, String>, ExternalRustBindingGenerationError> {
+    let owned = types
+        .iter()
+        .map(|value_type| value_type.identity.as_str().to_string())
+        .collect::<BTreeSet<_>>();
+    let mut available = BTreeSet::new();
+    for value_type in external_types {
+        collect_schema_identities(value_type, &mut available);
+    }
+    let mut required = BTreeSet::new();
+    for value_type in types {
+        collect_external_boundaries(&value_type.value_type, &owned, &available, &mut required);
+    }
+    let mut external_names = BTreeMap::new();
+    for binding in external_bindings {
+        if !super::generate_package::valid_rust_type_path(binding.rust_type_path) {
+            return Err(ExternalRustBindingGenerationError::InvalidExternalRustPath(
+                binding.rust_type_path.into(),
+            ));
+        }
+        if external_names
+            .insert(
+                binding.semantic_identity.into(),
+                binding.rust_type_path.into(),
+            )
+            .is_some()
+        {
+            return Err(
+                ExternalRustBindingGenerationError::DuplicateExternalBinding(
+                    binding.semantic_identity.into(),
+                ),
+            );
+        }
+        if !available.contains(binding.semantic_identity) {
+            return Err(
+                ExternalRustBindingGenerationError::ExternalBindingIdentityDrift(
+                    binding.semantic_identity.into(),
+                ),
+            );
+        }
+        if !required.contains(binding.semantic_identity) {
+            return Err(ExternalRustBindingGenerationError::UnusedExternalBinding(
+                binding.semantic_identity.into(),
+            ));
+        }
+    }
+    if let Some(missing) = required
+        .iter()
+        .find(|identity| !external_names.contains_key(identity.as_str()))
+    {
+        return Err(ExternalRustBindingGenerationError::MissingExternalBinding(
+            missing.clone(),
+        ));
+    }
+    Ok(external_names)
+}
+
+fn collect_schema_identities(value_type: &StructuredInfoType, identities: &mut BTreeSet<String>) {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Nominal {
+            schema,
+            representation,
+        } => {
+            identities.insert(schema.as_str().into());
+            collect_schema_identities(representation, identities);
+        }
+        StructuredInfoTypeShape::Record { schema, fields } => {
+            identities.insert(schema.as_str().into());
+            for field in fields {
+                collect_schema_identities(field.value_type(), identities);
+            }
+        }
+        StructuredInfoTypeShape::Variant { schema, cases } => {
+            identities.insert(schema.as_str().into());
+            for case in cases {
+                collect_schema_identities(case.payload_type(), identities);
+            }
+        }
+        StructuredInfoTypeShape::Sequence { element, .. }
+        | StructuredInfoTypeShape::Collection { element, .. } => {
+            collect_schema_identities(element, identities);
+        }
+        StructuredInfoTypeShape::Leaf(_) => {}
+    }
+}
+
+fn collect_external_boundaries(
+    value_type: &StructuredInfoType,
+    owned: &BTreeSet<String>,
+    available: &BTreeSet<String>,
+    required: &mut BTreeSet<String>,
+) {
+    let schema = match value_type.shape() {
+        StructuredInfoTypeShape::Nominal { schema, .. }
+        | StructuredInfoTypeShape::Record { schema, .. }
+        | StructuredInfoTypeShape::Variant { schema, .. } => Some(schema.as_str()),
+        _ => None,
+    };
+    if let Some(schema) = schema {
+        if available.contains(schema) && !owned.contains(schema) {
+            required.insert(schema.into());
+            return;
+        }
+    }
+    match value_type.shape() {
+        StructuredInfoTypeShape::Nominal { representation, .. } => {
+            collect_external_boundaries(representation, owned, available, required);
+        }
+        StructuredInfoTypeShape::Record { fields, .. } => {
+            for field in fields {
+                collect_external_boundaries(field.value_type(), owned, available, required);
+            }
+        }
+        StructuredInfoTypeShape::Variant { cases, .. } => {
+            for case in cases {
+                collect_external_boundaries(case.payload_type(), owned, available, required);
+            }
+        }
+        StructuredInfoTypeShape::Sequence { element, .. }
+        | StructuredInfoTypeShape::Collection { element, .. } => {
+            collect_external_boundaries(element, owned, available, required);
+        }
+        StructuredInfoTypeShape::Leaf(_) => {}
+    }
 }
 
 pub(super) fn generate_rust_bindings_with_external_names(
