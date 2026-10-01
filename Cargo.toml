@@ -92,10 +92,6 @@ members = [
 	"proof/conformance/pete-workload",
 	"proof/conformance/signal",
 	"proof/fixtures/rp2040-pio-audio-extension",
-	# Retired package identities used only by the pre-rename trusted CI controller.
-	"proof/fixtures/make-rename-ci-bridge/conduitos",
-	"proof/fixtures/make-rename-ci-bridge/esp32",
-	"proof/fixtures/make-rename-ci-bridge/workspace",
 
 	# Repository-development tooling.
 	"tools/xtask-dispatch",
