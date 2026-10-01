@@ -4,12 +4,10 @@
 use crate::human_media_catalog::install_camera_catalogs;
 #[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
-use alloc::{string::String, vec, vec::Vec};
+use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, StructuredVariantCase,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PortTemporal, StructuredInfoType, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -120,46 +118,8 @@ pub fn image_observation_reference_type() -> StructuredInfoType {
 }
 
 pub fn image_text_record_type() -> StructuredInfoType {
-    let text = || StructuredInfoType::leaf(kind_id("value/text")).expect("text type");
-    let unit = || StructuredInfoType::leaf(kind_id("value/unit")).expect("unit type");
-    let metadata = StructuredInfoType::record(
-        kind_id("human/image-text-metadata@1"),
-        vec![
-            StructuredFieldType::new("key", text()).unwrap(),
-            StructuredFieldType::new("value", text()).unwrap(),
-        ],
-    )
-    .unwrap();
-    let slot = StructuredInfoType::variant(
-        kind_id("human/optional-image-text-metadata@1"),
-        vec![
-            StructuredVariantCase::new("absent", unit()).unwrap(),
-            StructuredVariantCase::new("present", metadata).unwrap(),
-        ],
-    )
-    .unwrap();
-    StructuredInfoType::record(
-        kind_id("human/image-text-record@1"),
-        vec![
-            StructuredFieldType::new("caption", text()).unwrap(),
-            StructuredFieldType::new(
-                "content_digest",
-                StructuredInfoType::leaf(kind_id("value/bytes")).unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldType::new("image", image_observation_reference_type()).unwrap(),
-            StructuredFieldType::new(
-                "metadata",
-                StructuredInfoType::collection(
-                    slot,
-                    Some(conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES as u16),
-                )
-                .unwrap(),
-            )
-            .unwrap(),
-        ],
-    )
-    .unwrap()
+    conduit_human::ImageTextRecord::semantic_type()
+        .expect("checked human image-text record Type remains decodable")
 }
 
 pub fn image_text_record_value(
@@ -169,96 +129,18 @@ pub fn image_text_record_value(
     record
         .validate(expected_image_profile)
         .map_err(ImageTextValueRefusal::InvalidRecord)?;
-    let text = |value: &str| leaf_value("value/text", value.as_bytes().to_vec());
-    let mut slots = Vec::with_capacity(conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES);
-    for entry in record.metadata.get().iter() {
-        let metadata = StructuredInfoValue::record(
-            metadata_type(),
-            vec![
-                field_value("key", text(entry.key())?),
-                field_value("value", text(entry.value())?),
-            ],
-        )
-        .map_err(|_| ImageTextValueRefusal::Malformed)?;
-        slots.push(
-            StructuredInfoValue::variant(metadata_slot_type(), "present", metadata)
-                .map_err(|_| ImageTextValueRefusal::Malformed)?,
-        );
-    }
-    while slots.len() < conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES {
-        slots.push(
-            StructuredInfoValue::variant(
-                metadata_slot_type(),
-                "absent",
-                leaf_value("value/unit", Vec::new())?,
-            )
-            .map_err(|_| ImageTextValueRefusal::Malformed)?,
-        );
-    }
-    let metadata = StructuredInfoValue::collection(metadata_collection_type(), slots)
-        .map_err(|_| ImageTextValueRefusal::Malformed)?;
-    StructuredInfoValue::record(
-        image_text_record_type(),
-        vec![
-            field_value("caption", text(&record.caption)?),
-            field_value(
-                "content_digest",
-                leaf_value("value/bytes", record.content_digest.get().to_vec())?,
-            ),
-            field_value("image", image_observation_value(&record.image)?),
-            field_value("metadata", metadata),
-        ],
-    )
-    .map_err(|_| ImageTextValueRefusal::Malformed)
+    record
+        .clone()
+        .into_structured()
+        .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
 pub fn image_text_record_from_value(
     value: &StructuredInfoValue,
     expected_image_profile: &KindId,
 ) -> Result<conduit_human::ImageTextRecord, ImageTextValueRefusal> {
-    if value.value_type() != &image_text_record_type() {
-        return Err(ImageTextValueRefusal::Malformed);
-    }
-    let fields = record_fields(value)?;
-    let image = image_observation_from_value(field(fields, "image")?)?;
-    let caption = text_from(field(fields, "caption")?)?;
-    let digest: [u8; 32] = leaf_bytes(field(fields, "content_digest")?)?
-        .try_into()
+    let record = conduit_human::ImageTextRecord::from_structured(value.clone())
         .map_err(|_| ImageTextValueRefusal::Malformed)?;
-    let StructuredInfoValueShape::Collection(slots) = field(fields, "metadata")?.shape() else {
-        return Err(ImageTextValueRefusal::Malformed);
-    };
-    let mut metadata = Vec::new();
-    let mut absent_seen = false;
-    for slot in slots {
-        let StructuredInfoValueShape::Variant { tag, payload } = slot.shape() else {
-            return Err(ImageTextValueRefusal::Malformed);
-        };
-        match tag {
-            "absent" => absent_seen = true,
-            "present" if !absent_seen => {
-                let fields = record_fields(payload)?;
-                metadata.push(
-                    conduit_human::ImageTextMetadata::new(
-                        text_from(field(fields, "key")?)?,
-                        text_from(field(fields, "value")?)?,
-                    )
-                    .map_err(|_| ImageTextValueRefusal::Malformed)?,
-                );
-            }
-            _ => return Err(ImageTextValueRefusal::Malformed),
-        }
-    }
-    let metadata = conduit_form::rust_binding::BoundedSequence::try_from_iter(metadata)
-        .map_err(|_| ImageTextValueRefusal::Malformed)?;
-    let record = conduit_human::ImageTextRecord {
-        image,
-        caption,
-        metadata: conduit_human::ImageTextMetadataEntries::new(metadata)
-            .map_err(|_| ImageTextValueRefusal::Malformed)?,
-        content_digest: conduit_human::ImageTextContentDigest::new(digest)
-            .map_err(|_| ImageTextValueRefusal::Malformed)?,
-    };
     record
         .validate(expected_image_profile)
         .map_err(ImageTextValueRefusal::InvalidRecord)?;
@@ -271,22 +153,6 @@ pub fn image_text_typed_record_value(
 ) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
     let value = image_text_record_value(record, expected_image_profile)?;
     conduit_net::typed_record_value(&value).map_err(ImageTextValueRefusal::TypedRecord)
-}
-
-fn metadata_type() -> StructuredInfoType {
-    let collection = metadata_collection_type();
-    let StructuredInfoTypeShape::Collection { element, .. } = collection.shape() else {
-        unreachable!()
-    };
-    let StructuredInfoTypeShape::Variant { cases, .. } = element.shape() else {
-        unreachable!()
-    };
-    cases
-        .iter()
-        .find(|case| case.tag() == "present")
-        .unwrap()
-        .payload_type()
-        .clone()
 }
 
 pub fn image_observation_value(
@@ -303,27 +169,6 @@ pub fn image_observation_from_value(
 ) -> Result<conduit_human::ImageObservationReference, ImageTextValueRefusal> {
     conduit_human::ImageObservationReference::from_structured(value.clone())
         .map_err(|_| ImageTextValueRefusal::Malformed)
-}
-
-fn metadata_slot_type() -> StructuredInfoType {
-    let collection = metadata_collection_type();
-    let StructuredInfoTypeShape::Collection { element, .. } = collection.shape() else {
-        unreachable!()
-    };
-    element.clone()
-}
-
-fn metadata_collection_type() -> StructuredInfoType {
-    let record = image_text_record_type();
-    let StructuredInfoTypeShape::Record { fields, .. } = record.shape() else {
-        unreachable!()
-    };
-    fields
-        .iter()
-        .find(|field| field.name() == "metadata")
-        .unwrap()
-        .value_type()
-        .clone()
 }
 
 #[cfg(feature = "form-catalog")]
@@ -375,51 +220,4 @@ fn structured_port(
         temporal: PortTemporal::Value,
         abnormal_kind: None,
     }
-}
-
-fn leaf_value(
-    identity: &str,
-    bytes: Vec<u8>,
-) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id(identity))
-            .map_err(|_| ImageTextValueRefusal::Malformed)?,
-        bytes,
-    )
-    .map_err(|_| ImageTextValueRefusal::Malformed)
-}
-
-fn field_value(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {
-    StructuredFieldValue::new(name, value).expect("reviewed image-text field name is finite")
-}
-
-fn record_fields(
-    value: &StructuredInfoValue,
-) -> Result<&[StructuredFieldValue], ImageTextValueRefusal> {
-    match value.shape() {
-        StructuredInfoValueShape::Record(fields) => Ok(fields),
-        _ => Err(ImageTextValueRefusal::Malformed),
-    }
-}
-
-fn field<'a>(
-    fields: &'a [StructuredFieldValue],
-    name: &str,
-) -> Result<&'a StructuredInfoValue, ImageTextValueRefusal> {
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(StructuredFieldValue::value)
-        .ok_or(ImageTextValueRefusal::Malformed)
-}
-
-fn leaf_bytes(value: &StructuredInfoValue) -> Result<&[u8], ImageTextValueRefusal> {
-    match value.shape() {
-        StructuredInfoValueShape::Leaf(bytes) => Ok(bytes),
-        _ => Err(ImageTextValueRefusal::Malformed),
-    }
-}
-
-fn text_from(value: &StructuredInfoValue) -> Result<String, ImageTextValueRefusal> {
-    String::from_utf8(leaf_bytes(value)?.to_vec()).map_err(|_| ImageTextValueRefusal::Malformed)
 }

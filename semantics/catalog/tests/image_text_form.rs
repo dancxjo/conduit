@@ -102,10 +102,17 @@ fn composed_schema_is_finite_and_keeps_image_as_a_resource_reference() {
         .iter()
         .find(|field| field.name() == "metadata")
         .unwrap();
+    let StructuredInfoTypeShape::Nominal { representation, .. } = metadata.value_type().shape()
+    else {
+        panic!("metadata entries retain their native nominal identity")
+    };
     assert!(matches!(
-        metadata.value_type().shape(),
-        StructuredInfoTypeShape::Collection { length, .. }
-            if usize::from(length) == conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES
+        representation.shape(),
+        StructuredInfoTypeShape::Sequence {
+            minimum_items: 0,
+            maximum_items,
+            ..
+        } if usize::from(maximum_items) == conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES
     ));
 }
 
@@ -164,6 +171,10 @@ fn delivery_record_is_an_ordinary_composition_over_shared_framing() {
     assert_eq!(authored.expanded.connections.len(), 2);
 
     let (image_profile, record) = composed_record();
+    image_text_record_value(&record, &image_profile)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
     let typed = image_text_typed_record_value(&record, &image_profile).unwrap();
     let restored = conduit_net::value_from_typed_record(&typed).unwrap();
     assert_eq!(
