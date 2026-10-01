@@ -56,9 +56,9 @@ fn host_owned_snapshot_carries_bounded_debugger_state_for_an_exact_subject() {
     snapshot.timeline_projection = None;
     snapshot.debugger_control = None;
     let subject = snapshot.presentation.subjects[0].identity.clone();
-    let debugger: patchbay_model::DebuggerPresentation =
+    let debugger: patchbay_application::DebuggerPresentation =
         serde_json::from_value(serde_json::json!({
-            "schema": patchbay_model::DEBUGGER_PRESENTATION_SCHEMA,
+            "schema": patchbay_application::DEBUGGER_PRESENTATION_SCHEMA,
             "execution": { "body": vec![1; 32], "plan": vec![2; 32], "play": vec![3; 32] },
             "revision": 1,
             "tick": 0,

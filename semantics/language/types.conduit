@@ -3,3 +3,89 @@
 type LinguisticOffsetBasis =
     unicode_scalar
     | utf8_byte
+
+type TextSpan = {
+    basis: LinguisticOffsetBasis
+    end: U64
+    start: U64
+    text_identity: Text <= 1024B not in [""]
+    where .start <= .end
+}
+
+type LinguisticTokenIdentity = {
+    ordinal: U64
+    text_identity: Text <= 1024B not in [""]
+}
+
+type LinguisticOptionalText =
+    absent
+    | present Text <= 1024B not in [""]
+
+type LinguisticTokenCategory =
+    punctuation
+    | word
+
+type LinguisticTokenFeature = {
+    name: Text <= 1024B not in [""]
+    value: Text <= 1024B not in [""]
+}
+
+type LinguisticTokenFeatureSlot =
+    feature LinguisticTokenFeature
+    | unused
+
+type LinguisticToken = {
+    category: LinguisticTokenCategory
+    features: collection LinguisticTokenFeatureSlot = 2
+    identity: LinguisticTokenIdentity
+    lemma: LinguisticOptionalText
+    span: TextSpan
+    surface: Text <= 1024B not in [""]
+}
+
+type LinguisticSegmentKind =
+    sentence
+
+type LinguisticSegment = {
+    identity: Text <= 1024B not in [""]
+    kind: LinguisticSegmentKind
+    span: TextSpan
+}
+
+type LinguisticEvidence = {
+    implementation: Text <= 1024B not in [""]
+    revision: Text <= 1024B not in [""]
+}
+
+type LinguisticDerivationProvenance =
+    deterministic_rule LinguisticEvidence
+    | library LinguisticEvidence
+    | model LinguisticEvidence
+
+type LinguisticTokensFour = {
+    provenance: LinguisticDerivationProvenance
+    segments: collection LinguisticSegment = 1
+    tokens: collection LinguisticToken = 4
+}
+
+type LinguisticAnnotation = {
+    label: Text <= 1024B not in [""]
+    span: TextSpan
+}
+
+type LinguisticDependencyRelation =
+    modifier
+    | punctuation
+    | subject
+
+type LinguisticDependencyEdge = {
+    dependent: LinguisticTokenIdentity
+    governor: LinguisticTokenIdentity
+    relation: LinguisticDependencyRelation
+}
+
+type AnnotationBundleFour = {
+    annotations: collection LinguisticAnnotation = 4
+    dependencies: collection LinguisticDependencyEdge = 3
+    provenance: LinguisticDerivationProvenance
+}

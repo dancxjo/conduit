@@ -213,7 +213,7 @@ fn filters_threshold_top_k_and_equal_score_ties_are_canonical() {
             value: "note".into(),
         },
     ];
-    query.threshold = Some(SimilarityThreshold::MinimumSimilarity(0.5));
+    query.threshold = Some(SimilarityThreshold::minimum(0.5).unwrap());
     let result = search(&query, &candidates).unwrap();
     assert_eq!(result.hits.len(), 1);
     assert_eq!(result.hits[0].source_identity, "source/a");

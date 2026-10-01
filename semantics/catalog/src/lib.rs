@@ -112,9 +112,13 @@ mod job_catalog;
 #[cfg(feature = "form-catalog")]
 pub use job_catalog::*;
 mod palette_metadata;
+#[cfg(feature = "form-catalog")]
+mod palette_projection;
 mod tick;
 pub use functional_front::startup_front;
 pub use palette_metadata::*;
+#[cfg(feature = "form-catalog")]
+pub use palette_projection::*;
 pub use tick::*;
 mod tick_presentation;
 pub use tick_presentation::*;

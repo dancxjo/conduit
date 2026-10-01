@@ -33,12 +33,7 @@ fn object(version: u8, sign: &str, x: u16) -> ObjectObservation {
     ObjectObservation {
         source_image: image(version),
         candidate_label: "bright-component".into(),
-        region: ImageRegion {
-            x,
-            y: 4,
-            width: 12,
-            height: 10,
-        },
+        region: ImageRegion::from_xywh(x, 4, 12, 10).unwrap(),
         confidence_permille: 1_000,
         provenance: VisualObservationProvenance {
             evidence_class: VisualEvidenceClass::DeterministicDerived,

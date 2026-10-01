@@ -22,7 +22,7 @@ Everything above the face is domain and body truth. Everything below it is reali
 
 This is the same architectural move used elsewhere: meaning first, exact realization second.
 
-## Face
+## face
 
 A **face** is the body's renderer-neutral semantic encounter.
 
@@ -36,16 +36,16 @@ It can carry things such as:
 - context and provenance;
 - what is currently relevant or refused.
 
-Face is not a widget tree. It does not mean HTML, windows, panes, pixels, speech timing, or terminal escape sequences.
+face is not a widget tree. It does not mean HTML, windows, panes, pixels, speech timing, or terminal escape sequences.
 
-## Mask
+## mask
 
-A **mask** is an ordinary plot serving the user-agent realization role.
+A **mask** is an ordinary form serving the user-agent realization role.
 
 Current tree graphical mask:
 
 ```conduit
-plot native-graphical (
+form native-graphical (
     >> face: Presentation
     interaction: FaceInteraction...| >>
     show: Show >>
@@ -65,9 +65,9 @@ plot native-graphical (
 
 The spoken mask has the same semantic role but may be realized through speech/audio machinery.
 
-There is no special `mask` declaration. Mask is a role played by an ordinary checked plot.
+There is no special `mask` declaration. mask is a role played by an ordinary checked form.
 
-## Show
+## show
 
 A **show** is one finite realized occurrence of a face through a mask.
 
@@ -80,7 +80,7 @@ Examples:
 - deterministic linear text;
 - another admitted medium.
 
-Shows need not look or sound alike.
+shows need not look or sound alike.
 
 ## Semantic fidelity is not visual sameness
 
@@ -92,9 +92,9 @@ This makes accessibility and alternative media architectural peers rather than a
 
 ## Same meaning does not mean same furniture
 
-The Face conformance work deliberately attacks familiar interfaces across radically different media.
+The face conformance work deliberately attacks familiar interfaces across radically different media.
 
-A meaningful cross-medium property may belong in Face:
+A meaningful cross-medium property may belong in face:
 
 - emphasis when it changes understanding;
 - semantic contrast;
@@ -178,6 +178,6 @@ This matters especially during replan and recovery.
 
 ## Patchbay is an ordinary participant
 
-Patchbay is not the definition of Face. It is an inspection/workbench application whose own encounter should obey the same Face/Mask/Show rules as everything else.
+Patchbay is not the definition of face. It is an inspection/workbench application whose own encounter should obey the same face/mask/show rules as everything else.
 
 That is an architectural pressure test: the debugger should not require a second UI ontology.

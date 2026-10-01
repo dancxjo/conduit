@@ -8,15 +8,18 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{
+    rust_binding::NativeRustBinding, KindSignature, ProfileCatalog, StartupCatalog,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
 use crate::{
     committed_recognition_turn_contract, committed_turn_to_text_contract,
-    streaming_speech_recognition_contract, RecognitionTextRefusal, SpeechRecognitionDisposition,
-    SpeechRecognitionRefusal, SpeechRecognitionValueError,
+    streaming_speech_recognition_contract, RecognitionTextRefusal, SpeechRecognitionAttempt,
+    SpeechRecognitionDisposition, SpeechRecognitionRefusal, SpeechRecognitionResult,
+    SpeechRecognitionValueError,
 };
 
 pub const SPEECH_RECOGNIZE_KIND: &str = "speech/recognize";
@@ -91,26 +94,69 @@ impl SpeechRecognitionContract {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct SpeechRecognitionResult {
-    pub disposition: SpeechRecognitionDisposition,
-    pub text: Option<String>,
-    pub audio_sha256: [u8; 32],
-    pub audio_extent_bytes: u32,
-    pub provider_identity: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SpeechRecognitionAttempt {
-    Result(SpeechRecognitionResult),
-    ResourceUnavailable,
-    Failed { audio_sha256: [u8; 32] },
-}
-
 #[derive(Serialize, Deserialize)]
 struct SpeechRecognitionValue {
     schema: String,
-    result: SpeechRecognitionResult,
+    result: SpeechRecognitionWireResult,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+struct SpeechRecognitionWireResult {
+    disposition: SpeechRecognitionDisposition,
+    text: Option<String>,
+    audio_sha256: [u8; 32],
+    audio_extent_bytes: u32,
+    provider_identity: String,
+}
+
+impl From<SpeechRecognitionResult> for SpeechRecognitionWireResult {
+    fn from(result: SpeechRecognitionResult) -> Self {
+        match result {
+            SpeechRecognitionResult::Recognized(value) => Self {
+                disposition: SpeechRecognitionDisposition::Recognized,
+                text: Some(value.text().get().clone()),
+                audio_sha256: *value.audio_sha256().get(),
+                audio_extent_bytes: *value.audio_extent_bytes(),
+                provider_identity: value.provider_identity().get().clone(),
+            },
+            SpeechRecognitionResult::NoSpeech(value) => Self {
+                disposition: SpeechRecognitionDisposition::NoSpeech,
+                text: None,
+                audio_sha256: *value.audio_sha256().get(),
+                audio_extent_bytes: *value.audio_extent_bytes(),
+                provider_identity: value.provider_identity().get().clone(),
+            },
+        }
+    }
+}
+
+impl TryFrom<SpeechRecognitionWireResult> for SpeechRecognitionResult {
+    type Error = SpeechRecognitionValueError;
+
+    fn try_from(value: SpeechRecognitionWireResult) -> Result<Self, Self::Error> {
+        let digest = crate::SpeechRecognitionAudioDigest::new(value.audio_sha256)
+            .map_err(|_| SpeechRecognitionValueError::InvalidValue)?;
+        let provider = crate::SpeechRecognitionProviderIdentity::new(value.provider_identity)
+            .map_err(|_| SpeechRecognitionValueError::InvalidValue)?;
+        match (value.disposition, value.text) {
+            (SpeechRecognitionDisposition::Recognized, Some(text)) => {
+                let text = crate::RecognizedSpeechText::new(text)
+                    .map_err(|_| SpeechRecognitionValueError::InvalidValue)?;
+                SpeechRecognitionResult::recognized(
+                    value.audio_extent_bytes,
+                    digest,
+                    provider,
+                    text,
+                )
+                .map_err(|_| SpeechRecognitionValueError::InvalidValue)
+            }
+            (SpeechRecognitionDisposition::NoSpeech, None) => {
+                SpeechRecognitionResult::no_speech(value.audio_extent_bytes, digest, provider)
+                    .map_err(|_| SpeechRecognitionValueError::InvalidValue)
+            }
+            _ => Err(SpeechRecognitionValueError::InvalidValue),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -216,7 +262,7 @@ pub fn encode_speech_recognition_result(
     validate_result(result)?;
     let encoded = serde_json::to_vec(&SpeechRecognitionValue {
         schema: "conduit.speech/recognition-result-value@2".into(),
-        result: result.clone(),
+        result: result.clone().into(),
     })
     .map_err(|_| SpeechRecognitionValueError::Malformed)?;
     if encoded.len() > MAXIMUM_RECOGNITION_RESULT_BYTES {
@@ -236,41 +282,30 @@ pub fn decode_speech_recognition_result(
     if value.schema != "conduit.speech/recognition-result-value@2" {
         return Err(SpeechRecognitionValueError::InvalidValue);
     }
-    validate_result(&value.result)?;
-    if encode_speech_recognition_result(&value.result)? != encoded {
+    let result = SpeechRecognitionResult::try_from(value.result)?;
+    if encode_speech_recognition_result(&result)? != encoded {
         return Err(SpeechRecognitionValueError::NonCanonical);
     }
-    Ok(value.result)
+    Ok(result)
 }
 
 pub fn project_recognized_text(encoded: &[u8]) -> Result<Vec<u8>, RecognitionTextRefusal> {
     let result = decode_speech_recognition_result(encoded)
         .map_err(|_| RecognitionTextRefusal::InvalidResult)?;
-    match (result.disposition, result.text) {
-        (SpeechRecognitionDisposition::Recognized, Some(text)) => Ok(text.into_bytes()),
-        (SpeechRecognitionDisposition::NoSpeech, None) => {
-            Err(RecognitionTextRefusal::NotRecognized)
+    match result {
+        SpeechRecognitionResult::Recognized(recognized) => {
+            Ok(recognized.text().get().as_bytes().to_vec())
         }
-        _ => Err(RecognitionTextRefusal::InvalidResult),
+        SpeechRecognitionResult::NoSpeech(_) => Err(RecognitionTextRefusal::NotRecognized),
     }
 }
 
 fn validate_result(result: &SpeechRecognitionResult) -> Result<(), SpeechRecognitionValueError> {
-    if result.provider_identity.is_empty()
-        || result.provider_identity.len() > MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES
-        || result.audio_extent_bytes as usize > MAXIMUM_PCM_CLIP_BYTES
-    {
-        return Err(SpeechRecognitionValueError::InvalidValue);
-    }
-    match (&result.disposition, &result.text) {
-        (SpeechRecognitionDisposition::Recognized, Some(text))
-            if !text.is_empty() && text.len() <= MAXIMUM_RECOGNIZED_TEXT_BYTES =>
-        {
-            Ok(())
-        }
-        (SpeechRecognitionDisposition::NoSpeech, None) => Ok(()),
-        _ => Err(SpeechRecognitionValueError::InvalidValue),
-    }
+    result
+        .clone()
+        .into_structured()
+        .map(|_| ())
+        .map_err(|_| SpeechRecognitionValueError::InvalidValue)
 }
 
 impl RecordedSpeechRecognizer {
@@ -312,33 +347,72 @@ impl RecordedSpeechRecognizer {
         let (_, payload) = validate_audio(audio)?;
         let audio_sha256 = digest(audio);
         if payload.iter().all(|sample| *sample == 0) {
-            return Ok(SpeechRecognitionAttempt::Result(SpeechRecognitionResult {
-                disposition: SpeechRecognitionDisposition::NoSpeech,
-                text: None,
-                audio_sha256,
-                audio_extent_bytes: audio.len() as u32,
-                provider_identity: "tongues/recorded-fixture@1".into(),
-            }));
+            return Ok(SpeechRecognitionAttempt::Result(
+                no_speech_result(
+                    audio_sha256,
+                    audio.len() as u32,
+                    "tongues/recorded-fixture@1".into(),
+                )
+                .expect("validated recorded recognition result"),
+            ));
         }
         if let Some(fixture) = self
             .fixtures
             .iter()
             .find(|fixture| fixture.audio_sha256 == audio_sha256)
         {
-            return Ok(SpeechRecognitionAttempt::Result(SpeechRecognitionResult {
-                disposition: SpeechRecognitionDisposition::Recognized,
-                text: Some(fixture.transcript.clone()),
-                audio_sha256,
-                audio_extent_bytes: audio.len() as u32,
-                provider_identity: "tongues/recorded-fixture@1".into(),
-            }));
+            return Ok(SpeechRecognitionAttempt::Result(
+                recognized_result(
+                    audio_sha256,
+                    audio.len() as u32,
+                    "tongues/recorded-fixture@1".into(),
+                    fixture.transcript.clone(),
+                )
+                .expect("validated recorded recognition result"),
+            ));
         }
-        Ok(SpeechRecognitionAttempt::Failed { audio_sha256 })
+        Ok(SpeechRecognitionAttempt::Failed(
+            crate::SpeechRecognitionAudioDigest::new(audio_sha256)
+                .expect("SHA-256 is exactly 32 bytes"),
+        ))
     }
 
     pub fn resource_unavailable() -> SpeechRecognitionAttempt {
         SpeechRecognitionAttempt::ResourceUnavailable
     }
+}
+
+pub fn recognized_result(
+    audio_sha256: [u8; 32],
+    audio_extent_bytes: u32,
+    provider_identity: String,
+    text: String,
+) -> Result<SpeechRecognitionResult, SpeechRecognitionValueError> {
+    SpeechRecognitionResult::recognized(
+        audio_extent_bytes,
+        crate::SpeechRecognitionAudioDigest::new(audio_sha256)
+            .map_err(|_| SpeechRecognitionValueError::InvalidValue)?,
+        crate::SpeechRecognitionProviderIdentity::new(provider_identity)
+            .map_err(|_| SpeechRecognitionValueError::InvalidValue)?,
+        crate::RecognizedSpeechText::new(text)
+            .map_err(|_| SpeechRecognitionValueError::InvalidValue)?,
+    )
+    .map_err(|_| SpeechRecognitionValueError::InvalidValue)
+}
+
+pub fn no_speech_result(
+    audio_sha256: [u8; 32],
+    audio_extent_bytes: u32,
+    provider_identity: String,
+) -> Result<SpeechRecognitionResult, SpeechRecognitionValueError> {
+    SpeechRecognitionResult::no_speech(
+        audio_extent_bytes,
+        crate::SpeechRecognitionAudioDigest::new(audio_sha256)
+            .map_err(|_| SpeechRecognitionValueError::InvalidValue)?,
+        crate::SpeechRecognitionProviderIdentity::new(provider_identity)
+            .map_err(|_| SpeechRecognitionValueError::InvalidValue)?,
+    )
+    .map_err(|_| SpeechRecognitionValueError::InvalidValue)
 }
 
 fn validate_audio(audio: &[u8]) -> Result<(PcmFrameHeader, &[u8]), SpeechRecognitionRefusal> {
@@ -347,10 +421,10 @@ fn validate_audio(audio: &[u8]) -> Result<(PcmFrameHeader, &[u8]), SpeechRecogni
     }
     let (header, payload) =
         PcmFrameHeader::decode_frame(audio).map_err(|_| SpeechRecognitionRefusal::InvalidPcm)?;
-    if header.representation != PcmSampleRepresentation::Signed16LittleEndian
-        || header.layout != PcmChannelLayout::Mono
-        || header.sample_rate_hz != 16_000
-        || header.discontinuity
+    if header.representation() != PcmSampleRepresentation::Signed16LittleEndian
+        || header.layout() != PcmChannelLayout::Mono
+        || header.sample_rate_hz() != 16_000
+        || header.discontinuity()
     {
         return Err(SpeechRecognitionRefusal::UnsupportedPcmProfile);
     }

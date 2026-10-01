@@ -3,6 +3,25 @@
 type LeniaBoundary =
     wrap
 
+type LeniaParameters = {
+    kernel-radius: U16 in 1..=16
+    kernel-mu-q16: U32 in 0..=65536
+    kernel-sigma-q16: U32 in 1..=65536
+    growth-mu-q16: U32 in 0..=65536
+    growth-sigma-q16: U32 in 1..=65536
+    dt-q16: U32 in 1..=65536
+    boundary: LeniaBoundary
+}
+
+type GrayScottParameters = {
+    diffusion-u-ppm: U32 in 1..=1000000
+    diffusion-v-ppm: U32 in 1..=1000000
+    feed-ppm: U32 in 0..=1000000
+    kill-ppm: U32 in 0..=1000000
+    time-step-ppm: U32 in 1..=1000000
+    where .feed-ppm <= 1000000 - .kill-ppm
+}
+
 type LeniaRegionChunkKind =
     work
     | result
@@ -19,6 +38,18 @@ code alife/reaction-diffusion-boundary-edge = ReactionDiffusionBoundaryEdge as u
 
 type ReactionDiffusionRegionId = U16
 
+type ReactionDiffusionRegion = {
+    region-id: ReactionDiffusionRegionId
+    origin-x: U16
+    origin-y: U16
+    width: U16
+    height: U16
+}
+
+type ReactionDiffusionPartition = {
+    regions: sequence ReactionDiffusionRegion in 1..=16
+}
+
 type FieldBitmapRefusal =
     invalid-field
     | invalid-bitmap
@@ -30,3 +61,22 @@ type GardenEvolutionRefusal =
     | malformed-enriched-observation
     | step-capacity-exceeded
     | arithmetic-overflow
+
+type GardenState = {
+    vitality: Scalar in 0.000000..=1.000000
+    activity: Scalar in 0.000000..=1.000000
+    step: U16 in 0..=16
+}
+
+type GardenClockObservation = {
+    phase: Scalar in 0.000000..=1.000000
+}
+
+type GardenContactObservation = {
+    intensity: Scalar in 0.000000..=1.000000
+}
+
+type GardenEnrichedObservation = {
+    clock: GardenClockObservation
+    contact: GardenContactObservation
+}

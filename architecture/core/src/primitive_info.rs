@@ -14,6 +14,8 @@ pub const COUNT_INFO_ID: &str = "value/count";
 pub const TEXT_INFO_ID: &str = "value/text";
 pub const BYTES_INFO_ID: &str = "value/bytes";
 pub const COUNT_ENCODED_LEN: usize = 8;
+pub const F32_INFO_ID: &str = "value/ieee754-binary32";
+pub const F64_INFO_ID: &str = "value/ieee754-binary64";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveInfoKind {
@@ -44,6 +46,8 @@ pub enum PrimitiveInfoKind {
     I32,
     I64,
     I128,
+    F32,
+    F64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,6 +66,10 @@ pub enum PrimitiveInfoRefusal {
         actual: QuantityDimension,
     },
     IntegerLength {
+        expected: usize,
+        actual: usize,
+    },
+    FloatLength {
         expected: usize,
         actual: usize,
     },
@@ -96,6 +104,8 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/i32" => Some(PrimitiveInfoKind::I32),
         b"value/i64" => Some(PrimitiveInfoKind::I64),
         b"value/i128" => Some(PrimitiveInfoKind::I128),
+        b"value/ieee754-binary32" => Some(PrimitiveInfoKind::F32),
+        b"value/ieee754-binary64" => Some(PrimitiveInfoKind::F64),
         _ => None,
     }
 }
@@ -162,6 +172,21 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
                 Ok(())
             } else {
                 Err(PrimitiveInfoRefusal::WrongQuantityDimension { expected, actual })
+            }
+        }
+        Some(kind @ (PrimitiveInfoKind::F32 | PrimitiveInfoKind::F64)) => {
+            let expected = match kind {
+                PrimitiveInfoKind::F32 => crate::IeeeF32::ENCODED_LEN,
+                PrimitiveInfoKind::F64 => crate::IeeeF64::ENCODED_LEN,
+                _ => unreachable!("matched float kind"),
+            };
+            if encoded.len() == expected {
+                Ok(())
+            } else {
+                Err(PrimitiveInfoRefusal::FloatLength {
+                    expected,
+                    actual: encoded.len(),
+                })
             }
         }
         Some(

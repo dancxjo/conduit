@@ -1,5 +1,3 @@
-> **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
-
 ## Vocabulary
 
 In prose, these are ordinary lowercase nouns:
@@ -12,11 +10,9 @@ Provenance: #4066.
 
 ---
 
----
+## Semantic paths and the fore boundary
 
-## Semantic paths and the Fore boundary
-
-Semantic Kind paths are **arbitrarily deep cladistic names**, not fixed-rank `category/leaf` tuples.
+Semantic kind paths are **arbitrarily deep cladistic names**, not fixed-rank `category/leaf` tuples.
 
 ~~~text
 machine/memory/mmio/read/u32
@@ -25,7 +21,7 @@ audio/hda/codec/verb
 math/matrix/multiply
 ~~~
 
-Common prefixes may express organization/ancestry, but **path depth and prefix do not establish type compatibility**. Exact semantic compatibility comes from reviewed Kind identity/contract and Fore law.
+Common prefixes may express organization/ancestry, but **path depth and prefix do not establish type compatibility**. Exact semantic compatibility comes from reviewed kind identity/contract and fore law.
 
 Canonical grammar direction:
 
@@ -35,7 +31,7 @@ KindPath := Name ("/" Name)+
 
 Apply ordinary identifier/source-size bounds rather than a small aesthetic depth limit.
 
-**Fore** is the canonical user-facing noun for the checked callable signature of a Kind/Plot:
+**fore** is the canonical user-facing noun for the checked callable signature of a kind/form:
 
 ~~~text
 Kind = semantic meaning of the work
@@ -43,9 +39,9 @@ Fore = the function-like signature through which it is called
 Back = one concrete realization compatible with that Fore
 ~~~
 
-The Fore is not merely an internal compiler boundary. It is the callable surface presented to authors. For an authored Plot, the parenthesized declaration is its Fore; catalog Kinds expose the same concept.
+The fore is not merely an internal compiler boundary. It is the callable surface presented to authors. For an authored form, the parenthesized declaration is its fore; catalog kinds expose the same concept.
 
-A checked Fore includes the public calling facts that participate in functional compatibility:
+A checked fore includes the public calling facts that participate in functional compatibility:
 
 ~~~text
 startup parameters
@@ -58,15 +54,13 @@ declared shorthand
   input -> output path, where present
 ~~~
 
-`fore` need not be a literal source keyword for the concept to be user-facing: the signature itself is the Fore.
+`fore` need not be a literal source keyword for the concept to be user-facing: the signature itself is the fore.
 
-**Face is unrelated to Fore.** Face belongs to the separate human-interaction/presentation architecture; it is not a renamed callable boundary and should not be taught as part of this vocabulary lineage.
+**face is unrelated to fore.** face belongs to the separate human-interaction/presentation architecture; it is not a renamed callable boundary and should not be taught as part of this vocabulary lineage.
 
-Shared Fore shape alone does not make different Kinds semantically substitutable. Equal Fores mean they can be called the same way; semantic contract identity says whether they mean the same work.
+Shared fore shape alone does not make different kinds semantically substitutable. Equal fores mean they can be called the same way; semantic contract identity says whether they mean the same work.
 
 Provenance: #3998, #4037.
-
----
 
 ---
 
@@ -76,7 +70,7 @@ Keep each noun at one altitude:
 
 ~~~text
 Kind      semantic contract: what something means
-Fore      user-visible checked callable signature of a Kind/Plot
+Fore      user-visible checked callable signature of a Kind/Form
 Back      one concrete realization compatible with that Kind/Fore
 Gear      one configured occurrence/invocation of a Kind in a Form
 Port      typed directional point named by a Fore and used by a Gear
@@ -99,13 +93,13 @@ Show      one finite realized occurrence through a Mask
 
 Compact execution sentence:
 
-> **A Gear invokes a Kind through its Fore. A Host offers a Back for that Kind. A Plan chooses the Back. A Play advances it in Steps. A Step may make a Host Call.**
+> **A gear invokes a kind through its fore. A host offers a back for that kind. A plan chooses the back. A play advances it in steps. A step may make a host Call.**
 
 Compact flow sentence:
 
-> **Gears exchange info through Cords; Lines may realize cross-Host carriage; Signs tell planning/execution what the realized world establishes.**
+> **gears exchange info through cords; lines may realize cross-host carriage; signs tell planning/execution what the realized world establishes.**
 
-Lifecycle action vocabulary uses **birth** for the explicit authorized action that creates a Body. A birth event/Sign is evidence of that transition. birth creates the continuant; it does not implicitly Wake, Plan or Play. WAKE and LULL remain Body lifecycle concepts distinct from Boot and Play.
+Lifecycle action vocabulary uses **birth** for the explicit authorized action that creates a body. A birth event/sign is evidence of that transition. birth creates the continuant; it does not implicitly Wake, plan or play. WAKE and LULL remain body lifecycle concepts distinct from boot and play.
 
 ### Supersession map
 

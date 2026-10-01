@@ -220,6 +220,19 @@ type DataGenerationNamespaceRefusal =
     empty
     | too_large
 
+type DataGenerationDigest = collection U8 = 32
+
+type DataGenerationNamespace = {
+    identity: DataGenerationDigest
+}
+
+type DataGenerationValue<T> = {
+    namespace: DataGenerationNamespace
+    value: T
+}
+
+type DataGenerationTextValue = DataGenerationValue<Text <= 4096B>
+
 code data/save-text-terminal = DataSaveTextTerminal as u8
 
 code data/load-text-terminal = DataLoadTextTerminal as u8

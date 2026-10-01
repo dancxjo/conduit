@@ -61,10 +61,10 @@ fn canonical_messages_running_status_and_velocity_zero_are_exact() {
     let (PortableMidiEvent::Note(on), PortableMidiEvent::Note(off)) = (on, off) else {
         panic!("note messages must produce note Info")
     };
-    assert_eq!(on.gate, Gate::On);
-    assert_eq!(off.gate, Gate::Off);
-    assert_eq!(on.occurrence, off.occurrence);
-    assert_eq!(on.velocity, midi_velocity_to_portable(90));
+    assert_eq!(on.gate(), Gate::On);
+    assert_eq!(off.gate(), Gate::Off);
+    assert_eq!(on.occurrence(), off.occurrence());
+    assert_eq!(on.velocity(), midi_velocity_to_portable(90));
 }
 
 #[test]
@@ -87,8 +87,8 @@ fn tuning_and_transpose_become_exact_portable_pitch() {
     else {
         panic!("note-on must produce portable note Info")
     };
-    assert_eq!(note.pitch.a4_reference_millihertz(), 442_000);
-    assert_eq!(note.pitch.frequency_millihertz(), 884_000);
+    assert_eq!(note.pitch().a4_reference_millihertz(), 442_000);
+    assert_eq!(note.pitch().frequency_millihertz(), 884_000);
     assert_eq!(
         MidiProfile::new(440_000, None, 0)
             .unwrap()
@@ -141,13 +141,13 @@ fn overlapping_equal_keys_pair_last_on_first_off_deterministically() {
         )
         .unwrap();
     let occurrence = |event| match event {
-        PortableMidiEvent::Note(note) => note.occurrence,
+        PortableMidiEvent::Note(note) => note.occurrence(),
         _ => panic!("expected note"),
     };
-    assert_eq!(occurrence(first), NoteOccurrenceId(40));
-    assert_eq!(occurrence(second), NoteOccurrenceId(41));
-    assert_eq!(occurrence(first_off), NoteOccurrenceId(41));
-    assert_eq!(occurrence(second_off), NoteOccurrenceId(40));
+    assert_eq!(occurrence(first), NoteOccurrenceId::new(40).unwrap());
+    assert_eq!(occurrence(second), NoteOccurrenceId::new(41).unwrap());
+    assert_eq!(occurrence(first_off), NoteOccurrenceId::new(41).unwrap());
+    assert_eq!(occurrence(second_off), NoteOccurrenceId::new(40).unwrap());
 }
 
 #[test]
@@ -259,7 +259,7 @@ fn output_requires_exact_midi_profile_and_clears_notes_on_cancel() {
     let mut output = MidiOutputAdapter::new(profile());
     let pitch = MusicalPitch::from_equal_tempered(0, 440_000, 0).unwrap();
     let on = conduit_audio::MusicalNoteEvent::new(
-        NoteOccurrenceId(7),
+        NoteOccurrenceId::new(7).unwrap(),
         pitch,
         Gate::On,
         midi_velocity_to_portable(100),
@@ -270,7 +270,7 @@ fn output_requires_exact_midi_profile_and_clears_notes_on_cancel() {
     assert_eq!(output.encode_note(on).unwrap(), [0x90, 69, 100]);
     assert_eq!(output.cancel_all_notes_off(), [0xb0, 123, 0]);
     let microtonal = conduit_audio::MusicalNoteEvent::new(
-        NoteOccurrenceId(8),
+        NoteOccurrenceId::new(8).unwrap(),
         MusicalPitch::from_equal_tempered(0, 440_000, 1).unwrap(),
         Gate::On,
         midi_velocity_to_portable(100),

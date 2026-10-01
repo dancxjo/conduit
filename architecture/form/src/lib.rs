@@ -33,6 +33,7 @@ mod expression_numeric_type;
 mod expression_prepared;
 mod expression_program;
 mod expression_program_decode;
+mod expression_proof;
 mod expression_semantic_call;
 mod functional_front;
 mod integer_literal;
@@ -383,11 +384,35 @@ pub struct ProfileCatalog {
     canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
     variadic_fores: BTreeMap<KindId, HomogeneousVariadicFore>,
     variadic_kinds: BTreeMap<KindId, conduit_core::Kind>,
+    type_invariants: BTreeMap<KindId, Vec<PortableExpressionProgram>>,
 }
 
 impl ProfileCatalog {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub(crate) fn install_type_invariants(&mut self, native_types: &[CheckedNativeType]) {
+        for native_type in native_types {
+            if !native_type.invariants.is_empty() {
+                self.type_invariants.insert(
+                    native_type
+                        .value_type
+                        .profile()
+                        .expect("checked native Type has a profile")
+                        .value_kind()
+                        .clone(),
+                    native_type.invariants.clone(),
+                );
+            }
+        }
+    }
+
+    pub(crate) fn type_invariants(
+        &self,
+        value_kind: &KindId,
+    ) -> Option<&[PortableExpressionProgram]> {
+        self.type_invariants.get(value_kind).map(Vec::as_slice)
     }
 
     pub fn insert(&mut self, definition: KindProjection) -> Result<(), FormError> {

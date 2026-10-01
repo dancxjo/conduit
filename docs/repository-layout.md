@@ -1,6 +1,6 @@
 # Repository ownership map
 
-Place material by the contract that owns it. File type, reuse count, and the activity that produced a file do not determine its owner. This guide defines placement; the [canon](conduit-canon.md) defines architecture, and [STATUS.md](../STATUS.md) records accepted executable proof. The source layout is organized around these owners; historical migration issues are #2275–#2279 and #2282.
+Place material by the contract that owns it. File type, reuse count, and the activity that produced a file do not determine its owner. This guide defines placement; the [canon](conduit-canon.md) defines architecture, and [STATUS.md](../STATUS.md) records capability and proof status. The source layout is organized around these owners; historical migration issues are #2275–#2279 and #2282.
 
 ## Placement law
 

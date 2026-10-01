@@ -193,7 +193,7 @@ impl PatchbayApplication {
         let result = match edit {
             PatchbayEdit::PlaceGear { kind_id, .. } => {
                 let kind_id = conduit_core::kind_id(kind_id);
-                match patchbay_model::GearPalette::standard() {
+                match conduit_semantic_catalog::GearPalette::standard() {
                     Ok(palette) if palette.find(&kind_id).is_some() => {
                         editor.place_palette_kind(revision, &kind_id).map(|_| ())
                     }

@@ -5,7 +5,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use conduit_audio::{MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
+use conduit_audio::{BeatReference, TimingFeedback, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindId,
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredConfigurationValue,
@@ -84,32 +84,11 @@ fn startup(name: &str, value_type: KindId, has_default: bool) -> FrontStartupPar
 }
 
 pub fn beat_reference_type() -> StructuredInfoType {
-    let count = leaf("value/count");
-    StructuredInfoType::record(
-        kind_id("music/beat-reference@1"),
-        vec![
-            field("beat", count.clone()),
-            field("expected_time_micros", count),
-        ],
-    )
-    .unwrap()
+    BeatReference::semantic_type().expect("generated beat reference Type is checked")
 }
 
 pub fn timing_feedback_type() -> StructuredInfoType {
-    let count = leaf("value/count");
-    StructuredInfoType::record(
-        kind_id("music/timing-feedback@1"),
-        vec![
-            field("beat", count.clone()),
-            field("classification", leaf("music/timing-classification@1")),
-            field("delta_micros", leaf("time/signed-microseconds@1")),
-            field("expected_time_micros", count.clone()),
-            field("observed", leaf("value/bool")),
-            field("observed_time_micros", count),
-            field("recovery_state", leaf("music/recovery-state@1")),
-        ],
-    )
-    .unwrap()
+    TimingFeedback::semantic_type().expect("generated timing feedback Type is checked")
 }
 
 pub fn instrument_mapping_type() -> StructuredInfoType {

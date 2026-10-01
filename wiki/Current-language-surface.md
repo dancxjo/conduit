@@ -1,12 +1,30 @@
-> **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
+# Current language surface
 
-This page collects the most recent frozen authored spellings. Detailed semantic laws live on the topic pages linked in the sidebar.
+This reference describes the checked development surface reviewed on
+**1 October 2026**. Source tests linked below establish grammar and checking;
+target tests establish the named execution paths. Published products can lag
+`dev`. Detailed semantic laws live on the topic pages in the sidebar.
 
-## 2026-09-28 authored-surface settlement
+## Declarations and status
 
-The remaining deliberately-unfrozen authored surfaces have earned canonical spelling. These decisions are normative; the linked tickets own implementation/conformance.
+- `form` declares executable composition; its parenthesized **fore** is the callable signature
+- `type` declares semantic value meaning
+- `code` declares a portable encoding, separate from type identity
+- `host`, `body`, and `pack` declare construction or shipment truth, not live runtime state
+
+`plot` and the reassignment of `form` to representation remain proposed in
+[#4513](https://github.com/dancxjo/conduit/issues/4513). `representation` is
+rejected as an obsolete keyword. See the
+[parser](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/surface_parser.rs)
+and [syntax tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/syntax_check_tests.rs).
+
+## Callable composition
 
 ### Named type parameters
+
+This signature sketch omits its implementation; `...` below is an editorial
+placeholder, not runnable body syntax. The complete bounded `flow/each` example
+later on this page shows a checked generic implementation.
 
 ```conduit
 form latest (
@@ -19,7 +37,7 @@ form latest (
 }
 ```
 
-`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `latest(item = Text)`. No angle-bracket generic surface, wildcard zoo, implicit `any`, or runtime-erasure requirement is admitted. Owner: #4059.
+`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `latest(item = Text)`. This form-parameter surface does not require runtime erasure, implicit `any`, or hidden closures. Owner: #4059.
 
 ### Explicit Current sampling
 
@@ -53,11 +71,11 @@ event >> ? {
 
 Within a selected payload-bearing case, `.` is the case payload. Payloadless cases omit empty-call ceremony. Closed variants remain exhaustive. Owner: #4002.
 
-### Gear glyphs
+### gear glyphs
 
-A Gear may have an ordinary word name or a lexical glyph name. A glyph names an already-defined Kind or one configured Gear occurrence; it does not define an operator, precedence, associativity, fixity, parser rule, overload set, effect, or runtime.
+A gear may have an ordinary word name or a lexical glyph name. A glyph names an already-defined kind or one configured gear occurrence; it does not define an operator, precedence, associativity, fixity, parser rule, overload set, effect, or runtime.
 
-For a one-input / one-output Fore:
+For a one-input / one-output fore:
 
 ```conduit
 with text/upper as ^^
@@ -67,7 +85,7 @@ input ^^ output
 
 has the exact checked meaning of `input >> text/upper >> output`.
 
-For exact multi-input Fores, glyph operands bind in canonical Fore order. A reviewed variadic homogeneous Fore may flatten repeated use into one Gear occurrence, e.g. `a >< b >< c >> merged`.
+For exact multi-input fores, glyph operands bind in canonical fore order. A reviewed variadic homogeneous fore may flatten repeated use into one gear occurrence, e.g. `a >< b >< c >> merged`.
 
 The standard glyph prelude is in lexical scope by default:
 
@@ -87,7 +105,7 @@ sans glyphs
 
 Explicit glyph imports remain legal afterward. One glyph has one lexical referent; there is no type-directed overloading. Mixed adjacent glyphs require explicit grouping. The prelude is versioned with the language surface and participates in checked source identity; it is not a mutable ambient pack dependency.
 
-Checked expansion, Plans and Signs expose the ordinary Gear behind every glyph. There is no glyph runtime. Owner: #4335.
+Checked expansion, plans and signs expose the ordinary gear behind every glyph. There is no glyph runtime. Owner: #4335.
 
 ### Checked refinements and portable patterns
 
@@ -105,13 +123,163 @@ Adjacent refinement relations are conjunctive:
 code: Text <= 8B in ["AB12", "CD34"] ~ /[A-Z]{2}[0-9]{2}/
 ```
 
-`in [a, b, c]` is finite membership. `in a..b` is lower-inclusive / upper-exclusive; `in a..=b` is inclusive at both ends. Missing range ends are legal only when the base type supplies the corresponding finite bound.
+`in [a, b, c]` is finite membership. `in a..b` is lower-inclusive / upper-exclusive; `in a..=b` is inclusive at both ends. Missing range ends express semantic openness: `Count in 4..` has no authored upper endpoint, while `Scalar in ..=1.000000` has no authored lower endpoint. This does not reserve infinite storage; each actual value still needs a finite admitted carrier. `in ..` adds no refinement and is rejected. See the [range tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/refinement_tests.rs).
 
-`~ /.../flags` is the canonical portable text-pattern relation. Slash literals use Conduit's bounded regular language, not a Host-selected regex dialect. The admitted language includes ordinary regular constructs plus non-capturing groups, named groups, and bounded-compilable positive/negative lookahead; it excludes backreferences, recursion, embedded code and any construct whose work cannot be admitted finitely.
+`~ /.../flags` is the canonical portable text-pattern relation. Slash literals use Conduit's bounded regular language, not a host-selected regex dialect. The admitted language includes ordinary regular constructs plus non-capturing groups, named groups, and bounded-compilable positive/negative lookahead; it excludes backreferences, recursion, embedded code and any construct whose work cannot be admitted finitely.
 
 `~ /pattern/` succeeds when the pattern has a match within the bounded text. Authors use canonical anchors when whole-value matching is intended. Flags are a finite reviewed Conduit set and participate in checked identity; a Boolean refinement does not admit a meaningless global-iteration flag.
 
 The older `where pattern(...)`, `where range(...)` and `where member(...)` spellings are migration targets, not compatibility aliases. Owner: #4199.
+
+## Native types, codes, and record laws
+
+### Generic native types
+
+Native type declarations can bind checked type parameters using angle brackets:
+
+```conduit
+type Pair<T> = {
+    left: T
+    right: T
+}
+
+type TextPair = Pair<Text <= 16B>
+```
+
+This differs from a form's named `item: type` parameter above. Checking
+substitutes each argument through the complete finite structure and its laws.
+The concrete identity includes the exact generic declaration and arguments;
+play receives no open parameter, runtime closure, or dynamic dispatcher.
+Invalid arity, unused/duplicate parameters, unknown applications, and recursive
+or unbounded instantiation refuse. See the
+[generic type tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/syntax_check_tests.rs)
+and [checker](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/native_type/generic.rs).
+
+A real current family is
+[`DataGenerationValue<T>`](https://github.com/dancxjo/conduit/blob/dev/semantics/data/types.conduit),
+whose text specialization is bounded to 4096 bytes. This language support does
+not mean all generic domain families have already migrated.
+
+### Compact codes
+
+This [checked-in declaration](https://github.com/dancxjo/conduit/blob/dev/semantics/alife/types.conduit)
+keeps semantic alternatives separate from byte tags:
+
+```conduit
+type LeniaRegionChunkKind =
+    work
+    | result
+
+code alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
+```
+
+The compact code assigns consecutive `u8` tags beginning at 1. The checked
+mapping owns finite extent/work, compatibility identity, and invalid-tag
+refusal; generated bindings do not independently restate the mapping. This
+example does not claim every proposed record or wire-layout encoding exists.
+
+### Record laws
+
+Records can own pure Boolean laws over the complete value:
+
+```conduit
+type Interval = {
+    start: U32
+    end: U32
+    where .start <= .end
+}
+```
+
+`where` laws participate in type identity and are enforced at generated
+construction and decode boundaries. They use the finite checked expression
+language. Real declarations include
+[linguistic spans](https://github.com/dancxjo/conduit/blob/dev/semantics/language/types.conduit)
+and [audio frame laws](https://github.com/dancxjo/conduit/blob/dev/semantics/audio/types.conduit).
+The [generated-binding tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/rust_binding/generate_tests.rs)
+cover refusal and independent bindings.
+
+`variant/tag(value)` returns ordinary `Text`. A comparison such as
+`variant/tag(.direction) == "mono"` is checked as text equality; the compared
+literal is not validated against the variant alternatives. A typo can therefore
+remain well-typed while making a law false. See the
+[semantic call checker](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/expression_semantic_call.rs)
+and the record-law syntax tests.
+
+Construction-time enforcement is implemented by
+[#4638](https://github.com/dancxjo/conduit/pull/4638). General propagation of
+these facts into consuming forms and removal of proven-safe arithmetic checks
+remains open in [#4639](https://github.com/dancxjo/conduit/issues/4639).
+
+## Bounded each, select, fold, and scan
+
+These are checked activation coordinators around exact selected behavior,
+not general loops or runtime closures. The following wrapper is copied from
+[activation conformance source](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/activation_tests.rs):
+
+```conduit
+form flow/each (
+    item: type
+    result: type
+    transform: kind (
+        >> value: item
+        mapped: result >>
+    )
+    >> values: item...|
+    mapped: result...| >>
+) {
+    each: activate(maximum-items = 4) transform()
+    values >> each.value
+    each.mapped >> mapped
+}
+```
+
+Here `flow/each` is a **source-defined wrapper**, not an implicit installed
+catalog kind. With an exact checked `text/normalize` form in scope, the fixture
+specializes it with:
+
+```conduit
+mapped: flow/each(item = Text, result = Text, transform = text/normalize)
+```
+
+The same test file defines these body fragments within full declared fores:
+
+```conduit
+selection: select(maximum-items = 4) predicate()
+values >> selection.value
+selection.selected >> selected
+
+folder: fold(initial, maximum-items = 4) integer/add()
+items >> folder.item
+folder.combined >> result
+
+scanner: scan(initial, maximum-items = 4) integer/add()
+items >> scanner.item
+scanner.combined >> accumulators
+```
+
+- `activate` requires exact value-input/value-output behavior; a flow behavior is refused
+- `select` calls a Boolean predicate and emits the retained original item through `selected` when true
+- `fold` and `scan` require two value inputs, `accumulator` and `item`, and one `combined` output; the fixtures use exact `U64 <= 28B` ports and an `initial: U64` parameter
+- `fold` returns one value on normal close; `scan` exposes the closing-flow progression
+- `maximum-items` is a positive exact `u16` admission bound, not an unbounded iterator
+
+The predicate/combine declarations in the checking fixtures are contract
+fixtures, not complete useful algorithms. Their execution is proved separately
+through the selected target backs.
+
+[#4378 is complete](https://github.com/dancxjo/conduit/issues/4378#issuecomment-5923888244)
+for each/select/fold/scan and bounded collection from a closing flow. Evidence
+covers [std activation](https://github.com/dancxjo/conduit/blob/dev/targets/std/src/flow_activation/tests.rs),
+[browser runtime activation](https://github.com/dancxjo/conduit/blob/dev/targets/browser/runtime/src/flow_activation/tests.rs),
+[installed browser behavior](https://github.com/dancxjo/conduit/blob/dev/targets/browser/runtime/src/flow_activation/tests/installed_inventory.rs),
+and [shared collect laws](https://github.com/dancxjo/conduit/blob/dev/semantics/data/src/flow_collect_back_tests.rs).
+Pressure, cancellation, abnormal termination, bounds, and receipt identity stay
+explicit. Browser runtime/WASM proof is not browser interaction/E2E proof.
+Embedded applicability was audited, but current admitted ConduitOS resident
+forms do not exercise these combinators; this is not universal embedded
+execution evidence.
+
+## Resources and construction
 
 ### Runtime-bound resources
 
@@ -143,7 +311,7 @@ with house/sensors/temperature as room-temperature
 with text/upper as ^^
 ```
 
-Aliases may be ordinary names or admitted Gear glyphs.
+Aliases may be ordinary names or admitted gear glyphs.
 
 The authored ecosystem noun is **pack**. Pack authoring uses `pack.conduit`:
 
@@ -156,11 +324,11 @@ pack house/sensors (
 }
 ```
 
-`package` is not an authored compatibility keyword. Resolution produces generated exact lock truth in `conduit.lock`. Pack/version/module/source/content/distribution identities remain distinct from semantic Kind identity. Imports grant no runtime authority and execute no code. Owner: #4055.
+`package` is not an authored compatibility keyword. Resolution produces generated exact lock truth in `conduit.lock`. Pack/version/module/source/content/distribution identities remain distinct from semantic kind identity. Imports grant no runtime authority and execute no code. Owner: #4055.
 
-### Body wardrobe
+### body wardrobe
 
-Mask remains an ordinary Form role; there is no `mask` declaration.
+mask remains an ordinary form role; there is no `mask` declaration.
 
 ```conduit
 with masks/native-graphical as graphical
@@ -172,11 +340,11 @@ body roseau {
 }
 ```
 
-`wear a else b` admits fallback structure into the Plan. Without authored `else`, loss requires ordinary replacement planning. `want` is policy only among eligible alternatives. Runtime `wear` and `doff` are Body-control actions requesting wardrobe change and therefore new planning where required; they never mutate an immutable Plan in place. Owner: #4115.
+`wear a else b` admits fallback structure into the plan. Without authored `else`, loss requires ordinary replacement planning. `want` is policy only among eligible alternatives. Runtime `wear` and `doff` are body-control actions requesting wardrobe change and therefore new planning where required; they never mutate an immutable plan in place. Owner: #4115.
 
-### Host source
+### host source
 
-Host source is limited to construction truth: construction parameters, finite declared `resource` pools, concrete `base` boundaries, reviewed `back` realizations, and explicit policy/bounds.
+host source is limited to construction truth: construction parameters, finite declared `resource` pools, concrete `base` boundaries, reviewed `back` realizations, and explicit policy/bounds.
 
 ```conduit
 host conduitos-native (
@@ -213,7 +381,7 @@ host conduitos-native (
 }
 ```
 
-`driver` and `facility` are not separate source ontologies. Host source does not author current HostId, BootId, offers, device instances, authority, observations, Lines, Plans or Plays. A Line remains current connectivity realization, not profile source. Owner: #4117.
+`driver` and `facility` are not separate source ontologies. host source does not author current HostId, BootId, offers, device instances, authority, observations, lines, plans or plays. A line remains current connectivity realization, not profile source. Owner: #4117.
 
 
 ---

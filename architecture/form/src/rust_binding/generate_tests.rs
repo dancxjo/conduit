@@ -1,4 +1,5 @@
 use super::*;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 
 fn checked_types() -> Vec<crate::CheckedNativeType> {
@@ -9,9 +10,60 @@ type Position = {
     y: Distance
 }
 
-type Observation = {
+type Chord = {
+    notes: collection Note = 3
+}
+
+type Phrase = {
+    notes: sequence Note in 2..=3
+}
+
+type Interval = {
+    start: U32
+    end: U32
+    where .start <= .end
+}
+
+type EvidenceObservation = {
     note: Note?
-    evidence: &Text
+    evidence: Bytes
+}
+
+type Digest = collection U8 = 32
+
+type OptionalDigest = Digest?
+
+type DigestSet = sequence Digest <= 16
+
+type Observation = {
+    identity: Digest
+    source: OptionalDigest
+    ancestors: DigestSet
+}
+
+type FiniteF32 = F32 finite
+
+type Probability = F32 finite in 0.0..=1.0
+
+type Holder<T> = {
+    value: T
+    history: sequence T <= 2
+}
+
+type TextHolder = Holder<Text <= 16B>
+
+type Nested<T> = {
+    value: T
+}
+
+type UsesNested = {
+    nested: Nested<U16>
+}
+
+type FloatEnvelope = {
+    value: F32
+    finite: FiniteF32
+    probability: Probability
 }
 
 type MusicEvent =
@@ -54,6 +106,81 @@ type Outcome =
     )
     .unwrap()
     .native_types
+}
+
+#[test]
+fn selected_record_can_retain_established_public_fields() {
+    let generated = generate_rust_bindings(
+        &checked_types(),
+        &RustBindingOptions {
+            public_record_fields: ["Position".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("pub struct Position {\n    pub x:"));
+    assert!(generated.source.contains("    pub y:"));
+    assert!(generated.source.contains("pub struct Chord {\n    notes:"));
+}
+
+#[test]
+fn exact_float_law_generates_semantic_wrappers_and_checked_refinements() {
+    let generated = generate_rust_bindings(
+        &checked_types(),
+        &RustBindingOptions {
+            copy_nominal_types: ["FiniteF32".into(), "Probability".into()].into(),
+            hash_nominal_types: ["FiniteF32".into(), "Probability".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("pub struct FiniteF32(conduit_core::IeeeF32)"));
+    assert!(generated
+        .source
+        .contains("conduit_core::ValueConstraint::FloatFinite"));
+    assert!(generated
+        .source
+        .contains("conduit_core::ValueConstraint::FloatRange"));
+    assert!(generated.source.contains("value: conduit_core::IeeeF32"));
+}
+
+#[test]
+fn exact_reference_leaves_use_validated_native_bindings() {
+    let source = "type Image = Bytes\ntype References = {\n    text: &Text\n    image: &Image\n    resource: ResourceRef\n}\n";
+    let mut catalog = crate::StartupCatalog::new();
+    catalog
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_core::kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
+        )
+        .unwrap();
+    let checked =
+        crate::check_syntax_document(&crate::parse_syntax_document(source), &catalog).unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+
+    assert!(generated
+        .source
+        .contains("text: conduit_data::DataReference"));
+    assert!(generated
+        .source
+        .contains("image: conduit_data::DataReference"));
+    assert!(generated
+        .source
+        .contains("resource: conduit_core::BoundedResourceRef"));
+    assert!(generated
+        .source
+        .contains("conduit_data::DataReference::decode_for"));
+    assert!(generated
+        .source
+        .contains("conduit_core::BoundedResourceRef::decode(encoded)"));
+    assert!(!generated.source.contains("text: BoundedBytes"));
+    assert!(!generated.source.contains("image: BoundedBytes"));
+    assert!(!generated.source.contains("resource: BoundedBytes"));
 }
 
 #[test]
@@ -298,7 +425,26 @@ fn selected_constrained_record_validates_direct_integer_bounds_without_structure
     )
     .unwrap();
 
-    assert!(generated.source.contains("value >= 1u64 && value <= 8u64"));
+    assert!(generated.source.contains("(1u64..=8u64).contains(&value)"));
+    assert!(generated
+        .source
+        .contains("ValueConstraintRefusal::FixedIntegerRange"));
+    assert!(!generated
+        .source
+        .contains("let structured = candidate.clone().into_structured()?;"));
+}
+
+#[test]
+fn constrained_integer_nominal_validates_without_structured_allocation() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Positive = U64 in 1..\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+
+    assert!(generated.source.contains("value >= 1u64"));
     assert!(generated
         .source
         .contains("ValueConstraintRefusal::FixedIntegerRange"));
@@ -426,8 +572,16 @@ fn generated_bindings_compile_as_an_independent_rust_library() {
     use std::process::Command;
     use std::string::String;
 
-    let generated =
-        generate_rust_bindings(&checked_types(), &RustBindingOptions::default()).unwrap();
+    let generated = generate_rust_bindings(
+        &checked_types(),
+        &RustBindingOptions {
+            boxed_variant_payloads: ["MusicEvent.note".into()].into(),
+            copy_nominal_types: ["Digest".into()].into(),
+            hash_nominal_types: ["Digest".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
     let dependencies = std::env::current_exe()
         .unwrap()
         .parent()
@@ -489,10 +643,64 @@ mod generated_round_trip {
         let encoded = position.clone().encode().unwrap();
         assert_eq!(Position::decode(&encoded).unwrap(), position);
 
+        let chord = Chord::new([
+            Note::new(60).unwrap(),
+            Note::new(64).unwrap(),
+            Note::new(67).unwrap(),
+        ]).unwrap();
+        assert_eq!(chord.notes().len(), 3);
+        let encoded = chord.clone().encode().unwrap();
+        assert_eq!(Chord::decode(&encoded).unwrap(), chord);
+
+        let underfull = Phrase::new(BoundedSequence::<Note, 3>::new());
+        assert!(matches!(
+            underfull,
+            Err(NativeBindingRefusal::InvalidValue(
+                conduit_core::StructuredInfoRefusal::WrongCollectionLength
+            ))
+        ));
+        let mut notes = BoundedSequence::<Note, 3>::new();
+        notes.push(Note::new(60).unwrap()).unwrap();
+        notes.push(Note::new(64).unwrap()).unwrap();
+        let phrase = Phrase::new(notes).unwrap();
+        let encoded = phrase.clone().encode().unwrap();
+        assert_eq!(Phrase::decode(&encoded).unwrap(), phrase);
+
+        let interval = Interval::new(5, 4).unwrap();
+        assert!(Interval::new(4, 5).is_err());
+        let encoded = interval.clone().encode().unwrap();
+        assert_eq!(Interval::decode(&encoded).unwrap(), interval);
+
         let evidence = BoundedBytes::<4096>::new(b"sha256:truth").unwrap();
-        let observation = Observation::new(evidence, Some(Note::new(64).unwrap())).unwrap();
+        let observation = EvidenceObservation::new(evidence, Some(Note::new(64).unwrap())).unwrap();
+        let encoded = observation.clone().encode().unwrap();
+        assert_eq!(EvidenceObservation::decode(&encoded).unwrap(), observation);
+
+        fn requires_digest_traits<T: Copy + Eq + core::hash::Hash>() {}
+        requires_digest_traits::<Digest>();
+        let identity = Digest::new([7; 32]).unwrap();
+        let digest_type = Digest::semantic_type().unwrap();
+        let representation = conduit_form::rust_binding::nominal_representation_type(&digest_type).unwrap();
+        assert!(matches!(
+            StructuredInfoValue::collection(representation, Vec::new()),
+            Err(conduit_core::StructuredInfoRefusal::WrongCollectionLength)
+        ));
+        let mut ancestors = BoundedSequence::<Digest, 16>::new();
+        ancestors.push(Digest::new([8; 32]).unwrap()).unwrap();
+        let observation = Observation::new(
+            DigestSet::new(ancestors).unwrap(),
+            identity,
+            OptionalDigest::new(Some(identity)).unwrap(),
+        ).unwrap();
         let encoded = observation.clone().encode().unwrap();
         assert_eq!(Observation::decode(&encoded).unwrap(), observation);
+
+        let mut history = BoundedSequence::<String, 2>::new();
+        history.push("prior".into()).unwrap();
+        let holder = TextHolder::new(history, "current".into()).unwrap();
+        let encoded = holder.clone().encode().unwrap();
+        assert_eq!(TextHolder::decode(&encoded).unwrap(), holder);
+
     }
 }
 
@@ -548,6 +756,34 @@ mod generated_round_trip {
 }
 
 #[test]
+fn binding_only_boxing_preserves_semantic_identity_and_refuses_invalid_targets() {
+    let types = checked_types();
+    let plain = generate_rust_bindings(&types, &RustBindingOptions::default()).unwrap();
+    let boxed = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            boxed_variant_payloads: ["MusicEvent.note".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(plain.semantic_type_bytes, boxed.semantic_type_bytes);
+    assert!(boxed.source.contains("Note(Box<MusicEventNote>)"));
+    for path in ["Missing.note", "MusicEvent.missing", "MusicEvent.rest"] {
+        assert_eq!(
+            generate_rust_bindings(
+                &types,
+                &RustBindingOptions {
+                    boxed_variant_payloads: [path.into()].into(),
+                    ..RustBindingOptions::default()
+                },
+            ),
+            Err(RustBindingGenerationError::InvalidSemanticType)
+        );
+    }
+}
+
+#[test]
 fn locked_package_generation_revalidates_exact_source_without_network_work() {
     let manifest_source = "pack example/music (\n    version = 1.0.0\n) {\n    ship Note\n}\n";
     let parsed = crate::parse_syntax_document(manifest_source);
@@ -574,6 +810,7 @@ fn locked_package_generation_revalidates_exact_source_without_network_work() {
             root,
             locked_sources: core::slice::from_ref(&root),
             lock: &lock,
+            external_bindings: &[],
         },
         &RustBindingOptions::default(),
     )
@@ -588,6 +825,7 @@ fn locked_package_generation_revalidates_exact_source_without_network_work() {
                 root,
                 locked_sources: core::slice::from_ref(&root),
                 lock: &unlocked,
+                external_bindings: &[],
             },
             &RustBindingOptions::default(),
         ),
@@ -597,12 +835,13 @@ fn locked_package_generation_revalidates_exact_source_without_network_work() {
 
 #[test]
 fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
-    let base_manifest_source = "pack example/base (\n    version = 1.0.0\n) {\n    ship Note\n}\n";
+    let base_manifest_source =
+        "pack example/base (\n    version = 1.0.0\n) {\n    ship Note\n    ship Tempo\n}\n";
     let base_document = crate::parse_syntax_document(base_manifest_source);
     let base_manifest = &base_document.packages[0];
     let base_members = [crate::PackageMemberSource {
         path: "types",
-        source: "type Note = U8 in 0..=127\n",
+        source: "type Note = U8 in 0..=127\ntype Tempo = U16 in 1..=400\n",
     }];
     let base_bundle = crate::CheckedPackageBundle::from_sources(
         base_manifest_source,
@@ -616,7 +855,7 @@ fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
     let root_manifest = &root_document.packages[0];
     let root_members = [crate::PackageMemberSource {
         path: "types",
-        source: "type Event = {\n    pitch: example/base/Note\n}\n",
+        source: "type Envelope<T> = {\n    value: T\n    history: sequence T <= 2\n}\n\ntype NoteEnvelope = Envelope<example/base/Note>\n\ntype Event = {\n    pitch: example/base/Note\n    history: sequence example/base/Note <= 4\n    previous: example/base/Note?\n}\n\ntype Choice =\n    selected example/base/Note\n    | absent\n",
     }];
     let root_bundle = crate::CheckedPackageBundle::from_sources(
         root_manifest_source,
@@ -645,18 +884,158 @@ fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
         manifest: base_manifest,
         member_sources: &base_members,
     };
+    let foreign_types = crate::PackageExportCatalog::from_bundle(
+        &base_bundle,
+        base_manifest_source,
+        base_manifest,
+        &base_members,
+    )
+    .unwrap()
+    .install_shipped_types(&mut crate::StartupCatalog::new())
+    .unwrap();
+    let foreign_identity = foreign_types
+        .iter()
+        .find(|value_type| value_type.name == "Note")
+        .unwrap()
+        .identity
+        .as_str()
+        .to_string();
+    let unused_identity = foreign_types
+        .iter()
+        .find(|value_type| value_type.name == "Tempo")
+        .unwrap()
+        .identity
+        .as_str()
+        .to_string();
+    let external_bindings = [ExternalNativeRustBinding {
+        semantic_identity: &foreign_identity,
+        rust_type_path: "dependency::Note",
+    }];
+    assert!(matches!(
+        generate_locked_package_rust_bindings(
+            LockedPackageRustBindingInput {
+                root,
+                locked_sources: &[root, base],
+                lock: &lock,
+                external_bindings: &[],
+            },
+            &RustBindingOptions::default(),
+        ),
+        Err(LockedRustBindingGenerationError::MissingExternalBinding(identity))
+            if identity == foreign_identity
+    ));
+    let duplicate_bindings = [external_bindings[0], external_bindings[0]];
+    assert!(matches!(
+        generate_locked_package_rust_bindings(
+            LockedPackageRustBindingInput {
+                root,
+                locked_sources: &[root, base],
+                lock: &lock,
+                external_bindings: &duplicate_bindings,
+            },
+            &RustBindingOptions::default(),
+        ),
+        Err(LockedRustBindingGenerationError::DuplicateExternalBinding(identity))
+            if identity == foreign_identity
+    ));
+    let invalid_path_bindings = [ExternalNativeRustBinding {
+        semantic_identity: &foreign_identity,
+        rust_type_path: "dependency::not-a-type",
+    }];
+    assert!(matches!(
+        generate_locked_package_rust_bindings(
+            LockedPackageRustBindingInput {
+                root,
+                locked_sources: &[root, base],
+                lock: &lock,
+                external_bindings: &invalid_path_bindings,
+            },
+            &RustBindingOptions::default(),
+        ),
+        Err(LockedRustBindingGenerationError::InvalidExternalRustPath(path))
+            if path == "dependency::not-a-type"
+    ));
+    let drifted_bindings = [ExternalNativeRustBinding {
+        semantic_identity: "type:stale-dependency-identity",
+        rust_type_path: "dependency::Note",
+    }];
+    assert!(matches!(
+        generate_locked_package_rust_bindings(
+            LockedPackageRustBindingInput {
+                root,
+                locked_sources: &[root, base],
+                lock: &lock,
+                external_bindings: &drifted_bindings,
+            },
+            &RustBindingOptions::default(),
+        ),
+        Err(LockedRustBindingGenerationError::ExternalBindingIdentityDrift(identity))
+            if identity == "type:stale-dependency-identity"
+    ));
+    let unused_bindings = [
+        external_bindings[0],
+        ExternalNativeRustBinding {
+            semantic_identity: &unused_identity,
+            rust_type_path: "dependency::Tempo",
+        },
+    ];
+    assert!(matches!(
+        generate_locked_package_rust_bindings(
+            LockedPackageRustBindingInput {
+                root,
+                locked_sources: &[root, base],
+                lock: &lock,
+                external_bindings: &unused_bindings,
+            },
+            &RustBindingOptions::default(),
+        ),
+        Err(LockedRustBindingGenerationError::UnusedExternalBinding(identity))
+            if identity == unused_identity
+    ));
     let generated = generate_locked_package_rust_bindings(
         LockedPackageRustBindingInput {
             root,
             locked_sources: &[root, base],
             lock: &lock,
+            external_bindings: &external_bindings,
         },
         &RustBindingOptions::default(),
     )
     .unwrap();
     assert!(generated.source.contains("pub struct Event {"));
-    assert!(generated.source.contains("pub struct Note(u8);"));
-    assert!(generated.source.contains("pitch: Note"));
+    assert!(!generated.source.contains("pub struct Note(u8);"));
+    assert!(generated.source.contains("pitch: dependency::Note"));
+    assert!(generated
+        .source
+        .contains("BoundedSequence<dependency::Note, 4>"));
+    assert!(generated.source.contains("Option<dependency::Note>"));
+    assert!(generated.source.contains("Selected(dependency::Note)"));
+    assert!(generated.source.contains("pub struct NoteEnvelope"));
+    assert!(generated.source.contains("value: dependency::Note"));
+    assert!(generated
+        .source
+        .contains("BoundedSequence<dependency::Note, 2>"));
+    let renamed_path = generate_locked_package_rust_bindings(
+        LockedPackageRustBindingInput {
+            root,
+            locked_sources: &[root, base],
+            lock: &lock,
+            external_bindings: &[ExternalNativeRustBinding {
+                semantic_identity: &foreign_identity,
+                rust_type_path: "other_dependency::RenamedNote",
+            }],
+        },
+        &RustBindingOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        generated.semantic_type_bytes,
+        renamed_path.semantic_type_bytes
+    );
+
+    let dependency =
+        generate_rust_bindings(&foreign_types, &RustBindingOptions::default()).unwrap();
+    compile_external_binding_round_trip(&dependency.source, &generated.source);
 
     assert_eq!(
         generate_locked_package_rust_bindings(
@@ -664,6 +1043,7 @@ fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
                 root,
                 locked_sources: &[root],
                 lock: &lock,
+                external_bindings: &external_bindings,
             },
             &RustBindingOptions::default(),
         ),
@@ -671,4 +1051,80 @@ fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
             "example/base".into()
         ))
     );
+}
+
+fn compile_external_binding_round_trip(dependency: &str, root: &str) {
+    use std::ffi::OsStr;
+    use std::fs;
+    use std::process::Command;
+    use std::string::String;
+
+    let dependencies = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let form = fs::read_dir(&dependencies)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|path| {
+            path.extension() == Some(OsStr::new("rlib"))
+                && path
+                    .file_name()
+                    .and_then(OsStr::to_str)
+                    .is_some_and(|name| name.starts_with("libconduit_form-"))
+        })
+        .unwrap();
+    let directory = std::env::temp_dir().join(format!(
+        "conduit-external-rust-bindings-{}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&directory).unwrap();
+    let source = directory.join("bindings.rs");
+    let exercise = r#"
+#[test]
+fn external_values_round_trip_through_root_owned_shapes() {
+    let note = dependency::Note::new(64).unwrap();
+    let mut history = BoundedSequence::<dependency::Note, 4>::new();
+    history.push(note.clone()).unwrap();
+    let event = Event::new(history, note.clone(), Some(note.clone())).unwrap();
+    let encoded = event.clone().encode().unwrap();
+    assert_eq!(Event::decode(&encoded).unwrap(), event);
+    let choice = Choice::selected(note).unwrap();
+    let encoded = choice.clone().encode().unwrap();
+    assert_eq!(Choice::decode(&encoded).unwrap(), choice);
+}
+"#;
+    fs::write(
+        &source,
+        format!("mod dependency {{ {dependency} }}\n{root}\n{exercise}"),
+    )
+    .unwrap();
+    let executable = directory.join("bindings-test");
+    let output = Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()))
+        .args(["--edition=2021", "--test"])
+        .arg("-L")
+        .arg(format!("dependency={}", dependencies.display()))
+        .arg("--extern")
+        .arg(format!("conduit_form={}", form.display()))
+        .arg(&source)
+        .arg("-o")
+        .arg(&executable)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "external generated Rust failed to compile:\n{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let execution = Command::new(&executable).output().unwrap();
+    assert!(
+        execution.status.success(),
+        "external generated Rust round trip failed:\n{}\n{}",
+        String::from_utf8_lossy(&execution.stdout),
+        String::from_utf8_lossy(&execution.stderr)
+    );
+    fs::remove_dir_all(directory).unwrap();
 }

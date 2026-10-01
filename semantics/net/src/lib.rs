@@ -8,9 +8,12 @@ mod generated {
 }
 
 pub use generated::{
-    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsTtl, NetworkAttachmentId,
-    NetworkJoinError, NetworkTransport, RecordTranscriptDirection, RecordTranscriptTerminal,
-    RecordTranscriptTerminalFailed, RecordTranscriptTerminalRefused,
+    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsResolution, DnsResult, DnsResultStale,
+    DnsTtl, NetworkAddress, NetworkAttachmentId, NetworkConnectionState,
+    NetworkConnectionStateConnected, NetworkEndpoint, NetworkJoinError, NetworkReason,
+    NetworkTransport, RecordTranscriptDirection, RecordTranscriptTerminal,
+    RecordTranscriptTerminalFailed, RecordTranscriptTerminalRefused, ResolvedNetworkAddress,
+    ResolvedNetworkEndpoint,
 };
 
 #[cfg(feature = "form-catalog")]

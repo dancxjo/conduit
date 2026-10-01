@@ -125,7 +125,7 @@ impl RecordedSpeechHost {
             conduit_tongues::SpeechRecognitionAttempt::ResourceUnavailable => {
                 Err("recorded recognizer resource is unavailable".into())
             }
-            conduit_tongues::SpeechRecognitionAttempt::Failed { .. } => {
+            conduit_tongues::SpeechRecognitionAttempt::Failed(..) => {
                 Err("recorded recognizer has no matching fixture".into())
             }
         }

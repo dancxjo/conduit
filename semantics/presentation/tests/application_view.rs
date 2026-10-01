@@ -60,6 +60,12 @@ fn application_view_round_trip_is_exact_and_finite() {
     assert!(CONDUIT_APPLICATION_THEME.encode().unwrap().len() <= MAX_APPLICATION_THEME_BYTES);
     let encoded_theme = CONDUIT_APPLICATION_THEME.encode().unwrap();
     assert_eq!(encoded_theme[0], APPLICATION_THEME_VERSION);
+    let palette = 2 + CONDUIT_APPLICATION_THEME.identity.len();
+    assert_eq!(&encoded_theme[palette..palette + 3], &[0x05, 0x07, 0x0b]);
+    assert_eq!(
+        &encoded_theme[palette + 3..palette + 6],
+        &[0x0c, 0x12, 0x1c]
+    );
     assert_ne!(APPLICATION_THEME_VERSION, RETIRED_APPLICATION_THEME_VERSION);
     assert_eq!(CONDUIT_APPLICATION_THEME.type_body_px, 16);
     assert_eq!(CONDUIT_APPLICATION_THEME.line_height_percent, 150);

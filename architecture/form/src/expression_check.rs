@@ -175,6 +175,8 @@ pub struct CheckedExpression {
     pub input_type: CheckedExpressionType,
     pub value_type: CheckedExpressionType,
     pub node_types: Vec<CheckedExpressionNodeType>,
+    /// Arithmetic nodes whose safety follows from declared input-Type laws.
+    pub proven_arithmetic: BTreeSet<(usize, usize)>,
     pub(crate) semantic_structures: BTreeMap<KindId, StructuredInfoType>,
 }
 
@@ -247,6 +249,7 @@ pub(crate) fn check_expression_as(
         input_type: context.input.clone(),
         value_type,
         node_types,
+        proven_arithmetic: BTreeSet::new(),
         semantic_structures,
     })
 }
@@ -409,7 +412,7 @@ fn infer(
             arguments,
             *span,
             context,
-            |argument, expected| infer(argument, Some(expected), context, node_types),
+            |argument, expected| infer(argument, expected, context, node_types),
         ),
     }?;
     node_types.push(CheckedExpressionNodeType {
@@ -457,10 +460,23 @@ fn atomic(
     let Some(kind) = expected.value_kind() else {
         return refuse(span, "literal cannot inhabit this structural type");
     };
-    if crate::integer_literal::canonicalize(text, kind.as_str())
+    let represented_kind = context
+        .structured_types
+        .get(kind)
+        .and_then(|value_type| match value_type.shape() {
+            StructuredInfoTypeShape::Nominal { representation, .. } => {
+                match representation.shape() {
+                    StructuredInfoTypeShape::Leaf(kind) => Some(kind.as_str()),
+                    _ => None,
+                }
+            }
+            _ => None,
+        })
+        .unwrap_or(kind.as_str());
+    if crate::integer_literal::canonicalize(text, represented_kind)
         .map_err(|message| diagnostic(span, &message))?
         .is_some()
-        || matches!(kind.as_str(), "value/count" | "value/scalar")
+        || matches!(represented_kind, "value/count" | "value/scalar")
     {
         return Ok(expected.clone());
     }
@@ -513,7 +529,7 @@ fn unary(
         }
         UnaryOperator::Negate => {
             let actual = infer(operand, expected, context, node_types)?;
-            if is_signed_numeric(&actual) {
+            if is_signed_numeric(&actual, context) {
                 Ok(actual)
             } else {
                 refuse(span, "unary - requires an exact signed numeric type")
@@ -581,11 +597,13 @@ fn binary(
             Ok(boolean())
         }
         BinaryOperator::BitAnd | BinaryOperator::BitXor | BinaryOperator::BitOr
-            if is_fixed_integer(&left_type) =>
+            if is_fixed_integer(&left_type, context) =>
         {
             Ok(left_type)
         }
-        BinaryOperator::ShiftLeft | BinaryOperator::ShiftRight if is_fixed_integer(&left_type) => {
+        BinaryOperator::ShiftLeft | BinaryOperator::ShiftRight
+            if is_fixed_integer(&left_type, context) =>
+        {
             Ok(left_type)
         }
         BinaryOperator::Multiply
@@ -595,7 +613,21 @@ fn binary(
         | BinaryOperator::Subtract
             if is_numeric(&left_type, context) =>
         {
-            Ok(left_type)
+            Ok(left_type
+                .value_kind()
+                .and_then(|kind| context.structured_types.get(kind))
+                .and_then(|value_type| match value_type.shape() {
+                    StructuredInfoTypeShape::Nominal { representation, .. } => {
+                        match representation.shape() {
+                            StructuredInfoTypeShape::Leaf(kind) => {
+                                Some(CheckedExpressionType::Semantic(kind.clone()))
+                            }
+                            _ => None,
+                        }
+                    }
+                    _ => None,
+                })
+                .unwrap_or(left_type))
         }
         _ => refuse(span, "operator is not defined for this exact type"),
     }

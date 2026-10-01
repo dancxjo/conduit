@@ -8,8 +8,8 @@ use crate::{
     native_body_workbench::NativeWorkbenchDestination,
     render::draw_document,
 };
+use conduit_presentation::CONDUIT_APPLICATION_THEME;
 use embedded_graphics::prelude::Point;
-use patchbay_model::CONDUIT_APPLICATION_THEME;
 
 pub fn draw_body_workbench(
     pixels: &mut [u32],

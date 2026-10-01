@@ -1,5 +1,8 @@
 //! Portable semantic evaluation for one already checked expression program.
 
+mod structured;
+use structured::{encoded_structured, projection, structured_record, structured_value};
+
 use crate::{
     BinaryOperator, PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram,
     PortableExpressionProjection, UnaryOperator,
@@ -40,9 +43,9 @@ impl PortableExpressionProgram {
     }
 }
 
-struct Value {
-    value_type: StructuredInfoType,
-    encoded: Vec<u8>,
+pub(super) struct Value {
+    pub(super) value_type: StructuredInfoType,
+    pub(super) encoded: Vec<u8>,
 }
 
 fn evaluate_node(
@@ -73,10 +76,12 @@ fn evaluate_node(
         )?,
         PortableExpressionOperation::Binary {
             operator,
+            proven,
             left,
             right,
         } => binary(
             *operator,
+            *proven,
             evaluate_node(left, input, input_type)?,
             evaluate_node(right, input, input_type)?,
             &node.value_type,
@@ -133,8 +138,12 @@ fn evaluate_node(
         PortableExpressionOperation::Variant { .. } => {
             return Err(PortableExpressionEvaluationRefusal::InvalidProgram)
         }
-        PortableExpressionOperation::SemanticCall { kind, .. } => {
-            return Err(PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(kind.clone()))
+        PortableExpressionOperation::SemanticCall { kind, arguments } => {
+            let arguments = arguments
+                .iter()
+                .map(|argument| evaluate_node(argument, input, input_type))
+                .collect::<Result<Vec<_>, _>>()?;
+            intrinsic_call(kind, arguments, &node.value_type)?
         }
     };
     if value.value_type != node.value_type {
@@ -142,6 +151,72 @@ fn evaluate_node(
     } else {
         Ok(value)
     }
+}
+
+fn intrinsic_call(
+    kind: &str,
+    mut arguments: Vec<Value>,
+    expected: &StructuredInfoType,
+) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if kind == "variant/tag" {
+        let argument = arguments
+            .pop()
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if !arguments.is_empty() {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let value = StructuredInfoValue::from_canonical_bytes(&argument.encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let StructuredInfoValueShape::Variant { tag, .. } = value.shape() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        return Ok(Value {
+            value_type: expected.clone(),
+            encoded: tag.as_bytes().to_vec(),
+        });
+    }
+    if matches!(
+        kind,
+        "value/u16"
+            | "value/u32"
+            | "value/u64"
+            | "value/u128"
+            | "value/i16"
+            | "value/i32"
+            | "value/i64"
+            | "value/i128"
+    ) {
+        let argument = arguments
+            .pop()
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if !arguments.is_empty() {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let source = decode_integer(&argument)?;
+        let target = primitive_info_kind(leaf_kind(expected)?)
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let widened = if signed_integer(source.kind()) {
+            FixedInteger::from_signed(
+                target,
+                source
+                    .signed()
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
+            )
+        } else {
+            FixedInteger::from_unsigned(
+                target,
+                source
+                    .unsigned()
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
+            )
+        }
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        return Ok(Value {
+            value_type: expected.clone(),
+            encoded: encode_integer(widened),
+        });
+    }
+    Err(PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(kind.into()))
 }
 
 fn validate_input(
@@ -224,38 +299,14 @@ fn literal_value(
             ))
         }
     };
-    Ok(Value {
-        value_type: value_type.clone(),
-        encoded,
-    })
+    primitive_value(value_type, encoded)
 }
 
-fn projection(
-    source: Value,
-    member: &PortableExpressionProjection,
-    expected: &StructuredInfoType,
-) -> Result<Value, PortableExpressionEvaluationRefusal> {
-    let value = structured_value(source)?;
-    let selected = match (value.shape(), member) {
-        (StructuredInfoValueShape::Record(fields), PortableExpressionProjection::Field(name)) => {
-            fields
-                .iter()
-                .find(|field| field.name() == name)
-                .map(StructuredFieldValue::value)
-        }
-        (
-            StructuredInfoValueShape::Record(fields),
-            PortableExpressionProjection::TupleIndex(index),
-        ) => fields
-            .get(usize::from(*index))
-            .map(StructuredFieldValue::value),
-        _ => None,
-    }
-    .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
-    if selected.value_type() != expected {
-        return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
-    }
-    encoded_structured(selected.clone())
+pub(super) fn literal_primitive_bytes(
+    value_type: &StructuredInfoType,
+    literal: &str,
+) -> Result<Vec<u8>, PortableExpressionEvaluationRefusal> {
+    primitive_bytes(&literal_value(value_type, literal)?)
 }
 
 fn unary(
@@ -267,7 +318,7 @@ fn unary(
         UnaryOperator::Not => InfoBool::new(!decode_bool(&operand)?).encode().to_vec(),
         UnaryOperator::Negate => {
             if leaf_kind(&operand.value_type)? == SCALAR_INFO_ID {
-                let value = Scalar::decode(&operand.encoded)
+                let value = Scalar::decode(&primitive_bytes(&operand)?)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
                 value
                     .checked_neg()
@@ -283,14 +334,12 @@ fn unary(
             }
         }
     };
-    Ok(Value {
-        value_type: expected.clone(),
-        encoded,
-    })
+    primitive_value(expected, encoded)
 }
 
 fn binary(
     operator: BinaryOperator,
+    proven: bool,
     left: Value,
     right: Value,
     expected: &StructuredInfoType,
@@ -334,9 +383,9 @@ fn binary(
         .encode()
         .to_vec()
     } else if leaf_kind(&left.value_type)? == COUNT_INFO_ID {
-        let left = decode_count(&left.encoded)
+        let left = decode_count(&primitive_bytes(&left)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-        let right = decode_count(&right.encoded)
+        let right = decode_count(&primitive_bytes(&right)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
         let result = match operator {
             BinaryOperator::Multiply => left.checked_mul(right),
@@ -349,9 +398,9 @@ fn binary(
         .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)?;
         encode_count(result).to_vec()
     } else if leaf_kind(&left.value_type)? == SCALAR_INFO_ID {
-        let left = Scalar::decode(&left.encoded)
+        let left = Scalar::decode(&primitive_bytes(&left)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-        let right = Scalar::decode(&right.encoded)
+        let right = Scalar::decode(&primitive_bytes(&right)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
         match operator {
             BinaryOperator::Multiply => left.checked_mul(right),
@@ -367,26 +416,28 @@ fn binary(
     } else {
         let left = decode_integer(&left)?;
         let right_integer = decode_integer(&right)?;
-        let result = match operator {
-            BinaryOperator::Multiply => left.checked_mul(right_integer),
-            BinaryOperator::Divide => left.checked_div(right_integer),
-            BinaryOperator::Remainder => left.checked_rem(right_integer),
-            BinaryOperator::Add => left.checked_add(right_integer),
-            BinaryOperator::Subtract => left.checked_sub(right_integer),
-            BinaryOperator::BitAnd => left.bit_and(right_integer),
-            BinaryOperator::BitXor => left.bit_xor(right_integer),
-            BinaryOperator::BitOr => left.bit_or(right_integer),
-            BinaryOperator::ShiftLeft => left.checked_shift_left(shift_count(right_integer)?),
-            BinaryOperator::ShiftRight => left.checked_shift_right(shift_count(right_integer)?),
+        let result = match (operator, proven) {
+            (BinaryOperator::Multiply, true) => left.wrapping_mul(right_integer),
+            (BinaryOperator::Add, true) => left.wrapping_add(right_integer),
+            (BinaryOperator::Subtract, true) => left.wrapping_sub(right_integer),
+            (BinaryOperator::Multiply, false) => left.checked_mul(right_integer),
+            (BinaryOperator::Divide, _) => left.checked_div(right_integer),
+            (BinaryOperator::Remainder, _) => left.checked_rem(right_integer),
+            (BinaryOperator::Add, false) => left.checked_add(right_integer),
+            (BinaryOperator::Subtract, false) => left.checked_sub(right_integer),
+            (BinaryOperator::BitAnd, _) => left.bit_and(right_integer),
+            (BinaryOperator::BitXor, _) => left.bit_xor(right_integer),
+            (BinaryOperator::BitOr, _) => left.bit_or(right_integer),
+            (BinaryOperator::ShiftLeft, _) => left.checked_shift_left(shift_count(right_integer)?),
+            (BinaryOperator::ShiftRight, _) => {
+                left.checked_shift_right(shift_count(right_integer)?)
+            }
             _ => return Err(PortableExpressionEvaluationRefusal::InvalidProgram),
         }
         .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)?;
         encode_integer(result)
     };
-    Ok(Value {
-        value_type: expected.clone(),
-        encoded,
-    })
+    primitive_value(expected, encoded)
 }
 
 fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEvaluationRefusal> {
@@ -401,17 +452,17 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
     } else if kind == BOOL_INFO_ID || kind == TEXT_INFO_ID {
         Ok(left.encoded.cmp(&right.encoded))
     } else if kind == COUNT_INFO_ID {
-        Ok(decode_count(&left.encoded)
+        Ok(decode_count(&primitive_bytes(left)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
             .cmp(
-                &decode_count(&right.encoded)
+                &decode_count(&primitive_bytes(right)?)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
             ))
     } else if kind == SCALAR_INFO_ID {
-        Ok(Scalar::decode(&left.encoded)
+        Ok(Scalar::decode(&primitive_bytes(left)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
             .cmp(
-                &Scalar::decode(&right.encoded)
+                &Scalar::decode(&primitive_bytes(right)?)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
             ))
     } else if conduit_core::quantity_info_dimension(kind).is_some()
@@ -431,51 +482,11 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
     }
 }
 
-fn structured_record(
-    value_type: StructuredInfoType,
-    fields: Vec<StructuredFieldValue>,
-) -> Result<Value, PortableExpressionEvaluationRefusal> {
-    encoded_structured(
-        StructuredInfoValue::record(value_type, fields)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
-    )
-}
-
-fn structured_value(
-    value: Value,
-) -> Result<StructuredInfoValue, PortableExpressionEvaluationRefusal> {
-    match value.value_type.shape() {
-        StructuredInfoTypeShape::Leaf(_) => {
-            StructuredInfoValue::leaf(value.value_type, value.encoded)
-        }
-        _ => {
-            let structured = StructuredInfoValue::from_canonical_bytes(&value.encoded);
-            match structured {
-                Ok(structured) if structured.value_type() == &value.value_type => Ok(structured),
-                Ok(_) => Err(conduit_core::StructuredInfoRefusal::WrongType),
-                Err(refusal) => Err(refusal),
-            }
-        }
-    }
-    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
-}
-
-fn encoded_structured(
-    value: StructuredInfoValue,
-) -> Result<Value, PortableExpressionEvaluationRefusal> {
-    Ok(Value {
-        value_type: value.value_type().clone(),
-        encoded: value
-            .canonical_bytes()
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
-    })
-}
-
 fn decode_bool(value: &Value) -> Result<bool, PortableExpressionEvaluationRefusal> {
     if leaf_kind(&value.value_type)? != BOOL_INFO_ID {
         return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
     }
-    InfoBool::decode(&value.encoded)
+    InfoBool::decode(&primitive_bytes(value)?)
         .map(InfoBool::get)
         .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
 }
@@ -484,8 +495,23 @@ fn decode_integer(value: &Value) -> Result<FixedInteger, PortableExpressionEvalu
     let kind = primitive_info_kind(leaf_kind(&value.value_type)?)
         .filter(|kind| fixed_integer(*kind))
         .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
-    FixedInteger::decode(kind, &value.encoded)
+    FixedInteger::decode(kind, &primitive_bytes(value)?)
         .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
+}
+
+fn primitive_bytes(value: &Value) -> Result<Vec<u8>, PortableExpressionEvaluationRefusal> {
+    if matches!(
+        value.value_type.shape(),
+        StructuredInfoTypeShape::Nominal { .. }
+    ) {
+        let structured = StructuredInfoValue::from_canonical_bytes(&value.encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let StructuredInfoValueShape::Leaf(bytes) = structured.shape() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        return Ok(bytes.to_vec());
+    }
+    Ok(value.encoded.clone())
 }
 
 fn encode_integer(value: FixedInteger) -> Vec<u8> {
@@ -512,8 +538,31 @@ fn shift_count(value: FixedInteger) -> Result<u32, PortableExpressionEvaluationR
 fn leaf_kind(value_type: &StructuredInfoType) -> Result<&str, PortableExpressionEvaluationRefusal> {
     match value_type.shape() {
         StructuredInfoTypeShape::Leaf(kind) => Ok(kind.as_str()),
+        StructuredInfoTypeShape::Nominal { representation, .. } => leaf_kind(representation),
         _ => Err(PortableExpressionEvaluationRefusal::InvalidProgram),
     }
+}
+
+fn primitive_value(
+    value_type: &StructuredInfoType,
+    encoded: Vec<u8>,
+) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = value_type.shape() {
+        let representation = StructuredInfoValue::leaf(representation.clone(), encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let nominal = StructuredInfoValue::nominal(value_type.clone(), representation)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        return Ok(Value {
+            value_type: value_type.clone(),
+            encoded: nominal
+                .canonical_bytes()
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
+        });
+    }
+    Ok(Value {
+        value_type: value_type.clone(),
+        encoded,
+    })
 }
 
 const fn fixed_integer(kind: PrimitiveInfoKind) -> bool {

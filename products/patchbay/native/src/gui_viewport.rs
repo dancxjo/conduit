@@ -11,12 +11,12 @@ use crate::{
     gui_hit::{HitShape, ViewportAction},
     gui_primitives::{frame_rect, text, PixelRect},
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::ApplicationTheme;
 
 #[cfg(test)]
 pub(super) fn canvas_rect(width: u32, height: u32) -> PixelRect {
@@ -25,13 +25,14 @@ pub(super) fn canvas_rect(width: u32, height: u32) -> PixelRect {
 
 pub(super) fn canvas_rect_for(width: u32, height: u32, inspector_requested: bool) -> PixelRect {
     if let (Ok(width16), Ok(height16)) = (u16::try_from(width), u16::try_from(height)) {
-        if let Ok(layout) = patchbay_model::ResponsivePatchbayLayout::allocate(
+        if let Ok(layout) = patchbay_application::ResponsivePatchbayLayout::allocate(
             width16,
             height16,
             100,
             inspector_requested,
         ) {
-            if let Some(region) = layout.region(patchbay_model::PresentationRegionId::Canvas) {
+            if let Some(region) = layout.region(patchbay_application::PresentationRegionId::Canvas)
+            {
                 return PixelRect {
                     x: i32::from(region.bounds.x),
                     y: i32::from(region.bounds.y),
@@ -56,7 +57,7 @@ pub(super) fn canvas_rect_for(width: u32, height: u32, inspector_requested: bool
 pub(super) fn canvas_world_bounds(
     graph: &PatchbayGraph,
     width: i32,
-    presentation_layout: &patchbay_model::PatchbayLayout,
+    presentation_layout: &patchbay_application::PatchbayLayout,
 ) -> Option<WorldBounds> {
     let gears = layout_gears(graph, width, presentation_layout, gear_geometry());
     let compositions = layout_compositions(graph, width);
@@ -76,7 +77,7 @@ pub(super) fn canvas_world_bounds(
 pub(super) fn subject_world_center(
     graph: &PatchbayGraph,
     width: i32,
-    presentation_layout: &patchbay_model::PatchbayLayout,
+    presentation_layout: &patchbay_application::PatchbayLayout,
     identity: &str,
 ) -> Option<Point> {
     let gears = layout_gears(graph, width, presentation_layout, gear_geometry());

@@ -23,6 +23,19 @@ pub(crate) fn checked_refinements(
     let mut constraints = refinements
         .iter()
         .map(|refinement| match refinement {
+            crate::ValueRefinement::Finite { span } => {
+                if !matches!(
+                    conduit_core::primitive_info_kind(value_kind.as_str()),
+                    Some(PrimitiveInfoKind::F32 | PrimitiveInfoKind::F64)
+                ) {
+                    return Err(SyntaxCheckDiagnostic {
+                        code: "CND-FRM-057",
+                        span: *span,
+                        message: "finite may refine only F32 or F64".into(),
+                    });
+                }
+                Ok(ValueConstraint::FloatFinite)
+            }
             crate::ValueRefinement::TextPattern {
                 source,
                 case_insensitive,
@@ -254,6 +267,34 @@ fn checked_range(
                 maximum_endpoint,
             })
         }
+        kind if matches!(
+            conduit_core::primitive_info_kind(kind),
+            Some(PrimitiveInfoKind::F32 | PrimitiveInfoKind::F64)
+        ) =>
+        {
+            let minimum = minimum
+                .as_ref()
+                .map(|value| checked_float_literal(value_kind.as_str(), &value.text))
+                .transpose()
+                .map_err(|_| {
+                    invalid("range minimum is not an exact finite float literal".into())
+                })?;
+            let maximum = maximum
+                .as_ref()
+                .map(|value| checked_float_literal(value_kind.as_str(), &value.text))
+                .transpose()
+                .map_err(|_| {
+                    invalid("range maximum is not an exact finite float literal".into())
+                })?;
+            minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
+            maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
+            Ok(ValueConstraint::FloatRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            })
+        }
         _ => Err(invalid(
             "a range relation requires Count, Scalar, or exact semantic Quantity info".into(),
         )),
@@ -328,11 +369,50 @@ fn checked_member(
             | PrimitiveInfoKind::I128),
         ) => checked_integer_member(kind, value_kind.as_str(), &member.text)
             .ok_or_else(|| invalid("expected an in-range exact-width integer"))?,
+        Some(PrimitiveInfoKind::F32 | PrimitiveInfoKind::F64) => {
+            checked_float_literal(value_kind.as_str(), &member.text)
+                .map_err(|_| invalid("expected an exact finite float literal"))?
+        }
         _ => return Err(invalid("this Info kind has no admitted literal grammar")),
     };
     conduit_core::validate_primitive_info(value_kind.as_str(), &bytes)
         .map_err(|error| invalid(&alloc::format!("{error:?}")))?;
     Ok(bytes)
+}
+
+pub(crate) fn checked_float_literal(value_kind: &str, literal: &str) -> Result<Vec<u8>, ()> {
+    let mantissa = literal
+        .split_once(['e', 'E'])
+        .map_or(literal, |(mantissa, _)| mantissa);
+    let significant_digits = mantissa
+        .bytes()
+        .filter(|byte| byte.is_ascii_digit())
+        .skip_while(|byte| *byte == b'0')
+        .count()
+        .max(1);
+    if significant_digits > 17 {
+        return Err(());
+    }
+    match conduit_core::primitive_info_kind(value_kind) {
+        Some(PrimitiveInfoKind::F32) => {
+            if significant_digits > 9 {
+                return Err(());
+            }
+            let value = literal.parse::<f32>().map_err(|_| ())?;
+            value
+                .is_finite()
+                .then(|| conduit_core::IeeeF32::from(value).encode().to_vec())
+                .ok_or(())
+        }
+        Some(PrimitiveInfoKind::F64) => {
+            let value = literal.parse::<f64>().map_err(|_| ())?;
+            value
+                .is_finite()
+                .then(|| conduit_core::IeeeF64::from(value).encode().to_vec())
+                .ok_or(())
+        }
+        _ => Err(()),
+    }
 }
 
 fn checked_integer_member(
@@ -384,6 +464,8 @@ fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
         | PrimitiveInfoKind::I32
         | PrimitiveInfoKind::I64
         | PrimitiveInfoKind::I128) => Some(conduit_core::fixed_integer_bytes(kind) as u32),
+        PrimitiveInfoKind::F32 => Some(conduit_core::IeeeF32::ENCODED_LEN as u32),
+        PrimitiveInfoKind::F64 => Some(conduit_core::IeeeF64::ENCODED_LEN as u32),
         PrimitiveInfoKind::Text | PrimitiveInfoKind::Bytes | PrimitiveInfoKind::Terminal => None,
     }
 }
@@ -395,7 +477,9 @@ fn constraint_rank(constraint: &ValueConstraint) -> u8 {
         ValueConstraint::SignedRange { .. } => 2,
         ValueConstraint::FixedIntegerRange { .. } => 3,
         ValueConstraint::QuantityRange { .. } => 4,
-        ValueConstraint::CanonicalMembership { .. } => 5,
-        ValueConstraint::TextPattern { .. } => 6,
+        ValueConstraint::FloatFinite => 5,
+        ValueConstraint::FloatRange { .. } => 6,
+        ValueConstraint::CanonicalMembership { .. } => 7,
+        ValueConstraint::TextPattern { .. } => 8,
     }
 }

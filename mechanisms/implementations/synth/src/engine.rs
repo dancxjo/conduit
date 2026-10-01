@@ -93,8 +93,8 @@ impl ReferenceSynth {
         &mut self,
         event: MusicalNoteEvent,
     ) -> Result<SynthEventOutcome, SynthEventError> {
-        self.require_current_or_future(event.event_time_micros)?;
-        match event.gate {
+        self.require_current_or_future(event.event_time_micros())?;
+        match event.gate() {
             Gate::On => self.note_on(event),
             Gate::Off => self.note_off(event),
         }
@@ -180,14 +180,14 @@ impl ReferenceSynth {
     }
 
     fn note_on(&mut self, event: MusicalNoteEvent) -> Result<SynthEventOutcome, SynthEventError> {
-        if self.voice_for(event.occurrence).is_some() {
+        if self.voice_for(event.occurrence()).is_some() {
             return Err(SynthEventError::DuplicateOccurrence);
         }
         self.allocation_order = self.allocation_order.saturating_add(1);
         let new_voice = Voice::new(
-            event.occurrence,
-            event.pitch,
-            event.velocity,
+            event.occurrence(),
+            event.pitch(),
+            event.velocity(),
             self.allocation_order,
             self.profile,
         );
@@ -218,7 +218,7 @@ impl ReferenceSynth {
             .find_map(|(slot, voice)| {
                 voice
                     .as_mut()
-                    .filter(|voice| voice.occurrence == event.occurrence)
+                    .filter(|voice| voice.occurrence == event.occurrence())
                     .map(|voice| (slot, voice))
             })
             .ok_or(SynthEventError::UnknownOccurrence)?;

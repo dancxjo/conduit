@@ -92,6 +92,16 @@ function evidenceLines(action) {
 }
 
 async function enact(snapshot, decision) {
+  for (const action of decision.actions.finalize) {
+    await api("/actions/workflows/finalize-release.yml/dispatches", {
+      method: "POST",
+      ...body({
+        ref: "main",
+        inputs: { promotion_run_id: String(action.runId) },
+      }),
+    });
+  }
+
   for (const action of decision.actions.cancel) {
     if (action.runId) {
       try {

@@ -96,8 +96,11 @@ and superseded unstarted runs left by the old multi-PR policy. New admission
 does not manufacture those queues. Installing this change does not authorize
 discarding existing release repairs; finish or explicitly resolve those PRs.
 
-Successful promotion has one finalization owner: `finalize-release.yml` verifies
-and merges the exact successful head, then dispatches Pages and synchronization.
+Successful promotion has one finalization owner: the release-lane reconciler
+dispatches `finalize-release.yml` with the exact successful promotion run.
+The finalizer independently verifies that run and merges only its exact head,
+then dispatches Pages and synchronization. This explicit dispatch also survives
+GitHub's workflow-run chain limit after a trusted approval rerun.
 The long-running release monitor handles approval and early failure; it never
 competes to merge or dispatch duplicate publication work.
 
@@ -110,16 +113,18 @@ relationship and turns the routine return merge into a large false conflict.
 ## Documentary publication is downstream
 
 Promotion does not generate or require a complete Three Bodies documentary or
-the gallery-only One Form, Two Fronts and Little Life evidence.
-The first Pages deployment publishes the exact accepted software carrier and
-retains a bounded context linking its main commit, release source, promotion
-run, carrier, and source tree. Only after that deployment succeeds does
-`journey-publication.yml` consumes immutable claim-specific producer evidence,
-creates gallery-only evidence against that exact accepted source, and attempts
-the human documentary as a separate workflow.
+the gallery-only One Form, Two Fronts and Little Life evidence. Pages first
+retains the exact accepted software carrier and a bounded context linking its
+main commit, release source, promotion run, carrier, and source tree, without
+replacing the public site. `journey-publication.yml` then consumes immutable
+claim-specific producer evidence, creates gallery-only evidence against that
+exact accepted source, and atomically deploys the complete software and
+documentary carrier. A failed documentary build therefore leaves the last
+accepted public Journeys and ConduitOS evidence intact instead of replacing
+them with a partial site.
 
 A documentary failure cannot fail, mutate, or revoke the accepted release. A
-successful documentary run reseals a new publication carrier over the same
+successful documentary run reseals and publishes a new carrier over the same
 accepted source tree and refuses to deploy if `main` has advanced. It may be
 rerun explicitly with the exact successful Pages run that retained the context;
 it never guesses a release or upgrades documentary observations into runtime

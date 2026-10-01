@@ -17,8 +17,13 @@ fn main() {
                 "AccelerationObservation".into(),
                 "BatteryObservation".into(),
                 "ButtonSetObservation".into(),
+                "BeaconObservation".into(),
+                "ChargingObservation".into(),
+                "CliffObservation".into(),
+                "CliffSignalObserved".into(),
                 "ContactObservation".into(),
                 "OdometryObservation".into(),
+                "OrientationObservation".into(),
                 "ProximityObservation".into(),
                 "RangeObservation".into(),
                 "WheelDropObservation".into(),
@@ -26,14 +31,59 @@ fn main() {
             .into(),
             copy_record_value_getters: [
                 "BatteryObservation".into(),
+                "CliffObservation".into(),
                 "OdometryObservation".into(),
+                "OrientationObservation".into(),
                 "RangeObservation".into(),
             ]
             .into(),
-            record_constructor_orders: [(
-                "RangeObservation".into(),
-                vec!["distance-mm".into(), "age-ms".into()],
-            )]
+            record_constructor_orders: [
+                (
+                    "BeaconObservation".into(),
+                    vec!["kind".into(), "code".into()],
+                ),
+                (
+                    "ChargingObservation".into(),
+                    vec![
+                        "state".into(),
+                        "sources".into(),
+                        "millivolts".into(),
+                        "milliamps".into(),
+                        "temperature_celsius".into(),
+                        "charge_mah".into(),
+                        "capacity_mah".into(),
+                    ],
+                ),
+                (
+                    "CliffObservation".into(),
+                    vec![
+                        "active_sectors".into(),
+                        "left_signal".into(),
+                        "front_left_signal".into(),
+                        "front_right_signal".into(),
+                        "right_signal".into(),
+                    ],
+                ),
+                (
+                    "OrientationObservation".into(),
+                    vec![
+                        "roll-microradians".into(),
+                        "pitch-microradians".into(),
+                        "yaw-microradians".into(),
+                    ],
+                ),
+                (
+                    "RangeObservation".into(),
+                    vec!["distance-mm".into(), "age-ms".into()],
+                ),
+            ]
+            .into(),
+            public_record_fields: ["BeaconObservation".into(), "ChargingObservation".into()].into(),
+            record_constructor_names: [
+                ("BeaconObservation".into(), "new_native".into()),
+                ("ChargingObservation".into(), "new_native".into()),
+                ("CliffObservation".into(), "new_native".into()),
+            ]
             .into(),
             ..RustBindingOptions::default()
         },

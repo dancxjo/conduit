@@ -11,11 +11,9 @@ use conduit_presentation::{
     NavigationOperation, NavigationState, PresentationAspect, PresentationDepth, PresentationPlace,
     PresentationRelationshipKind, PresentationRole, MAX_NAVIGATION_HISTORY,
 };
+use patchbay_application::{PartsView, PatchbayNavigationProjection};
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{
-    FormEditor, PartsView, PatchbayNavigationProjection, PatchbayPresentation, PatchbayRequestId,
-    PlanDocument,
-};
+use patchbay_model::{FormEditor, PatchbayPresentation, PatchbayRequestId, PlanDocument};
 use serde_json::{json, Value};
 
 use super::planning::CrossBrowserPlan;

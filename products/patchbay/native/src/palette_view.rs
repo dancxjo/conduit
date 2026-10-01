@@ -1,10 +1,11 @@
 //! Categorized native presentation of the authoritative Gear palette.
 
+use conduit_presentation::ApplicationTheme;
+use conduit_semantic_catalog::PaletteCategory;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{ApplicationTheme, PaletteCategory};
 
 use crate::{
     gui::{GuiAction, HitTarget},
@@ -21,7 +22,7 @@ pub(super) fn draw_palette<D: DrawTarget<Color = Rgb888>>(
     theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
-    let Ok(palette) = patchbay_model::GearPalette::standard() else {
+    let Ok(palette) = conduit_semantic_catalog::GearPalette::standard() else {
         return;
     };
     let entries = palette.search(chooser.query()).unwrap_or_default();
@@ -168,7 +169,7 @@ pub(super) fn draw_palette<D: DrawTarget<Color = Rgb888>>(
     }
 }
 
-fn exact_contract_line(entry: &patchbay_model::PaletteEntry) -> String {
+fn exact_contract_line(entry: &conduit_semantic_catalog::PaletteEntry) -> String {
     let input = entry
         .inputs
         .first()
@@ -182,7 +183,7 @@ fn exact_contract_line(entry: &patchbay_model::PaletteEntry) -> String {
     format!("I {input} O {output}")
 }
 
-fn exact_bounds_line(entry: &patchbay_model::PaletteEntry) -> String {
+fn exact_bounds_line(entry: &conduit_semantic_catalog::PaletteEntry) -> String {
     let configuration = entry
         .configuration
         .first()
@@ -229,7 +230,7 @@ mod tests {
 
     #[test]
     fn exact_selected_detail_is_derived_from_catalog_contract() {
-        let palette = patchbay_model::GearPalette::standard().unwrap();
+        let palette = conduit_semantic_catalog::GearPalette::standard().unwrap();
         let upper = palette
             .find(&conduit_core::KindId::from("text/upper"))
             .unwrap();

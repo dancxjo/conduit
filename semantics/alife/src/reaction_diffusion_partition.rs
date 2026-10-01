@@ -9,10 +9,11 @@ use core::{
 
 use crate::{
     GrayScottParameters, ReactionDiffusionBoundaryEdge, ReactionDiffusionCell,
-    ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionRefusal,
-    ReactionDiffusionRegionId, REACTION_DIFFUSION_MAXIMUM_BOUNDARIES,
-    REACTION_DIFFUSION_MAXIMUM_CELLS, REACTION_DIFFUSION_MAXIMUM_EXTENT,
-    REACTION_DIFFUSION_MAXIMUM_REGIONS, REACTION_DIFFUSION_MINIMUM_EXTENT,
+    ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionPartition,
+    ReactionDiffusionRefusal, ReactionDiffusionRegion, ReactionDiffusionRegionId,
+    REACTION_DIFFUSION_MAXIMUM_BOUNDARIES, REACTION_DIFFUSION_MAXIMUM_CELLS,
+    REACTION_DIFFUSION_MAXIMUM_EXTENT, REACTION_DIFFUSION_MAXIMUM_REGIONS,
+    REACTION_DIFFUSION_MINIMUM_EXTENT,
 };
 
 impl Copy for ReactionDiffusionRegionId {}
@@ -33,20 +34,6 @@ impl Hash for ReactionDiffusionRegionId {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.get().hash(state);
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ReactionDiffusionRegion {
-    pub region_id: ReactionDiffusionRegionId,
-    pub origin_x: u16,
-    pub origin_y: u16,
-    pub width: u16,
-    pub height: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReactionDiffusionPartition {
-    pub regions: Vec<ReactionDiffusionRegion>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,6 +102,17 @@ impl From<ReactionDiffusionRefusal> for ReactionDiffusionPartitionRefusal {
 }
 
 impl ReactionDiffusionPartition {
+    pub fn from_regions(
+        regions: Vec<ReactionDiffusionRegion>,
+    ) -> Result<Self, ReactionDiffusionPartitionRefusal> {
+        if regions.is_empty() {
+            return Err(ReactionDiffusionPartitionRefusal::InvalidRegionCount);
+        }
+        let regions = conduit_form::rust_binding::BoundedSequence::try_from_iter(regions)
+            .map_err(|_| ReactionDiffusionPartitionRefusal::InvalidRegionCount)?;
+        Self::new(regions).map_err(|_| ReactionDiffusionPartitionRefusal::InvalidRegionCount)
+    }
+
     pub fn validate(
         &self,
         width: u16,
@@ -130,11 +128,12 @@ pub fn partition_reaction_diffusion_generation(
 ) -> Result<PartitionedReactionDiffusionGeneration, ReactionDiffusionPartitionRefusal> {
     state.validate()?;
     let owners = owner_map(&partition, state.width, state.height)?;
-    let mut regions = Vec::with_capacity(partition.regions.len());
-    for region in &partition.regions {
-        let mut cells = Vec::with_capacity(usize::from(region.width) * usize::from(region.height));
-        for y in region.origin_y..region.origin_y + region.height {
-            for x in region.origin_x..region.origin_x + region.width {
+    let mut regions = Vec::with_capacity(partition.regions().len());
+    for region in partition.regions().iter() {
+        let mut cells =
+            Vec::with_capacity(usize::from(region.width()) * usize::from(region.height()));
+        for y in region.origin_y()..region.origin_y() + region.height() {
+            for x in region.origin_x()..region.origin_x() + region.width() {
                 cells.push(
                     state.cells()[usize::from(y) * usize::from(state.width) + usize::from(x)],
                 );
@@ -163,19 +162,20 @@ pub fn partition_reaction_diffusion_generation(
 impl PartitionedReactionDiffusionGeneration {
     pub fn validate(&self) -> Result<(), ReactionDiffusionPartitionRefusal> {
         let owners = owner_map(&self.partition, self.width, self.height)?;
-        if self.regions.len() != self.partition.regions.len() {
+        if self.regions.len() != self.partition.regions().len() {
             return Err(ReactionDiffusionPartitionRefusal::RegionStateMismatch);
         }
-        for expected in &self.partition.regions {
+        for expected in self.partition.regions().iter() {
             let Some(actual) = self
                 .regions
                 .iter()
-                .find(|state| state.region.region_id == expected.region_id)
+                .find(|state| state.region.region_id() == expected.region_id())
             else {
                 return Err(ReactionDiffusionPartitionRefusal::RegionStateMismatch);
             };
             if actual.region != *expected
-                || actual.cells.len() != usize::from(expected.width) * usize::from(expected.height)
+                || actual.cells.len()
+                    != usize::from(expected.width()) * usize::from(expected.height())
             {
                 return Err(ReactionDiffusionPartitionRefusal::RegionStateMismatch);
             }
@@ -204,9 +204,9 @@ impl PartitionedReactionDiffusionGeneration {
             vec![ReactionDiffusionCell::REST; usize::from(self.width) * usize::from(self.height)];
         for region_state in &self.regions {
             let region = region_state.region;
-            for local_y in 0..usize::from(region.height) {
-                for local_x in 0..usize::from(region.width) {
-                    let local_index = local_y * usize::from(region.width) + local_x;
+            for local_y in 0..usize::from(region.height()) {
+                for local_x in 0..usize::from(region.width()) {
+                    let local_index = local_y * usize::from(region.width()) + local_x;
                     let center = region_state.cells[local_index];
                     let north = neighbor(
                         self,
@@ -244,8 +244,8 @@ impl PartitionedReactionDiffusionGeneration {
                         east,
                         self.parameters,
                     )?;
-                    let global_x = usize::from(region.origin_x) + local_x;
-                    let global_y = usize::from(region.origin_y) + local_y;
+                    let global_x = usize::from(region.origin_x()) + local_x;
+                    let global_y = usize::from(region.origin_y()) + local_y;
                     joined[global_y * usize::from(self.width) + global_x] = value;
                 }
             }
@@ -275,36 +275,36 @@ fn owner_map(
             ReactionDiffusionRefusal::InvalidDimensions,
         ));
     }
-    if partition.regions.is_empty()
-        || partition.regions.len() > usize::from(REACTION_DIFFUSION_MAXIMUM_REGIONS)
+    if partition.regions().is_empty()
+        || partition.regions().len() > usize::from(REACTION_DIFFUSION_MAXIMUM_REGIONS)
     {
         return Err(ReactionDiffusionPartitionRefusal::InvalidRegionCount);
     }
     let mut owners = vec![None; usize::from(width) * usize::from(height)];
-    let mut ids = Vec::with_capacity(partition.regions.len());
-    for region in &partition.regions {
-        if ids.contains(&region.region_id) {
+    let mut ids = Vec::with_capacity(partition.regions().len());
+    for region in partition.regions().iter() {
+        if ids.contains(&region.region_id()) {
             return Err(ReactionDiffusionPartitionRefusal::DuplicateRegionIdentity);
         }
-        ids.push(region.region_id);
-        if region.width == 0 || region.height == 0 {
+        ids.push(region.region_id());
+        if region.width() == 0 || region.height() == 0 {
             return Err(ReactionDiffusionPartitionRefusal::ZeroExtent);
         }
         let end_x = region
-            .origin_x
-            .checked_add(region.width)
+            .origin_x()
+            .checked_add(region.width())
             .ok_or(ReactionDiffusionPartitionRefusal::RegionOutOfRange)?;
         let end_y = region
-            .origin_y
-            .checked_add(region.height)
+            .origin_y()
+            .checked_add(region.height())
             .ok_or(ReactionDiffusionPartitionRefusal::RegionOutOfRange)?;
         if end_x > width || end_y > height {
             return Err(ReactionDiffusionPartitionRefusal::RegionOutOfRange);
         }
-        for y in region.origin_y..end_y {
-            for x in region.origin_x..end_x {
+        for y in region.origin_y()..end_y {
+            for x in region.origin_x()..end_x {
                 let slot = &mut owners[usize::from(y) * usize::from(width) + usize::from(x)];
-                if slot.replace(region.region_id).is_some() {
+                if slot.replace(region.region_id()).is_some() {
                     return Err(ReactionDiffusionPartitionRefusal::OverlappingRegions);
                 }
             }
@@ -322,7 +322,7 @@ fn derive_boundaries(
     owners: &[ReactionDiffusionRegionId],
 ) -> Result<Vec<ReactionDiffusionBoundaryState>, ReactionDiffusionPartitionRefusal> {
     let mut boundaries = Vec::new();
-    for destination in &partition.regions {
+    for destination in partition.regions().iter() {
         for edge in [
             ReactionDiffusionBoundaryEdge::North,
             ReactionDiffusionBoundaryEdge::South,
@@ -347,7 +347,7 @@ fn derive_boundaries(
                     field_id: state.field_id,
                     generation: state.generation,
                     source_region,
-                    destination_region: destination.region_id,
+                    destination_region: destination.region_id(),
                     destination_edge: edge,
                     destination_offset: offset,
                     values: vec![value],
@@ -371,9 +371,9 @@ fn validate_boundaries(
     }
     let expected_count = generation
         .partition
-        .regions
+        .regions()
         .iter()
-        .map(|region| usize::from(2 * (region.width + region.height)))
+        .map(|region| usize::from(2 * (region.width() + region.height())))
         .sum::<usize>();
     if generation.boundaries.len() < expected_count {
         return Err(ReactionDiffusionPartitionRefusal::MissingBoundaryTruth);
@@ -396,9 +396,9 @@ fn validate_boundaries(
         }
         let Some(destination) = generation
             .partition
-            .regions
+            .regions()
             .iter()
-            .find(|region| region.region_id == boundary.destination_region)
+            .find(|region| region.region_id() == boundary.destination_region)
         else {
             return Err(ReactionDiffusionPartitionRefusal::WrongBoundaryDestination);
         };
@@ -444,8 +444,8 @@ fn neighbor(
     y: usize,
     edge: ReactionDiffusionBoundaryEdge,
 ) -> Result<ReactionDiffusionCell, ReactionDiffusionPartitionRefusal> {
-    let width = usize::from(region_state.region.width);
-    let height = usize::from(region_state.region.height);
+    let width = usize::from(region_state.region.width());
+    let height = usize::from(region_state.region.height());
     let local = match edge {
         ReactionDiffusionBoundaryEdge::North if y > 0 => Some((y - 1) * width + x),
         ReactionDiffusionBoundaryEdge::South if y + 1 < height => Some((y + 1) * width + x),
@@ -464,7 +464,7 @@ fn neighbor(
         .boundaries
         .iter()
         .find(|boundary| {
-            boundary.destination_region == region_state.region.region_id
+            boundary.destination_region == region_state.region.region_id()
                 && boundary.destination_edge == edge
                 && boundary.destination_offset == offset
         })
@@ -474,8 +474,12 @@ fn neighbor(
 
 fn edge_length(region: ReactionDiffusionRegion, edge: ReactionDiffusionBoundaryEdge) -> u16 {
     match edge {
-        ReactionDiffusionBoundaryEdge::North | ReactionDiffusionBoundaryEdge::South => region.width,
-        ReactionDiffusionBoundaryEdge::West | ReactionDiffusionBoundaryEdge::East => region.height,
+        ReactionDiffusionBoundaryEdge::North | ReactionDiffusionBoundaryEdge::South => {
+            region.width()
+        }
+        ReactionDiffusionBoundaryEdge::West | ReactionDiffusionBoundaryEdge::East => {
+            region.height()
+        }
     }
 }
 
@@ -488,20 +492,20 @@ fn boundary_source_coordinate(
 ) -> (u16, u16) {
     match edge {
         ReactionDiffusionBoundaryEdge::North => (
-            (region.origin_x + offset) % field_width,
-            (region.origin_y + field_height - 1) % field_height,
+            (region.origin_x() + offset) % field_width,
+            (region.origin_y() + field_height - 1) % field_height,
         ),
         ReactionDiffusionBoundaryEdge::South => (
-            (region.origin_x + offset) % field_width,
-            (region.origin_y + region.height) % field_height,
+            (region.origin_x() + offset) % field_width,
+            (region.origin_y() + region.height()) % field_height,
         ),
         ReactionDiffusionBoundaryEdge::West => (
-            (region.origin_x + field_width - 1) % field_width,
-            (region.origin_y + offset) % field_height,
+            (region.origin_x() + field_width - 1) % field_width,
+            (region.origin_y() + offset) % field_height,
         ),
         ReactionDiffusionBoundaryEdge::East => (
-            (region.origin_x + region.width) % field_width,
-            (region.origin_y + offset) % field_height,
+            (region.origin_x() + region.width()) % field_width,
+            (region.origin_y() + offset) % field_height,
         ),
     }
 }

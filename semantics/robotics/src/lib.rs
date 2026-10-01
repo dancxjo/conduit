@@ -2,15 +2,20 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::clone_on_copy)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+
+    impl Copy for CliffSignalObserved {}
+    impl Copy for CliffSignal {}
 }
 
 pub use generated::{
-    AccelerationObservation, BatteryObservation, BeaconKind, BeaconKindCode, ButtonSetObservation,
-    ChargingState, ChargingStateCode, ContactObservation, OdometryObservation,
-    ProximityObservation, RangeObservation, RoboticsSimulationAvailability, WheelDropObservation,
+    AccelerationObservation, BatteryObservation, BeaconKind, BeaconKindCode, BeaconObservation,
+    ButtonSetObservation, ChargingObservation, ChargingState, ChargingStateCode, CliffObservation,
+    CliffSignal, CliffSignalObserved, ContactObservation, OdometryObservation,
+    OrientationObservation, ProximityObservation, RangeObservation, RoboticsSimulationAvailability,
+    WheelDropObservation,
 };
 
 mod hazard_info;

@@ -21,33 +21,63 @@ impl Parser<'_> {
             .split_once('=')
             .map(|(name, body)| (name.trim(), body.trim()))
             .ok_or_else(|| self.invalid_statement(header, start))?;
-        if !is_name(name) {
+        let (name_text, parameter_names) =
+            split_generic_application(name).ok_or_else(|| self.invalid_statement(header, start))?;
+        if !is_name(name_text) || parameter_names.iter().any(|parameter| !is_name(parameter)) {
             return Err(self.invalid_statement(header, start));
         }
-        let name = self.spanned_at(name, header, start);
+        let name = self.spanned_at(name_text, header, start);
+        let parameters = parameter_names
+            .into_iter()
+            .map(|parameter| self.spanned_at(parameter, header, start))
+            .collect();
         let declaration_start = start;
 
-        let definition = if body == "{" {
+        let (definition, invariants) = if body == "{" {
             self.index += 1;
-            TypeDefinitionSyntax::Record(self.parse_type_fields()?)
+            let (fields, invariants) = self.parse_type_fields(true)?;
+            (TypeDefinitionSyntax::Record(fields), invariants)
         } else if body.is_empty() {
             self.index += 1;
-            TypeDefinitionSyntax::Variant(self.parse_type_variants()?)
+            (
+                TypeDefinitionSyntax::Variant(self.parse_type_variants()?),
+                Vec::new(),
+            )
         } else {
+            let (body, invariant) = body
+                .split_once(" where ")
+                .map_or((body, None), |(value_type, invariant)| {
+                    (value_type.trim(), Some(invariant.trim()))
+                });
+            if invariant.is_some_and(str::is_empty) {
+                return Err(self.invalid_statement(header, start));
+            }
             let value_type = self.parse_type_expression(body, header, start)?;
+            let invariants = invariant
+                .map(|source| self.expression_at(source, header, start))
+                .transpose()?
+                .into_iter()
+                .collect();
             self.index += 1;
-            TypeDefinitionSyntax::Scalar(value_type)
+            (TypeDefinitionSyntax::Scalar(value_type), invariants)
         };
         let end = self.lines[self.index.saturating_sub(1)];
         Ok(TypeSyntax {
             name,
+            parameters,
+            generic_context: None,
             definition,
+            invariants,
             span: self.span(declaration_start, end.start + end.text.len()),
         })
     }
 
-    fn parse_type_fields(&mut self) -> Result<Vec<TypeFieldSyntax>, (FormError, Span)> {
+    fn parse_type_fields(
+        &mut self,
+        allow_invariants: bool,
+    ) -> Result<(Vec<TypeFieldSyntax>, Vec<crate::Expression>), (FormError, Span)> {
         let mut fields = Vec::new();
+        let mut invariants = Vec::new();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
@@ -63,7 +93,31 @@ impl Parser<'_> {
                         self.line_span(line),
                     ));
                 }
-                return Ok(fields);
+                return Ok((fields, invariants));
+            }
+            if let Some(source) = text.strip_prefix("where ") {
+                if !allow_invariants || fields.is_empty() || source.trim().is_empty() {
+                    return Err(self.invalid_statement(text, start));
+                }
+                if invariants.len() >= conduit_core::MAXIMUM_STRUCTURED_RECORD_FIELDS {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "semantic record type has too many where laws".into(),
+                        ),
+                        self.line_span(line),
+                    ));
+                }
+                invariants.push(self.expression_at(source, text, start)?);
+                self.index += 1;
+                continue;
+            }
+            if !invariants.is_empty() {
+                return Err((
+                    FormError::InvalidSyntax(
+                        "semantic record fields must precede its where laws".into(),
+                    ),
+                    self.line_span(line),
+                ));
             }
             if fields.len() >= conduit_core::MAXIMUM_STRUCTURED_RECORD_FIELDS {
                 return Err((
@@ -116,7 +170,7 @@ impl Parser<'_> {
             let tag = self.spanned_at(tag, text, start);
             self.index += 1;
             let payload = if has_fields {
-                TypeVariantPayloadSyntax::Record(self.parse_type_fields()?)
+                TypeVariantPayloadSyntax::Record(self.parse_type_fields(false)?.0)
             } else if let Some(payload) = payload_source {
                 TypeVariantPayloadSyntax::Type(self.parse_type_expression(payload, text, start)?)
             } else {
@@ -148,22 +202,52 @@ impl Parser<'_> {
         let offset = start + line.find(source).unwrap_or(0);
         let span = self.span(offset, offset + source.len());
         if let Some(rest) = source.strip_prefix("sequence ") {
-            let (element, maximum) = rest
-                .rsplit_once(" <= ")
-                .ok_or_else(|| self.invalid_statement(line, start))?;
-            let maximum_items = maximum
-                .parse::<u16>()
-                .ok()
-                .filter(|maximum| {
-                    *maximum > 0
-                        && usize::from(*maximum)
-                            <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
-                })
-                .ok_or_else(|| self.invalid_statement(line, start))?;
+            let (element, minimum_items, maximum_items) =
+                if let Some((element, maximum)) = rest.rsplit_once(" <= ") {
+                    (
+                        element,
+                        0,
+                        parse_collection_bound(maximum)
+                            .ok_or_else(|| self.invalid_statement(line, start))?,
+                    )
+                } else if let Some((element, bounds)) = rest.rsplit_once(" in ") {
+                    let (minimum, maximum) = bounds
+                        .split_once("..=")
+                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                    let minimum = minimum
+                        .parse::<u16>()
+                        .ok()
+                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                    let maximum = parse_collection_bound(maximum)
+                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                    if minimum > maximum {
+                        return Err(self.invalid_statement(line, start));
+                    }
+                    (element, minimum, maximum)
+                } else {
+                    return Err(self.invalid_statement(line, start));
+                };
             return Ok(TypeExpressionSyntax::Sequence {
                 element: Box::new(self.parse_type_expression(element, line, start)?),
-                minimum_items: 0,
+                minimum_items,
                 maximum_items,
+                span,
+            });
+        }
+        if let Some(rest) = source.strip_prefix("collection ") {
+            let (element, length) = rest
+                .rsplit_once(" = ")
+                .ok_or_else(|| self.invalid_statement(line, start))?;
+            let length = length
+                .parse::<u16>()
+                .ok()
+                .filter(|length| {
+                    usize::from(*length) <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
+                })
+                .ok_or_else(|| self.invalid_statement(line, start))?;
+            return Ok(TypeExpressionSyntax::Collection {
+                element: Box::new(self.parse_type_expression(element, line, start)?),
+                length,
                 span,
             });
         }
@@ -179,20 +263,92 @@ impl Parser<'_> {
                 span,
             });
         }
-        let (value_type, refinements) = self.parse_value_refinements(source, line, start)?;
-        let (value_type, explicit_bound) =
-            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
+        if let Some((value_type, argument_sources)) =
+            split_generic_application(source).filter(|(_, arguments)| !arguments.is_empty())
+        {
+            if !is_name(value_type) && !value_type.split('/').all(is_name) {
+                return Err(self.invalid_statement(line, start));
+            }
+            let arguments = argument_sources
+                .into_iter()
+                .map(|argument| self.parse_type_expression(argument, line, start))
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(TypeExpressionSyntax::Reference {
+                value_type: self.spanned(value_type, offset),
+                arguments,
+                maximum_bytes: None,
+                refinements: Vec::new(),
+                span,
+            });
+        }
+        let (reference, refinements) = self.parse_value_refinements(source, line, start)?;
+        let (reference, explicit_bound) =
+            split_type_bound(reference).ok_or_else(|| self.invalid_statement(line, start))?;
+        let (value_type, argument_sources) = split_generic_application(reference)
+            .ok_or_else(|| self.invalid_statement(line, start))?;
         if value_type.is_empty()
             || value_type.chars().any(char::is_whitespace)
             || (!is_name(value_type) && !value_type.split('/').all(is_name))
         {
             return Err(self.invalid_statement(line, start));
         }
+        let arguments = argument_sources
+            .into_iter()
+            .map(|argument| self.parse_type_expression(argument, line, start))
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(TypeExpressionSyntax::Reference {
             value_type: self.spanned(value_type, offset),
+            arguments,
             maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
             refinements,
             span,
         })
     }
+}
+
+fn split_generic_application(source: &str) -> Option<(&str, Vec<&str>)> {
+    let source = source.trim();
+    let Some(open) = source.find('<') else {
+        return Some((source, Vec::new()));
+    };
+    if !source.ends_with('>') || open == 0 {
+        return None;
+    }
+    let name = source[..open].trim();
+    let body = &source[open + 1..source.len() - 1];
+    let mut arguments = Vec::new();
+    let mut depth = 0_u16;
+    let mut start = 0;
+    for (index, character) in body.char_indices() {
+        match character {
+            '<' if body.as_bytes().get(index + 1) != Some(&b'=') => {
+                depth = depth.checked_add(1)?;
+            }
+            '>' => depth = depth.checked_sub(1)?,
+            ',' if depth == 0 => {
+                let argument = body[start..index].trim();
+                if argument.is_empty() {
+                    return None;
+                }
+                arguments.push(argument);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    if depth != 0 {
+        return None;
+    }
+    let argument = body[start..].trim();
+    if argument.is_empty() {
+        return None;
+    }
+    arguments.push(argument);
+    Some((name, arguments))
+}
+
+fn parse_collection_bound(source: &str) -> Option<u16> {
+    source.parse::<u16>().ok().filter(|bound| {
+        *bound > 0 && usize::from(*bound) <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
+    })
 }

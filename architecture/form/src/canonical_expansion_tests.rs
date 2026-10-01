@@ -2,9 +2,10 @@ use crate::prelude::*;
 
 use crate::{
     check_syntax_document, expand_canonical_form, expand_canonical_form_for_authoring,
-    parse_syntax_document, ConfigurationValue, ExpandedCanonicalForm, KindConfigurationField,
-    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
-    StartupParameterSignature,
+    parse_syntax_document, BinaryOperator, ConfigurationValue, ExpandedCanonicalForm,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    PortableExpressionOperation, PortableExpressionProgram, ProfileCatalog, StartupCatalog,
+    StartupParameterSignature, PURE_EXPRESSION_REVISION,
 };
 use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
@@ -635,6 +636,80 @@ fn expression_body_checks_and_expands_identically_to_its_explicit_form() {
         concise_expanded.output_bindings,
         explicit_expanded.output_bindings
     );
+}
+
+#[test]
+fn type_laws_mark_only_proven_integer_arithmetic_unchecked() {
+    fn program(source: &str, form: &str) -> PortableExpressionProgram {
+        let checked = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
+            .expect("Type law and expression are checked together");
+        let expanded = expand_canonical_form_for_authoring(&checked, form, &ProfileCatalog::new())
+            .expect("front-bound expression expands");
+        let expression = expanded
+            .expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_contract_revision.as_str() == PURE_EXPRESSION_REVISION)
+            .expect("expression Gear");
+        let ConfigurationValue::Text(encoded) = &expression.configuration[0].value else {
+            panic!("portable expression program")
+        };
+        PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
+    }
+
+    let interval = "type Interval = {\n    start: U32\n    end: U32\n    where .start <= .end\n}\n\nform length (\n    >> interval: Interval\n    length: U32 >>\n) = (.end - .start)\n";
+    let safe = program(interval, "length");
+    assert!(matches!(
+        safe.root.operation,
+        PortableExpressionOperation::Binary {
+            operator: BinaryOperator::Subtract,
+            proven: true,
+            ..
+        }
+    ));
+
+    let unsafe_add = interval
+        .replace("form length", "form next")
+        .replace("(.end - .start)", "(.end + 1)");
+    let checked = program(&unsafe_add, "next");
+    assert!(matches!(
+        checked.root.operation,
+        PortableExpressionOperation::Binary {
+            operator: BinaryOperator::Add,
+            proven: false,
+            ..
+        }
+    ));
+
+    let scalar = "type AlmostU32 = U32 where . < 4_294_967_295\n\nform next (\n    >> value: AlmostU32\n    result: U32 >>\n) = (. + 1)\n";
+    let safe = program(scalar, "next");
+    assert!(matches!(
+        safe.root.operation,
+        PortableExpressionOperation::Binary {
+            operator: BinaryOperator::Add,
+            proven: true,
+            ..
+        }
+    ));
+    let conduit_core::StructuredInfoTypeShape::Nominal { representation, .. } =
+        safe.input_type.shape()
+    else {
+        panic!("refinement is nominal")
+    };
+    let input = conduit_core::StructuredInfoValue::nominal(
+        safe.input_type.clone(),
+        conduit_core::StructuredInfoValue::leaf(
+            representation.clone(),
+            (u32::MAX - 1).to_le_bytes().to_vec(),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    assert_eq!(safe.evaluate(&input).unwrap(), u32::MAX.to_le_bytes());
+    let mut prepared = crate::PreparedPortableExpressionEvaluator::new(&safe).unwrap();
+    assert_eq!(prepared.evaluate(&input).unwrap(), u32::MAX.to_le_bytes());
 }
 
 #[test]

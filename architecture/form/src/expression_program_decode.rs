@@ -11,7 +11,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_NAME_BYTES,
 };
 
-const HEADER: &[u8] = b"conduit.pure-expression.program.v1";
+const HEADER: &[u8] = b"conduit.pure-expression.program.v2";
 
 impl PortableExpressionProgram {
     pub fn from_canonical_bytes(encoded: &[u8]) -> Result<Self, PortableExpressionProgramRefusal> {
@@ -140,6 +140,11 @@ impl<'a> Cursor<'a> {
             },
             4 => PortableExpressionOperation::Binary {
                 operator: binary(self.byte()?)?,
+                proven: match self.byte()? {
+                    0 => false,
+                    1 => true,
+                    _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
+                },
                 left: Box::new(self.node(depth + 1, remaining_nodes)?),
                 right: Box::new(self.node(depth + 1, remaining_nodes)?),
             },

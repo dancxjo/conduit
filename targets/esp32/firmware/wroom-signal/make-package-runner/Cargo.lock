@@ -85,6 +85,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-education"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+]
+
+[[package]]
 name = "conduit-esp32-make-package-runner"
 version = "0.1.0"
 dependencies = [
@@ -184,6 +192,7 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-data",
+ "conduit-education",
  "conduit-form",
  "conduit-human",
  "conduit-midi",

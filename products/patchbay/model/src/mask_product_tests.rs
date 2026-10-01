@@ -19,7 +19,7 @@ use conduit_presentation::{
     FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
-use crate::{MaskWardrobeAction, MaskWardrobeControl};
+use conduit_presentation::{MaskWardrobeAction, MaskWardrobeControl};
 use patchbay_application::project_mask_inspection;
 
 struct Fixture {

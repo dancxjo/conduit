@@ -1,6 +1,6 @@
 //! Finite renderer-local state for the authoritative Gear chooser.
 
-use patchbay_model::{GearPalette, PaletteError, MAX_PALETTE_QUERY_BYTES};
+use conduit_semantic_catalog::{GearPalette, PaletteError, MAX_PALETTE_QUERY_BYTES};
 
 pub(super) const MAX_VISIBLE_PALETTE_RESULTS: usize = 3;
 pub(super) const MAX_VISIBLE_PLACEMENT_SLOTS: usize = 8;
@@ -181,9 +181,9 @@ impl PaletteChooser {
         if !x.is_finite()
             || !y.is_finite()
             || x <= 176.0
-            || x > f64::from(patchbay_model::MAX_LAYOUT_COORDINATE) + 95.0
+            || x > f64::from(patchbay_application::MAX_LAYOUT_COORDINATE) + 95.0
             || y < 53.0
-            || y > f64::from(patchbay_model::MAX_LAYOUT_COORDINATE) + 20.0
+            || y > f64::from(patchbay_application::MAX_LAYOUT_COORDINATE) + 20.0
         {
             return Err(PaletteChooserError::PlacementCoordinateOutOfBounds);
         }

@@ -1,6 +1,6 @@
 use conduit_net::{
     DnsQuery, DnsRecordKind, DnsResult, DnsTtl, NetworkAddress, NetworkConnectionState,
-    NetworkEndpoint, NetworkTransport,
+    NetworkEndpoint, NetworkTransport, ResolvedNetworkAddress,
 };
 use conduit_std_host::hosted_network::{
     connect_tcp, resolve_dns, resolve_dns_with_provider, EndpointFreshness,
@@ -24,11 +24,11 @@ fn std_resolver_emits_typed_candidates_without_inventing_ttl() {
     let DnsResult::Current(resolution) = result else {
         panic!("localhost should resolve")
     };
-    assert!(!resolution.candidates.is_empty());
-    assert_eq!(resolution.ttl, DnsTtl::Unavailable);
-    assert!(resolution.candidates.iter().all(|candidate| matches!(
-        &candidate.address,
-        NetworkAddress::Ipv4(_) | NetworkAddress::Ipv6(_)
+    assert!(!resolution.candidates().is_empty());
+    assert_eq!(resolution.ttl(), &DnsTtl::Unavailable);
+    assert!(resolution.candidates().iter().all(|candidate| matches!(
+        candidate.address(),
+        ResolvedNetworkAddress::Ipv4(_) | ResolvedNetworkAddress::Ipv6(_)
     )));
 }
 
@@ -37,11 +37,12 @@ fn std_connection_lifecycle_uses_endpoints_not_socket_integers() {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
     let address = listener.local_addr().unwrap();
     let accept = thread::spawn(move || listener.accept().unwrap());
-    let endpoint = NetworkEndpoint {
-        address: NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
-        port: address.port(),
-        transport: NetworkTransport::Tcp,
-    };
+    let endpoint = NetworkEndpoint::new(
+        NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
+        address.port(),
+        NetworkTransport::Tcp,
+    )
+    .unwrap();
     let lifecycle = connect_tcp(
         &endpoint,
         EndpointFreshness::Current,
@@ -51,26 +52,27 @@ fn std_connection_lifecycle_uses_endpoints_not_socket_integers() {
     let _ = accept.join().unwrap();
     assert!(matches!(
         lifecycle[0],
-        NetworkConnectionState::Requested { .. }
+        NetworkConnectionState::Requested(..)
     ));
     assert!(matches!(
         lifecycle[1],
-        NetworkConnectionState::Connecting { .. }
+        NetworkConnectionState::Connecting(..)
     ));
     assert!(matches!(
         lifecycle[2],
-        NetworkConnectionState::Connected { .. }
+        NetworkConnectionState::Connected(..)
     ));
     assert_eq!(lifecycle.last(), Some(&NetworkConnectionState::Closed));
 }
 
 #[test]
 fn stale_lost_and_refused_remain_distinct() {
-    let endpoint = NetworkEndpoint {
-        address: NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
-        port: 9,
-        transport: NetworkTransport::Tcp,
-    };
+    let endpoint = NetworkEndpoint::new(
+        NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
+        9,
+        NetworkTransport::Tcp,
+    )
+    .unwrap();
     assert!(matches!(
         connect_tcp(
             &endpoint,
@@ -78,7 +80,7 @@ fn stale_lost_and_refused_remain_distinct() {
             NetworkProviderAvailability::Available,
             Duration::from_millis(10),
         )[0],
-        NetworkConnectionState::StaleEndpoint { .. }
+        NetworkConnectionState::StaleEndpoint(..)
     ));
     assert!(matches!(
         connect_tcp(
@@ -87,12 +89,14 @@ fn stale_lost_and_refused_remain_distinct() {
             NetworkProviderAvailability::Lost,
             Duration::from_millis(10),
         )[0],
-        NetworkConnectionState::Lost { .. }
+        NetworkConnectionState::Lost(..)
     ));
-    let unresolved = NetworkEndpoint {
-        address: NetworkAddress::DnsName("localhost".to_string()),
-        ..endpoint.clone()
-    };
+    let unresolved = NetworkEndpoint::new(
+        NetworkAddress::DnsName("localhost".to_string()),
+        *endpoint.port(),
+        *endpoint.transport(),
+    )
+    .unwrap();
     assert!(matches!(
         connect_tcp(
             &unresolved,
@@ -100,7 +104,7 @@ fn stale_lost_and_refused_remain_distinct() {
             NetworkProviderAvailability::Available,
             Duration::from_millis(10),
         )[1],
-        NetworkConnectionState::Refused { .. }
+        NetworkConnectionState::Refused(..)
     ));
     assert!(matches!(
         resolve_dns_with_provider(
@@ -113,6 +117,6 @@ fn stale_lost_and_refused_remain_distinct() {
             .unwrap(),
             NetworkProviderAvailability::Lost,
         ),
-        DnsResult::ProviderLost { .. }
+        DnsResult::ProviderLost(..)
     ));
 }

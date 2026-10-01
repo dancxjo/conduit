@@ -37,6 +37,53 @@ type MusicalPitch = {
     detune-microcents: I32 in -24000000..=24000000
 }
 
+type NoteOccurrenceId = U64 in 1..=18446744073709551615
+
+type MusicalNoteEvent = {
+    occurrence: NoteOccurrenceId
+    pitch: MusicalPitch
+    gate: Gate
+    velocity: U16
+    event-time-micros: U64 in 0..=18446744073709551614
+    order: U32
+}
+
+type ToneIntent = {
+    correlation: U64 in 1..=18446744073709551615
+    pitch: MusicalPitch
+    gate: Gate
+    event-time-micros: U64 in 0..=18446744073709551614
+    order: U32
+}
+
+type BeatReference = {
+    beat: U64
+    expected_time_micros: U64
+}
+
+type TimingClassification =
+    on-time
+    | early
+    | late
+    | missed
+
+type RhythmRecoveryState =
+    interrupted
+    | recovered
+    | on-beat
+    | recovering
+    | displaced
+
+type TimingFeedback = {
+    beat: U64
+    classification: TimingClassification
+    delta_micros: I64
+    expected_time_micros: U64
+    observed: Boolean
+    observed_time_micros: U64
+    recovery_state: RhythmRecoveryState
+}
+
 type PcmSampleRepresentation =
     signed16-little-endian
     | signed24-little-endian
@@ -45,6 +92,26 @@ type PcmSampleRepresentation =
 type PcmChannelLayout =
     mono
     | stereo-left-right
+
+type PcmFrameHeader = {
+    representation: PcmSampleRepresentation
+    sample-rate-hz: U32 in 8000..=192000
+    layout: PcmChannelLayout
+    frame-count: U16 in 1..=2048
+    clock-id: U64 in 1..=18446744073709551615
+    start-frame: U64
+    discontinuity: Boolean
+    payload-bytes: U32 in 1..=65536
+    where .payload-bytes == value/u32(.frame-count) * (variant/tag(.layout) == "mono" ? 1 : 2) * (variant/tag(.representation) == "signed16-little-endian" ? 2 : variant/tag(.representation) == "signed24-little-endian" ? 3 : 4)
+}
+
+type AudioRenderDemand = {
+    clock-id: U64 in 1..=18446744073709551615
+    start-frame: U64
+    frame-count: U16 in 1..=65535
+    sequence: U32
+    where .start-frame <= 18446744073709551615 - value/u64(.frame-count)
+}
 
 type PcmClipProfile = {
     representation: PcmSampleRepresentation

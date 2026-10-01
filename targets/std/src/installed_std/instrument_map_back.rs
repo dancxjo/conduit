@@ -132,8 +132,9 @@ fn map_control(
                     .and_then(|index| mapping.pitch_millihertz.get(index))
                     .ok_or(187_u16)?;
                 let pitch = MusicalPitch::new(*pitch, 440_000, 0).map_err(|_| 188_u16)?;
+                let occurrence = NoteOccurrenceId::new(occurrence).map_err(|_| 189_u16)?;
                 MusicalNoteEvent::new(
-                    NoteOccurrenceId(occurrence),
+                    occurrence,
                     pitch,
                     if down { Gate::On } else { Gate::Off },
                     if down { u16::MAX } else { 0 },

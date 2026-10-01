@@ -81,12 +81,7 @@ fn one_experience_consumes_visual_utterance_and_body_self_sources() {
     let visual = ObjectObservation {
         source_image: image(),
         candidate_label: "person".into(),
-        region: ImageRegion {
-            x: 1,
-            y: 2,
-            width: 3,
-            height: 4,
-        },
+        region: ImageRegion::from_xywh(1, 2, 3, 4).unwrap(),
         confidence_permille: 820,
         provenance: provenance(VisualEvidenceClass::StatisticalCandidate, "sign/object/1"),
     };

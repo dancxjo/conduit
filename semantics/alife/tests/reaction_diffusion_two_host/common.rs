@@ -259,22 +259,11 @@ pub fn initial() -> ReactionDiffusionFieldState {
 }
 
 pub fn unequal_partition() -> ReactionDiffusionPartition {
-    ReactionDiffusionPartition {
-        regions: vec![
-            ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId::new(10).unwrap(),
-                origin_x: 0,
-                origin_y: 0,
-                width: 3,
-                height: 10,
-            },
-            ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId::new(20).unwrap(),
-                origin_x: 3,
-                origin_y: 0,
-                width: 5,
-                height: 10,
-            },
-        ],
-    }
+    ReactionDiffusionPartition::from_regions(vec![
+        ReactionDiffusionRegion::new(ReactionDiffusionRegionId::new(10).unwrap(), 0, 0, 3, 10)
+            .unwrap(),
+        ReactionDiffusionRegion::new(ReactionDiffusionRegionId::new(20).unwrap(), 3, 0, 5, 10)
+            .unwrap(),
+    ])
+    .unwrap()
 }

@@ -65,7 +65,7 @@ impl RendererSnapshot {
         execution
             .validate()
             .map_err(|_| SnapshotError::InvalidIdentity)?;
-        let entrance = patchbay_model::PatchbayEntranceState::enter(&execution.presentation)
+        let entrance = patchbay_application::PatchbayEntranceState::enter(&execution.presentation)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         let temporal_context = project_model_temporal_context(&execution.presentation)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
@@ -106,7 +106,10 @@ impl RendererSnapshot {
         self.validate()
     }
 
-    pub fn attach_parts(&mut self, parts: patchbay_model::PartsView) -> Result<(), SnapshotError> {
+    pub fn attach_parts(
+        &mut self,
+        parts: patchbay_application::PartsView,
+    ) -> Result<(), SnapshotError> {
         if self.presentation.basis.body_id.as_ref() != Some(&parts.body_id) {
             return Err(SnapshotError::InvalidIdentity);
         }
@@ -116,7 +119,7 @@ impl RendererSnapshot {
 
     pub fn attach_navigation(
         &mut self,
-        navigation: patchbay_model::PatchbayNavigationProjection,
+        navigation: patchbay_application::PatchbayNavigationProjection,
     ) -> Result<(), SnapshotError> {
         navigation
             .navigation
@@ -158,7 +161,7 @@ impl RendererSnapshot {
 
     pub fn attach_debugger(
         &mut self,
-        debugger: patchbay_model::DebuggerPresentation,
+        debugger: patchbay_application::DebuggerPresentation,
     ) -> Result<(), SnapshotError> {
         self.debugger = Some(debugger);
         self.validate()
@@ -166,7 +169,7 @@ impl RendererSnapshot {
 
     pub fn attach_watches(
         &mut self,
-        watches: patchbay_model::DebuggerWatchSet,
+        watches: patchbay_application::DebuggerWatchSet,
     ) -> Result<(), SnapshotError> {
         self.watches = Some(watches);
         self.validate()
@@ -174,7 +177,7 @@ impl RendererSnapshot {
 
     pub fn attach_timeline(
         &mut self,
-        timeline: patchbay_model::DebuggerTimeline,
+        timeline: patchbay_application::DebuggerTimeline,
     ) -> Result<(), SnapshotError> {
         self.timeline_projection = Some(timeline.project(self.watches.as_ref()));
         self.timeline = Some(timeline);
@@ -183,7 +186,7 @@ impl RendererSnapshot {
 
     pub fn attach_debugger_control(
         &mut self,
-        control: patchbay_model::DebuggerExecutionControl,
+        control: patchbay_application::DebuggerExecutionControl,
     ) -> Result<(), SnapshotError> {
         self.debugger_control = Some(control);
         self.validate()
@@ -240,8 +243,8 @@ impl RendererSnapshot {
     fn validate(&self) -> Result<(), SnapshotError> {
         let invalid_parts = self.parts.as_ref().is_some_and(|parts| {
             self.presentation.basis.body_id.as_ref() != Some(&parts.body_id)
-                || parts.parts.len() > patchbay_model::MAX_PARTS_VIEW_ROWS
-                || parts.wants_to_join.len() > patchbay_model::MAX_WANTS_TO_JOIN_ROWS
+                || parts.parts.len() > patchbay_application::MAX_PARTS_VIEW_ROWS
+                || parts.wants_to_join.len() > patchbay_application::MAX_WANTS_TO_JOIN_ROWS
         });
         let invalid_navigation = self.navigation_observation().is_err();
         let invalid_authoring = self.authoring.as_ref().is_some_and(|authoring| {
@@ -279,8 +282,8 @@ impl RendererSnapshot {
                 || topology.basis.source_document_id != self.presentation.basis.source_document_id
         });
         let invalid_debugger = self.debugger.as_ref().is_some_and(|debugger| {
-            debugger.schema != patchbay_model::DEBUGGER_PRESENTATION_SCHEMA
-                || debugger.activities.len() > patchbay_model::MAX_DEBUGGER_SUBJECTS
+            debugger.schema != patchbay_application::DEBUGGER_PRESENTATION_SCHEMA
+                || debugger.activities.len() > patchbay_application::MAX_DEBUGGER_SUBJECTS
                 || debugger.activities.iter().any(|activity| {
                     !self
                         .presentation
@@ -297,9 +300,9 @@ impl RendererSnapshot {
                 })
         });
         let invalid_watches = self.watches.as_ref().is_some_and(|watches| {
-            watches.schema != patchbay_model::DEBUGGER_WATCH_SCHEMA
-                || watches.watches.len() > patchbay_model::MAX_DEBUGGER_WATCHES
-                || watches.eligible_subjects.len() > patchbay_model::MAX_DEBUGGER_SUBJECTS
+            watches.schema != patchbay_application::DEBUGGER_WATCH_SCHEMA
+                || watches.watches.len() > patchbay_application::MAX_DEBUGGER_WATCHES
+                || watches.eligible_subjects.len() > patchbay_application::MAX_DEBUGGER_SUBJECTS
                 || self.debugger.as_ref().map(|debugger| &debugger.execution)
                     != Some(&watches.execution)
                 || watches.focused_subject.as_ref().is_some_and(|focused| {
@@ -309,9 +312,9 @@ impl RendererSnapshot {
                         .any(|watch| &watch.subject == focused)
                 })
                 || watches.watches.iter().any(|watch| {
-                    watch.history.len() > patchbay_model::MAX_WATCH_HISTORY_RECORDS
+                    watch.history.len() > patchbay_application::MAX_WATCH_HISTORY_RECORDS
                         || watch.learned_projections.len()
-                            > patchbay_model::MAX_LEARNED_WATCH_PROJECTIONS
+                            > patchbay_application::MAX_LEARNED_WATCH_PROJECTIONS
                         || watch
                             .learned_projections
                             .iter()
@@ -325,13 +328,13 @@ impl RendererSnapshot {
                             subject.identity == watch.subject
                                 && subject.role
                                     == match watch.role {
-                                        patchbay_model::DebuggerWatchSubjectRole::Gear => {
+                                        patchbay_application::DebuggerWatchSubjectRole::Gear => {
                                             conduit_presentation::PresentationRole::Gear
                                         }
-                                        patchbay_model::DebuggerWatchSubjectRole::Port => {
+                                        patchbay_application::DebuggerWatchSubjectRole::Port => {
                                             conduit_presentation::PresentationRole::Port
                                         }
-                                        patchbay_model::DebuggerWatchSubjectRole::Cord => {
+                                        patchbay_application::DebuggerWatchSubjectRole::Cord => {
                                             conduit_presentation::PresentationRole::Cord
                                         }
                                     }
@@ -342,14 +345,14 @@ impl RendererSnapshot {
         let invalid_timeline = match (&self.timeline, &self.timeline_projection) {
             (None, None) => false,
             (Some(timeline), Some(projection)) => {
-                timeline.schema != patchbay_model::DEBUGGER_TIMELINE_SCHEMA
-                    || timeline.events.len() > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
-                    || timeline.retained_bytes > patchbay_model::MAX_DEBUGGER_TIMELINE_BYTES
+                timeline.schema != patchbay_application::DEBUGGER_TIMELINE_SCHEMA
+                    || timeline.events.len() > patchbay_application::MAX_DEBUGGER_TIMELINE_EVENTS
+                    || timeline.retained_bytes > patchbay_application::MAX_DEBUGGER_TIMELINE_BYTES
                     || timeline.retained_bytes
                         != timeline
                             .events
                             .iter()
-                            .map(patchbay_model::DebuggerTimelineEvent::retained_bytes)
+                            .map(patchbay_application::DebuggerTimelineEvent::retained_bytes)
                             .sum::<usize>()
                     || timeline
                         .cursor
@@ -370,7 +373,8 @@ impl RendererSnapshot {
                             .iter()
                             .any(|subject| subject.identity == event.subject)
                             || event.value.as_ref().is_some_and(|value| {
-                                value.summary.len() > patchbay_model::MAX_DEBUGGER_SUMMARY_BYTES
+                                value.summary.len()
+                                    > patchbay_application::MAX_DEBUGGER_SUMMARY_BYTES
                             })
                             || event.related_subject.as_ref().is_some_and(|related| {
                                 !self
@@ -381,9 +385,9 @@ impl RendererSnapshot {
                             })
                     })
                     || timeline.trace.as_ref().is_some_and(|trace| {
-                        trace.steps.len() > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                        trace.steps.len() > patchbay_application::MAX_DEBUGGER_TIMELINE_EVENTS
                             || trace.missing_parent_sequences.len()
-                                > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                                > patchbay_application::MAX_DEBUGGER_TIMELINE_EVENTS
                             || trace.steps.iter().any(|step| {
                                 timeline.events.get(step.event_index).is_none_or(|event| {
                                     event.execution != trace.execution
@@ -398,11 +402,11 @@ impl RendererSnapshot {
             _ => true,
         };
         let invalid_debugger_control = self.debugger_control.as_ref().is_some_and(|control| {
-            control.schema != patchbay_model::DEBUGGER_CONTROL_SCHEMA
+            control.schema != patchbay_application::DEBUGGER_CONTROL_SCHEMA
                 || control.eligible_subjects.is_empty()
                 || control.eligible_subjects.len()
-                    > patchbay_model::MAX_DEBUGGER_BREAKPOINT_SUBJECTS
-                || (control.state != patchbay_model::DebuggerExecutionControlState::Stale
+                    > patchbay_application::MAX_DEBUGGER_BREAKPOINT_SUBJECTS
+                || (control.state != patchbay_application::DebuggerExecutionControlState::Stale
                     && self.debugger.as_ref().map(|debugger| &debugger.execution)
                         != Some(&control.execution))
                 || control.eligible_subjects.iter().any(|identity| {
@@ -412,7 +416,7 @@ impl RendererSnapshot {
                     })
                 })
                 || control.reason.as_ref().is_some_and(|reason| {
-                    reason.len() > patchbay_model::MAX_DEBUGGER_CONTROL_REASON_BYTES
+                    reason.len() > patchbay_application::MAX_DEBUGGER_CONTROL_REASON_BYTES
                 })
                 || control
                     .breakpoint_subject
@@ -422,9 +426,9 @@ impl RendererSnapshot {
                     .suspended_subject
                     .as_ref()
                     .is_some_and(|subject| !control.eligible_subjects.contains(subject))
-                || (control.state == patchbay_model::DebuggerExecutionControlState::Suspended)
+                || (control.state == patchbay_application::DebuggerExecutionControlState::Suspended)
                     != control.suspended_subject.is_some()
-                || (control.state == patchbay_model::DebuggerExecutionControlState::Stale
+                || (control.state == patchbay_application::DebuggerExecutionControlState::Stale
                     && control.reason.is_none())
         });
         if self.schema != SNAPSHOT_SCHEMA {

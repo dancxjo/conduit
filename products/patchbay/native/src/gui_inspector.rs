@@ -16,12 +16,12 @@ use crate::{
     gui_primitives::{frame_rect, icon_label, text, PixelRect},
     icon::Icon,
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
 use patchbay_graph::{PatchbayGraph, PatchbaySubjectKind};
-use patchbay_model::ApplicationTheme;
 
 pub(super) fn draw_inspector<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
@@ -189,7 +189,7 @@ fn draw_palette_inspection<D: DrawTarget<Color = Rgb888>>(
         );
         return;
     };
-    let Ok(palette) = patchbay_model::GearPalette::standard() else {
+    let Ok(palette) = conduit_semantic_catalog::GearPalette::standard() else {
         text(
             target,
             Point::new(x, 96),
@@ -275,7 +275,9 @@ fn port_contracts(ports: &[conduit_core::PortDescriptor]) -> String {
         .join("  ")
 }
 
-fn configuration_contracts(fields: &[patchbay_model::PaletteConfigurationSummary]) -> String {
+fn configuration_contracts(
+    fields: &[conduit_semantic_catalog::PaletteConfigurationSummary],
+) -> String {
     if fields.is_empty() {
         return "none".into();
     }
@@ -336,7 +338,7 @@ fn wrapped_text<D: DrawTarget<Color = Rgb888>>(
     value: &str,
     columns: usize,
     rows: usize,
-    color: patchbay_model::ThemeColor,
+    color: conduit_presentation::ThemeColor,
 ) {
     let characters = value.chars().collect::<Vec<_>>();
     for (row, chunk) in characters.chunks(columns).take(rows).enumerate() {
@@ -355,7 +357,7 @@ mod tests {
 
     #[test]
     fn palette_inspection_projects_every_authoritative_port_and_configuration_rule() {
-        let palette = patchbay_model::GearPalette::standard().unwrap();
+        let palette = conduit_semantic_catalog::GearPalette::standard().unwrap();
         let entry = palette
             .find(&conduit_core::KindId::from("flow/gate"))
             .unwrap();

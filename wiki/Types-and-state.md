@@ -1,5 +1,3 @@
-> **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
-
 ## Semantic domains may be open; execution may not be
 
 Conduit distinguishes **the set of values a type means** from **the resources required to represent and execute one actual value**.
@@ -18,7 +16,7 @@ The runtime promise is different:
 
 > **Semantic domains may be unbounded; execution resources may not be.**
 
-An actual value must still be representable by the selected form/back and admitted within finite resource envelopes. A semantically valid value that a particular host cannot represent is a representation/admission problem, not a reason to lie about the type's meaning.
+An actual value must still be representable by the selected code/back and admitted within finite resource envelopes. A semantically valid value that a particular host cannot represent is a representation/admission problem, not a reason to lie about the type's meaning.
 
 Variable-sized values and collections still need finite execution bounds. For example:
 
@@ -41,22 +39,21 @@ unbounded execution resource use    not admitted
 
 Bounds constrain realizable values and resource use. They do not themselves imply retention, persistence, allocation strategy, or authority.
 
-## Type versus form
+## type, info, and code
 
-A **type** is semantic meaning. A **form** is one concrete portable representation of that meaning.
+A **type** owns semantic meaning; **info** is one finite value of that type.
+A **code** owns a portable encoding contract. A variant case does not mean its
+byte tag, and changing a selected code does not redefine the type.
 
-```text
-type  what values mean
-form  how values are carried/stored in one compatibility contract
-```
+The current compact-code declaration maps a finite variant to `u8` tags, with
+checked mapping, finite extent/work, compatibility identity, and invalid-tag
+refusal. This does not claim arbitrary record layouts, byte orders, or every
+proposed wire/storage representation. See
+[[Current language surface|Current-language-surface]] for the current example.
 
-A variant case does not mean its byte tag; the tag belongs to a form. The same type may therefore have more than one form without changing semantic identity.
-
-Exact forms can expose facts such as width, tags, byte order, maximum encoded extent, malformed-input behavior, and compatibility identity to checking and planning without contaminating the type itself.
-
----
-
----
+The executable declaration remains `form`. The reassignment of that word to
+representation, paired with executable `plot`, remains proposed in
+[#4513](https://github.com/dancxjo/conduit/issues/4513).
 
 ## Checked type identity is not source spelling
 
@@ -74,8 +71,6 @@ Implementation/artifact identity is never a substitute for semantic type identit
 
 Provenance: #3724.
 
-
----
 
 ---
 
@@ -104,8 +99,6 @@ It is not nullable-everything, `null`, `nil`, `undefined`, or truthiness.
 `$T` is not weakened to “maybe initialized later.” Use `$T?` when the current answer may explicitly be none.
 
 Provenance: #3970, #4048 and established temporal ancestry.
-
----
 
 ---
 
@@ -156,11 +149,9 @@ latest: keep Temperature for this wake
 readings >> latest >> current
 ```
 
-Gear-name sugar resolves the one eligible input/output port by cord direction. Ambiguity must refuse and require explicit port spelling.
+gear-name sugar resolves the one eligible input/output port by cord direction. Ambiguity must refuse and require explicit port spelling.
 
 Provenance: #3956, #3977.
-
----
 
 ---
 
@@ -200,23 +191,21 @@ T     the value itself
 
 keep duration and explicit publication are different promises:
 
-> **If a plot says a value must last, planning selects a Back that can truthfully make it last or refuses. save is publication, not survival.**
+> **If a form says a value must last, planning selects a back that can truthfully make it last or refuses. save is publication, not survival.**
 
 Therefore:
 
-- Body-lived keep may survive Host/Boot replacement without authored save/load;
+- body-lived keep may survive host/boot replacement without authored save/load;
 - save produces one immutable independently addressable generation after complete validation;
 - load returns ordinary info and does not receive privileged access to a destination keep;
 - disk names durable data residence without implying POSIX paths/VFS/files;
 - generic non-content resource pools remain resources where data would be nonsense.
 
-Exact catalog Kind paths for save/load remain owned by their semantic catalog; do not freeze an incidental implementation spelling here.
+Exact catalog kind paths for save/load remain owned by their semantic catalog; do not freeze an incidental implementation spelling here.
 
 Living proof owner: #4116.
 
 Provenance: #3954, #3958.
-
----
 
 ---
 
@@ -241,8 +230,6 @@ These are finite structural info with deterministic checked identity. They are s
 Public fores should still prefer named semantic types where the shape has reusable domain meaning.
 
 Provenance: #3968.
-
----
 
 ---
 
@@ -289,8 +276,6 @@ Provenance: #3717, structured-info ancestry #1386/#1387.
 
 ---
 
----
-
 ## Quantities
 
 Units are semantic source, not decorative typography.
@@ -324,8 +309,6 @@ Provenance: #3975.
 
 ---
 
----
-
 ## Finite variants
 
 Semantic law is canonical: variants are finite typed structured info, with exact cases and optional bounded payloads.
@@ -355,11 +338,9 @@ Provenance: #4002.
 
 ---
 
----
-
 ## Resource/capability-valued ports
 
-Low-level plots may pass admitted runtime resources through typed ports, but **descriptive info cannot forge authority**.
+Low-level forms may pass admitted runtime resources through typed ports, but **descriptive info cannot forge authority**.
 
 ```text
 { address, length }        descriptive info

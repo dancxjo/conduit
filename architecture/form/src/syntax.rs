@@ -102,7 +102,15 @@ pub struct CodeMappingSyntax {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeSyntax {
     pub name: SpannedText,
+    /// Checked portable Type parameters. These are compile-time semantic
+    /// placeholders and never survive in a runtime value.
+    pub parameters: Vec<SpannedText>,
+    /// Checker-owned canonical generic declaration and argument provenance.
+    /// Parsed declarations always leave this empty.
+    pub(crate) generic_context: Option<String>,
     pub definition: TypeDefinitionSyntax,
+    /// Pure Boolean laws every value of this Type must satisfy.
+    pub invariants: Vec<Expression>,
     pub span: Span,
 }
 
@@ -139,6 +147,8 @@ pub enum TypeVariantPayloadSyntax {
 pub enum TypeExpressionSyntax {
     Reference {
         value_type: SpannedText,
+        /// Exact semantic arguments for an authored generic Type.
+        arguments: Vec<TypeExpressionSyntax>,
         maximum_bytes: Option<u64>,
         refinements: Vec<ValueRefinement>,
         span: Span,
@@ -149,6 +159,11 @@ pub enum TypeExpressionSyntax {
     },
     DataReference {
         value: Box<TypeExpressionSyntax>,
+        span: Span,
+    },
+    Collection {
+        element: Box<TypeExpressionSyntax>,
+        length: u16,
         span: Span,
     },
     Sequence {
@@ -318,6 +333,9 @@ pub struct RuntimePort {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueRefinement {
+    Finite {
+        span: Span,
+    },
     TextPattern {
         source: SpannedText,
         case_insensitive: bool,

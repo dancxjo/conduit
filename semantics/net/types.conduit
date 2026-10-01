@@ -24,6 +24,57 @@ type DnsQuery = {
     transport: NetworkTransport
 }
 
+type NetworkAddress =
+    dns-name Text <= 253B not in [""]
+    | ipv4 collection U8 = 4
+    | ipv6 collection U8 = 16
+
+type ResolvedNetworkAddress =
+    ipv4 collection U8 = 4
+    | ipv6 collection U8 = 16
+
+type NetworkEndpoint = {
+    address: NetworkAddress
+    port: U16 in 1..=65535
+    transport: NetworkTransport
+}
+
+type ResolvedNetworkEndpoint = {
+    address: ResolvedNetworkAddress
+    port: U16 in 1..=65535
+    transport: NetworkTransport
+}
+
+type DnsResolution = {
+    canonical-name: Text <= 253B not in [""]
+    candidates: sequence ResolvedNetworkEndpoint in 0..=4
+    ttl: DnsTtl
+}
+
+type NetworkReason = Text <= 4096B
+
+type DnsResult =
+    current DnsResolution
+    | stale {
+        resolution: DnsResolution
+        age-seconds: U64
+    }
+    | refused NetworkReason
+    | provider-lost NetworkReason
+
+type NetworkConnectionState =
+    requested NetworkEndpoint
+    | resolving Text <= 253B not in [""]
+    | connecting NetworkEndpoint
+    | connected {
+        local: NetworkEndpoint
+        peer: NetworkEndpoint
+    }
+    | stale-endpoint NetworkEndpoint
+    | refused NetworkReason
+    | lost NetworkReason
+    | closed
+
 type ApplicationNetworkRefusal =
     empty-name
     | name-too-large

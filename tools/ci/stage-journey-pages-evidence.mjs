@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
-import { cp, mkdir, readFile, readdir, rm } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 const GALLERY_SCHEMA = "conduit.visual-evidence-gallery/v1";
 const MAXIMUM_FILES = 128;
 const MAXIMUM_FILE_BYTES = 64 * 1024 * 1024;
 const MAXIMUM_TOTAL_BYTES = 192 * 1024 * 1024;
-const ROOT_ENTRIES = new Set([".nojekyll", "index.html", "gallery.json", "current", "commits"]);
+const ROOT_ENTRIES = new Set([".nojekyll", "index.html", "gallery.json", "catalogue.json", "verticals", "current", "commits"]);
+const VERTICALS = new Set(["index.html", "field-station-clock", "durable-notebook", "bare-metal-to-show", "pocket-theremin", "two-ollamas", "three-bodies"]);
 const JOURNEYS = new Map([
   ["one-form-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
   ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
@@ -28,6 +29,17 @@ await requireExactEntries(galleryRoot, ROOT_ENTRIES, "gallery root");
 await requireExactEntries(path.join(galleryRoot, "current"), new Set(JOURNEYS.keys()), "current journeys");
 await requireExactEntries(path.join(galleryRoot, "commits"), new Set([commit]), "commit history");
 await requireExactEntries(path.join(galleryRoot, "commits", commit), new Set(JOURNEYS.keys()), "commit journeys");
+await requireExactEntries(path.join(galleryRoot, "verticals"), VERTICALS, "vertical catalogue");
+for (const vertical of [...VERTICALS].filter((name) => name !== "index.html")) {
+  await requireExactEntries(path.join(galleryRoot, "verticals", vertical), new Set(["index.html"]), `vertical ${vertical}`);
+}
+const catalogue = JSON.parse(await readFile(path.join(galleryRoot, "catalogue.json"), "utf8"));
+if (catalogue.schema !== "conduit.vertical-journey-catalogue/v1" || catalogue.publication_commit !== commit
+  || catalogue.verticals?.length !== 6
+  || catalogue.verticals.filter((vertical) => vertical.state === "accepted" && vertical.accepted_source).length !== 3
+  || catalogue.verticals.filter((vertical) => vertical.state === "planned" && !("accepted_source" in vertical)).length !== 3) {
+  throw new Error("vertical journey catalogue is malformed or makes an unsupported evidence claim");
+}
 for (const [journey, files] of JOURNEYS) {
   const expected = new Set(files);
   await requireExactEntries(path.join(galleryRoot, "current", journey), expected, `current ${journey}`);

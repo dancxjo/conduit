@@ -11,6 +11,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use sha2::{Digest, Sha256};
 
+use crate::GrayScottParameters;
+
 pub const REACTION_DIFFUSION_STATE_INFO_ID: &str = "field/reaction-diffusion-state@1";
 pub const REACTION_DIFFUSION_REQUEST_INFO_ID: &str = "field/evolve-request@1";
 pub const REACTION_DIFFUSION_NUMERIC_PROFILE: &str = "field/gray-scott-ppm-sync-torus@1";
@@ -33,15 +35,6 @@ const REQUEST_MAGIC: [u8; 8] = *b"CNDFRQ01";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ReactionDiffusionFieldId(pub [u8; 16]);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct GrayScottParameters {
-    pub diffusion_u_ppm: u32,
-    pub diffusion_v_ppm: u32,
-    pub feed_ppm: u32,
-    pub kill_ppm: u32,
-    pub time_step_ppm: u32,
-}
 
 impl GrayScottParameters {
     pub const REFERENCE: Self = Self {

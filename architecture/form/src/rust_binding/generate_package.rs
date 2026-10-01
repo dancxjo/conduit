@@ -1,6 +1,4 @@
-use super::{
-    generate_rust_bindings, RustBindingGenerationError, RustBindingModule, RustBindingOptions,
-};
+use super::{RustBindingGenerationError, RustBindingModule, RustBindingOptions};
 use crate::prelude::*;
 use crate::{
     check_package_bundle, CheckedPackageBundle, ConduitLock, PackageBundleError, PackageCheckError,
@@ -16,6 +14,11 @@ pub enum LockedRustBindingGenerationError {
     MissingLockedSource(String),
     DuplicateLockedSource(String),
     UnexpectedLockedSource(String),
+    MissingExternalBinding(String),
+    DuplicateExternalBinding(String),
+    UnusedExternalBinding(String),
+    ExternalBindingIdentityDrift(String),
+    InvalidExternalRustPath(String),
     Bundle(PackageBundleError),
     NativeType(SyntaxCheckDiagnostic),
     Package(PackageCheckError),
@@ -35,6 +38,16 @@ pub struct LockedPackageRustBindingInput<'a> {
     /// Exact source for every package named by `lock.packages`, including root.
     pub locked_sources: &'a [LockedPackageBindingSource<'a>],
     pub lock: &'a ConduitLock,
+    /// Exact foreign semantic-Type identities and the Rust paths whose types
+    /// implement `NativeRustBinding` for them. Root-owned Types are never
+    /// accepted here and dependency bindings are never generated again.
+    pub external_bindings: &'a [ExternalNativeRustBinding<'a>],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ExternalNativeRustBinding<'a> {
+    pub semantic_identity: &'a str,
+    pub rust_type_path: &'a str,
 }
 
 /// Generates bindings only after every source bundle named by the lock has
@@ -101,14 +114,14 @@ pub fn generate_locked_package_rust_bindings(
         .collect::<BTreeMap<_, _>>();
     let mut semantic_catalog = StartupCatalog::new();
     let mut installed = BTreeSet::new();
-    let mut generated_types = Vec::new();
+    let mut foreign_types = Vec::new();
     install_dependencies(
         &input.root.bundle.package.path,
         &sources,
         &locked_packages,
         &mut installed,
         &mut semantic_catalog,
-        &mut generated_types,
+        &mut foreign_types,
         false,
     )?;
     let checked = check_package_bundle(
@@ -119,9 +132,109 @@ pub fn generate_locked_package_rust_bindings(
         &semantic_catalog,
     )
     .map_err(LockedRustBindingGenerationError::Package)?;
-    generated_types.extend(checked.native_types);
-    generate_rust_bindings(&generated_types, options)
-        .map_err(LockedRustBindingGenerationError::Generation)
+    let foreign_by_identity = foreign_types
+        .iter()
+        .map(|value_type| (value_type.identity.as_str(), value_type))
+        .collect::<BTreeMap<_, _>>();
+    let required = checked
+        .native_types
+        .iter()
+        .flat_map(|value_type| referenced_schema_identities(&value_type.value_type))
+        .filter(|identity| foreign_by_identity.contains_key(identity.as_str()))
+        .collect::<BTreeSet<_>>();
+    let mut external_names = BTreeMap::new();
+    for binding in input.external_bindings {
+        if !valid_rust_type_path(binding.rust_type_path) {
+            return Err(LockedRustBindingGenerationError::InvalidExternalRustPath(
+                binding.rust_type_path.into(),
+            ));
+        }
+        if external_names
+            .insert(
+                binding.semantic_identity.into(),
+                binding.rust_type_path.into(),
+            )
+            .is_some()
+        {
+            return Err(LockedRustBindingGenerationError::DuplicateExternalBinding(
+                binding.semantic_identity.into(),
+            ));
+        }
+        if !foreign_by_identity.contains_key(binding.semantic_identity) {
+            return Err(
+                LockedRustBindingGenerationError::ExternalBindingIdentityDrift(
+                    binding.semantic_identity.into(),
+                ),
+            );
+        }
+        if !required.contains(binding.semantic_identity) {
+            return Err(LockedRustBindingGenerationError::UnusedExternalBinding(
+                binding.semantic_identity.into(),
+            ));
+        }
+    }
+    if let Some(missing) = required
+        .iter()
+        .find(|identity| !external_names.contains_key(identity.as_str()))
+    {
+        return Err(LockedRustBindingGenerationError::MissingExternalBinding(
+            missing.clone(),
+        ));
+    }
+    super::generate::generate_rust_bindings_with_external_names(
+        &checked.native_types,
+        &[],
+        options,
+        &external_names,
+    )
+    .map_err(LockedRustBindingGenerationError::Generation)
+}
+
+fn referenced_schema_identities(value_type: &conduit_core::StructuredInfoType) -> BTreeSet<String> {
+    use conduit_core::StructuredInfoTypeShape;
+    let mut identities = BTreeSet::new();
+    fn visit(value_type: &conduit_core::StructuredInfoType, identities: &mut BTreeSet<String>) {
+        match value_type.shape() {
+            StructuredInfoTypeShape::Nominal {
+                schema,
+                representation,
+            } => {
+                identities.insert(schema.as_str().into());
+                visit(representation, identities);
+            }
+            StructuredInfoTypeShape::Record { schema, fields } => {
+                identities.insert(schema.as_str().into());
+                for field in fields {
+                    visit(field.value_type(), identities);
+                }
+            }
+            StructuredInfoTypeShape::Variant { schema, cases } => {
+                identities.insert(schema.as_str().into());
+                for case in cases {
+                    visit(case.payload_type(), identities);
+                }
+            }
+            StructuredInfoTypeShape::Sequence { element, .. }
+            | StructuredInfoTypeShape::Collection { element, .. } => visit(element, identities),
+            StructuredInfoTypeShape::Leaf(_) => {}
+        }
+    }
+    visit(value_type, &mut identities);
+    identities
+}
+
+fn valid_rust_type_path(path: &str) -> bool {
+    let path = path.strip_prefix("::").unwrap_or(path);
+    !path.is_empty()
+        && path.split("::").all(|segment| {
+            !segment.is_empty()
+                && (matches!(segment, "crate" | "self" | "super")
+                    || (segment.as_bytes()[0].is_ascii_alphabetic()
+                        || segment.as_bytes()[0] == b'_')
+                        && segment
+                            .bytes()
+                            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_'))
+        })
 }
 
 fn install_dependencies<'a>(
@@ -130,7 +243,7 @@ fn install_dependencies<'a>(
     locked_packages: &BTreeMap<&str, &crate::LockedPackage>,
     installed: &mut BTreeSet<String>,
     catalog: &mut StartupCatalog,
-    generated_types: &mut Vec<crate::CheckedNativeType>,
+    foreign_types: &mut Vec<crate::CheckedNativeType>,
     install_current: bool,
 ) -> Result<(), LockedRustBindingGenerationError> {
     if installed.contains(path) {
@@ -146,7 +259,7 @@ fn install_dependencies<'a>(
             locked_packages,
             installed,
             catalog,
-            generated_types,
+            foreign_types,
             true,
         )?;
     }
@@ -163,7 +276,7 @@ fn install_dependencies<'a>(
         .map_err(LockedRustBindingGenerationError::Bundle)?
         .install_shipped_types(catalog)
         .map_err(LockedRustBindingGenerationError::NativeType)?;
-        generated_types.extend(shipped);
+        foreign_types.extend(shipped);
     }
     installed.insert(path.into());
     Ok(())

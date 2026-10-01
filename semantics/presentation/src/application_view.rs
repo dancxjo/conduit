@@ -1,5 +1,9 @@
 //! Finite renderer-neutral application views and browser-independent actions.
 
+use crate::{
+    ApplicationComponent, ApplicationComponentCode, ApplicationEventKind, ApplicationEventKindCode,
+    ApplicationNodeState, ApplicationNodeStateCode, ApplicationViewRefusal,
+};
 use alloc::{string::String, vec::Vec};
 
 /// Portable encoded input to a retained application Form operation.
@@ -32,76 +36,11 @@ pub const MAX_APPLICATION_VIEW_BYTES: usize = 131_072;
 /// Phase-one views admit no application-selected external resources.
 pub const MAX_APPLICATION_VIEW_RESOURCES: usize = 0;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(u8)]
-pub enum ApplicationComponent {
-    Shell = 1,
-    Masthead = 2,
-    Main = 3,
-    Stack = 4,
-    Panel = 5,
-    Heading = 6,
-    Paragraph = 7,
-    Button = 8,
-    Status = 9,
-    Disclosure = 10,
-    PatchbayCanvas = 11,
-    Navigation = 12,
-    Code = 13,
-    ActionGroup = 14,
-    TextInput = 15,
-    Select = 16,
-    TextArea = 17,
-    Table = 18,
-    Grid = 19,
-    SuccessStatus = 20,
-    FailureStatus = 21,
-    Option = 22,
-    Summary = 23,
-    WarningStatus = 24,
-    MissingEvidence = 25,
-    StaleEvidence = 26,
-    RefusedEvidence = 27,
-    FailedEvidence = 28,
-    SuccessfulEvidence = 29,
-    DefinitionTable = 30,
-    Definition = 31,
-    CodeBlock = 32,
-    Artifact = 33,
-    FormField = 34,
-    FieldLabel = 35,
-    FieldHelp = 36,
-    FieldError = 37,
-    Stepper = 38,
-    Progress = 39,
-    ChoiceGroup = 40,
-    ChoiceGroupLabel = 41,
-    ChoiceOptionLabel = 42,
-    IndependentChoice = 43,
-    ExclusiveChoice = 44,
-    NavigationLink = 45,
-    Link = 46,
-    Separator = 47,
-}
-
-/// Renderer-neutral state for an interactive presentation node.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[repr(u8)]
-pub enum ApplicationNodeState {
-    #[default]
-    Ready = 1,
-    Busy = 2,
-    Unavailable = 3,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(u8)]
-pub enum ApplicationEventKind {
-    Activate = 1,
-    Change = 2,
-    Input = 3,
-    Toggle = 4,
-    Submit = 5,
+#[allow(clippy::derivable_impls)]
+impl Default for ApplicationNodeState {
+    fn default() -> Self {
+        Self::Ready
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,28 +66,6 @@ pub struct ApplicationView {
     pub revision: u32,
     pub nodes: Vec<ApplicationViewNode>,
     pub actions: Vec<ApplicationAction>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ApplicationViewRefusal {
-    Empty,
-    TooManyNodes,
-    TooDeep,
-    DuplicateKey,
-    UnknownParent,
-    TextTooLong,
-    InvalidControlValue,
-    TooManyActions,
-    ActionIdTooLong,
-    DuplicateAction,
-    UnknownAction,
-    InvalidNodeState,
-    MalformedEncoding,
-    OversizedEncoding,
-    UnsupportedVersion,
-    StaleRevision,
-    EventTooLarge,
-    QueuePressure,
 }
 
 impl ApplicationView {
@@ -353,14 +270,14 @@ impl ApplicationView {
         out.push(self.nodes.len() as u8);
         out.push(self.actions.len() as u8);
         for action in &self.actions {
-            out.push(action.event as u8);
+            out.push(ApplicationEventKindCode::encode(action.event)[0]);
             out.push(action.id.len() as u8);
             out.extend_from_slice(action.id.as_bytes());
         }
         for node in &self.nodes {
             out.push(node.parent.unwrap_or(u8::MAX));
-            out.push(node.component as u8);
-            out.push(node.state as u8);
+            out.push(ApplicationComponentCode::encode(node.component)[0]);
+            out.push(ApplicationNodeStateCode::encode(node.state)[0]);
             out.push(node.action.unwrap_or(u8::MAX));
             out.push(node.key.len() as u8);
             out.extend_from_slice(&(node.text.len() as u16).to_le_bytes());
@@ -491,74 +408,16 @@ impl<'a> Cursor<'a> {
 }
 
 pub(super) fn decode_event_kind(value: u8) -> Result<ApplicationEventKind, ApplicationViewRefusal> {
-    match value {
-        1 => Ok(ApplicationEventKind::Activate),
-        2 => Ok(ApplicationEventKind::Change),
-        3 => Ok(ApplicationEventKind::Input),
-        4 => Ok(ApplicationEventKind::Toggle),
-        5 => Ok(ApplicationEventKind::Submit),
-        _ => Err(ApplicationViewRefusal::MalformedEncoding),
-    }
+    ApplicationEventKindCode::decode(&[value])
+        .map_err(|_| ApplicationViewRefusal::MalformedEncoding)
 }
 
 fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRefusal> {
-    match value {
-        1 => Ok(ApplicationComponent::Shell),
-        2 => Ok(ApplicationComponent::Masthead),
-        3 => Ok(ApplicationComponent::Main),
-        4 => Ok(ApplicationComponent::Stack),
-        5 => Ok(ApplicationComponent::Panel),
-        6 => Ok(ApplicationComponent::Heading),
-        7 => Ok(ApplicationComponent::Paragraph),
-        8 => Ok(ApplicationComponent::Button),
-        9 => Ok(ApplicationComponent::Status),
-        10 => Ok(ApplicationComponent::Disclosure),
-        11 => Ok(ApplicationComponent::PatchbayCanvas),
-        12 => Ok(ApplicationComponent::Navigation),
-        13 => Ok(ApplicationComponent::Code),
-        14 => Ok(ApplicationComponent::ActionGroup),
-        15 => Ok(ApplicationComponent::TextInput),
-        16 => Ok(ApplicationComponent::Select),
-        17 => Ok(ApplicationComponent::TextArea),
-        18 => Ok(ApplicationComponent::Table),
-        19 => Ok(ApplicationComponent::Grid),
-        20 => Ok(ApplicationComponent::SuccessStatus),
-        21 => Ok(ApplicationComponent::FailureStatus),
-        22 => Ok(ApplicationComponent::Option),
-        23 => Ok(ApplicationComponent::Summary),
-        24 => Ok(ApplicationComponent::WarningStatus),
-        25 => Ok(ApplicationComponent::MissingEvidence),
-        26 => Ok(ApplicationComponent::StaleEvidence),
-        27 => Ok(ApplicationComponent::RefusedEvidence),
-        28 => Ok(ApplicationComponent::FailedEvidence),
-        29 => Ok(ApplicationComponent::SuccessfulEvidence),
-        30 => Ok(ApplicationComponent::DefinitionTable),
-        31 => Ok(ApplicationComponent::Definition),
-        32 => Ok(ApplicationComponent::CodeBlock),
-        33 => Ok(ApplicationComponent::Artifact),
-        34 => Ok(ApplicationComponent::FormField),
-        35 => Ok(ApplicationComponent::FieldLabel),
-        36 => Ok(ApplicationComponent::FieldHelp),
-        37 => Ok(ApplicationComponent::FieldError),
-        38 => Ok(ApplicationComponent::Stepper),
-        39 => Ok(ApplicationComponent::Progress),
-        40 => Ok(ApplicationComponent::ChoiceGroup),
-        41 => Ok(ApplicationComponent::ChoiceGroupLabel),
-        42 => Ok(ApplicationComponent::ChoiceOptionLabel),
-        43 => Ok(ApplicationComponent::IndependentChoice),
-        44 => Ok(ApplicationComponent::ExclusiveChoice),
-        45 => Ok(ApplicationComponent::NavigationLink),
-        46 => Ok(ApplicationComponent::Link),
-        47 => Ok(ApplicationComponent::Separator),
-        _ => Err(ApplicationViewRefusal::MalformedEncoding),
-    }
+    ApplicationComponentCode::decode(&[value])
+        .map_err(|_| ApplicationViewRefusal::MalformedEncoding)
 }
 
 fn decode_node_state(value: u8) -> Result<ApplicationNodeState, ApplicationViewRefusal> {
-    match value {
-        1 => Ok(ApplicationNodeState::Ready),
-        2 => Ok(ApplicationNodeState::Busy),
-        3 => Ok(ApplicationNodeState::Unavailable),
-        _ => Err(ApplicationViewRefusal::MalformedEncoding),
-    }
+    ApplicationNodeStateCode::decode(&[value])
+        .map_err(|_| ApplicationViewRefusal::MalformedEncoding)
 }

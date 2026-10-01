@@ -5,6 +5,7 @@
 //! dialect.
 
 use alloc::vec::Vec;
+use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
 use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
@@ -60,6 +61,13 @@ pub enum ValueConstraint {
         minimum_endpoint: IntervalEndpoint,
         maximum_endpoint: IntervalEndpoint,
     },
+    FloatFinite,
+    FloatRange {
+        minimum: Option<Vec<u8>>,
+        maximum: Option<Vec<u8>>,
+        minimum_endpoint: IntervalEndpoint,
+        maximum_endpoint: IntervalEndpoint,
+    },
     CanonicalMembership {
         members: Vec<Vec<u8>>,
         negated: bool,
@@ -103,6 +111,7 @@ pub enum ConstraintDefinitionError {
     InvalidSignedRange,
     InvalidFixedIntegerRange,
     InvalidQuantityRange,
+    InvalidFloatRange,
     EmptyMembership,
     TooManyMembershipValues,
     MembershipBytesExceeded,
@@ -129,6 +138,8 @@ pub enum ValueConstraintRefusal {
     SignedRange,
     FixedIntegerRange,
     QuantityRange,
+    FloatFinite,
+    FloatRange,
     Membership,
     TextPattern,
 }
@@ -267,6 +278,23 @@ impl ValueConstraint {
                 canonical.push(*minimum_endpoint as u8);
                 canonical.push(*maximum_endpoint as u8);
             }
+            Self::FloatFinite => canonical.push(7),
+            Self::FloatRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                canonical.push(8);
+                push_optional(canonical, minimum.as_ref(), |out, value| {
+                    push_bytes(out, value)
+                });
+                push_optional(canonical, maximum.as_ref(), |out, value| {
+                    push_bytes(out, value)
+                });
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
+            }
             Self::CanonicalMembership { members, negated } => {
                 canonical.push(4);
                 canonical.push(u8::from(*negated));
@@ -309,8 +337,10 @@ impl ValueConstraint {
             Self::SignedRange { .. } => 2,
             Self::FixedIntegerRange { .. } => 3,
             Self::QuantityRange { .. } => 4,
-            Self::CanonicalMembership { .. } => 5,
-            Self::TextPattern { .. } => 6,
+            Self::FloatFinite => 5,
+            Self::FloatRange { .. } => 6,
+            Self::CanonicalMembership { .. } => 7,
+            Self::TextPattern { .. } => 8,
         }
     }
 
@@ -415,6 +445,47 @@ impl ValueConstraint {
                 }) =>
             {
                 Err(ConstraintDefinitionError::WrongConstraintKind)
+            }
+            Self::FloatFinite if !float_kind(value_kind) => {
+                Err(ConstraintDefinitionError::WrongConstraintKind)
+            }
+            Self::FloatRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                if !float_kind(value_kind) {
+                    return Err(ConstraintDefinitionError::WrongConstraintKind);
+                }
+                let minimum = minimum
+                    .as_deref()
+                    .map(|value| {
+                        decode_float(value_kind, value)
+                            .ok_or(ConstraintDefinitionError::InvalidFloatRange)
+                    })
+                    .transpose()?;
+                let maximum = maximum
+                    .as_deref()
+                    .map(|value| {
+                        decode_float(value_kind, value)
+                            .ok_or(ConstraintDefinitionError::InvalidFloatRange)
+                    })
+                    .transpose()?;
+                if minimum.as_ref().is_some_and(|value| value.is_nan())
+                    || maximum.as_ref().is_some_and(|value| value.is_nan())
+                    || open_interval_is_invalid(
+                        minimum.as_ref(),
+                        maximum.as_ref(),
+                        *minimum_endpoint,
+                        *maximum_endpoint,
+                        |left, right| left.semantic_cmp(*right).unwrap_or(Ordering::Equal),
+                    )
+                {
+                    Err(ConstraintDefinitionError::InvalidFloatRange)
+                } else {
+                    Ok(())
+                }
             }
             Self::CanonicalMembership { members, .. } if members.is_empty() => {
                 Err(ConstraintDefinitionError::EmptyMembership)
@@ -551,6 +622,39 @@ impl ValueConstraint {
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::QuantityRange)
             }
+            Self::FloatFinite => decode_float(value_kind, canonical)
+                .filter(|value| value.is_finite())
+                .map(|_| ())
+                .ok_or(ValueConstraintRefusal::FloatFinite),
+            Self::FloatRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                let value = decode_float(value_kind, canonical)
+                    .ok_or(ValueConstraintRefusal::FloatRange)?;
+                if value.is_nan() {
+                    return Err(ValueConstraintRefusal::FloatRange);
+                }
+                let above = minimum.as_deref().is_none_or(|minimum| {
+                    decode_float(value_kind, minimum).is_some_and(|minimum| {
+                        value
+                            .semantic_cmp(minimum)
+                            .is_some_and(|order| lower_accepts(order, *minimum_endpoint))
+                    })
+                });
+                let below = maximum.as_deref().is_none_or(|maximum| {
+                    decode_float(value_kind, maximum).is_some_and(|maximum| {
+                        value
+                            .semantic_cmp(maximum)
+                            .is_some_and(|order| upper_accepts(order, *maximum_endpoint))
+                    })
+                });
+                (above && below)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::FloatRange)
+            }
             Self::CanonicalMembership { members, negated } => {
                 (members.iter().any(|member| member.as_slice() == canonical) != *negated)
                     .then_some(())
@@ -577,6 +681,53 @@ impl ValueConstraint {
                     .ok_or(ValueConstraintRefusal::TextPattern)
             }
         }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum FloatValue {
+    F32(crate::IeeeF32),
+    F64(crate::IeeeF64),
+}
+
+impl FloatValue {
+    fn is_nan(self) -> bool {
+        match self {
+            Self::F32(value) => value.value().is_nan(),
+            Self::F64(value) => value.value().is_nan(),
+        }
+    }
+
+    fn is_finite(self) -> bool {
+        match self {
+            Self::F32(value) => value.is_finite(),
+            Self::F64(value) => value.is_finite(),
+        }
+    }
+
+    /// IEEE total order over exact bits. NaNs are rejected by ordered
+    /// refinements before this point; signed zero remains ordered and distinct.
+    fn semantic_cmp(self, other: Self) -> Option<Ordering> {
+        match (self, other) {
+            (Self::F32(left), Self::F32(right)) => Some(left.cmp(&right)),
+            (Self::F64(left), Self::F64(right)) => Some(left.cmp(&right)),
+            _ => None,
+        }
+    }
+}
+
+fn float_kind(value_kind: &str) -> bool {
+    matches!(
+        crate::primitive_info_kind(value_kind),
+        Some(crate::PrimitiveInfoKind::F32 | crate::PrimitiveInfoKind::F64)
+    )
+}
+
+fn decode_float(value_kind: &str, canonical: &[u8]) -> Option<FloatValue> {
+    match crate::primitive_info_kind(value_kind)? {
+        crate::PrimitiveInfoKind::F32 => crate::IeeeF32::decode(canonical).map(FloatValue::F32),
+        crate::PrimitiveInfoKind::F64 => crate::IeeeF64::decode(canonical).map(FloatValue::F64),
+        _ => None,
     }
 }
 

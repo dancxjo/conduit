@@ -2,11 +2,11 @@ Conduit treats evidence as typed truth with a scope.
 
 A passing test, browser run, emulator boot, physical device run, and human enactment establish different things. One does not magically upgrade into another.
 
-## Signs
+## signs
 
 A **sign** is bounded evidence about what is true or what happened.
 
-Signs can record:
+signs can record:
 
 - selection;
 - preparation;
@@ -90,7 +90,7 @@ A bounded causal trace should also admit truncation honestly instead of silently
 
 A screenshot should be correlated to the exact event it claims to illustrate.
 
-Three Bodies explicitly learned this lesson: reusing one stale frame as birth, lull, failure, and recovery evidence is worse than omitting a frame.
+Three bodies explicitly learned this lesson: reusing one stale frame as birth, lull, failure, and recovery evidence is worse than omitting a frame.
 
 See the repository's [visual evidence guide](https://github.com/dancxjo/conduit/blob/dev/docs/visual-evidence.md).
 

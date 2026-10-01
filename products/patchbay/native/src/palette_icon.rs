@@ -1,10 +1,10 @@
 //! Native consumption of the canonical palette icon identity and generated masks.
 
+use conduit_semantic_catalog::PaletteIconKey;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Pixel, Point},
 };
-use patchbay_model::PaletteIconKey;
 
 use crate::{
     icon::{draw_icon, Icon},

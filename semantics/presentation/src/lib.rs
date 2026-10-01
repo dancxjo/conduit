@@ -14,19 +14,31 @@ extern crate alloc;
 #[allow(dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+
+    impl ThemeColor {
+        pub const fn from_rgb(red: u8, green: u8, blue: u8) -> Self {
+            Self { red, green, blue }
+        }
+
+        pub const fn packed_rgb(self) -> u32 {
+            ((self.red as u32) << 16) | ((self.green as u32) << 8) | self.blue as u32
+        }
+    }
 }
 pub use generated::{
-    AdmittedNavigationDestination, ChoiceMultiplicity, CompositionItemKind,
-    CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition,
-    FaceUtteranceClauseKind, FaceUtteranceProvenance, FaceUtteranceProvenanceAction,
-    FaceUtteranceProvenanceActionArgument, FaceUtteranceProvenanceComposition,
-    FaceUtteranceProvenanceProperty, FaceUtteranceProvenanceRelationship,
-    FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceText, GeneratedActionAffordance,
-    GeneratedContentRole, GeneratedManifestationDisposition, GraphicsClipClass,
-    GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode,
+    AdmittedNavigationDestination, ApplicationComponent, ApplicationComponentCode,
+    ApplicationEventKind, ApplicationEventKindCode, ApplicationNodeState, ApplicationNodeStateCode,
+    ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind, CompositionItemKindCode,
+    CompositionRole, CompositionRoleCode, EvidenceDisposition, FaceUtteranceClauseKind,
+    FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
+    FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceProperty,
+    FaceUtteranceProvenanceRelationship, FaceUtteranceProvenanceSubject,
+    FaceUtteranceProvenanceText, GeneratedActionAffordance, GeneratedContentRole,
+    GeneratedManifestationDisposition, GraphicsClipClass, GraphicsCommandKind,
+    GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode, GraphicsPoint,
     GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole, GraphicsTextRoleCode,
     LayoutAlignment, LayoutAxis, PresentationDisclosureLevel, PresentationMechanismKind,
-    PresentationTemporalRole, StatusKind,
+    PresentationTemporalRole, StatusKind, ThemeColor,
 };
 
 mod application_event;

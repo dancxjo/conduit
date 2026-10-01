@@ -595,6 +595,46 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(!index.contains("presentation Host"));
     assert!(index.contains("journey-card"));
     assert!(index.contains("Follow the evidence"));
+    assert!(index.contains("Browse every closed and upcoming vertical"));
+    let catalogue: serde_json::Value =
+        serde_json::from_slice(&fs::read(site_root.join("catalogue.json")).unwrap()).unwrap();
+    assert_eq!(catalogue["schema"], "conduit.vertical-journey-catalogue/v1");
+    assert_eq!(catalogue["publication_commit"], commit);
+    assert_eq!(catalogue["verticals"].as_array().unwrap().len(), 6);
+    assert_eq!(
+        catalogue["verticals"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|vertical| vertical["state"] == "accepted"
+                && vertical["accepted_source"].is_string())
+            .count(),
+        3
+    );
+    assert_eq!(
+        catalogue["verticals"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|vertical| vertical["state"] == "planned"
+                && vertical.get("accepted_source").is_none())
+            .count(),
+        3
+    );
+    for slug in [
+        "field-station-clock",
+        "durable-notebook",
+        "bare-metal-to-show",
+        "pocket-theremin",
+        "two-ollamas",
+        "three-bodies",
+    ] {
+        assert!(site_root
+            .join("verticals")
+            .join(slug)
+            .join("index.html")
+            .is_file());
+    }
     assert!(index.contains("Current x86_64 ConduitOS emulator console evidence"));
     assert!(scenario.contains("1440x1000"));
     assert!(scenario.contains("Exact provenance"));

@@ -94,7 +94,7 @@ fn bounded_musician_stress_ends_in_immediate_silence() {
     assert_eq!(synth.active_voice_count(), 8);
     assert_eq!(synth.stop(), 8);
     assert_eq!(synth.active_voice_count(), 0);
-    assert!(synth.voice_for(NoteOccurrenceId(1)).is_none());
+    assert!(synth.voice_for(NoteOccurrenceId::new(1).unwrap()).is_none());
 
     block.fill(i16::MAX);
     let summary = synth.render(&mut block);

@@ -1,125 +1,59 @@
+# Conduit handbook
+
 **One continuing computer, made from the computers you have.**
 
-Conduit is a programming system built around one durable idea: **say what the work means before deciding which present machine will perform it**.
+Conduit separates portable meaning from the machinery that realizes it.
+A **form** says what should happen, a **plan** selects one exact realization,
+and a **play** executes that plan. A **body** is the logical computer that can
+continue as its hosts and connections change.
 
-A Conduit **body** may live on one machine or span browsers, servers, microcontrollers, robots, and other hosts. Authored meaning stays portable; planning examines the machinery and authority that actually exist; execution follows one exact admitted plan.
+## Learn
 
-> **Meaning stays portable because realization stays exact.**
+Read these in order, or stop when you have enough context to try something:
 
-If you want the philosophy before the syntax, begin with [[Why Conduit|Why-Conduit]].
+1. [[Why Conduit|Why-Conduit]]: the purpose and the distinctions that make it work
+2. [[Architecture tour|Architecture-tour]]: follow one form into a plan and play
+3. [[Conduitese]]: the language's basic shapes
+4. [[Conduitese by example|Conduitese-by-example]]: read real source, then compose it
 
-## The five-minute mental model
+Keep the [[glossary|Glossary]] nearby; the terms are grouped by what they do.
 
-Learn the nouns in small groups; they are deliberately not one giant hierarchy.
+## Use
 
-| cluster | vocabulary | distinction |
-|---|---|---|
-| information | **type / form** | what a value means / one concrete portable representation |
-| semantic work | **kind / fore / back** | what work means / its user-visible callable signature / one realization |
-| authored execution | **plot / plan / play** | intended happening / admitted realization / realization in motion |
-| graph realization | **gear / port / cord / line** | occurrence / endpoint / semantic connection / concrete carriage |
-| continuity | **body / part / host / boot / wake / lull** | enduring computer / membership / machinery / incarnation / activity / repose |
-| time and storage | **keep / data** | retained current truth / independently addressable immutable generation |
-| human encounter | **face / mask / show** | human meaning / user-agent realization / concrete manifestation |
-| evidence | **sign** | bounded evidence about what was true or happened |
-
-The words matter because each boundary prevents one kind of mechanism from quietly becoming another kind of meaning.
-
-## Plot, plan, play
-
-The simplest architectural story is:
-
-```text
-user-authored plot
-      +
-current body, hosts, backs, resources, authority, lines
-      ↓
-     plan
-      ↓
-     play
-```
-
-A **plot** says what should happen. A **plan** says exactly how the current world can make it happen. A **play** is that plan happening.
-
-If a host disappears, the plot need not change; if another eligible back exists, planning can produce a new realization without pretending the semantic work itself changed.
-
-## Meaning has forms; work has backs
-
-Information and work each separate semantics from realization:
-
-```text
-type  → form
-kind  → back
-```
-
-A **type** says what a value means; a **form** says how values of that type may be carried or stored.
-
-A **kind** says what work means; a **back** is one concrete way to realize it. The **fore** is the function-like signature presented to the author: the startup parameters and typed ports through which that kind or plot is called.
-
-This symmetry is central to Conduit: compatibility facts, machine layouts, libraries, devices, and transports should not become semantic identity merely because they were convenient first implementations.
-
-## A tiny authored plot
-
-The canonical vocabulary is moving from historical `form` to **plot**, while **form** is being reassigned to portable type representation. During that migration, checked-in source may temporarily use the older spelling; [[Current language surface|Current-language-surface]] records the exact implemented grammar.
-
-Conceptually:
-
-```conduit
-plot hello {
-    upper: text/upper
-    show: presentation/text
-
-    "Hello, world." >> upper >> show
-}.
-```
-
-The plot asks for uppercase text and presentation. It does **not** say Linux, browser, stdout, framebuffer, WebSocket, process, or CPU. Those are realization facts.
-
-## Why this is more than portability
-
-Conduit is not trying to erase the machine.
-
-It wants the machine to be **more visible at the right layer**:
-
-- source owns semantic intent;
-- hosts truthfully describe what they can offer;
-- planning makes exact choices;
-- plays execute only those choices;
-- signs record bounded evidence;
-- replacement planning happens when reality invalidates the old realization.
-
-The same discipline appears elsewhere: cords are not lines, bodies are not hosts, keeps are not saved data, faces are not shows, evidence is not authority, and quiescence is not completion.
-
-## What is Conduitese?
-
-**Conduitese is Conduit's human-authored source language.** It describes portable semantic plots, semantic types and their forms, and construction truth without granting portable source an escape hatch into arbitrary host APIs.
-
-It is graph-oriented, typed, temporally explicit, resource-conscious, and designed so important effects, bounds, state, terminals, and relationships remain inspectable.
-
-Read [[Conduitese]] for the language model, then [[Conduitese by example|Conduitese-by-example]] for annotated source.
-
-## Suggested reading path
-
-1. [[Why Conduit|Why-Conduit]] — the enduring architectural wager.
-2. [[Architecture tour|Architecture-tour]] — follow meaning into planning and execution.
-3. [[Conduitese]] — how authored source expresses that meaning.
-4. [[Bodies, hosts, plans and plays|Bodies-hosts-plans-and-plays]] — continuity and realization.
-5. [[State, time and data|State-time-and-data]] — temporal meaning, keep, save, load.
-6. [[Lines, networking and replanning|Lines-networking-and-replanning]] — semantic connection versus carriage.
-7. [[Face, Mask and Show|Face-Mask-and-Show]] — human meaning versus rendering.
-8. [[Evidence and proof|Evidence-and-proof]] — what observations actually establish.
+- [[Start here|Start-here]]: open the product or run your first hosted form
+- [Try forms](https://github.com/dancxjo/conduit/blob/dev/docs/try-forms.md): check and run the reviewed examples
+- [[Bodies, hosts, plans and plays|Bodies-hosts-plans-and-plays]]: understand lifecycle and realization
+- [[State, time and data|State-time-and-data]]: choose the right temporal promise
+- [[Lines, networking and replanning|Lines-networking-and-replanning]]: understand distributed work
+- [[Face, mask and show|Face-Mask-and-Show]]: separate human meaning from rendering
+- [[ConduitOS and real machines|ConduitOS-and-real-machines]]: find the target and hardware routes
 
 ## Reference
 
-The learning pages explain the ideas; these pages define the exact current contracts:
+- [[Current language surface|Current-language-surface]]: supported spellings and executable evidence
+- [[Architecture]]: vocabulary, semantic paths, and the callable fore
+- [[Forms and flow|Forms-and-flow]]: composition, expressions, and completion
+- [[Types and state|Types-and-state]]: values, bounds, retention, and data
+- [[Terminals and concurrency|Terminals-and-concurrency]]: close, failure, cancellation, and pressure
+- [[Effects and realization|Effects-and-realization]]: effects and exact realization
+- [[Packs, hosts and bodies|Packs-hosts-and-bodies]]: source composition and construction
+- [Architecture contracts](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/README.md): implementation-facing references by topic
 
-- [[Current language surface|Current-language-surface]]
-- [[Architecture reference|Architecture]]
-- [[Forms and flow reference|Forms-and-flow]]
-- [[Types and state reference|Types-and-state]]
-- [[Terminals and concurrency reference|Terminals-and-concurrency]]
-- [[Effects and realization reference|Effects-and-realization]]
-- [[Packs, hosts and bodies reference|Packs-hosts-and-bodies]]
-- [[Canon governance|Canon-governance]]
+## Status and maintenance
 
-Conduit is experimental software. Hosted proof, browser proof, emulator proof, physical-hardware proof, and released-product proof deliberately remain different claims.
+[[Evidence and proof|Evidence-and-proof]] explains what each proof establishes.
+[[Project status and roadmap|Project-status-and-roadmap]] points to the current
+capability summary and open work. Development, accepted-release, and published
+product truth are separate; check the
+[current product surface](https://dancxjo.github.io/conduit/current-product.html)
+for exact identities.
+
+These pages teach current executable `form` and `code` spelling. The
+`plot`/`form` reassignment in [#4513](https://github.com/dancxjo/conduit/issues/4513)
+is a proposal, not a parser feature.
+
+The wiki is published from
+[`wiki/` on `dev`](https://github.com/dancxjo/conduit/tree/dev/wiki).
+Contribute edits there through a pull request; direct wiki edits are overwritten
+by the repository's publication workflow. [[Canon governance|Canon-governance]]
+retains design authority and provenance without making old issues the reading order.

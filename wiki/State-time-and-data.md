@@ -88,12 +88,12 @@ G still names immutable C
 
 That is why the Durable Notebook vertical refuses "autosave fiction." See [#4116](https://github.com/dancxjo/conduit/issues/4116).
 
-## Live versus finite plots
+## Live versus finite forms
 
-A live plot:
+A live form:
 
 ```conduit
-plot clock-demo {
+form clock-demo {
     clock: time/every(1s)
     clock >> presentation/tick
 }
@@ -101,10 +101,10 @@ plot clock-demo {
 
 can quiesce and resume.
 
-A finite-on-drain plot:
+A finite-on-drain form:
 
 ```conduit
-plot upper (
+form upper (
     >> input: Text
     output: Text >>
 ) {
@@ -126,7 +126,7 @@ That state is **quiescence**.
 active → quiescent → active
 ```
 
-Later admitted work can wake the same play again. Semantic completion is stronger: it means the authored plot has supplied a completion witness, such as structural drain on a plot explicitly marked finite-on-drain.
+Later admitted work can wake the same play again. Semantic completion is stronger: it means the authored form has supplied a completion witness, such as structural drain on a form explicitly marked finite-on-drain.
 
 The distinction prevents an idle reactive system from being mistaken for a finished one.
 
@@ -135,7 +135,7 @@ The distinction prevents an idle reactive system from being mistaken for a finis
 External conditions can activate source gears:
 
 ```conduit
-plot scheduled-reminder {
+form scheduled-reminder {
     source: notification/deterministic-reminder
     deliver: notification/deliver-reminder
 

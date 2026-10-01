@@ -1,9 +1,12 @@
 use super::canonical::{encode_value, field, identity};
 use super::{
-    BoundKind, HumanInteractionProposal, InteractionApplicationOutcome,
-    InteractionApplicationResult, InteractionContract, InteractionCurrentState, InteractionFamily,
-    InteractionProposalPayload, InteractionProposalQueue, InteractionRefusal, InteractionValue,
-    MAXIMUM_INTERACTION_SELECTIONS,
+    HumanInteractionProposal, InteractionApplicationResult, InteractionContract,
+    InteractionCurrentState, InteractionFamily, InteractionProposalPayload,
+    InteractionProposalQueue, InteractionValue, MAXIMUM_INTERACTION_SELECTIONS,
+};
+use crate::{
+    BoundKind, InteractionApplicationOutcome, InteractionRefusal, RealizationRangePolicy,
+    ScalarQuantization,
 };
 use alloc::{string::String, vec::Vec};
 use conduit_core::{KindId, Quantity, QuantityUnit, QUANTITY_INFO_ID};
@@ -101,18 +104,6 @@ fn canonical_rule(values: &[InteractionValue]) -> Vec<u8> {
         encode_value(&mut output, value);
     }
     output
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RealizationRangePolicy {
-    Refuse,
-    Clamp,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ScalarQuantization {
-    Exact,
-    Nearest,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

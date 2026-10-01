@@ -40,6 +40,30 @@ type StreamingRecognitionRefusal =
     bound_exceeded
     | invalid_event
 
+type SpeechRecognitionAudioDigest = collection U8 = 32
+
+type SpeechRecognitionProviderIdentity = Text <= 128B not in [""]
+
+type RecognizedSpeechText = Text <= 256B not in [""]
+
+type SpeechRecognitionResult =
+    recognized {
+        audio-extent-bytes: U32 in 0..=786432
+        audio-sha256: SpeechRecognitionAudioDigest
+        provider-identity: SpeechRecognitionProviderIdentity
+        text: RecognizedSpeechText
+    }
+    | no-speech {
+        audio-extent-bytes: U32 in 0..=786432
+        audio-sha256: SpeechRecognitionAudioDigest
+        provider-identity: SpeechRecognitionProviderIdentity
+    }
+
+type SpeechRecognitionAttempt =
+    result SpeechRecognitionResult
+    | resource-unavailable
+    | failed SpeechRecognitionAudioDigest
+
 type LiveConversationSpeechRequirements = {
     recognition-audio-bytes: U32
     recognized-text-bytes: U16

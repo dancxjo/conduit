@@ -1,7 +1,8 @@
 //! Portable exact demand for one finite PCM render interval.
 
-use crate::SoundInfoError;
+use crate::{AudioRenderDemand, SoundInfoError};
 use conduit_core::semantic_digest;
+use core::hash::{Hash, Hasher};
 
 pub const AUDIO_RENDER_DEMAND_INFO_ID: &str = "audio/render-demand@1";
 pub const AUDIO_RENDER_DEMAND_ENCODED_LEN: usize = 22;
@@ -12,14 +13,6 @@ pub const AUDIO_RENDER_DEMAND_ENCODED_LEN: usize = 22;
 /// realization may obtain the demand from a timer, callback, or physical
 /// device clock, but the portable synth sees only the exact interval it must
 /// render.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AudioRenderDemand {
-    pub clock_id: u64,
-    pub start_frame: u64,
-    pub frame_count: u16,
-    pub sequence: u32,
-}
-
 impl AudioRenderDemand {
     pub fn new(
         clock_id: u64,
@@ -36,20 +29,25 @@ impl AudioRenderDemand {
         start_frame
             .checked_add(u64::from(frame_count))
             .ok_or(SoundInfoError::OutOfRange("render-frame-interval"))?;
+        // The public constructor has already proved every authored field bound
+        // and the exact frame-interval law.  Building the generated carrier
+        // directly keeps that proof out of the real-time render loop: the
+        // general structured validator remains available at native/portable
+        // boundaries without allocating again for each audio block.
         Ok(Self {
             clock_id,
-            start_frame,
             frame_count,
             sequence,
+            start_frame,
         })
     }
 
     pub fn encode(self) -> [u8; AUDIO_RENDER_DEMAND_ENCODED_LEN] {
         let mut out = [0; AUDIO_RENDER_DEMAND_ENCODED_LEN];
-        out[0..8].copy_from_slice(&self.clock_id.to_le_bytes());
-        out[8..16].copy_from_slice(&self.start_frame.to_le_bytes());
-        out[16..18].copy_from_slice(&self.frame_count.to_le_bytes());
-        out[18..22].copy_from_slice(&self.sequence.to_le_bytes());
+        out[0..8].copy_from_slice(&self.clock_id().to_le_bytes());
+        out[8..16].copy_from_slice(&self.start_frame().to_le_bytes());
+        out[16..18].copy_from_slice(&self.frame_count().to_le_bytes());
+        out[18..22].copy_from_slice(&self.sequence().to_le_bytes());
         out
     }
 
@@ -70,6 +68,12 @@ impl AudioRenderDemand {
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(AUDIO_RENDER_DEMAND_INFO_ID, &self.encode())
+    }
+}
+
+impl Hash for AudioRenderDemand {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.encode().hash(state);
     }
 }
 

@@ -168,6 +168,17 @@ type GraphicsClipClass =
     | partially_clipped
     | fully_clipped
 
+type ThemeColor = {
+    red: U8
+    green: U8
+    blue: U8
+}
+
+type GraphicsPoint = {
+    x: I16
+    y: I16
+}
+
 type GeneratedManifestationDisposition =
     produced
     | truncated
@@ -184,3 +195,90 @@ type GeneratedActionAffordance = {
     action_identity: Text <= 128B not in [""]
     source_presentation_revision: U64
 }
+
+type ApplicationComponent =
+    shell
+    | masthead
+    | main
+    | stack
+    | panel
+    | heading
+    | paragraph
+    | button
+    | status
+    | disclosure
+    | patchbay_canvas
+    | navigation
+    | code
+    | action_group
+    | text_input
+    | select
+    | text_area
+    | table
+    | grid
+    | success_status
+    | failure_status
+    | option
+    | summary
+    | warning_status
+    | missing_evidence
+    | stale_evidence
+    | refused_evidence
+    | failed_evidence
+    | successful_evidence
+    | definition_table
+    | definition
+    | code_block
+    | artifact
+    | form_field
+    | field_label
+    | field_help
+    | field_error
+    | stepper
+    | progress
+    | choice_group
+    | choice_group_label
+    | choice_option_label
+    | independent_choice
+    | exclusive_choice
+    | navigation_link
+    | link
+    | separator
+
+code presentation/application-component = ApplicationComponent as u8 from 1
+
+type ApplicationNodeState =
+    ready
+    | busy
+    | unavailable
+
+code presentation/application-node-state = ApplicationNodeState as u8 from 1
+
+type ApplicationEventKind =
+    activate
+    | change
+    | input
+    | toggle
+    | submit
+
+code presentation/application-event-kind = ApplicationEventKind as u8 from 1
+
+type ApplicationViewRefusal =
+    empty
+    | too_many_nodes
+    | too_deep
+    | duplicate_key
+    | unknown_parent
+    | text_too_long
+    | invalid_control_value
+    | too_many_actions
+    | action_id_too_long
+    | duplicate_action
+    | unknown_action
+    | invalid_node_state
+    | malformed_encoding
+    | oversized_encoding
+    | unsupported_version
+    | stale_revision
+    | event_too_large
+    | queue_pressure

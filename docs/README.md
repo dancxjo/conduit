@@ -1,74 +1,72 @@
-# Conduit documentation
+# Documentation
 
-Start with what you want to do. These guides separate the project's purpose,
-current capabilities, practical workflows, and detailed design references.
+Choose the path for what you want to learn or do. Current guidance lives here
+and beside the code it describes; old checkpoints have a separate history index.
 
-## Start here
+## Learn the model and language
 
-- [Project introduction](../README.md): the idea, working products, and a first command.
-- [body Workspace](https://dancxjo.github.io/conduit/workspace/): birth or return to a body and use its resident tutorial and inspection forms.
-- [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/): 17 narrated emulator screenshots with runtime evidence.
-- [Current status](../STATUS.md): what exists and the limits of its proof.
-- [Roadmap](roadmap.md): current open work and paused campaigns.
-- [Contributing](../CONTRIBUTING.md): setup, finding a change, checking it, and opening a PR.
+1. [Project introduction](../README.md): purpose and the first hosted command
+2. [Why Conduit](../wiki/Why-Conduit.md) and [architecture tour](../wiki/Architecture-tour.md): meaning, realization, and continuity
+3. [Conduitese](../wiki/Conduitese.md) and [annotated examples](../wiki/Conduitese-by-example.md): learn the language through source
+4. [Glossary](../wiki/Glossary.md): short definitions grouped by role
 
-## Build and use
+The [handbook](../wiki/Home.md) is also published as the
+[GitHub wiki](https://github.com/dancxjo/conduit/wiki).
 
-| Guide | Use it for |
+## Run, build, and inspect
+
+| Task | Guide |
 |---|---|
-| [Try Conduit](try-conduit.md) | Local hosted, browser, Patchbay, and ConduitOS entrances |
-| [Try forms](try-forms.md) and [form collection](../forms/README.md) | Examples, authoring, and checking reusable programs |
-| [Product surfaces](../products/README.md) | body Workspace, compatibility/development surfaces, and the CLI |
-| [Targets](../targets/README.md) | Platform setup, make, and target-specific proof |
-| [body building](body-building.md) | body-bound target artifacts and deployment boundaries |
-| [host make](host-make.md) | PROFILE, BUILD, IMAGE, and make packages |
-| [Supply-chain export](supply-chain-export.md) | OCI transport, in-toto/SLSA provenance, and proof separation |
-| [User-operated relay](user-operated-relay.md) | Provision and run one private outbound-only remote rendezvous path |
-| [Visual evidence](visual-evidence.md) | Screenshots, provenance, reproduction, and publication |
+| See the product before building | [body Workspace](https://dancxjo.github.io/conduit/workspace/), [ConduitOS journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/) |
+| Run hosted, browser, native workbench, or ConduitOS | [Try Conduit](try-conduit.md) |
+| Read, check, and run examples | [Try forms](try-forms.md), [reviewed collection](../forms/README.md) |
+| Choose a product or target | [Products](../products/README.md), [targets](../targets/README.md) |
+| Build a body or host artifact | [body building](body-building.md), [host make](host-make.md) |
+| Understand birth, lifecycle, and inspection | [Self-hosted biography](self-hosted-biography.md), [Patchbay](../products/patchbay/README.md) |
+| Run a private remote rendezvous | [User-operated relay](user-operated-relay.md) |
+| Export a package and provenance | [Supply-chain export](supply-chain-export.md) |
+| Retain or reproduce visual proof | [Visual evidence](visual-evidence.md) |
 
-## Understand the design
+## Look up an exact contract
 
-The [canon](conduit-canon.md) is the durable architectural explanation. The
-[architecture index](architecture/README.md) groups the detailed contracts and
-clearly identifies historical milestone designs.
+- [Current language surface](../wiki/Current-language-surface.md): implemented spellings, examples, and proof limits
+- [Language topic reference](../wiki/Home.md#reference): flow, types, terminals, effects, and construction
+- [Architecture reference](architecture/README.md): contracts grouped by responsibility
+- [Canon](conduit-canon.md): enduring direction and architectural invariants
+- [Repository map](repository-layout.md): which owner a change belongs to
 
-| Topic | References |
-|---|---|
-| Runtime and hosts | [host architecture](host-architecture.md), [compute resources](r2-compute-resources.md), [timing](timing-profile.md) |
-| Human interfaces | [Face, Mask, and Show](presenter-hourglass.md), [input semantics](input-semantics.md) |
-| Ownership | [Repository layout](repository-layout.md), [target families](../targets/README.md) |
-| body evidence | [Self-hosted biography](self-hosted-biography.md), [body lifecycle contracts](architecture/body-lifecycle-waists.md) |
+## Contribute and verify
 
-## Develop and verify
+- [Contributing](../CONTRIBUTING.md): setup and the ordinary PR workflow
+- [CI guide](contributing/ci.md): admission, combined integration, and promotion
+- [Local build storage](local-build-storage.md): build headroom and storage management
+- [Proof dependency boundary](proof-dependency-boundary.md) and [browser proof](../proof/browser/README.md): validation ownership and tooling
+- [Working agreement](../AGENTS.md) and [environment stewardship](contributing/agent-operations.md): contributor/agent constraints
+- [Security acceptance](security/adversarial-acceptance.md): adversarial proof boundaries
 
-- [CI for contributors](contributing/ci.md): PR admission, development integration, and releases.
-- [Local build storage](local-build-storage.md): disk-backed builds and storage management.
-- [Proof dependency boundary](proof-dependency-boundary.md) and [browser proof](../proof/browser/README.md): where validation code belongs.
-- [Contributor and agent rules](../AGENTS.md): shared implementation and collaboration constraints.
+## Check status or history
 
-## Historical records
+- [Current status](../STATUS.md): development capabilities and what their evidence proves
+- [Roadmap](roadmap.md): unfinished and paused work
+- [Current product truth](https://dancxjo.github.io/conduit/current-product.html): exact development, release, publication, and receipt identities
+- [History](history/README.md): retained milestone, design, benchmark, and physical records
+- [Reuse ledger](reuse-ledger.md): recovered ideas and reviewed provenance
 
-[Recorded acceptance milestones](history/accepted-milestones.md) preserve the
-old status ledger, including its exact receipts and checkpoint-specific limits.
-The [reuse ledger](reuse-ledger.md) preserves recovered ideas and provenance.
-[CI impact benchmarks](ci-impact-benchmark.md) are measurements of their named
-runs. [Candidate-evidence history](ci-candidate-evidence.md) retains the retired
-CI design; the old [integration guide](integration-and-promotion.md) points to
-the current contributor procedure. Historical statements are not current setup or capability instructions.
+## Maintain one home for each fact
 
-## Where documentation belongs
+The root README is a short entrance. The handbook teaches and defines the
+language. Cross-cutting workflows live in `docs/`; detailed contracts live in
+`docs/architecture/`; product, form, body, mechanism, and target guides stay
+beside their owners. `STATUS` summarizes capability and proof limits, while the
+roadmap points to unfinished work. Historical checkpoints belong under
+`docs/history/`, not in the current reading path.
 
-Keep one home for each kind of information:
+Edit wiki pages in repository `wiki/`. The publication workflow mirrors `dev`
+to the separate GitHub wiki; direct wiki edits do not become a second source.
+A draft PR is not a wiki publication or accepted release.
 
-- Root **README** explains why the project exists and how to start.
-- **CONTRIBUTING** explains how to help; **AGENTS** holds implementation rules.
-- **STATUS** summarizes current capability and proof limits; **roadmap** links to unfinished work.
-- **`docs/` guides** explain cross-cutting workflows and concepts.
-- **`docs/architecture/`** holds detailed design contracts and indexed historical designs.
-- **Product, form, body, mechanism, and target READMEs** live beside their owners.
-- **`docs/history/`** holds old milestone records; evidence stays with its provenance.
-
-Prefer improving an existing guide to adding a new competing explanation. Link
-to source or generated inventories for changing details such as catalog counts.
-When a milestone completes, update the short current summary and retain its
-proof history without pasting another implementation diary into the front door.
+Keep commands on `conduit` or `cargo xtask`, link changing inventories rather
+than copying counts, and distinguish checked syntax from proposals and target
+execution proof. Preserve legal notices, third-party attribution, governance,
+and unique evidence when retiring duplicate guidance. Git history retains
+superseded prose; current pages should answer current reader questions.

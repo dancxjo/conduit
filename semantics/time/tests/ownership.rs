@@ -81,3 +81,25 @@ fn calendar_and_scheduling_domains_do_not_return_to_core() {
         "conduit-core must not depend on its higher-level time domain owner"
     );
 }
+
+#[test]
+fn temporal_instant_native_owner_does_not_reverse_the_core_dependency() {
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let core_manifest = fs::read_to_string(workspace.join("architecture/core/Cargo.toml"))
+        .expect("read core manifest");
+    assert!(!core_manifest.contains("conduit-time"));
+
+    let core_temporal = fs::read_to_string(workspace.join("architecture/core/src/temporal.rs"))
+        .expect("read core temporal machinery");
+    for retained in [
+        "pub struct TemporalInstant",
+        "pub enum TemporalRelation",
+        "pub enum TemporalRelationError",
+        "pub fn relation_to",
+    ] {
+        assert!(
+            core_temporal.contains(retained),
+            "core clock machinery moved while migrating portable ownership: {retained}"
+        );
+    }
+}

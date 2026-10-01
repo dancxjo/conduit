@@ -7,13 +7,14 @@ use crate::{
     icon::Icon,
     PatchbayApplication,
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
-use patchbay_model::{ApplicationTheme, PatchbayAction, PatchbayMode, WakeLifecycle};
+use patchbay_model::{PatchbayAction, PatchbayMode, WakeLifecycle};
 
 pub const MAX_LIFECYCLE_ACTIONS: usize = 2;
 

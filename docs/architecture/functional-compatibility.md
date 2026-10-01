@@ -8,7 +8,7 @@
 
 Conduit keeps callable fit separate from semantic substitutability.
 
-> **Equal canonical checked fronts mean two things can be called the same way. They do not, by themselves, mean the things do the same work.**
+> **Equal canonical checked fores mean two things can be called the same way. They do not, by themselves, mean the things do the same work.**
 
 Interface compatibility is exact `CheckedFront` equality. Semantic realization
 eligibility additionally requires the candidate to claim the authored gear's
@@ -19,16 +19,16 @@ Names remain valuable for authorship, discovery, catalog organization, provenanc
 Ordinary realization therefore uses both gates:
 
 ```text
-same canonical checked front + same semantic contract -> eligible
-same front + different semantic contract               -> ineligible
-different Front                                         -> ineligible
+same canonical checked fore + same semantic contract -> eligible
+same fore + different semantic contract               -> ineligible
+different fore                                         -> ineligible
 ```
 
 This is exact equality, not a width/depth/variance subtyping lattice.
 
-## What belongs to the front
+## What belongs to the fore
 
-The checked front is the complete public callable boundary Conduit has admitted for the form or kind. Whatever the checked front model contains participates in compatibility.
+The checked fore is the complete public callable boundary Conduit has admitted for the form or kind. Whatever the checked fore model contains participates in compatibility.
 
 The public boundary includes:
 
@@ -56,7 +56,7 @@ mean uppercase and redact and must not substitute for each other.
 
 Terminal, liveness, effect, and domain laws that affect substitutability belong
 to the semantic contract identity even when they do not alter the callable
-Front. Resource, authority, and Host Call requirements remain later exact
+fore. Resource, authority, and Host Call requirements remain later exact
 admission gates; they do not define the operation's meaning.
 
 ## forms and kinds share the same compatibility law
@@ -67,14 +67,14 @@ Conceptually:
 
 ```conduit
 form loud (
-    text: Text >> text: Text
+    input: Text >> output: Text
 ) {
     upper: text/upper
-    text >> upper >> text
+    input >> upper >> output
 }
 ```
 
-If another callable thing has the same checked front as `loud`, it fits that
+If another callable thing has the same checked fore as `loud`, it fits that
 boundary. It realizes `loud` only when it also declares the same semantic
 contract. It may still be:
 
@@ -84,7 +84,7 @@ contract. It may still be:
 - a browser/WASM realization;
 - a bounded embedded realization.
 
-The planner may choose among Front-compatible realizations with the same
+The planner may choose among fore-compatible realizations with the same
 semantic contract without requiring their catalog/form names or Back identities
 to match.
 
@@ -95,9 +95,9 @@ Planning separates **compatibility** from **exact realization**.
 Candidate admission begins with both compatibility relations:
 
 ```text
-gear's required checked front + semantic contract
+gear's required checked fore + semantic contract
         ↓
-Front-compatible realizations of that semantic contract
+fore-compatible realizations of that semantic contract
         ↓
 resource + authority + observation + policy filtering
         ↓
@@ -128,12 +128,12 @@ must eventually be derived from the reviewed semantic contract under #3712.
 Therefore:
 
 ```text
-same front + same contract + different name/back -> eligible
-same front + different contract                  -> ineligible
-different Front + same contract                  -> ineligible
+same fore + same contract + different name/back -> eligible
+same fore + different contract                  -> ineligible
+different fore + same contract                  -> ineligible
 ```
 
-A semantic-contract change remains incompatible even when the front does not
+A semantic-contract change remains incompatible even when the fore does not
 change. Implementations and artifacts remain exact selected realization facts;
 they are deliberately absent from semantic identity.
 
@@ -145,7 +145,7 @@ Keep these identities separate:
 
 ```text
 source/form/catalog identity
-checked front identity
+checked fore identity
 semantic contract identity
 expanded form identity
 selected implementation/artifact identity
@@ -154,13 +154,13 @@ play identity
 sign identity
 ```
 
-`FaceId` or an equivalent canonical checked-front digest may be useful internally. The exact representation is an implementation choice, but compatibility must derive from the checked front rather than from the source/catalog name.
+A canonical checked-fore identity must derive from the callable signature rather than from the source/catalog name. Face identity belongs to human presentation and must not be used as a synonym for callable compatibility.
 
-Two differently named things with the same checked front may have different source/catalog identities while sharing the same compatibility class.
+Two differently named things with the same checked fore may have different source/catalog identities while sharing the same compatibility class.
 
 ## cords
 
-cord compatibility follows the same functional principle at the connected boundary. Value type, direction, temporal behavior, bounds, and other checked port facts must agree as required by the front contract.
+cord compatibility follows the same functional principle at the connected boundary. Value type, direction, temporal behavior, bounds, and other checked port facts must agree as required by the fore contract.
 
 Do not infer compatibility from declaration order, friendly names alone, or implementation technology.
 
@@ -168,32 +168,32 @@ Do not infer compatibility from declaration order, friendly names alone, or impl
 
 Catalog categories such as `text/`, `time/`, `flow/`, `web/`, or `llm/` remain useful organization and opt-in packaging boundaries.
 
-A host may advertise named kinds for discovery and signs, but planning eligibility is based on their checked fronts plus other explicit planning requirements. Category prefixes and kind names do not form a nominal type hierarchy.
+A host may advertise named kinds for discovery and signs, but planning eligibility is based on their checked fores plus other explicit planning requirements. Category prefixes and kind names do not form a nominal type hierarchy.
 
 A host compiled with an opt-in family still advertises only the exact realizations it can currently promise. Functional compatibility does not weaken runtime truth or finite limits.
 
 ## Shared pools
 
 A shared pool declaration is the canonical structural higher-order case in the
-current language: it explicitly declares a member Front and bounded membership,
-so its authored meaning is to accept any exact front-compatible member. This is
+current language: it explicitly declares a member fore and bounded membership,
+so its authored meaning is to accept any exact fore-compatible member. This is
 not the default rule for ordinary gears. A future pool syntax that promises one
 particular worker behavior must additionally carry that semantic contract.
 
-Pool identity, member identity, membership epochs, authority, and finite capacity remain exact runtime/plan facts. front compatibility does not make pools ambient or unbounded.
+Pool identity, member identity, membership epochs, authority, and finite capacity remain exact runtime/plan facts. fore compatibility does not make pools ambient or unbounded.
 
 ## Diagnostics
 
 Prefer diagnostics such as:
 
 ```text
-Front mismatch
+fore mismatch
 semantic contract mismatch
 missing startup parameter
 runtime port mismatch
 temporal shape mismatch
 shorthand mismatch
-no semantically eligible Front-compatible realization
+no semantically eligible fore-compatible realization
 ```
 
 over nominal errors such as:
@@ -205,29 +205,29 @@ wrong catalog path
 wrong revision
 ```
 
-A name/revision may still appear in a diagnostic to identify the candidate being discussed, but it must not be the reason for incompatibility when the fronts are equal.
+A name/revision may still appear in a diagnostic to identify the candidate being discussed, but it must not be the reason for incompatibility when the fores are equal.
 
 ## Explicit structural polymorphism
 
 An authored operation whose meaning really is “any callable with this exact
-Front” uses the reviewed `conduit.semantic/structural-polymorphic@1` contract.
+fore” uses the reviewed `conduit.semantic/structural-polymorphic@1` contract.
 Only the requirement side may use this marker. It is not an ambient planner
 fallback and does not let an offer grant itself broader eligibility.
 
 The migration replaced the former expectations that:
 
-- a differently named form with the same front is incompatible;
-- an offer with the same front but a different kind identity is ineligible;
+- a differently named form with the same fore is incompatible;
+- an offer with the same fore but a different kind identity is ineligible;
 - a revision difference alone makes a candidate incompatible;
-- structural/front coincidence must be rejected.
+- structural/fore coincidence must be rejected.
 
 The compatibility contract requires positive and negative proofs:
 
-1. equal-Front callables with different semantic contracts do not substitute;
+1. equal-fore callables with different semantic contracts do not substitute;
 2. differently named/implemented callables with one semantic contract remain eligible;
-3. an explicit structural-polymorphic requirement accepts any equal Front;
-4. changing only the selected exact realization changes plan identity as appropriate without changing front compatibility;
-5. incompatible startup/runtime/temporal/shorthand fronts fail closed.
+3. an explicit structural-polymorphic requirement accepts any equal fore;
+4. changing only the selected exact realization changes plan identity as appropriate without changing fore compatibility;
+5. incompatible startup/runtime/temporal/shorthand fores fail closed.
 
 ## Non-goals
 
@@ -244,4 +244,4 @@ This rule does not introduce:
 
 ## Canonical sentence
 
-> **The front says how to call it. The semantic contract says what it means. The plan records exactly what was chosen.**
+> **The fore says how to call it. The semantic contract says what it means. The plan records exactly what was chosen.**

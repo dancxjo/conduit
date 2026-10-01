@@ -16,7 +16,29 @@ use patchbay_graph::{PatchbayGraph, PatchbayGraphError, PatchbayInspection};
 pub const INSPECT_NEXT_ACTION_ID: &str = "patchbay.inspect.next";
 pub const EDIT_CURRENT_ACTION_ID: &str = "patchbay.edit.current";
 pub const SELECT_FORM_ACTION_PREFIX: &str = "patchbay.form.";
+mod debugger_control;
+#[cfg(test)]
+mod debugger_control_tests;
+mod debugger_presentation;
+#[cfg(test)]
+mod debugger_presentation_tests;
+mod debugger_timeline;
+#[cfg(test)]
+mod debugger_timeline_tests;
+mod debugger_watch;
+#[cfg(test)]
+mod debugger_watch_tests;
+mod entrance;
+mod learned_watch;
+#[cfg(test)]
+mod learned_watch_tests;
 mod mask;
+mod navigation_projection;
+mod parts_projection;
+mod portable_composition;
+mod portable_graphics;
+mod portable_layout;
+mod presentation_layout;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
 mod inspection;
 pub use inspection::{
@@ -25,8 +47,61 @@ pub use inspection::{
 };
 mod topology;
 mod topology_projection;
+mod workbench_layout;
+pub use debugger_control::{
+    DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
+    MAX_DEBUGGER_BREAKPOINT_SUBJECTS, MAX_DEBUGGER_CONTROL_REASON_BYTES,
+};
+pub use debugger_presentation::{
+    DebuggerActivityPhase, DebuggerExecutionIdentity, DebuggerGapPresentation,
+    DebuggerPresentation, DebuggerPresentationError, DebuggerSubjectActivity,
+    DebuggerSubjectBinding, DebuggerValueKind, DebuggerValuePresentation,
+    DEBUGGER_PRESENTATION_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
+    RECENT_ACTIVITY_TICKS,
+};
+pub use debugger_timeline::{
+    DebuggerCausalTrace, DebuggerTimeline, DebuggerTimelineBinding, DebuggerTimelineError,
+    DebuggerTimelineEvent, DebuggerTimelineMode, DebuggerTimelineProjection,
+    DebuggerTimelineSubjectState, DebuggerTimelineWatchState, DebuggerTraceDirection,
+    DebuggerTraceStep, DEBUGGER_TIMELINE_SCHEMA, MAX_DEBUGGER_TIMELINE_BYTES,
+    MAX_DEBUGGER_TIMELINE_EVENTS,
+};
+pub use debugger_watch::{
+    DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
+    DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
+    DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
+};
+pub use entrance::{
+    EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
+    PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
+};
+pub use learned_watch::{
+    ClockAlignment, DynamicsWatch, LearnedLifecyclePhase, LearnedLifecycleWatch,
+    LearnedWatchProjection, LearnedWatchProjectionKind, ObjectiveComponent,
+    ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch, SignalContinuity,
+    SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch, TensorAxis,
+    TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS,
+    MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
+    MAX_TENSOR_SLICE_VALUES,
+};
+pub use navigation_projection::PatchbayNavigationProjection;
+pub use parts_projection::*;
+pub use portable_composition::{
+    constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
+};
+pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
+pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
+pub use presentation_layout::{
+    fit_measured_text, LayoutCollision, MeasuredTextFit, PresentationLayoutError,
+    PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
+    PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
+};
 pub use topology::*;
 pub use topology_projection::project_mask_topology;
+pub use workbench_layout::{
+    CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
+    MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
+};
 #[cfg(test)]
 mod topology_tests;
 

@@ -2,7 +2,7 @@
 
 use conduit_body::{Body, BodyMembership};
 use conduit_core::Plan;
-use patchbay_model::{PartPresentationState, PartsView};
+use patchbay_application::{PartPresentationState, PartsView};
 use serde_json::{json, Value};
 
 const RECEIPT_PATH_ENV: &str = "CONDUIT_B9_MEMBERSHIP_RECEIPT_PATH";

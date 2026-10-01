@@ -56,12 +56,7 @@ fn provenance(class: VisualEvidenceClass, identity: &str) -> VisualObservationPr
 }
 
 fn region() -> ImageRegion {
-    ImageRegion {
-        x: 10,
-        y: 20,
-        width: 100,
-        height: 80,
-    }
+    ImageRegion::from_xywh(10, 20, 100, 80).unwrap()
 }
 
 fn visible_text() -> VisibleTextObservation {

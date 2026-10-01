@@ -7,8 +7,8 @@ use conduit_tongues::{
     decode_speech_recognition_result, encode_speech_recognition_result,
     install_speech_recognition_catalog, project_recognized_text, speech_clip_recognition_contract,
     speech_recognition_contract, speech_recognition_to_text_contract, RecognitionTextRefusal,
-    RecordedSpeechRecognizer, SpeechRecognitionAttempt, SpeechRecognitionDisposition,
-    SpeechRecognitionRefusal, SpeechRecognitionValueError, MAXIMUM_RECOGNITION_AUDIO_BYTES,
+    RecordedSpeechRecognizer, SpeechRecognitionAttempt, SpeechRecognitionRefusal,
+    SpeechRecognitionResult, SpeechRecognitionValueError, MAXIMUM_RECOGNITION_AUDIO_BYTES,
     MAXIMUM_RECOGNITION_FIXTURES, MAXIMUM_RECOGNIZED_TEXT_BYTES, SPEECH_RECOGNITION_RESULT_KIND,
     SPEECH_RECOGNITION_TO_TEXT_KIND, SPEECH_RECOGNIZE_KIND, STREAMING_SPEECH_RECOGNIZE_KIND,
 };
@@ -75,29 +75,24 @@ fn recorded_audio_recognition_no_speech_and_failure_remain_distinct() {
     else {
         panic!("recorded fixture was not recognized")
     };
-    assert_eq!(
-        recognized.disposition,
-        SpeechRecognitionDisposition::Recognized
-    );
-    assert_eq!(recognized.text.as_deref(), Some("Rosehip House, status"));
+    let SpeechRecognitionResult::Recognized(recognized_result) = &recognized else {
+        panic!("recorded fixture did not produce recognized semantic info")
+    };
+    assert_eq!(recognized_result.text().get(), "Rosehip House, status");
 
     let SpeechRecognitionAttempt::Result(no_speech) =
         recognizer.recognize(&pcm(&[0, 0, 0, 0])).unwrap()
     else {
         panic!("silence did not produce a semantic result")
     };
-    assert_eq!(
-        no_speech.disposition,
-        SpeechRecognitionDisposition::NoSpeech
-    );
-    assert_eq!(no_speech.text, None);
+    assert!(matches!(no_speech, SpeechRecognitionResult::NoSpeech(_)));
 
-    let SpeechRecognitionAttempt::Failed { audio_sha256 } =
+    let SpeechRecognitionAttempt::Failed(audio_sha256) =
         recognizer.recognize(&pcm(&[1, 2, 3, 4])).unwrap()
     else {
         panic!("unknown audio did not retain a failed attempt")
     };
-    assert_ne!(recognized.audio_sha256, audio_sha256);
+    assert_ne!(recognized_result.audio_sha256().get(), audio_sha256.get());
 
     let unavailable = RecordedSpeechRecognizer::resource_unavailable();
     assert_eq!(unavailable, SpeechRecognitionAttempt::ResourceUnavailable);
@@ -217,14 +212,13 @@ form live-recognized-turn (
 
 #[test]
 fn recognition_result_v2_bound_covers_maximum_escaped_semantic_fields() {
-    let result = conduit_tongues::SpeechRecognitionResult {
-        disposition: conduit_tongues::SpeechRecognitionDisposition::Recognized,
-        text: Some("\u{0001}".repeat(conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES)),
-        audio_sha256: [255; 32],
-        audio_extent_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-        provider_identity: "\u{0002}"
-            .repeat(conduit_tongues::MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES),
-    };
+    let result = conduit_tongues::recognized_result(
+        [255; 32],
+        conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+        "\u{0002}".repeat(conduit_tongues::MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES),
+        "\u{0001}".repeat(conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES),
+    )
+    .unwrap();
     let encoded = conduit_tongues::encode_speech_recognition_result(&result)
         .expect("declared v2 result bound admits every semantically valid field maximum");
     assert!(encoded.len() <= conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { specimens } from "./specimens.mjs";
+import { accounts, specimens } from "./specimens.mjs";
 
 const required = ["authored-argument", "named-collections", "source-destination", "spreadsheet", "timeline-editor", "web-article", "map", "terminal", "screen-reader", "patchbay"];
 const forbiddenFaceKeys = new Set(["x", "y", "width", "height", "pane", "column", "font", "color", "pixels", "animation", "schedule", "iterator", "stateMachine"]);
@@ -8,6 +8,29 @@ const forbiddenFaceKeys = new Set(["x", "y", "width", "height", "pane", "column"
 test("the bounded matrix contains every adversarial specimen", () => {
   assert.deepEqual(specimens.map(({ identity }) => identity), required);
   assert.equal(new Set(required).size, specimens.length);
+});
+
+test("every specimen has three independent human reconstruction accounts", () => {
+  assert.deepEqual(accounts.map(({ identity }) => identity), required);
+  for (const specimen of specimens) {
+    const account = accounts.find(({ identity }) => identity === specimen.identity);
+    for (const medium of ["graphical", "spoken", "deterministic_linear"]) {
+      assert.deepEqual(account[medium].understands, specimen.expected.understands);
+      assert.deepEqual(account[medium].can, specimen.expected.can);
+      assert.ok(account[medium].lost_appearance.length > 0);
+      assert.equal(account[medium].lost_meaning, undefined);
+    }
+  }
+});
+
+test("semantic loss is distinct from harmless appearance loss", () => {
+  const sourceDestination = accounts.find(({ identity }) => identity === "source-destination");
+  const lossySpoken = structuredClone(sourceDestination.spoken);
+  lossySpoken.understands = lossySpoken.understands.filter(
+    meaning => meaning !== "Backup is destination",
+  );
+  assert.notDeepEqual(lossySpoken.understands, sourceDestination.graphical.understands);
+  assert.deepEqual(lossySpoken.lost_appearance, sourceDestination.spoken.lost_appearance);
 });
 
 for (const specimen of specimens) {

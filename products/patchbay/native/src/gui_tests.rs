@@ -6,8 +6,9 @@ use crate::{
     icon::Icon,
     render::BACKGROUND,
 };
+use conduit_presentation::CONDUIT_APPLICATION_THEME;
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{FormEditor, CONDUIT_APPLICATION_THEME};
+use patchbay_model::FormEditor;
 use std::path::PathBuf;
 
 fn graph() -> PatchbayGraph {
@@ -33,9 +34,9 @@ fn composition_graph() -> PatchbayGraph {
 fn native_renderer_consumes_exact_shared_debugger_activity_without_topology_mutation() {
     let graph = graph();
     let subject = graph.gears[0].identity.clone();
-    let debugger: patchbay_model::DebuggerPresentation =
+    let debugger: patchbay_application::DebuggerPresentation =
         serde_json::from_value(serde_json::json!({
-            "schema": patchbay_model::DEBUGGER_PRESENTATION_SCHEMA,
+            "schema": patchbay_application::DEBUGGER_PRESENTATION_SCHEMA,
             "execution": { "body": vec![1; 32], "plan": vec![2; 32], "play": vec![3; 32] },
             "revision": 1,
             "tick": 0,
@@ -356,7 +357,11 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
             patchbay_model::PatchbayAction::Lull
         ]
     );
-    assert!(pixels.contains(&patchbay_model::CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
+    assert!(pixels.contains(
+        &conduit_presentation::CONDUIT_APPLICATION_THEME
+            .focus
+            .packed_rgb()
+    ));
 }
 
 #[test]
@@ -434,7 +439,7 @@ fn reverse_front_is_renderer_local_and_keeps_the_demo_graph_intact() {
         graph.expanded_form_id.clone(),
         gear.identity.clone(),
     );
-    let mut layout = patchbay_model::PatchbayLayout::default();
+    let mut layout = patchbay_application::PatchbayLayout::default();
     layout.move_gear(&graph, &subject, 310, 140).unwrap();
 
     assert!(layout.flip_gear(&graph, &subject).unwrap());
@@ -573,7 +578,7 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
         graph.cords.clone(),
     );
     let subject = graph.subject_ref(&graph.gears[0].identity).unwrap();
-    let mut layout = patchbay_model::PatchbayLayout::default();
+    let mut layout = patchbay_application::PatchbayLayout::default();
     layout.move_gear(&graph, &subject, 500, 300).unwrap();
     let mut pixels = vec![BACKGROUND; 1100 * 720];
     let targets = draw_patchbay(

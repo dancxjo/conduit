@@ -308,12 +308,8 @@ pub fn visit_tesseract_tsv<'a>(
         if text.len() > MAXIMUM_VISIBLE_TEXT_BYTES || count == MAXIMUM_OCR_ITEMS {
             return Err(OcrProviderRefusal::OutputCapacity);
         }
-        let region = ImageRegion {
-            x: left,
-            y: top,
-            width,
-            height,
-        };
+        let region = ImageRegion::from_xywh(left, top, width, height)
+            .map_err(|_| OcrProviderRefusal::InvalidProviderOutput)?;
         if width == 0
             || height == 0
             || u32::from(left) + u32::from(width) > u32::from(image_width)

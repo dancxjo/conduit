@@ -1,7 +1,6 @@
 //! Exact local whisper.cpp discovery and bounded speech recognition.
 
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
-use conduit_tongues::{SpeechRecognitionDisposition, SpeechRecognitionResult};
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -308,17 +307,21 @@ impl WhisperSpeechAdapter {
             bytes.clear();
             bytes.extend_from_slice(transcript.as_bytes());
         }
-        let result = SpeechRecognitionResult {
-            disposition: if transcript.is_empty() {
-                SpeechRecognitionDisposition::NoSpeech
-            } else {
-                SpeechRecognitionDisposition::Recognized
-            },
-            text: (!transcript.is_empty()).then(|| transcript.to_owned()),
-            audio_sha256,
-            audio_extent_bytes,
-            provider_identity: self.provider_identity(),
-        };
+        let result = if transcript.is_empty() {
+            conduit_tongues::no_speech_result(
+                audio_sha256,
+                audio_extent_bytes,
+                self.provider_identity(),
+            )
+        } else {
+            conduit_tongues::recognized_result(
+                audio_sha256,
+                audio_extent_bytes,
+                self.provider_identity(),
+                transcript.to_owned(),
+            )
+        }
+        .map_err(|_| WhisperFailure::OutputOverflow)?;
         let encoded_result = conduit_tongues::encode_speech_recognition_result(&result)
             .map_err(|_| WhisperFailure::OutputOverflow)?;
         let text_sha256 = (!transcript.is_empty())
@@ -519,8 +522,10 @@ mod tests {
         let audio = pcm(&[1, -2, 3, -4]);
         let encoded = adapter.recognize(&audio, || false).unwrap();
         let result = conduit_tongues::decode_speech_recognition_result(&encoded).unwrap();
-        assert_eq!(result.disposition, SpeechRecognitionDisposition::Recognized);
-        assert_eq!(result.text.as_deref(), Some("Rosehip House, status"));
+        let conduit_tongues::SpeechRecognitionResult::Recognized(result) = result else {
+            panic!("fixture provider did not produce recognized semantic info")
+        };
+        assert_eq!(result.text().get(), "Rosehip House, status");
         assert_eq!(evidence.bytes().unwrap(), b"Rosehip House, status");
         let receipt = adapter.take_receipt().unwrap();
         assert_eq!(receipt.audio_sha256, Sha256::digest(&audio).as_slice());

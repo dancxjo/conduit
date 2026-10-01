@@ -4,8 +4,8 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
 
 use super::generate::{
-    primitive_rust_type, rust_pascal_identifier, rust_snake_identifier, rust_type, unit_type,
-    RustBindingGenerationError,
+    data_reference_content_kind, primitive_rust_type, rust_pascal_identifier,
+    rust_snake_identifier, rust_type, unit_type, RustBindingGenerationError,
 };
 
 pub(super) fn emit_record_binding(
@@ -15,6 +15,7 @@ pub(super) fn emit_record_binding(
     fields: &[conduit_core::StructuredFieldType],
     names: &BTreeMap<String, String>,
     constructor_order: Option<&[String]>,
+    constructor_name: &str,
 ) -> Result<(), RustBindingGenerationError> {
     trait_header(out, rust_name, constant);
     writeln!(out, "        let mut fields = Vec::new();").expect("String writing is infallible");
@@ -37,7 +38,7 @@ pub(super) fn emit_record_binding(
     writeln!(out, "    fn from_structured(value: StructuredInfoValue) -> Result<Self, NativeBindingRefusal> {{")
         .expect("String writing is infallible");
     exact_type_guard(out);
-    writeln!(out, "        Self::new(").expect("String writing is infallible");
+    writeln!(out, "        Self::{constructor_name}(").expect("String writing is infallible");
     let constructor_fields = constructor_order
         .map(|order| {
             order
@@ -70,6 +71,8 @@ pub(super) fn emit_variant_binding(
     constant: &str,
     cases: &[conduit_core::StructuredVariantCase],
     names: &BTreeMap<String, String>,
+    authored_type_name: &str,
+    boxed_variant_payloads: &alloc::collections::BTreeSet<String>,
 ) -> Result<(), RustBindingGenerationError> {
     trait_header(out, rust_name, constant);
     writeln!(out, "        match self {{").expect("String writing is infallible");
@@ -143,6 +146,8 @@ pub(super) fn emit_variant_binding(
     writeln!(out, "        match tag {{").expect("String writing is infallible");
     for case in cases {
         let variant = rust_pascal_identifier(case.tag())?;
+        let boxed =
+            boxed_variant_payloads.contains(&format!("{authored_type_name}.{}", case.tag()));
         if unit_type(case.payload_type()) {
             writeln!(out, "            {:?} => Ok(Self::{variant}),", case.tag())
                 .expect("String writing is infallible");
@@ -154,8 +159,10 @@ pub(super) fn emit_variant_binding(
                 let decoded = decode_expression(case.payload_type(), "payload.clone()", names)?;
                 writeln!(
                     out,
-                    "            {:?} => Ok(Self::{variant}({decoded})),",
-                    case.tag()
+                    "            {:?} => Ok(Self::{variant}({}{decoded}{})),",
+                    case.tag(),
+                    if boxed { "Box::new(" } else { "" },
+                    if boxed { ")" } else { "" },
                 )
                 .expect("String writing is infallible");
                 continue;
@@ -166,8 +173,9 @@ pub(super) fn emit_variant_binding(
             };
             writeln!(
                 out,
-                "            {:?} => Ok(Self::{variant}({payload_name} {{",
-                case.tag()
+                "            {:?} => Ok(Self::{variant}({}{payload_name} {{",
+                case.tag(),
+                if boxed { "Box::new(" } else { "" },
             )
             .expect("String writing is infallible");
             for field in fields {
@@ -180,7 +188,8 @@ pub(super) fn emit_variant_binding(
                 writeln!(out, "                {name}: {decoded},")
                     .expect("String writing is infallible");
             }
-            writeln!(out, "            }})),").expect("String writing is infallible");
+            writeln!(out, "            }}{})),", if boxed { ")" } else { "" })
+                .expect("String writing is infallible");
         }
     }
     writeln!(out, "            _ => Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::UnknownVariantTag)),\n        }}\n    }}\n}}\n")
@@ -207,7 +216,7 @@ fn exact_type_guard(out: &mut String) {
         .expect("String writing is infallible");
 }
 
-fn encode_expression(
+pub(super) fn encode_expression(
     value_type: &StructuredInfoType,
     value: &str,
     expected: &str,
@@ -221,13 +230,31 @@ fn encode_expression(
         {
             Ok(format!("NativeRustBinding::into_structured({value})?"))
         }
-        StructuredInfoTypeShape::Leaf(_) => Ok(format!(
-            "conduit_form::rust_binding::primitive_into_structured({expected}, &{value})?"
-        )),
+        StructuredInfoTypeShape::Leaf(kind) => {
+            if let Some(content_kind) = data_reference_content_kind(kind.as_str()) {
+                return Ok(format!(
+                    "{{ {value}.validate_for(&conduit_core::KindId::from({content_kind:?})).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; let encoded = {value}.encode().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; StructuredInfoValue::leaf({expected}, encoded).map_err(NativeBindingRefusal::InvalidValue)? }}"
+                ));
+            }
+            if kind.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+                return Ok(format!(
+                    "{{ {value}.validate().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; let encoded = {value}.encode().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; StructuredInfoValue::leaf({expected}, encoded).map_err(NativeBindingRefusal::InvalidValue)? }}"
+                ));
+            }
+            Ok(format!(
+                "conduit_form::rust_binding::primitive_into_structured({expected}, &{value})?"
+            ))
+        }
         StructuredInfoTypeShape::Sequence { element, .. } => {
             let inner = encode_expression(element, "item", "element_type.clone()", names)?;
             Ok(format!(
                 "{{ let element_type = conduit_form::rust_binding::sequence_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::sequence({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
+            ))
+        }
+        StructuredInfoTypeShape::Collection { element, .. } => {
+            let inner = encode_expression(element, "item", "element_type.clone()", names)?;
+            Ok(format!(
+                "{{ let element_type = conduit_form::rust_binding::collection_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::collection({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
             ))
         }
         StructuredInfoTypeShape::Variant { schema, cases }
@@ -246,7 +273,7 @@ fn encode_expression(
     }
 }
 
-fn decode_expression(
+pub(super) fn decode_expression(
     value_type: &StructuredInfoType,
     value: &str,
     names: &BTreeMap<String, String>,
@@ -262,10 +289,22 @@ fn decode_expression(
                 names[schema.as_str()]
             ))
         }
-        StructuredInfoTypeShape::Leaf(kind) => Ok(format!(
-            "conduit_form::rust_binding::primitive_from_structured::<{}>(&{value})?",
-            primitive_rust_type(kind.as_str())?
-        )),
+        StructuredInfoTypeShape::Leaf(kind) => {
+            if let Some(content_kind) = data_reference_content_kind(kind.as_str()) {
+                return Ok(format!(
+                    "{{ let reference_value = {value}; let StructuredInfoValueShape::Leaf(encoded) = reference_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; conduit_data::DataReference::decode_for(&conduit_core::KindId::from({content_kind:?}), encoded).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))? }}"
+                ));
+            }
+            if kind.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+                return Ok(format!(
+                    "{{ let reference_value = {value}; let StructuredInfoValueShape::Leaf(encoded) = reference_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; conduit_core::BoundedResourceRef::decode(encoded).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))? }}"
+                ));
+            }
+            Ok(format!(
+                "conduit_form::rust_binding::primitive_from_structured::<{}>(&{value})?",
+                primitive_rust_type(kind.as_str())?
+            ))
+        }
         StructuredInfoTypeShape::Sequence {
             element,
             maximum_items,
@@ -274,6 +313,13 @@ fn decode_expression(
             let decoded = decode_expression(element, "item.clone()", names)?;
             Ok(format!(
                 "{{ let sequence_value = {value}; let StructuredInfoValueShape::Collection(items) = sequence_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; let mut result = BoundedSequence::<{}, {maximum_items}>::new(); for item in items {{ result.push({decoded}).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongCollectionLength))?; }} result }}",
+                rust_type(element, names)?
+            ))
+        }
+        StructuredInfoTypeShape::Collection { element, length } => {
+            let decoded = decode_expression(element, "item.clone()", names)?;
+            Ok(format!(
+                "{{ let collection_value = {value}; let StructuredInfoValueShape::Collection(items) = collection_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; let mut decoded_values = Vec::new(); for item in items {{ decoded_values.push({decoded}); }} let result: [{}; {length}] = decoded_values.try_into().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongCollectionLength))?; result }}",
                 rust_type(element, names)?
             ))
         }

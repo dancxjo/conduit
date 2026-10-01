@@ -6,10 +6,9 @@ use crate::{
     gui_hit::HitShape,
     gui_primitives::{fill_rect, frame_rect, line, text, PixelRect},
 };
+use conduit_presentation::CONDUIT_APPLICATION_THEME;
 use embedded_graphics::prelude::Point;
-use patchbay_model::{
-    AuthoredEnvironment, EnvironmentLinkKind, MachineProfile, CONDUIT_APPLICATION_THEME,
-};
+use patchbay_model::{AuthoredEnvironment, EnvironmentLinkKind, MachineProfile};
 
 const PART_WIDTH: u32 = 180;
 const PART_HEIGHT: u32 = 112;

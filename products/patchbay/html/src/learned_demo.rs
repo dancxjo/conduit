@@ -1,5 +1,5 @@
 use crate::{demonstration_snapshot, RendererSnapshot};
-use patchbay_model::{
+use patchbay_application::{
     ClockAlignment, DynamicsWatch, LearnedWatchProjection, LearnedWatchProjectionKind,
     ObjectiveComponent, ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch,
     SignalContinuity, SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch,
@@ -39,9 +39,9 @@ pub fn learned_demonstration_snapshot() -> Result<RendererSnapshot, String> {
             .map(|(identity, _)| identity.clone())
             .ok_or_else(|| format!("learned fixture has no {role:?}"))
     };
-    let gear = subject(patchbay_model::DebuggerWatchSubjectRole::Gear)?;
-    let port = subject(patchbay_model::DebuggerWatchSubjectRole::Port)?;
-    let cord = subject(patchbay_model::DebuggerWatchSubjectRole::Cord)?;
+    let gear = subject(patchbay_application::DebuggerWatchSubjectRole::Gear)?;
+    let port = subject(patchbay_application::DebuggerWatchSubjectRole::Port)?;
+    let cord = subject(patchbay_application::DebuggerWatchSubjectRole::Cord)?;
 
     project(
         &mut watches,
@@ -339,7 +339,7 @@ pub fn learned_demonstration_snapshot() -> Result<RendererSnapshot, String> {
 }
 
 fn project(
-    watches: &mut patchbay_model::DebuggerWatchSet,
+    watches: &mut patchbay_application::DebuggerWatchSet,
     subject: &str,
     observation_sequence: u64,
     kind: LearnedWatchProjectionKind,

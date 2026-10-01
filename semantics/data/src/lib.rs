@@ -8,15 +8,16 @@ mod generated {
 }
 
 pub use generated::{
-    ClockRelation, ClockRelationQuality, ClockRelationQualityEstimated,
-    DataGenerationNamespaceRefusal, DataLoadTextTerminal, DataLoadTextTerminalCode,
-    DataReferenceRefusal, DataSaveTextTerminal, DataSaveTextTerminalCode, FullWindowPolicy,
-    FullWindowPolicyCode, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotPoint,
-    MeasurementPlotRefusal, MeasurementSummaryRefusal, MeasurementThresholdPolicy,
-    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdStateCode,
-    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
-    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
-    ScalarComparison, ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
+    ClockRelation, ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationDigest,
+    DataGenerationNamespace, DataGenerationNamespaceRefusal, DataGenerationTextValue,
+    DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal, DataSaveTextTerminal,
+    DataSaveTextTerminalCode, FullWindowPolicy, FullWindowPolicyCode, MathScalarRefusal,
+    MeasurementPlotOverflowPolicy, MeasurementPlotPoint, MeasurementPlotRefusal,
+    MeasurementSummaryRefusal, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
+    MeasurementThresholdState, MeasurementThresholdStateCode, MeasurementThresholdTransition,
+    MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
+    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
+    ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
     SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther, TensorElement,
     TensorRefusal,
 };

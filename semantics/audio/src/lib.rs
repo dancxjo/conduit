@@ -7,18 +7,32 @@
 
 extern crate alloc;
 
-#[allow(clippy::manual_range_contains, dead_code)]
+#[allow(
+    clippy::clone_on_copy,
+    clippy::manual_range_contains,
+    clippy::too_many_arguments,
+    dead_code
+)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+
+    impl Copy for NoteOccurrenceId {}
+
+    impl core::hash::Hash for NoteOccurrenceId {
+        fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+            self.0.hash(state);
+        }
+    }
 }
 
 pub use generated::{
-    AudioToneTerminal, AudioToneTerminalCode, CancellationDisposition, Gate, GateCode,
-    ModulationDestination, ModulationDestinationCode, MusicalControl, MusicalControlEvent,
-    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, MusicalPitch,
-    PcmChannelLayout, PcmChannelLayoutCode, PcmClipProfile, PcmSampleRepresentation,
-    PcmSampleRepresentationCode, PressureDisposition, SoundSeam, SoundStreamState,
-    SoundTerminalBehavior,
+    AudioRenderDemand, AudioToneTerminal, AudioToneTerminalCode, BeatReference,
+    CancellationDisposition, Gate, GateCode, ModulationDestination, ModulationDestinationCode,
+    MusicalControl, MusicalControlEvent, MusicalControlModulation, MusicalControlPitchBend,
+    MusicalControlSustain, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, PcmChannelLayout,
+    PcmChannelLayoutCode, PcmClipProfile, PcmFrameHeader, PcmSampleRepresentation,
+    PcmSampleRepresentationCode, PressureDisposition, RhythmRecoveryState, SoundSeam,
+    SoundStreamState, SoundTerminalBehavior, TimingClassification, TimingFeedback, ToneIntent,
 };
 
 mod audio_info;

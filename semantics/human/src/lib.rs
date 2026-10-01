@@ -56,9 +56,13 @@ mod generated {
 pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageTextMetadata,
-    KeyModifiers, KeyTransition, KeyTransitionCode, KeymapRefusal, SourceAvailability,
-    VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
+    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageRegion,
+    ImageTextMetadata, InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
+    InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
+    InteractionBoundKind as BoundKind, InteractionRefusal, KeyModifiers, KeyTransition,
+    KeyTransitionCode, KeymapRefusal, OptionAvailability, OptionAvailabilityUnavailable,
+    RealizationRangePolicy, ScalarQuantization, SourceAvailability, VisualEvidenceClass,
+    VisualExperienceRelationKind, VisualImpressionDisposition,
     VisualImpressionDispositionTruncated,
 };
 

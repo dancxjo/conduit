@@ -143,7 +143,7 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
         leaf_text(record_field(&fixture.quote, "source")),
         "fixture/eur-usd"
     );
-    let events = collection(&fixture.events);
+    let events = collection(record_field(&fixture.events, "events"));
     assert_eq!(events.len(), 3);
     assert_eq!(variant_tag(&events[0]), "placed");
     assert_eq!(variant_tag(&events[1]), "filled");
@@ -152,7 +152,7 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
         let StructuredInfoValueShape::Variant { payload, .. } = event.shape() else {
             panic!("expected transaction variant")
         };
-        assert!(record_field(payload, "observed_at")
+        assert!(record_field(payload, "observed-at")
             .value_type()
             .profile()
             .is_ok());

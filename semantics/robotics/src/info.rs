@@ -6,7 +6,7 @@
 use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
 use core::{cmp::Ordering, hash::Hash};
 
-use crate::{BatteryObservation, OdometryObservation, RangeObservation};
+use crate::{BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation};
 
 pub const ROBOTICS_RANGE_INFO_ID: &str = "robotics/range-mm-sensor-forward@1";
 pub const ROBOTICS_RANGE_ENCODED_LEN: usize = 8;
@@ -201,63 +201,31 @@ impl BatteryObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct OrientationObservation {
-    roll_microradians: i32,
-    pitch_microradians: i32,
-    yaw_microradians: i32,
-}
-
 impl OrientationObservation {
-    pub fn new(
-        roll_microradians: i32,
-        pitch_microradians: i32,
-        yaw_microradians: i32,
-    ) -> Result<Self, InfoDecodeError> {
-        bounded_i32(
-            "roll-microradians",
-            roll_microradians,
-            -PI_MICRORADIANS,
-            PI_MICRORADIANS,
-        )?;
-        bounded_i32(
-            "pitch-microradians",
-            pitch_microradians,
-            -HALF_PI_MICRORADIANS,
-            HALF_PI_MICRORADIANS,
-        )?;
-        bounded_i32(
-            "yaw-microradians",
-            yaw_microradians,
-            -PI_MICRORADIANS,
-            PI_MICRORADIANS,
-        )?;
-        Ok(Self {
-            roll_microradians,
-            pitch_microradians,
-            yaw_microradians,
-        })
-    }
-
     pub const fn components(self) -> (i32, i32, i32) {
         (
-            self.roll_microradians,
-            self.pitch_microradians,
-            self.yaw_microradians,
+            self.roll_microradians(),
+            self.pitch_microradians(),
+            self.yaw_microradians(),
         )
     }
 
     pub fn encode(self) -> [u8; ROBOTICS_ORIENTATION_ENCODED_LEN] {
-        encode_three_i32(
-            self.roll_microradians,
-            self.pitch_microradians,
-            self.yaw_microradians,
-        )
+        let (roll, pitch, yaw) = self.components();
+        encode_three_i32(roll, pitch, yaw)
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         let [roll, pitch, yaw] = decode_three_i32(encoded, ROBOTICS_ORIENTATION_ENCODED_LEN)?;
-        Self::new(roll, pitch, yaw)
+        bounded_i32("roll-microradians", roll, -PI_MICRORADIANS, PI_MICRORADIANS)?;
+        bounded_i32(
+            "pitch-microradians",
+            pitch,
+            -HALF_PI_MICRORADIANS,
+            HALF_PI_MICRORADIANS,
+        )?;
+        bounded_i32("yaw-microradians", yaw, -PI_MICRORADIANS, PI_MICRORADIANS)?;
+        Ok(Self::new(roll, pitch, yaw).expect("codec bounds match generated contracts"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {

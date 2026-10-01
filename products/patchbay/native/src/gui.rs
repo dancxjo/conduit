@@ -19,14 +19,15 @@ use crate::{
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
     parts_view::{draw_parts, PartsSelection},
 };
+use conduit_presentation::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 use embedded_graphics::{
     draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
+use patchbay_application::DebuggerPresentation;
 use patchbay_graph::{PatchbayGear, PatchbayGraph};
-use patchbay_model::{ApplicationTheme, DebuggerPresentation, CONDUIT_APPLICATION_THEME};
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
 
@@ -37,7 +38,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_graph::MAX_PATCHBAY_GEARS
     + patchbay_graph::MAX_PATCHBAY_PORTS
     + patchbay_graph::MAX_PATCHBAY_PORTS
     + patchbay_graph::MAX_PATCHBAY_CORDS
-    + patchbay_model::MAX_PALETTE_ENTRIES
+    + conduit_semantic_catalog::MAX_PALETTE_ENTRIES
     + patchbay_graph::MAX_PATCHBAY_GEARS * patchbay_graph::MAX_FACE_CONTROLS * 2
     + 9
     + conduit_body::MAX_BODY_PARTS
@@ -64,7 +65,7 @@ pub struct LifecycleContext {
     pub plan_id: Option<String>,
     pub play_id: Option<String>,
     pub flow: LifecycleFlow,
-    pub parts: Option<patchbay_model::PartsView>,
+    pub parts: Option<patchbay_application::PartsView>,
     pub selected_part: Option<conduit_body::PartId>,
     pub selected_candidate: Option<conduit_body::CandidateId>,
     pub pending_revoke: Option<conduit_body::PartId>,
@@ -83,7 +84,7 @@ pub struct PatchbayViewContext<'a> {
     pub form_scroll: usize,
     pub exact_identity_open: bool,
     pub front_control_focus: usize,
-    pub presentation_layout: &'a patchbay_model::PatchbayLayout,
+    pub presentation_layout: &'a patchbay_application::PatchbayLayout,
     pub realization_plan: Option<&'a conduit_core::Plan>,
     pub realization_hosts: &'a [conduit_core::HostAdvertisement],
     pub status: Option<&'a crate::interaction_status::InteractionStatus>,
@@ -154,7 +155,7 @@ pub fn draw_patchbay_with_debugger(
         .ok()
         .zip(u16::try_from(height).ok())
         .and_then(|(width, height)| {
-            patchbay_model::ResponsivePatchbayLayout::allocate(
+            patchbay_application::ResponsivePatchbayLayout::allocate(
                 width,
                 height,
                 100,
@@ -163,13 +164,13 @@ pub fn draw_patchbay_with_debugger(
             .ok()
         });
     let shell_region = |id| shell.as_ref().and_then(|layout| layout.region(id));
-    let header_height = shell_region(patchbay_model::PresentationRegionId::HeaderMeaning)
+    let header_height = shell_region(patchbay_application::PresentationRegionId::HeaderMeaning)
         .map_or(HEADER_HEIGHT, |region| i32::from(region.bounds.height));
-    let footer_height = shell_region(patchbay_model::PresentationRegionId::FooterMeaning)
+    let footer_height = shell_region(patchbay_application::PresentationRegionId::FooterMeaning)
         .map_or(FOOTER_HEIGHT, |region| i32::from(region.bounds.height));
-    let nav_width = shell_region(patchbay_model::PresentationRegionId::Navigator)
+    let nav_width = shell_region(patchbay_application::PresentationRegionId::Navigator)
         .map_or(NAV_WIDTH, |region| i32::from(region.bounds.width));
-    let inspector_width = shell_region(patchbay_model::PresentationRegionId::Inspector)
+    let inspector_width = shell_region(patchbay_application::PresentationRegionId::Inspector)
         .map_or(0, |region| i32::from(region.bounds.width));
     let mut targets = Vec::with_capacity(MAX_HIT_TARGETS);
     draw_regions(
@@ -401,7 +402,7 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
         &[BoundaryLayout],
     ),
     selected: Option<&str>,
-    presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
+    presentation: (&patchbay_application::PatchbayLayout, &CanvasViewport),
     theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
@@ -431,7 +432,7 @@ pub(super) fn cord_route_points(
         &[CompositionLayout<'_>],
         &[BoundaryLayout],
     ),
-    presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
+    presentation: (&patchbay_application::PatchbayLayout, &CanvasViewport),
 ) -> Option<[Point; 5]> {
     let (layouts, compositions, boundaries) = layout;
     let (presentation_layout, viewport) = presentation;

@@ -185,7 +185,16 @@ fn unsupported_velocity_refuses_without_claiming_expression() {
 fn run_unsupported_velocity_refusal() {
     let prepared = prepared();
     let mut values = reviewed_values();
-    values[0].velocity = 32_768;
+    let event = values[0];
+    values[0] = MusicalNoteEvent::new(
+        event.occurrence(),
+        event.pitch(),
+        event.gate(),
+        32_768,
+        event.event_time_micros(),
+        event.order(),
+    )
+    .unwrap();
     let mut execution = prepare_execution(&prepared, values).unwrap();
     let mut base = RecordedOpl2::default();
     assert_eq!(

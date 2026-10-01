@@ -1,7 +1,8 @@
 # Protected Line session profile
 
 Status: portable contract, std driver, browser WASM adapter, and deterministic
-cross-target conformance for #3650. The operator relay remains separate work.
+cross-target conformance for #3650. The [user-operated relay](../user-operated-relay.md) is a separately owned
+mechanism that uses this protected session; it is not the session contract itself.
 
 The first protected-session profile is
 `conduit.line/noise-nnpsk0-25519-chachapoly-sha256@1`, realized by the

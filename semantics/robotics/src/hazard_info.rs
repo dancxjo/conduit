@@ -8,7 +8,9 @@
 use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
 use core::{cmp::Ordering, hash::Hash};
 
-use crate::{ContactObservation, WheelDropObservation};
+use crate::{
+    ChargingObservation, CliffObservation, CliffSignal, ContactObservation, WheelDropObservation,
+};
 
 pub const ROBOTICS_CONTACT_INFO_ID: &str = "robotics/contact-body-sectors@1";
 pub const ROBOTICS_CLIFF_INFO_ID: &str = "robotics/cliff-body-sectors@1";
@@ -77,13 +79,6 @@ impl Hash for ContactObservation {
 /// Four exact cliff detectors in body order: left, front-left, front-right,
 /// right. Signal values are meaningful only when their matching bit is set in
 /// `signal_available`; unavailable is never encoded as a made zero.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CliffObservation {
-    active_sectors: u8,
-    signal_available: u8,
-    signals: [u16; 4],
-}
-
 impl CliffObservation {
     const CLIFF_SECTOR_MASK: u8 =
         BODY_SECTOR_LEFT | BODY_SECTOR_FRONT_LEFT | BODY_SECTOR_FRONT_RIGHT | BODY_SECTOR_RIGHT;
@@ -111,26 +106,45 @@ impl CliffObservation {
                 ));
             }
         }
-        Ok(Self {
-            active_sectors,
-            signal_available,
-            signals,
-        })
+        let signal = |index: usize| {
+            if signal_available & (1_u8 << index) == 0 {
+                CliffSignal::unavailable()
+            } else {
+                CliffSignal::observed(signals[index]).expect("U16 signal has no added constraint")
+            }
+        };
+        Ok(
+            Self::new_native(active_sectors, signal(0), signal(1), signal(2), signal(3))
+                .expect("explicit mask checks match generated contract"),
+        )
     }
 
-    pub const fn active_sectors(self) -> u8 {
-        self.active_sectors
-    }
-
-    pub const fn signals(self) -> (u8, [u16; 4]) {
-        (self.signal_available, self.signals)
+    pub fn signals(self) -> (u8, [u16; 4]) {
+        let mut available = 0;
+        let mut signals = [0; 4];
+        for (index, signal) in [
+            self.left_signal(),
+            self.front_left_signal(),
+            self.front_right_signal(),
+            self.right_signal(),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if let CliffSignal::Observed(observed) = signal {
+                available |= 1_u8 << index;
+                signals[index] = *observed.value();
+            }
+        }
+        (available, signals)
     }
 
     pub fn encode(self) -> [u8; ROBOTICS_CLIFF_ENCODED_LEN] {
-        let [left, front_left, front_right, right] = self.signals.map(u16::to_le_bytes);
+        let (signal_available, signals) = self.signals();
+        let [left, front_left, front_right, right] = signals.map(u16::to_le_bytes);
         [
-            self.active_sectors,
-            self.signal_available,
+            self.active_sectors(),
+            signal_available,
             left[0],
             left[1],
             front_left[0],
@@ -158,6 +172,23 @@ impl CliffObservation {
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_CLIFF_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for CliffObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for CliffObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.active_sectors(), self.signals()).cmp(&(other.active_sectors(), other.signals()))
+    }
+}
+impl Hash for CliffObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.active_sectors().hash(state);
+        self.signals().hash(state);
     }
 }
 
@@ -218,17 +249,6 @@ impl ChargingState {
 pub const CHARGING_SOURCE_INTERNAL: u8 = 1 << 0;
 pub const CHARGING_SOURCE_HOME_BASE: u8 = 1 << 1;
 pub const CHARGING_SOURCE_MASK: u8 = CHARGING_SOURCE_INTERNAL | CHARGING_SOURCE_HOME_BASE;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ChargingObservation {
-    pub state: ChargingState,
-    pub sources: u8,
-    pub millivolts: u16,
-    pub milliamps: i16,
-    pub temperature_celsius: i8,
-    pub charge_mah: u16,
-    pub capacity_mah: u16,
-}
 
 impl ChargingObservation {
     pub fn new(self) -> Result<Self, InfoDecodeError> {
@@ -309,6 +329,48 @@ impl ChargingObservation {
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_CHARGING_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for ChargingObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for ChargingObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (
+            self.state,
+            self.sources,
+            self.millivolts,
+            self.milliamps,
+            self.temperature_celsius,
+            self.charge_mah,
+            self.capacity_mah,
+        )
+            .cmp(&(
+                other.state,
+                other.sources,
+                other.millivolts,
+                other.milliamps,
+                other.temperature_celsius,
+                other.charge_mah,
+                other.capacity_mah,
+            ))
+    }
+}
+impl Hash for ChargingObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        (
+            self.state,
+            self.sources,
+            self.millivolts,
+            self.milliamps,
+            self.temperature_celsius,
+            self.charge_mah,
+            self.capacity_mah,
+        )
+            .hash(state);
     }
 }
 

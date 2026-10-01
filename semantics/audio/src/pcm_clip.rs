@@ -126,14 +126,14 @@ fn validate_frames<'a>(frames: &[&'a [u8]]) -> Result<PcmClip<'a>, PcmClipError>
     for encoded in frames {
         let (header, payload) =
             PcmFrameHeader::decode_frame(encoded).map_err(|_| PcmClipError::MalformedFrame)?;
-        if header.discontinuity {
+        if header.discontinuity() {
             return Err(PcmClipError::Discontinuity);
         }
         let current = PcmClipProfile::new(
-            header.clock_id,
-            header.layout,
-            header.representation,
-            header.sample_rate_hz,
+            header.clock_id(),
+            header.layout(),
+            header.representation(),
+            header.sample_rate_hz(),
         )
         .map_err(|_| PcmClipError::MalformedFrame)?;
         if let Some(first) = profile {
@@ -149,17 +149,17 @@ fn validate_frames<'a>(frames: &[&'a [u8]]) -> Result<PcmClip<'a>, PcmClipError>
         } else {
             profile = Some(current);
         }
-        if expected_start.is_some_and(|expected| header.start_frame != expected) {
+        if expected_start.is_some_and(|expected| header.start_frame() != expected) {
             return Err(PcmClipError::NonContiguous);
         }
         expected_start = Some(
             header
-                .start_frame
-                .checked_add(u64::from(header.frame_count))
+                .start_frame()
+                .checked_add(u64::from(header.frame_count()))
                 .ok_or(PcmClipError::FrameCountOverflow)?,
         );
         total_frames = total_frames
-            .checked_add(u32::from(header.frame_count))
+            .checked_add(u32::from(header.frame_count()))
             .ok_or(PcmClipError::FrameCountOverflow)?;
         if total_frames > MAXIMUM_PCM_CLIP_FRAMES {
             return Err(PcmClipError::BoundExceeded);

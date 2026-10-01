@@ -1,6 +1,4 @@
-> **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
-
-## Forms and completion
+## forms and completion
 
 A form is **live by default**:
 
@@ -65,9 +63,7 @@ A standalone `...` currently tolerated by old parsing is **not canonical semanti
 Provenance: #3939 plus this canonical amendment in #4109.
 ---
 
----
-
-## Cords and fore direction: `>>`
+## cords and fore direction: `>>`
 
 `>>` is the **one canonical authored cord/direction token**.
 
@@ -105,8 +101,6 @@ Reserve expression shifts:
 Historical `>` cord source remains historical evidence. **Do not make `>` a current compatibility spelling.**
 
 Provenance: #3967.
-
----
 
 ---
 
@@ -150,8 +144,6 @@ The condition is Boolean, branches unify to one exact finite result type/bound, 
 Ternary is **not graph routing**.
 
 Provenance: #3964, #3969.
-
----
 
 ---
 
@@ -233,8 +225,6 @@ Provenance: #3964, #3967, #4014.
 
 ---
 
----
-
 ## Immutable locals
 
 Canonical local binding:
@@ -251,8 +241,6 @@ No shadowing of startup parameters, ports, gear names, locals, or imported alias
 Local dependency cycles refuse. Runtime-flow capture requires explicit graph/value machinery and must not turn locals into hidden state.
 
 Provenance: #4052.
-
----
 
 ---
 
@@ -292,8 +280,6 @@ Provenance: #3938, #4062.
 
 ---
 
----
-
 ## Unary filter sugar: `when`
 
 Canonical unary value filter:
@@ -323,8 +309,6 @@ Provenance: #4044.
 
 ---
 
----
-
 ## Source gears
 
 A source gear is ordinary checked work whose activation may originate from an admitted external condition rather than an upstream runtime data cord.
@@ -334,8 +318,6 @@ Examples: timer, input device, network receive, sensor observation.
 There is **no callback syntax and no second event-loop runtime**. External readiness enters the same bounded scheduler/kernel activation model and obeys ordinary pressure, terminal and lifecycle law.
 
 Provenance: #4060.
-
----
 
 ---
 

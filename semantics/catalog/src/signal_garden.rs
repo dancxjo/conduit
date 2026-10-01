@@ -1,11 +1,11 @@
 //! Finite, deterministic observation-driven state for Signal Garden compositions.
 
 use alloc::{vec, vec::Vec};
-pub use conduit_alife::GardenEvolutionRefusal;
-use conduit_core::{
-    kind_id, Scalar, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal,
-    StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape, SCALAR_INFO_ID,
+pub use conduit_alife::{
+    GardenClockObservation, GardenContactObservation, GardenEvolutionRefusal, GardenState,
 };
+use conduit_core::{Scalar, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue};
+use conduit_form::rust_binding::NativeRustBinding;
 
 pub const GARDEN_STATE_TYPE: &str = "GardenState";
 pub const GARDEN_CLOCK_OBSERVATION_TYPE: &str = "GardenClockObservation";
@@ -14,23 +14,6 @@ pub const GARDEN_STATE_INFO_ID: &str = "garden/state@1";
 pub const GARDEN_CLOCK_OBSERVATION_INFO_ID: &str = "garden/clock-observation@1";
 pub const GARDEN_CONTACT_OBSERVATION_INFO_ID: &str = "garden/contact-observation@1";
 pub const GARDEN_MAXIMUM_STEPS: u16 = 16;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GardenState {
-    pub vitality: Scalar,
-    pub activity: Scalar,
-    pub step: u16,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GardenClockObservation {
-    pub phase: Scalar,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GardenContactObservation {
-    pub intensity: Scalar,
-}
 
 pub fn deterministic_garden_observations() -> (
     GardenState,
@@ -104,14 +87,9 @@ pub fn garden_state_value(
     state: GardenState,
 ) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
     validate_state(state).map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
-    StructuredInfoValue::record(
-        garden_state_type(),
-        vec![
-            scalar_field("activity", state.activity)?,
-            count_field("step", u64::from(state.step))?,
-            scalar_field("vitality", state.vitality)?,
-        ],
-    )
+    state
+        .into_structured()
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
 }
 
 pub fn garden_clock_observation_value(
@@ -119,29 +97,16 @@ pub fn garden_clock_observation_value(
 ) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
     validate_scalar(observation.phase)
         .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
-    StructuredInfoValue::record(
-        garden_clock_observation_type(),
-        vec![scalar_field("phase", observation.phase)?],
-    )
+    observation
+        .into_structured()
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
 }
 
 pub fn decode_garden_state(encoded: &[u8]) -> Result<GardenState, GardenEvolutionRefusal> {
     let value = StructuredInfoValue::from_canonical_bytes(encoded)
         .map_err(|_| GardenEvolutionRefusal::MalformedState)?;
-    if value.value_type() != &garden_state_type() {
-        return Err(GardenEvolutionRefusal::MalformedState);
-    }
-    let state = GardenState {
-        activity: scalar_record_field(&value, "activity")
-            .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
-        step: u16::try_from(
-            count_record_field(&value, "step")
-                .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
-        )
-        .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
-        vitality: scalar_record_field(&value, "vitality")
-            .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
-    };
+    let state =
+        GardenState::from_structured(value).map_err(|_| GardenEvolutionRefusal::MalformedState)?;
     validate_state(state)?;
     Ok(state)
 }
@@ -154,46 +119,11 @@ pub fn decode_garden_clock_observation(
     if value.value_type() != &garden_clock_observation_type() {
         return Err(GardenEvolutionRefusal::MalformedClockObservation);
     }
-    let phase = scalar_record_field(&value, "phase")
+    let observation = GardenClockObservation::from_structured(value)
         .map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
+    let phase = observation.phase;
     validate_scalar(phase).map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
-    Ok(GardenClockObservation { phase })
-}
-
-fn scalar_field(name: &str, value: Scalar) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(leaf(SCALAR_INFO_ID), value.encode().to_vec())?,
-    )
-}
-
-fn count_field(name: &str, value: u64) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(
-            leaf("value/count"),
-            conduit_core::encode_count(value).to_vec(),
-        )?,
-    )
-}
-
-fn scalar_record_field(value: &StructuredInfoValue, name: &str) -> Result<Scalar, ()> {
-    Scalar::decode(record_leaf_bytes(value, name)?).map_err(|_| ())
-}
-
-fn count_record_field(value: &StructuredInfoValue, name: &str) -> Result<u64, ()> {
-    conduit_core::decode_count(record_leaf_bytes(value, name)?).map_err(|_| ())
-}
-
-fn record_leaf_bytes<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'a [u8], ()> {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        return Err(());
-    };
-    let field = fields.iter().find(|field| field.name() == name).ok_or(())?;
-    let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
-        return Err(());
-    };
-    Ok(bytes)
+    Ok(observation)
 }
 
 fn validate_state(state: GardenState) -> Result<(), GardenEvolutionRefusal> {
@@ -216,28 +146,15 @@ fn validate_scalar(value: Scalar) -> Result<(), ()> {
 }
 
 pub fn garden_state_type() -> StructuredInfoType {
-    record(
-        GARDEN_STATE_INFO_ID,
-        vec![
-            field("activity", leaf(SCALAR_INFO_ID)),
-            field("step", leaf("value/count")),
-            field("vitality", leaf(SCALAR_INFO_ID)),
-        ],
-    )
+    GardenState::semantic_type().expect("checked Garden state Type")
 }
 
 pub fn garden_clock_observation_type() -> StructuredInfoType {
-    record(
-        GARDEN_CLOCK_OBSERVATION_INFO_ID,
-        vec![field("phase", leaf(SCALAR_INFO_ID))],
-    )
+    GardenClockObservation::semantic_type().expect("checked Garden clock observation Type")
 }
 
 pub fn garden_contact_observation_type() -> StructuredInfoType {
-    record(
-        GARDEN_CONTACT_OBSERVATION_INFO_ID,
-        vec![field("intensity", leaf(SCALAR_INFO_ID))],
-    )
+    GardenContactObservation::semantic_type().expect("checked Garden contact observation Type")
 }
 
 pub fn garden_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
@@ -256,18 +173,6 @@ pub fn garden_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
             crate::garden_enriched_observation_type(),
         ),
     ]
-}
-
-fn leaf(kind: &str) -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(kind)).expect("reviewed Garden leaf")
-}
-
-fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).expect("reviewed Garden field")
-}
-
-fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
-    StructuredInfoType::record(kind_id(kind), fields).expect("reviewed Garden record")
 }
 
 #[cfg(test)]

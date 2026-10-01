@@ -291,12 +291,13 @@ fn optional_region(value: &StructuredInfoValue) -> Result<Option<ImageRegion>, V
 }
 
 fn region(value: &StructuredInfoValue) -> Result<ImageRegion, VisualValueRefusal> {
-    Ok(ImageRegion {
-        x: bounded_u16(field(value, "x")?)?,
-        y: bounded_u16(field(value, "y")?)?,
-        width: bounded_u16(field(value, "width")?)?,
-        height: bounded_u16(field(value, "height")?)?,
-    })
+    ImageRegion::from_xywh(
+        bounded_u16(field(value, "x")?)?,
+        bounded_u16(field(value, "y")?)?,
+        bounded_u16(field(value, "width")?)?,
+        bounded_u16(field(value, "height")?)?,
+    )
+    .map_err(|_| VisualValueRefusal::InvalidObservation)
 }
 
 fn image(
