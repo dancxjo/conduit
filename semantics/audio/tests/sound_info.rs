@@ -65,14 +65,14 @@ fn sustain_hold_and_release_are_distinct_ordered_events() {
 #[test]
 fn microtonal_pitch_and_explicit_tuning_are_not_midi_numbers() {
     let pitch = MusicalPitch::new(440_127, 442_000, 12_500).unwrap();
-    assert_eq!(pitch.frequency_millihertz, 440_127);
-    assert_eq!(pitch.a4_reference_millihertz, 442_000);
+    assert_eq!(pitch.frequency_millihertz(), 440_127);
+    assert_eq!(pitch.a4_reference_millihertz(), 442_000);
     let a4 = MusicalPitch::from_equal_tempered(0, 442_000, 0).unwrap();
     let a5 = MusicalPitch::from_equal_tempered(12, 442_000, 0).unwrap();
     let c4 = MusicalPitch::from_equal_tempered(-9, 440_000, 0).unwrap();
-    assert_eq!(a4.frequency_millihertz, 442_000);
-    assert_eq!(a5.frequency_millihertz, 884_000);
-    assert_eq!(c4.frequency_millihertz, 261_626);
+    assert_eq!(a4.frequency_millihertz(), 442_000);
+    assert_eq!(a5.frequency_millihertz(), 884_000);
+    assert_eq!(c4.frequency_millihertz(), 261_626);
     assert_eq!(
         MusicalPitch::from_equal_tempered(0, 440_000, 50_000_000),
         Err(SoundInfoError::OutOfRange("detune-microcents"))

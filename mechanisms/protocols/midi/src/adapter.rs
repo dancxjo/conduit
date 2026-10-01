@@ -391,7 +391,7 @@ fn exact_pitch_bend(amount: i32) -> Result<u16, MidiAdapterError> {
 }
 
 fn exact_midi_key(pitch: MusicalPitch, reference: u64) -> Result<u8, MidiAdapterError> {
-    if pitch.a4_reference_millihertz != reference || pitch.detune_microcents != 0 {
+    if pitch.a4_reference_millihertz() != reference || pitch.detune_microcents() != 0 {
         return Err(MidiAdapterError::PitchOutsideMidiProfile);
     }
     (0_u8..=127)
