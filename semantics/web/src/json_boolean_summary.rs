@@ -1,6 +1,6 @@
 //! Count both Boolean outcomes in one finite collection of records.
 
-use crate::{JsonRefusal, JsonValue, PortableKindContract};
+use crate::{JsonSummaryRefusal, JsonValue, PortableKindContract};
 use alloc::{string::ToString, vec};
 use conduit_core::{
     kind_id, ConfigurationValue, FrontStartupParameter, Kind, KindConfigurationField,
@@ -10,16 +10,6 @@ use conduit_core::{
 pub const JSON_BOOLEAN_SUMMARY_KIND: &str = "json/boolean-summary";
 pub const JSON_BOOLEAN_SUMMARY_REVISION: &str = "conduit.json/boolean-summary@1";
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum JsonSummaryRefusal {
-    InvalidField,
-    NotCollection,
-    NotRecord,
-    MissingField,
-    NotBoolean,
-    InvalidValue(JsonRefusal),
-}
-
 impl JsonSummaryRefusal {
     pub const fn detail(self) -> u16 {
         match self {
@@ -28,7 +18,7 @@ impl JsonSummaryRefusal {
             Self::NotRecord => 122,
             Self::MissingField => 123,
             Self::NotBoolean => 124,
-            Self::InvalidValue(error) => error as u16,
+            Self::InvalidValue(error) => error.detail(),
         }
     }
 }

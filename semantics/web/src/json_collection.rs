@@ -3,23 +3,8 @@
 //! The request has exactly `collection` (an array) and `command` (an object).
 //! Array order is stable. Commands neither name a host nor perform storage.
 
-use crate::{JsonRefusal, JsonValue};
+use crate::{JsonCollectionRefusal, JsonValue};
 use alloc::{string::String, vec::Vec};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u16)]
-pub enum JsonCollectionRefusal {
-    InvalidRequest = 100,
-    InvalidCollection = 101,
-    InvalidCommand = 102,
-    UnknownOperation = 103,
-    InvalidIndex = 104,
-    MissingIndex = 105,
-    MissingField = 106,
-    NotBoolean = 107,
-    CollectionFull = 108,
-    InvalidValue(JsonRefusal) = 109,
-}
 
 /// Produces a new validated collection or a machine-distinct refusal. The
 /// caller's prior collection is unchanged on both success and failure.

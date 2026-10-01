@@ -4,6 +4,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::Scalar;
 
+use crate::JsonRefusal;
+
 pub const JSON_INFO_ID: &str = "value/json@1";
 pub const JSON_TEXT_INFO_ID: &str = "text/json-utf8@1";
 pub const JSON_MAXIMUM_DEPTH: usize = 8;
@@ -27,22 +29,24 @@ pub enum JsonValue {
     Object(Vec<(String, JsonValue)>),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(u16)]
-pub enum JsonRefusal {
-    MalformedSyntax = 1,
-    InvalidUtf8 = 2,
-    DepthOverflow = 3,
-    ArrayItemOverflow = 4,
-    ObjectMemberOverflow = 5,
-    NodeOverflow = 6,
-    KeyByteOverflow = 7,
-    StringByteOverflow = 8,
-    TotalStringByteOverflow = 9,
-    EncodedByteOverflow = 10,
-    NumericOverflow = 11,
-    DuplicateKey = 12,
-    NonCanonicalValue = 13,
+impl JsonRefusal {
+    pub const fn detail(self) -> u16 {
+        match self {
+            Self::MalformedSyntax => 1,
+            Self::InvalidUtf8 => 2,
+            Self::DepthOverflow => 3,
+            Self::ArrayItemOverflow => 4,
+            Self::ObjectMemberOverflow => 5,
+            Self::NodeOverflow => 6,
+            Self::KeyByteOverflow => 7,
+            Self::StringByteOverflow => 8,
+            Self::TotalStringByteOverflow => 9,
+            Self::EncodedByteOverflow => 10,
+            Self::NumericOverflow => 11,
+            Self::DuplicateKey => 12,
+            Self::NonCanonicalValue => 13,
+        }
+    }
 }
 
 impl JsonValue {

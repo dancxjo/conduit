@@ -6,6 +6,7 @@ mod generated {
 pub use generated::{
     HttpBody, HttpContractError, HttpExchangeFailure, HttpHeader, HttpMethod, HttpRequest,
     HttpResponse, HttpScheme, HttpServerResponseRefusal, HttpTarget, HttpTransactionId,
+    JsonCollectionRefusal, JsonRefusal, JsonSummaryRefusal,
 };
 
 pub const HTTP_MAXIMUM_IN_FLIGHT: u16 = 4;
