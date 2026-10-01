@@ -107,8 +107,8 @@ fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
         .contains("physical Host classification not evidenced"));
     assert_eq!(frame.latest_evidence.sequence, 4);
     assert!(matches!(
-        frame.patchbay_reader,
-        CurrentBodyPatchbayReader::HostedByBody { .. }
+        frame.reader_placement,
+        CurrentBodyReaderPlacement::Hosted { .. }
     ));
 }
 
@@ -126,12 +126,12 @@ fn external_readers_distinguish_hosted_and_unhosted_graduations() {
     .unwrap();
 
     assert!(matches!(
-        CurrentBodyFrame::from_attachment(1, &hosted).patchbay_reader,
-        CurrentBodyPatchbayReader::ExternalReadingHostedBody { .. }
+        CurrentBodyFrame::from_attachment(1, &hosted).reader_placement,
+        CurrentBodyReaderPlacement::ExternalReadingHosted { .. }
     ));
     assert_eq!(
-        CurrentBodyFrame::from_attachment(1, &unhosted).patchbay_reader,
-        CurrentBodyPatchbayReader::ExternalReadingUnhostedBody
+        CurrentBodyFrame::from_attachment(1, &unhosted).reader_placement,
+        CurrentBodyReaderPlacement::ExternalReadingUnhostedBody
     );
 }
 
@@ -148,8 +148,8 @@ fn external_reader_accepts_a_workspace_born_body_without_creche_graduation() {
     .unwrap();
 
     assert_eq!(
-        CurrentBodyFrame::from_attachment(1, &attachment).patchbay_reader,
-        CurrentBodyPatchbayReader::ExternalReadingWorkspaceBody
+        CurrentBodyFrame::from_attachment(1, &attachment).reader_placement,
+        CurrentBodyReaderPlacement::ExternalReadingUngraduatedBody
     );
 }
 

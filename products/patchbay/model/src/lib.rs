@@ -16,7 +16,6 @@ mod build_birth;
 mod control;
 mod conversation_request_evidence;
 mod cross_host_renderer;
-mod current_body_frame;
 mod debugger_control;
 #[cfg(test)]
 mod debugger_control_tests;
@@ -136,11 +135,6 @@ pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
     PRESENTATION_PROJECT_KIND,
-};
-pub use current_body_frame::{
-    CurrentBodyForm, CurrentBodyFrame, CurrentBodyFrameError, CurrentBodyFrameSlot,
-    CurrentBodyHost, CurrentBodyLifecycle, CurrentBodyLifecycleAction, CurrentBodyPatchbayReader,
-    CurrentBodyPhysicalHostSummary, CurrentBodyTransition,
 };
 pub use debugger_control::{
     DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
