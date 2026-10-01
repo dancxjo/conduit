@@ -7,7 +7,8 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     identity::{hash_relationship, hash_string},
-    Presentation, PresentationContentId, PresentationRelationshipKind, MAX_PRESENTATION_ID_BYTES,
+    NavigationRefusal, Presentation, PresentationAspect, PresentationContentId, PresentationDepth,
+    PresentationPlace, PresentationRelationshipKind, MAX_PRESENTATION_ID_BYTES,
     MAX_PRESENTATION_TEXT_BYTES,
 };
 
@@ -24,32 +25,6 @@ impl NavigationContentId {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-}
-
-/// A coherent portable presentation domain, never a renderer surface or route.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PresentationPlace {
-    Entrance,
-    Program,
-    Body,
-}
-
-/// The class of facts emphasized within a Place.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PresentationAspect {
-    Structure,
-    Plan,
-    Play,
-    Signs,
-}
-
-/// Ordered, finite progressive disclosure requested by navigation.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum PresentationDepth {
-    Primary,
-    Context,
-    Detail,
-    Exact,
 }
 
 /// The portable navigation position over one exact Presentation revision.
@@ -115,18 +90,6 @@ pub enum NavigationOperation {
     Follow(String),
     Disclose(PresentationDepth),
     Back,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum NavigationRefusal {
-    StalePresentation,
-    UnknownPlace,
-    UnknownAspect,
-    UnknownSubject,
-    UnknownRelationship,
-    HistoryExhausted,
-    HistoryFull,
-    InvalidTruth,
 }
 
 /// Bounded cursor state. It contains no semantic action or runtime mutation hook.
