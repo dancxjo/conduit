@@ -3,7 +3,7 @@
 pub(crate) mod application;
 mod audio_gain;
 pub(crate) mod audio_io;
-mod audio_tone;
+pub(crate) mod audio_tone;
 mod back;
 pub(crate) mod body_startup;
 mod button_indicator;

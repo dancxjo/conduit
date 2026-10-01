@@ -96,6 +96,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     .map_err(|error| format!("browser value store: {error:?}"))?;
     let mut operations = Vec::with_capacity(MAXIMUM_BROWSER_GEARS);
     let mut mappings = empty_slots(active_nodes);
+    let mut audio_tones = empty_slots(active_nodes);
     let mut snapshots = empty_slots(active_nodes);
     let mut selectors = empty_slots(active_nodes);
     let mut attempts = empty_slots(active_nodes);
@@ -138,6 +139,8 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
                 crate::installed_browser::prepare_quantity_mapping(placement)?,
             );
         }
+        audio_tones[usize::from(node.node.0)] =
+            crate::installed_browser::audio_tone::PreparedAudioTone::for_placement(placement)?;
         if placement
             .host_calls
             .iter()
@@ -309,6 +312,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
         failure: None,
         kernel: Box::new(kernel),
         mappings,
+        audio_tones,
         selectors,
         timing,
         keymaps,
