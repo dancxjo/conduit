@@ -6,8 +6,8 @@ mod generated {
 }
 
 pub use generated::{
-    LiveConversationSpeechRequirements, RecognitionTextRefusal, RecognizedSpeechText,
-    SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionAttempt,
+    HouseGenerationRequest, LiveConversationSpeechRequirements, RecognitionTextRefusal,
+    RecognizedSpeechText, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionAttempt,
     SpeechRecognitionAudioDigest, SpeechRecognitionDisposition, SpeechRecognitionProviderIdentity,
     SpeechRecognitionRefusal, SpeechRecognitionResult, SpeechRecognitionResultNoSpeech,
     SpeechRecognitionResultRecognized, SpeechRecognitionValueError, StreamingRecognitionRefusal,
