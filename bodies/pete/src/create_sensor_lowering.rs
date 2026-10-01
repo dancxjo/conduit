@@ -14,7 +14,8 @@ use conduit_robotics::{
     BatteryObservation, BeaconKind, BeaconObservation, ButtonSetObservation, ChargingObservation,
     ChargingState, CliffObservation, ContactObservation, ProximityObservation,
     WheelDropObservation, BODY_SECTOR_FRONT_LEFT, BODY_SECTOR_FRONT_RIGHT, BODY_SECTOR_LEFT,
-    BODY_SECTOR_RIGHT, CHARGING_SOURCE_MASK, WHEEL_CASTER, WHEEL_LEFT, WHEEL_RIGHT,
+    BODY_SECTOR_RIGHT, CHARGING_SOURCE_MASK, MAXIMUM_BATTERY_MILLIVOLTS, WHEEL_CASTER, WHEEL_LEFT,
+    WHEEL_RIGHT,
 };
 
 pub const CREATE_GROUP_ZERO_PACKET_ID: u8 = 0;
@@ -79,10 +80,23 @@ impl CreateChargingSample {
         }
         let permille =
             u32::from(normalized.charge_mah) * 1_000 / u32::from(normalized.capacity_mah);
-        Ok(Some(BatteryObservation::new(
-            u16::try_from(permille).expect("bounded battery ratio"),
-            self.millivolts,
-        )?))
+        if self.millivolts > MAXIMUM_BATTERY_MILLIVOLTS {
+            return Err(CreateSensorLoweringError::Semantic(
+                InfoDecodeError::OutOfRange {
+                    field: "millivolts",
+                    actual: i64::from(self.millivolts),
+                    minimum: 0,
+                    maximum: i64::from(MAXIMUM_BATTERY_MILLIVOLTS),
+                },
+            ));
+        }
+        Ok(Some(
+            BatteryObservation::new(
+                u16::try_from(permille).expect("bounded battery ratio"),
+                self.millivolts,
+            )
+            .expect("Create ratio and voltage bounds match the native battery contract"),
+        ))
     }
 }
 
