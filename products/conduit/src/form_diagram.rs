@@ -83,8 +83,8 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         "<desc id=\"desc\">Checked Conduit Form with exact typed port connections.</desc>"
     )
     .unwrap();
-    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#172033}.canvas{fill:#fbfcfe}.gear{fill:#f7f9fc;stroke:#52647d;stroke-width:2}.header{fill:#dce7f5}.boundary{fill:#eef8ee;stroke:#4f7654;stroke-width:2}.port{fill:#fff;stroke:#315c87;stroke-width:3}.cord-shadow{fill:none;stroke:#fff;stroke-width:7}.cord{fill:none;stroke:#3973ac;stroke-width:3}.close{stroke:#666;stroke-dasharray:8 5}.quiescence{stroke:#7851a9;stroke-dasharray:3 5}.abnormal{stroke:#b64040;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.port-name{font-size:13px;font-weight:700}.port-kind{fill:#52647d;font-size:11px}.cord-tag{fill:#e8f1fb;stroke:#7b9abb;stroke-width:1}.cord-label{font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
-    svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3973ac"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b64040"/></marker></defs>"##);
+    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#17233c}.canvas{fill:#f5f1e8}.gear{fill:#fffdf8;stroke:#344766;stroke-width:2}.header{fill:#d9e8f2}.boundary{fill:#dfeee5;stroke:#39705a;stroke-width:2}.port{fill:#fffdf8;stroke:#176b87;stroke-width:3}.cord-shadow{fill:none;stroke:#f5f1e8;stroke-width:8}.cord{fill:none;stroke:#1677a6;stroke-width:3}.close{stroke:#657083;stroke-dasharray:8 5}.quiescence{stroke:#7656a8;stroke-dasharray:3 5}.abnormal{stroke:#c34f52;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.port-name{fill:#17233c;font-size:13px;font-weight:700}.port-kind{fill:#52647d;font-size:11px}.cord-tag{fill:#fff0cf;stroke:#bd8127;stroke-width:1}.cord-label{fill:#49320f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
+    svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1677a6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c34f52"/></marker></defs>"##);
     writeln!(
         svg,
         "<rect class=\"canvas\" width=\"{width}\" height=\"{height}\"/>"
@@ -481,6 +481,9 @@ mod tests {
         assert!(svg.contains("class=\"port-kind\""));
         assert!(svg.contains("main/pass.text → Form.shown · payload"));
         assert!(svg.contains("class=\"cord-tag\""));
+        assert!(svg.contains(".canvas{fill:#f5f1e8}"));
+        assert!(svg.contains(".boundary{fill:#dfeee5"));
+        assert!(svg.contains("fill=\"#1677a6\""));
         assert!(svg.contains("q0,-10 10,-10"));
         assert!(svg.contains("width=\"1010\""));
         assert!(!svg.contains("text/join(\"&\")"));
