@@ -30,15 +30,6 @@ fn offer() -> conduit_core::CapabilityOffer {
         },
         vec![
             HostCallRequirement {
-                contract_id: HostCallContractId::from(UPDATE_OPERATION),
-                target_kind: Some(conduit_core::kind_id(
-                    conduit_semantic_catalog::AUDIO_GAIN_KIND,
-                )),
-                maximum_in_flight: 1,
-                maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
-                maximum_output_bytes: 0,
-            },
-            HostCallRequirement {
                 contract_id: HostCallContractId::from(SCALE_OPERATION),
                 target_kind: Some(conduit_core::kind_id(
                     conduit_semantic_catalog::AUDIO_GAIN_KIND,
@@ -46,6 +37,15 @@ fn offer() -> conduit_core::CapabilityOffer {
                 maximum_in_flight: 1,
                 maximum_input_bytes: BLOCK_BYTES as u32,
                 maximum_output_bytes: BLOCK_BYTES as u32,
+            },
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(UPDATE_OPERATION),
+                target_kind: Some(conduit_core::kind_id(
+                    conduit_semantic_catalog::AUDIO_GAIN_KIND,
+                )),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                maximum_output_bytes: 0,
             },
         ],
         Vec::new(),
@@ -113,7 +113,7 @@ impl<const PORTS: usize> StepBack<PORTS> for GainBack {
             io.consume(PortId(1)).expect("present amplitude");
             io.request_host_call(
                 request,
-                HostCallId(0),
+                HostCallId(1),
                 BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
                     .expect("bounded Scalar"),
             )
@@ -133,7 +133,7 @@ impl<const PORTS: usize> StepBack<PORTS> for GainBack {
             io.consume(PortId(0)).expect("present PCM");
             io.request_host_call(
                 request,
-                HostCallId(1),
+                HostCallId(0),
                 BoundedValueRef::new(value, BLOCK_BYTES as u32).expect("bounded PCM"),
             )
             .expect("gain scale Host Call");

@@ -84,6 +84,17 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
             "{implementation}"
         );
     }
+    let gain = host
+        .capabilities
+        .iter()
+        .find(|offer| {
+            offer.implementation.implementation_id.as_str() == "browser/kernel-audio-apply-gain@1"
+        })
+        .unwrap();
+    assert!(gain
+        .host_calls
+        .windows(2)
+        .all(|pair| pair[0].contract_id < pair[1].contract_id));
 }
 
 #[test]
