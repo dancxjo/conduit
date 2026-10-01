@@ -23,6 +23,7 @@ pub struct StartupCatalog {
     variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
     structured_type_contracts: BTreeMap<String, Vec<NativeTypeValueContract>>,
+    structured_type_invariants: BTreeMap<String, Vec<crate::PortableExpressionProgram>>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
 }
 
@@ -175,10 +176,13 @@ impl StartupCatalog {
         name: impl Into<String>,
         value_type: conduit_core::StructuredInfoType,
         contracts: Vec<NativeTypeValueContract>,
+        invariants: Vec<crate::PortableExpressionProgram>,
     ) -> Result<(), String> {
         let name = name.into();
         self.insert_structured_type(name.clone(), value_type)?;
-        self.structured_type_contracts.insert(name, contracts);
+        self.structured_type_contracts
+            .insert(name.clone(), contracts);
+        self.structured_type_invariants.insert(name, invariants);
         Ok(())
     }
 
@@ -211,6 +215,13 @@ impl StartupCatalog {
         name: &str,
     ) -> Option<&[NativeTypeValueContract]> {
         self.structured_type_contracts.get(name).map(Vec::as_slice)
+    }
+
+    pub(crate) fn structured_type_invariants(
+        &self,
+        name: &str,
+    ) -> Option<&[crate::PortableExpressionProgram]> {
+        self.structured_type_invariants.get(name).map(Vec::as_slice)
     }
 
     pub(crate) fn structured_types_by_value_kind(
@@ -444,6 +455,8 @@ pub struct CheckedNativeType {
     pub value_type: conduit_core::StructuredInfoType,
     /// Primitive refinement contracts retained at exact representation paths.
     pub value_contracts: Vec<NativeTypeValueContract>,
+    /// Pure Boolean laws checked against the complete structured value.
+    pub invariants: Vec<crate::PortableExpressionProgram>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,5 +1,8 @@
 //! Portable semantic evaluation for one already checked expression program.
 
+mod structured;
+use structured::{encoded_structured, projection, structured_record, structured_value};
+
 use crate::{
     BinaryOperator, PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram,
     PortableExpressionProjection, UnaryOperator,
@@ -40,9 +43,9 @@ impl PortableExpressionProgram {
     }
 }
 
-struct Value {
-    value_type: StructuredInfoType,
-    encoded: Vec<u8>,
+pub(super) struct Value {
+    pub(super) value_type: StructuredInfoType,
+    pub(super) encoded: Vec<u8>,
 }
 
 fn evaluate_node(
@@ -230,34 +233,6 @@ fn literal_value(
     })
 }
 
-fn projection(
-    source: Value,
-    member: &PortableExpressionProjection,
-    expected: &StructuredInfoType,
-) -> Result<Value, PortableExpressionEvaluationRefusal> {
-    let value = structured_value(source)?;
-    let selected = match (value.shape(), member) {
-        (StructuredInfoValueShape::Record(fields), PortableExpressionProjection::Field(name)) => {
-            fields
-                .iter()
-                .find(|field| field.name() == name)
-                .map(StructuredFieldValue::value)
-        }
-        (
-            StructuredInfoValueShape::Record(fields),
-            PortableExpressionProjection::TupleIndex(index),
-        ) => fields
-            .get(usize::from(*index))
-            .map(StructuredFieldValue::value),
-        _ => None,
-    }
-    .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
-    if selected.value_type() != expected {
-        return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
-    }
-    encoded_structured(selected.clone())
-}
-
 fn unary(
     operator: UnaryOperator,
     operand: Value,
@@ -429,46 +404,6 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
             kind.into(),
         ))
     }
-}
-
-fn structured_record(
-    value_type: StructuredInfoType,
-    fields: Vec<StructuredFieldValue>,
-) -> Result<Value, PortableExpressionEvaluationRefusal> {
-    encoded_structured(
-        StructuredInfoValue::record(value_type, fields)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
-    )
-}
-
-fn structured_value(
-    value: Value,
-) -> Result<StructuredInfoValue, PortableExpressionEvaluationRefusal> {
-    match value.value_type.shape() {
-        StructuredInfoTypeShape::Leaf(_) => {
-            StructuredInfoValue::leaf(value.value_type, value.encoded)
-        }
-        _ => {
-            let structured = StructuredInfoValue::from_canonical_bytes(&value.encoded);
-            match structured {
-                Ok(structured) if structured.value_type() == &value.value_type => Ok(structured),
-                Ok(_) => Err(conduit_core::StructuredInfoRefusal::WrongType),
-                Err(refusal) => Err(refusal),
-            }
-        }
-    }
-    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
-}
-
-fn encoded_structured(
-    value: StructuredInfoValue,
-) -> Result<Value, PortableExpressionEvaluationRefusal> {
-    Ok(Value {
-        value_type: value.value_type().clone(),
-        encoded: value
-            .canonical_bytes()
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
-    })
 }
 
 fn decode_bool(value: &Value) -> Result<bool, PortableExpressionEvaluationRefusal> {

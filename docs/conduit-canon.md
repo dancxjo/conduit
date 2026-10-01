@@ -123,6 +123,13 @@ required. A type owns meaning, while a subordinate `code` may state one exact
 portable encoding for carrying or storing its values. The code does not become
 part of what the type means.
 
+A record Type may finish its fields with one or more pure Boolean `where` laws.
+Each law speaks about the complete value through ordinary field projection; it
+is checked with the same finite expression semantics used by Forms, contributes
+to Type identity, and must hold at every generated construction boundary. It is
+not an assertion, target hook, handwritten validator, or escape from bounded
+evaluation.
+
 A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A fore is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 
 ### resource, state, and line

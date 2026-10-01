@@ -27,7 +27,12 @@ pub(super) fn emit_value_impl(
     names: &BTreeMap<String, String>,
     record_options: RecordBindingOptions<'_>,
 ) -> Result<(), RustBindingGenerationError> {
-    emit_contracts(out, rust_name, &value_type.value_contracts);
+    emit_contracts(
+        out,
+        rust_name,
+        &value_type.value_contracts,
+        &value_type.invariants,
+    );
     match value_type.value_type.shape() {
         StructuredInfoTypeShape::Nominal { representation, .. } => {
             emit_scalar(out, rust_name, constant, representation, names)?
@@ -40,6 +45,7 @@ pub(super) fn emit_value_impl(
                 names,
                 &record_options,
                 &value_type.value_contracts,
+                !value_type.invariants.is_empty(),
             )?;
             super::generate_conversion::emit_record_binding(
                 out,
@@ -61,7 +67,12 @@ pub(super) fn emit_value_impl(
     Ok(())
 }
 
-fn emit_contracts(out: &mut String, rust_name: &str, contracts: &[NativeTypeValueContract]) {
+fn emit_contracts(
+    out: &mut String,
+    rust_name: &str,
+    contracts: &[NativeTypeValueContract],
+    invariants: &[crate::PortableExpressionProgram],
+) {
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     if let Some(root) = contracts
         .iter()
@@ -89,7 +100,9 @@ fn emit_contracts(out: &mut String, rust_name: &str, contracts: &[NativeTypeValu
         )
         .expect("String writing is infallible");
     }
-    writeln!(out, "        ]\n    }}\n}}\n").expect("String writing is infallible");
+    writeln!(out, "        ]\n    }}").expect("String writing is infallible");
+    super::generate_invariant::emit(out, invariants);
+    writeln!(out, "}}\n").expect("String writing is infallible");
 }
 
 fn emit_scalar(
@@ -155,8 +168,12 @@ fn emit_record_constructor(
     names: &BTreeMap<String, String>,
     options: &RecordBindingOptions<'_>,
     contracts: &[NativeTypeValueContract],
+    has_invariants: bool,
 ) -> Result<(), RustBindingGenerationError> {
-    let is_unconstrained = contracts.is_empty();
+    let is_unconstrained = contracts.is_empty() && !has_invariants;
+    if has_invariants && options.direct_checked {
+        return Err(RustBindingGenerationError::InvalidSemanticType);
+    }
     let ordered_fields = if let Some(order) = options.constructor_order {
         if order.len() != fields.len() {
             return Err(RustBindingGenerationError::InvalidSemanticType);
@@ -223,6 +240,8 @@ fn emit_record_constructor(
         )
         .expect("String writing is infallible");
         writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")
+            .expect("String writing is infallible");
+        writeln!(out, "        conduit_form::rust_binding::validate_native_invariants(&structured, &Self::invariants()?)?;")
             .expect("String writing is infallible");
         writeln!(out, "        Ok(candidate)\n    }}").expect("String writing is infallible");
     }

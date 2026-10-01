@@ -103,6 +103,8 @@ pub struct CodeMappingSyntax {
 pub struct TypeSyntax {
     pub name: SpannedText,
     pub definition: TypeDefinitionSyntax,
+    /// Pure Boolean laws every value of this Type must satisfy.
+    pub invariants: Vec<Expression>,
     pub span: Span,
 }
 

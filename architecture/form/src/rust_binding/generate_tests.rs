@@ -17,6 +17,12 @@ type Phrase = {
     notes: sequence Note in 2..=3
 }
 
+type Interval = {
+    start: U32
+    end: U32
+    where .start <= .end
+}
+
 type Observation = {
     note: Note?
     evidence: &Text
@@ -519,6 +525,11 @@ mod generated_round_trip {
         let phrase = Phrase::new(notes).unwrap();
         let encoded = phrase.clone().encode().unwrap();
         assert_eq!(Phrase::decode(&encoded).unwrap(), phrase);
+
+        let interval = Interval::new(5, 4).unwrap();
+        assert!(Interval::new(4, 5).is_err());
+        let encoded = interval.clone().encode().unwrap();
+        assert_eq!(Interval::decode(&encoded).unwrap(), interval);
 
         let evidence = BoundedBytes::<4096>::new(b"sha256:truth").unwrap();
         let observation = Observation::new(evidence, Some(Note::new(64).unwrap())).unwrap();

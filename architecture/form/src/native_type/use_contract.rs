@@ -28,8 +28,16 @@ pub(crate) fn install_import_aliases(
         let contracts = base
             .structured_type_contracts(&declaration.path)
             .map_or_else(Vec::new, <[NativeTypeValueContract]>::to_vec);
+        let invariants = base
+            .structured_type_invariants(&declaration.path)
+            .map_or_else(Vec::new, <[crate::PortableExpressionProgram]>::to_vec);
         catalog
-            .insert_native_type(declaration.alias.text.clone(), value_type, contracts)
+            .insert_native_type(
+                declaration.alias.text.clone(),
+                value_type,
+                contracts,
+                invariants,
+            )
             .map_err(|message| super::diagnostic(declaration.alias.span, message))?;
     }
     Ok(catalog)
@@ -72,10 +80,21 @@ pub(crate) fn validate_concrete_value(
     let Some(concrete) = value.try_concrete() else {
         return Ok(());
     };
-    crate::rust_binding::validate_native_contracts(&concrete, contracts).map_err(|error| {
-        super::diagnostic(
-            span,
-            alloc::format!("native Type '{source_type}' refinement refuses this value: {error:?}"),
-        )
-    })
+    crate::rust_binding::validate_native_contracts(&concrete, contracts)
+        .and_then(|()| {
+            crate::rust_binding::validate_native_invariants(
+                &concrete,
+                catalog
+                    .structured_type_invariants(source_type)
+                    .unwrap_or_default(),
+            )
+        })
+        .map_err(|error| {
+            super::diagnostic(
+                span,
+                alloc::format!(
+                    "native Type '{source_type}' refinement refuses this value: {error:?}"
+                ),
+            )
+        })
 }
