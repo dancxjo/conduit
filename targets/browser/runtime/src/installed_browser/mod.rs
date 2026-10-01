@@ -75,7 +75,7 @@ pub(crate) use application::EVENT_OPERATION as APPLICATION_EVENT_OPERATION;
 pub(crate) use back::BrowserBack;
 pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, selected_human_machinery,
-    BrowserManifestation,
+    BrowserInstallation, BrowserManifestation,
 };
 pub(crate) use factory::{
     advertisement_for_presentation, catalogs_for_presentation, execution_capability_ids,
