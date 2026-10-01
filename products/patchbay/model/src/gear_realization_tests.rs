@@ -7,11 +7,12 @@ use conduit_ai::{
 use conduit_core::{ArtifactId, BootId, CapabilityId, HostId, ImplementationId, OfferGeneration};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
+use patchbay_application::PatchbayLayout;
 
 use crate::{
     replan_with_implementation, replan_with_learned_promotion, replan_with_learned_rollback,
     FormEditor, GearRealizationError, GearRealizationInspection, LearnedImplementationSelection,
-    PatchbayGraph, PatchbayLayout, RealizationDisposition,
+    PatchbayGraph, RealizationDisposition,
 };
 
 fn specimen() -> (conduit_form::ExpandedCanonicalForm, PatchbayGraph) {

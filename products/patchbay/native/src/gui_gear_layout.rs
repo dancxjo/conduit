@@ -15,7 +15,7 @@ pub(super) struct GearGeometry {
 pub(super) fn layout_gears<'a>(
     graph: &'a PatchbayGraph,
     width: i32,
-    presentation_layout: &patchbay_model::PatchbayLayout,
+    presentation_layout: &patchbay_application::PatchbayLayout,
     geometry: GearGeometry,
 ) -> Vec<GearLayout<'a>> {
     let GearGeometry {

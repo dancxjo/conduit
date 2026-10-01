@@ -57,7 +57,7 @@ pub(super) fn canvas_rect_for(width: u32, height: u32, inspector_requested: bool
 pub(super) fn canvas_world_bounds(
     graph: &PatchbayGraph,
     width: i32,
-    presentation_layout: &patchbay_model::PatchbayLayout,
+    presentation_layout: &patchbay_application::PatchbayLayout,
 ) -> Option<WorldBounds> {
     let gears = layout_gears(graph, width, presentation_layout, gear_geometry());
     let compositions = layout_compositions(graph, width);
@@ -77,7 +77,7 @@ pub(super) fn canvas_world_bounds(
 pub(super) fn subject_world_center(
     graph: &PatchbayGraph,
     width: i32,
-    presentation_layout: &patchbay_model::PatchbayLayout,
+    presentation_layout: &patchbay_application::PatchbayLayout,
     identity: &str,
 ) -> Option<Point> {
     let gears = layout_gears(graph, width, presentation_layout, gear_geometry());

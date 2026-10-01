@@ -27,7 +27,6 @@ mod front_door_transition;
 mod gear_realization;
 mod host_adapter;
 mod interaction;
-mod layout;
 mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
@@ -111,10 +110,6 @@ pub use interaction::{
     PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
     PatchbayInteractionRequestId, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
     MAX_INTERACTION_HISTORY, MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
-};
-pub use layout::{
-    CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
-    MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
 pub use live_conversation_flow::*;
 #[cfg(test)]
@@ -205,6 +200,8 @@ mod gear_realization_tests;
 mod graphical_patchbay_tests;
 #[cfg(test)]
 mod interaction_tests;
+#[cfg(test)]
+mod layout_tests;
 #[cfg(test)]
 mod maker_environment_tests;
 #[cfg(test)]

@@ -14,10 +14,9 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle, Rectangle},
     Drawable,
 };
+use patchbay_application::PatchbayLayout;
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{
-    ApplicationTheme, GearRealizationInspection, PatchbayLayout, RealizationDisposition,
-};
+use patchbay_model::{ApplicationTheme, GearRealizationInspection, RealizationDisposition};
 
 pub(super) struct GearViewContext<'a> {
     pub(super) presentation_layout: &'a PatchbayLayout,

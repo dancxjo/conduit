@@ -22,7 +22,7 @@ pub(super) fn draw_debugger_overlay<D: DrawTarget<Color = Rgb888>>(
         &[CompositionLayout<'_>],
         &[BoundaryLayout],
     ),
-    presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
+    presentation: (&patchbay_application::PatchbayLayout, &CanvasViewport),
     debugger: &DebuggerPresentation,
     theme: &ApplicationTheme,
 ) {

@@ -131,7 +131,7 @@ struct PatchbayApplication {
     pending_back_selection: bool,
     graphical_form: Option<patchbay_graph::PatchbayGraph>,
     body_workbench: native_body_workbench::NativeBodyWorkbenchSlot,
-    layout: patchbay_model::PatchbayLayout,
+    layout: patchbay_application::PatchbayLayout,
     debugger: Option<patchbay_application::DebuggerPresentation>,
     interaction: Option<PatchbayInteraction>,
     entrance: Option<front_door::NativeFrontDoorPresentation>,

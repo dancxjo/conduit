@@ -55,7 +55,9 @@ pub fn save_form_resource(editor: &mut FormEditor) -> Result<(), String> {
 
 const MAX_LAYOUT_BYTES: u64 = 64 * 1024;
 
-pub fn open_layout_resource(editor: &FormEditor) -> Result<patchbay_model::PatchbayLayout, String> {
+pub fn open_layout_resource(
+    editor: &FormEditor,
+) -> Result<patchbay_application::PatchbayLayout, String> {
     let path = layout_path(editor);
     let metadata = match fs::symlink_metadata(&path) {
         Ok(metadata) => metadata,
@@ -66,7 +68,7 @@ pub fn open_layout_resource(editor: &FormEditor) -> Result<patchbay_model::Patch
         return Err("Patchbay layout resource is not one bounded regular file".into());
     }
     let encoded = fs::read(&path).map_err(|error| error.to_string())?;
-    let layout: patchbay_model::PatchbayLayout =
+    let layout: patchbay_application::PatchbayLayout =
         serde_json::from_slice(&encoded).map_err(|error| error.to_string())?;
     layout
         .validate()
@@ -76,7 +78,7 @@ pub fn open_layout_resource(editor: &FormEditor) -> Result<patchbay_model::Patch
 
 pub fn save_layout_resource(
     editor: &FormEditor,
-    layout: &patchbay_model::PatchbayLayout,
+    layout: &patchbay_application::PatchbayLayout,
 ) -> Result<(), String> {
     layout
         .validate()

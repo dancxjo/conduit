@@ -84,7 +84,7 @@ pub struct PatchbayViewContext<'a> {
     pub form_scroll: usize,
     pub exact_identity_open: bool,
     pub front_control_focus: usize,
-    pub presentation_layout: &'a patchbay_model::PatchbayLayout,
+    pub presentation_layout: &'a patchbay_application::PatchbayLayout,
     pub realization_plan: Option<&'a conduit_core::Plan>,
     pub realization_hosts: &'a [conduit_core::HostAdvertisement],
     pub status: Option<&'a crate::interaction_status::InteractionStatus>,
@@ -402,7 +402,7 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
         &[BoundaryLayout],
     ),
     selected: Option<&str>,
-    presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
+    presentation: (&patchbay_application::PatchbayLayout, &CanvasViewport),
     theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
@@ -432,7 +432,7 @@ pub(super) fn cord_route_points(
         &[CompositionLayout<'_>],
         &[BoundaryLayout],
     ),
-    presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
+    presentation: (&patchbay_application::PatchbayLayout, &CanvasViewport),
 ) -> Option<[Point; 5]> {
     let (layouts, compositions, boundaries) = layout;
     let (presentation_layout, viewport) = presentation;
