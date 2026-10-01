@@ -7,18 +7,18 @@
 
 extern crate alloc;
 
-#[allow(clippy::manual_range_contains, dead_code)]
+#[allow(clippy::manual_range_contains, clippy::too_many_arguments, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
 pub use generated::{
-    AudioToneTerminal, AudioToneTerminalCode, CancellationDisposition, Gate, GateCode,
-    ModulationDestination, ModulationDestinationCode, MusicalControl, MusicalControlEvent,
-    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, MusicalPitch,
-    PcmChannelLayout, PcmChannelLayoutCode, PcmClipProfile, PcmSampleRepresentation,
-    PcmSampleRepresentationCode, PressureDisposition, SoundSeam, SoundStreamState,
-    SoundTerminalBehavior,
+    AudioRenderDemand, AudioToneTerminal, AudioToneTerminalCode, CancellationDisposition, Gate,
+    GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl,
+    MusicalControlEvent, MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain,
+    MusicalPitch, PcmChannelLayout, PcmChannelLayoutCode, PcmClipProfile, PcmFrameHeader,
+    PcmSampleRepresentation, PcmSampleRepresentationCode, PressureDisposition, SoundSeam,
+    SoundStreamState, SoundTerminalBehavior,
 };
 
 mod audio_info;

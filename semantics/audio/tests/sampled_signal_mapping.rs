@@ -27,7 +27,7 @@ fn every_pcm_representation_maps_losslessly_to_the_generic_clock_contract() {
             true,
         )
         .unwrap();
-        let payload = vec![7; header.payload_bytes as usize];
+        let payload = vec![7; header.payload_bytes() as usize];
         let signal = pcm_as_sampled_signal(header, &payload).unwrap();
         signal.validate().unwrap();
         assert_eq!(signal.clock_identity, "audio/pcm-clock/17");

@@ -347,10 +347,10 @@ fn validate_audio(audio: &[u8]) -> Result<(PcmFrameHeader, &[u8]), SpeechRecogni
     }
     let (header, payload) =
         PcmFrameHeader::decode_frame(audio).map_err(|_| SpeechRecognitionRefusal::InvalidPcm)?;
-    if header.representation != PcmSampleRepresentation::Signed16LittleEndian
-        || header.layout != PcmChannelLayout::Mono
-        || header.sample_rate_hz != 16_000
-        || header.discontinuity
+    if header.representation() != PcmSampleRepresentation::Signed16LittleEndian
+        || header.layout() != PcmChannelLayout::Mono
+        || header.sample_rate_hz() != 16_000
+        || header.discontinuity()
     {
         return Err(SpeechRecognitionRefusal::UnsupportedPcmProfile);
     }
