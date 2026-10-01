@@ -191,6 +191,7 @@ are satisfied.
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | Robotics body-frame acceleration observation | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native and axis-boundary proof plus preserved 12-byte codec, digest golden and decode refusals |
 | Robotics body-sector proximity observation | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native mask bounds plus preserved one-byte codec, digest golden and typed decode refusals |
+| Robotics body-sector contact observation | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native mask bounds plus preserved public projection, one-byte codec, digest golden and typed decode refusals |
 | Robotics simulation availability extracted from the catalog | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native round trips plus robotics catalog and std/ConduitOS consumers |
 | HTTP contract refusal vocabulary | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec and hosted-HTTP suites |
 | HTTP scheme, transaction identity, bounded target and bounded header | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec, AI provider, hosted, isolated and ConduitOS consumer suites |

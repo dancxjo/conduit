@@ -146,7 +146,7 @@ pub fn lower_group_zero(
     };
     charging.battery()?;
     Ok(CreateGroupZeroObservation {
-        contact: ContactObservation::new(contact_sectors)?,
+        contact: ContactObservation::decode(&[contact_sectors])?,
         cliff: CliffObservation::new(cliff_sectors, 0, [0; 4])?,
         wheel_drop: WheelDropObservation::new(dropped_wheels)?,
         proximity: ProximityObservation::decode(&[proximity_sectors])?,
