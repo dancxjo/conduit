@@ -4,8 +4,8 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
 
 use super::generate::{
-    primitive_rust_type, rust_pascal_identifier, rust_snake_identifier, rust_type, unit_type,
-    RustBindingGenerationError,
+    data_reference_content_kind, primitive_rust_type, rust_pascal_identifier,
+    rust_snake_identifier, rust_type, unit_type, RustBindingGenerationError,
 };
 
 pub(super) fn emit_record_binding(
@@ -222,9 +222,21 @@ fn encode_expression(
         {
             Ok(format!("NativeRustBinding::into_structured({value})?"))
         }
-        StructuredInfoTypeShape::Leaf(_) => Ok(format!(
-            "conduit_form::rust_binding::primitive_into_structured({expected}, &{value})?"
-        )),
+        StructuredInfoTypeShape::Leaf(kind) => {
+            if let Some(content_kind) = data_reference_content_kind(kind.as_str()) {
+                return Ok(format!(
+                    "{{ {value}.validate_for(&conduit_core::KindId::from({content_kind:?})).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; let encoded = {value}.encode().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; StructuredInfoValue::leaf({expected}, encoded).map_err(NativeBindingRefusal::InvalidValue)? }}"
+                ));
+            }
+            if kind.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+                return Ok(format!(
+                    "{{ {value}.validate().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; let encoded = {value}.encode().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?; StructuredInfoValue::leaf({expected}, encoded).map_err(NativeBindingRefusal::InvalidValue)? }}"
+                ));
+            }
+            Ok(format!(
+                "conduit_form::rust_binding::primitive_into_structured({expected}, &{value})?"
+            ))
+        }
         StructuredInfoTypeShape::Sequence { element, .. } => {
             let inner = encode_expression(element, "item", "element_type.clone()", names)?;
             Ok(format!(
@@ -269,10 +281,22 @@ fn decode_expression(
                 names[schema.as_str()]
             ))
         }
-        StructuredInfoTypeShape::Leaf(kind) => Ok(format!(
-            "conduit_form::rust_binding::primitive_from_structured::<{}>(&{value})?",
-            primitive_rust_type(kind.as_str())?
-        )),
+        StructuredInfoTypeShape::Leaf(kind) => {
+            if let Some(content_kind) = data_reference_content_kind(kind.as_str()) {
+                return Ok(format!(
+                    "{{ let reference_value = {value}; let StructuredInfoValueShape::Leaf(encoded) = reference_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; conduit_data::DataReference::decode_for(&conduit_core::KindId::from({content_kind:?}), encoded).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))? }}"
+                ));
+            }
+            if kind.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+                return Ok(format!(
+                    "{{ let reference_value = {value}; let StructuredInfoValueShape::Leaf(encoded) = reference_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; conduit_core::BoundedResourceRef::decode(encoded).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))? }}"
+                ));
+            }
+            Ok(format!(
+                "conduit_form::rust_binding::primitive_from_structured::<{}>(&{value})?",
+                primitive_rust_type(kind.as_str())?
+            ))
+        }
         StructuredInfoTypeShape::Sequence {
             element,
             maximum_items,
