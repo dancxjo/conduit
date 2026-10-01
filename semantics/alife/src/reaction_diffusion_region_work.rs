@@ -198,10 +198,8 @@ impl ReactionDiffusionRegionWork {
             ));
         }
         self.contract.parameters.validate()?;
-        ReactionDiffusionPartition {
-            regions: vec![region],
-        }
-        .validate_region_within(self.contract.field_width, self.contract.field_height)?;
+        ReactionDiffusionPartition::from_regions(vec![region])?
+            .validate_region_within(self.contract.field_width, self.contract.field_height)?;
         let expected = usize::from(2 * (region.width() + region.height()));
         if self.contract.required_boundaries.len() < expected {
             return Err(ReactionDiffusionPartitionRefusal::MissingBoundaryTruth);
@@ -335,7 +333,11 @@ impl ReactionDiffusionPartition {
         width: u16,
         height: u16,
     ) -> Result<(), ReactionDiffusionPartitionRefusal> {
-        let region = self.regions[0];
+        let region = *self
+            .regions()
+            .iter()
+            .next()
+            .expect("a partition always has at least one region");
         if region.width() == 0 || region.height() == 0 {
             return Err(ReactionDiffusionPartitionRefusal::ZeroExtent);
         }
@@ -364,10 +366,10 @@ pub fn join_evolved_reaction_diffusion_regions(
     regions: &[EvolvedReactionDiffusionRegion],
 ) -> Result<ReactionDiffusionFieldState, ReactionDiffusionPartitionRefusal> {
     partition.validate(width, height)?;
-    if regions.len() < partition.regions.len() {
+    if regions.len() < partition.regions().len() {
         return Err(ReactionDiffusionPartitionRefusal::MissingRegionResult);
     }
-    if regions.len() > partition.regions.len() {
+    if regions.len() > partition.regions().len() {
         return Err(ReactionDiffusionPartitionRefusal::DuplicateRegionResult);
     }
     let generation = source_generation
@@ -386,7 +388,10 @@ pub fn join_evolved_reaction_diffusion_regions(
             || result.field_width != width
             || result.field_height != height
             || result.parameters != parameters
-            || !partition.regions.contains(&result.region)
+            || !partition
+                .regions()
+                .iter()
+                .any(|region| region == &result.region)
             || result.cells.len()
                 != usize::from(result.region.width()) * usize::from(result.region.height())
         {

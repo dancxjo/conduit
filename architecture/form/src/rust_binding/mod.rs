@@ -13,7 +13,7 @@ mod generate_value;
 mod primitive;
 mod value;
 
-pub use bounded::{BoundedBytes, BoundedSequence, BoundedText};
+pub use bounded::{BoundedBytes, BoundedSequence, BoundedSequenceCapacityRefusal, BoundedText};
 pub use conduit_core as semantic_core;
 pub use generate::{
     generate_rust_bindings, generate_rust_bindings_with_codes, RustBindingGenerationError,
