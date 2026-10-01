@@ -215,7 +215,7 @@ fn gear_graphics(front: &GearFrontPresentation) -> Result<GraphicsScene, Patchba
     let composition = PresentationComposition::icon(icon.as_str(), &front.name)?
         .frame("gear-front", &front.name)?
         .badge("ready", "Gear ready")?;
-    let mut scene = crate::constrained_graphics_scene(&composition, 160, 96)?;
+    let mut scene = patchbay_application::constrained_graphics_scene(&composition, 160, 96)?;
     scene.push(GraphicsCommand::text(
         LayoutRect {
             x: 8,

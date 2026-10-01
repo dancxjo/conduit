@@ -1,9 +1,10 @@
-//! Direct presenter interpretation of portable composition obligations.
+//! Direct workbench interpretation of portable composition obligations.
 //!
 //! The direct path keeps an eager presenter-owned list. Normalization alone
 //! crosses into the portable fixed encoding; evaluation does not call the
 //! reference composition operations.
 
+use alloc::{string::String, vec, vec::Vec};
 use conduit_presentation::{
     CompositionError, CompositionItem, CompositionItemKind, CompositionRole, GraphicsCommand,
     GraphicsError, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutAlignment,

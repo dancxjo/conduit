@@ -1,4 +1,4 @@
-//! Direct presenter-side evaluator for normalized portable layout frames.
+//! Direct workbench evaluator for normalized portable layout frames.
 //!
 //! This intentionally does not call the reference algebra's operations. It is
 //! the materially different eager evaluator a presenter can use after decoding

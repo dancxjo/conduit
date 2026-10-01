@@ -44,13 +44,10 @@ mod mask_product_tests;
 mod parts_truth_explanation_tests;
 mod parts_view;
 mod patchbay_backs;
-mod portable_composition;
 mod portable_content;
 mod portable_correlations;
 mod portable_demo;
 mod portable_graph_projection;
-mod portable_graphics;
-mod portable_layout;
 mod portable_parts_projection;
 mod portable_projection;
 mod portable_resource_projection;
@@ -155,16 +152,11 @@ pub use patchbay_workbench_host_contract::{
     ControlReceiptProjection, PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile,
     PlayExecutionProjection,
 };
-pub use portable_composition::{
-    constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
-};
 #[cfg(test)]
 pub use portable_demo::{portable_demonstration, portable_demonstration_with_parts};
 pub use portable_demo::{
     portable_demonstration_with_adapter, portable_demonstration_with_parts_and_adapter,
 };
-pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
-pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
 pub use prewake::*;
 pub use recursive_form_demonstration::recursive_form_demonstration;

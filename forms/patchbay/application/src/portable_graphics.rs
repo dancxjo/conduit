@@ -1,4 +1,4 @@
-//! Independent native-software realization of canonical graphics obligations.
+//! Independent workbench realization of canonical graphics obligations.
 //!
 //! The browser Mask may bypass this leaf layer by joining semantic
 //! presentation directly. A ConduitOS framebuffer Mask can consume the
