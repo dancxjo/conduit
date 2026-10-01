@@ -304,6 +304,7 @@ are satisfied.
 | Presentation place/aspect/depth, navigation, wardrobe, Face-role and narrator vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native/code round trips plus navigation, mask, Face and generative-presentation suites |
 | AI similarity-score family | `semantics/ai/types.conduit` | generated at build time with exact finite `F32` | yes | yes | bit-exact native and JSON round trips plus vector retrieval/search suites and non-finite refusal proof |
 | Alife field identities, reaction-diffusion cell and evolve-request family | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native/refinement round trips plus retained wire codecs and full Alife behavior suites |
+| Lenia and reaction-diffusion portable value refusals | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native payload round trips plus explicit separation from codec, worker, partition and assembler failures |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a
