@@ -25,6 +25,10 @@ pub struct RustBindingOptions {
     /// Authored record Type names whose entirely-copyable Rust bindings retain
     /// a pre-existing `Copy` API.
     pub copy_record_types: BTreeSet<String>,
+    /// Authored constrained record Types whose generated constructor validates
+    /// direct primitive field bounds without materializing a structured value.
+    /// Nested generated fields retain their own construction invariants.
+    pub direct_checked_record_constructors: BTreeSet<String>,
     /// Optional Rust enum declaration order for preserving an established
     /// Serde variant-index ABI. Keys are authored Type names and values are an
     /// exhaustive, unique list of authored variant tags. This is binding-only
@@ -370,6 +374,9 @@ fn emit_type(
         &constant,
         names,
         options.copy_record_types.contains(&value_type.name),
+        options
+            .direct_checked_record_constructors
+            .contains(&value_type.name),
     )?;
     Ok(())
 }

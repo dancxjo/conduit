@@ -15,6 +15,7 @@ fn main() {
         &RustBindingOptions {
             derive_serde_for_variants: true,
             copy_record_types: ["PcmClipProfile".into()].into(),
+            direct_checked_record_constructors: ["MusicalControlEvent".into()].into(),
             ..RustBindingOptions::default()
         },
     )
