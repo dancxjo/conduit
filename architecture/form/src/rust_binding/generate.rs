@@ -346,7 +346,14 @@ fn emit_type(
         _ => return Err(RustBindingGenerationError::InvalidSemanticType),
     }
     emit_semantic_type_impl(out, rust_name, &constant);
-    super::generate_value::emit_value_impl(out, value_type, rust_name, &constant, names)?;
+    super::generate_value::emit_value_impl(
+        out,
+        value_type,
+        rust_name,
+        &constant,
+        names,
+        options.copy_record_types.contains(&value_type.name),
+    )?;
     Ok(())
 }
 

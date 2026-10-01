@@ -179,6 +179,29 @@ fn selected_record_retains_copy_and_serde_binding_traits() {
 }
 
 #[test]
+fn constrained_copy_record_validation_does_not_clone_the_candidate() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Bounded = {\n    value: U32 in 1..=8\n}\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            copy_record_types: ["Bounded".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("let structured = candidate.into_structured()?;"));
+    assert!(!generated
+        .source
+        .contains("let structured = candidate.clone().into_structured()?;"));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(

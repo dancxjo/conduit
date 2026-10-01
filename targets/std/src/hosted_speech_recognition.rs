@@ -168,9 +168,9 @@ impl WhisperSpeechAdapter {
     pub(crate) fn set_proof_pcm_clip(&mut self, clip: Vec<u8>) -> Result<(), WhisperFailure> {
         let decoded =
             conduit_audio::decode_pcm_clip(&clip).map_err(|_| WhisperFailure::InvalidClip)?;
-        if decoded.profile.sample_rate_hz != 16_000
-            || decoded.profile.layout != conduit_audio::PcmChannelLayout::Mono
-            || decoded.profile.representation
+        if *decoded.profile.sample_rate_hz() != 16_000
+            || *decoded.profile.layout() != conduit_audio::PcmChannelLayout::Mono
+            || *decoded.profile.representation()
                 != conduit_audio::PcmSampleRepresentation::Signed16LittleEndian
         {
             return Err(WhisperFailure::UnsupportedPcmProfile);
@@ -230,9 +230,9 @@ impl WhisperSpeechAdapter {
         }
         let clip =
             conduit_audio::decode_pcm_clip(encoded).map_err(|_| WhisperFailure::InvalidClip)?;
-        if clip.profile.representation != PcmSampleRepresentation::Signed16LittleEndian
-            || clip.profile.layout != PcmChannelLayout::Mono
-            || clip.profile.sample_rate_hz != 16_000
+        if *clip.profile.representation() != PcmSampleRepresentation::Signed16LittleEndian
+            || *clip.profile.layout() != PcmChannelLayout::Mono
+            || *clip.profile.sample_rate_hz() != 16_000
         {
             return Err(WhisperFailure::UnsupportedPcmProfile);
         }

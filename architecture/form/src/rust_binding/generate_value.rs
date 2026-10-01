@@ -18,6 +18,7 @@ pub(super) fn emit_value_impl(
     rust_name: &str,
     constant: &str,
     names: &BTreeMap<String, String>,
+    copy_record: bool,
 ) -> Result<(), RustBindingGenerationError> {
     emit_contracts(out, rust_name, &value_type.value_contracts);
     match value_type.value_type.shape() {
@@ -31,6 +32,7 @@ pub(super) fn emit_value_impl(
                 fields,
                 names,
                 value_type.value_contracts.is_empty(),
+                copy_record,
             )?;
             super::generate_conversion::emit_record_binding(
                 out, rust_name, constant, fields, names,
@@ -140,6 +142,7 @@ fn emit_record_constructor(
     fields: &[conduit_core::StructuredFieldType],
     names: &BTreeMap<String, String>,
     is_unconstrained: bool,
+    copy_record: bool,
 ) -> Result<(), RustBindingGenerationError> {
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     write!(out, "    pub fn new(").expect("String writing is infallible");
@@ -177,7 +180,8 @@ fn emit_record_constructor(
         writeln!(out, "}};").expect("String writing is infallible");
         writeln!(
             out,
-            "        let structured = candidate.clone().into_structured()?;"
+            "        let structured = candidate{}.into_structured()?;",
+            if copy_record { "" } else { ".clone()" }
         )
         .expect("String writing is infallible");
         writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")

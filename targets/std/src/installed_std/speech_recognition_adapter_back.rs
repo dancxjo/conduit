@@ -500,8 +500,8 @@ mod tests {
             .unwrap();
         let encoded = host.close().unwrap();
         let clip = conduit_audio::decode_pcm_clip(&encoded).unwrap();
-        assert_eq!(clip.profile.sample_rate_hz, 16_000);
-        assert_eq!(clip.profile.layout, PcmChannelLayout::Mono);
+        assert_eq!(*clip.profile.sample_rate_hz(), 16_000);
+        assert_eq!(*clip.profile.layout(), PcmChannelLayout::Mono);
         assert_eq!(clip.frame_count, 320);
     }
 }
