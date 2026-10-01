@@ -23,7 +23,11 @@ pub const NAVIGATION_CONTROL_TYPE: &str = "NavigationControl";
 pub const NAVIGATION_GRID_CELLS: u16 = 16;
 pub const NAVIGATION_MAXIMUM_WAYPOINTS: usize = 4;
 pub const NAVIGATION_MAXIMUM_SEGMENTS: usize = 3;
-pub const NAVIGATION_MAXIMUM_IDENTITY_BYTES: usize = 64;
+pub const NAVIGATION_MAXIMUM_SOURCE_IDENTITY_BYTES: usize = 64;
+/// `route/` plus one maximally sized source goal identity.
+pub const NAVIGATION_MAXIMUM_ROUTE_IDENTITY_BYTES: usize = 70;
+/// Exact maximum of `goal={goal};pose={pose}#{u64};grid={grid}#{u64}`.
+pub const NAVIGATION_MAXIMUM_PLANNING_INPUT_IDENTITY_BYTES: usize = 251;
 
 fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).expect("reviewed navigation leaf")
