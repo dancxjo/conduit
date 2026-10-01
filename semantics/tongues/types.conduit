@@ -19,6 +19,13 @@ type SpeakableSegment = {
     reason: SpeechCommitReason
 }
 
+type CommittedUserMessage = {
+    turn_identity: Text <= 256B not in [""]
+    role: Text <= 32B not in [""]
+    source: Text <= 64B not in [""]
+    text: Text <= 256B not in [""]
+}
+
 type SpeechRecognitionDisposition =
     recognized
     | no_speech

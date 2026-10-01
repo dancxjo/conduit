@@ -6,11 +6,11 @@ mod generated {
 }
 
 pub use generated::{
-    HouseGenerationRequest, LiveConversationSpeechRequirements, RecognitionTextRefusal,
-    RecognizedSpeechText, SpeakableSegment, SpeechCommitReason, SpeechCommitRefusal,
-    SpeechRecognitionAttempt, SpeechRecognitionAudioDigest, SpeechRecognitionDisposition,
-    SpeechRecognitionProviderIdentity, SpeechRecognitionRefusal, SpeechRecognitionResult,
-    SpeechRecognitionResultNoSpeech, SpeechRecognitionResultRecognized,
+    CommittedUserMessage, HouseGenerationRequest, LiveConversationSpeechRequirements,
+    RecognitionTextRefusal, RecognizedSpeechText, SpeakableSegment, SpeechCommitReason,
+    SpeechCommitRefusal, SpeechRecognitionAttempt, SpeechRecognitionAudioDigest,
+    SpeechRecognitionDisposition, SpeechRecognitionProviderIdentity, SpeechRecognitionRefusal,
+    SpeechRecognitionResult, SpeechRecognitionResultNoSpeech, SpeechRecognitionResultRecognized,
     SpeechRecognitionValueError, StreamingRecognitionRefusal,
 };
 
