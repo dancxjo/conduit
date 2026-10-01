@@ -34,10 +34,7 @@ fn new_experience(limits: ExperienceLimits) -> CurrentExperience {
     CurrentExperience::new(
         limits,
         at(100),
-        ExperienceTemporalPolicy {
-            maximum_current_age_ticks: 5,
-            maximum_recent_age_ticks: 20,
-        },
+        ExperienceTemporalPolicy::new(5, 20).unwrap(),
     )
     .unwrap()
 }

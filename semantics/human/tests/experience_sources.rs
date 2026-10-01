@@ -70,10 +70,7 @@ fn experience() -> CurrentExperience {
     CurrentExperience::new(
         limits(),
         instant(),
-        ExperienceTemporalPolicy {
-            maximum_current_age_ticks: 5,
-            maximum_recent_age_ticks: 20,
-        },
+        ExperienceTemporalPolicy::new(5, 20).unwrap(),
     )
     .unwrap()
 }

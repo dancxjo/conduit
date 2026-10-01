@@ -14,6 +14,7 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            copy_record_types: ["ExperienceTemporalPolicy".into()].into(),
             ..RustBindingOptions::default()
         },
     )

@@ -218,6 +218,7 @@ are satisfied.
 | Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
 | Address-detection result and bounded addressed payload | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trips and index/text bounds plus text, speech and std Host suites |
 | Human experience, source-availability, visual-evidence and relation vocabularies | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus human experience and visual behavior suites |
+| Human experience temporal policy | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native U64 record round trip plus retained ordered-threshold validation and experience classification suites |
 | Human keymap refusal vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus keymap and std/browser/ConduitOS consumer suites |
 | Human camera/microphone media-kind vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native and stable JSON/postcard round trips plus human-media planning and target consumer suites |
 | Human visual-impression disposition vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips, invalid-truncation validation, catalog codec/digest and std hosted-vision suites |
