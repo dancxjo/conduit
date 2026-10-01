@@ -16,7 +16,18 @@ fn main() {
             derive_serde_for_variants: true,
             serde_variant_exclusions: ["MissingModalityPolicy".into()].into(),
             serde_record_types: ["CompatibleMetrics".into()].into(),
-            copy_record_types: ["CompatibleMetrics".into()].into(),
+            copy_record_types: ["CompatibleMetrics".into(), "IntegrationAccuracy".into()].into(),
+            copy_record_value_getters: ["IntegrationAccuracy".into()].into(),
+            public_record_fields: ["IntegrationAccuracy".into()].into(),
+            record_constructor_orders: [(
+                "IntegrationAccuracy".into(),
+                vec![
+                    "absolute-tolerance-millionths".into(),
+                    "relative-tolerance-millionths".into(),
+                    "maximum-estimated-error-millionths".into(),
+                ],
+            )]
+            .into(),
             serde_variant_orders: [(
                 "SourceExtractionProfile".into(),
                 ["text_utf8", "structured_items", "resource_metadata"]

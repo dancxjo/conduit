@@ -32,6 +32,10 @@ pub struct RustBindingOptions {
     /// Copy record bindings whose generated getters retain an established
     /// by-value Rust API instead of returning references.
     pub copy_record_value_getters: BTreeSet<String>,
+    /// Authored record Type names whose generated fields retain an established
+    /// public struct-literal API. Public fields are Rust binding compatibility,
+    /// never permission to skip the semantic owner's validation boundary.
+    pub public_record_fields: BTreeSet<String>,
     /// Optional Rust constructor argument order for retaining an established
     /// record API. Semantic record identity remains canonically field-ordered.
     pub record_constructor_orders: BTreeMap<String, Vec<String>>,
@@ -283,7 +287,12 @@ fn emit_type(
             for field in fields {
                 writeln!(
                     out,
-                    "    {}: {},",
+                    "    {}{}: {},",
+                    if options.public_record_fields.contains(&value_type.name) {
+                        "pub "
+                    } else {
+                        ""
+                    },
                     rust_snake_identifier(field.name())?,
                     rust_type(field.value_type(), names)?
                 )
@@ -486,6 +495,9 @@ pub(super) fn rust_type(
             rust_type(element, names)?,
             maximum_items
         )),
+        StructuredInfoTypeShape::Collection { element, length } => {
+            Ok(format!("[{}; {}]", rust_type(element, names)?, length))
+        }
         StructuredInfoTypeShape::Variant { schema, cases }
             if schema.as_str() == "conduit.conduitese.optional.v1" =>
         {

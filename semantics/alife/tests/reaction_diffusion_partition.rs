@@ -38,37 +38,43 @@ fn unequal_region_layouts_match_the_direct_oracle_for_multiple_generations() {
 
 #[test]
 fn partition_requires_unique_exact_complete_coverage() {
-    let duplicate = ReactionDiffusionPartition {
-        regions: vec![region(0, 0, 0, 4, 10), region(0, 4, 0, 4, 10)],
-    };
+    let duplicate = ReactionDiffusionPartition::from_regions(vec![
+        region(0, 0, 0, 4, 10),
+        region(0, 4, 0, 4, 10),
+    ])
+    .unwrap();
     assert_eq!(
         duplicate.validate(8, 10),
         Err(ReactionDiffusionPartitionRefusal::DuplicateRegionIdentity)
     );
-    let zero = ReactionDiffusionPartition {
-        regions: vec![region(0, 0, 0, 0, 10), region(1, 0, 0, 8, 10)],
-    };
+    let zero = ReactionDiffusionPartition::from_regions(vec![
+        region(0, 0, 0, 0, 10),
+        region(1, 0, 0, 8, 10),
+    ])
+    .unwrap();
     assert_eq!(
         zero.validate(8, 10),
         Err(ReactionDiffusionPartitionRefusal::ZeroExtent)
     );
-    let outside = ReactionDiffusionPartition {
-        regions: vec![region(0, 0, 0, 9, 10)],
-    };
+    let outside = ReactionDiffusionPartition::from_regions(vec![region(0, 0, 0, 9, 10)]).unwrap();
     assert_eq!(
         outside.validate(8, 10),
         Err(ReactionDiffusionPartitionRefusal::RegionOutOfRange)
     );
-    let overlap = ReactionDiffusionPartition {
-        regions: vec![region(0, 0, 0, 5, 10), region(1, 4, 0, 4, 10)],
-    };
+    let overlap = ReactionDiffusionPartition::from_regions(vec![
+        region(0, 0, 0, 5, 10),
+        region(1, 4, 0, 4, 10),
+    ])
+    .unwrap();
     assert_eq!(
         overlap.validate(8, 10),
         Err(ReactionDiffusionPartitionRefusal::OverlappingRegions)
     );
-    let gap = ReactionDiffusionPartition {
-        regions: vec![region(0, 0, 0, 3, 10), region(1, 4, 0, 4, 10)],
-    };
+    let gap = ReactionDiffusionPartition::from_regions(vec![
+        region(0, 0, 0, 3, 10),
+        region(1, 4, 0, 4, 10),
+    ])
+    .unwrap();
     assert_eq!(
         gap.validate(8, 10),
         Err(ReactionDiffusionPartitionRefusal::IncompleteCoverage)
@@ -250,15 +256,13 @@ fn initial() -> ReactionDiffusionFieldState {
 }
 
 fn vertical_partition() -> ReactionDiffusionPartition {
-    ReactionDiffusionPartition {
-        regions: vec![region(10, 0, 0, 3, 10), region(20, 3, 0, 5, 10)],
-    }
+    ReactionDiffusionPartition::from_regions(vec![region(10, 0, 0, 3, 10), region(20, 3, 0, 5, 10)])
+        .unwrap()
 }
 
 fn horizontal_partition() -> ReactionDiffusionPartition {
-    ReactionDiffusionPartition {
-        regions: vec![region(30, 0, 0, 8, 4), region(40, 0, 4, 8, 6)],
-    }
+    ReactionDiffusionPartition::from_regions(vec![region(30, 0, 0, 8, 4), region(40, 0, 4, 8, 6)])
+        .unwrap()
 }
 
 fn region(
@@ -268,11 +272,12 @@ fn region(
     width: u16,
     height: u16,
 ) -> ReactionDiffusionRegion {
-    ReactionDiffusionRegion {
-        region_id: ReactionDiffusionRegionId::new(id).unwrap(),
+    ReactionDiffusionRegion::new(
+        ReactionDiffusionRegionId::new(id).unwrap(),
         origin_x,
         origin_y,
         width,
         height,
-    }
+    )
+    .unwrap()
 }

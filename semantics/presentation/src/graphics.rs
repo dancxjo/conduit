@@ -6,7 +6,7 @@ use crate::{
     GraphicsTextRoleCode, LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT,
 };
 mod path;
-pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
+pub use path::{GraphicsPath, MAX_GRAPHICS_PATH_POINTS};
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
 pub const MAX_GRAPHICS_COMMANDS: usize = 48;

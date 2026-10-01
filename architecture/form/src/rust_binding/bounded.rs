@@ -8,6 +8,11 @@ pub struct BoundedSequence<T, const MAXIMUM: usize> {
     length: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoundedSequenceCapacityRefusal {
+    MaximumExceeded,
+}
+
 impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
     pub fn new() -> Self {
         Self {
@@ -23,6 +28,18 @@ impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
         *slot = Some(value);
         self.length += 1;
         Ok(())
+    }
+
+    pub fn try_from_iter(
+        values: impl IntoIterator<Item = T>,
+    ) -> Result<Self, BoundedSequenceCapacityRefusal> {
+        let mut bounded = Self::new();
+        for value in values {
+            bounded
+                .push(value)
+                .map_err(|_| BoundedSequenceCapacityRefusal::MaximumExceeded)?;
+        }
+        Ok(bounded)
     }
 
     pub const fn len(&self) -> usize {
@@ -118,6 +135,18 @@ mod tests {
         values.push(5).unwrap();
         assert_eq!(values.push(8), Err(8));
         assert_eq!(values.iter().copied().collect::<Vec<_>>(), vec![3, 5]);
+        assert_eq!(
+            BoundedSequence::<u8, 2>::try_from_iter([3, 5])
+                .unwrap()
+                .iter()
+                .copied()
+                .collect::<Vec<_>>(),
+            vec![3, 5]
+        );
+        assert_eq!(
+            BoundedSequence::<u8, 2>::try_from_iter([3, 5, 8]),
+            Err(BoundedSequenceCapacityRefusal::MaximumExceeded)
+        );
 
         let text = BoundedText::<4>::new("é").unwrap();
         assert_eq!(text.as_str(), "é");

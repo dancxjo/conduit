@@ -17,6 +17,13 @@ fn main() {
             serde_variant_exclusions: ["FaceUtteranceProvenance".into()].into(),
             serde_record_types: ["GeneratedActionAffordance".into()].into(),
             serde_deny_unknown_record_types: ["GeneratedActionAffordance".into()].into(),
+            copy_record_types: ["GraphicsPoint".into(), "ThemeColor".into()].into(),
+            copy_record_value_getters: ["ThemeColor".into()].into(),
+            record_constructor_orders: [(
+                "ThemeColor".into(),
+                vec!["red".into(), "green".into(), "blue".into()],
+            )]
+            .into(),
             serde_variant_orders: [
                 (
                     "GeneratedManifestationDisposition".into(),

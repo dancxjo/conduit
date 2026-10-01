@@ -11,6 +11,7 @@ use conduit_core::{
 };
 use sha2::{Digest, Sha256};
 
+mod invariant;
 mod use_contract;
 pub(crate) use use_contract::{install_import_aliases, validate_concrete_value};
 
@@ -102,6 +103,7 @@ fn compile_named<'a>(
             declaration.name.text.clone(),
             compiled.value_type.clone(),
             compiled.value_contracts.clone(),
+            compiled.invariants.clone(),
         )
         .map_err(|message| diagnostic(declaration.name.span, message))?;
     checked.insert(declaration.name.text.clone(), compiled);
@@ -141,6 +143,7 @@ fn expression_references<'a>(expression: &'a TypeExpressionSyntax, out: &mut Vec
         TypeExpressionSyntax::Optional { value, .. }
         | TypeExpressionSyntax::DataReference { value, .. } => expression_references(value, out),
         TypeExpressionSyntax::Sequence { element, .. } => expression_references(element, out),
+        TypeExpressionSyntax::Collection { element, .. } => expression_references(element, out),
     }
 }
 
@@ -150,9 +153,13 @@ fn compile_definition(
 ) -> Result<CheckedNativeType, SyntaxCheckDiagnostic> {
     let compiled = match &declaration.definition {
         TypeDefinitionSyntax::Scalar(expression) => compile_expression(expression, catalog)?,
-        TypeDefinitionSyntax::Record(fields) => {
-            compile_record(&declaration.name.text, fields, catalog, declaration.span)?
-        }
+        TypeDefinitionSyntax::Record(fields) => compile_record(
+            &declaration.name.text,
+            fields,
+            &declaration.invariants,
+            catalog,
+            declaration.span,
+        )?,
         TypeDefinitionSyntax::Variant(cases) => {
             let mut compiled_cases = Vec::with_capacity(cases.len());
             let mut contracts = Vec::new();
@@ -169,6 +176,7 @@ fn compile_definition(
                     TypeVariantPayloadSyntax::Record(fields) => compile_record(
                         &alloc::format!("{}/{}", declaration.name.text, case.tag.text),
                         fields,
+                        &[],
                         catalog,
                         case.span,
                     )?,
@@ -208,17 +216,20 @@ fn compile_definition(
         | conduit_core::StructuredInfoTypeShape::Variant { schema, .. } => schema.clone(),
         _ => unreachable!("checked native declarations are nominal"),
     };
+    let invariants = invariant::compile(declaration, &value_type, catalog)?;
     Ok(CheckedNativeType {
         name: declaration.name.text.clone(),
         identity,
         value_type,
         value_contracts: compiled.contracts,
+        invariants,
     })
 }
 
 fn compile_record(
     semantic_name: &str,
     fields: &[TypeFieldSyntax],
+    invariants: &[crate::Expression],
     catalog: &StartupCatalog,
     span: crate::Span,
 ) -> Result<CompiledRepresentation, SyntaxCheckDiagnostic> {
@@ -235,7 +246,8 @@ fn compile_record(
                 .map_err(|error| bounded(field.span, error))?,
         );
     }
-    let identity = schema_identity_for_record(semantic_name, &compiled_fields, &contracts);
+    let identity =
+        schema_identity_for_record(semantic_name, &compiled_fields, &contracts, invariants);
     Ok(CompiledRepresentation {
         value_type: StructuredInfoType::record(identity, compiled_fields)
             .map_err(|error| bounded(span, error))?,
@@ -355,6 +367,18 @@ fn compile_expression(
                 contracts: prefix_contracts(compiled.contracts, "[]"),
             })
         }
+        TypeExpressionSyntax::Collection {
+            element,
+            length,
+            span,
+        } => {
+            let compiled = compile_expression(element, catalog)?;
+            Ok(CompiledRepresentation {
+                value_type: StructuredInfoType::collection(compiled.value_type, Some(*length))
+                    .map_err(|error| bounded(*span, error))?,
+                contracts: prefix_contracts(compiled.contracts, "[]"),
+            })
+        }
     }
 }
 
@@ -385,6 +409,7 @@ fn schema_identity_for_record(
     name: &str,
     fields: &[StructuredFieldType],
     contracts: &[NativeTypeValueContract],
+    invariants: &[crate::Expression],
 ) -> KindId {
     let mut canonical = b"conduit.native-type.record@1\0".to_vec();
     push(&mut canonical, name.as_bytes());
@@ -399,6 +424,14 @@ fn schema_identity_for_record(
         );
     }
     push_contracts(&mut canonical, contracts);
+    let mut invariant_meanings = invariants
+        .iter()
+        .map(|invariant| crate::syntax_identity::canonical_expression(&invariant.syntax))
+        .collect::<Vec<_>>();
+    invariant_meanings.sort();
+    for invariant in invariant_meanings {
+        push(&mut canonical, invariant.as_bytes());
+    }
     semantic_id(name, &canonical)
 }
 

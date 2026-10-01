@@ -19,6 +19,7 @@ fn main() {
                 "ButtonSetObservation".into(),
                 "ContactObservation".into(),
                 "OdometryObservation".into(),
+                "OrientationObservation".into(),
                 "ProximityObservation".into(),
                 "RangeObservation".into(),
                 "WheelDropObservation".into(),
@@ -27,13 +28,24 @@ fn main() {
             copy_record_value_getters: [
                 "BatteryObservation".into(),
                 "OdometryObservation".into(),
+                "OrientationObservation".into(),
                 "RangeObservation".into(),
             ]
             .into(),
-            record_constructor_orders: [(
-                "RangeObservation".into(),
-                vec!["distance-mm".into(), "age-ms".into()],
-            )]
+            record_constructor_orders: [
+                (
+                    "OrientationObservation".into(),
+                    vec![
+                        "roll-microradians".into(),
+                        "pitch-microradians".into(),
+                        "yaw-microradians".into(),
+                    ],
+                ),
+                (
+                    "RangeObservation".into(),
+                    vec!["distance-mm".into(), "age-ms".into()],
+                ),
+            ]
             .into(),
             ..RustBindingOptions::default()
         },

@@ -27,6 +27,13 @@ type ImageTextMetadata = {
     value: Text <= 256B
 }
 
+type ImageRegion = {
+    x: U16
+    y: U16
+    width: U16
+    height: U16
+}
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =

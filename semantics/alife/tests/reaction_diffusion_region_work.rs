@@ -134,13 +134,13 @@ fn evolve_all(
         .iter()
         .map(|region| {
             let (contract, cells) = generation
-                .region_work_basis(region.region.region_id)
+                .region_work_basis(region.region.region_id())
                 .unwrap();
             let mut work = ReactionDiffusionRegionWork::new(contract, cells).unwrap();
             for boundary in generation
                 .boundaries
                 .iter()
-                .filter(|boundary| boundary.destination_region == region.region.region_id)
+                .filter(|boundary| boundary.destination_region == region.region.region_id())
             {
                 work.admit_boundary(boundary.clone()).unwrap();
             }
@@ -155,22 +155,11 @@ fn initial() -> ReactionDiffusionFieldState {
 }
 
 fn unequal_partition() -> ReactionDiffusionPartition {
-    ReactionDiffusionPartition {
-        regions: vec![
-            ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId::new(10).unwrap(),
-                origin_x: 0,
-                origin_y: 0,
-                width: 3,
-                height: 10,
-            },
-            ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId::new(20).unwrap(),
-                origin_x: 3,
-                origin_y: 0,
-                width: 5,
-                height: 10,
-            },
-        ],
-    }
+    ReactionDiffusionPartition::from_regions(vec![
+        ReactionDiffusionRegion::new(ReactionDiffusionRegionId::new(10).unwrap(), 0, 0, 3, 10)
+            .unwrap(),
+        ReactionDiffusionRegion::new(ReactionDiffusionRegionId::new(20).unwrap(), 3, 0, 5, 10)
+            .unwrap(),
+    ])
+    .unwrap()
 }

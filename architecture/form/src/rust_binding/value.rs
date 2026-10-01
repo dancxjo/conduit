@@ -13,6 +13,36 @@ pub enum NativeBindingRefusal {
         representation_path: String,
         refusal: ValueConstraintRefusal,
     },
+    InvalidInvariant(crate::PortableExpressionEvaluationRefusal),
+    InvalidInvariantProgram(crate::PortableExpressionProgramRefusal),
+    ViolatedInvariant {
+        index: usize,
+    },
+}
+
+pub fn validate_native_invariants(
+    value: &StructuredInfoValue,
+    invariants: &[crate::PortableExpressionProgram],
+) -> Result<(), NativeBindingRefusal> {
+    let input = value
+        .canonical_bytes()
+        .map_err(NativeBindingRefusal::InvalidValue)?;
+    for (index, invariant) in invariants.iter().enumerate() {
+        let result = invariant
+            .evaluate(&input)
+            .map_err(NativeBindingRefusal::InvalidInvariant)?;
+        let accepted = conduit_core::InfoBool::decode(&result)
+            .map(conduit_core::InfoBool::get)
+            .map_err(|_| {
+                NativeBindingRefusal::InvalidInvariant(
+                    crate::PortableExpressionEvaluationRefusal::InvalidProgram,
+                )
+            })?;
+        if !accepted {
+            return Err(NativeBindingRefusal::ViolatedInvariant { index });
+        }
+    }
+    Ok(())
 }
 
 pub fn nominal_representation_type(
@@ -56,6 +86,15 @@ pub fn sequence_element_type(
     value_type: &StructuredInfoType,
 ) -> Result<StructuredInfoType, NativeBindingRefusal> {
     let StructuredInfoTypeShape::Sequence { element, .. } = value_type.shape() else {
+        return Err(wrong_type());
+    };
+    Ok(element.clone())
+}
+
+pub fn collection_element_type(
+    value_type: &StructuredInfoType,
+) -> Result<StructuredInfoType, NativeBindingRefusal> {
+    let StructuredInfoTypeShape::Collection { element, .. } = value_type.shape() else {
         return Err(wrong_type());
     };
     Ok(element.clone())

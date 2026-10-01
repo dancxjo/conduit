@@ -9,6 +9,20 @@ type Position = {
     y: Distance
 }
 
+type Chord = {
+    notes: collection Note = 3
+}
+
+type Phrase = {
+    notes: sequence Note in 2..=3
+}
+
+type Interval = {
+    start: U32
+    end: U32
+    where .start <= .end
+}
+
 type Observation = {
     note: Note?
     evidence: &Text
@@ -54,6 +68,23 @@ type Outcome =
     )
     .unwrap()
     .native_types
+}
+
+#[test]
+fn selected_record_can_retain_established_public_fields() {
+    let generated = generate_rust_bindings(
+        &checked_types(),
+        &RustBindingOptions {
+            public_record_fields: ["Position".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("pub struct Position {\n    pub x:"));
+    assert!(generated.source.contains("    pub y:"));
+    assert!(generated.source.contains("pub struct Chord {\n    notes:"));
 }
 
 #[test]
@@ -298,7 +329,7 @@ fn selected_constrained_record_validates_direct_integer_bounds_without_structure
     )
     .unwrap();
 
-    assert!(generated.source.contains("value >= 1u64 && value <= 8u64"));
+    assert!(generated.source.contains("(1u64..=8u64).contains(&value)"));
     assert!(generated
         .source
         .contains("ValueConstraintRefusal::FixedIntegerRange"));
@@ -507,6 +538,34 @@ mod generated_round_trip {
         ).unwrap();
         let encoded = position.clone().encode().unwrap();
         assert_eq!(Position::decode(&encoded).unwrap(), position);
+
+        let chord = Chord::new([
+            Note::new(60).unwrap(),
+            Note::new(64).unwrap(),
+            Note::new(67).unwrap(),
+        ]).unwrap();
+        assert_eq!(chord.notes().len(), 3);
+        let encoded = chord.clone().encode().unwrap();
+        assert_eq!(Chord::decode(&encoded).unwrap(), chord);
+
+        let underfull = Phrase::new(BoundedSequence::<Note, 3>::new());
+        assert!(matches!(
+            underfull,
+            Err(NativeBindingRefusal::InvalidValue(
+                conduit_core::StructuredInfoRefusal::WrongCollectionLength
+            ))
+        ));
+        let mut notes = BoundedSequence::<Note, 3>::new();
+        notes.push(Note::new(60).unwrap()).unwrap();
+        notes.push(Note::new(64).unwrap()).unwrap();
+        let phrase = Phrase::new(notes).unwrap();
+        let encoded = phrase.clone().encode().unwrap();
+        assert_eq!(Phrase::decode(&encoded).unwrap(), phrase);
+
+        let interval = Interval::new(5, 4).unwrap();
+        assert!(Interval::new(4, 5).is_err());
+        let encoded = interval.clone().encode().unwrap();
+        assert_eq!(Interval::decode(&encoded).unwrap(), interval);
 
         let evidence = BoundedBytes::<4096>::new(b"sha256:truth").unwrap();
         let observation = Observation::new(evidence, Some(Note::new(64).unwrap())).unwrap();

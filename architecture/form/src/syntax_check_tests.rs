@@ -1153,6 +1153,67 @@ form perform (
 }
 
 #[test]
+fn native_record_where_laws_are_typed_owned_and_enforced() {
+    let source = "type Interval = {\n    start: U32\n    end: U32\n    where .start <= .end\n}\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let interval = &checked.native_types[0];
+    assert_eq!(interval.invariants.len(), 1);
+
+    let make = |start: u32, end: u32| {
+        let conduit_core::StructuredInfoTypeShape::Record { fields, .. } =
+            interval.value_type.shape()
+        else {
+            panic!("Interval is a record")
+        };
+        let values = fields
+            .iter()
+            .map(|field| {
+                let value = if field.name() == "start" { start } else { end };
+                let encoded = crate::rust_binding::primitive_into_structured(
+                    field.value_type().clone(),
+                    &value,
+                )
+                .unwrap();
+                conduit_core::StructuredFieldValue::new(field.name(), encoded).unwrap()
+            })
+            .collect();
+        conduit_core::StructuredInfoValue::record(interval.value_type.clone(), values).unwrap()
+    };
+    crate::rust_binding::validate_native_invariants(&make(4, 4), &interval.invariants).unwrap();
+    assert_eq!(
+        crate::rust_binding::validate_native_invariants(&make(5, 4), &interval.invariants),
+        Err(crate::rust_binding::NativeBindingRefusal::ViolatedInvariant { index: 0 }),
+        "{:#?}",
+        interval.invariants[0]
+    );
+
+    let changed = check_syntax_document(
+        &parse_syntax_document(
+            "type Interval = {\n    start: U32\n    end: U32\n    where .start < .end\n}\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_ne!(interval.identity, changed.native_types[0].identity);
+}
+
+#[test]
+fn native_record_where_laws_must_be_boolean_and_follow_fields() {
+    for source in [
+        "type Bad = {\n    value: U32\n    where .value + 1\n}\n",
+        "type Bad = {\n    where true\n    value: U32\n}\n",
+        "type Bad = {\n    value: U32\n    where .value > 0\n    where .value > 0\n}\n",
+    ] {
+        let parsed = parse_syntax_document(source);
+        assert!(
+            !parsed.diagnostics.is_empty()
+                || check_syntax_document(&parsed, &StartupCatalog::new()).is_err()
+        );
+    }
+}
+
+#[test]
 fn native_types_preserve_open_semantic_range_ends_for_every_numeric_family() {
     let checked = check(
         "type Positive = Count in 0..\n\
@@ -1267,6 +1328,23 @@ fn native_types_resolve_forward_references_and_refuse_recursive_cycles() {
     .unwrap_err();
     assert_eq!(cycle.code, "CND-FRM-058");
     assert!(cycle.message.contains("Left -> Right -> Left"));
+}
+
+#[test]
+fn native_fixed_collection_checks_to_exact_structured_collection_truth() {
+    let checked = check_syntax_document(
+        &parse_syntax_document("type Quartet = collection Note = 4\ntype Note = U8 in 0..=127\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert!(matches!(
+        checked.native_types[0].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Nominal { representation, .. }
+            if matches!(
+                representation.shape(),
+                conduit_core::StructuredInfoTypeShape::Collection { length: 4, .. }
+            )
+    ));
 }
 
 #[test]

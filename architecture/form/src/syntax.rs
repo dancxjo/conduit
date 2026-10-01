@@ -103,6 +103,8 @@ pub struct CodeMappingSyntax {
 pub struct TypeSyntax {
     pub name: SpannedText,
     pub definition: TypeDefinitionSyntax,
+    /// Pure Boolean laws every value of this Type must satisfy.
+    pub invariants: Vec<Expression>,
     pub span: Span,
 }
 
@@ -149,6 +151,11 @@ pub enum TypeExpressionSyntax {
     },
     DataReference {
         value: Box<TypeExpressionSyntax>,
+        span: Span,
+    },
+    Collection {
+        element: Box<TypeExpressionSyntax>,
+        length: u16,
         span: Span,
     },
     Sequence {

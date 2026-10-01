@@ -65,7 +65,7 @@ impl PartitionedReactionDiffusionGeneration {
         let state = self
             .regions
             .iter()
-            .find(|state| state.region.region_id == region_id)
+            .find(|state| state.region.region_id() == region_id)
             .ok_or(ReactionDiffusionPartitionRefusal::UnknownRegionIdentity)?;
         let required_boundaries = self
             .boundaries
@@ -145,8 +145,8 @@ impl ReactionDiffusionRegionWork {
             .generation
             .checked_add(1)
             .ok_or(ReactionDiffusionPartitionRefusal::GenerationOverflow)?;
-        let width = usize::from(self.contract.region.width);
-        let height = usize::from(self.contract.region.height);
+        let width = usize::from(self.contract.region.width());
+        let height = usize::from(self.contract.region.height());
         let mut next = vec![ReactionDiffusionCell::REST; self.cells.len()];
         for y in 0..height {
             for x in 0..width {
@@ -179,7 +179,7 @@ impl ReactionDiffusionRegionWork {
 
     fn validate_partial(&self) -> Result<(), ReactionDiffusionPartitionRefusal> {
         let region = self.contract.region;
-        if self.cells.len() != usize::from(region.width) * usize::from(region.height) {
+        if self.cells.len() != usize::from(region.width()) * usize::from(region.height()) {
             return Err(ReactionDiffusionPartitionRefusal::RegionStateMismatch);
         }
         if self.contract.required_boundaries.len() > REACTION_DIFFUSION_MAXIMUM_BOUNDARIES as usize
@@ -198,11 +198,9 @@ impl ReactionDiffusionRegionWork {
             ));
         }
         self.contract.parameters.validate()?;
-        ReactionDiffusionPartition {
-            regions: vec![region],
-        }
-        .validate_region_within(self.contract.field_width, self.contract.field_height)?;
-        let expected = usize::from(2 * (region.width + region.height));
+        ReactionDiffusionPartition::from_regions(vec![region])?
+            .validate_region_within(self.contract.field_width, self.contract.field_height)?;
+        let expected = usize::from(2 * (region.width() + region.height()));
         if self.contract.required_boundaries.len() < expected {
             return Err(ReactionDiffusionPartitionRefusal::MissingBoundaryTruth);
         }
@@ -216,15 +214,15 @@ impl ReactionDiffusionRegionWork {
                 return Err(ReactionDiffusionPartitionRefusal::DuplicateBoundaryIdentity);
             }
             ids.push(required.boundary_id);
-            if required.destination_region != region.region_id {
+            if required.destination_region != region.region_id() {
                 return Err(ReactionDiffusionPartitionRefusal::WrongBoundaryDestination);
             }
             let edge_length = match required.destination_edge {
                 ReactionDiffusionBoundaryEdge::North | ReactionDiffusionBoundaryEdge::South => {
-                    region.width
+                    region.width()
                 }
                 ReactionDiffusionBoundaryEdge::West | ReactionDiffusionBoundaryEdge::East => {
-                    region.height
+                    region.height()
                 }
             };
             if required.destination_offset >= edge_length {
@@ -267,7 +265,7 @@ impl ReactionDiffusionRegionWork {
         if boundary.generation != self.contract.generation {
             return Err(ReactionDiffusionPartitionRefusal::StaleBoundaryGeneration);
         }
-        if boundary.destination_region != self.contract.region.region_id {
+        if boundary.destination_region != self.contract.region.region_id() {
             return Err(ReactionDiffusionPartitionRefusal::WrongBoundaryDestination);
         }
         if boundary.values.len() != 1 {
@@ -303,8 +301,8 @@ impl ReactionDiffusionRegionWork {
         y: usize,
         edge: ReactionDiffusionBoundaryEdge,
     ) -> Result<ReactionDiffusionCell, ReactionDiffusionPartitionRefusal> {
-        let width = usize::from(self.contract.region.width);
-        let height = usize::from(self.contract.region.height);
+        let width = usize::from(self.contract.region.width());
+        let height = usize::from(self.contract.region.height());
         let local = match edge {
             ReactionDiffusionBoundaryEdge::North if y > 0 => Some((y - 1) * width + x),
             ReactionDiffusionBoundaryEdge::South if y + 1 < height => Some((y + 1) * width + x),
@@ -335,17 +333,21 @@ impl ReactionDiffusionPartition {
         width: u16,
         height: u16,
     ) -> Result<(), ReactionDiffusionPartitionRefusal> {
-        let region = self.regions[0];
-        if region.width == 0 || region.height == 0 {
+        let region = *self
+            .regions()
+            .iter()
+            .next()
+            .expect("a partition always has at least one region");
+        if region.width() == 0 || region.height() == 0 {
             return Err(ReactionDiffusionPartitionRefusal::ZeroExtent);
         }
         let end_x = region
-            .origin_x
-            .checked_add(region.width)
+            .origin_x()
+            .checked_add(region.width())
             .ok_or(ReactionDiffusionPartitionRefusal::RegionOutOfRange)?;
         let end_y = region
-            .origin_y
-            .checked_add(region.height)
+            .origin_y()
+            .checked_add(region.height())
             .ok_or(ReactionDiffusionPartitionRefusal::RegionOutOfRange)?;
         if end_x > width || end_y > height {
             return Err(ReactionDiffusionPartitionRefusal::RegionOutOfRange);
@@ -364,10 +366,10 @@ pub fn join_evolved_reaction_diffusion_regions(
     regions: &[EvolvedReactionDiffusionRegion],
 ) -> Result<ReactionDiffusionFieldState, ReactionDiffusionPartitionRefusal> {
     partition.validate(width, height)?;
-    if regions.len() < partition.regions.len() {
+    if regions.len() < partition.regions().len() {
         return Err(ReactionDiffusionPartitionRefusal::MissingRegionResult);
     }
-    if regions.len() > partition.regions.len() {
+    if regions.len() > partition.regions().len() {
         return Err(ReactionDiffusionPartitionRefusal::DuplicateRegionResult);
     }
     let generation = source_generation
@@ -376,28 +378,31 @@ pub fn join_evolved_reaction_diffusion_regions(
     let mut joined = vec![ReactionDiffusionCell::REST; usize::from(width) * usize::from(height)];
     let mut seen = Vec::with_capacity(regions.len());
     for result in regions {
-        if seen.contains(&result.region.region_id) {
+        if seen.contains(&result.region.region_id()) {
             return Err(ReactionDiffusionPartitionRefusal::DuplicateRegionResult);
         }
-        seen.push(result.region.region_id);
+        seen.push(result.region.region_id());
         if result.field_id != field_id
             || result.source_generation != source_generation
             || result.generation != generation
             || result.field_width != width
             || result.field_height != height
             || result.parameters != parameters
-            || !partition.regions.contains(&result.region)
+            || !partition
+                .regions()
+                .iter()
+                .any(|region| region == &result.region)
             || result.cells.len()
-                != usize::from(result.region.width) * usize::from(result.region.height)
+                != usize::from(result.region.width()) * usize::from(result.region.height())
         {
             return Err(ReactionDiffusionPartitionRefusal::WrongRegionResult);
         }
-        for local_y in 0..usize::from(result.region.height) {
-            for local_x in 0..usize::from(result.region.width) {
-                let global_x = usize::from(result.region.origin_x) + local_x;
-                let global_y = usize::from(result.region.origin_y) + local_y;
+        for local_y in 0..usize::from(result.region.height()) {
+            for local_x in 0..usize::from(result.region.width()) {
+                let global_x = usize::from(result.region.origin_x()) + local_x;
+                let global_y = usize::from(result.region.origin_y()) + local_y;
                 joined[global_y * usize::from(width) + global_x] =
-                    result.cells[local_y * usize::from(result.region.width) + local_x];
+                    result.cells[local_y * usize::from(result.region.width()) + local_x];
             }
         }
     }

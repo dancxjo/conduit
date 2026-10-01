@@ -168,6 +168,17 @@ type GraphicsClipClass =
     | partially_clipped
     | fully_clipped
 
+type ThemeColor = {
+    red: U8
+    green: U8
+    blue: U8
+}
+
+type GraphicsPoint = {
+    x: I16
+    y: I16
+}
+
 type GeneratedManifestationDisposition =
     produced
     | truncated

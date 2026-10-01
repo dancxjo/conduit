@@ -283,6 +283,43 @@ fn native_sequence_type_requires_one_explicit_finite_cardinality_bound() {
 }
 
 #[test]
+fn native_sequence_can_state_exact_nonzero_cardinality_bounds() {
+    let document = parse_syntax_document("type Notes = sequence U8 in 2..=4\n");
+    assert!(document.diagnostics.is_empty());
+    assert!(matches!(
+        &document.types[0].definition,
+        TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Sequence {
+            minimum_items: 2,
+            maximum_items: 4,
+            ..
+        })
+    ));
+    for source in [
+        "type Notes = sequence U8 in 4..=2\n",
+        "type Notes = sequence U8 in 1..=257\n",
+    ] {
+        assert!(!parse_syntax_document(source).diagnostics.is_empty());
+    }
+}
+
+#[test]
+fn native_fixed_collection_requires_one_exact_finite_length() {
+    let document = parse_syntax_document("type Quartet = collection U16 = 4\n");
+    assert!(document.diagnostics.is_empty());
+    assert!(matches!(
+        &document.types[0].definition,
+        TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Collection { length: 4, .. })
+    ));
+    for source in [
+        "type Quartet = collection U16\n",
+        "type Quartet = collection U16 = 257\n",
+    ] {
+        let document = parse_syntax_document(source);
+        assert!(!document.diagnostics.is_empty(), "accepted {source}");
+    }
+}
+
+#[test]
 fn legacy_use_keyword_is_not_a_compatibility_spelling() {
     let document =
         parse_syntax_document("use time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");

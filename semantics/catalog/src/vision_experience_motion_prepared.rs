@@ -243,12 +243,7 @@ mod tests {
         let expected = crate::motion_observations_value(
             &[MotionObservation {
                 source_image: source,
-                changed_region: ImageRegion {
-                    x: 1,
-                    y: 2,
-                    width: 3,
-                    height: 4,
-                },
+                changed_region: ImageRegion::from_xywh(1, 2, 3, 4).unwrap(),
                 change_permille: 3,
                 provenance: VisualObservationProvenance {
                     evidence_class: VisualEvidenceClass::DeterministicDerived,
