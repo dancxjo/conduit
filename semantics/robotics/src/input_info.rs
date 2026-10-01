@@ -3,7 +3,7 @@
 use conduit_core::{semantic_digest, InfoDecodeError};
 
 use crate::{
-    AccelerationObservation, BeaconKind, BeaconKindCode, ButtonSetObservation,
+    AccelerationObservation, BeaconKind, BeaconKindCode, BeaconObservation, ButtonSetObservation,
     ProximityObservation, BODY_SECTOR_MASK,
 };
 use core::{cmp::Ordering, hash::Hash};
@@ -59,12 +59,6 @@ impl BeaconKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BeaconObservation {
-    pub kind: BeaconKind,
-    pub code: u8,
-}
-
 impl BeaconObservation {
     pub fn new(kind: BeaconKind, code: u8) -> Result<Self, InfoDecodeError> {
         if kind == BeaconKind::VirtualWall && code != 0 {
@@ -72,7 +66,7 @@ impl BeaconObservation {
                 "virtual-wall observation has no fabricated code",
             ));
         }
-        Ok(Self { kind, code })
+        Ok(Self::new_native(kind, code).expect("virtual-wall check matches generated contract"))
     }
 
     pub const fn encode(self) -> [u8; ROBOTICS_BEACON_ENCODED_LEN] {
@@ -88,6 +82,25 @@ impl BeaconObservation {
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_BEACON_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for BeaconObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for BeaconObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.kind(), self.code()).cmp(&(other.kind(), other.code()))
+    }
+}
+
+impl Hash for BeaconObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.kind().hash(state);
+        self.code().hash(state);
     }
 }
 

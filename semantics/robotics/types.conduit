@@ -4,6 +4,12 @@ type BeaconKind =
     virtual_wall
     | infrared_code
 
+type BeaconObservation = {
+    kind: BeaconKind
+    code: U8
+    where variant/tag(.kind) != "virtual_wall" || .code == 0
+}
+
 code robotics/beacon-kind = BeaconKind as u8
 
 type ChargingState =
@@ -13,6 +19,17 @@ type ChargingState =
     | trickle
     | waiting
     | fault
+
+type ChargingObservation = {
+    state: ChargingState
+    sources: U8 in 0..=3
+    millivolts: U16
+    milliamps: I16
+    temperature_celsius: I8
+    charge_mah: U16
+    capacity_mah: U16
+    where .charge_mah <= .capacity_mah
+}
 
 code robotics/charging-state = ChargingState as u8
 
@@ -37,6 +54,20 @@ type ContactObservation = {
 
 type WheelDropObservation = {
     wheels: U8 in 0..=7
+}
+
+type CliffSignal =
+    unavailable
+    | observed {
+        value: U16
+    }
+
+type CliffObservation = {
+    active_sectors: U8 in 0..=15
+    left_signal: CliffSignal
+    front_left_signal: CliffSignal
+    front_right_signal: CliffSignal
+    right_signal: CliffSignal
 }
 
 type RangeObservation = {
