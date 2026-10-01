@@ -9,7 +9,8 @@ use crate::{
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
 };
 
-use super::{FaceContribution, FaceContributionRole, FaceOperatorAction, FaceOperatorActionKind};
+use super::{FaceContribution, FaceOperatorAction, FaceOperatorActionKind};
+use crate::FaceContributionRole;
 
 pub(super) fn append_execution_truth(
     wake: Option<&Wake>,

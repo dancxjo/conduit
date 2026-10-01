@@ -42,6 +42,75 @@ fn main() {
                     "GeneratedContentRole".into(),
                     ["speech", "presented_thought"].map(String::from).into(),
                 ),
+                (
+                    "PresentationPlace".into(),
+                    ["entrance", "program", "body"].map(String::from).into(),
+                ),
+                (
+                    "PresentationAspect".into(),
+                    ["structure", "plan", "play", "signs"]
+                        .map(String::from)
+                        .into(),
+                ),
+                (
+                    "PresentationDepth".into(),
+                    ["primary", "context", "detail", "exact"]
+                        .map(String::from)
+                        .into(),
+                ),
+                (
+                    "NavigationRefusal".into(),
+                    [
+                        "stale_presentation",
+                        "unknown_place",
+                        "unknown_aspect",
+                        "unknown_subject",
+                        "unknown_relationship",
+                        "history_exhausted",
+                        "history_full",
+                        "invalid_truth",
+                    ]
+                    .map(String::from)
+                    .into(),
+                ),
+                (
+                    "MaskWardrobeLifetime".into(),
+                    ["wake", "body"].map(String::from).into(),
+                ),
+                (
+                    "MaskPlanningDisposition".into(),
+                    ["not_required", "replacement_required"]
+                        .map(String::from)
+                        .into(),
+                ),
+                (
+                    "MaskWardrobeError".into(),
+                    [
+                        "stale_revision",
+                        "capacity_exceeded",
+                        "duplicate_mask",
+                        "unknown_mask",
+                        "unknown_preference",
+                        "invalid_lifetime_scope",
+                        "invalid_route",
+                        "duplicate_route",
+                        "stale_selection",
+                    ]
+                    .map(String::from)
+                    .into(),
+                ),
+                (
+                    "FaceContributionRole".into(),
+                    ["foreground", "tutorial", "inspection", "transient"]
+                        .map(String::from)
+                        .into(),
+                ),
+                (
+                    "GenerativeNarratorRole".into(),
+                    ["transient_first_person_body_narrator"]
+                        .map(String::from)
+                        .into(),
+                ),
             ]
             .into(),
             ..RustBindingOptions::default()

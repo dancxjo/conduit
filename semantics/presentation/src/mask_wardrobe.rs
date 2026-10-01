@@ -5,14 +5,10 @@ use conduit_body::{BodyId, WakeId};
 use conduit_core::{FormIdentity, PlacementId, PlanId};
 use serde::{Deserialize, Serialize};
 
+use crate::{MaskPlanningDisposition, MaskWardrobeError, MaskWardrobeLifetime};
+
 pub const MAX_WORN_MASK_FORMS: usize = 16;
 pub const MAX_SEALED_MASK_ROUTES: usize = 32;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MaskWardrobeLifetime {
-    Wake,
-    Body,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -63,30 +59,10 @@ pub enum MaskShowDisposition {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MaskPlanningDisposition {
-    NotRequired,
-    /// A fact for an authorized planning owner, never planning authority.
-    ReplacementRequired,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaskReconciliation {
     pub show: MaskShowDisposition,
     pub planning: MaskPlanningDisposition,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MaskWardrobeError {
-    StaleRevision,
-    CapacityExceeded,
-    DuplicateMask,
-    UnknownMask,
-    UnknownPreference,
-    InvalidLifetimeScope,
-    InvalidRoute,
-    DuplicateRoute,
-    StaleSelection,
 }
 
 impl BodyMaskWardrobe {
