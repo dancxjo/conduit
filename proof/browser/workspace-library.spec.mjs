@@ -142,17 +142,19 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(2);
   const highPitchEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.85, { steps: 8 });
-  await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.length, highPitchEnd)).toBeGreaterThan(highPitchEnd + 2);
+  await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.crossings <= 10), highPitchEnd)).toBe(true);
   const loudEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
+  const loudPeak = await page.evaluate(({ start, end }) => Math.max(...globalThis.__thereminAudio.starts.slice(start + 1, end).map(block => block.peak)), { start: highPitchEnd, end: loudEnd });
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.15, { steps: 8 });
-  await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.length, loudEnd)).toBeGreaterThan(loudEnd + 2);
+  await expect.poll(() => page.evaluate(({ end, threshold }) => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.peak < threshold), { end: loudEnd, threshold: loudPeak * 0.4 })).toBe(true);
   const audio = await page.evaluate(() => globalThis.__thereminAudio);
   expect(audio.blocks.every(block => block.channels === 1 && block.frames === 2000 && block.sampleRate === 48000)).toBe(true);
   expect(audio.starts[1].when).toBeGreaterThanOrEqual(audio.starts[0].when);
   expect(audio.starts.slice(1, highPitchEnd).some(block => block.crossings >= 20)).toBe(true);
-  expect(audio.starts.slice(highPitchEnd + 1, loudEnd).some(block => block.crossings <= 8)).toBe(true);
-  const loudPeak = Math.max(...audio.starts.slice(highPitchEnd + 1, loudEnd).map(block => block.peak));
-  const quietPeak = Math.max(...audio.starts.slice(loudEnd + 1).map(block => block.peak));
+  // 110 Hz spans 4.58 cycles in each 2,000-frame block, so phase-continuous
+  // blocks contain either nine or ten zero crossings.
+  expect(audio.starts.slice(highPitchEnd + 1, loudEnd).some(block => block.crossings <= 10)).toBe(true);
+  const quietPeak = Math.min(...audio.starts.slice(loudEnd + 1).map(block => block.peak));
   expect(quietPeak).toBeLessThan(loudPeak * 0.4);
   await page.mouse.up();
 });

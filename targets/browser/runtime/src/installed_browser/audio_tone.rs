@@ -120,8 +120,9 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
                     {
                         return fail(17);
                     }
-                    io.consume_host_completion()
-                        .expect("observed frequency update");
+                    if io.consume_host_completion().is_err() {
+                        return fail(20);
+                    }
                     self.pending = None;
                     self.frequency_ready = true;
                     return StepOutcome::Progress;
@@ -140,8 +141,11 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
                     if !io.output_ready(PortId(0)) {
                         return StepOutcome::Await;
                     }
-                    io.consume_host_completion().expect("observed PCM render");
-                    io.send(PortId(0), output.value).expect("ready PCM output");
+                    if io.consume_host_completion().is_err()
+                        || io.send(PortId(0), output.value).is_err()
+                    {
+                        return fail(21);
+                    }
                     self.pending = None;
                     return StepOutcome::Progress;
                 }
@@ -170,14 +174,18 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
             let Some(next) = self.next_request.checked_add(1) else {
                 return fail(19);
             };
-            io.consume(PortId(0)).expect("present frequency");
-            io.request_host_call(
-                request,
-                HostCallId(0),
+            let Ok(bounded) =
                 BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
-                    .expect("Frequency is exactly bounded"),
-            )
-            .expect("frequency update Host Call");
+            else {
+                return fail(22);
+            };
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(request, HostCallId(0), bounded)
+                    .is_err()
+            {
+                return fail(23);
+            }
             self.next_request = next;
             self.pending = Some(ToneRequest::Update(request));
             return StepOutcome::Progress;
@@ -196,13 +204,16 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
             let Some(next) = self.next_request.checked_add(1) else {
                 return fail(19);
             };
-            io.consume(PortId(1)).expect("present cadence");
-            io.request_host_call(
-                request,
-                HostCallId(1),
-                BoundedValueRef::new(self.empty, 0).expect("empty render request"),
-            )
-            .expect("PCM render Host Call");
+            let Ok(bounded) = BoundedValueRef::new(self.empty, 0) else {
+                return fail(24);
+            };
+            if io.consume(PortId(1)).is_err()
+                || io
+                    .request_host_call(request, HostCallId(1), bounded)
+                    .is_err()
+            {
+                return fail(25);
+            }
             self.next_request = next;
             self.pending = Some(ToneRequest::Render(request));
             return StepOutcome::Progress;

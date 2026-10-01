@@ -327,7 +327,11 @@ pub fn audio_gain_contract() -> StandardKindContract {
         ],
         outputs: vec![PortDescriptor { port_id: port_id("audio"), value_kind: kind_id(AUDIO_PCM_INFO_ID), direction: PortDirection::Output, temporal: PortTemporal::Flow { closes: true }, abnormal_kind: None }],
         configuration: Vec::new(),
-        limits: CapabilityLimits { max_active_instances: 8, max_queue_items: 2, max_queue_bytes: AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES + 8 },
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES,
+        },
         terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,

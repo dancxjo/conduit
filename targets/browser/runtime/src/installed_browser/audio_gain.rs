@@ -75,7 +75,9 @@ impl<const PORTS: usize> StepBack<PORTS> for GainBack {
                     {
                         return fail(8);
                     }
-                    io.consume_host_completion().expect("observed gain update");
+                    if io.consume_host_completion().is_err() {
+                        return fail(12);
+                    }
                     self.pending = None;
                     self.amplitude_ready = true;
                     return StepOutcome::Progress;
@@ -94,8 +96,11 @@ impl<const PORTS: usize> StepBack<PORTS> for GainBack {
                     if !io.output_ready(PortId(0)) {
                         return StepOutcome::Await;
                     }
-                    io.consume_host_completion().expect("observed scaled PCM");
-                    io.send(PortId(0), output.value).expect("ready scaled PCM");
+                    if io.consume_host_completion().is_err()
+                        || io.send(PortId(0), output.value).is_err()
+                    {
+                        return fail(13);
+                    }
                     self.pending = None;
                     return StepOutcome::Progress;
                 }
@@ -110,14 +115,17 @@ impl<const PORTS: usize> StepBack<PORTS> for GainBack {
             let Some(next) = self.next_request.checked_add(1) else {
                 return fail(11);
             };
-            io.consume(PortId(1)).expect("present amplitude");
-            io.request_host_call(
-                request,
-                HostCallId(1),
-                BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
-                    .expect("bounded Scalar"),
-            )
-            .expect("gain update Host Call");
+            let Ok(bounded) = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
+            else {
+                return fail(14);
+            };
+            if io.consume(PortId(1)).is_err()
+                || io
+                    .request_host_call(request, HostCallId(1), bounded)
+                    .is_err()
+            {
+                return fail(15);
+            }
             self.next_request = next;
             self.pending = Some(GainRequest::Update(request));
             return StepOutcome::Progress;
@@ -130,13 +138,16 @@ impl<const PORTS: usize> StepBack<PORTS> for GainBack {
             let Some(next) = self.next_request.checked_add(1) else {
                 return fail(11);
             };
-            io.consume(PortId(0)).expect("present PCM");
-            io.request_host_call(
-                request,
-                HostCallId(0),
-                BoundedValueRef::new(value, BLOCK_BYTES as u32).expect("bounded PCM"),
-            )
-            .expect("gain scale Host Call");
+            let Ok(bounded) = BoundedValueRef::new(value, BLOCK_BYTES as u32) else {
+                return fail(16);
+            };
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(request, HostCallId(0), bounded)
+                    .is_err()
+            {
+                return fail(17);
+            }
             self.next_request = next;
             self.pending = Some(GainRequest::Scale(request));
             return StepOutcome::Progress;
