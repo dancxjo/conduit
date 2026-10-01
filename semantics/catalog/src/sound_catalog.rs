@@ -14,6 +14,12 @@ pub fn install_sound_catalogs(
     for (contract, revision) in sound_contracts_with_revisions() {
         if contract.kind_id.as_str() == super::AUDIO_TONE_KIND {
             install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())?;
+        } else if contract.kind_id.as_str() == super::AUDIO_CONTINUOUS_TONE_KIND {
+            install_semantic_contract(
+                startup,
+                profile,
+                super::audio_continuous_tone_semantic_contract(),
+            )?;
         } else {
             install_contract(startup, profile, contract, revision)?;
         }
@@ -31,6 +37,31 @@ pub fn install_audio_tone_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())
+}
+
+/// Install only the portable sustained-tone transform contract.
+pub fn install_audio_continuous_tone_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    install_semantic_contract(
+        startup,
+        profile,
+        super::audio_continuous_tone_semantic_contract(),
+    )
+}
+
+/// Install only the portable `audio/apply-gain` transform contract.
+pub fn install_audio_gain_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    install_contract(
+        startup,
+        profile,
+        super::audio_gain_contract(),
+        super::AUDIO_GAIN_REVISION,
+    )
 }
 
 fn install_semantic_contract(

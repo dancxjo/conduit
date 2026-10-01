@@ -18,7 +18,7 @@ use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     ConfigurationValue, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
     PortDescriptor, PortDirection, PortTemporal, TerminalTransductionProfile,
-    CANCELLATION_REQUEST_INFO_ID, FREQUENCY_INFO_ID,
+    CANCELLATION_REQUEST_INFO_ID, FREQUENCY_INFO_ID, SCALAR_INFO_ID,
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,8 +28,16 @@ pub const MUSIC_SYNTH_KIND: &str = "music/synth";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const AUDIO_TONE_KIND: &str = "audio/tone";
 pub const AUDIO_TONE_REVISION: &str = "conduit.std/audio-tone@1";
+pub const AUDIO_CONTINUOUS_TONE_KIND: &str = "audio/continuous-tone";
+pub const AUDIO_CONTINUOUS_TONE_REVISION: &str = "conduit.std/audio-continuous-tone@1";
+pub const AUDIO_GAIN_KIND: &str = "audio/apply-gain";
+pub const AUDIO_GAIN_REVISION: &str = "conduit.std/audio-apply-gain@1";
+// One block spans 41.7 ms at 48 kHz. A 40 ms admitted cadence can therefore
+// keep browser playback continuous while retaining one finite block in flight.
 pub const AUDIO_TONE_PCM_FRAMES: u16 = 16;
 pub const AUDIO_TONE_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 32;
+pub const AUDIO_CONTINUOUS_TONE_PCM_FRAMES: u16 = 2_000;
+pub const AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 4_000;
 pub const AUDIO_CAPTURE_PUSH_TO_TALK_KIND: &str = "audio/capture-push-to-talk";
 pub const AUDIO_CONVERT_PCM_PROFILE_KIND: &str = "audio/convert-pcm-profile";
 pub const SOUND_TONE_PLAY_REVISION: &str = "conduit.std/sound-tone-play@1";
@@ -277,6 +285,57 @@ pub fn audio_tone_semantic_contract() -> Kind {
     contract
 }
 
+pub fn audio_continuous_tone_contract() -> StandardKindContract {
+    let mut contract = audio_tone_contract();
+    contract.kind_id = kind_id(AUDIO_CONTINUOUS_TONE_KIND);
+    contract.plain_name = "Generate continuous tone blocks".into();
+    contract.summary = "Transform sampled Frequency controls into overlapping bounded PCM blocks for continuous playback.".into();
+    contract.inputs[0].temporal = PortTemporal::Value;
+    contract.inputs.insert(
+        1,
+        PortDescriptor {
+            port_id: port_id("cadence"),
+            value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
+        },
+    );
+    contract.limits.max_queue_bytes = AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES;
+    contract.example = "tone: audio/continuous-tone".into();
+    contract
+}
+
+pub fn audio_continuous_tone_semantic_contract() -> Kind {
+    let portable = audio_continuous_tone_contract();
+    let mut contract = audio_tone_semantic_contract();
+    contract.kind_id = kind_id(AUDIO_CONTINUOUS_TONE_KIND);
+    contract.kind_contract_revision = AUDIO_CONTINUOUS_TONE_REVISION.into();
+    contract.inputs = portable.inputs;
+    contract.limits.max_queue_bytes = AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES;
+    contract
+}
+
+pub fn audio_gain_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(AUDIO_GAIN_KIND),
+        plain_name: "Apply bounded PCM gain".to_string(),
+        summary: "Scale each PCM sample by the current normalized amplitude without changing its clock or format.".to_string(),
+        inputs: vec![
+            PortDescriptor { port_id: port_id("audio"), value_kind: kind_id(AUDIO_PCM_INFO_ID), direction: PortDirection::Input, temporal: PortTemporal::Flow { closes: true }, abnormal_kind: None },
+            PortDescriptor { port_id: port_id("amplitude"), value_kind: kind_id(SCALAR_INFO_ID), direction: PortDirection::Input, temporal: PortTemporal::Value, abnormal_kind: None },
+        ],
+        outputs: vec![PortDescriptor { port_id: port_id("audio"), value_kind: kind_id(AUDIO_PCM_INFO_ID), direction: PortDirection::Output, temporal: PortTemporal::Flow { closes: true }, abnormal_kind: None }],
+        configuration: Vec::new(),
+        limits: CapabilityLimits { max_active_instances: 8, max_queue_items: 2, max_queue_bytes: AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES + 8 },
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "gain: audio/apply-gain".to_string(),
+    }
+}
+
 /// One explicitly initiated, finite microphone turn. The semantic contract
 /// describes bounded PCM and push-to-talk lifetime; permission, device,
 /// provider, and UI mechanism remain exact host realization facts.
@@ -335,7 +394,7 @@ pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
     }
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 9] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 11] {
     [
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
         (music_input_contract(), MUSIC_INPUT_REVISION),
@@ -344,6 +403,11 @@ pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str)
         (audio_render_demand_contract(), AUDIO_RENDER_DEMAND_REVISION),
         (audio_play_contract(), AUDIO_PLAY_REVISION),
         (audio_tone_contract(), AUDIO_TONE_REVISION),
+        (
+            audio_continuous_tone_contract(),
+            AUDIO_CONTINUOUS_TONE_REVISION,
+        ),
+        (audio_gain_contract(), AUDIO_GAIN_REVISION),
         (
             audio_capture_push_to_talk_contract(),
             AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,

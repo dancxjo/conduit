@@ -12,7 +12,7 @@ fn bundle() -> String {
 }
 
 #[test]
-fn canonical_keep_form_checks_without_inventing_a_browser_state_back() {
+fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
     let source = serde_json::json!({
         "schema": "conduit.creche/reviewed-form-bundle@1",
         "forms": [{
@@ -25,9 +25,15 @@ fn canonical_keep_form_checks_without_inventing_a_browser_state_back() {
     .to_string();
     let inventory = initial_forms::reviewed_inventory(&source).unwrap();
     assert_eq!(inventory.forms.len(), 1);
-    assert!(inventory.forms[0]
+    assert!(!inventory.forms[0]
         .required_kinds
         .contains(&"state/latest".to_owned()));
+    assert!(inventory.forms[0]
+        .required_kinds
+        .contains(&"audio/continuous-tone".to_owned()));
+    assert!(inventory.forms[0]
+        .required_kinds
+        .contains(&"audio/apply-gain".to_owned()));
     let host =
         initial_forms::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
             .unwrap();
@@ -35,6 +41,49 @@ fn canonical_keep_form_checks_without_inventing_a_browser_state_back() {
         .capabilities
         .iter()
         .any(|offer| offer.kind_id.as_str() == "state/latest"));
+}
+
+#[test]
+fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
+    let source = serde_json::json!({
+        "schema": "conduit.creche/reviewed-form-bundle@1",
+        "forms": [{
+            "slug": "pocket-theremin",
+            "entry": "phone-two-axis-controller",
+            "presentation_profile": 1,
+            "source": include_str!("../../../../../forms/pocket-theremin/main.conduit"),
+        }],
+    })
+    .to_string();
+    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
+    let required = &inventory.forms[0].required_kinds;
+    for kind in [
+        "input/pointer-source",
+        "math/map-normalized-distance",
+        "audio/play",
+        "pocket-theremin",
+    ] {
+        assert!(required.iter().any(|required| required == kind), "{kind}");
+    }
+    let host = initial_forms::reviewed_browser_host(
+        &source,
+        "host/theremin".into(),
+        "boot/theremin".into(),
+    )
+    .unwrap();
+    for implementation in [
+        "browser/form-pointer-source@1",
+        "browser/kernel-audio-tone@1",
+        "browser/kernel-audio-apply-gain@1",
+        "browser/kernel-map-distance-frequency@1",
+    ] {
+        assert!(
+            host.capabilities
+                .iter()
+                .any(|offer| { offer.implementation.implementation_id.as_str() == implementation }),
+            "{implementation}"
+        );
+    }
 }
 
 #[test]

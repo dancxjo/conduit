@@ -208,8 +208,7 @@ pub(super) fn prepare(
                 || gear.offer_generation != host.offer_generation
                 || gear.implementation_id != offer.implementation.implementation_id
                 || gear.kind_id != offer.kind_id
-                || !gear.authority.is_empty()
-                || !offer.authority_requirements.is_empty()
+                || !placement_authority_matches(gear, offer)
             {
                 return Err(
                     "Body placement does not match the current supported browser offer".into(),
@@ -357,6 +356,39 @@ pub(super) fn prepare(
             progress,
         },
     ))
+}
+
+fn placement_authority_matches(
+    gear: &conduit_core::PlannedGear,
+    offer: &conduit_core::CapabilityOffer,
+) -> bool {
+    gear.authority.len() == offer.authority_requirements.len()
+        && gear.authority.iter().all(|binding| {
+            binding.host_id == gear.host_id
+                && binding.boot_id == gear.boot_id
+                && binding.capability_id == gear.capability_id
+                && offer
+                    .authority_requirements
+                    .iter()
+                    .filter(|requirement| {
+                        binding.contract_id == requirement.contract_id
+                            && binding.host_call_contract_id == requirement.host_call_contract_id
+                            && binding.subject_kind == requirement.subject_kind
+                    })
+                    .count()
+                    == 1
+        })
+        && offer.authority_requirements.iter().all(|requirement| {
+            gear.authority
+                .iter()
+                .filter(|binding| {
+                    binding.contract_id == requirement.contract_id
+                        && binding.host_call_contract_id == requirement.host_call_contract_id
+                        && binding.subject_kind == requirement.subject_kind
+                })
+                .count()
+                == 1
+        })
 }
 
 #[cfg(test)]

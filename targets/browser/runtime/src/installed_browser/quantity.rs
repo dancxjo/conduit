@@ -13,6 +13,7 @@ use conduit_semantic_catalog::{
 
 pub(crate) const HOST_CALL: &str = "conduit.host/map-quantity@1";
 const IMPLEMENTATION: &str = "browser/kernel-map-quantity@1";
+const DISTANCE_IMPLEMENTATION: &str = "browser/kernel-map-normalized-distance@1";
 pub(super) static MAP: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
     offer,
@@ -20,17 +21,40 @@ pub(super) static MAP: BrowserInstallation = BrowserInstallation {
     // The fixed-size completion path does not use the allocating generic performer.
     perform: None,
 };
+pub(super) static DISTANCE: BrowserInstallation = BrowserInstallation {
+    implementation_id: DISTANCE_IMPLEMENTATION,
+    offer: distance_offer,
+    prepare,
+    perform: None,
+};
 
 fn offer() -> conduit_core::CapabilityOffer {
-    let contract = conduit_semantic_catalog::quantity_map_contract();
+    offer_for(
+        conduit_semantic_catalog::quantity_map_contract(),
+        conduit_semantic_catalog::QUANTITY_MAP_REVISION,
+        IMPLEMENTATION,
+    )
+}
+fn distance_offer() -> conduit_core::CapabilityOffer {
+    offer_for(
+        conduit_semantic_catalog::normalized_distance_map_contract(),
+        conduit_semantic_catalog::NORMALIZED_DISTANCE_MAP_REVISION,
+        DISTANCE_IMPLEMENTATION,
+    )
+}
+fn offer_for(
+    contract: conduit_semantic_catalog::StandardKindContract,
+    revision: &str,
+    implementation: &str,
+) -> conduit_core::CapabilityOffer {
     let target_kind = Some(contract.kind_id.clone());
     let mut offer = conduit_semantic_catalog::realization_offer(
         contract,
-        conduit_semantic_catalog::QUANTITY_MAP_REVISION,
+        revision,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: IMPLEMENTATION,
+            capability: implementation,
             execution_profile: "conduit.browser/map-quantity-kernel@1",
-            implementation: IMPLEMENTATION,
+            implementation,
             artifact: "conduit-browser-runtime/map-quantity@1",
         },
         vec![conduit_core::HostCallRequirement {
@@ -95,11 +119,21 @@ fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserBack, String> {
-    validate_placement(placement, &offer())?;
+    let installed = match placement.implementation_id.as_str() {
+        IMPLEMENTATION => offer(),
+        DISTANCE_IMPLEMENTATION => distance_offer(),
+        _ => return Err("unknown quantity mapping implementation".into()),
+    };
+    validate_placement(placement, &installed)?;
     if placement.configuration.len() != 8 {
         return Err("quantity mapping requires exactly eight configuration fields".into());
     }
-    configuration(placement)?;
+    let mapping = configuration(placement)?;
+    if placement.kind_id.as_str() == conduit_semantic_catalog::NORMALIZED_DISTANCE_MAP_KIND
+        && mapping.target_unit.dimension() != conduit_core::QuantityDimension::Length
+    {
+        return Err("normalized distance mapping requires a length unit".into());
+    }
     Ok(BrowserBack::installed_step(QuantityBack {
         pending: false,
         next_request: 0,

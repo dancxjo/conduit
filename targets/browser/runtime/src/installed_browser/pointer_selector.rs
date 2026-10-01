@@ -21,6 +21,12 @@ pub(super) static X: BrowserInstallation = BrowserInstallation {
     prepare,
     perform: None,
 };
+pub(super) static Y: BrowserInstallation = BrowserInstallation {
+    implementation_id: "browser/select-point-y@1",
+    offer: y_offer,
+    prepare,
+    perform: None,
+};
 
 fn position() -> StructuredSelector {
     StructuredSelector::field(conduit_semantic_catalog::pointer_event_type(), "position")
@@ -30,6 +36,10 @@ fn x() -> StructuredSelector {
     StructuredSelector::field(position().output_type().clone(), "x")
         .expect("existing Point2 x field")
 }
+fn y() -> StructuredSelector {
+    StructuredSelector::field(position().output_type().clone(), "y")
+        .expect("existing Point2 y field")
+}
 
 pub(super) fn install_types(
     startup: &mut conduit_form::StartupCatalog,
@@ -38,7 +48,7 @@ pub(super) fn install_types(
     startup
         .insert_structured_type("Point2", position().output_type().clone())
         .map_err(debug)?;
-    for selector in [position(), x()] {
+    for selector in [position(), x(), y()] {
         profile
             .insert(conduit_form::structured_selector_definition(
                 &selector,
@@ -53,6 +63,9 @@ fn position_offer() -> CapabilityOffer {
 }
 fn x_offer() -> CapabilityOffer {
     offer(&x(), X.implementation_id)
+}
+fn y_offer() -> CapabilityOffer {
+    offer(&y(), Y.implementation_id)
 }
 fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer {
     let contract =
@@ -108,6 +121,7 @@ impl PreparedSelector {
         let expected = match placement.implementation_id.as_str() {
             "browser/select-pointer-position@1" => position(),
             "browser/select-point-x@1" => x(),
+            "browser/select-point-y@1" => y(),
             _ => return Err("unsupported browser selector implementation".into()),
         };
         validate_placement(
@@ -152,7 +166,11 @@ mod tests {
 
     #[test]
     fn pointer_selectors_preserve_their_dynamic_contracts_and_narrow_capacity() {
-        for (selector, offer) in [(position(), position_offer()), (x(), x_offer())] {
+        for (selector, offer) in [
+            (position(), position_offer()),
+            (x(), x_offer()),
+            (y(), y_offer()),
+        ] {
             let semantic = conduit_semantic_catalog::structured_selector_contract(
                 &selector,
                 PortTemporal::Value,

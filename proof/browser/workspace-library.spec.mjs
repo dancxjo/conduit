@@ -103,6 +103,60 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   expect(restored.initial_forms).toEqual(initial.initial_forms);
 });
 
+test("Pocket Theremin plays continuous two-axis PCM on the browser host", async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeAudioContext = window.AudioContext;
+    globalThis.__thereminAudio = { blocks: [], starts: [] };
+    window.AudioContext = class extends NativeAudioContext {
+      createBuffer(channels, frames, sampleRate) {
+        globalThis.__thereminAudio.blocks.push({ channels, frames, sampleRate });
+        return super.createBuffer(channels, frames, sampleRate);
+      }
+      createBufferSource() {
+        const source = super.createBufferSource();
+        const start = source.start.bind(source);
+        source.start = when => {
+          const samples = source.buffer.getChannelData(0);
+          let peak = 0, crossings = 0;
+          for (let index = 0; index < samples.length; index += 1) {
+            peak = Math.max(peak, Math.abs(samples[index]));
+            if (index > 0 && samples[index - 1] <= 0 && samples[index] > 0) crossings += 1;
+          }
+          globalThis.__thereminAudio.starts.push({ when, peak, crossings });
+          return start(when);
+        };
+        return source;
+      }
+    };
+  });
+  await birth(page);
+  await openLibrary(page);
+  await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("theremin");
+  await card(page, "Pocket Theremin").getByRole("button", { name: "Use", exact: true }).click();
+  await expect(page.locator("#surface-title")).toHaveText("Pocket Theremin");
+  const surface = page.locator("#form-input[data-pocket-theremin]");
+  await expect(surface).toBeVisible();
+  const bounds = await surface.boundingBox();
+  await page.mouse.move(bounds.x + bounds.width * 0.15, bounds.y + bounds.height * 0.85);
+  await page.mouse.down();
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(2);
+  const highPitchEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
+  await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.85, { steps: 8 });
+  await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.length, highPitchEnd)).toBeGreaterThan(highPitchEnd + 2);
+  const loudEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
+  await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.15, { steps: 8 });
+  await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.length, loudEnd)).toBeGreaterThan(loudEnd + 2);
+  const audio = await page.evaluate(() => globalThis.__thereminAudio);
+  expect(audio.blocks.every(block => block.channels === 1 && block.frames === 2000 && block.sampleRate === 48000)).toBe(true);
+  expect(audio.starts[1].when).toBeGreaterThanOrEqual(audio.starts[0].when);
+  expect(audio.starts.slice(1, highPitchEnd).some(block => block.crossings >= 20)).toBe(true);
+  expect(audio.starts.slice(highPitchEnd + 1, loudEnd).some(block => block.crossings <= 8)).toBe(true);
+  const loudPeak = Math.max(...audio.starts.slice(highPitchEnd + 1, loudEnd).map(block => block.peak));
+  const quietPeak = Math.max(...audio.starts.slice(loudEnd + 1).map(block => block.peak));
+  expect(quietPeak).toBeLessThan(loudPeak * 0.4);
+  await page.mouse.up();
+});
+
 test("the reviewed shelf reveals conversation Forms without pretending this browser can run them", async ({ page }) => {
   await birth(page);
   await openLibrary(page);
