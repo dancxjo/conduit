@@ -4,6 +4,8 @@ type KeyTransition =
     pressed
     | released
 
+type KeyModifiers = U8
+
 type KeymapRefusal =
     unknown_compose_sequence
     | empty_unicode_entry
@@ -64,6 +66,11 @@ type ExperienceTemporalRole =
     | recent
     | stale
     | historical
+
+type ExperienceTemporalPolicy = {
+    maximum_current_age_ticks: U64
+    maximum_recent_age_ticks: U64
+}
 
 type ExperienceAvailability =
     present

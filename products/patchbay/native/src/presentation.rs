@@ -4,11 +4,10 @@ use super::PatchbayApplication;
 use crate::front_door_follow::append_follow_lines;
 use conduit_presentation::{
     observe_navigation, render_linear_navigation, render_linear_presentation, Presentation,
-    PresentationAction, PresentationActionAvailability,
+    PresentationAction, PresentationActionAvailability, RendererSelfInspection,
 };
 use patchbay_model::{
     GraphItemKind, PatchbayAction, PatchbayNavigationProjection, PatchbayPresentation,
-    RendererSelfInspection,
 };
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;

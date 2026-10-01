@@ -43,3 +43,18 @@ type RangeObservation = {
     distance-mm: U32 in 0..=1000000
     age-ms: U32 in 0..=60000
 }
+
+type OdometryObservation = {
+    forward-mm: I32 in -10000000..=10000000
+    lateral-mm: I32 in -10000000..=10000000
+    yaw-microradians: I32 in -3141593..=3141593
+}
+
+type ButtonSetObservation = {
+    bits: U32
+}
+
+type BatteryObservation = {
+    charge-permille: U16 in 0..=1000
+    millivolts: U16 in 0..=60000
+}

@@ -1,7 +1,7 @@
 //! Shared bounded inspection of the exact renderer realization drawing Patchbay.
 
+use crate::{Manifestation, ManifestationError, Presentation, RENDERER_KIND};
 use conduit_core::{verify_plan, Plan, PlannedGear};
-use conduit_presentation::{Manifestation, ManifestationError, Presentation, RENDERER_KIND};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -25,7 +25,7 @@ impl core::fmt::Display for RendererSelfInspectionError {
     }
 }
 
-impl std::error::Error for RendererSelfInspectionError {}
+impl core::error::Error for RendererSelfInspectionError {}
 
 impl RendererSelfInspection {
     pub fn new(

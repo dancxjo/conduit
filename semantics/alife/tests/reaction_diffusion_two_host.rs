@@ -46,7 +46,10 @@ fn two_hosts_exchange_every_cross_boundary_over_exact_planned_lines() {
             conduit_alife::partition_reaction_diffusion_generation(&source, partition.clone())
                 .unwrap();
         let mut results = Vec::new();
-        for destination in [ReactionDiffusionRegionId(10), ReactionDiffusionRegionId(20)] {
+        for destination in [
+            ReactionDiffusionRegionId::new(10).unwrap(),
+            ReactionDiffusionRegionId::new(20).unwrap(),
+        ] {
             let (contract, cells) = partitioned.region_work_basis(destination).unwrap();
             let mut work = ReactionDiffusionRegionWork::new(contract, cells).unwrap();
             for boundary in partitioned
@@ -236,11 +239,12 @@ fn binding_for(
     plan: &conduit_core::Plan,
     boundary: &ReactionDiffusionBoundaryState,
 ) -> Result<SessionBinding, WireError> {
-    let (source_host, sink_host) = if boundary.source_region == ReactionDiffusionRegionId(10) {
-        ("host/west", "host/east")
-    } else {
-        ("host/east", "host/west")
-    };
+    let (source_host, sink_host) =
+        if boundary.source_region == ReactionDiffusionRegionId::new(10).unwrap() {
+            ("host/west", "host/east")
+        } else {
+            ("host/east", "host/west")
+        };
     let source = plan
         .fragments
         .iter()

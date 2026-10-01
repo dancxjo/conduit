@@ -122,9 +122,10 @@ impl PatchbayHtmlServer {
                 .project_current(&planning, play)
                 .map_err(|error| ServerError::Interaction(format!("Mask projection: {error:?}")))?;
             snapshot.mask_topology = Some(
-                patchbay_model::project_mask_topology(control.presentation(), &topology).map_err(
-                    |error| ServerError::Interaction(format!("Mask projection: {error:?}")),
-                )?,
+                patchbay_application::project_mask_topology(control.presentation(), &topology)
+                    .map_err(|error| {
+                        ServerError::Interaction(format!("Mask projection: {error:?}"))
+                    })?,
             );
         }
         snapshot.interaction.revision = snapshot

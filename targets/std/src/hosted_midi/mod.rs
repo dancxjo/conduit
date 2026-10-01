@@ -67,8 +67,8 @@ pub fn output_compatibility_profile(
     Ok(conduit_semantic_catalog::SoundCompatibilityProfile {
         profile_id: conduit_std_offers::MUSIC_PLAY_MIDI_PROFILE.into(),
         seam: conduit_semantic_catalog::SoundSeam::MusicalEvents,
-        minimum_pitch_millihertz: minimum_pitch.frequency_millihertz,
-        maximum_pitch_millihertz: maximum_pitch.frequency_millihertz,
+        minimum_pitch_millihertz: minimum_pitch.frequency_millihertz(),
+        maximum_pitch_millihertz: maximum_pitch.frequency_millihertz(),
         maximum_polyphony: 128,
         maximum_events_per_second: 1_000,
         preserves_velocity: true,

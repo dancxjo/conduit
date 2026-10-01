@@ -87,8 +87,8 @@ fn tuning_and_transpose_become_exact_portable_pitch() {
     else {
         panic!("note-on must produce portable note Info")
     };
-    assert_eq!(note.pitch.a4_reference_millihertz, 442_000);
-    assert_eq!(note.pitch.frequency_millihertz, 884_000);
+    assert_eq!(note.pitch.a4_reference_millihertz(), 442_000);
+    assert_eq!(note.pitch.frequency_millihertz(), 884_000);
     assert_eq!(
         MidiProfile::new(440_000, None, 0)
             .unwrap()

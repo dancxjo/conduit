@@ -59,15 +59,10 @@ mod maker_environment;
 mod mask_control;
 #[cfg(test)]
 mod mask_control_tests;
-mod mask_inspection;
 #[cfg(test)]
 mod mask_plans_tests;
 #[cfg(test)]
 mod mask_product_tests;
-mod mask_topology;
-mod mask_topology_projection;
-#[cfg(test)]
-mod mask_topology_tests;
 mod palette;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
@@ -97,7 +92,6 @@ mod recursive_form_projection_tests;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
-mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
@@ -231,9 +225,6 @@ pub use maker_environment::{
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
 pub use mask_control::*;
-pub use mask_inspection::*;
-pub use mask_topology::*;
-pub use mask_topology_projection::*;
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
@@ -289,7 +280,6 @@ pub use renderer_conformance::{
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
 };
-pub use renderer_inspection::{RendererSelfInspection, RendererSelfInspectionError};
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
     RendererProjectionError, MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_GRAPH_ITEMS,

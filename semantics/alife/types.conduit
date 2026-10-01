@@ -17,6 +17,8 @@ type ReactionDiffusionBoundaryEdge =
 
 code alife/reaction-diffusion-boundary-edge = ReactionDiffusionBoundaryEdge as u8
 
+type ReactionDiffusionRegionId = U16
+
 type FieldBitmapRefusal =
     invalid-field
     | invalid-bitmap

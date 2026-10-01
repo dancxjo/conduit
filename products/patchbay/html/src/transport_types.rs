@@ -1,9 +1,8 @@
 //! Finite delivery envelope for one portable Conduit Presentation.
 
-use conduit_presentation::{ModelTemporalContextFact, Presentation};
+use conduit_presentation::{ModelTemporalContextFact, Presentation, RendererSelfInspection};
 use patchbay_model::{
     DebuggerPresentation, PartsView, PatchbayEntranceState, PatchbayNavigationProjection,
-    RendererSelfInspection,
 };
 use serde::{Deserialize, Serialize};
 

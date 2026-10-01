@@ -96,10 +96,7 @@ fn patchbay_traces_self_state_to_exact_source_observations() {
             maximum_identity_bytes: 128,
         },
         at(20),
-        ExperienceTemporalPolicy {
-            maximum_current_age_ticks: 10,
-            maximum_recent_age_ticks: 20,
-        },
+        ExperienceTemporalPolicy::new(10, 20).unwrap(),
     )
     .unwrap();
     experience.try_admit(item).unwrap();

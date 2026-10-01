@@ -3,19 +3,13 @@
 use conduit_core::{Quantity, TemporalInstant};
 
 use crate::{
-    MeasurementSummary, MeasurementThresholdRefusal, MeasurementThresholdState,
-    MeasurementThresholdTransition,
+    MeasurementSummary, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
+    MeasurementThresholdState, MeasurementThresholdTransition,
 };
 
 pub const MEASUREMENT_THRESHOLD_POLICY_INFO_ID: &str = "data/measurement-threshold-policy@1";
 pub const MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID: &str = "data/measurement-hysteresis-profile@1";
 pub const MEASUREMENT_THRESHOLD_DECISION_INFO_ID: &str = "data/measurement-threshold-decision@1";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MeasurementThresholdPolicy {
-    pub lower: Quantity,
-    pub upper: Quantity,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MeasurementHysteresisProfile {
@@ -43,10 +37,10 @@ impl MeasurementHysteresis {
         policy: MeasurementThresholdPolicy,
         initial_state: MeasurementThresholdState,
     ) -> Result<Self, MeasurementThresholdRefusal> {
-        if policy.lower.unit() != policy.upper.unit() {
+        if policy.lower().unit() != policy.upper().unit() {
             return Err(MeasurementThresholdRefusal::PolicyUnitMismatch);
         }
-        if policy.lower.value() >= policy.upper.value() {
+        if policy.lower().value() >= policy.upper().value() {
             return Err(MeasurementThresholdRefusal::InvalidPolicyOrder);
         }
         Ok(Self {
@@ -59,18 +53,18 @@ impl MeasurementHysteresis {
         &mut self,
         summary: &MeasurementSummary,
     ) -> Result<MeasurementThresholdDecision, MeasurementThresholdRefusal> {
-        if summary.mean.unit() != self.policy.lower.unit() {
+        if summary.mean.unit() != self.policy.lower().unit() {
             return Err(MeasurementThresholdRefusal::SummaryUnitMismatch);
         }
         let transition = match self.state {
             MeasurementThresholdState::Below
-                if summary.mean.value() >= self.policy.upper.value() =>
+                if summary.mean.value() >= self.policy.upper().value() =>
             {
                 self.state = MeasurementThresholdState::Above;
                 Some(MeasurementThresholdTransition::RoseAbove)
             }
             MeasurementThresholdState::Above
-                if summary.mean.value() <= self.policy.lower.value() =>
+                if summary.mean.value() <= self.policy.lower().value() =>
             {
                 self.state = MeasurementThresholdState::Below;
                 Some(MeasurementThresholdTransition::FellBelow)

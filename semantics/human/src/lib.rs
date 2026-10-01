@@ -2,16 +2,64 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+#[allow(clippy::clone_on_copy, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+
+    impl Copy for KeyModifiers {}
+
+    impl PartialOrd for KeyModifiers {
+        fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+
+    impl Ord for KeyModifiers {
+        fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+            self.0.cmp(&other.0)
+        }
+    }
+
+    impl core::hash::Hash for KeyModifiers {
+        fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+            self.0.hash(state);
+        }
+    }
+
+    impl KeyModifiers {
+        pub const NONE: Self = Self(0);
+        pub const LEFT_CONTROL: Self = Self(1 << 0);
+        pub const LEFT_SHIFT: Self = Self(1 << 1);
+        pub const LEFT_ALT: Self = Self(1 << 2);
+        pub const LEFT_GUI: Self = Self(1 << 3);
+        pub const RIGHT_CONTROL: Self = Self(1 << 4);
+        pub const RIGHT_SHIFT: Self = Self(1 << 5);
+        pub const RIGHT_ALT: Self = Self(1 << 6);
+        pub const RIGHT_GUI: Self = Self(1 << 7);
+
+        pub const fn from_bits(bits: u8) -> Self {
+            Self(bits)
+        }
+
+        pub const fn bits(self) -> u8 {
+            self.0
+        }
+
+        pub const fn contains_usage(self, usage: u8) -> bool {
+            if usage < crate::MODIFIER_USAGE_MINIMUM || usage > crate::MODIFIER_USAGE_MAXIMUM {
+                return false;
+            }
+            self.0 & (1 << (usage - crate::MODIFIER_USAGE_MINIMUM)) != 0
+        }
+    }
 }
 pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalRole, HumanMediaKind, ImageTextMetadata, KeyTransition, KeyTransitionCode,
-    KeymapRefusal, SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
-    VisualImpressionDisposition, VisualImpressionDispositionTruncated,
+    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageTextMetadata,
+    KeyModifiers, KeyTransition, KeyTransitionCode, KeymapRefusal, SourceAvailability,
+    VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
+    VisualImpressionDispositionTruncated,
 };
 
 mod current_experience;

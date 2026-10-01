@@ -8,6 +8,7 @@ patchbay-graph = { path = "../../../forms/patchbay/graph" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }
 patchbay-control = { path = "../../../forms/patchbay" }
+patchbay-application = { path = "../../../forms/patchbay/application" }
 patchbay-workbench-host-contract = { path = "../../../forms/patchbay/workbench/host-contract" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }

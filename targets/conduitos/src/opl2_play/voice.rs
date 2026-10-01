@@ -27,7 +27,7 @@ pub(super) fn apply_event<B: Opl2Base>(
                 .position(Option::is_none)
                 .ok_or(PreparationError::KernelRejected)?;
             let pitch = base
-                .key_on(channel as u8, event.pitch.frequency_millihertz)
+                .key_on(channel as u8, event.pitch.frequency_millihertz())
                 .map_err(|_| PreparationError::KernelRejected)?;
             execution.voices[channel] = Some(Voice {
                 occurrence: event.occurrence,

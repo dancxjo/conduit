@@ -64,14 +64,14 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
                                                 "participant_identity",
                                                 conduit_semantic_catalog::leaf_value(
                                                     "value/text",
-                                                    &conflict.participant_identity,
+                                                    conflict.participant_identity(),
                                                 )?,
                                             ),
                                             (
                                                 "state",
                                                 conduit_semantic_catalog::leaf_value(
                                                     "calendar/availability-state@1",
-                                                    state_name(conflict.state),
+                                                    state_name(*conflict.state()),
                                                 )?,
                                             ),
                                         ],

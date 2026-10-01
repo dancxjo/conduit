@@ -48,14 +48,14 @@ impl ToneBase for PcSpeaker {
                 self.silence()?;
                 Ok(RealizedTone {
                     correlation: intent.correlation,
-                    requested_millihertz: intent.pitch.frequency_millihertz,
+                    requested_millihertz: intent.pitch.frequency_millihertz(),
                     realized_millihertz: 0,
                     divisor: 0,
                     gate_open: false,
                 })
             }
             Gate::On => {
-                let (divisor, realized_millihertz) = quantize(intent.pitch.frequency_millihertz)?;
+                let (divisor, realized_millihertz) = quantize(intent.pitch.frequency_millihertz())?;
                 unsafe {
                     // Channel 2 only: channel 0 remains the kernel timer Base.
                     outb(PIT_CONTROL, CHANNEL_TWO_SQUARE_WAVE);
@@ -71,7 +71,7 @@ impl ToneBase for PcSpeaker {
                     .ok_or(BaseError::Unavailable)?;
                 Ok(RealizedTone {
                     correlation: intent.correlation,
-                    requested_millihertz: intent.pitch.frequency_millihertz,
+                    requested_millihertz: intent.pitch.frequency_millihertz(),
                     realized_millihertz,
                     divisor,
                     gate_open: true,

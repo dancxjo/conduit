@@ -28,7 +28,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
         ["participant/bob"]
     );
     assert_eq!(
-        expected.rejected[0].conflicts[0].state,
+        *expected.rejected[0].conflicts[0].state(),
         AvailabilityState::Busy
     );
     let encoded = installed_std::calendar_proposal_encoding::encode(&expected).unwrap();

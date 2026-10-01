@@ -53,6 +53,11 @@ type MeasurementThresholdState =
     below
     | above
 
+type MeasurementThresholdPolicy = {
+    lower: Quantity
+    upper: Quantity
+}
+
 type MeasurementThresholdTransition =
     rose_above
     | fell_below
