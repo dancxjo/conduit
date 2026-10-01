@@ -20,10 +20,23 @@ const productMasthead = createProductMasthead(applicationPresentation, "product-
 const presentDefinitions = sharedPresentation.definitions;
 const presentActions = sharedPresentation.actions;
 const presentSharedStatus = sharedPresentation.status;
+const presentationTextEncoder = new TextEncoder();
 let admittedRuntimeBytes = null;
 let admittedApplicationStorage = null;
 function presentStatus(text, component = "status") {
   productMasthead.present(text, component);
+}
+
+function boundedPresentationText(value, maximumBytes = 256) {
+  if (presentationTextEncoder.encode(value).byteLength <= maximumBytes) return value;
+  let result = "", retainedBytes = 0;
+  for (const character of value) {
+    const characterBytes = presentationTextEncoder.encode(character).byteLength;
+    if (retainedBytes + characterBytes + 3 > maximumBytes) break;
+    result += character;
+    retainedBytes += characterBytes;
+  }
+  return `${result}…`;
 }
 
 function requireSnapshot(value) {
@@ -249,7 +262,7 @@ function renderFormPalette(){
 function renderGearPalette(){
   const list=document.querySelector("#gear-results"),focused=document.activeElement?.dataset?.kind,all=state.snapshot.authoring?.palette??[],query=state.gearQuery.trim().toLocaleLowerCase();
   const visible=all.filter(entry=>[entry.name,entry.kind_id,entry.summary,entry.category,...entry.tags,...entry.inputs.map(port=>`${port.identity} ${port.info}`),...entry.outputs.map(port=>`${port.identity} ${port.info}`)].join(" ").toLocaleLowerCase().includes(query));
-  sharedPresentation.boundedActionList("gear-results","Available gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out · ${entry.kind_id}`,run:()=>authoringEdit("place-gear",entry.kind_id),annotate:button=>{button.dataset.kind=entry.kind_id;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})));presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available from the canonical catalog`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
+  sharedPresentation.boundedActionList("gear-results","Available gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:boundedPresentationText(`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out · ${entry.kind_id}`),run:()=>authoringEdit("place-gear",entry.kind_id),annotate:button=>{button.dataset.kind=entry.kind_id;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})));presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available from the canonical catalog`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
 }
 
 function moveFormFocus(event){
