@@ -1,4 +1,5 @@
 use super::*;
+use crate::SessionRole;
 use alloc::vec;
 use conduit_core::{
     AdmittedLine, BootId, BoundLink, HostId, LineContinuation, LineContract, LineDuplex, LineId,
