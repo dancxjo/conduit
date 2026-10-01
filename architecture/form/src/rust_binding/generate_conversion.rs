@@ -71,6 +71,8 @@ pub(super) fn emit_variant_binding(
     constant: &str,
     cases: &[conduit_core::StructuredVariantCase],
     names: &BTreeMap<String, String>,
+    authored_type_name: &str,
+    boxed_variant_payloads: &alloc::collections::BTreeSet<String>,
 ) -> Result<(), RustBindingGenerationError> {
     trait_header(out, rust_name, constant);
     writeln!(out, "        match self {{").expect("String writing is infallible");
@@ -144,6 +146,8 @@ pub(super) fn emit_variant_binding(
     writeln!(out, "        match tag {{").expect("String writing is infallible");
     for case in cases {
         let variant = rust_pascal_identifier(case.tag())?;
+        let boxed =
+            boxed_variant_payloads.contains(&format!("{authored_type_name}.{}", case.tag()));
         if unit_type(case.payload_type()) {
             writeln!(out, "            {:?} => Ok(Self::{variant}),", case.tag())
                 .expect("String writing is infallible");
@@ -155,8 +159,10 @@ pub(super) fn emit_variant_binding(
                 let decoded = decode_expression(case.payload_type(), "payload.clone()", names)?;
                 writeln!(
                     out,
-                    "            {:?} => Ok(Self::{variant}({decoded})),",
-                    case.tag()
+                    "            {:?} => Ok(Self::{variant}({}{decoded}{})),",
+                    case.tag(),
+                    if boxed { "Box::new(" } else { "" },
+                    if boxed { ")" } else { "" },
                 )
                 .expect("String writing is infallible");
                 continue;
@@ -167,8 +173,9 @@ pub(super) fn emit_variant_binding(
             };
             writeln!(
                 out,
-                "            {:?} => Ok(Self::{variant}({payload_name} {{",
-                case.tag()
+                "            {:?} => Ok(Self::{variant}({}{payload_name} {{",
+                case.tag(),
+                if boxed { "Box::new(" } else { "" },
             )
             .expect("String writing is infallible");
             for field in fields {
@@ -181,7 +188,8 @@ pub(super) fn emit_variant_binding(
                 writeln!(out, "                {name}: {decoded},")
                     .expect("String writing is infallible");
             }
-            writeln!(out, "            }})),").expect("String writing is infallible");
+            writeln!(out, "            }}{})),", if boxed { ")" } else { "" })
+                .expect("String writing is infallible");
         }
     }
     writeln!(out, "            _ => Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::UnknownVariantTag)),\n        }}\n    }}\n}}\n")

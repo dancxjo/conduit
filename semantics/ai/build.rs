@@ -13,6 +13,7 @@ fn main() {
         &checked.native_types,
         &checked.codes,
         &RustBindingOptions {
+            boxed_variant_payloads: ["TrainingLifecyclePhase.active_step".into()].into(),
             derive_serde_for_variants: true,
             serde_variant_exclusions: ["MissingModalityPolicy".into()].into(),
             serde_record_types: ["CompatibleMetrics".into()].into(),
