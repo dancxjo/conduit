@@ -3,12 +3,12 @@
 use crate::tabular::*;
 use crate::{
     TabularColumnSpec, TabularColumnType, TabularOptionalText, TabularPersonRowSlot,
-    TabularPersonRowsFour, TabularQueryResultFour, TabularQueryStatus, TabularSchemaFour,
+    TabularPersonRowsFour, TabularQueryOutcomeFour, TabularQueryResultFour, TabularQueryStatus,
+    TabularSchemaFour,
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     BoundedResourceRef, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
-    RESOURCE_REFERENCE_INFO_ID,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -109,18 +109,10 @@ pub fn filter_active_rows(
 pub fn materialized_query_outcome(
     reference: &BoundedResourceRef,
 ) -> Result<StructuredInfoValue, TabularRefusal> {
-    let encoded = reference
-        .encode()
-        .map_err(|_| TabularRefusal::MalformedInfo)?;
-    let resource = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id(RESOURCE_REFERENCE_INFO_ID))?,
-        encoded,
-    )?;
-    Ok(StructuredInfoValue::variant(
-        tabular_query_outcome_type(),
-        "materialized",
-        resource,
-    )?)
+    TabularQueryOutcomeFour::materialized(reference.clone())
+        .map_err(native_error)?
+        .into_structured()
+        .map_err(native_error)
 }
 
 fn query_result(
