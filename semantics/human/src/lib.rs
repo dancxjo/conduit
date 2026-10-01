@@ -56,7 +56,8 @@ mod generated {
 pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageRegion,
+    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageObservationReference,
+    ImageRegion,
     ImageTextMetadata, InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
     InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
     InteractionBoundKind as BoundKind, InteractionRefusal, KeyEvent, KeyModifiers, KeyTransition,

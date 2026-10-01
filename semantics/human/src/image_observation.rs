@@ -2,16 +2,11 @@
 
 use conduit_core::{BoundedResourceRef, KindId};
 
+use crate::ImageObservationReference;
+
 pub const MAXIMUM_IMAGE_OBSERVATION_WIDTH: u16 = 4_096;
 pub const MAXIMUM_IMAGE_OBSERVATION_HEIGHT: u16 = 4_096;
 pub const MAXIMUM_IMAGE_OBSERVATION_BYTES: u64 = 16 * 1024 * 1024;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImageObservationReference {
-    pub content: BoundedResourceRef,
-    pub width: u16,
-    pub height: u16,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ImageObservationRefusal {
@@ -28,11 +23,8 @@ impl ImageObservationReference {
         height: u16,
         expected_profile: &KindId,
     ) -> Result<Self, ImageObservationRefusal> {
-        let observation = Self {
-            content,
-            width,
-            height,
-        };
+        let observation = Self::new_native(content, width, height)
+            .map_err(|_| ImageObservationRefusal::InvalidDimensions)?;
         observation.validate(expected_profile)?;
         Ok(observation)
     }
