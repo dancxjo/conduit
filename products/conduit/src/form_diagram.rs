@@ -5,13 +5,13 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
 
-const BOX_WIDTH: i32 = 360;
+const BOX_WIDTH: i32 = 280;
 const HEADER_HEIGHT: i32 = 52;
-const PORT_ROW: i32 = 26;
+const PORT_ROW: i32 = 32;
 const MIN_BOX_HEIGHT: i32 = 120;
-const COLUMN_GAP: i32 = 170;
-const ROW_GAP: i32 = 70;
-const BOUNDARY_WIDTH: i32 = 220;
+const COLUMN_GAP: i32 = 260;
+const ROW_GAP: i32 = 120;
+const BOUNDARY_WIDTH: i32 = 200;
 const MARGIN: i32 = 50;
 
 pub(crate) fn run(form: &Path, format: DiagramFormat, output: Option<&Path>) -> Result<(), String> {
@@ -61,6 +61,36 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         let level = levels.get(gear.gear_id.as_str()).copied().unwrap_or(0);
         by_level.entry(level).or_default().push(gear);
     }
+    let authored_order = expanded
+        .gears
+        .iter()
+        .enumerate()
+        .map(|(index, gear)| (gear.gear_id.as_str(), index))
+        .collect::<BTreeMap<_, _>>();
+    let mut vertical_rank = BTreeMap::<&str, usize>::new();
+    for gears in by_level.values_mut() {
+        gears.sort_by_key(|gear| {
+            let predecessor_ranks = expanded
+                .connections
+                .iter()
+                .filter(|connection| connection.sink_gear_id == gear.gear_id)
+                .filter_map(|connection| {
+                    vertical_rank
+                        .get(connection.source_gear_id.as_str())
+                        .copied()
+                })
+                .collect::<Vec<_>>();
+            let barycenter = if predecessor_ranks.is_empty() {
+                authored_order[gear.gear_id.as_str()] * 100
+            } else {
+                predecessor_ranks.iter().sum::<usize>() * 100 / predecessor_ranks.len()
+            };
+            (barycenter, authored_order[gear.gear_id.as_str()])
+        });
+        for (rank, gear) in gears.iter().enumerate() {
+            vertical_rank.insert(gear.gear_id.as_str(), rank);
+        }
+    }
     let level_count = by_level.len().max(1) as i32;
     let width =
         MARGIN * 2 + BOUNDARY_WIDTH * 2 + level_count * BOX_WIDTH + (level_count + 1) * COLUMN_GAP;
@@ -108,8 +138,8 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         "<desc id=\"desc\">Checked Conduit Form with exact typed port connections.</desc>"
     )
     .unwrap();
-    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:none;stroke:#d0b876;stroke-width:2;stroke-linecap:round}.direction{fill:#9ba4aa;font-size:9px;font-weight:800;letter-spacing:1px}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#ddd6c7;font-size:11px;font-weight:700}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#d8e7dc;font-size:12px;font-weight:650}.cord-tag{fill:#292f35;stroke:#c99a4d;stroke-width:1}.cord-label{fill:#f1c46f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style>"#);
-    svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#55b7c6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e36964"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><g class="gear-mark"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4M4.2 4.2 7 7M17 17l2.8 2.8M19.8 4.2 17 7M7 17l-2.8 2.8"/></g></symbol></defs>"##);
+    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:#d0b876}.gear-hole{fill:#24292f}.direction{fill:#9ba4aa;font-size:9px;font-weight:800;letter-spacing:1px}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#ddd6c7;font-size:11px;font-weight:700}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#d8e7dc;font-size:12px;font-weight:650}.cord-tag{fill:#292f35;stroke:#c99a4d;stroke-width:1}.cord-label{fill:#f1c46f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style>"#);
+    svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#55b7c6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e36964"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><path class="gear-mark" d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.6.6 0 0 0 .1-.7l-2-3.5a.6.6 0 0 0-.7-.2l-2.5 1a8 8 0 0 0-1.7-1l-.4-2.6A.6.6 0 0 0 13.8 2h-4a.6.6 0 0 0-.6.4L8.9 5a8 8 0 0 0-1.7 1L4.7 5a.6.6 0 0 0-.7.2L2 8.7a.6.6 0 0 0 .1.7L4.2 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.6.6 0 0 0-.1.7l2 3.5a.6.6 0 0 0 .7.2l2.5-1a8 8 0 0 0 1.7 1l.4 2.6a.6.6 0 0 0 .6.4h4a.6.6 0 0 0 .6-.4l.4-2.6a8 8 0 0 0 1.7-1l2.5 1a.6.6 0 0 0 .7-.2l2-3.5a.6.6 0 0 0-.1-.7z"/><circle class="gear-hole" cx="12" cy="12" r="3.2"/></symbol></defs>"##);
     writeln!(
         svg,
         "<rect class=\"canvas\" width=\"{width}\" height=\"{height}\"/>"
@@ -274,7 +304,7 @@ fn draw_gear<'a>(
     outputs: &mut BTreeMap<(&'a str, &'a str), PortAnchor>,
 ) {
     let gear = layout.gear;
-    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{}\" rx=\"10\"/><path class=\"header\" d=\"M{},{} q0,-10 10,-10 h340 q10,0 10,10 v42 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.height, layout.x, layout.y + 10).unwrap();
+    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{}\" rx=\"10\"/><path class=\"header\" d=\"M{},{} q0,-10 10,-10 h260 q10,0 10,10 v42 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.height, layout.x, layout.y + 10).unwrap();
     writeln!(
         svg,
         "<title>{} — kind {}</title>",
@@ -282,7 +312,7 @@ fn draw_gear<'a>(
         escape(gear.kind_id.as_str())
     )
     .unwrap();
-    writeln!(svg, "<use href=\"#gear-mark\" x=\"{}\" y=\"{}\" width=\"28\" height=\"28\"/><text class=\"label\" x=\"{}\" y=\"{}\">{}</text><text class=\"kind\" x=\"{}\" y=\"{}\">{}</text><text class=\"direction\" x=\"{}\" y=\"{}\">IN</text><text class=\"direction\" text-anchor=\"end\" x=\"{}\" y=\"{}\">OUT</text>", layout.x + 12, layout.y + 11, layout.x + 50, layout.y + 22, escape(&shorten(gear.gear_id.as_str(), 33)), layout.x + 50, layout.y + 43, escape(&shorten(gear.kind_id.as_str(), 39)), layout.x + 12, layout.y + 68, layout.x + BOX_WIDTH - 12, layout.y + 68).unwrap();
+    writeln!(svg, "<use href=\"#gear-mark\" x=\"{}\" y=\"{}\" width=\"28\" height=\"28\"/><text class=\"label\" x=\"{}\" y=\"{}\">{}</text><text class=\"kind\" x=\"{}\" y=\"{}\">{}</text><text class=\"direction\" x=\"{}\" y=\"{}\">IN</text><text class=\"direction\" text-anchor=\"end\" x=\"{}\" y=\"{}\">OUT</text>", layout.x + 12, layout.y + 11, layout.x + 50, layout.y + 22, escape(&shorten(short_name(gear.gear_id.as_str()), 24)), layout.x + 50, layout.y + 43, escape(&shorten(gear.gear_id.as_str(), 29)), layout.x + 12, layout.y + 68, layout.x + BOX_WIDTH - 12, layout.y + 68).unwrap();
     for (index, port) in gear.inputs.iter().enumerate() {
         let point = Point {
             x: layout.x,
@@ -342,6 +372,10 @@ fn shorten(value: &str, maximum_chars: usize) -> String {
     } else {
         prefix
     }
+}
+
+fn short_name(value: &str) -> &str {
+    value.rsplit('/').next().unwrap_or(value)
 }
 
 fn draw_socket(svg: &mut String, point: Point, name: &str, kind: &str, input: bool) {
@@ -459,7 +493,7 @@ fn draw_cord(
         ConnectionTrack::AbnormalTerminal => ("cord abnormal", "arrow-abnormal"),
         ConnectionTrack::Quiescence => ("cord quiescence", "arrow"),
     };
-    let lane_offsets = [-48, -24, 0, 24, 48];
+    let lane_offsets = [-100, -75, -50, -25, 0, 25, 50, 75, 100];
     let midpoint = (from.x + to.x) / 2;
     let minimum = from.x.min(to.x) + 18;
     let maximum = from.x.max(to.x) - 18;
@@ -621,7 +655,8 @@ mod tests {
         assert!(svg.contains("Form inputs"));
         assert!(svg.contains("text"));
         assert!(svg.contains("marker-end=\"url(#arrow)\""));
-        assert!(svg.contains(">text/join</text>"));
+        assert!(svg.contains(">pass</text>"));
+        assert!(svg.contains("main/pass — kind text/join"));
         assert!(svg.contains("class=\"port-name\""));
         assert!(!svg.contains("class=\"port-kind\""));
         assert!(svg.contains("Form.shown · value/text · payload"));
@@ -631,7 +666,7 @@ mod tests {
         assert!(svg.contains(".boundary{fill:#263b35"));
         assert!(svg.contains("fill=\"#55b7c6\""));
         assert!(svg.contains("q0,-10 10,-10"));
-        assert!(svg.contains("width=\"1240\""));
+        assert!(svg.contains("width=\"1300\""));
         assert!(svg.contains("href=\"#gear-mark\""));
         assert!(svg.contains(">IN</text>"));
         assert!(svg.contains(">OUT</text>"));
