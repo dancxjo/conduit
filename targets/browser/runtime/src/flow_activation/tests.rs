@@ -324,3 +324,5 @@ fn browser_plan_refuses_an_uninstalled_selected_back() {
         .unwrap();
     assert!(error.contains("state@1"));
 }
+
+mod installed_inventory;
