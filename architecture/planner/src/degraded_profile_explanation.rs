@@ -5,18 +5,17 @@ use crate::{
     ServiceProfileDisposition,
 };
 use conduit_core::{verify_plan, Plan};
-use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_DEGRADED_PROFILE_EXPLANATION_BYTES: usize = 4_096;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DegradedProfileState {
     Full,
     Degraded,
     Unrealizable,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProfileDimensionExplanation {
     pub characteristic_id: String,
     pub human_name: String,
@@ -25,7 +24,7 @@ pub struct ProfileDimensionExplanation {
     pub surviving: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DegradedProfileExplanation {
     pub state: DegradedProfileState,
     pub profile_id: String,
