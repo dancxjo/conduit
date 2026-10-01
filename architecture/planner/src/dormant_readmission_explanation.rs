@@ -1,11 +1,10 @@
 //! Renderer-neutral explanation for freshly re-admitted dormant equipment.
 
 use crate::{prelude::*, DormantReadmissionEvidence};
-use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_DORMANT_READMISSION_EXPLANATION_BYTES: usize = 4_096;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DormantReadmissionExplanation {
     pub body_membership_id: String,
     pub previous_plan_id: String,

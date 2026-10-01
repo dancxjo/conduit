@@ -2,11 +2,10 @@
 
 use crate::{prelude::*, RecursiveRecoveryEvidence};
 use conduit_core::Plan;
-use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_RECURSIVE_RECOVERY_EXPLANATION_BYTES: usize = 4_096;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecursiveRecoveryExplanation {
     pub semantic_profile: String,
     pub lost_direct_plan_id: String,

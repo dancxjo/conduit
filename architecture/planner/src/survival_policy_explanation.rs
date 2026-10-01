@@ -4,11 +4,10 @@ use crate::{
     prelude::*, SurvivalCandidateDisposition, SurvivalPlanSelection, SurvivalPlanningMode,
     SurvivalTradeoff,
 };
-use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_SURVIVAL_POLICY_EXPLANATION_BYTES: usize = 4_096;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SurvivalPolicyExplanation {
     pub policy_id: String,
     pub policy_revision: u64,
