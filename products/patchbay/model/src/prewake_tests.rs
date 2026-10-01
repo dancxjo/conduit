@@ -1,9 +1,7 @@
 use std::path::PathBuf;
 
-use crate::{
-    AuthoredEnvironment, AuthoredPart, FormEditor, MachineProfile, PrewakeController, PrewakeError,
-    PrewakeState,
-};
+use crate::{FormEditor, PrewakeController, PrewakeError, PrewakeState};
+use conduit_workspace_make::{AuthoredEnvironment, AuthoredPart, MachineProfile};
 
 fn environment() -> AuthoredEnvironment {
     let mut environment = AuthoredEnvironment::new("prewake-bench").unwrap();

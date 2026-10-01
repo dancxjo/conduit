@@ -5,7 +5,7 @@ use conduit_observatory::{
     HostReport, ObservatorySnapshot, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
 
-use crate::{
+use crate::environment::{
     AuthoredEnvironment, AuthoredEnvironmentError, AuthoredLink, AuthoredPart,
     EnvironmentComparisonRow, EnvironmentLinkKind, MachineProfile, ObservedPartBinding,
 };

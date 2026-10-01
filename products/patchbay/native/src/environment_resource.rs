@@ -1,6 +1,6 @@
 //! Bounded protected-file adapter for maker-authored environment documents.
 
-use patchbay_model::AuthoredEnvironment;
+use conduit_workspace_make::AuthoredEnvironment;
 use std::{
     fs,
     io::Write,
@@ -63,7 +63,7 @@ pub(super) fn save_environment_resource(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use patchbay_model::{AuthoredPart, MachineProfile};
+    use conduit_workspace_make::{AuthoredPart, MachineProfile};
 
     #[test]
     fn new_environment_saves_and_reopens_as_bounded_authored_truth() {

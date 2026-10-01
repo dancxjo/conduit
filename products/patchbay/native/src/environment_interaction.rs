@@ -1,7 +1,7 @@
 //! Native interactions over the single bounded authored-environment model.
 
 use crate::{environment_resource::save_environment_resource, gui::GuiAction, PatchbayApplication};
-use patchbay_model::{AuthoredLink, AuthoredPart, MachineProfile};
+use conduit_workspace_make::{AuthoredLink, AuthoredPart, MachineProfile};
 use winit::keyboard::{Key, NamedKey};
 
 impl PatchbayApplication {
@@ -174,7 +174,7 @@ mod tests {
             .unwrap();
         application
             .handle_environment_action(GuiAction::EnvironmentLink(
-                patchbay_model::EnvironmentLinkKind::Wifi,
+                conduit_workspace_make::EnvironmentLinkKind::Wifi,
             ))
             .unwrap();
         application

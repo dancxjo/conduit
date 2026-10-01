@@ -8,6 +8,7 @@ default-run = "patchbay-native"
 [dependencies]
 conduit-body = { path = "../../../architecture/body" }
 conduit-body-make = { path = "../../../make/body" }
+conduit-workspace-make = { path = "../../../make/workspace" }
 conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }

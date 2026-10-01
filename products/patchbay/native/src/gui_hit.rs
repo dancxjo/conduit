@@ -1,9 +1,9 @@
 //! Finite renderer-local hit geometry and pre-admission action candidates.
 
 use crate::gui_primitives::PixelRect;
+use conduit_workspace_make::{EnvironmentLinkKind, MachineProfile};
 use embedded_graphics::prelude::Point;
 use patchbay_graph::PatchbaySubjectRef;
-use patchbay_model::{EnvironmentLinkKind, MachineProfile};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HitTarget {

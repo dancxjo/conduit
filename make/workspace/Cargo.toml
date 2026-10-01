@@ -5,6 +5,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-observatory = { path = "../../architecture/observatory" }
 conduit-host-make = { path = "../host" }
 conduit-host-avr-make = { path = "../../targets/avr/make" }
 conduit-host-browser-make = { path = "../../targets/browser/make" }
@@ -15,3 +17,7 @@ conduit-host-orange-pi = { path = "../../targets/orange-pi/make" }
 conduit-linear-framebuffer-make = { path = "../../mechanisms/implementations/linear-framebuffer-make" }
 conduit-host-rp2040 = { path = "../../targets/rp2040/make" }
 conduit-host-raspberry-pi = { path = "../../targets/raspberry-pi/make" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1"

@@ -1,6 +1,6 @@
 //! Safe PREWAKE rehearsal through ordinary checking, planning, and std-host kernel execution.
 
-use crate::{AuthoredEnvironment, FormEditor, MachineProfile};
+use crate::FormEditor;
 use conduit_core::{
     ActivePlayId, BaseImplementationId, BootId, HostAdvertisement, HostId, OfferGeneration, Plan,
     PlanId,
@@ -9,6 +9,7 @@ use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
     PlanningOptions,
 };
+use conduit_workspace_make::{AuthoredEnvironment, MachineProfile};
 use std::collections::{BTreeMap, VecDeque};
 use std::sync::Arc;
 

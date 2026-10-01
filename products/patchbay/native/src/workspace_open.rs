@@ -1,9 +1,10 @@
 //! Exclusive opening of one canonical Form or authored-environment workspace.
 
 use crate::{environment_resource, form_interaction, resource};
+use conduit_workspace_make::AuthoredEnvironment;
 use patchbay_application::PatchbayLayout;
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{AuthoredEnvironment, FormEditor};
+use patchbay_model::FormEditor;
 use std::path::PathBuf;
 
 pub(super) struct OpenedWorkspace {
