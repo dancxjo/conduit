@@ -8,7 +8,8 @@ mod generated {
 }
 
 pub use generated::{
-    AccelerationObservation, BeaconKind, BeaconKindCode, ButtonSetObservation, ChargingState,
+    AccelerationObservation, BatteryObservation, BeaconKind, BeaconKindCode, ButtonSetObservation,
+    ChargingState,
     ChargingStateCode, ContactObservation, OdometryObservation, ProximityObservation,
     RangeObservation, RoboticsSimulationAvailability, WheelDropObservation,
 };
