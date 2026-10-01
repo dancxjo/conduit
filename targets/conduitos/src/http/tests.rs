@@ -39,7 +39,7 @@ fn request(scheme: &str, authority: &str) -> alloc::vec::Vec<u8> {
         )
         .unwrap()])
         .unwrap(),
-        body: conduit_web::HttpBody::inline(b"hello".to_vec()),
+        body: conduit_web::HttpBody::inline(b"hello"),
     })
     .unwrap()
 }

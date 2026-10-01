@@ -170,7 +170,7 @@ pub fn provider_http_request(
         )
         .map_err(|_| ProviderFailure::ProviderProtocol)?])
         .map_err(|_| ProviderFailure::ProviderProtocol)?,
-        body: conduit_web::HttpBody::inline(json.to_vec()),
+        body: conduit_web::HttpBody::inline(json),
     };
     request
         .validate()

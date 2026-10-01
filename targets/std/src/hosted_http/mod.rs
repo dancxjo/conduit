@@ -216,7 +216,7 @@ mod tests {
                     )
                     .unwrap()])
                     .unwrap(),
-                    body: conduit_web::HttpBody::inline(b"still HTTP data".to_vec()),
+                    body: conduit_web::HttpBody::inline(b"still HTTP data"),
                 })
                 .unwrap();
         });
@@ -232,7 +232,7 @@ mod tests {
                 )
                 .unwrap(),
                 headers: Default::default(),
-                body: conduit_web::HttpBody::inline(b"bounded".to_vec()),
+                body: conduit_web::HttpBody::inline(b"bounded"),
             })
             .unwrap();
         server.join().unwrap();
