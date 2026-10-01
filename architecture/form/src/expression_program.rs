@@ -35,6 +35,7 @@ pub enum PortableExpressionOperation {
     },
     Binary {
         operator: BinaryOperator,
+        proven: bool,
         left: Box<PortableExpressionNode>,
         right: Box<PortableExpressionNode>,
     },
@@ -97,7 +98,7 @@ impl PortableExpressionProgram {
     }
 
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, PortableExpressionProgramRefusal> {
-        let mut encoded = b"conduit.pure-expression.program.v1".to_vec();
+        let mut encoded = b"conduit.pure-expression.program.v2".to_vec();
         push_type(&mut encoded, &self.input_type)?;
         push_type(&mut encoded, &self.output_type)?;
         push_node(&mut encoded, &self.root)?;
@@ -165,6 +166,9 @@ fn node(
             ..
         } => PortableExpressionOperation::Binary {
             operator: *operator,
+            proven: checked
+                .proven_arithmetic
+                .contains(&(syntax.span().start, syntax.span().end)),
             left: Box::new(node(left, checked)?),
             right: Box::new(node(right, checked)?),
         },
@@ -252,11 +256,13 @@ fn push_node(
         }
         PortableExpressionOperation::Binary {
             operator,
+            proven,
             left,
             right,
         } => {
             encoded.push(4);
             encoded.push(binary_tag(*operator));
+            encoded.push(u8::from(*proven));
             push_node(encoded, left)?;
             push_node(encoded, right)?;
         }

@@ -214,6 +214,7 @@ fn compile_definition(
                 declaration.generic_context.as_deref(),
                 &compiled.value_type,
                 &compiled.contracts,
+                &declaration.invariants,
             );
             StructuredInfoType::nominal(identity, compiled.value_type)
                 .map_err(|error| bounded(declaration.span, error))?

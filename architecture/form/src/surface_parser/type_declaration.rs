@@ -44,9 +44,22 @@ impl Parser<'_> {
                 Vec::new(),
             )
         } else {
+            let (body, invariant) = body
+                .split_once(" where ")
+                .map_or((body, None), |(value_type, invariant)| {
+                    (value_type.trim(), Some(invariant.trim()))
+                });
+            if invariant.is_some_and(str::is_empty) {
+                return Err(self.invalid_statement(header, start));
+            }
             let value_type = self.parse_type_expression(body, header, start)?;
+            let invariants = invariant
+                .map(|source| self.expression_at(source, header, start))
+                .transpose()?
+                .into_iter()
+                .collect();
             self.index += 1;
-            (TypeDefinitionSyntax::Scalar(value_type), Vec::new())
+            (TypeDefinitionSyntax::Scalar(value_type), invariants)
         };
         let end = self.lines[self.index.saturating_sub(1)];
         Ok(TypeSyntax {
