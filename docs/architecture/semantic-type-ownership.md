@@ -306,6 +306,7 @@ are satisfied.
 | House generation request | `semantics/tongues/types.conduit` | generated at build time | yes | yes | exact identity/prompt/output bounds plus House, Tongues and std Host consumer suites |
 | Chat conversation-request evidence | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact request-identity bound, native and JSON round trips plus Chat and Patchbay consumer suites |
 | Presentation place/aspect/depth, navigation, wardrobe, Face-role and narrator vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native/code round trips plus navigation, mask, Face and generative-presentation suites |
+| Presentation application action | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact nonempty 48-byte identity bound and event-kind composition plus unchanged application-view, Patchbay, Tour and ConduitOS consumers |
 | AI similarity-score family | `semantics/ai/types.conduit` | generated at build time with exact finite `F32` | yes | yes | bit-exact native and JSON round trips plus vector retrieval/search suites and non-finite refusal proof |
 | Alife field identities, reaction-diffusion cell and evolve-request family | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native/refinement round trips plus retained wire codecs and full Alife behavior suites |
 | Lenia and reaction-diffusion portable value refusals | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native payload round trips plus explicit separation from codec, worker, partition and assembler failures |
@@ -314,9 +315,10 @@ are satisfied.
 The completed foundations remove any general “language support” excuse for a
 handwritten P declaration. Two exact binding-generation gaps remain recorded:
 open generic Types such as AI retrieval candidates cannot yet produce generic
-Rust bindings, and a checked `Bytes <= 65536B` leaf still receives the fixed
-`BoundedBytes<4096>` storage type, which prevents the Job family from retaining
-its accepted output bound. The Text `MorsePattern` also retains an accepted
+Rust bindings. A checked `Bytes <= 65536B` leaf both receives the fixed
+`BoundedBytes<4096>` storage type and exceeds the canonical structured leaf
+ceiling of 4,096 bytes, which prevents the Job family from retaining and
+round-tripping its accepted output bound. The Text `MorsePattern` also retains an accepted
 320-segment bound above the canonical structured-collection ceiling of 256; it
 cannot migrate until that ceiling grows without weakening its contract. Other
 remaining blockers must name the exact payload shape, bound, target constraint or unresolved Fore ownership question. As

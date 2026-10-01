@@ -19,6 +19,7 @@ fn main() {
             serde_deny_unknown_record_types: ["GeneratedActionAffordance".into()].into(),
             copy_record_types: ["GraphicsPoint".into(), "ThemeColor".into()].into(),
             copy_record_value_getters: ["ThemeColor".into()].into(),
+            public_record_fields: ["ApplicationAction".into()].into(),
             record_constructor_orders: [(
                 "ThemeColor".into(),
                 vec!["red".into(), "green".into(), "blue".into()],

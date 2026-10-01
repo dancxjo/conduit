@@ -334,6 +334,11 @@ type ApplicationEventKind =
     | toggle
     | submit
 
+type ApplicationAction = {
+    id: Text <= 48B not in [""]
+    event: ApplicationEventKind
+}
+
 code presentation/application-event-kind = ApplicationEventKind as u8 from 1
 
 type ApplicationViewRefusal =

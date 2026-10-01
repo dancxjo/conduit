@@ -1,8 +1,9 @@
 //! Finite renderer-neutral application views and browser-independent actions.
 
 use crate::{
-    ApplicationComponent, ApplicationComponentCode, ApplicationEventKind, ApplicationEventKindCode,
-    ApplicationNodeState, ApplicationNodeStateCode, ApplicationViewRefusal,
+    ApplicationAction, ApplicationComponent, ApplicationComponentCode, ApplicationEventKind,
+    ApplicationEventKindCode, ApplicationNodeState, ApplicationNodeStateCode,
+    ApplicationViewRefusal,
 };
 use alloc::{string::String, vec::Vec};
 
@@ -41,12 +42,6 @@ impl Default for ApplicationNodeState {
     fn default() -> Self {
         Self::Ready
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ApplicationAction {
-    pub id: String,
-    pub event: ApplicationEventKind,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

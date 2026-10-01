@@ -26,12 +26,12 @@ mod generated {
     }
 }
 pub use generated::{
-    AdmittedNavigationDestination, ApplicationComponent, ApplicationComponentCode,
-    ApplicationEventKind, ApplicationEventKindCode, ApplicationNodeState, ApplicationNodeStateCode,
-    ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind, CompositionItemKindCode,
-    CompositionRole, CompositionRoleCode, EvidenceDisposition, FaceContributionRole,
-    FaceContributionRoleCode, FaceUtteranceClauseKind, FaceUtteranceProvenance,
-    FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
+    AdmittedNavigationDestination, ApplicationAction, ApplicationComponent,
+    ApplicationComponentCode, ApplicationEventKind, ApplicationEventKindCode, ApplicationNodeState,
+    ApplicationNodeStateCode, ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind,
+    CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition,
+    FaceContributionRole, FaceContributionRoleCode, FaceUtteranceClauseKind,
+    FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
     FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceProperty,
     FaceUtteranceProvenanceRelationship, FaceUtteranceProvenanceSubject,
     FaceUtteranceProvenanceText, GeneratedActionAffordance, GeneratedContentRole,
