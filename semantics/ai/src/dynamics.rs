@@ -7,7 +7,7 @@ use conduit_data::{
     TensorValue,
 };
 
-use crate::{DynamicsRefusal, IntegrationTerminal, RandomnessProfile};
+use crate::{DynamicsRefusal, IntegrationAccuracy, IntegrationTerminal, RandomnessProfile};
 
 pub const MAXIMUM_DYNAMICS_CONTEXTS: usize = 32;
 pub const MAXIMUM_DYNAMICS_SAMPLES: usize = 65_536;
@@ -34,13 +34,6 @@ pub struct OutputSamplingGrid {
     /// Exact requested observation coordinates. These are independent of
     /// solver-internal adaptive steps.
     pub coordinates: Vec<i64>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct IntegrationAccuracy {
-    pub absolute_tolerance_millionths: u64,
-    pub relative_tolerance_millionths: u64,
-    pub maximum_estimated_error_millionths: u64,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -456,5 +449,32 @@ fn nonzero(value: [u8; 32]) -> Result<(), DynamicsRefusal> {
         Err(DynamicsRefusal::MissingIdentity)
     } else {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn public_field_compatibility_retains_accuracy_defense_in_depth() {
+        let missing_tolerance = IntegrationAccuracy {
+            absolute_tolerance_millionths: 0,
+            relative_tolerance_millionths: 0,
+            maximum_estimated_error_millionths: 1,
+        };
+        assert_eq!(
+            missing_tolerance.validate(),
+            Err(DynamicsRefusal::InvalidAccuracy)
+        );
+        let missing_error_bound = IntegrationAccuracy {
+            absolute_tolerance_millionths: 1,
+            relative_tolerance_millionths: 0,
+            maximum_estimated_error_millionths: 0,
+        };
+        assert_eq!(
+            missing_error_bound.validate(),
+            Err(DynamicsRefusal::InvalidAccuracy)
+        );
     }
 }

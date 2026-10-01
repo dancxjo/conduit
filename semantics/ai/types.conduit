@@ -897,6 +897,14 @@ type IntegrationTerminal =
     | provider_lost
     | failed
 
+type IntegrationAccuracy = {
+    absolute-tolerance-millionths: U64
+    relative-tolerance-millionths: U64
+    maximum-estimated-error-millionths: U64
+    where .absolute-tolerance-millionths > 0 || .relative-tolerance-millionths > 0
+    where .maximum-estimated-error-millionths > 0
+}
+
 type EmbodimentStage =
     perception_only
     | expressive
