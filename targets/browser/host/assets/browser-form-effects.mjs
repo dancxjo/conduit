@@ -121,7 +121,10 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
           (error) => settle({ error }),
         );
         const poll = api.conduit_browser_form_poll_effect();
-        if (poll < 0) throw new Error(`effect poll refused (${poll})`);
+        if (poll < 0) {
+          const refusal = readOutput();
+          throw new Error(`effect poll refused (${poll})${refusal?.message ? `: ${refusal.message}` : ""}`);
+        }
         progress = readOutput();
       }
       if (progress.disposition !== "waiting") {

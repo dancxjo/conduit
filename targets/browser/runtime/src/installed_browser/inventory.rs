@@ -177,7 +177,8 @@ mod tests {
         assert_eq!(inventory.limits.maximum_gears, 32);
         assert_eq!(inventory.limits.maximum_cords, 48);
         assert_eq!(inventory.limits.maximum_value_bytes, 8_192);
-        assert_eq!(inventory.limits.total_value_bytes, 512 * 1_024);
+        assert_eq!(inventory.limits.value_items, 160);
+        assert_eq!(inventory.limits.total_value_bytes, 640 * 1_024);
         assert!(advertisement.capabilities.iter().all(|offer| {
             offer.host_calls.len() <= usize::from(inventory.limits.host_calls_per_gear)
         }));

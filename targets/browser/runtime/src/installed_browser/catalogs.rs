@@ -115,9 +115,9 @@ pub(crate) fn catalogs_for_presentation(
         &mut startup,
         &mut profile,
     )?;
-    // This Host has no eligible audio/tone Back, but reviewed Forms must still
-    // check against its portable semantic contract before planning refuses.
     conduit_semantic_catalog::install_audio_tone_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_audio_continuous_tone_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_audio_gain_catalog(&mut startup, &mut profile)?;
     startup.insert_value_kind_alias(
         "PcmFrames",
         conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),

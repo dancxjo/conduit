@@ -95,6 +95,9 @@ export function openBrowserHumanInput({
   const onPointer = (event) => {
     if (closed || (pointerConsumers.size === 0 && !buttonActive)) return;
     try {
+      if (event.type === "pointerdown" && target.nodeType !== 9 && typeof target.setPointerCapture === "function") {
+        target.setPointerCapture(event.pointerId);
+      }
       assertCurrent(owner, currentBoot());
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "pointer target is no longer admitted");

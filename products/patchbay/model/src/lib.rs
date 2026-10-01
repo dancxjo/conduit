@@ -49,7 +49,6 @@ mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;
 mod prewake;
-pub mod proof;
 mod recursive_form_demonstration;
 #[cfg(test)]
 mod recursive_form_projection_tests;
