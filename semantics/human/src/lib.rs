@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-#[allow(clippy::clone_on_copy, dead_code)]
+#[allow(clippy::clone_on_copy, clippy::too_many_arguments, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 
@@ -57,7 +57,7 @@ pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
     ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageRegion,
-    ImageTextMetadata, KeyModifiers, KeyTransition, KeyTransitionCode, KeymapRefusal,
+    ImageTextMetadata, KeyEvent, KeyModifiers, KeyTransition, KeyTransitionCode, KeymapRefusal,
     SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
     VisualImpressionDisposition, VisualImpressionDispositionTruncated,
 };
