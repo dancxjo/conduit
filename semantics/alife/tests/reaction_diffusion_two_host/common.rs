@@ -262,14 +262,14 @@ pub fn unequal_partition() -> ReactionDiffusionPartition {
     ReactionDiffusionPartition {
         regions: vec![
             ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId(10),
+                region_id: ReactionDiffusionRegionId::new(10).unwrap(),
                 origin_x: 0,
                 origin_y: 0,
                 width: 3,
                 height: 10,
             },
             ReactionDiffusionRegion {
-                region_id: ReactionDiffusionRegionId(20),
+                region_id: ReactionDiffusionRegionId::new(20).unwrap(),
                 origin_x: 3,
                 origin_y: 0,
                 width: 5,
