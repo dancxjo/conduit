@@ -17,8 +17,11 @@ pub use generated::{
     MeasurementThresholdStateCode, MeasurementThresholdTransition, MeasurementWindowRefusal,
     NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
     SampledSignalRefusal, ScalarComparison, ScientificObservationRefusal, SignalContinuity,
-    SignalContinuityClockReset, SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther,
-    TensorElement, TensorRefusal,
+    SignalContinuityClockReset, SignalContinuityDiscontinuous, TabularColumnSpec,
+    TabularColumnType, TabularOptionalText, TabularPersonRow, TabularPersonRowSlot,
+    TabularPersonRowsFour, TabularQueryCompletion, TabularQueryError, TabularQueryResultFour,
+    TabularQueryStatus, TabularSchemaFour, TensorAxisRole, TensorAxisRoleOther, TensorElement,
+    TensorRefusal,
 };
 
 mod data_catalog;
