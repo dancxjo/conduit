@@ -9,7 +9,6 @@ use alloc::collections::BTreeSet;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::PlanId;
-use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_DEGRADATION_FRAGMENTS: usize = 32;
 pub const MAXIMUM_DEGRADATION_FRAGMENT_ID_BYTES: usize = 256;
@@ -17,7 +16,7 @@ pub const MAXIMUM_DEGRADATION_REFUSAL_BYTES: usize = 512;
 pub const MAXIMUM_DEGRADATION_EXPLANATION_BYTES: usize = 2_048;
 
 /// Bounded, renderer-neutral explanation of scoped realization loss.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DegradationExplanation {
     pub previous_plan_id: String,
     pub replacement_plan_id: Option<String>,
