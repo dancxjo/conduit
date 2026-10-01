@@ -205,6 +205,13 @@ type PatternComparisonRefusal =
     | algorithm-mismatch
     | length-mismatch
 
+type PatternComparison = {
+    matched: Boolean
+    metric: Text
+    score_millionths: Count
+    tolerance_millionths: Count
+}
+
 type TimedPatternRefusal =
     malformed
     | too-few-events
@@ -247,3 +254,10 @@ type TemplateCollectionRefusal =
     | collection-full
     | not-found
     | corrupt-template
+
+type ReminderOccurrence = {
+    delivery_kind: Text
+    event_identity: Text
+    identity: Text
+    reminder_identity: Text
+}

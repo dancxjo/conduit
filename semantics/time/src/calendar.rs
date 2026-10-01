@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AvailabilityState, CalendarRefusal, InvitationState, LocalDate, LocalDateTime, NamedTimeZone,
-    ParticipantRole, RecurrenceDefinition, TemporalInstant, TemporalRelation, TemporalWindow,
-    TemporalWindowRefusal, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    ParticipantRole, RecurrenceDefinition, ReminderOccurrence, TemporalInstant, TemporalRelation,
+    TemporalWindow, TemporalWindowRefusal, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_CALENDAR_TEXT_BYTES: usize = 1_024;
@@ -53,16 +53,6 @@ pub struct ReminderSpecification {
     pub identity: String,
     pub before_start_ticks: u64,
     pub scale: crate::TemporalScale,
-    pub delivery_kind: String,
-}
-
-/// One firing of a reminder, distinct from the calendar event it references.
-/// Delivery remains a downstream effect with its own authority.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReminderOccurrence {
-    pub identity: String,
-    pub reminder_identity: String,
-    pub event_identity: String,
     pub delivery_kind: String,
 }
 

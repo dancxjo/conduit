@@ -7,10 +7,11 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 use conduit_form::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
@@ -24,16 +25,7 @@ pub const MAXIMUM_ABSOLUTE_METRIC: &str = "maximum-absolute-millionths@1";
 pub const DEFAULT_PATTERN_TOLERANCE: u64 = 100_000;
 
 pub fn pattern_comparison_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("sequence/pattern-comparison@1"),
-        vec![
-            field_type("matched", "value/bool"),
-            field_type("metric", "sequence/comparison-metric@1"),
-            field_type("score_millionths", "value/count"),
-            field_type("tolerance_millionths", "value/count"),
-        ],
-    )
-    .unwrap()
+    conduit_time::PatternComparison::semantic_type().expect("checked pattern comparison Type")
 }
 
 pub fn compare_normalized_pattern_definition() -> KindProjection {
@@ -201,38 +193,9 @@ fn comparison_value(
     score: u64,
     matched: bool,
 ) -> Result<StructuredInfoValue, PatternComparisonRefusal> {
-    StructuredInfoValue::record(
-        pattern_comparison_type(),
-        vec![
-            primitive_field(
-                "matched",
-                conduit_core::BOOL_INFO_ID,
-                if matched {
-                    conduit_core::InfoBool::TRUE
-                } else {
-                    conduit_core::InfoBool::FALSE
-                }
-                .encode()
-                .to_vec(),
-            )?,
-            value_field("metric", "sequence/comparison-metric@1", metric)?,
-            primitive_field(
-                "score_millionths",
-                conduit_core::COUNT_INFO_ID,
-                conduit_core::encode_count(score).to_vec(),
-            )?,
-            primitive_field(
-                "tolerance_millionths",
-                conduit_core::COUNT_INFO_ID,
-                conduit_core::encode_count(tolerance).to_vec(),
-            )?,
-        ],
-    )
-    .map_err(|_| PatternComparisonRefusal::Malformed)
-}
-
-fn field_type(name: &str, kind: &str) -> StructuredFieldType {
-    StructuredFieldType::new(name, StructuredInfoType::leaf(kind_id(kind)).unwrap()).unwrap()
+    conduit_time::PatternComparison::new(matched, metric.into(), score, tolerance)
+        .and_then(NativeRustBinding::into_structured)
+        .map_err(|_| PatternComparisonRefusal::Malformed)
 }
 
 fn value_port(name: &str, direction: PortDirection) -> PortDescriptor {
@@ -247,35 +210,6 @@ fn value_port(name: &str, direction: PortDirection) -> PortDescriptor {
         temporal: PortTemporal::Value,
         abnormal_kind: None,
     }
-}
-
-fn value_field(
-    name: &str,
-    kind: &str,
-    value: &str,
-) -> Result<StructuredFieldValue, PatternComparisonRefusal> {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id(kind)).unwrap(),
-            value.as_bytes().to_vec(),
-        )
-        .map_err(|_| PatternComparisonRefusal::Malformed)?,
-    )
-    .map_err(|_| PatternComparisonRefusal::Malformed)
-}
-
-fn primitive_field(
-    name: &str,
-    kind: &str,
-    value: Vec<u8>,
-) -> Result<StructuredFieldValue, PatternComparisonRefusal> {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(StructuredInfoType::leaf(kind_id(kind)).unwrap(), value)
-            .map_err(|_| PatternComparisonRefusal::Malformed)?,
-    )
-    .map_err(|_| PatternComparisonRefusal::Malformed)
 }
 
 fn field<'a>(

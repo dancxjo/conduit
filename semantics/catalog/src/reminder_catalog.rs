@@ -7,7 +7,7 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindProjection, KindSignature};
 
@@ -33,20 +33,7 @@ pub fn reminder_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn reminder_occurrence_type() -> StructuredInfoType {
-    let text = StructuredInfoType::leaf(kind_id("value/text")).unwrap();
-    StructuredInfoType::record(
-        kind_id("notification/reminder-occurrence@1"),
-        [
-            "delivery_kind",
-            "event_identity",
-            "identity",
-            "reminder_identity",
-        ]
-        .into_iter()
-        .map(|name| StructuredFieldType::new(name, text.clone()).unwrap())
-        .collect(),
-    )
-    .expect("reviewed reminder occurrence")
+    conduit_time::ReminderOccurrence::semantic_type().expect("checked reminder occurrence Type")
 }
 
 pub fn install_reminder_catalogs(
