@@ -318,10 +318,11 @@ fn canonical_processing_runs_window_summary_hysteresis_and_plot_in_one_play() {
     let profile = leaf(
         conduit_data::measurement_hysteresis_profile_type(),
         conduit_data::encode_measurement_hysteresis_profile(MeasurementHysteresisProfile {
-            policy: MeasurementThresholdPolicy {
-                lower: Quantity::new(40, QuantityUnit::Millivolt),
-                upper: Quantity::new(60, QuantityUnit::Millivolt),
-            },
+            policy: MeasurementThresholdPolicy::new(
+                Quantity::new(40, QuantityUnit::Millivolt),
+                Quantity::new(60, QuantityUnit::Millivolt),
+            )
+            .unwrap(),
             initial_state: MeasurementThresholdState::Below,
         })
         .unwrap(),

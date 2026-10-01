@@ -2,10 +2,10 @@ use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     ClockRelation, ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal,
     FullWindowPolicy, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
-    MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
-    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
-    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
-    ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
+    MeasurementSummaryRefusal, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
+    MeasurementThresholdState, MeasurementThresholdTransition, MeasurementWindowRefusal,
+    NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
+    SampledSignalRefusal, ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -15,6 +15,24 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn measurement_threshold_policy_round_trips_exact_quantities() {
+    let policy = MeasurementThresholdPolicy::new(
+        Quantity::new(i64::MIN, QuantityUnit::Millivolt),
+        Quantity::new(i64::MAX, QuantityUnit::Millivolt),
+    )
+    .unwrap();
+    assert_round_trip(policy);
+    assert_eq!(
+        *policy.lower(),
+        Quantity::new(i64::MIN, QuantityUnit::Millivolt)
+    );
+    assert_eq!(
+        *policy.upper(),
+        Quantity::new(i64::MAX, QuantityUnit::Millivolt)
+    );
 }
 
 fn assert_owned_round_trip<T>(value: T)

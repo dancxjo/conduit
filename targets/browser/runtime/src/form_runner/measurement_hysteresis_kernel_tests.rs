@@ -197,10 +197,11 @@ fn planned_browser_hysteresis_uses_exact_profile_and_initial_state() {
     let profile = leaf(
         profile_type,
         conduit_data::encode_measurement_hysteresis_profile(MeasurementHysteresisProfile {
-            policy: MeasurementThresholdPolicy {
-                lower: Quantity::new(40, QuantityUnit::Millivolt),
-                upper: Quantity::new(60, QuantityUnit::Millivolt),
-            },
+            policy: MeasurementThresholdPolicy::new(
+                Quantity::new(40, QuantityUnit::Millivolt),
+                Quantity::new(60, QuantityUnit::Millivolt),
+            )
+            .unwrap(),
             initial_state: MeasurementThresholdState::Above,
         })
         .unwrap(),
