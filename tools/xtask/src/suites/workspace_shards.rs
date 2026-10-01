@@ -35,6 +35,7 @@ package_test_shard!(
         "conduit-alife",
         "conduit-audio",
         "conduit-data",
+        "conduit-education",
         "conduit-finance",
         "conduit-human",
         "conduit-core",
