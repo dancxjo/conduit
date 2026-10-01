@@ -3,7 +3,7 @@ use super::*;
 use crate::machine::{
     BaseError, IdleBase, InterruptBase, InterruptState, MonotonicClockBase, SerialBase,
 };
-use alloc::vec::Vec;
+use alloc::{collections::BTreeSet, vec::Vec};
 use conduit_birth_form::BirthSelection;
 use conduit_body::BodyWorkset;
 use conduit_human::KeyTransition;
@@ -234,11 +234,20 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     }
     let replacement = &mask.mask_actions[6];
     assert_ne!(replacement.plan_id, initial_show.plan_id);
-    assert!(replacement.show_id.is_some());
+    assert!(replacement.show_id.is_none());
     assert_eq!(mask.mask_actions[7].plan_id, replacement.plan_id);
+    assert!(mask.mask_actions[7].show_id.is_some());
     let restored = &mask.mask_actions[9];
     assert!(restored.show_id.is_some());
     assert_eq!(restored.plan_id, replacement.plan_id);
+    assert_eq!(
+        mask.mask_actions
+            .iter()
+            .filter_map(|outcome| outcome.show_id.as_deref())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        4
+    );
     assert_eq!(
         restored.selected_mask_form_id,
         initial_show.selected_mask_form_id

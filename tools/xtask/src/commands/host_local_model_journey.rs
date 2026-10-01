@@ -124,13 +124,24 @@ pub(super) fn write(
             event: &str,
             receipts: Vec<String>,
         ) -> conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation {
-            let execution = self.current.map(|(replacement, index)| {
-                if replacement {
-                    &self.replacement[index]
-                } else {
-                    &self.initial[index]
-                }
-            });
+            let retains_fresh_show = matches!(
+                action,
+                A::InspectInitialShow
+                    | A::PreferAlternateMask
+                    | A::InspectReplannedShow
+                    | A::InspectRestoredShow
+            );
+            let execution = retains_fresh_show
+                .then(|| {
+                    self.current.map(|(replacement, index)| {
+                        if replacement {
+                            &self.replacement[index]
+                        } else {
+                            &self.initial[index]
+                        }
+                    })
+                })
+                .flatten();
             conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation {
                 action_id: action.id().into(),
                 concrete_event: event.into(),

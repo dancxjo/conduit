@@ -597,13 +597,35 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     }
 
     let initial = runtime.observation();
-    let (mut replacement, replacement_effect) = runtime
+    let (mut alternate, alternate_effect) = runtime
+        .alternate(initial.wardrobe_action.body_id.clone())
+        .unwrap();
+    alternate
+        .acknowledge(&acknowledgement(&alternate_effect))
+        .unwrap();
+    let alternate_observation = alternate.observation();
+    let (mut replacement, replacement_effect) = alternate
         .replacement(initial.wardrobe_action.body_id.clone())
         .unwrap();
     replacement
         .acknowledge(&acknowledgement(&replacement_effect))
         .unwrap();
-    let journey = replacement.actualize_journey(&initial).unwrap();
+    let replacement_observation = replacement.observation();
+    let (mut restored, restored_effect) = replacement
+        .restored(initial.wardrobe_action.body_id.clone())
+        .unwrap();
+    restored
+        .acknowledge(&acknowledgement(&restored_effect))
+        .unwrap();
+    let restored_observation = restored.observation();
+    let journey = restored
+        .actualize_journey(&[
+            initial,
+            alternate_observation,
+            replacement_observation,
+            restored_observation,
+        ])
+        .unwrap();
     assert_eq!(journey.len(), 10);
     assert_eq!(
         journey
@@ -614,7 +636,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     );
     let initial_plan = &journey[0].plan_id;
     assert_eq!(&journey[2].plan_id, initial_plan);
-    assert_eq!(journey[2].show_id, journey[0].show_id);
+    assert_ne!(journey[2].show_id, journey[0].show_id);
     for unavailable in &journey[3..=5] {
         assert_eq!(&unavailable.plan_id, initial_plan);
         assert!(unavailable.show_id.is_none());
@@ -623,6 +645,14 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     assert_eq!(journey[7].plan_id, journey[6].plan_id);
     assert!(journey[7].show_id.is_some());
     assert!(journey[9].show_id.is_some());
+    assert_eq!(
+        journey
+            .iter()
+            .filter_map(|outcome| outcome.show_id.as_deref())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        4
+    );
 }
 
 #[test]

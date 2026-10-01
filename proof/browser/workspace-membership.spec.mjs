@@ -65,14 +65,16 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     new Set([captures["body.inspected"].mask.presentation.identity]),
   );
   expect(maskActions[2].plan_id).toBe(maskActions[0].plan_id);
-  expect(maskActions[2].show_id).toBe(maskActions[0].show_id);
+  expect(maskActions[2].show_id).not.toBe(maskActions[0].show_id);
   expect(maskActions.slice(3, 6).every(outcome => outcome.plan_id === maskActions[0].plan_id
     && outcome.show_id === null && outcome.selected_route_id === null)).toBe(true);
   expect(maskActions[6].plan_id).not.toBe(maskActions[0].plan_id);
+  expect(maskActions[6].show_id).toBeNull();
   expect(maskActions[7]).toMatchObject({ plan_id: maskActions[6].plan_id,
     selected_route_id: "route/browser-graphical-fallback" });
   expect(maskActions[9]).toMatchObject({ plan_id: maskActions[6].plan_id,
     selected_route_id: "route/browser-graphical" });
+  expect(new Set(maskActions.map(({ show_id }) => show_id).filter(Boolean)).size).toBe(4);
   captures["body.inspected"].maskActions = maskActions;
   await page.locator("[data-close-inspection]").click();
   await page.getByRole("button", { name: "+ Forms", exact: true }).click();

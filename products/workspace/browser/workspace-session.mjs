@@ -89,7 +89,9 @@ export function openWorkspaceSession({ host, storage }) {
     tutorialMaskObservation() { return request('TutorialMaskObservation'); },
     tutorialMaskJourney() { return request('TutorialMaskJourney'); },
     beginTutorialMaskJourney() { return request('BeginTutorialMaskJourney'); },
+    prepareTutorialMaskAlternate() { return request('PrepareTutorialMaskAlternate'); },
     prepareTutorialMaskReplacement() { return request('PrepareTutorialMaskReplacement'); },
+    prepareTutorialMaskRestored() { return request('PrepareTutorialMaskRestored'); },
     invitationView(fields) { return request('InvitationView', fields, true); },
     invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
     async changeWorkset(edit, form, source, expected_revision) {
