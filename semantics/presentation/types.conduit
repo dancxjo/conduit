@@ -130,6 +130,111 @@ type VisionDetectionSlot =
 
 type VisionDetectionsFour = collection VisionDetectionSlot = 4
 
+type VisionPixelRegion = {
+    height: U64
+    width: U64
+    x: U64
+    y: U64
+}
+
+type VisionOptionalPixelRegion =
+    absent
+    | present VisionPixelRegion
+
+type VisionObservationEvidenceClass =
+    deterministic_derived
+    | model_derived
+    | statistical_candidate
+
+type VisionObservationProvenance = {
+    artifact: Text
+    evidence_class: VisionObservationEvidenceClass
+    implementation: Text
+    observation_sign: Text
+    observed_at: TemporalInstant
+    provider_instance: Text
+    run: Text
+}
+
+type VisionObjectObservation = {
+    candidate_label: Text
+    confidence_permille: U64
+    provenance: VisionObservationProvenance
+    region: VisionPixelRegion
+    source_image: ImageObservationReference
+}
+
+type VisionMotionObservation = {
+    change_permille: U64
+    changed_region: VisionPixelRegion
+    provenance: VisionObservationProvenance
+    source_image: ImageObservationReference
+}
+
+type VisionVisibleTextObservation = {
+    confidence_permille: U64
+    provenance: VisionObservationProvenance
+    region: VisionOptionalPixelRegion
+    source_image: ImageObservationReference
+    text: Text
+}
+
+type VisionObservationSigns = sequence Text <= 16
+
+type VisionTrackObservation = {
+    continuity_confidence_permille: U64
+    contributing_observation_signs: VisionObservationSigns
+    current_region: VisionPixelRegion
+    provenance: VisionObservationProvenance
+    source_image: ImageObservationReference
+    track: Text
+    tracking_context: Text
+}
+
+type VisionMotionsFour = sequence VisionMotionObservation <= 4
+type VisionObjectObservations = sequence VisionObjectObservation <= 4
+type VisionTextsEight = sequence VisionVisibleTextObservation <= 8
+type VisionTracksFour = sequence VisionTrackObservation <= 4
+
+type VisualImpressionDisposition =
+    complete
+    | truncated U64
+
+type VisualSelectedObservationSigns = sequence Text <= 24
+
+type VisualImpression = {
+    disposition: VisualImpressionDisposition
+    model: Text
+    prompt_contract_revision: Text
+    provenance: VisionObservationProvenance
+    selected_observation_signs: VisualSelectedObservationSigns
+    source_image: ImageObservationReference
+    text: Text
+}
+
+type VisualExperienceObservation =
+    impression VisualImpression
+    | motion VisionMotionObservation
+    | object VisionObjectObservation
+    | track VisionTrackObservation
+    | visible_text VisionVisibleTextObservation
+
+type VisualExperienceObservations = sequence VisualExperienceObservation <= 24
+
+type VisualExperienceRelation = {
+    kind: Text
+    object_sign: Text
+    subject_sign: Text
+}
+
+type VisualExperienceRelations = sequence VisualExperienceRelation <= 32
+
+type VisualExperience = {
+    observations: VisualExperienceObservations
+    relations: VisualExperienceRelations
+    source_image: ImageObservationReference
+}
+
 type GraphicsCommandKind =
     rect
     | text

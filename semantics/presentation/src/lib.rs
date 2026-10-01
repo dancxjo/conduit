@@ -49,7 +49,15 @@ pub use generated::{
     PresentationPlaceCode, PresentationTemporalRole, Rect2, RoboticsPose2, StatusKind, ThemeColor,
     Transform2, Vector2, Vector3, VisionColorSample, VisionDetection, VisionDetectionSlot,
     VisionDetectionsFour, VisionEvidenceClass, VisionKeypoint, VisionLandmarkSlot, VisionLandmarks,
-    VisionProvenance, VisionRgbSample,
+    VisionMotionObservation, VisionMotionsFour, VisionObjectObservation, VisionObjectObservations,
+    VisionObservationEvidenceClass, VisionObservationProvenance, VisionObservationSigns,
+    VisionOptionalPixelRegion, VisionPixelRegion, VisionProvenance, VisionRgbSample,
+    VisionTextsEight, VisionTrackObservation, VisionTracksFour, VisionVisibleTextObservation,
+    VisualExperience, VisualExperienceObservation, VisualExperienceObservationImpression,
+    VisualExperienceObservationMotion, VisualExperienceObservationObject,
+    VisualExperienceObservationTrack, VisualExperienceObservationVisibleText,
+    VisualExperienceObservations, VisualExperienceRelation, VisualExperienceRelations,
+    VisualImpression, VisualImpressionDisposition, VisualSelectedObservationSigns,
 };
 
 mod application_event;
