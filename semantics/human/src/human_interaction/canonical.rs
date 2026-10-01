@@ -1,7 +1,8 @@
 use alloc::{string::String, vec::Vec};
 use sha2::{Digest, Sha256};
 
-use super::{InteractionDomain, InteractionFamily, InteractionValue, OptionAvailability};
+use super::{InteractionDomain, InteractionFamily, InteractionValue};
+use crate::OptionAvailability;
 use conduit_core::QuantityUnit;
 
 pub(super) fn encode_family(output: &mut Vec<u8>, family: &InteractionFamily) {
@@ -94,9 +95,9 @@ pub(super) fn encode_domain(output: &mut Vec<u8>, domain: &InteractionDomain) {
         encode_value(output, &option.value);
         match &option.availability {
             OptionAvailability::Available => output.push(0),
-            OptionAvailability::Unavailable { reason_code } => {
+            OptionAvailability::Unavailable(unavailable) => {
                 output.push(1);
-                field(output, reason_code.as_bytes());
+                field(output, unavailable.reason_code().as_bytes());
             }
         }
     }

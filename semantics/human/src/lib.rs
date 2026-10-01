@@ -57,9 +57,13 @@ pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
     ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageRegion,
-    ImageTextMetadata, KeyModifiers, KeyTransition, KeyTransitionCode, KeymapRefusal,
-    SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
-    VisualImpressionDisposition, VisualImpressionDispositionTruncated,
+    ImageTextMetadata, InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
+    InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
+    InteractionBoundKind as BoundKind, InteractionRefusal, KeyModifiers, KeyTransition,
+    KeyTransitionCode, KeymapRefusal, OptionAvailability, OptionAvailabilityUnavailable,
+    RealizationRangePolicy, ScalarQuantization, SourceAvailability, VisualEvidenceClass,
+    VisualExperienceRelationKind, VisualImpressionDisposition,
+    VisualImpressionDispositionTruncated,
 };
 
 mod current_experience;

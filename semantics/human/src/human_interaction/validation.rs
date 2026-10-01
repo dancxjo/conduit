@@ -1,10 +1,10 @@
 use super::{
-    BoundKind, InteractionApplicationOutcome, InteractionContract, InteractionCurrentState,
-    InteractionDomain, InteractionFamily, InteractionProposalPayload, InteractionRefusal,
-    InteractionValue, OptionAvailability, MAXIMUM_INTERACTION_ID_BYTES,
+    InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,
+    InteractionProposalPayload, InteractionValue, MAXIMUM_INTERACTION_ID_BYTES,
     MAXIMUM_INTERACTION_OPTIONS, MAXIMUM_INTERACTION_SELECTIONS, MAXIMUM_INTERACTION_VALUE_BYTES,
     TEXT_INFO_ID,
 };
+use crate::{BoundKind, InteractionApplicationOutcome, InteractionRefusal, OptionAvailability};
 use conduit_core::{
     InfoBool, KindId, Quantity, StructuredInfoValue, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
@@ -326,8 +326,8 @@ fn validate_domain<'a>(
         {
             return Err(InteractionRefusal::InvalidDomain);
         }
-        if let OptionAvailability::Unavailable { reason_code } = &option.availability {
-            validate_identity(reason_code)?;
+        if let OptionAvailability::Unavailable(unavailable) = &option.availability {
+            validate_identity(unavailable.reason_code())?;
         }
     }
     Ok(domain)
@@ -411,11 +411,11 @@ pub(super) fn validate_outcome(
     outcome: &InteractionApplicationOutcome,
 ) -> Result<(), InteractionRefusal> {
     match outcome {
-        InteractionApplicationOutcome::Accepted {
-            resulting_state_identity,
-        } => validate_identity(resulting_state_identity),
-        InteractionApplicationOutcome::Refused { reason_code }
-        | InteractionApplicationOutcome::Failed { reason_code } => validate_identity(reason_code),
+        InteractionApplicationOutcome::Accepted(accepted) => {
+            validate_identity(accepted.resulting_state_identity())
+        }
+        InteractionApplicationOutcome::Refused(refused) => validate_identity(refused.reason_code()),
+        InteractionApplicationOutcome::Failed(failed) => validate_identity(failed.reason_code()),
         InteractionApplicationOutcome::Cancelled => Ok(()),
     }
 }

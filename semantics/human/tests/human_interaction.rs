@@ -298,9 +298,8 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
         Err(InteractionRefusal::RemovedOption)
     );
     let mut unavailable_domain = waveform_domain();
-    unavailable_domain.options[0].availability = OptionAvailability::Unavailable {
-        reason_code: "not-now".into(),
-    };
+    unavailable_domain.options[0].availability =
+        OptionAvailability::unavailable("not-now".into()).unwrap();
     let unavailable = InteractionCurrentState::new(
         &contract,
         7,
@@ -462,9 +461,7 @@ fn canonical_contract_state_proposal_and_result_vectors_are_deterministic() {
     .unwrap();
     let result = conduit_human::InteractionApplicationResult::new(
         &proposal,
-        InteractionApplicationOutcome::Accepted {
-            resulting_state_identity: "interaction-state/result".into(),
-        },
+        InteractionApplicationOutcome::accepted("interaction-state/result".into()).unwrap(),
     )
     .unwrap();
     assert_eq!(

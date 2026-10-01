@@ -43,9 +43,10 @@ pub(super) fn admit_source(
         .map_err(debug_error)?;
     flow.admit(proposal.clone()).map_err(debug_error)?;
     let result = flow
-        .finish_front(InteractionApplicationOutcome::Accepted {
-            resulting_state_identity: current.state_identity.clone(),
-        })
+        .finish_front(
+            InteractionApplicationOutcome::accepted(current.state_identity.clone())
+                .map_err(debug_error)?,
+        )
         .map_err(debug_error)?;
     Ok(SourceInteractionEvidence {
         schema: "conduit.tour/source-interaction@1".into(),
