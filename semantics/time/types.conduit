@@ -124,6 +124,23 @@ type PulseObservation = {
     period_ms: U16
 }
 
+type RhythmState = {
+    sequence: U32
+    next-pulse-at-ms: U32
+    period-ms: U16
+    expected-peer-sequence: U32
+}
+
+type SynchronizationOutcome =
+    adjusted {
+        phase-ms: I16
+        period-ms: I16
+    }
+    | outside-window
+    | stale
+    | missing
+    | pressure
+
 type CalendarRefusal =
     invalid_identity
     | invalid_text
