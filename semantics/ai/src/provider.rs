@@ -163,12 +163,13 @@ pub fn provider_http_request(
             conduit_web::HttpScheme::Https,
         )
         .map_err(|_| ProviderFailure::ProviderProtocol)?,
-        headers: vec![HttpHeader::new(
+        headers: conduit_web::http_headers([HttpHeader::new(
             "content-type".into(),
             conduit_form::rust_binding::BoundedBytes::new(b"application/json")
                 .ok_or(ProviderFailure::ProviderProtocol)?,
         )
-        .map_err(|_| ProviderFailure::ProviderProtocol)?],
+        .map_err(|_| ProviderFailure::ProviderProtocol)?])
+        .map_err(|_| ProviderFailure::ProviderProtocol)?,
         body: conduit_web::HttpBody::inline(json.to_vec()),
     };
     request
