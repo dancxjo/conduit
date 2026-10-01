@@ -9,7 +9,7 @@ mod generated {
 pub use generated::{
     FieldBitmapRefusal, GardenEvolutionRefusal, LeniaBoundary, LeniaRegionChunkKind,
     LeniaRegionChunkKindCode, ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode,
-    ReactionDiffusionRegionId,
+    ReactionDiffusionRegion, ReactionDiffusionRegionId,
 };
 
 mod distributed_catalog;

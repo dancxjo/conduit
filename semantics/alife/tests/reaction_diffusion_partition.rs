@@ -268,11 +268,12 @@ fn region(
     width: u16,
     height: u16,
 ) -> ReactionDiffusionRegion {
-    ReactionDiffusionRegion {
-        region_id: ReactionDiffusionRegionId::new(id).unwrap(),
+    ReactionDiffusionRegion::new(
+        ReactionDiffusionRegionId::new(id).unwrap(),
         origin_x,
         origin_y,
         width,
         height,
-    }
+    )
+    .unwrap()
 }

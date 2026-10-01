@@ -12,7 +12,22 @@ fn main() {
     let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
         &checked.codes,
-        &RustBindingOptions::default(),
+        &RustBindingOptions {
+            copy_record_types: ["ReactionDiffusionRegion".into()].into(),
+            copy_record_value_getters: ["ReactionDiffusionRegion".into()].into(),
+            record_constructor_orders: [(
+                "ReactionDiffusionRegion".into(),
+                vec![
+                    "region-id".into(),
+                    "origin-x".into(),
+                    "origin-y".into(),
+                    "width".into(),
+                    "height".into(),
+                ],
+            )]
+            .into(),
+            ..RustBindingOptions::default()
+        },
     )
     .expect("artificial-life semantic Types and codes must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
