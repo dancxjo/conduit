@@ -83,15 +83,15 @@ fn parse_body_directive(
     line_start: usize,
 ) -> Option<Result<ConstructionDirectiveSyntax, (FormError, Span)>> {
     if let Some(value) = text.strip_prefix("wear ") {
-        let parts = value.split(" else ").collect::<Vec<_>>();
-        if parts.len() > 2 || parts.iter().any(|part| !is_name(part.trim())) {
+        let masks = value.split(',').map(str::trim).collect::<Vec<_>>();
+        if masks.is_empty() || masks.iter().any(|mask| !is_name(mask)) {
             return Some(Err(parser.invalid_statement(text, line_start)));
         }
-        let mask = parts[0].trim();
-        let fallback = parts.get(1).map(|value| value.trim());
         return Some(Ok(ConstructionDirectiveSyntax::BodyWear {
-            mask: parser.spanned_at(mask, text, line_start),
-            fallback: fallback.map(|value| parser.spanned_at(value, text, line_start)),
+            masks: masks
+                .into_iter()
+                .map(|mask| parser.spanned_at(mask, text, line_start))
+                .collect(),
             span: parser.span(line_start, line_start + text.len()),
         }));
     }

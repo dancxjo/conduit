@@ -335,12 +335,15 @@ with masks/native-graphical as graphical
 with masks/spoken as spoken
 
 body roseau {
-    wear graphical else spoken
+    wear graphical, spoken
     want graphical over spoken
 }
 ```
 
-`wear a else b` admits fallback structure into the plan. Without authored `else`, loss requires ordinary replacement planning. `want` is policy only among eligible alternatives. Runtime `wear` and `doff` are body-control actions requesting wardrobe change and therefore new planning where required; they never mutate an immutable plan in place. Owner: #4115.
+`wear a, b` is an unordered bounded set of permitted masks; comma order carries no preference. `want` is optional ordered policy only among eligible alternatives. Same-plan selection may use only exact routes already sealed by that plan; otherwise loss requires ordinary replacement planning. The legacy `wear a else b` spelling is rejected because its ordered fallback meaning cannot be silently migrated into unordered eligibility. Runtime `wear` and `doff` request planning where required and never mutate an immutable plan in place. Owner: #4115.
+
+Body construction schema 2 owns this wardrobe shape. Schema 1 remains a
+distinct legacy contract and is not reinterpreted as unordered eligibility.
 
 ### host source
 

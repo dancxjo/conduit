@@ -297,12 +297,14 @@ with masks/native-graphical as graphical
 with masks/spoken as spoken
 
 body roseau {
-    wear graphical else spoken
+    wear graphical, spoken
     want graphical over spoken
 }
 ```
 
-The fallback is admitted into the plan. Without authored `else`, loss requires ordinary replacement planning instead of a secret runtime fallback.
+The comma list is unordered eligibility. The optional `want` line alone carries
+preference. Same-plan recovery can select only an eligible route already sealed
+by that immutable plan; a newly available route requires ordinary replacement planning.
 
 ## What Conduitese deliberately does not have
 

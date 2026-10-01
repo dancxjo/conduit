@@ -16,6 +16,7 @@ pub fn canonical_body_description_conduit(
     canonical
         .hosts
         .sort_by(|left, right| left.name.cmp(&right.name));
+    canonical.wardrobe.worn.sort();
     let mut source = String::new();
     for imported in &canonical.mask_imports {
         if !is_name(&imported.alias) || imported.source.trim().is_empty() {
@@ -63,12 +64,8 @@ pub fn canonical_body_description_conduit(
         }
         source.push_str("}\n");
     }
-    for route in &canonical.wardrobe.worn {
-        write!(&mut source, "  wear {}", route.mask).map_err(encode)?;
-        if let Some(fallback) = &route.fallback {
-            write!(&mut source, " else {fallback}").map_err(encode)?;
-        }
-        source.push('\n');
+    if !canonical.wardrobe.worn.is_empty() {
+        writeln!(&mut source, "  wear {}", canonical.wardrobe.worn.join(", ")).map_err(encode)?;
     }
     if !canonical.wardrobe.preference.is_empty() {
         writeln!(
@@ -108,8 +105,8 @@ mod tests {
     use super::*;
     use crate::{
         parse_body_description_conduit, BodyBindingTarget, BodyHostDescription,
-        BodyMaskImportDescription, BodyMaskRouteDescription, BodyWardrobeDescription,
-        SporeDescription, SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
+        BodyMaskImportDescription, BodyWardrobeDescription, SporeDescription, SporeJoinMode,
+        BODY_DESCRIPTION_SCHEMA,
     };
     use conduit_host_make::SporeOutputKind;
 
@@ -159,7 +156,7 @@ mod tests {
 
     #[test]
     fn authored_mask_wardrobe_round_trips_as_planning_input() {
-        let source = "with masks/native-graphical as graphical\nwith masks/spoken as spoken\n\nbody roseau {\n  schema = 1\n  id = \"body:roseau\"\n  host = {name: \"main\", part: \"part:main\", configuration: \"main.host.conduit\", spore: {join_mode: \"prejoined\", output: \"native-bundle\"}}\n  wear graphical else spoken\n  want graphical over spoken\n}\n";
+        let source = "with masks/native-graphical as graphical\nwith masks/spoken as spoken\n\nbody roseau {\n  schema = 2\n  id = \"body:roseau\"\n  host = {name: \"main\", part: \"part:main\", configuration: \"main.host.conduit\", spore: {join_mode: \"prejoined\", output: \"native-bundle\"}}\n  wear graphical, spoken\n  want graphical over spoken\n}\n";
         let description = parse_body_description_conduit(source).unwrap();
         assert_eq!(
             description.mask_imports,
@@ -177,10 +174,7 @@ mod tests {
         assert_eq!(
             description.wardrobe,
             BodyWardrobeDescription {
-                worn: vec![BodyMaskRouteDescription {
-                    mask: "graphical".into(),
-                    fallback: Some("spoken".into()),
-                }],
+                worn: vec!["graphical".into(), "spoken".into()],
                 preference: vec!["graphical".into(), "spoken".into()],
             }
         );
@@ -188,6 +182,38 @@ mod tests {
             canonical_body_description_conduit(&description).unwrap(),
             source
         );
+    }
+
+    #[test]
+    fn wardrobe_source_order_does_not_change_canonical_construction() {
+        let mut description = BodyDescription {
+            schema: BODY_DESCRIPTION_SCHEMA,
+            name: "roseau".into(),
+            body: BodyBindingTarget {
+                id: "body:roseau".into(),
+            },
+            hosts: Vec::new(),
+            mask_imports: vec![
+                BodyMaskImportDescription {
+                    alias: "graphical".into(),
+                    source: "masks/native-graphical".into(),
+                },
+                BodyMaskImportDescription {
+                    alias: "spoken".into(),
+                    source: "masks/spoken".into(),
+                },
+            ],
+            wardrobe: BodyWardrobeDescription {
+                worn: vec!["spoken".into(), "graphical".into()],
+                preference: Vec::new(),
+            },
+        };
+        let first = canonical_body_description_conduit(&description).unwrap();
+        description.wardrobe.worn.reverse();
+        let second = canonical_body_description_conduit(&description).unwrap();
+        assert_eq!(first, second);
+        assert!(first.contains("  wear graphical, spoken\n"));
+        assert!(!first.contains("  want "));
     }
 
     fn host(name: &str, part: &str, configuration: &str) -> BodyHostDescription {

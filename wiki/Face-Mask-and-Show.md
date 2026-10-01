@@ -123,14 +123,15 @@ with masks/native-graphical as graphical
 with masks/spoken as spoken
 
 body roseau {
-    wear graphical else spoken
+    wear graphical, spoken
     want graphical over spoken
 }
 ```
 
-`wear graphical else spoken` puts the fallback structure into the plan.
+`wear graphical, spoken` permits either mask without ranking them. Only routes
+already sealed into the current plan are candidates for same-plan selection.
 
-`want` is policy among semantically eligible alternatives. It cannot make an ineligible mask valid.
+`want` is optional policy among semantically eligible alternatives. It cannot make an ineligible mask valid.
 
 Runtime `wear` and `doff` request wardrobe change and therefore planning where required. They do not mutate an immutable plan.
 

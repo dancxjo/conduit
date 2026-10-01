@@ -1,5 +1,5 @@
 body pete-r1 {
-  schema = 1
+  schema = 2
   id = "body:pete-r1"
   host = {name: "forebrain", part: "part:forebrain", configuration: "../../../targets/std/profiles/linux-computer.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}, deployment: {destination: "target/body-deploy/pete-r1/forebrain"}}
   host = {name: "brainstem", part: "part:brainstem", configuration: "../../../targets/rp2040/profiles/pico-w.host.conduit", spore: {join_mode: "prejoined", output: "uf2"}}

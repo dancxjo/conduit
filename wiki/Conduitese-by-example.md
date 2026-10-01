@@ -365,12 +365,13 @@ with masks/native-graphical as graphical
 with masks/spoken as spoken
 
 body roseau {
-    wear graphical else spoken
+    wear graphical, spoken
     want graphical over spoken
 }
 ```
 
-The body asks planning for a graphical mask with a pre-admitted spoken fallback.
+The body permits either mask. The optional `want` line expresses its preference;
+the comma list does not.
 
 ## host construction
 
