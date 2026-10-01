@@ -6,7 +6,7 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 const BOX_WIDTH: i32 = 420;
-const BOX_HEIGHT: i32 = 112;
+const BOX_HEIGHT: i32 = 154;
 const COLUMN_GAP: i32 = 70;
 const ROW_GAP: i32 = 70;
 const LEVEL_GAP: i32 = 90;
@@ -83,7 +83,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         "<desc id=\"desc\">Checked Conduit Form with exact typed port connections.</desc>"
     )
     .unwrap();
-    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#172033}.canvas{fill:#fbfcfe}.gear{fill:#fff;stroke:#52647d;stroke-width:2}.header{fill:#dce7f5}.boundary{fill:#eef8ee;stroke:#4f7654;stroke-width:2}.port{fill:#fff;stroke:#315c87;stroke-width:3}.cord-shadow{fill:none;stroke:#fff;stroke-width:7}.cord{fill:none;stroke:#3973ac;stroke-width:3}.close{stroke:#666;stroke-dasharray:8 5}.quiescence{stroke:#7851a9;stroke-dasharray:3 5}.abnormal{stroke:#b64040;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.port-label{font-size:14px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
+    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#172033}.canvas{fill:#fbfcfe}.gear{fill:#f7f9fc;stroke:#52647d;stroke-width:2}.header{fill:#dce7f5}.boundary{fill:#eef8ee;stroke:#4f7654;stroke-width:2}.port{fill:#fff;stroke:#315c87;stroke-width:3}.cord-shadow{fill:none;stroke:#fff;stroke-width:7}.cord{fill:none;stroke:#3973ac;stroke-width:3}.close{stroke:#666;stroke-dasharray:8 5}.quiescence{stroke:#7851a9;stroke-dasharray:3 5}.abnormal{stroke:#b64040;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.port-name{font-size:13px;font-weight:700}.port-kind{fill:#52647d;font-size:11px}.cord-tag{fill:#e8f1fb;stroke:#7b9abb;stroke-width:1}.cord-label{font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
     svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3973ac"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b64040"/></marker></defs>"##);
     writeln!(
         svg,
@@ -137,7 +137,19 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                 connection.sink_port_id.as_str(),
             )),
         ) {
-            draw_cord(&mut svg, *from, *to, connection.track);
+            draw_cord(
+                &mut svg,
+                *from,
+                *to,
+                connection.track,
+                &format!(
+                    "{}.{} → {}.{}",
+                    connection.source_gear_id.as_str(),
+                    connection.source_port_id.as_str(),
+                    connection.sink_gear_id.as_str(),
+                    connection.sink_port_id.as_str()
+                ),
+            );
         }
     }
     for binding in &authoring.input_bindings {
@@ -145,7 +157,18 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
             front_input_points.get(binding.front_port_id.as_str()),
             inputs.get(&(binding.gear_id.as_str(), binding.gear_port_id.as_str())),
         ) {
-            draw_cord(&mut svg, *from, *to, binding.track);
+            draw_cord(
+                &mut svg,
+                *from,
+                *to,
+                binding.track,
+                &format!(
+                    "Form.{} → {}.{}",
+                    binding.front_port_id.as_str(),
+                    binding.gear_id.as_str(),
+                    binding.gear_port_id.as_str()
+                ),
+            );
         }
     }
     for binding in &authoring.output_bindings {
@@ -153,7 +176,18 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
             outputs.get(&(binding.gear_id.as_str(), binding.gear_port_id.as_str())),
             front_output_points.get(binding.front_port_id.as_str()),
         ) {
-            draw_cord(&mut svg, *from, *to, binding.track);
+            draw_cord(
+                &mut svg,
+                *from,
+                *to,
+                binding.track,
+                &format!(
+                    "{}.{} → Form.{}",
+                    binding.gear_id.as_str(),
+                    binding.gear_port_id.as_str(),
+                    binding.front_port_id.as_str()
+                ),
+            );
         }
     }
     svg.push_str(&nodes);
@@ -197,7 +231,7 @@ fn draw_gear<'a>(
     outputs: &mut BTreeMap<(&'a str, &'a str), Point>,
 ) {
     let gear = layout.gear;
-    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{BOX_HEIGHT}\" rx=\"10\"/><path class=\"header\" d=\"M{},{} h{BOX_WIDTH} v52 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.x, layout.y).unwrap();
+    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{BOX_HEIGHT}\" rx=\"10\"/><path class=\"header\" d=\"M{},{} q0,-10 10,-10 h400 q10,0 10,10 v42 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.x, layout.y + 10).unwrap();
     writeln!(
         svg,
         "<title>{} — kind {}</title>",
@@ -217,7 +251,7 @@ fn draw_gear<'a>(
             point,
             port.port_id.as_str(),
             port.value_kind.as_str(),
-            true,
+            72,
         );
     }
     for (index, port) in gear.outputs.iter().enumerate() {
@@ -231,7 +265,7 @@ fn draw_gear<'a>(
             point,
             port.port_id.as_str(),
             port.value_kind.as_str(),
-            false,
+            -35,
         );
     }
     svg.push_str("</g>\n");
@@ -251,15 +285,16 @@ fn shorten(value: &str, maximum_chars: usize) -> String {
     }
 }
 
-fn draw_port(svg: &mut String, point: Point, name: &str, kind: &str, input: bool) {
+fn draw_port(svg: &mut String, point: Point, name: &str, kind: &str, name_offset: i32) {
     writeln!(
         svg,
         "<circle class=\"port\" cx=\"{}\" cy=\"{}\" r=\"5\"/>",
         point.x, point.y
     )
     .unwrap();
-    let y = if input { point.y + 20 } else { point.y - 10 };
-    writeln!(svg, "<text class=\"port-label\" text-anchor=\"middle\" x=\"{}\" y=\"{y}\">{}</text><title>{}: {}</title>", point.x, escape(&shorten(name, 18)), escape(name), escape(kind)).unwrap();
+    let name_y = point.y + name_offset;
+    let kind_y = name_y + 15;
+    writeln!(svg, "<g><title>{}: {}</title><text class=\"port-name\" text-anchor=\"middle\" x=\"{}\" y=\"{name_y}\">{}</text><text class=\"port-kind\" text-anchor=\"middle\" x=\"{}\" y=\"{kind_y}\">{}</text></g>", escape(name), escape(kind), point.x, escape(&shorten(name, 18)), point.x, escape(&shorten(kind, 24))).unwrap();
 }
 
 fn draw_boundary(
@@ -282,7 +317,7 @@ fn draw_boundary(
             point,
             port.port_id.as_str(),
             port.value_kind.as_str(),
-            !input,
+            if input { -35 } else { 40 },
         );
     }
 }
@@ -308,7 +343,7 @@ fn boundary_points(
         .collect()
 }
 
-fn draw_cord(svg: &mut String, from: Point, to: Point, track: ConnectionTrack) {
+fn draw_cord(svg: &mut String, from: Point, to: Point, track: ConnectionTrack, detail: &str) {
     let bend = ((to.y - from.y).abs() / 2).max(40);
     let (class, marker) = match track {
         ConnectionTrack::Payload => ("cord", "arrow"),
@@ -327,7 +362,20 @@ fn draw_cord(svg: &mut String, from: Point, to: Point, track: ConnectionTrack) {
         to.x,
         to.y
     );
-    writeln!(svg, "<path class=\"cord-shadow\" d=\"{path}\"/><path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"{path}\"/>").unwrap();
+    let label = format!("{} · {}", shorten(detail, 38), track_name(track));
+    let label_width = (label.chars().count() as i32 * 7 + 18).clamp(90, 360);
+    let label_x = (from.x + to.x) / 2;
+    let label_y = (from.y + to.y) / 2;
+    writeln!(svg, "<g><title>{} · {}</title><path class=\"cord-shadow\" d=\"{path}\"/><path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"{path}\"/><rect class=\"cord-tag\" x=\"{}\" y=\"{}\" width=\"{label_width}\" height=\"22\" rx=\"6\"/><text class=\"cord-label\" text-anchor=\"middle\" x=\"{label_x}\" y=\"{}\">{}</text></g>", escape(detail), track_name(track), label_x - label_width / 2, label_y - 15, label_y, escape(&label)).unwrap();
+}
+
+fn track_name(track: ConnectionTrack) -> &'static str {
+    match track {
+        ConnectionTrack::Payload => "payload",
+        ConnectionTrack::NormalClose => "close",
+        ConnectionTrack::AbnormalTerminal => "abnormal",
+        ConnectionTrack::Quiescence => "quiescence",
+    }
 }
 
 fn render_mermaid(authoring: &ExpandedAuthoringForm) -> String {
@@ -430,6 +478,10 @@ mod tests {
         assert!(svg.contains("text"));
         assert!(svg.contains("marker-end=\"url(#arrow)\""));
         assert!(svg.contains("kind · text/join"));
+        assert!(svg.contains("class=\"port-kind\""));
+        assert!(svg.contains("main/pass.text → Form.shown · payload"));
+        assert!(svg.contains("class=\"cord-tag\""));
+        assert!(svg.contains("q0,-10 10,-10"));
         assert!(svg.contains("width=\"1010\""));
         assert!(!svg.contains("text/join(\"&\")"));
     }
