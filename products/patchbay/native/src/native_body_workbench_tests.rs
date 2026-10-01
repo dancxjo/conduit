@@ -70,15 +70,15 @@ fn fixture(choice: BodyGraduationChoice) -> (patchbay_graph::PatchbayGraph, Vec<
     evidence
         .append_membership_events(membership, &[(admitted, 2), (joined, 3)])
         .unwrap();
-    let hosted = choice == BodyGraduationChoice::HostedPatchbay;
+    let hosted = choice == BodyGraduationChoice::HostedReader;
     evidence
         .graduate(BodyGraduationEvidence {
             body_id: evidence.body_id.clone(),
             sequence: 4,
             sign_id: SignId::from("sign/native-fixture/graduated"),
             choice,
-            patchbay_plan_id: hosted.then(|| PlanId::from(PLAN)),
-            patchbay_implementation_id: hosted.then(|| ImplementationId::from(IMPLEMENTATION)),
+            reader_plan_id: hosted.then(|| PlanId::from(PLAN)),
+            reader_implementation_id: hosted.then(|| ImplementationId::from(IMPLEMENTATION)),
         })
         .unwrap();
     (graph, serde_json::to_vec(&evidence).unwrap())
@@ -86,7 +86,7 @@ fn fixture(choice: BodyGraduationChoice) -> (patchbay_graph::PatchbayGraph, Vec<
 
 #[test]
 fn hosted_and_external_destinations_reuse_program_body_and_body_signs_semantics() {
-    let (graph, evidence) = fixture(BodyGraduationChoice::HostedPatchbay);
+    let (graph, evidence) = fixture(BodyGraduationChoice::HostedReader);
     let hosted = NativeBodyWorkbench::open(
         1,
         evidence.clone(),

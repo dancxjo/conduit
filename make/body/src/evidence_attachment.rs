@@ -55,9 +55,9 @@ impl BodyEvidenceAttachment {
                 .graduation
                 .as_ref()
                 .ok_or(BodyEvidenceEntranceError::MissingGraduation)?;
-            let exact_placement = graduation.choice == BodyGraduationChoice::HostedPatchbay
-                && graduation.patchbay_plan_id.as_ref() == Some(plan_id)
-                && graduation.patchbay_implementation_id.as_ref() == Some(implementation_id);
+            let exact_placement = graduation.choice == BodyGraduationChoice::HostedReader
+                && graduation.reader_plan_id.as_ref() == Some(plan_id)
+                && graduation.reader_implementation_id.as_ref() == Some(implementation_id);
             if !exact_placement {
                 return Err(BodyEvidenceEntranceError::HostedPlacementMismatch);
             }
@@ -101,7 +101,7 @@ mod tests {
         let membership = BodyMembership::new(body.body_id.clone()).unwrap();
         let mut evidence = BodyBiographyEvidence::born(body, membership, "Talvi".into()).unwrap();
         let (plan_id, implementation_id) = match choice {
-            BodyGraduationChoice::HostedPatchbay => (
+            BodyGraduationChoice::HostedReader => (
                 Some(PlanId::from(HOSTED_PLAN)),
                 Some(ImplementationId::from(HOSTED_IMPLEMENTATION)),
             ),
@@ -113,8 +113,8 @@ mod tests {
                 sequence: 2,
                 sign_id: SignId::from("sign/graduated"),
                 choice,
-                patchbay_plan_id: plan_id,
-                patchbay_implementation_id: implementation_id,
+                reader_plan_id: plan_id,
+                reader_implementation_id: implementation_id,
             })
             .unwrap();
         evidence
@@ -126,7 +126,13 @@ mod tests {
 
     #[test]
     fn exact_hosted_and_external_entrances_open_the_same_durable_evidence() {
-        let encoded = encoded(BodyGraduationChoice::HostedPatchbay);
+        let encoded = encoded(BodyGraduationChoice::HostedReader);
+        let durable_wire = core::str::from_utf8(&encoded).unwrap();
+        assert!(durable_wire.contains("\"choice\":\"HostedPatchbay\""));
+        assert!(durable_wire.contains("\"patchbay_plan_id\""));
+        assert!(durable_wire.contains("\"patchbay_implementation_id\""));
+        assert!(!durable_wire.contains("reader_plan_id"));
+        assert!(!durable_wire.contains("reader_implementation_id"));
         let hosted = BodyEvidenceAttachment::open_serialized(
             &encoded,
             BodyEvidenceEntrance::Hosted {
@@ -144,7 +150,7 @@ mod tests {
     #[test]
     fn hosted_entrance_refuses_missing_or_mismatched_graduation_placement() {
         let wrong = BodyEvidenceAttachment::open_serialized(
-            &encoded(BodyGraduationChoice::HostedPatchbay),
+            &encoded(BodyGraduationChoice::HostedReader),
             BodyEvidenceEntrance::Hosted {
                 plan_id: PlanId::from("plan/wrong"),
                 implementation_id: ImplementationId::from(HOSTED_IMPLEMENTATION),

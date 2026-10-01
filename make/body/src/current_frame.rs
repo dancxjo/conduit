@@ -209,14 +209,14 @@ fn reader(attachment: &BodyEvidenceAttachment) -> CurrentBodyReaderPlacement {
                 return CurrentBodyReaderPlacement::ExternalReadingUngraduatedBody;
             };
             match graduation.choice {
-                BodyGraduationChoice::HostedPatchbay => {
+                BodyGraduationChoice::HostedReader => {
                     CurrentBodyReaderPlacement::ExternalReadingHosted {
                         hosted_plan_id: graduation
-                            .patchbay_plan_id
+                            .reader_plan_id
                             .clone()
                             .expect("validated hosted graduation has a plan"),
                         hosted_implementation_id: graduation
-                            .patchbay_implementation_id
+                            .reader_implementation_id
                             .clone()
                             .expect("validated hosted graduation has an implementation"),
                     }

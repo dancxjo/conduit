@@ -26,8 +26,8 @@ fn session() -> BodyWorkloadSession {
             sequence: 2,
             sign_id: SignId::from("sign/graduated"),
             choice: BodyGraduationChoice::ExternalReader,
-            patchbay_plan_id: None,
-            patchbay_implementation_id: None,
+            reader_plan_id: None,
+            reader_implementation_id: None,
         })
         .unwrap();
     BodyWorkloadSession::open_serialized(&serde_json::to_vec(&evidence).unwrap()).unwrap()
