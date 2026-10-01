@@ -707,65 +707,72 @@ pub(crate) fn with_generative_presenter_request<T>(
 
 #[cfg(test)]
 fn navigation_time() -> conduit_semantic_catalog::NavigationTime {
-    conduit_semantic_catalog::NavigationTime {
-        clock_identity: "clock/fixture".into(),
-        now_ms: 500,
-    }
+    conduit_semantic_catalog::NavigationTime::new(navigation_id("clock/fixture"), 500).unwrap()
 }
 
 #[cfg(test)]
 fn navigation_pose() -> conduit_semantic_catalog::NavigationPose {
-    conduit_semantic_catalog::NavigationPose {
-        source_identity: "pose/fixture".into(),
-        sample_sequence: 7,
-        clock_identity: "clock/fixture".into(),
-        frame: "map/local".into(),
-        x_mm: 50,
-        y_mm: 50,
-        heading_microdegrees: 0,
-        validity: conduit_semantic_catalog::Validity {
-            observed_at_ms: 400,
-            valid_until_ms: 600,
-        },
-    }
+    conduit_semantic_catalog::NavigationPose::new(
+        navigation_id("clock/fixture"),
+        navigation_id("map/local"),
+        0,
+        7,
+        navigation_id("pose/fixture"),
+        navigation_validity(),
+        50,
+        50,
+    )
+    .unwrap()
 }
 
 #[cfg(test)]
 fn navigation_goal() -> conduit_semantic_catalog::NavigationGoal {
-    conduit_semantic_catalog::NavigationGoal {
-        identity: "goal/B".into(),
-        clock_identity: "clock/fixture".into(),
-        valid_until_ms: 1_000,
-        target: conduit_semantic_catalog::GoalTarget::Reach {
-            frame: "map/local".into(),
-            x_mm: 250,
-            y_mm: 250,
-            heading_microdegrees: 0,
-            position_tolerance_mm: 5,
-            heading_tolerance_microdegrees: 2_000_000,
-        },
-    }
+    let target = conduit_semantic_catalog::GoalTarget::reach(
+        navigation_id("map/local"),
+        0,
+        2_000_000,
+        5,
+        250,
+        250,
+    )
+    .unwrap();
+    conduit_semantic_catalog::NavigationGoal::new(
+        navigation_id("clock/fixture"),
+        navigation_id("goal/B"),
+        target,
+        1_000,
+    )
+    .unwrap()
 }
 
 #[cfg(test)]
 fn navigation_grid() -> conduit_semantic_catalog::Traversability4x4 {
     let mut cells = [conduit_semantic_catalog::TraversabilityCell::Free; 16];
     cells[1] = conduit_semantic_catalog::TraversabilityCell::Blocked;
-    conduit_semantic_catalog::Traversability4x4 {
-        source_identity: "grid/fixture".into(),
-        sample_sequence: 11,
-        clock_identity: "clock/fixture".into(),
-        frame: "map/local".into(),
-        origin_x_mm: 0,
-        origin_y_mm: 0,
-        cell_width_mm: 100,
-        cell_height_mm: 100,
-        validity: conduit_semantic_catalog::Validity {
-            observed_at_ms: 400,
-            valid_until_ms: 600,
-        },
+    let cells = conduit_robotics::NavigationTraversabilityCells::new(cells).unwrap();
+    conduit_semantic_catalog::Traversability4x4::new(
+        100,
+        100,
         cells,
-    }
+        navigation_id("clock/fixture"),
+        navigation_id("map/local"),
+        0,
+        0,
+        11,
+        navigation_id("grid/fixture"),
+        navigation_validity(),
+    )
+    .unwrap()
+}
+
+#[cfg(test)]
+fn navigation_id(value: &str) -> conduit_robotics::NavigationIdentity64 {
+    conduit_robotics::NavigationIdentity64::new(value.into()).unwrap()
+}
+
+#[cfg(test)]
+fn navigation_validity() -> conduit_semantic_catalog::Validity {
+    conduit_semantic_catalog::Validity::new(400, 600).unwrap()
 }
 
 pub(crate) fn recorded_house_audio() -> Result<Vec<u8>, String> {

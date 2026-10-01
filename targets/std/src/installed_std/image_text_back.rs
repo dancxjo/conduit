@@ -422,7 +422,7 @@ mod tests {
                 conduit_semantic_catalog::image_text_record_from_value(&value, &profile).unwrap();
             assert_eq!(record.caption, "At the pier");
             assert_eq!(record.image.width, 64);
-            assert!(record.metadata.is_empty());
+            assert!(record.metadata.get().is_empty());
         }
     }
 
