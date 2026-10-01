@@ -6,8 +6,7 @@
 use alloc::{vec, vec::Vec};
 
 use crate::{
-    morse_table, MorseError, MorsePattern, MorseSegment, MAXIMUM_MORSE_INPUT_BYTES,
-    MAXIMUM_MORSE_SEGMENTS,
+    morse_table, MorseError, MorsePattern, MAXIMUM_MORSE_INPUT_BYTES, MAXIMUM_MORSE_SEGMENTS,
 };
 
 pub const MORSE_CHARACTERS_VALUE_KIND: &str = "value/morse-characters@1";
@@ -137,26 +136,11 @@ pub fn morse_symbols_to_pattern(input: &[u8], unit_millis: u16) -> Result<Vec<u8
     let mut segments = Vec::with_capacity(tokens.len());
     for token in tokens {
         let segment = match *token {
-            DOT => MorseSegment {
-                level: true,
-                units: 1,
-            },
-            DASH => MorseSegment {
-                level: true,
-                units: 3,
-            },
-            INTRA_GAP => MorseSegment {
-                level: false,
-                units: 1,
-            },
-            LETTER_GAP => MorseSegment {
-                level: false,
-                units: 3,
-            },
-            WORD_GAP => MorseSegment {
-                level: false,
-                units: 7,
-            },
+            DOT => crate::morse::morse_segment(true, 1),
+            DASH => crate::morse::morse_segment(true, 3),
+            INTRA_GAP => crate::morse::morse_segment(false, 1),
+            LETTER_GAP => crate::morse::morse_segment(false, 3),
+            WORD_GAP => crate::morse::morse_segment(false, 7),
             _ => return Err(MorseError::NonCanonicalEncoding),
         };
         segments.push(segment);
@@ -172,7 +156,7 @@ pub fn morse_pattern_to_symbols(input: &[u8]) -> Result<Vec<u8>, MorseError> {
     let pattern = MorsePattern::decode(input)?;
     let mut tokens = Vec::with_capacity(pattern.segments.len());
     for segment in pattern.segments {
-        tokens.push(match (segment.level, segment.units) {
+        tokens.push(match (*segment.level(), *segment.units()) {
             (true, 1) => DOT,
             (true, 3) => DASH,
             (false, 1) => INTRA_GAP,

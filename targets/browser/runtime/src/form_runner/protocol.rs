@@ -276,8 +276,8 @@ pub(super) fn decode_manifestation(
                     .segments
                     .into_iter()
                     .map(|segment| IndicatorSegment {
-                        level: segment.level,
-                        units: segment.units,
+                        level: *segment.level(),
+                        units: *segment.units(),
                     })
                     .collect(),
                 None,

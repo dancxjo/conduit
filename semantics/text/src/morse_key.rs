@@ -82,14 +82,14 @@ impl MorseKeyInterpreter {
 
         let segment = match (*transition.phase(), self.last_micros) {
             (MorseKeyPhase::Pressed, None) => None,
-            (MorseKeyPhase::Pressed, Some(previous)) => Some(MorseSegment {
-                level: false,
-                units: self.classify(*transition.monotonic_micros() - previous, &[1, 3, 7])?,
-            }),
-            (MorseKeyPhase::Released, Some(previous)) => Some(MorseSegment {
-                level: true,
-                units: self.classify(*transition.monotonic_micros() - previous, &[1, 3])?,
-            }),
+            (MorseKeyPhase::Pressed, Some(previous)) => Some(crate::morse::morse_segment(
+                false,
+                self.classify(*transition.monotonic_micros() - previous, &[1, 3, 7])?,
+            )),
+            (MorseKeyPhase::Released, Some(previous)) => Some(crate::morse::morse_segment(
+                true,
+                self.classify(*transition.monotonic_micros() - previous, &[1, 3])?,
+            )),
             (MorseKeyPhase::Released, None) => return Err(MorseKeyRefusal::WrongPhase),
         };
         if let Some(segment) = segment {
@@ -160,12 +160,12 @@ mod tests {
         let mut sequence = 0_u64;
         values.push(transition(sequence, micros, MorseKeyPhase::Pressed));
         for segment in &pattern.segments {
-            micros += u64::from(pattern.unit_millis) * 1_000 * u64::from(segment.units);
+            micros += u64::from(pattern.unit_millis) * 1_000 * u64::from(*segment.units());
             sequence += 1;
             values.push(transition(
                 sequence,
                 micros,
-                if segment.level {
+                if *segment.level() {
                     MorseKeyPhase::Released
                 } else {
                     MorseKeyPhase::Pressed
@@ -286,34 +286,13 @@ mod tests {
         let pattern = MorsePattern {
             unit_millis: 200,
             segments: vec![
-                MorseSegment {
-                    level: true,
-                    units: 1,
-                },
-                MorseSegment {
-                    level: false,
-                    units: 1,
-                },
-                MorseSegment {
-                    level: true,
-                    units: 1,
-                },
-                MorseSegment {
-                    level: false,
-                    units: 1,
-                },
-                MorseSegment {
-                    level: true,
-                    units: 3,
-                },
-                MorseSegment {
-                    level: false,
-                    units: 1,
-                },
-                MorseSegment {
-                    level: true,
-                    units: 3,
-                },
+                crate::morse::morse_segment(true, 1),
+                crate::morse::morse_segment(false, 1),
+                crate::morse::morse_segment(true, 1),
+                crate::morse::morse_segment(false, 1),
+                crate::morse::morse_segment(true, 3),
+                crate::morse::morse_segment(false, 1),
+                crate::morse::morse_segment(true, 3),
             ],
         };
         let values = transitions(&pattern);

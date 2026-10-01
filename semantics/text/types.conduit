@@ -4,6 +4,11 @@ type MorseKeyPhase =
     pressed
     | released
 
+type MorseSegment = {
+    level: Boolean
+    units: U8
+}
+
 type MorseKeyTransition = {
     clock_basis: Text <= 96B not in [""]
     monotonic_micros: U64
