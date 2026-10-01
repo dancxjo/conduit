@@ -5,13 +5,14 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
 
-const BOX_WIDTH: i32 = 420;
-const BOX_HEIGHT: i32 = 110;
-const COLUMN_GAP: i32 = 120;
-const ROW_GAP: i32 = 100;
-const LEVEL_GAP: i32 = 150;
+const BOX_WIDTH: i32 = 360;
+const HEADER_HEIGHT: i32 = 52;
+const PORT_ROW: i32 = 26;
+const MIN_BOX_HEIGHT: i32 = 120;
+const COLUMN_GAP: i32 = 170;
+const ROW_GAP: i32 = 70;
+const BOUNDARY_WIDTH: i32 = 220;
 const MARGIN: i32 = 50;
-const COLUMNS: usize = 2;
 
 pub(crate) fn run(form: &Path, format: DiagramFormat, output: Option<&Path>) -> Result<(), String> {
     let source = crate::form_source::load(form)?;
@@ -44,6 +45,12 @@ struct BoxLayout<'a> {
     gear: &'a conduit_form::CheckedGear,
     x: i32,
     y: i32,
+    height: i32,
+}
+
+fn gear_height(gear: &conduit_form::CheckedGear) -> i32 {
+    (HEADER_HEIGHT + gear.inputs.len().max(gear.outputs.len()).max(1) as i32 * PORT_ROW + 24)
+        .max(MIN_BOX_HEIGHT)
 }
 
 fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
@@ -54,24 +61,36 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         let level = levels.get(gear.gear_id.as_str()).copied().unwrap_or(0);
         by_level.entry(level).or_default().push(gear);
     }
-    let width = MARGIN * 2 + COLUMNS as i32 * BOX_WIDTH + (COLUMNS as i32 - 1) * COLUMN_GAP;
+    let level_count = by_level.len().max(1) as i32;
+    let width =
+        MARGIN * 2 + BOUNDARY_WIDTH * 2 + level_count * BOX_WIDTH + (level_count + 1) * COLUMN_GAP;
+    let tallest_column = by_level
+        .values()
+        .map(|gears| {
+            gears.iter().map(|gear| gear_height(gear)).sum::<i32>()
+                + gears.len().saturating_sub(1) as i32 * ROW_GAP
+        })
+        .max()
+        .unwrap_or(MIN_BOX_HEIGHT);
+    let height = (tallest_column + 220).max(520);
     let mut boxes = Vec::new();
-    let mut y = 220;
+    let mut x = MARGIN + BOUNDARY_WIDTH + COLUMN_GAP;
     for gears in by_level.values() {
-        for (index, gear) in gears.iter().enumerate() {
-            let column = index % COLUMNS;
-            let row = index / COLUMNS;
+        let column_height = gears.iter().map(|gear| gear_height(gear)).sum::<i32>()
+            + gears.len().saturating_sub(1) as i32 * ROW_GAP;
+        let mut y = (height - column_height) / 2;
+        for gear in gears {
+            let box_height = gear_height(gear);
             boxes.push(BoxLayout {
                 gear,
-                x: MARGIN + column as i32 * (BOX_WIDTH + COLUMN_GAP),
-                y: y + row as i32 * (BOX_HEIGHT + ROW_GAP),
+                x,
+                y,
+                height: box_height,
             });
+            y += box_height + ROW_GAP;
         }
-        let rows = gears.len().div_ceil(COLUMNS).max(1) as i32;
-        y += rows * BOX_HEIGHT + (rows - 1) * ROW_GAP + LEVEL_GAP;
+        x += BOX_WIDTH + COLUMN_GAP;
     }
-    let output_y = y.max(250);
-    let height = output_y + 180;
     let mut svg = String::new();
     writeln!(
         svg,
@@ -89,8 +108,8 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         "<desc id=\"desc\">Checked Conduit Form with exact typed port connections.</desc>"
     )
     .unwrap();
-    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#17233c}.canvas{fill:#f5f1e8}.gear{fill:#fffdf8;stroke:#344766;stroke-width:2}.header{fill:#d9e8f2}.boundary{fill:#dfeee5;stroke:#39705a;stroke-width:2}.port{fill:#fffdf8;stroke:#176b87;stroke-width:3}.port-name{fill:#344766;font-size:11px;font-weight:700}.cord-shadow{fill:none;stroke:#f5f1e8;stroke-width:8}.cord{fill:none;stroke:#1677a6;stroke-width:3}.close{stroke:#657083;stroke-dasharray:8 5}.quiescence{stroke:#7656a8;stroke-dasharray:3 5}.abnormal{stroke:#c34f52;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.boundary-port{fill:#284c3c;font-size:12px;font-weight:650}.cord-tag{fill:#fff0cf;stroke:#bd8127;stroke-width:1}.cord-label{fill:#49320f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
-    svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1677a6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c34f52"/></marker></defs>"##);
+    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:none;stroke:#d0b876;stroke-width:2;stroke-linecap:round}.direction{fill:#9ba4aa;font-size:9px;font-weight:800;letter-spacing:1px}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#ddd6c7;font-size:11px;font-weight:700}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#d8e7dc;font-size:12px;font-weight:650}.cord-tag{fill:#292f35;stroke:#c99a4d;stroke-width:1}.cord-label{fill:#f1c46f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style>"#);
+    svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#55b7c6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e36964"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><g class="gear-mark"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4M4.2 4.2 7 7M17 17l2.8 2.8M19.8 4.2 17 7M7 17l-2.8 2.8"/></g></symbol></defs>"##);
     writeln!(
         svg,
         "<rect class=\"canvas\" width=\"{width}\" height=\"{height}\"/>"
@@ -112,25 +131,30 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
     }
     let front_inputs = authoring.front.inputs();
     let front_outputs = authoring.front.outputs();
-    let boundary_x = (width - BOX_WIDTH) / 2;
+    let input_boundary_height = boundary_height(front_inputs.len());
+    let output_boundary_height = boundary_height(front_outputs.len());
+    let input_boundary_y = (height - input_boundary_height) / 2;
+    let output_boundary_x = width - MARGIN - BOUNDARY_WIDTH;
+    let output_boundary_y = (height - output_boundary_height) / 2;
     draw_boundary(
         &mut nodes,
         "Form inputs",
-        boundary_x,
-        95,
+        MARGIN,
+        input_boundary_y,
         front_inputs,
         true,
     );
     draw_boundary(
         &mut nodes,
         "Form outputs",
-        boundary_x,
-        output_y,
+        output_boundary_x,
+        output_boundary_y,
         front_outputs,
         false,
     );
-    let front_input_points = boundary_points(boundary_x, 95, front_inputs, true);
-    let front_output_points = boundary_points(boundary_x, output_y, front_outputs, false);
+    let front_input_points = boundary_points(MARGIN, input_boundary_y, front_inputs, true);
+    let front_output_points =
+        boundary_points(output_boundary_x, output_boundary_y, front_outputs, false);
 
     let mut route_index = 0;
     for connection in &expanded.connections {
@@ -250,7 +274,7 @@ fn draw_gear<'a>(
     outputs: &mut BTreeMap<(&'a str, &'a str), PortAnchor>,
 ) {
     let gear = layout.gear;
-    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{BOX_HEIGHT}\" rx=\"10\"/><path class=\"header\" d=\"M{},{} q0,-10 10,-10 h400 q10,0 10,10 v42 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.x, layout.y + 10).unwrap();
+    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{}\" rx=\"10\"/><path class=\"header\" d=\"M{},{} q0,-10 10,-10 h340 q10,0 10,10 v42 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.height, layout.x, layout.y + 10).unwrap();
     writeln!(
         svg,
         "<title>{} — kind {}</title>",
@@ -258,11 +282,11 @@ fn draw_gear<'a>(
         escape(gear.kind_id.as_str())
     )
     .unwrap();
-    writeln!(svg, "<text class=\"label\" x=\"{}\" y=\"{}\">{}</text><text class=\"kind\" x=\"{}\" y=\"{}\">{}</text>", layout.x + 16, layout.y + 22, escape(&shorten(gear.gear_id.as_str(), 45)), layout.x + 16, layout.y + 43, escape(&shorten(gear.kind_id.as_str(), 52))).unwrap();
+    writeln!(svg, "<use href=\"#gear-mark\" x=\"{}\" y=\"{}\" width=\"28\" height=\"28\"/><text class=\"label\" x=\"{}\" y=\"{}\">{}</text><text class=\"kind\" x=\"{}\" y=\"{}\">{}</text><text class=\"direction\" x=\"{}\" y=\"{}\">IN</text><text class=\"direction\" text-anchor=\"end\" x=\"{}\" y=\"{}\">OUT</text>", layout.x + 12, layout.y + 11, layout.x + 50, layout.y + 22, escape(&shorten(gear.gear_id.as_str(), 33)), layout.x + 50, layout.y + 43, escape(&shorten(gear.kind_id.as_str(), 39)), layout.x + 12, layout.y + 68, layout.x + BOX_WIDTH - 12, layout.y + 68).unwrap();
     for (index, port) in gear.inputs.iter().enumerate() {
         let point = Point {
-            x: port_x(layout.x, index, gear.inputs.len()),
-            y: layout.y,
+            x: layout.x,
+            y: port_y(layout.y, index),
         };
         inputs.insert(
             (gear.gear_id.as_str(), port.port_id.as_str()),
@@ -277,13 +301,14 @@ fn draw_gear<'a>(
             point,
             port.port_id.as_str(),
             port.value_kind.as_str(),
-            70,
+            11,
+            true,
         );
     }
     for (index, port) in gear.outputs.iter().enumerate() {
         let point = Point {
-            x: port_x(layout.x, index, gear.outputs.len()),
-            y: layout.y + BOX_HEIGHT,
+            x: layout.x + BOX_WIDTH,
+            y: port_y(layout.y, index),
         };
         outputs.insert(
             (gear.gear_id.as_str(), port.port_id.as_str()),
@@ -298,14 +323,15 @@ fn draw_gear<'a>(
             point,
             port.port_id.as_str(),
             port.value_kind.as_str(),
-            -14,
+            -11,
+            false,
         );
     }
     svg.push_str("</g>\n");
 }
 
-fn port_x(box_x: i32, index: usize, count: usize) -> i32 {
-    box_x + ((index + 1) as i32 * BOX_WIDTH) / (count.max(1) as i32 + 1)
+fn port_y(box_y: i32, index: usize) -> i32 {
+    box_y + HEADER_HEIGHT + 28 + index as i32 * PORT_ROW
 }
 
 fn shorten(value: &str, maximum_chars: usize) -> String {
@@ -318,25 +344,34 @@ fn shorten(value: &str, maximum_chars: usize) -> String {
     }
 }
 
-fn draw_socket(svg: &mut String, point: Point, name: &str, kind: &str) {
+fn draw_socket(svg: &mut String, point: Point, name: &str, kind: &str, input: bool) {
     writeln!(
         svg,
-        "<g><title>{}: {}</title><circle class=\"port\" cx=\"{}\" cy=\"{}\" r=\"5\"/></g>",
+        "<g><title>{}: {}</title><circle class=\"port {}\" cx=\"{}\" cy=\"{}\" r=\"5\"/></g>",
         escape(name),
         escape(kind),
+        if input { "input-port" } else { "output-port" },
         point.x,
         point.y
     )
     .unwrap();
 }
 
-fn draw_gear_socket(svg: &mut String, point: Point, name: &str, kind: &str, label_offset: i32) {
-    draw_socket(svg, point, name, kind);
+fn draw_gear_socket(
+    svg: &mut String,
+    point: Point,
+    name: &str,
+    kind: &str,
+    label_offset: i32,
+    input: bool,
+) {
+    draw_socket(svg, point, name, kind, input);
     writeln!(
         svg,
-        "<text class=\"port-name\" text-anchor=\"middle\" x=\"{}\" y=\"{}\">{}</text>",
-        point.x,
-        point.y + label_offset,
+        "<text class=\"port-name\" text-anchor=\"{}\" x=\"{}\" y=\"{}\">{}</text>",
+        if input { "start" } else { "end" },
+        point.x + label_offset,
+        point.y + 4,
         escape(&shorten(name, 18))
     )
     .unwrap();
@@ -350,19 +385,26 @@ fn draw_boundary(
     ports: &[conduit_core::PortDescriptor],
     input: bool,
 ) {
-    let height = 74;
-    writeln!(svg, "<rect class=\"boundary\" x=\"{x}\" y=\"{y}\" width=\"{BOX_WIDTH}\" height=\"{height}\" rx=\"10\"/><text class=\"label\" x=\"{}\" y=\"{}\">{title}</text>", x + 16, y + 28).unwrap();
+    let height = boundary_height(ports.len());
+    writeln!(svg, "<rect class=\"boundary\" x=\"{x}\" y=\"{y}\" width=\"{BOUNDARY_WIDTH}\" height=\"{height}\" rx=\"10\"/><text class=\"label\" x=\"{}\" y=\"{}\">{title}</text>", x + 16, y + 28).unwrap();
     for (index, port) in ports.iter().enumerate() {
         let point = Point {
-            x: port_x(x, index, ports.len()),
-            y: if input { y + height } else { y },
+            x: if input { x + BOUNDARY_WIDTH } else { x },
+            y: y + 54 + index as i32 * PORT_ROW,
         };
-        draw_socket(svg, point, port.port_id.as_str(), port.value_kind.as_str());
+        draw_socket(
+            svg,
+            point,
+            port.port_id.as_str(),
+            port.value_kind.as_str(),
+            !input,
+        );
         writeln!(
             svg,
-            "<text class=\"boundary-port\" text-anchor=\"middle\" x=\"{}\" y=\"{}\">{} : {}</text>",
-            point.x,
-            y + 55,
+            "<text class=\"boundary-port\" text-anchor=\"{}\" x=\"{}\" y=\"{}\">{} : {}</text>",
+            if input { "end" } else { "start" },
+            point.x + if input { -12 } else { 12 },
+            point.y + 4,
             escape(&shorten(port.port_id.as_str(), 16)),
             escape(&shorten(
                 &information_label(port.value_kind.as_str(), port.port_id.as_str()),
@@ -371,6 +413,10 @@ fn draw_boundary(
         )
         .unwrap();
     }
+}
+
+fn boundary_height(port_count: usize) -> i32 {
+    (62 + port_count.max(1) as i32 * PORT_ROW).max(88)
 }
 
 fn boundary_points(
@@ -387,8 +433,8 @@ fn boundary_points(
                 port.port_id.as_str(),
                 PortAnchor {
                     point: Point {
-                        x: port_x(x, index, ports.len()),
-                        y: if input { y + 74 } else { y },
+                        x: if input { x + BOUNDARY_WIDTH } else { x },
+                        y: y + 54 + index as i32 * PORT_ROW,
                     },
                     kind: port.value_kind.as_str().to_string(),
                     name: port.port_id.as_str().to_string(),
@@ -407,39 +453,25 @@ fn draw_cord(
     detail: &str,
     route_index: usize,
 ) {
-    let bend = ((to.y - from.y).abs() / 2).max(40);
     let (class, marker) = match track {
         ConnectionTrack::Payload => ("cord", "arrow"),
         ConnectionTrack::NormalClose => ("cord close", "arrow"),
         ConnectionTrack::AbnormalTerminal => ("cord abnormal", "arrow-abnormal"),
         ConnectionTrack::Quiescence => ("cord quiescence", "arrow"),
     };
-    let lane_offsets = [-96, -48, 0, 48, 96];
-    let label_offsets = [-24, 0, 24];
-    let label_y = (from.y + to.y) / 2 + label_offsets[route_index % label_offsets.len()];
-    let lane_x = (from.x + to.x) / 2 + lane_offsets[route_index % lane_offsets.len()];
-    let path = format!(
-        "M{},{} C{},{} {},{} {},{} C{},{} {},{} {},{}",
-        from.x,
-        from.y,
-        from.x,
-        from.y + bend / 2,
-        lane_x,
-        label_y - bend / 2,
-        lane_x,
-        label_y,
-        lane_x,
-        label_y + bend / 2,
-        to.x,
-        to.y - bend / 2,
-        to.x,
-        to.y
-    );
+    let lane_offsets = [-48, -24, 0, 24, 48];
+    let midpoint = (from.x + to.x) / 2;
+    let minimum = from.x.min(to.x) + 18;
+    let maximum = from.x.max(to.x) - 18;
+    let lane_x = (midpoint + lane_offsets[route_index % lane_offsets.len()])
+        .clamp(minimum, maximum.max(minimum));
+    let path = format!("M{},{} H{} V{} H{}", from.x, from.y, lane_x, to.y, to.x);
     let label = match track {
         ConnectionTrack::Payload => information,
         _ => format!("{} · {}", information, track_name(track)),
     };
     let label_width = (label.chars().count() as i32 * 7 + 18).clamp(90, 360);
+    let label_y = (from.y + to.y) / 2;
     writeln!(svg, "<g><title>{} · {}</title><path class=\"cord-shadow\" d=\"{path}\"/><path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"{path}\"/><rect class=\"cord-tag\" x=\"{}\" y=\"{}\" width=\"{label_width}\" height=\"22\" rx=\"6\"/><text class=\"cord-label\" text-anchor=\"middle\" x=\"{lane_x}\" y=\"{}\">{}</text></g>", escape(detail), track_name(track), lane_x - label_width / 2, label_y - 15, label_y, escape(&label)).unwrap();
 }
 
@@ -595,11 +627,18 @@ mod tests {
         assert!(svg.contains("Form.shown · value/text · payload"));
         assert!(svg.contains("class=\"cord-tag\""));
         assert!(!svg.contains(">payload</text>"));
-        assert!(svg.contains(".canvas{fill:#f5f1e8}"));
-        assert!(svg.contains(".boundary{fill:#dfeee5"));
-        assert!(svg.contains("fill=\"#1677a6\""));
+        assert!(svg.contains(".canvas{fill:#171a1e}"));
+        assert!(svg.contains(".boundary{fill:#263b35"));
+        assert!(svg.contains("fill=\"#55b7c6\""));
         assert!(svg.contains("q0,-10 10,-10"));
-        assert!(svg.contains("width=\"1060\""));
+        assert!(svg.contains("width=\"1240\""));
+        assert!(svg.contains("href=\"#gear-mark\""));
+        assert!(svg.contains(">IN</text>"));
+        assert!(svg.contains(">OUT</text>"));
+        assert!(svg.contains("class=\"port input-port\""));
+        assert!(svg.contains("class=\"port output-port\""));
+        assert!(svg.contains(" H"));
+        assert!(svg.contains(" V"));
         assert!(!svg.contains("text/join(\"&\")"));
     }
 
