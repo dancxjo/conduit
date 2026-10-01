@@ -11,13 +11,13 @@ pub use generated::{
     ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
     DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal, DataSaveTextTerminal,
     DataSaveTextTerminalCode, FullWindowPolicy, FullWindowPolicyCode, MathScalarRefusal,
-    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
-    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdStateCode,
-    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
-    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
-    ScalarComparison, ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
-    SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther, TensorElement,
-    TensorRefusal,
+    MeasurementPlotOverflowPolicy, MeasurementPlotPoint, MeasurementPlotRefusal,
+    MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdStateCode, MeasurementThresholdTransition, MeasurementWindowRefusal,
+    NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
+    SampledSignalRefusal, ScalarComparison, ScientificObservationRefusal, SignalContinuity,
+    SignalContinuityClockReset, SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther,
+    TensorElement, TensorRefusal,
 };
 
 mod data_catalog;

@@ -407,7 +407,7 @@ fn canonical_processing_runs_window_summary_hysteresis_and_plot_in_one_play() {
         series
             .points()
             .iter()
-            .map(|point| point.value_millionths)
+            .map(|point| *point.value_millionths())
             .collect::<Vec<_>>(),
         [1_000_000, 1_000_000]
     );

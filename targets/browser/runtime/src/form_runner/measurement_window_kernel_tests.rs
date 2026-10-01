@@ -280,7 +280,7 @@ fn planned_browser_window_retains_exact_profile_samples_and_drop_evidence() {
         series
             .points()
             .iter()
-            .map(|point| point.value_millionths)
+            .map(|point| *point.value_millionths())
             .collect::<Vec<_>>(),
         [500_000, 1_000_000]
     );
