@@ -29,9 +29,14 @@ pub(super) fn emit_value_impl(
 ) -> Result<(), RustBindingGenerationError> {
     emit_contracts(out, rust_name, &value_type.value_contracts);
     match value_type.value_type.shape() {
-        StructuredInfoTypeShape::Nominal { representation, .. } => {
-            emit_scalar(out, rust_name, constant, representation, names)?
-        }
+        StructuredInfoTypeShape::Nominal { representation, .. } => emit_scalar(
+            out,
+            rust_name,
+            constant,
+            representation,
+            names,
+            &value_type.value_contracts,
+        )?,
         StructuredInfoTypeShape::Record { fields, .. } => {
             emit_record_constructor(
                 out,
@@ -98,6 +103,7 @@ fn emit_scalar(
     constant: &str,
     representation: &StructuredInfoType,
     names: &BTreeMap<String, String>,
+    contracts: &[NativeTypeValueContract],
 ) -> Result<(), RustBindingGenerationError> {
     let StructuredInfoTypeShape::Leaf(kind) = representation.shape() else {
         return Err(RustBindingGenerationError::InvalidSemanticType);
@@ -110,13 +116,24 @@ fn emit_scalar(
     )
     .expect("String writing is infallible");
     writeln!(out, "        let candidate = Self(value);").expect("String writing is infallible");
-    writeln!(
-        out,
-        "        let structured = candidate.clone().into_structured()?;"
-    )
-    .expect("String writing is infallible");
-    writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")
+    if contracts.iter().all(|contract| {
+        contract.representation_path.is_empty()
+            && contract
+                .contract
+                .constraints
+                .iter()
+                .all(|constraint| matches!(constraint, ValueConstraint::FixedIntegerRange { .. }))
+    }) {
+        emit_direct_integer_checks(out, "value", &inner, contracts)?;
+    } else {
+        writeln!(
+            out,
+            "        let structured = candidate.clone().into_structured()?;"
+        )
         .expect("String writing is infallible");
+        writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")
+            .expect("String writing is infallible");
+    }
     writeln!(out, "        Ok(candidate)\n    }}\n}}\n").expect("String writing is infallible");
 
     writeln!(out, "impl NativeRustBinding for {rust_name} {{")
@@ -145,6 +162,62 @@ fn emit_scalar(
     writeln!(out, "        Self::new(primitive)\n    }}\n}}\n")
         .expect("String writing is infallible");
     let _ = names;
+    Ok(())
+}
+
+fn emit_direct_integer_checks(
+    out: &mut String,
+    value: &str,
+    primitive: &str,
+    contracts: &[NativeTypeValueContract],
+) -> Result<(), RustBindingGenerationError> {
+    for contract in contracts {
+        for constraint in &contract.contract.constraints {
+            let ValueConstraint::FixedIntegerRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } = constraint
+            else {
+                return Err(RustBindingGenerationError::InvalidSemanticType);
+            };
+            let mut predicates = Vec::new();
+            if let Some(minimum) = minimum {
+                if !matches!(minimum_endpoint, conduit_core::IntervalEndpoint::Inclusive)
+                    || !fixed_integer_is_type_minimum(minimum, primitive)?
+                {
+                    let minimum = fixed_integer_literal(minimum, primitive)?;
+                    let operator = match minimum_endpoint {
+                        conduit_core::IntervalEndpoint::Inclusive => ">=",
+                        conduit_core::IntervalEndpoint::Exclusive => ">",
+                    };
+                    predicates.push(format!("{value} {operator} {minimum}"));
+                }
+            }
+            if let Some(maximum) = maximum {
+                if !matches!(maximum_endpoint, conduit_core::IntervalEndpoint::Inclusive)
+                    || !fixed_integer_is_type_maximum(maximum, primitive)?
+                {
+                    let maximum = fixed_integer_literal(maximum, primitive)?;
+                    let operator = match maximum_endpoint {
+                        conduit_core::IntervalEndpoint::Inclusive => "<=",
+                        conduit_core::IntervalEndpoint::Exclusive => "<",
+                    };
+                    predicates.push(format!("{value} {operator} {maximum}"));
+                }
+            }
+            if !predicates.is_empty() {
+                writeln!(
+                    out,
+                    "        if !({}) {{ return Err(NativeBindingRefusal::ViolatedConstraint {{ representation_path: {:?}.into(), refusal: conduit_core::ValueConstraintRefusal::FixedIntegerRange }}); }}",
+                    predicates.join(" && "),
+                    contract.representation_path,
+                )
+                .expect("String writing is infallible");
+            }
+        }
+    }
     Ok(())
 }
 
@@ -268,51 +341,12 @@ fn emit_direct_record_checks(
         };
         let field_name = rust_snake_identifier(field.name())?;
         let primitive = primitive_rust_type(kind.as_str())?;
-        for constraint in &contract.contract.constraints {
-            let ValueConstraint::FixedIntegerRange {
-                minimum,
-                maximum,
-                minimum_endpoint,
-                maximum_endpoint,
-            } = constraint
-            else {
-                return Err(RustBindingGenerationError::InvalidSemanticType);
-            };
-            let mut predicates = Vec::new();
-            if let Some(minimum) = minimum {
-                if !matches!(minimum_endpoint, conduit_core::IntervalEndpoint::Inclusive)
-                    || !fixed_integer_is_type_minimum(minimum, &primitive)?
-                {
-                    let minimum = fixed_integer_literal(minimum, &primitive)?;
-                    let operator = match minimum_endpoint {
-                        conduit_core::IntervalEndpoint::Inclusive => ">=",
-                        conduit_core::IntervalEndpoint::Exclusive => ">",
-                    };
-                    predicates.push(format!("{field_name} {operator} {minimum}"));
-                }
-            }
-            if let Some(maximum) = maximum {
-                if !matches!(maximum_endpoint, conduit_core::IntervalEndpoint::Inclusive)
-                    || !fixed_integer_is_type_maximum(maximum, &primitive)?
-                {
-                    let maximum = fixed_integer_literal(maximum, &primitive)?;
-                    let operator = match maximum_endpoint {
-                        conduit_core::IntervalEndpoint::Inclusive => "<=",
-                        conduit_core::IntervalEndpoint::Exclusive => "<",
-                    };
-                    predicates.push(format!("{field_name} {operator} {maximum}"));
-                }
-            }
-            if !predicates.is_empty() {
-                writeln!(
-                    out,
-                    "        if !({}) {{ return Err(NativeBindingRefusal::ViolatedConstraint {{ representation_path: {:?}.into(), refusal: conduit_core::ValueConstraintRefusal::FixedIntegerRange }}); }}",
-                    predicates.join(" && "),
-                    contract.representation_path,
-                )
-                .expect("String writing is infallible");
-            }
-        }
+        emit_direct_integer_checks(
+            out,
+            &field_name,
+            &primitive,
+            core::slice::from_ref(contract),
+        )?;
     }
     Ok(())
 }
