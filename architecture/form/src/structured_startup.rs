@@ -446,6 +446,9 @@ fn canonical_leaf_literal(
             _ => None,
         },
         "value/scalar" => parse_scalar_literal(literal).map(|value| value.encode().to_vec()),
+        conduit_core::F32_INFO_ID | conduit_core::F64_INFO_ID => {
+            crate::value_type::refinement::checked_float_literal(kind, literal).ok()
+        }
         integer_kind
             if conduit_core::primitive_info_kind(integer_kind).is_some_and(|kind| {
                 matches!(
@@ -536,6 +539,33 @@ pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> 
         i64::try_from(magnitude).ok()?
     };
     Some(conduit_core::Scalar::from_raw_microunits(raw))
+}
+
+#[cfg(test)]
+mod float_literal_tests {
+    use super::*;
+
+    #[test]
+    fn exact_float_literals_preserve_signed_zero_and_refuse_excess_precision() {
+        let span = Span {
+            start: 0,
+            end: 0,
+            line: 1,
+            column: 1,
+            end_line: 1,
+            end_column: 1,
+        };
+        assert_eq!(
+            canonical_leaf_literal(conduit_core::F32_INFO_ID, "-0.0", span).unwrap(),
+            conduit_core::IeeeF32::from(-0.0).encode()
+        );
+        assert_eq!(
+            canonical_leaf_literal(conduit_core::F64_INFO_ID, "0.1", span).unwrap(),
+            conduit_core::IeeeF64::from(0.1).encode()
+        );
+        assert!(canonical_leaf_literal(conduit_core::F32_INFO_ID, "0.1234567891", span).is_err());
+        assert!(canonical_leaf_literal(conduit_core::F32_INFO_ID, "NaN", span).is_err());
+    }
 }
 
 fn parse_decimal_magnitude(value: &str) -> Option<u64> {

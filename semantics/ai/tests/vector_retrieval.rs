@@ -138,9 +138,21 @@ fn top_k_threshold_filters_and_temporal_intent_are_finite_and_typed() {
     let mut bounded = query(SimilarityMetric::DotProductSimilarity);
     bounded.top_k = MAXIMUM_SIMILARITY_TOP_K + 1;
     assert_eq!(bounded.validate(), Err(VectorRefusal::TopKTooLarge));
+    assert_eq!(
+        SimilarityThreshold::minimum(f32::NAN),
+        Err(VectorRefusal::InvalidThreshold)
+    );
+    assert_eq!(
+        SimilarityThreshold::maximum_distance(f32::INFINITY),
+        Err(VectorRefusal::InvalidThreshold)
+    );
+    assert_eq!(
+        SimilarityThreshold::maximum_distance(-0.25),
+        Err(VectorRefusal::InvalidThreshold)
+    );
 
     let mut thresholded = query(SimilarityMetric::SquaredEuclideanDistance);
-    thresholded.threshold = Some(SimilarityThreshold::MinimumSimilarity(0.5));
+    thresholded.threshold = Some(SimilarityThreshold::minimum(0.5).unwrap());
     assert_eq!(
         thresholded.validate(),
         Err(VectorRefusal::ThresholdMetricMismatch)
@@ -186,7 +198,7 @@ fn records_and_hits_preserve_exact_source_resource_and_temporal_provenance() {
 #[test]
 fn thresholds_do_not_turn_similarity_into_probability_or_truth() {
     let mut query = query(SimilarityMetric::CosineSimilarity);
-    query.threshold = Some(SimilarityThreshold::MinimumSimilarity(0.8));
+    query.threshold = Some(SimilarityThreshold::minimum(0.8).unwrap());
     assert_eq!(
         query.admits_score(SimilarityScore::Similarity(0.79)),
         Ok(false)

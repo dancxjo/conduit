@@ -15,6 +15,9 @@ fn main() {
         &RustBindingOptions {
             boxed_variant_payloads: ["TrainingLifecyclePhase.active_step".into()].into(),
             derive_serde_for_variants: true,
+            copy_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
+            hash_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
+            serde_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
             serde_variant_exclusions: ["MissingModalityPolicy".into()].into(),
             serde_record_types: ["CompatibleMetrics".into()].into(),
             copy_record_types: ["CompatibleMetrics".into(), "IntegrationAccuracy".into()].into(),

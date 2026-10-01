@@ -41,6 +41,16 @@ type Observation = {
     ancestors: DigestSet
 }
 
+type FiniteF32 = F32 finite
+
+type Probability = F32 finite in 0.0..=1.0
+
+type FloatEnvelope = {
+    value: F32
+    finite: FiniteF32
+    probability: Probability
+}
+
 type MusicEvent =
     note {
         velocity: U8 in 0..=127
@@ -98,6 +108,29 @@ fn selected_record_can_retain_established_public_fields() {
         .contains("pub struct Position {\n    pub x:"));
     assert!(generated.source.contains("    pub y:"));
     assert!(generated.source.contains("pub struct Chord {\n    notes:"));
+}
+
+#[test]
+fn exact_float_law_generates_semantic_wrappers_and_checked_refinements() {
+    let generated = generate_rust_bindings(
+        &checked_types(),
+        &RustBindingOptions {
+            copy_nominal_types: ["FiniteF32".into(), "Probability".into()].into(),
+            hash_nominal_types: ["FiniteF32".into(), "Probability".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("pub struct FiniteF32(conduit_core::IeeeF32)"));
+    assert!(generated
+        .source
+        .contains("conduit_core::ValueConstraint::FloatFinite"));
+    assert!(generated
+        .source
+        .contains("conduit_core::ValueConstraint::FloatRange"));
+    assert!(generated.source.contains("value: conduit_core::IeeeF32"));
 }
 
 #[test]

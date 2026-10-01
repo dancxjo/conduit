@@ -635,6 +635,11 @@ fn constraint_literal(constraint: &ValueConstraint) -> String {
             "conduit_core::ValueConstraint::QuantityRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",
             optional_quantity_literal(minimum), optional_quantity_literal(maximum), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
+        ValueConstraint::FloatFinite => "conduit_core::ValueConstraint::FloatFinite".into(),
+        ValueConstraint::FloatRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
+            "conduit_core::ValueConstraint::FloatRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",
+            optional_bytes_literal(minimum), optional_bytes_literal(maximum), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
+        ),
         ValueConstraint::CanonicalMembership { members, negated } => {
             let members = members
                 .iter()

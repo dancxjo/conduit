@@ -52,6 +52,20 @@ pub fn generate_ecmascript_types(types: &[CheckedNativeType]) -> String {
     }
     out.push_str(
         "});\n\
+         export function inspectIeee(identity, encoded) {\n\
+           const width = identity === 'value/ieee754-binary32' ? 4 : identity === 'value/ieee754-binary64' ? 8 : 0;\n\
+           if (!width || encoded.length !== width) throw new TypeRefusal(identity);\n\
+           let bits = 0n;\n\
+           for (let index = width - 1; index >= 0; index--) bits = (bits << 8n) | BigInt(encoded[index]);\n\
+           const fractionBits = width === 4 ? 23n : 52n;\n\
+           const exponentBits = width === 4 ? 8n : 11n;\n\
+           const fractionMask = (1n << fractionBits) - 1n;\n\
+           const exponentMask = (1n << exponentBits) - 1n;\n\
+           const fraction = bits & fractionMask;\n\
+           const exponent = (bits >> fractionBits) & exponentMask;\n\
+           const sign = Number(bits >> (fractionBits + exponentBits));\n\
+           return Object.freeze({ bits, sign, exponent, fraction, finite: exponent !== exponentMask, nan: exponent === exponentMask && fraction !== 0n, infinity: exponent === exponentMask && fraction === 0n, signedZero: exponent === 0n && fraction === 0n });\n\
+         }\n\
          export function lookupType(name) {\n\
            const value = Object.hasOwn(semanticTypes, name) ? semanticTypes[name] : undefined;\n\
            if (!value) throw new TypeRefusal(name);\n\

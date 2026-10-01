@@ -35,6 +35,8 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "I32" => kind_id("value/i32"),
         "I64" => kind_id("value/i64"),
         "I128" => kind_id("value/i128"),
+        "F32" => kind_id(conduit_core::F32_INFO_ID),
+        "F64" => kind_id(conduit_core::F64_INFO_ID),
         "Distance" => kind_id(conduit_core::DISTANCE_INFO_ID),
         "Frequency" => kind_id(conduit_core::FREQUENCY_INFO_ID),
         "Duration" => kind_id(conduit_core::DURATION_INFO_ID),

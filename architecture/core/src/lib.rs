@@ -25,6 +25,7 @@ mod execution;
 mod execution_fusion;
 mod fixed_integer;
 mod front;
+mod ieee_float;
 mod implementation;
 mod info;
 mod interop;
@@ -93,6 +94,7 @@ pub use execution::*;
 pub use execution_fusion::*;
 pub use fixed_integer::*;
 pub use front::{CheckedFront, FrontStartupParameter, FrontValueContract, FrontValueLocation};
+pub use ieee_float::*;
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };

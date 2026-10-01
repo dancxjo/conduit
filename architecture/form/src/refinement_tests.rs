@@ -56,6 +56,33 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
 }
 
 #[test]
+fn ieee_float_refinements_are_exact_finite_and_identity_bearing() {
+    let checked = check(
+        "form floats (\n >> raw: F32\n >> finite: F32 finite\n >> probability: F32 finite in 0.0..=1.0\n) {\n}\n",
+    );
+    let finite = input_contract(&checked, "finite");
+    assert_eq!(finite.maximum_bytes, 4);
+    assert_eq!(finite.constraints, vec![ValueConstraint::FloatFinite]);
+    let probability = input_contract(&checked, "probability");
+    assert!(matches!(
+        probability.constraints.as_slice(),
+        [
+            ValueConstraint::FloatFinite,
+            ValueConstraint::FloatRange { .. }
+        ]
+    ));
+    assert_ne!(finite.identity_bytes(), probability.identity_bytes());
+    assert_eq!(
+        finite.validate(&conduit_core::IeeeF32::from_bits(0x7fc0_0001).encode()),
+        Err(ValueConstraintRefusal::FloatFinite)
+    );
+    assert_eq!(
+        probability.validate(&conduit_core::IeeeF32::from(1.5).encode()),
+        Err(ValueConstraintRefusal::FloatRange)
+    );
+}
+
+#[test]
 fn missing_range_ends_remain_semantically_open() {
     let checked = check(
         "form bounded (\n >> low: Count in ..=4\n >> high: Count in 4..\n >> scalar: Scalar in ..=1.000000\n) {\n}\n",
@@ -262,6 +289,18 @@ fn malformed_or_incompatible_authored_refinements_refuse_during_checking() {
             "invalid",
         ),
         ("form bad (\n >> value: Scalar in ..\n) {\n}\n", "invalid"),
+        (
+            "form bad (\n >> value: U32 finite\n) {\n}\n",
+            "finite may refine only F32 or F64",
+        ),
+        (
+            "form bad (\n >> value: F32 in NaN..=1.0\n) {\n}\n",
+            "exact finite float literal",
+        ),
+        (
+            "form bad (\n >> value: F32 in 0.1234567891..=1.0\n) {\n}\n",
+            "exact finite float literal",
+        ),
     ] {
         let error = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
             .expect_err("invalid refinement must refuse before Plan/Play");
