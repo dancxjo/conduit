@@ -216,7 +216,7 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("firefly-choir", "firefly-choir"),
         ("night-radio", "night-radio"),
         ("secret-knock", "secret-knock-demo"),
-        ("pocket-theremin", "pocket-theremin"),
+        ("pocket-theremin", "phone-two-axis-controller"),
         ("patchbay", "patchbay"),
         ("little-seismograph", "little-seismograph-display"),
         ("tour", "tour"),

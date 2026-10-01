@@ -59,6 +59,8 @@ pub(super) struct TourScheduler {
     snapshots: Vec<Option<Box<resource_effect::SnapshotState>>>,
     selectors: Vec<Option<crate::installed_browser::pointer_selector::PreparedSelector>>,
     mappings: Vec<Option<conduit_semantic_catalog::QuantityMapping>>,
+    audio_tones: Vec<Option<crate::installed_browser::audio_tone::PreparedAudioTone>>,
+    audio_gains: Vec<Option<crate::installed_browser::audio_gain::PreparedAudioGain>>,
     attempts: Vec<Option<conduit_semantic_catalog::BoundedButtonAttemptCodec>>,
     comparisons: Vec<Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>>,
     timing: Vec<Option<crate::installed_browser::timing::PreparedTiming>>,

@@ -229,14 +229,13 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
 }
 
 #[test]
-fn canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm() {
-    let mut host = host("pocket-theremin-host");
-    let source = format!(
-        "{}\nform pocket_theremin_proof {{\n source: conduit-test/distance-source\n theremin: pocket-theremin\n sink: conduit-test/tone-pcm-sink\n closed: conduit-test/normal-close-sink\n source.distance >> theremin.distance\n theremin.audio >> sink.audio\n theremin.audio| >> closed.closed\n}}.\n",
-        include_str!("../../../forms/pocket-theremin/main.conduit")
-    );
-    let form = parse(&source, &installed_std::test_catalog())
-        .expect("canonical Pocket Theremin and typed Distance proof parse");
+fn theremin_pitch_distance_maps_near_high_and_far_low() {
+    let mut host = host("theremin-distance-host");
+    let form = parse(
+        "form theremin_pitch_proof {\n source: conduit-test/distance-source\n pitch: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 1760Hz, target-maximum = 110Hz)\n frequency: keep Frequency(440Hz) for this play\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n source.distance >> pitch.distance\n pitch.frequency >> frequency\n frequency >> tone.frequency\n tone.audio >> sink.audio\n}.\n",
+        &installed_std::test_catalog(),
+    )
+    .expect("typed theremin pitch law parses");
     let frequency_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
         conduit_core::FREQUENCY_INFO_ID,
     ))
@@ -253,8 +252,7 @@ fn canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm() {
             .unwrap(),
     );
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts)
-        .expect("canonical Pocket Theremin production placements resolve");
+    let placements = default_placements(&form, &hosts).expect("theremin pitch placements resolve");
     let plan = plan_with_options(
         &form,
         &hosts,
@@ -270,55 +268,35 @@ fn canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm() {
             line_offers: &[],
         },
     )
-    .expect("canonical Pocket Theremin plans with bounded pressure");
-    let fragment = &plan.fragments[0];
-    assert!(fragment
-        .connections
-        .iter()
-        .all(|cord| cord.item_capacity == 1));
-    let mapping = fragment
+    .expect("descending theremin pitch law plans with bounded pressure");
+    let mapping = plan.fragments[0]
         .placements
         .iter()
         .find(|placement| {
             placement.kind_id.as_str() == conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND
         })
-        .expect("exact Distance-to-Frequency mapping is planned");
+        .expect("exact Distance-to-Frequency law is planned");
     for (key, expected) in [
         (
-            "source-minimum",
-            conduit_core::Quantity::new(0, conduit_core::QuantityUnit::Centimeter),
-        ),
-        (
-            "source-maximum",
-            conduit_core::Quantity::new(30, conduit_core::QuantityUnit::Centimeter),
-        ),
-        (
             "target-minimum",
-            conduit_core::Quantity::new(220, conduit_core::QuantityUnit::Hertz),
+            conduit_core::Quantity::new(1760, conduit_core::QuantityUnit::Hertz),
         ),
         (
             "target-maximum",
-            conduit_core::Quantity::new(880, conduit_core::QuantityUnit::Hertz),
+            conduit_core::Quantity::new(110, conduit_core::QuantityUnit::Hertz),
         ),
     ] {
         assert!(mapping.configuration.iter().any(|entry| {
             entry.key == key && entry.value == conduit_core::ConfigurationValue::Quantity(expected)
         }));
     }
-    assert!(fragment.placements.iter().any(|placement| {
-        placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TONE_KIND
-    }));
-    assert!(!fragment.placements.iter().any(|placement| {
-        placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_PLAY_KIND
-    }));
-
     let report = host
         .run_fragment_to(
-            fragment.clone(),
+            plan.fragments[0].clone(),
             &mut Vec::with_capacity(2_048),
             &mut RecordingTimer { waits: Vec::new() },
         )
-        .expect("changing typed Distance executes through ordinary Plan and Play");
+        .expect("typed descending pitch law executes through ordinary Play");
     assert!(matches!(
         report
             .observations
@@ -328,12 +306,7 @@ fn canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm() {
             disposition: TerminalDisposition::Completed
         })
     ));
-    let kernel = report.kernel.expect("kernel report exists");
-    assert_eq!(kernel.post_play_start_allocations, 0);
-    assert_eq!(
-        kernel.value_allocation_capacity_before,
-        kernel.value_allocation_capacity_after
-    );
+    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
 }
 
 #[test]

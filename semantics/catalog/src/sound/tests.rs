@@ -58,6 +58,16 @@ fn audio_tone_is_exactly_typed_bounded_and_cancellable() {
 }
 
 #[test]
+fn audio_gain_admits_one_whole_pcm_block_atomically() {
+    let contract = audio_gain_contract();
+    assert_eq!(contract.limits.max_queue_items, 1);
+    assert_eq!(
+        contract.limits.max_queue_bytes,
+        AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES
+    );
+}
+
+#[test]
 fn semantic_fronts_are_distinct_and_backend_free() {
     let encoded = alloc::format!("{:?}", sound_contracts_with_revisions());
     for forbidden in [

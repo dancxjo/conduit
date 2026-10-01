@@ -324,11 +324,11 @@ browser_safe_not_applicable = "Pete situation selection has no installed browser
 [[forms]]
 slug = "pocket-theremin"
 title = "Pocket Theremin"
-entry = "pocket-theremin"
+entry = "phone-two-axis-controller"
 initial_body_order = 11
 initial_body_presentation_profile = 1
-deterministic = { package = "conduit-std-host", test = "lib", case = "canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm" }
-browser_safe_not_applicable = "browser has no audio/tone Back; browser playback is a later #4091 wave"
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "phone_theremin_checks_with_exact_two_axis_browser_realizations" }
+browser_safe = { spec = "proof/browser/workspace-library.spec.mjs", case = "Pocket Theremin plays continuous two-axis PCM on the browser host" }
 [[forms]]
 slug = "pool-webchat"
 title = "Pool Webchat"
