@@ -100,10 +100,9 @@ mod generalized_input_realization;
 pub use generalized_input_realization::*;
 #[cfg(feature = "form-catalog")]
 mod generalized_input_catalog;
+pub use conduit_process::*;
 #[cfg(feature = "form-catalog")]
 pub use generalized_input_catalog::*;
-mod job;
-pub use job::*;
 #[cfg(feature = "form-catalog")]
 mod job_catalog;
 #[cfg(feature = "form-catalog")]

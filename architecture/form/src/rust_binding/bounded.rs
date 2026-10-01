@@ -76,11 +76,14 @@ impl<T, const MAXIMUM: usize> IntoIterator for BoundedSequence<T, MAXIMUM> {
     }
 }
 
-/// Allocation-free finite bytes used when a checked Type permits at most `N`.
+use alloc::boxed::Box;
+
+/// Finite bytes used when a checked Type permits at most `N`.
+/// The exact payload is boxed once at construction so large portable bounds do
+/// not turn every generated value into an enormous stack frame or allocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedBytes<const MAXIMUM: usize> {
-    bytes: [u8; MAXIMUM],
-    length: usize,
+    bytes: Box<[u8]>,
 }
 
 impl<const MAXIMUM: usize> BoundedBytes<MAXIMUM> {
@@ -88,16 +91,13 @@ impl<const MAXIMUM: usize> BoundedBytes<MAXIMUM> {
         if value.len() > MAXIMUM {
             return None;
         }
-        let mut bytes = [0; MAXIMUM];
-        bytes[..value.len()].copy_from_slice(value);
         Some(Self {
-            bytes,
-            length: value.len(),
+            bytes: value.into(),
         })
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        &self.bytes[..self.length]
+        &self.bytes
     }
 
     pub const fn capacity(&self) -> usize {
@@ -105,7 +105,7 @@ impl<const MAXIMUM: usize> BoundedBytes<MAXIMUM> {
     }
 }
 
-/// Allocation-free finite UTF-8 whose semantic bound is expressed in bytes.
+/// Finite UTF-8 whose semantic bound is expressed in bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedText<const MAXIMUM: usize>(BoundedBytes<MAXIMUM>);
 

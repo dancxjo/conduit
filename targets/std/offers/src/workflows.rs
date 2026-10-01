@@ -1,22 +1,21 @@
 use conduit_core::{
     resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
-    HostCallRequirement, ImplementationId, Kind, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    HostCallRequirement, ImplementationId, Kind, ResourceContentRequirement,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const JOB_PROFILE: &str = "std/process-job-hosted@1";
 pub const JOB_ARTIFACT: &str = "conduit-std-host/process-job@1";
 pub const JOB_FIXTURE_OPERATION: &str = "conduit.host/process-job-fixture@1";
 pub const JOB_RUN_OPERATION: &str = "conduit.host/process-job-run@1";
-pub const JOB_EXECUTABLE_RESOURCE_CLASS: &str = "conduit.resource/executable@1";
-
 pub const REMINDER_PROFILE: &str = "std/reminder-delivery-hosted@1";
 pub const REMINDER_ARTIFACT: &str = "conduit-std-host/reminder-delivery@1";
 pub const REMINDER_FIXTURE_OPERATION: &str = "conduit.host/reminder-fixture@1";
 pub const REMINDER_DELIVER_OPERATION: &str = "conduit.host/reminder-delivery@1";
 
-pub fn job_std_offers() -> Vec<CapabilityOffer> {
-    conduit_semantic_catalog::job_semantic_contracts()
+pub fn job_std_offers(executable: ResourceContentRequirement) -> Vec<CapabilityOffer> {
+    let mut offers: Vec<_> = conduit_semantic_catalog::job_semantic_contracts()
         .into_iter()
         .map(|contract| {
             let effectful = contract.kind_id.as_str() == conduit_semantic_catalog::JOB_RUN_KIND;
@@ -29,11 +28,18 @@ pub fn job_std_offers() -> Vec<CapabilityOffer> {
                 } else {
                     JOB_FIXTURE_OPERATION
                 },
-                effectful.then_some(JOB_EXECUTABLE_RESOURCE_CLASS),
+                effectful.then_some(conduit_semantic_catalog::JOB_EXECUTABLE_ACCESS_CLASS),
                 effectful.then_some(conduit_semantic_catalog::JOB_EXECUTABLE_AUTHORITY),
             )
         })
-        .collect()
+        .collect();
+    offers
+        .iter_mut()
+        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::JOB_RUN_KIND)
+        .expect("bounded Job run offer")
+        .resource_requirements[0]
+        .content = Some(executable);
+    offers
 }
 
 pub fn reminder_std_offers() -> Vec<CapabilityOffer> {
@@ -103,6 +109,27 @@ fn workflow_offer(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_core::{
+        kind_id, ResourceAccessMode, ResourceRetention, ResourceSemanticIdentity, ResourceSharing,
+        ResourceVersionIdentity,
+    };
+
+    fn executable() -> ResourceContentRequirement {
+        ResourceContentRequirement {
+            identity: ResourceSemanticIdentity::from_digest([1; 32]),
+            version: ResourceVersionIdentity::from_digest([2; 32]),
+            content_profile: kind_id(conduit_semantic_catalog::JOB_EXECUTABLE_CONTENT_PROFILE),
+            maximum_bytes: 1,
+            maximum_items: 1,
+            retention: ResourceRetention::Boot,
+            sharing: ResourceSharing::ImmutableReadMany,
+            access: ResourceAccessMode::ReadPublished,
+            generation_slots: 1,
+            reader_leases: 1,
+            publication_slots: 0,
+            sensitive: false,
+        }
+    }
 
     fn assert_exact_semantics(offers: &[CapabilityOffer], contracts: &[Kind]) {
         for offer in offers {
@@ -124,7 +151,8 @@ mod tests {
 
     #[test]
     fn effectful_offers_preserve_finite_operation_resource_and_authority_truth() {
-        let job = job_std_offers();
+        let executable = executable();
+        let job = job_std_offers(executable.clone());
         let reminder = reminder_std_offers();
         assert_exact_semantics(&job, &conduit_semantic_catalog::job_semantic_contracts());
         assert_exact_semantics(
@@ -138,6 +166,10 @@ mod tests {
             assert_eq!(offer.limits.max_queue_items, 4);
         }
         assert_eq!(job[1].resource_requirements.len(), 1);
+        assert_eq!(
+            job[1].resource_requirements[0].content.as_ref(),
+            Some(&executable)
+        );
         assert_eq!(job[1].authority_requirements.len(), 1);
         assert_eq!(reminder[1].authority_requirements.len(), 1);
         assert!(job[0].authority_requirements.is_empty());

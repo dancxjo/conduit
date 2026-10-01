@@ -59,6 +59,13 @@ Their presence is not an additional physical or release acceptance claim:
   HTTP scheme, transaction identity, target and header meaning are likewise
   native declarations; hosted and ConduitOS HTTP code consumes generated
   bindings while its HTTP/1.1 bytes remain an external adapter contract.
+  Process Job request, executable, argument/environment, output, pressure,
+  usage, lifecycle, refusal and terminal meaning are native declarations too.
+  The std realization consumes those generated values and will execute only
+  through a current planned host/boot/provider, exact executable
+  identity/version/content contract, resource pool and authority grant matched
+  to trusted host-local executable state; the OS path remains provider-local
+  machinery rather than portable identity.
 
 - **Record laws (#4638):** native record types own pure Boolean `where` laws,
   include them in checked identity, and enforce them at generated construction

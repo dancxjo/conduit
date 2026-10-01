@@ -22,7 +22,7 @@ pub fn validate_scheduled_job(intent: &ScheduledJobIntent) -> Result<(), Schedul
         .map_err(ScheduledJobRefusal::InvalidSchedule)?;
     intent
         .payload
-        .validate()
+        .validate_job()
         .map_err(ScheduledJobRefusal::InvalidJob)
 }
 

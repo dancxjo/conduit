@@ -11,13 +11,45 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, KindSignature};
 
-use crate::{job_lifecycle_type, job_registered_types, job_request_type};
+use crate::{JobLifecycleEvent, JobOutput, JobOutputProfile, JobRequest, JobResourceUsage};
+
+pub const JOB_REQUEST_TYPE: &str = "JobRequest";
+pub const JOB_LIFECYCLE_TYPE: &str = "JobLifecycle";
+pub const JOB_OUTPUT_TYPE: &str = "JobOutput";
+pub const JOB_USAGE_TYPE: &str = "JobResourceUsage";
 
 pub const JOB_FIXTURE_KIND: &str = "process/deterministic-request";
 pub const JOB_RUN_KIND: &str = "process/run-bounded";
 pub const JOB_REVISION: &str = "conduit.std/process-job@1";
-pub const JOB_EXECUTABLE_AUTHORITY: &str = "conduit.authority/execute-resource@1";
 
+pub fn job_output_profile_type() -> StructuredInfoType {
+    JobOutputProfile::semantic_type().expect("checked Process output profile")
+}
+
+pub fn job_request_type() -> StructuredInfoType {
+    JobRequest::semantic_type().expect("checked Process Job request")
+}
+
+pub fn job_output_type() -> StructuredInfoType {
+    JobOutput::semantic_type().expect("checked Process Job output")
+}
+
+pub fn job_usage_type() -> StructuredInfoType {
+    JobResourceUsage::semantic_type().expect("checked Process resource usage")
+}
+
+pub fn job_lifecycle_type() -> StructuredInfoType {
+    JobLifecycleEvent::semantic_type().expect("checked Process Job lifecycle")
+}
+
+pub fn job_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
+    vec![
+        (JOB_REQUEST_TYPE, job_request_type()),
+        (JOB_LIFECYCLE_TYPE, job_lifecycle_type()),
+        (JOB_OUTPUT_TYPE, job_output_type()),
+        (JOB_USAGE_TYPE, job_usage_type()),
+    ]
+}
 pub fn job_semantic_contracts() -> Vec<Kind> {
     vec![
         contract(
