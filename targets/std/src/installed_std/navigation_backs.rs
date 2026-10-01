@@ -207,8 +207,10 @@ impl NavigationHost {
                     return Ok(None);
                 };
                 conduit_semantic_catalog::encode_trajectory(
-                    &conduit_semantic_catalog::time_parameterize(route, time, 100, 50, 30_000_000)
-                        .map_err(|error| format!("time-parameterize navigation: {error:?}"))?,
+                    &conduit_semantic_catalog::time_parameterize_route(
+                        route, time, 100, 50, 30_000_000,
+                    )
+                    .map_err(|error| format!("time-parameterize navigation: {error:?}"))?,
                 )
                 .map_err(|error| format!("encode navigation trajectory: {error:?}"))?
             }

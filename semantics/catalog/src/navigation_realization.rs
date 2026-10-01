@@ -1,156 +1,24 @@
 //! Validated finite deterministic navigation reference realization.
 
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
+
+use conduit_robotics::NavigationRouteDecisionRoute;
+pub use conduit_robotics::{
+    NavigationBoundedMotionIntent as BoundedMotionIntent,
+    NavigationControlDecision as ControlDecision, NavigationGoal,
+    NavigationGoalTarget as GoalTarget, NavigationPose, NavigationRefusal, NavigationRoute,
+    NavigationRouteDecision as RouteDecision, NavigationTime, NavigationTrajectory,
+    NavigationTrajectorySegment as TrajectorySegment,
+    NavigationTraversability4x4 as Traversability4x4,
+    NavigationTraversabilityCell as TraversabilityCell, NavigationValidity as Validity,
+    NavigationWaypoint as Waypoint,
+};
 
 use crate::{
     NAVIGATION_MAXIMUM_PLANNING_INPUT_IDENTITY_BYTES, NAVIGATION_MAXIMUM_ROUTE_IDENTITY_BYTES,
     NAVIGATION_MAXIMUM_SEGMENTS, NAVIGATION_MAXIMUM_SOURCE_IDENTITY_BYTES,
     NAVIGATION_MAXIMUM_WAYPOINTS,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Validity {
-    pub observed_at_ms: u64,
-    pub valid_until_ms: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationTime {
-    pub clock_identity: String,
-    pub now_ms: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationPose {
-    pub source_identity: String,
-    pub sample_sequence: u64,
-    pub clock_identity: String,
-    pub frame: String,
-    pub x_mm: i32,
-    pub y_mm: i32,
-    pub heading_microdegrees: i32,
-    pub validity: Validity,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GoalTarget {
-    Hold,
-    Reach {
-        frame: String,
-        x_mm: i32,
-        y_mm: i32,
-        heading_microdegrees: i32,
-        position_tolerance_mm: u32,
-        heading_tolerance_microdegrees: u32,
-    },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationGoal {
-    pub identity: String,
-    pub clock_identity: String,
-    pub valid_until_ms: u64,
-    pub target: GoalTarget,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TraversabilityCell {
-    Free,
-    Blocked,
-    Unknown,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Traversability4x4 {
-    pub source_identity: String,
-    pub sample_sequence: u64,
-    pub clock_identity: String,
-    pub frame: String,
-    pub origin_x_mm: i32,
-    pub origin_y_mm: i32,
-    pub cell_width_mm: u32,
-    pub cell_height_mm: u32,
-    pub validity: Validity,
-    pub cells: [TraversabilityCell; 16],
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Waypoint {
-    pub x_mm: i32,
-    pub y_mm: i32,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationRoute {
-    pub identity: String,
-    pub goal_identity: String,
-    pub planner_identity: String,
-    pub planning_input_identity: String,
-    pub frame: String,
-    pub target_heading_microdegrees: i32,
-    pub position_tolerance_mm: u32,
-    pub heading_tolerance_microdegrees: u32,
-    pub waypoints: Vec<Waypoint>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum RouteDecision {
-    Route(NavigationRoute),
-    Hold { goal_identity: String },
-    NoPath { goal_identity: String },
-    GoalInvalid { goal_identity: String },
-    ObstacleDataUnavailable { goal_identity: String },
-    PoseStale { goal_identity: String },
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TrajectorySegment {
-    pub target: Waypoint,
-    pub interval_ms: u32,
-    pub maximum_linear_step_mm: u32,
-    pub maximum_angular_step_microdegrees: u32,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationTrajectory {
-    pub route_identity: String,
-    pub goal_identity: String,
-    pub clock_identity: String,
-    pub valid_until_ms: u64,
-    pub frame: String,
-    pub target_heading_microdegrees: i32,
-    pub position_tolerance_mm: u32,
-    pub heading_tolerance_microdegrees: u32,
-    pub segments: Vec<TrajectorySegment>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BoundedMotionIntent {
-    pub goal_identity: String,
-    pub linear_mm: i32,
-    pub angular_microdegrees: i32,
-    pub interval_ms: u32,
-    pub ttl_ms: u32,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ControlDecision {
-    Motion(BoundedMotionIntent),
-    Arrived { goal_identity: String },
-    Hold { goal_identity: String },
-    PoseStale { goal_identity: String },
-    TrajectoryExpired { goal_identity: String },
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum NavigationRefusal {
-    EmptyIdentity,
-    IdentityTooLong,
-    InvalidValidity,
-    InvalidGrid,
-    InvalidRoute,
-    InvalidTrajectory,
-}
 
 pub fn validate_identity(value: &str) -> Result<(), NavigationRefusal> {
     validate_identity_with_bound(value, NAVIGATION_MAXIMUM_SOURCE_IDENTITY_BYTES)
@@ -180,20 +48,20 @@ pub fn route_grid4(
     time: &NavigationTime,
 ) -> Result<RouteDecision, NavigationRefusal> {
     for identity in [
-        pose.source_identity.as_str(),
-        pose.clock_identity.as_str(),
-        pose.frame.as_str(),
-        goal.identity.as_str(),
-        goal.clock_identity.as_str(),
-        grid.source_identity.as_str(),
-        grid.clock_identity.as_str(),
-        grid.frame.as_str(),
-        time.clock_identity.as_str(),
+        &pose.source_identity,
+        &pose.clock_identity,
+        &pose.frame,
+        &goal.identity,
+        &goal.clock_identity,
+        &grid.source_identity,
+        &grid.clock_identity,
+        &grid.frame,
+        &time.clock_identity,
     ] {
         validate_identity(identity)?;
     }
-    if let GoalTarget::Reach { frame, .. } = &goal.target {
-        validate_identity(frame)?;
+    if let GoalTarget::Reach(reach) = &goal.target {
+        validate_identity(reach.frame())?;
     }
     if pose.validity.observed_at_ms > pose.validity.valid_until_ms
         || grid.validity.observed_at_ms > grid.validity.valid_until_ms
@@ -204,27 +72,23 @@ pub fn route_grid4(
         || pose.clock_identity != goal.clock_identity
         || pose.clock_identity != time.clock_identity
     {
-        return Ok(RouteDecision::PoseStale {
-            goal_identity: goal.identity.clone(),
-        });
+        return RouteDecision::pose_stale(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute);
     }
     if time.now_ms > goal.valid_until_ms {
-        return Ok(RouteDecision::GoalInvalid {
-            goal_identity: goal.identity.clone(),
-        });
+        return RouteDecision::goal_invalid(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute);
     }
     if matches!(goal.target, GoalTarget::Hold) {
-        return Ok(RouteDecision::Hold {
-            goal_identity: goal.identity.clone(),
-        });
+        return RouteDecision::hold(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute);
     }
     if !current(grid.validity, time.now_ms)
         || grid.clock_identity != goal.clock_identity
         || grid.clock_identity != time.clock_identity
     {
-        return Ok(RouteDecision::ObstacleDataUnavailable {
-            goal_identity: goal.identity.clone(),
-        });
+        return RouteDecision::obstacle_data_unavailable(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute);
     }
     if grid.cell_width_mm == 0
         || grid.cell_height_mm == 0
@@ -235,35 +99,24 @@ pub fn route_grid4(
     {
         return Err(NavigationRefusal::InvalidGrid);
     }
-    let GoalTarget::Reach {
-        frame,
-        x_mm,
-        y_mm,
-        heading_microdegrees,
-        position_tolerance_mm,
-        heading_tolerance_microdegrees,
-    } = &goal.target
-    else {
+    let GoalTarget::Reach(reach) = &goal.target else {
         unreachable!()
     };
-    if pose.frame != *frame
-        || grid.frame != *frame
+    if pose.frame != *reach.frame()
+        || grid.frame != *reach.frame()
         || grid.cell_width_mm == 0
         || grid.cell_height_mm == 0
     {
-        return Ok(RouteDecision::GoalInvalid {
-            goal_identity: goal.identity.clone(),
-        });
+        return RouteDecision::goal_invalid(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute);
     }
     let Some(start) = cell_for(grid, pose.x_mm, pose.y_mm) else {
-        return Ok(RouteDecision::GoalInvalid {
-            goal_identity: goal.identity.clone(),
-        });
+        return RouteDecision::goal_invalid(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute);
     };
-    let Some(end) = cell_for(grid, *x_mm, *y_mm) else {
-        return Ok(RouteDecision::GoalInvalid {
-            goal_identity: goal.identity.clone(),
-        });
+    let Some(end) = cell_for(grid, *reach.x_mm(), *reach.y_mm()) else {
+        return RouteDecision::goal_invalid(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute);
     };
     let candidates = [
         [start, (end.0, start.1), end],
@@ -289,43 +142,58 @@ pub fn route_grid4(
                 // satisfied: the controller may still need to satisfy the
                 // independently bounded terminal heading.
                 waypoints.push(Waypoint {
-                    x_mm: *x_mm,
-                    y_mm: *y_mm,
+                    x_mm: *reach.x_mm(),
+                    y_mm: *reach.y_mm(),
                 });
                 if waypoints.is_empty() || waypoints.len() > NAVIGATION_MAXIMUM_WAYPOINTS {
                     return Err(NavigationRefusal::InvalidRoute);
                 }
-                return Ok(RouteDecision::Route(NavigationRoute {
-                    identity: format!("route/{}", goal.identity),
-                    goal_identity: goal.identity.clone(),
-                    planner_identity: "navigation/deterministic-grid4@1".into(),
-                    planning_input_identity: format!(
+                let identity = conduit_robotics::NavigationRouteIdentity::new(format!(
+                    "route/{}",
+                    goal.identity
+                ))
+                .map_err(|_| NavigationRefusal::InvalidRoute)?;
+                let planner_identity = conduit_robotics::NavigationIdentity64::new(
+                    "navigation/deterministic-grid4@1".into(),
+                )
+                .map_err(|_| NavigationRefusal::InvalidRoute)?;
+                let planning_input_identity =
+                    conduit_robotics::NavigationPlanningInputIdentity::new(format!(
                         "goal={};pose={}#{};grid={}#{}",
                         goal.identity,
                         pose.source_identity,
                         pose.sample_sequence,
                         grid.source_identity,
                         grid.sample_sequence,
-                    ),
-                    frame: frame.clone(),
-                    target_heading_microdegrees: *heading_microdegrees,
-                    position_tolerance_mm: *position_tolerance_mm,
-                    heading_tolerance_microdegrees: *heading_tolerance_microdegrees,
+                    ))
+                    .map_err(|_| NavigationRefusal::InvalidRoute)?;
+                let bounded = conduit_form::rust_binding::BoundedSequence::try_from_iter(waypoints)
+                    .map_err(|_| NavigationRefusal::InvalidRoute)?;
+                let waypoints = conduit_robotics::NavigationWaypoints::new(bounded)
+                    .map_err(|_| NavigationRefusal::InvalidRoute)?;
+                return RouteDecision::route(
+                    reach.frame().clone(),
+                    goal.identity.clone(),
+                    *reach.heading_tolerance_microdegrees(),
+                    identity,
+                    planner_identity,
+                    planning_input_identity,
+                    *reach.position_tolerance_mm(),
+                    *reach.heading_microdegrees(),
                     waypoints,
-                }));
+                )
+                .map_err(|_| NavigationRefusal::InvalidRoute);
             }
             Leg::Unknown => saw_unknown = true,
             Leg::Blocked => {}
         }
     }
     Ok(if saw_unknown {
-        RouteDecision::ObstacleDataUnavailable {
-            goal_identity: goal.identity.clone(),
-        }
+        RouteDecision::obstacle_data_unavailable(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute)?
     } else {
-        RouteDecision::NoPath {
-            goal_identity: goal.identity.clone(),
-        }
+        RouteDecision::no_path(goal.identity.clone())
+            .map_err(|_| NavigationRefusal::InvalidRoute)?
     })
 }
 
@@ -390,24 +258,106 @@ fn clear_leg(grid: &Traversability4x4, from: (usize, usize), to: (usize, usize))
     result
 }
 
+trait RouteView {
+    fn identity(&self) -> &conduit_robotics::NavigationRouteIdentity;
+    fn goal_identity(&self) -> &conduit_robotics::NavigationIdentity64;
+    fn planner_identity(&self) -> &conduit_robotics::NavigationIdentity64;
+    fn planning_input_identity(&self) -> &conduit_robotics::NavigationPlanningInputIdentity;
+    fn frame(&self) -> &conduit_robotics::NavigationIdentity64;
+    fn target_heading_microdegrees(&self) -> i32;
+    fn position_tolerance_mm(&self) -> u32;
+    fn heading_tolerance_microdegrees(&self) -> u32;
+    fn waypoints(&self) -> &conduit_robotics::NavigationWaypoints;
+}
+
+macro_rules! route_view {
+    ($type:ty) => {
+        impl RouteView for $type {
+            fn identity(&self) -> &conduit_robotics::NavigationRouteIdentity {
+                self.identity()
+            }
+            fn goal_identity(&self) -> &conduit_robotics::NavigationIdentity64 {
+                self.goal_identity()
+            }
+            fn planner_identity(&self) -> &conduit_robotics::NavigationIdentity64 {
+                self.planner_identity()
+            }
+            fn planning_input_identity(
+                &self,
+            ) -> &conduit_robotics::NavigationPlanningInputIdentity {
+                self.planning_input_identity()
+            }
+            fn frame(&self) -> &conduit_robotics::NavigationIdentity64 {
+                self.frame()
+            }
+            fn target_heading_microdegrees(&self) -> i32 {
+                *self.target_heading_microdegrees()
+            }
+            fn position_tolerance_mm(&self) -> u32 {
+                *self.position_tolerance_mm()
+            }
+            fn heading_tolerance_microdegrees(&self) -> u32 {
+                *self.heading_tolerance_microdegrees()
+            }
+            fn waypoints(&self) -> &conduit_robotics::NavigationWaypoints {
+                self.waypoints()
+            }
+        }
+    };
+}
+route_view!(NavigationRoute);
+route_view!(NavigationRouteDecisionRoute);
+
 pub fn time_parameterize(
+    route: &NavigationRouteDecisionRoute,
+    time: &NavigationTime,
+    interval_ms: u32,
+    maximum_linear_step_mm: u32,
+    maximum_angular_step_microdegrees: u32,
+) -> Result<NavigationTrajectory, NavigationRefusal> {
+    time_parameterize_view(
+        route,
+        time,
+        interval_ms,
+        maximum_linear_step_mm,
+        maximum_angular_step_microdegrees,
+    )
+}
+
+pub fn time_parameterize_route(
     route: &NavigationRoute,
     time: &NavigationTime,
     interval_ms: u32,
     maximum_linear_step_mm: u32,
     maximum_angular_step_microdegrees: u32,
 ) -> Result<NavigationTrajectory, NavigationRefusal> {
-    validate_identity_with_bound(&route.identity, NAVIGATION_MAXIMUM_ROUTE_IDENTITY_BYTES)?;
-    validate_identity(&route.goal_identity)?;
-    validate_identity(&route.planner_identity)?;
+    time_parameterize_view(
+        route,
+        time,
+        interval_ms,
+        maximum_linear_step_mm,
+        maximum_angular_step_microdegrees,
+    )
+}
+
+fn time_parameterize_view(
+    route: &impl RouteView,
+    time: &NavigationTime,
+    interval_ms: u32,
+    maximum_linear_step_mm: u32,
+    maximum_angular_step_microdegrees: u32,
+) -> Result<NavigationTrajectory, NavigationRefusal> {
+    validate_identity_with_bound(route.identity(), NAVIGATION_MAXIMUM_ROUTE_IDENTITY_BYTES)?;
+    validate_identity(route.goal_identity())?;
+    validate_identity(route.planner_identity())?;
     validate_identity_with_bound(
-        &route.planning_input_identity,
+        route.planning_input_identity(),
         NAVIGATION_MAXIMUM_PLANNING_INPUT_IDENTITY_BYTES,
     )?;
-    validate_identity(&route.frame)?;
+    validate_identity(route.frame())?;
     validate_identity(&time.clock_identity)?;
-    if route.waypoints.len() < 2
-        || route.waypoints.len() > NAVIGATION_MAXIMUM_WAYPOINTS
+    if route.waypoints().len() < 2
+        || route.waypoints().len() > NAVIGATION_MAXIMUM_WAYPOINTS
         || interval_ms == 0
         || maximum_linear_step_mm == 0
         || maximum_angular_step_microdegrees == 0
@@ -415,7 +365,7 @@ pub fn time_parameterize(
         return Err(NavigationRefusal::InvalidRoute);
     }
     let segments: Vec<_> = route
-        .waypoints
+        .waypoints()
         .iter()
         .skip(1)
         .map(|target| TrajectorySegment {
@@ -428,17 +378,21 @@ pub fn time_parameterize(
     if segments.is_empty() || segments.len() > NAVIGATION_MAXIMUM_SEGMENTS {
         return Err(NavigationRefusal::InvalidTrajectory);
     }
-    Ok(NavigationTrajectory {
-        route_identity: route.identity.clone(),
-        goal_identity: route.goal_identity.clone(),
-        clock_identity: time.clock_identity.clone(),
-        valid_until_ms: time
-            .now_ms
-            .saturating_add(u64::from(interval_ms) * segments.len() as u64),
-        frame: route.frame.clone(),
-        target_heading_microdegrees: route.target_heading_microdegrees,
-        position_tolerance_mm: route.position_tolerance_mm,
-        heading_tolerance_microdegrees: route.heading_tolerance_microdegrees,
+    let segments = conduit_form::rust_binding::BoundedSequence::try_from_iter(segments)
+        .map_err(|_| NavigationRefusal::InvalidTrajectory)?;
+    let segments = conduit_robotics::NavigationTrajectorySegments::new(segments)
+        .map_err(|_| NavigationRefusal::InvalidTrajectory)?;
+    NavigationTrajectory::new(
+        time.clock_identity.clone(),
+        route.frame().clone(),
+        route.goal_identity().clone(),
+        route.heading_tolerance_microdegrees(),
+        route.position_tolerance_mm(),
+        route.identity().clone(),
         segments,
-    })
+        route.target_heading_microdegrees(),
+        time.now_ms
+            .saturating_add(u64::from(interval_ms) * (route.waypoints().len() - 1) as u64),
+    )
+    .map_err(|_| NavigationRefusal::InvalidTrajectory)
 }
