@@ -102,7 +102,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         })
         .max()
         .unwrap_or(MIN_BOX_HEIGHT);
-    let height = (tallest_column + 220).max(520);
+    let height = (tallest_column + 360).max(660);
     let mut boxes = Vec::new();
     let mut x = MARGIN + BOUNDARY_WIDTH + COLUMN_GAP;
     for gears in by_level.values() {
@@ -138,7 +138,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         "<desc id=\"desc\">Checked Conduit Form with exact typed port connections.</desc>"
     )
     .unwrap();
-    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:#d0b876}.gear-hole{fill:#24292f}.direction{fill:#9ba4aa;font-size:9px;font-weight:800;letter-spacing:1px}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#ddd6c7;font-size:11px;font-weight:700}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.split-junction{fill:#d6a04f;stroke:#171a1e;stroke-width:3}.join-junction{fill:#55b7c6;stroke:#171a1e;stroke-width:3}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#d8e7dc;font-size:12px;font-weight:650}.cord-tag{fill:#292f35;stroke:#c99a4d;stroke-width:1}.cord-label{fill:#f1c46f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style>"#);
+    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:#d0b876}.gear-hole{fill:#24292f}.direction{fill:#9ba4aa;font-size:9px;font-weight:800;letter-spacing:1px}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#fff8e8;font-size:13px;font-weight:800}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.split-junction{fill:#d6a04f;stroke:#171a1e;stroke-width:3}.join-junction{fill:#55b7c6;stroke:#171a1e;stroke-width:3}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#eaf4ec;font-size:13px;font-weight:750}.cord-tag{fill:#252a2f;stroke:#776746;stroke-width:1}.cord-label{fill:#d9bd82;font-size:10px;font-weight:600}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style>"#);
     svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#55b7c6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e36964"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><path class="gear-mark" d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.6.6 0 0 0 .1-.7l-2-3.5a.6.6 0 0 0-.7-.2l-2.5 1a8 8 0 0 0-1.7-1l-.4-2.6A.6.6 0 0 0 13.8 2h-4a.6.6 0 0 0-.6.4L8.9 5a8 8 0 0 0-1.7 1L4.7 5a.6.6 0 0 0-.7.2L2 8.7a.6.6 0 0 0 .1.7L4.2 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.6.6 0 0 0-.1.7l2 3.5a.6.6 0 0 0 .7.2l2.5-1a8 8 0 0 0 1.7 1l.4 2.6a.6.6 0 0 0 .6.4h4a.6.6 0 0 0 .6-.4l.4-2.6a8 8 0 0 0 1.7-1l2.5 1a.6.6 0 0 0 .7-.2l2-3.5a.6.6 0 0 0-.1-.7z"/><circle class="gear-hole" cx="12" cy="12" r="3.2"/></symbol></defs>"##);
     writeln!(
         svg,
@@ -255,6 +255,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                 route_index,
                 source_counts[&(from.point.x, from.point.y)] > 1,
                 sink_counts[&(to.point.x, to.point.y)] > 1,
+                height,
             );
             route_index += 1;
         }
@@ -280,6 +281,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                 route_index,
                 source_counts[&(from.point.x, from.point.y)] > 1,
                 sink_counts[&(to.point.x, to.point.y)] > 1,
+                height,
             );
             route_index += 1;
         }
@@ -305,6 +307,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                 route_index,
                 source_counts[&(from.point.x, from.point.y)] > 1,
                 sink_counts[&(to.point.x, to.point.y)] > 1,
+                height,
             );
             route_index += 1;
         }
@@ -534,6 +537,7 @@ fn draw_cord(
     route_index: usize,
     fan_out: bool,
     fan_in: bool,
+    diagram_height: i32,
 ) {
     let (class, marker) = match track {
         ConnectionTrack::Payload => ("cord", "arrow"),
@@ -544,21 +548,51 @@ fn draw_cord(
     let lane_offsets = [-100, -75, -50, -25, 0, 25, 50, 75, 100];
     let split_x = if fan_out { from.x + 42 } else { from.x };
     let join_x = if fan_in { to.x - 42 } else { to.x };
-    let midpoint = (split_x + join_x) / 2;
-    let minimum = split_x.min(join_x) + 18;
-    let maximum = split_x.max(join_x) - 18;
-    let lane_x = (midpoint + lane_offsets[route_index % lane_offsets.len()])
-        .clamp(minimum, maximum.max(minimum));
-    let path = format!(
-        "M{},{} H{} H{} V{} H{} H{}",
-        from.x, from.y, split_x, lane_x, to.y, join_x, to.x
-    );
+    let forward_gap = join_x - split_x;
+    let (path, label_x, label_line_y) = if from.y == to.y {
+        (
+            format!("M{},{} H{}", from.x, from.y, to.x),
+            (split_x + join_x) / 2,
+            from.y,
+        )
+    } else if forward_gap > 0 && forward_gap <= COLUMN_GAP + 24 {
+        let midpoint = (split_x + join_x) / 2;
+        let minimum = split_x + 18;
+        let maximum = join_x - 18;
+        let lane_x = (midpoint + lane_offsets[route_index % lane_offsets.len()])
+            .clamp(minimum, maximum.max(minimum));
+        let path = format!(
+            "M{},{} H{} H{} V{} H{} H{}",
+            from.x, from.y, split_x, lane_x, to.y, join_x, to.x
+        );
+        let source_run = lane_x - split_x;
+        let sink_run = join_x - lane_x;
+        if sink_run >= source_run {
+            (path, (lane_x + join_x) / 2, to.y)
+        } else {
+            (path, (split_x + lane_x) / 2, from.y)
+        }
+    } else {
+        let bus_slot = (route_index / 2) % 6;
+        let bus_y = if route_index.is_multiple_of(2) {
+            112 + bus_slot as i32 * 18
+        } else {
+            diagram_height - 72 - bus_slot as i32 * 18
+        };
+        let source_exit_x = split_x + 54;
+        let sink_entry_x = join_x - 54;
+        let path = format!(
+            "M{},{} H{} H{} V{} H{} V{} H{} H{}",
+            from.x, from.y, split_x, source_exit_x, bus_y, sink_entry_x, to.y, join_x, to.x
+        );
+        (path, (source_exit_x + sink_entry_x) / 2, bus_y)
+    };
     let label = match track {
         ConnectionTrack::Payload => information,
         _ => format!("{} · {}", information, track_name(track)),
     };
-    let label_width = (label.chars().count() as i32 * 7 + 18).clamp(90, 360);
-    let label_y = (from.y + to.y) / 2;
+    let label_width = (label.chars().count() as i32 * 6 + 16).clamp(72, 300);
+    let label_y = label_line_y - 10;
     writeln!(svg, "<g><title>{} · {}</title><path class=\"cord-shadow\" d=\"{path}\"/><path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"{path}\"/>", escape(detail), track_name(track)).unwrap();
     if fan_out {
         writeln!(svg, "<circle class=\"split-junction\" cx=\"{split_x}\" cy=\"{}\" r=\"6\"><title>fan-out junction</title></circle>", from.y).unwrap();
@@ -566,7 +600,7 @@ fn draw_cord(
     if fan_in {
         writeln!(svg, "<circle class=\"join-junction\" cx=\"{join_x}\" cy=\"{}\" r=\"6\"><title>fan-in junction</title></circle>", to.y).unwrap();
     }
-    writeln!(svg, "<rect class=\"cord-tag\" x=\"{}\" y=\"{}\" width=\"{label_width}\" height=\"22\" rx=\"6\"/><text class=\"cord-label\" text-anchor=\"middle\" x=\"{lane_x}\" y=\"{}\">{}</text></g>", lane_x - label_width / 2, label_y - 15, label_y, escape(&label)).unwrap();
+    writeln!(svg, "<rect class=\"cord-tag\" x=\"{}\" y=\"{}\" width=\"{label_width}\" height=\"18\" rx=\"6\"/><text class=\"cord-label\" text-anchor=\"middle\" x=\"{label_x}\" y=\"{}\">{}</text></g>", label_x - label_width / 2, label_y - 12, label_y, escape(&label)).unwrap();
 }
 
 fn information_label(kind: &str, port_name: &str) -> String {
@@ -768,6 +802,7 @@ mod tests {
             0,
             true,
             true,
+            660,
         );
         assert!(branched.contains("class=\"split-junction\""));
         assert!(branched.contains("class=\"join-junction\""));
@@ -783,7 +818,39 @@ mod tests {
             0,
             false,
             false,
+            660,
         );
         assert!(!crossing.contains("junction"));
+
+        let mut straight = String::new();
+        draw_cord(
+            &mut straight,
+            Point { x: 10, y: 20 },
+            Point { x: 200, y: 20 },
+            ConnectionTrack::Payload,
+            "image".into(),
+            "source.image → sink.image · structured-info/profile-image",
+            0,
+            false,
+            false,
+            660,
+        );
+        assert!(straight.contains("d=\"M10,20 H200\""));
+        assert!(!straight.contains(" V"));
+
+        let mut long_span = String::new();
+        draw_cord(
+            &mut long_span,
+            Point { x: 10, y: 240 },
+            Point { x: 1000, y: 420 },
+            ConnectionTrack::Payload,
+            "image".into(),
+            "source.image → sink.image · structured-info/profile-image",
+            0,
+            false,
+            false,
+            660,
+        );
+        assert!(long_span.contains("V112"));
     }
 }
