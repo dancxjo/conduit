@@ -2,8 +2,8 @@
 
 use alloc::vec::Vec;
 use conduit_core::{
-    Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredInfoValueShape,
+    Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape,
 };
 
 use super::education_realization::EducationInfoRefusal;
@@ -83,18 +83,4 @@ pub(super) fn leaf_count(value: &StructuredInfoValue) -> Result<u64, EducationIn
         return Err(EducationInfoRefusal::MalformedInfo);
     };
     conduit_core::decode_count(bytes).map_err(|_| EducationInfoRefusal::MalformedInfo)
-}
-
-pub(super) fn variant_payload_type(
-    value_type: &StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoType, EducationInfoRefusal> {
-    let StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape() else {
-        return Err(EducationInfoRefusal::MalformedInfo);
-    };
-    cases
-        .iter()
-        .find(|case| case.tag() == tag)
-        .map(|case| case.payload_type().clone())
-        .ok_or(EducationInfoRefusal::MalformedInfo)
 }

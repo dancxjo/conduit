@@ -1,0 +1,47 @@
+# Authoritative portable education question and response meaning.
+#
+# Each Text retains the full structured-Info byte ceiling. The containing
+# record remains subject to that same finite ceiling, matching the preceding
+# value/text representation rather than introducing a narrower domain limit.
+
+type EducationHint = {
+    content: Text <= 64KiB
+    hint_identity: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    sequence: Count
+}
+
+type EducationQuestion = {
+    evaluation_profile: Text <= 64KiB
+    hints: sequence EducationHint in 0..=3
+    prompt: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    response_profile: Text <= 64KiB
+}
+
+type EducationAnswer = {
+    content: Text <= 64KiB
+    event_identity: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    response_identity: Text <= 64KiB
+    time_identity: Text <= 64KiB
+}
+
+type EducationResponseEvent = {
+    event_identity: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    response_identity: Text <= 64KiB
+    time_identity: Text <= 64KiB
+}
+
+type EducationRefusedResponse = {
+    question_identity: Text <= 64KiB
+    reason: Text <= 64KiB
+    response_identity: Text <= 64KiB
+}
+
+type EducationResponse =
+    answer EducationAnswer
+    | hint_request EducationResponseEvent
+    | timeout EducationResponseEvent
+    | refused EducationRefusedResponse

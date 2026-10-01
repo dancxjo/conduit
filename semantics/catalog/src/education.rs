@@ -7,6 +7,13 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase, QUANTITY_INFO_ID,
 };
+pub use conduit_education::{
+    education_answer_type, education_hint_type, education_hints_type, education_question_type,
+    education_refused_response_type, education_response_event_type, education_response_type,
+    EducationAnswer, EducationHint, EducationHints, EducationQuestion, EducationRefusedResponse,
+    EducationResponse, EducationResponseEvent, EducationResponseHintRequest,
+    EducationResponseRefused, EducationResponseTimeout, MAXIMUM_EDUCATION_HINTS,
+};
 
 use crate::timing_feedback_type;
 
@@ -17,7 +24,6 @@ pub const EDUCATION_HINT_TYPE: &str = "EducationHint";
 pub const EDUCATION_LESSON_FEEDBACK_TYPE: &str = "EducationLessonFeedback";
 pub const EDUCATION_PROGRESS_TYPE: &str = "EducationProgress";
 pub const EDUCATION_RHYTHM_FEEDBACK_TYPE: &str = "EducationRhythmFeedback";
-pub const MAXIMUM_EDUCATION_HINTS: u16 = 3;
 
 fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).expect("reviewed education leaf")
@@ -45,91 +51,6 @@ fn case(name: &str, payload_type: StructuredInfoType) -> StructuredVariantCase {
 
 fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
     StructuredInfoType::record(kind_id(kind), fields).expect("reviewed education record")
-}
-
-pub fn education_hint_type() -> StructuredInfoType {
-    record(
-        "education/hint@1",
-        vec![
-            field("content", text_type()),
-            field("hint_identity", text_type()),
-            field("question_identity", text_type()),
-            field("sequence", count_type()),
-        ],
-    )
-}
-
-pub fn education_hints_type() -> StructuredInfoType {
-    StructuredInfoType::sequence(education_hint_type(), MAXIMUM_EDUCATION_HINTS)
-        .expect("bounded education hints")
-}
-
-pub fn education_question_type() -> StructuredInfoType {
-    record(
-        "education/question@1",
-        vec![
-            field("evaluation_profile", text_type()),
-            field("hints", education_hints_type()),
-            field("prompt", text_type()),
-            field("question_identity", text_type()),
-            field("response_profile", text_type()),
-        ],
-    )
-}
-
-pub fn education_answer_type() -> StructuredInfoType {
-    record(
-        "education/answer@1",
-        vec![
-            field("content", text_type()),
-            field("event_identity", text_type()),
-            field("question_identity", text_type()),
-            field("response_identity", text_type()),
-            field("time_identity", text_type()),
-        ],
-    )
-}
-
-fn education_response_event_type(kind: &str) -> StructuredInfoType {
-    record(
-        kind,
-        vec![
-            field("event_identity", text_type()),
-            field("question_identity", text_type()),
-            field("response_identity", text_type()),
-            field("time_identity", text_type()),
-        ],
-    )
-}
-
-pub fn education_refused_response_type() -> StructuredInfoType {
-    record(
-        "education/refused-response@1",
-        vec![
-            field("question_identity", text_type()),
-            field("reason", text_type()),
-            field("response_identity", text_type()),
-        ],
-    )
-}
-
-pub fn education_response_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("education/response@1"),
-        vec![
-            case("answer", education_answer_type()),
-            case(
-                "hint_request",
-                education_response_event_type("education/hint-request@1"),
-            ),
-            case(
-                "timeout",
-                education_response_event_type("education/response-timeout@1"),
-            ),
-            case("refused", education_refused_response_type()),
-        ],
-    )
-    .expect("reviewed response outcomes")
 }
 
 pub fn education_assessment_outcome_type() -> StructuredInfoType {
