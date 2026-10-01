@@ -4,25 +4,13 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::QuantityUnit;
 
 use crate::{
-    nonzero, text, ClockRelationQuality, ObservationProvenance, ObservationSet, ObservationValue,
-    ScientificObservation, ScientificObservationRefusal, TensorElement, TensorValue,
+    nonzero, text, ClockRelation, ClockRelationQuality, ObservationProvenance, ObservationSet,
+    ObservationValue, ScientificObservation, ScientificObservationRefusal, TensorElement,
+    TensorValue,
 };
 
 pub const MAXIMUM_COORDINATE_DIMENSIONS: usize = 4;
 pub const MAXIMUM_ALIGNMENT_SOURCES: usize = 16;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClockRelation {
-    pub identity: String,
-    pub source_clock: String,
-    pub target_clock: String,
-    pub source_anchor: u64,
-    pub target_anchor: u64,
-    /// Positive rational scale: `source_ticks` map to `target_ticks`.
-    pub source_ticks: u64,
-    pub target_ticks: u64,
-    pub quality: ClockRelationQuality,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoordinateFrame {
@@ -84,16 +72,16 @@ pub enum ScientificAlignmentRefusal {
 
 impl ClockRelation {
     pub fn validate(&self) -> Result<(), ScientificAlignmentRefusal> {
-        text(&self.identity).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(&self.source_clock).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(&self.target_clock).map_err(ScientificAlignmentRefusal::Observation)?;
-        if self.source_clock == self.target_clock
-            || self.source_ticks == 0
-            || self.target_ticks == 0
+        text(self.identity()).map_err(ScientificAlignmentRefusal::Observation)?;
+        text(self.source_clock()).map_err(ScientificAlignmentRefusal::Observation)?;
+        text(self.target_clock()).map_err(ScientificAlignmentRefusal::Observation)?;
+        if self.source_clock() == self.target_clock()
+            || *self.source_ticks() == 0
+            || *self.target_ticks() == 0
         {
             return Err(ScientificAlignmentRefusal::InvalidRelation);
         }
-        if let ClockRelationQuality::Estimated(estimated) = &self.quality {
+        if let ClockRelationQuality::Estimated(estimated) = self.quality() {
             let maximum_error = estimated.maximum_error();
             if maximum_error.value() <= 0
                 || !matches!(
@@ -227,8 +215,8 @@ impl AlignedTrainingView {
         let source = set
             .observation(source_observation_identity)
             .ok_or(ScientificAlignmentRefusal::UnknownSourceObservation)?;
-        if source.clock_identity.as_deref() != Some(&relation.source_clock)
-            || relation.target_clock != target_clock
+        if source.clock_identity.as_deref() != Some(relation.source_clock())
+            || relation.target_clock() != target_clock
         {
             return Err(ScientificAlignmentRefusal::IncompatibleClockRelation);
         }
@@ -250,7 +238,7 @@ impl AlignedTrainingView {
                 source_observations: alloc::vec![source.identity],
                 transform_identity: calibration
                     .map(|(value, _, _)| value.identity.clone())
-                    .unwrap_or_else(|| relation.identity.clone()),
+                    .unwrap_or_else(|| relation.identity().clone()),
                 realization_profile: resampling_profile.into(),
             },
         };
@@ -263,7 +251,7 @@ impl AlignedTrainingView {
         let view = Self {
             source_set_identity: set.identity,
             source_observation_identity,
-            clock_relation_identity: relation.identity.clone(),
+            clock_relation_identity: relation.identity().clone(),
             calibration_identity: calibration.map(|(value, _, _)| value.identity.clone()),
             target_clock: target_clock.into(),
             derived_observation: derived,

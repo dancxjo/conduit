@@ -88,6 +88,17 @@ type ClockRelationQuality =
         maximum-error: Duration
     }
 
+type ClockRelation = {
+    identity: Text <= 128B not in [""]
+    source-clock: Text <= 128B not in [""]
+    target-clock: Text <= 128B not in [""]
+    source-anchor: U64
+    target-anchor: U64
+    source-ticks: U64 in 1..=18446744073709551615
+    target-ticks: U64 in 1..=18446744073709551615
+    quality: ClockRelationQuality
+}
+
 type SampledSignalRefusal =
     invalid_clock
     | invalid_start

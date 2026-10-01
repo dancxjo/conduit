@@ -158,20 +158,35 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     let set = observation_set();
     set.validate().unwrap();
     assert_ne!(set.semantic_digest().unwrap(), [0; 32]);
-    let relation = ClockRelation {
-        identity: "clock-relation/ema-to-audio@1".into(),
-        source_clock: "clock/ema".into(),
-        target_clock: "clock/audio".into(),
-        source_anchor: 0,
-        target_anchor: 0,
-        source_ticks: 1,
-        target_ticks: 480,
-        quality: ClockRelationQuality::estimated(Quantity::new(1, QuantityUnit::Millisecond))
-            .unwrap(),
-    };
-    let mut zero_error_relation = relation.clone();
-    zero_error_relation.quality =
-        ClockRelationQuality::estimated(Quantity::new(0, QuantityUnit::Millisecond)).unwrap();
+    let relation = ClockRelation::new(
+        "clock-relation/ema-to-audio@1".into(),
+        ClockRelationQuality::estimated(Quantity::new(1, QuantityUnit::Millisecond)).unwrap(),
+        0,
+        "clock/ema".into(),
+        1,
+        0,
+        "clock/audio".into(),
+        480,
+    )
+    .unwrap();
+    assert_eq!(
+        relation.semantic_digest().unwrap(),
+        [
+            61, 45, 81, 23, 186, 250, 231, 2, 242, 73, 243, 53, 36, 236, 170, 64, 119, 214, 197,
+            76, 189, 108, 35, 184, 84, 140, 153, 64, 156, 93, 182, 66,
+        ]
+    );
+    let zero_error_relation = ClockRelation::new(
+        relation.identity().clone(),
+        ClockRelationQuality::estimated(Quantity::new(0, QuantityUnit::Millisecond)).unwrap(),
+        *relation.source_anchor(),
+        relation.source_clock().clone(),
+        *relation.source_ticks(),
+        *relation.target_anchor(),
+        relation.target_clock().clone(),
+        *relation.target_ticks(),
+    )
+    .unwrap();
     assert_eq!(
         zero_error_relation.validate(),
         Err(ScientificAlignmentRefusal::InvalidRelation)
