@@ -11,10 +11,8 @@ use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     renderer_kind_projection, renderer_offer, Manifestation, ManifestationError,
     ManifestationFailure, ManifestationLifecycle, Presentation, RendererRealizationOffer,
-    MAX_RENDERER_VALUE_BYTES,
+    RendererSelfInspection, RendererSelfInspectionError, MAX_RENDERER_VALUE_BYTES,
 };
-
-use crate::{RendererSelfInspection, RendererSelfInspectionError};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RendererAdapterKind {

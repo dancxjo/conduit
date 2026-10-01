@@ -92,7 +92,6 @@ mod recursive_form_projection_tests;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
-mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
@@ -281,7 +280,6 @@ pub use renderer_conformance::{
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
 };
-pub use renderer_inspection::{RendererSelfInspection, RendererSelfInspectionError};
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
     RendererProjectionError, MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_GRAPH_ITEMS,
