@@ -76,11 +76,24 @@ pub fn generate_rust_bindings_with_codes(
     codes: &[CheckedCode],
     options: &RustBindingOptions,
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
+    generate_rust_bindings_with_external_names(types, codes, options, &BTreeMap::new())
+}
+
+pub(super) fn generate_rust_bindings_with_external_names(
+    types: &[CheckedNativeType],
+    codes: &[CheckedCode],
+    options: &RustBindingOptions,
+    external_names: &BTreeMap<String, String>,
+) -> Result<RustBindingModule, RustBindingGenerationError> {
     if types.is_empty() {
         return Err(RustBindingGenerationError::EmptyTypeSet);
     }
-    let mut names = BTreeMap::new();
+    let mut names = external_names.clone();
     let mut seen = BTreeSet::new();
+    let owned_identities = types
+        .iter()
+        .map(|value_type| value_type.identity.as_str().to_string())
+        .collect::<BTreeSet<_>>();
     let mut semantic_type_bytes = BTreeMap::new();
     for value_type in types {
         let prefix = if options.type_prefix.is_empty() {
@@ -94,7 +107,12 @@ pub fn generate_rust_bindings_with_codes(
                 rust_name,
             ));
         }
-        names.insert(value_type.identity.as_str().to_string(), rust_name);
+        if names
+            .insert(value_type.identity.as_str().to_string(), rust_name)
+            .is_some()
+        {
+            return Err(RustBindingGenerationError::InvalidSemanticType);
+        }
         semantic_type_bytes.insert(
             value_type.identity.as_str().to_string(),
             value_type
@@ -122,6 +140,7 @@ pub fn generate_rust_bindings_with_codes(
             value_type,
             &names,
             &semantic_type_bytes,
+            &owned_identities,
             options,
         )?;
     }
@@ -224,6 +243,7 @@ fn emit_type(
     value_type: &CheckedNativeType,
     names: &BTreeMap<String, String>,
     bytes_by_identity: &BTreeMap<String, Vec<u8>>,
+    owned_identities: &BTreeSet<String>,
     options: &RustBindingOptions,
 ) -> Result<(), RustBindingGenerationError> {
     let rust_name = &names[value_type.identity.as_str()];
@@ -344,7 +364,8 @@ fn emit_type(
                 !matches!(
                     case.payload_type().shape(),
                     StructuredInfoTypeShape::Record { .. }
-                ) && copy_type(case.payload_type())
+                ) && !references_external_type(case.payload_type(), owned_identities)
+                    && copy_type(case.payload_type())
             });
             let derives = if unit_only && derive_serde {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize"
@@ -391,6 +412,7 @@ fn emit_type(
         rust_name,
         &constant,
         names,
+        owned_identities,
         super::generate_value::RecordBindingOptions {
             copy: options.copy_record_types.contains(&value_type.name),
             value_getters: options.copy_record_value_getters.contains(&value_type.name),
@@ -409,6 +431,39 @@ fn emit_type(
         },
     )?;
     Ok(())
+}
+
+pub(super) fn references_external_type(
+    value_type: &StructuredInfoType,
+    owned_identities: &BTreeSet<String>,
+) -> bool {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Nominal {
+            schema,
+            representation,
+        } => {
+            !owned_identities.contains(schema.as_str())
+                || references_external_type(representation, owned_identities)
+        }
+        StructuredInfoTypeShape::Record { schema, fields } => {
+            !owned_identities.contains(schema.as_str())
+                || fields
+                    .iter()
+                    .any(|field| references_external_type(field.value_type(), owned_identities))
+        }
+        StructuredInfoTypeShape::Variant { schema, cases } => {
+            schema.as_str() != "conduit.conduitese.optional.v1"
+                && !owned_identities.contains(schema.as_str())
+                || cases
+                    .iter()
+                    .any(|case| references_external_type(case.payload_type(), owned_identities))
+        }
+        StructuredInfoTypeShape::Sequence { element, .. }
+        | StructuredInfoTypeShape::Collection { element, .. } => {
+            references_external_type(element, owned_identities)
+        }
+        StructuredInfoTypeShape::Leaf(_) => false,
+    }
 }
 
 fn emit_payload_struct(

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use crate::{CheckedNativeType, NativeTypeValueContract};
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CheckedTextPattern, CheckedValueContract, PrimitiveInfoKind, StructuredInfoType,
     StructuredInfoTypeShape, TextPatternState, TextPatternTransition, ValueConstraint,
@@ -8,8 +8,8 @@ use conduit_core::{
 use core::fmt::Write;
 
 use super::generate::{
-    copy_type, primitive_rust_type, rust_pascal_identifier, rust_snake_identifier, rust_type,
-    unit_type, RustBindingGenerationError,
+    copy_type, primitive_rust_type, references_external_type, rust_pascal_identifier,
+    rust_snake_identifier, rust_type, unit_type, RustBindingGenerationError,
 };
 
 pub(super) struct RecordBindingOptions<'a> {
@@ -26,6 +26,7 @@ pub(super) fn emit_value_impl(
     rust_name: &str,
     constant: &str,
     names: &BTreeMap<String, String>,
+    owned_identities: &BTreeSet<String>,
     record_options: RecordBindingOptions<'_>,
 ) -> Result<(), RustBindingGenerationError> {
     emit_contracts(
@@ -59,7 +60,14 @@ pub(super) fn emit_value_impl(
             )?
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
-            emit_variant_constructors(out, rust_name, cases, names, &value_type.value_contracts)?;
+            emit_variant_constructors(
+                out,
+                rust_name,
+                cases,
+                names,
+                owned_identities,
+                &value_type.value_contracts,
+            )?;
             super::generate_conversion::emit_variant_binding(
                 out, rust_name, constant, cases, names,
             )?
@@ -437,13 +445,15 @@ fn emit_variant_constructors(
     rust_name: &str,
     cases: &[conduit_core::StructuredVariantCase],
     names: &BTreeMap<String, String>,
+    owned_identities: &BTreeSet<String>,
     contracts: &[NativeTypeValueContract],
 ) -> Result<(), RustBindingGenerationError> {
     let copy_payloads = cases.iter().all(|case| {
         !matches!(
             case.payload_type().shape(),
             StructuredInfoTypeShape::Record { .. }
-        ) && copy_type(case.payload_type())
+        ) && !references_external_type(case.payload_type(), owned_identities)
+            && copy_type(case.payload_type())
     });
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     for case in cases {
