@@ -292,7 +292,8 @@ fn tensor(dimensions: u64) -> ModelTensorConstraint {
         elements: vec![TensorElement::F64],
         axes: vec![ModelAxisConstraint {
             role: TensorAxisRole::Feature,
-            dimension: ModelDimensionConstraint::Fixed(dimensions),
+            dimension: ModelDimensionConstraint::fixed(dimensions)
+                .expect("research embedding dimensions are positive"),
         }],
         maximum_bytes: dimensions * 8,
     }

@@ -138,6 +138,15 @@ type ModelPortPresence =
 
 code ai/model-port-presence = ModelPortPresence as u8
 
+type ModelDimensionConstraint =
+    fixed {
+        value: U64 in 1..=18446744073709551615
+    }
+    | bounded {
+        minimum: U64 in 1..=18446744073709551615
+        maximum: U64 in 1..=18446744073709551615
+    }
+
 type SimilarityMetric =
     cosine_similarity
     | dot_product_similarity

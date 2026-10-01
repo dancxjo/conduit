@@ -174,14 +174,11 @@ fn model_signature_declares_a_bounded_probabilistic_signal_output() {
         axes: vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
-                dimension: ModelDimensionConstraint::Bounded {
-                    minimum: 1,
-                    maximum: 100,
-                },
+                dimension: ModelDimensionConstraint::bounded(100, 1).unwrap(),
             },
             ModelAxisConstraint {
                 role: TensorAxisRole::SpatialCoordinate,
-                dimension: ModelDimensionConstraint::Fixed(2),
+                dimension: ModelDimensionConstraint::fixed(2).unwrap(),
             },
         ],
         maximum_bytes: 800,
