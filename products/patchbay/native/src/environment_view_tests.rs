@@ -5,7 +5,7 @@ use crate::{
     render::BACKGROUND,
 };
 use conduit_presentation::CONDUIT_APPLICATION_THEME;
-use patchbay_model::{
+use conduit_workspace_make::{
     AuthoredEnvironment, AuthoredLink, AuthoredPart, EnvironmentLinkKind, MachineProfile,
 };
 

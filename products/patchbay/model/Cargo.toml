@@ -24,6 +24,7 @@ conduit-browser-runtime = { path = "../../../targets/browser/runtime" }
 conduit-data = { path = "../../../semantics/data" }
 conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph/fixture" }
 conduit-body-make = { path = "../../../make/body" }
+conduit-workspace-make = { path = "../../../make/workspace" }
 conduit-patchbay-workbench-conformance = { path = "../../../proof/conformance/patchbay-workbench" }
 conduit-ai = { path = "../../../semantics/ai", features = ["form-catalog"] }
 conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }

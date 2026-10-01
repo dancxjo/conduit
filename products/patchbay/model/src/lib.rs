@@ -29,7 +29,6 @@ mod interaction;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
-mod maker_environment;
 mod mask_control;
 #[cfg(test)]
 mod mask_control_tests;
@@ -110,13 +109,6 @@ pub use llm_presentation::{
     project_llm_patchbay, CandidateFormInspection, LlmGearActivity, LlmPatchbayTruth,
     LlmPresentationError, MAXIMUM_LLM_PRESENTATION_STAGES,
 };
-pub use maker_environment::{
-    AuthoredEnvironment, AuthoredEnvironmentError, AuthoredLink, AuthoredPart, ConnectivityKind,
-    EnvironmentComparison, EnvironmentComparisonRow, EnvironmentLinkKind, MachineProfile,
-    ObservedPartBinding, PartResources, SimulationHostCandidate, SimulationProjection,
-    SimulationProvenance, MAKER_ENVIRONMENT_VERSION, MAX_AUTHORED_LINKS, MAX_AUTHORED_PARTS,
-    MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
-};
 pub use mask_control::*;
 pub use patchbay_graph::{
     project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
@@ -187,8 +179,6 @@ mod graphical_patchbay_tests;
 mod interaction_tests;
 #[cfg(test)]
 mod layout_tests;
-#[cfg(test)]
-mod maker_environment_tests;
 #[cfg(test)]
 mod parts_view_tests;
 #[cfg(test)]
