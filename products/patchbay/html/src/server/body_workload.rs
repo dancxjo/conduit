@@ -13,7 +13,7 @@ pub(super) fn open(
         .body_workbench
         .as_ref()
         .map(|workbench| {
-            patchbay_model::PatchbayBodyAttachment::open_serialized(
+            conduit_body_make::BodyEvidenceAttachment::open_serialized(
                 &workbench.encoded_evidence,
                 crate::body_workbench::model_entrance(&workbench.entrance),
             )

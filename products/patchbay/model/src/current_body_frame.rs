@@ -13,7 +13,7 @@ use conduit_core::{
 };
 use serde::Serialize;
 
-use crate::{PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError};
+use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CurrentBodyFrame {
@@ -92,7 +92,7 @@ pub enum CurrentBodyLifecycleAction {
 }
 
 impl CurrentBodyFrame {
-    pub fn from_attachment(evidence_revision: u64, attachment: &PatchbayBodyAttachment) -> Self {
+    pub fn from_attachment(evidence_revision: u64, attachment: &BodyEvidenceAttachment) -> Self {
         let evidence = attachment.evidence();
         let lifecycle = match &evidence.body.state {
             BodyState::Lulled => CurrentBodyLifecycle::Lulled,
@@ -195,16 +195,16 @@ impl CurrentBodyFrame {
     }
 }
 
-fn reader(attachment: &PatchbayBodyAttachment) -> CurrentBodyPatchbayReader {
+fn reader(attachment: &BodyEvidenceAttachment) -> CurrentBodyPatchbayReader {
     match attachment.entrance() {
-        PatchbayBodyApplicationEntrance::Hosted {
+        BodyEvidenceEntrance::Hosted {
             plan_id,
             implementation_id,
         } => CurrentBodyPatchbayReader::HostedByBody {
             plan_id: plan_id.clone(),
             implementation_id: implementation_id.clone(),
         },
-        PatchbayBodyApplicationEntrance::ExternalReader => {
+        BodyEvidenceEntrance::ExternalReader => {
             let Some(graduation) = attachment.evidence().graduation.as_ref() else {
                 return CurrentBodyPatchbayReader::ExternalReadingWorkspaceBody;
             };
@@ -241,7 +241,7 @@ fn plural<'a>(count: usize, one: &'a str, many: &'a str) -> &'a str {
 pub enum CurrentBodyFrameError {
     InvalidRevision,
     StaleRevision { current: u64, offered: u64 },
-    Entrance(PatchbayBodyEntranceError),
+    Entrance(BodyEvidenceEntranceError),
 }
 
 #[derive(Debug, Default)]
@@ -259,7 +259,7 @@ impl CurrentBodyFrameSlot {
         &mut self,
         revision: u64,
         encoded: &[u8],
-        entrance: PatchbayBodyApplicationEntrance,
+        entrance: BodyEvidenceEntrance,
     ) -> Result<&CurrentBodyFrame, CurrentBodyFrameError> {
         if revision == 0 {
             self.current = None;
@@ -276,7 +276,7 @@ impl CurrentBodyFrameSlot {
         }
         self.last_revision = Some(revision);
         self.current = None;
-        let attachment = PatchbayBodyAttachment::open_serialized(encoded, entrance)
+        let attachment = BodyEvidenceAttachment::open_serialized(encoded, entrance)
             .map_err(CurrentBodyFrameError::Entrance)?;
         self.current = Some(CurrentBodyFrame::from_attachment(revision, &attachment));
         Ok(self.current.as_ref().expect("current frame was installed"))

@@ -9,9 +9,8 @@ use conduit_core::SignId;
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
 use serde::Serialize;
 
-use crate::{
-    PatchbayBodyAttachment, PatchbayBodyEntranceError, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
-};
+use crate::{project_body_biography, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES};
+use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntranceError};
 
 pub const MAX_BODY_HISTORY_TITLE_BYTES: usize = 64;
 pub const MAX_BODY_HISTORY_LINEAR_BYTES: usize = 1_024;
@@ -87,14 +86,15 @@ pub struct BodyHistoryInspectTarget {
 impl ReadableBodyHistory {
     pub fn from_attachment(
         evidence_revision: u64,
-        attachment: &PatchbayBodyAttachment,
+        attachment: &BodyEvidenceAttachment,
     ) -> Result<Self, ReadableBodyHistoryError> {
         let evidence = attachment.evidence();
-        if attachment.projection().entries.len() != evidence.records.len() {
+        let projection = project_body_biography(evidence)
+            .map_err(|_| ReadableBodyHistoryError::ProjectionMismatch)?;
+        if projection.entries.len() != evidence.records.len() {
             return Err(ReadableBodyHistoryError::ProjectionMismatch);
         }
-        let entries = attachment
-            .projection()
+        let entries = projection
             .entries
             .iter()
             .zip(&evidence.records)
@@ -147,18 +147,16 @@ impl ReadableBodyHistory {
                 alternate_manifestation: BodyHistoryManifestation::Linear,
             },
             entries,
-            archived: attachment
-                .projection()
-                .archived_history
-                .as_ref()
-                .map(|archive| ReadableArchivedBodyHistory {
+            archived: projection.archived_history.as_ref().map(|archive| {
+                ReadableArchivedBodyHistory {
                     sealed_segments: archive.sealed_segments,
                     wake_count: archive.wakes,
                     record_count: archive.records,
                     through_sequence: archive.through_sequence,
                     head_digest: archive.head_digest,
                     narrative: archive.explanation.clone(),
-                }),
+                }
+            }),
         })
     }
 }
@@ -175,7 +173,7 @@ fn linear_record(body_id: &BodyId, record: &BodyBiographyRecord) -> String {
 pub enum ReadableBodyHistoryError {
     InvalidRevision,
     StaleRevision { current: u64, offered: u64 },
-    Entrance(PatchbayBodyEntranceError),
+    Entrance(BodyEvidenceEntranceError),
     ProjectionMismatch,
     TitleTooLong,
     NarrativeTooLong,
@@ -196,7 +194,7 @@ impl ReadableBodyHistorySlot {
     pub fn replace_attachment(
         &mut self,
         revision: u64,
-        attachment: Result<PatchbayBodyAttachment, PatchbayBodyEntranceError>,
+        attachment: Result<BodyEvidenceAttachment, BodyEvidenceEntranceError>,
     ) -> Result<&ReadableBodyHistory, ReadableBodyHistoryError> {
         if revision == 0 {
             self.current = None;

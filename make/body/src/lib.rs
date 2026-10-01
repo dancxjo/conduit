@@ -6,6 +6,7 @@
 mod body_description;
 mod body_source;
 mod construction_source;
+mod evidence_attachment;
 mod planning;
 mod spore;
 mod workload_session;
@@ -13,6 +14,7 @@ mod workload_session;
 pub use body_description::*;
 pub use body_source::*;
 pub use construction_source::*;
+pub use evidence_attachment::*;
 pub use planning::*;
 pub use spore::*;
 pub use workload_session::*;
