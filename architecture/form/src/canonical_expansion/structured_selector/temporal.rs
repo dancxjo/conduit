@@ -12,13 +12,13 @@ pub(super) fn input_temporal(stage: &Stage) -> Option<PortTemporal> {
     let inputs = stage.input.as_ref()?;
     let first = inputs.first().map(|sink| match sink {
         StageSink::Internal(endpoint) => endpoint.port.temporal,
-        StageSink::FaceOutput(_, _, temporal, _, _) => *temporal,
+        StageSink::FaceOutput(_, _, temporal, _) => *temporal,
     })?;
     inputs
         .iter()
         .all(|sink| match sink {
             StageSink::Internal(endpoint) => endpoint.port.temporal == first,
-            StageSink::FaceOutput(_, _, temporal, _, _) => *temporal == first,
+            StageSink::FaceOutput(_, _, temporal, _) => *temporal == first,
         })
         .then_some(first)
 }

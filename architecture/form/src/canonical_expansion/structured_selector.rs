@@ -298,7 +298,7 @@ fn expand_expression(
         .and_then(|inputs| inputs.first())
         .map(|sink| match sink {
             StageSink::Internal(endpoint) => endpoint.port.value_kind.clone(),
-            StageSink::FaceOutput(_, kind, _, _, _) => kind.clone(),
+            StageSink::FaceOutput(_, kind, _, _) => kind.clone(),
         })
         .map(crate::CheckedExpressionType::Semantic);
     let checked = crate::expression_check::check_expression_as(
