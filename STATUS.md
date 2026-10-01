@@ -1,6 +1,7 @@
 # Current project status
 
-Reviewed against the development tree and open issues on **28 September 2026**.
+Capability summary, with language and documentation corrections reviewed on
+**1 October 2026**. Other entries retain their existing proof scope.
 This is a capability summary, not a claim that every check has been rerun today.
 The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
 shows the exact latest development commit, accepted release, published Pages
@@ -18,7 +19,7 @@ for the clearest demonstration of the system so far.
 | **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive Forms through Fores/Backs, exact typed ports, open-ended numeric semantic ranges, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Every actual value and implementation resource envelope is finitely admitted even when a Type's semantic domain is open; a catalog entry does not promise an implementation on every Host. See [forms](forms/README.md). |
 | **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and Host Calls, plan-owned per-Step fuel, fair cooperative yielding, resource and authority admission, immutable plans, pressure, and correlated signs. Exact abnormal-terminal kinds, separate terminal-transduction profiles, containing-Form propagation, typed semantic cancellation requests, and cancellation-driven deadlines remain checked and planned through execution. Shared code serves hosted, browser, and embedded paths. Confined Wasm instruction fuel forcibly returns control even from a non-cooperative infinite loop. | A cancellation request is not proof of cancellation, and successful fallback does not manufacture semantic abnormal truth. Native in-process, browser, ConduitOS, and firmware Backs remain cooperative unless their exact Host profile names and proves a hard containment mechanism. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
 | **body lifecycle** | Zero/one/many initial forms, durable part membership, current/offline host presence, body-wide workload admission, one current plan and at most one active play. Multi-form execution and workload changes have hosted and browser evidence. Live forms treat structural drain as quiescence; a canonical trailing full stop makes that drain semantic completion. | This is implemented, not merely the old #2062 proposal. Durable keep realization across Wake, Boot, and Body loss remains part of the open persistence vertical rather than an implicit lifecycle promise. |
-| **Face and browser Masks** | One bounded renderer-neutral Face grammar carries exact basis, subjects, relationships, typed content, wording, actions, inputs, semantic order, context, and provenance. Ordinary Forms contribute Face truth; ordinary Forms serving the Mask role realize exact Face revisions as Shows through deterministic-linear and browser routes. Authored Body source admits exact `wear … else …` fallback and `prefer … over …` policy while runtime wear/doff remains replacement-planning input rather than Plan mutation. | The Rust carrier type is still named `Presentation` during migration. Browser permission, device availability, tab lifetime, and supported profile still apply; browser, hosted, and emulator proofs establish different environments. |
+| **Face and browser Masks** | One bounded renderer-neutral Face grammar carries exact basis, subjects, relationships, typed content, wording, actions, inputs, semantic order, context, and provenance. Ordinary Forms contribute Face truth; ordinary Forms serving the Mask role realize exact Face revisions as Shows through deterministic-linear and browser routes. Authored Body source admits exact `wear … else …` fallback and `want … over …` policy while runtime wear/doff remains replacement-planning input rather than Plan mutation. | The Rust carrier type is still named `Presentation` during migration. Browser permission, device availability, tab lifetime, and supported profile still apply; browser, hosted, and emulator proofs establish different environments. |
 | **Patchbay** | A resident native projection shows the active forms on the present body with exact plan/play identities and Mask topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
 | **Crèche and make** | Birth a body with reviewed forms, prepare target-native artifacts, inspect membership, and retain body evidence into Patchbay. Make packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a part, and executing work. Consult each [target](targets/README.md). |
 | **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. The x86_64 graphical journey births a body, exercises the retained seven-chapter corpus, switches resident forms, opens simplified Patchbay, replans Masks, and exercises keyboard, pointer, timer, and USB line paths. Its graphical Mask moves one boot-discovered framebuffer resource through an exact planned resource Cord into renderer possession, authorizes one present operation, then revokes that possession at Play end; the other four targets have serial product media. | The illustrated journey is **freestanding-emulator** proof. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
@@ -40,17 +41,30 @@ Their presence is not an additional physical or release acceptance claim:
 - **Native semantic Types and compact codes (#4382, #4428):**
   Conduitese owns nominal scalar, record, variant, optional, data-reference,
   bounded-sequence, and refined primitive meaning. Rust bindings are generated
-  from the checked graph. A named compact `u8` code derives iota
+  from the checked graph. Generic native type families now specialize to exact
+  finite concrete types; `DataGenerationValue<T>` and its 4096-byte text
+  specialization are a current example. This does not close every remaining
+  domain migration. A named compact `u8` code derives iota
   tags from authored variant order, typed malformed-input refusal, finite
   extent/work bounds, and a mechanical compatibility identity. The Data Text
   terminal family has no handwritten Rust tag table, and generated Rust plus
   ECMAScript consume the same checked declaration. #4431 and #4382 completed
   the payload-rich Type and repository-audit foundations; reviewed follow-up
-  migrations continue under #4375, while bounded flow target integration
-  remains open under #4378.
+  migrations continue under #4375. Bounded each/select/fold/scan and collection
+  are complete under [#4378](https://github.com/dancxjo/conduit/issues/4378), with
+  std and browser runtime/WASM proof. Current admitted ConduitOS resident forms
+  do not exercise those combinators; this is not universal embedded or browser
+  interaction/E2E proof. The [language reference](wiki/Current-language-surface.md)
+  links exact checking and execution evidence.
   HTTP scheme, transaction identity, target and header meaning are likewise
   native declarations; hosted and ConduitOS HTTP code consumes generated
   bindings while its HTTP/1.1 bytes remain an external adapter contract.
+
+- **Record laws (#4638):** native record types own pure Boolean `where` laws,
+  include them in checked identity, and enforce them at generated construction
+  and decode boundaries. General propagation into consuming-form arithmetic
+  proofs and erasure of proved-safe checks remains open in
+  [#4639](https://github.com/dancxjo/conduit/issues/4639).
 
 - **Conduitese terminal contracts (#4109):** a Fore port retains its ordinary
   value kind, temporal modality, and optional exact abnormal-terminal kind as
@@ -61,9 +75,9 @@ Their presence is not an additional physical or release acceptance claim:
   recovery must actually complete before that obligation is discharged.
   `gear~` is admitted only for a declared cancellation control, and deadline
   composition preserves the distinction between request, observed disposition,
-  and scheduler cancellation. Generic parameter spelling, import syntax,
-  richer Body/wardrobe source, and authored resource-type spelling remain
-  deliberately unfrozen rather than being supplied by private fixture syntax.
+  and scheduler cancellation. Named type parameters, `with` imports, body wardrobe, and `resource T`
+  have canonical authored surfaces documented in the
+  [language reference](wiki/Current-language-surface.md).
 
 - **Three-Body semantic journey (#3529):** ConduitOS, pinned Chromium/WASM,
   and a hosted generative Mask currently produce independent 13-step tracks for

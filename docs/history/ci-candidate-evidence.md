@@ -16,9 +16,8 @@ The durable lessons remain inside the implementation:
 None of those invariants requires a contributor to manage receipts, integration
 SHAs, reconciliation labels, temporary refs, or workflow retirement.
 
-For the current contributor interface, see [CI for contributors](contributing/ci.md).
-For the development and release boundaries, see
-[Integration and promotion](integration-and-promotion.md).
+For the current contributor interface and development/release boundaries, see
+[CI for contributors](../contributing/ci.md).
 
 Git history retains the former mechanism if implementation archaeology is ever
 needed. Do not restore it as a contributor workflow.

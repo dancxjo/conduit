@@ -1,5 +1,3 @@
-> **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
-
 ## Effects are inferred, not trusted annotations
 
 Checking derives separate facts such as:
@@ -20,29 +18,25 @@ Provenance: #4070, #4071.
 
 ---
 
----
-
 ## Realization invariance
 
 Enforce the constitutional substitution law:
 
-> **Changing the selected Back may change performance, placement, resource use and evidence; it may not silently change authored semantic meaning outside explicitly admitted variability.**
+> **Changing the selected back may change performance, placement, resource use and evidence; it may not silently change authored semantic meaning outside explicitly admitted variability.**
 
-Default Back eligibility requires the authored Kind's semantic contract **and** compatible checked Fore, not merely a same-shaped interface.
+Default back eligibility requires the authored kind's semantic contract **and** compatible checked fore, not merely a same-shaped interface.
 
 Therefore:
 
-- same Fore + different Kind is not automatically substitutable;
-- same Kind/Fore may have multiple eligible Backs;
-- implementation-specific requirements belong to Back/offer/Plan truth;
+- same fore + different kind is not automatically substitutable;
+- same kind/fore may have multiple eligible backs;
+- implementation-specific requirements belong to back/offer/plan truth;
 - any permitted variability (approximation, stochasticity, fast-math profile, etc.) must be semantic contract truth rather than inferred from implementation names;
 - planner diagnostics distinguish semantic mismatch from missing resource/availability.
 
-This law applies equally to model providers, audio sinks, Mask stages, native/SIMD optimizations and other realization families.
+This law applies equally to model providers, audio sinks, mask stages, native/SIMD optimizations and other realization families.
 
 Provenance: #4051, #3997, #4070.
-
----
 
 ---
 

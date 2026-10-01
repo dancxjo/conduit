@@ -11,7 +11,7 @@ Conduit therefore does not promise that remote work behaves exactly like local w
 
 The semantic graph can stay stable while planning tells the truth about where carriage crosses a machine boundary.
 
-## Cord versus line
+## cord versus line
 
 A **cord** is a semantic connection between compatible ports.
 
@@ -22,14 +22,14 @@ cord = meaning/composition
 line = realized carriage
 ```
 
-A plot can therefore be written without naming WebSocket, USB, Bluetooth, WebRTC, a relay, or a local socket.
+A form can therefore be written without naming WebSocket, USB, Bluetooth, WebRTC, a relay, or a local socket.
 
 ## A network operation can still be semantic when networking is the point
 
 Current tree:
 
 ```conduit
-plot network-resolution (
+form network-resolution (
     connection: NetworkConnectionState >>
     dns: DnsResult >>
 ) {
@@ -45,9 +45,9 @@ plot network-resolution (
 }
 ```
 
-Here connection and DNS meaning are themselves the subject of the plot.
+Here connection and DNS meaning are themselves the subject of the form.
 
-That is different from a portable button/indicator plot whose cord merely happens to cross a network during realization.
+That is different from a portable button/indicator form whose cord merely happens to cross a network during realization.
 
 ## Remote carriage does not grant membership
 
@@ -62,7 +62,7 @@ authorized for a capability
 selected by a plan
 ```
 
-Seeing a host does not admit it into a body. Body membership does not grant every effect. A line does not mint authority.
+Seeing a host does not admit it into a body. body membership does not grant every effect. A line does not mint authority.
 
 ## Current line mechanisms
 
@@ -101,7 +101,7 @@ A lost
 
 ### True replan
 
-If current Plan P can no longer satisfy the obligation:
+If current plan P can no longer satisfy the obligation:
 
 ```text
 loss observation
@@ -116,7 +116,7 @@ P remains immutable history.
 
 The [Two Ollamas vertical #4092](https://github.com/dancxjo/conduit/issues/4092) uses one semantic model request and two substitutable provider realizations to prove:
 
-- exact Host/Boot/provider selection;
+- exact host/boot/provider selection;
 - same-plan fallback;
 - true replacement planning;
 - replay/movement legality derived from checked meaning;
@@ -130,7 +130,7 @@ Provider URLs, HTTP framing, credentials, and model vendor identity remain below
 Current tree:
 
 ```conduit
-plot bounded-record-send (
+form bounded-record-send (
     maximum-items: Count = 4
     maximum-frame-bytes: Count = 4096
     frame: FramedTypedRecord >> queued: FramedTypedRecord

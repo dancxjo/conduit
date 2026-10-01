@@ -1,7 +1,7 @@
 # Conduit host Specification
 
-> Historical CHS-0 draft for #347, superseded as a normative specification. Use [hosts and execution](hosts.md), the [canon](../conduit-canon.md), and the current source contracts. In particular, body is distinct from host, play has its own identity, compatibility uses checked front equality, and authored forms contain no realization facts. The original MUST/SHOULD language below records the proposal; it does not impose additional contributor requirements.
-> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+> Historical CHS-0 draft for #347, superseded as a normative specification. Use [hosts and execution](../../architecture/hosts.md), the [canon](../../conduit-canon.md), and the current source contracts. In particular, body is distinct from host, play has its own identity, compatibility uses checked front equality, and authored forms contain no realization facts. The original MUST/SHOULD language below records the proposal; it does not impose additional contributor requirements.
+> Current capabilities and remaining proof: [STATUS.md](../../../STATUS.md).
 
 **Document:** CHS-0  
 **Status:** historical CHS-0 draft; superseded as a normative specification

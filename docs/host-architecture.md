@@ -31,9 +31,10 @@ host core contract
   base lifecycle. It does not receive the underlying authority of a base.
 - **Catalog category:** an organizational namespace such as `text/`, `time/`, or
   `state/`. A category is neither a base nor a planner promise.
-- **kind:** one reusable semantic callable front, such as `text/upper`. Compatibility
-  is equality of its canonical checked front. Its authored name and revision are
-  provenance and diagnostics, not nominal compatibility gates (issue #522).
+- **kind:** one reusable semantic contract, such as `text/upper`. Its **fore** is the
+  callable signature. Equal checked fores establish callable fit; ordinary
+  realization also requires the same exact semantic contract. Names alone
+  establish neither relation. See [functional compatibility](architecture/functional-compatibility.md).
 - **Family:** a composition boundary that can contribute a related set of
   kind implementations. Selecting a family includes machinery; it does not
   itself advertise a category prefix or promise every kind in that category.
@@ -43,7 +44,7 @@ host core contract
 - **host composition:** the deliberately selected families, bases, and
   policy in one binary or firmware image.
 - **Runtime offer:** one exact boot-scoped `CapabilityOffer`, including canonical
-  checked front, implementation/artifact provenance, limits, resources, and
+  checked fore, implementation/artifact provenance, limits, resources, and
   authority requirements. This is planner truth.
 
 Compile-time inclusion is therefore only an upper bound. Startup conditions,
@@ -59,9 +60,9 @@ strict subset. The planner consumes only the resulting exact offers.
 | `conduit-core::BaseCapabilityTable` | admitted base possession contract | Opaque issuer-private handles bind exact host/boot/base/plan/play/implementation/operation/subject/resource/envelope truth, finite leases, revocation, and non-secret inspection; it performs no effect itself |
 | `conduit-kernel` operation protocol | host core execution contract | Numeric admitted effects/completions; owns no platform implementation |
 | [`conduit-plan-lowering`](architecture/plan-kernel-lowering.md) | plan-to-kernel boundary | Lowers exact selected placements under an explicit fixed storage profile; not a host composition |
-| `conduit-planner` | planner | Matches canonical checked fronts against current offers, then admits exact facts |
+| `conduit-planner` | planner | Matches canonical checked fores against current offers, then admits exact facts |
 | `conduit-semantic-catalog` | host-neutral semantic catalog | Portable kind/value contracts and deterministic semantic calculations; it owns no host realization offers |
-| `conduit-signal` host-profile modules | capability contracts and profile fixtures | Shared Signal fronts plus exact std/browser/Pico offers used by accepted vertical proofs |
+| `conduit-signal` host-profile modules | capability contracts and profile fixtures | Shared Signal fores plus exact std/browser/Pico offers used by accepted vertical proofs |
 | `targets/std::StdHostComposition` | host composition | Selects explicitly enabled implementation families; `reference()` is broad and `minimal()` promises none of them |
 | `targets/std` timers, stdout, WebSocket, and USB code | bases/platform implementations | Real std effects and lines beneath selected plans; WebSocket/USB are not host-core methods |
 | feature-gated Linux isolated-file proof provider | hosted base confinement specimen | Separate process with private bounded IPC capability slot, Landlock file-read boundary, seccomp process/network denial, and rlimits; not an ordinary std offer or a claim about other families/platforms |
@@ -84,11 +85,11 @@ The checked examples intentionally expose different sets:
 - std reference: Signal, time, text, input, state, logic, math, layout,
   presentation, robotics, files, HTTP, JSON, and ALife families. Optional
   external WebSocket, raw MIDI, and audio resources have separate selections;
-- browser distributed sink: the exact presentation front required by that image;
-- Pico-local Signal image: the exact pulse and GPIO-backed presentation fronts;
-- Pico-local-minimal image: the same exact Signal fronts and sign base,
+- browser distributed sink: the exact presentation fore required by that image;
+- Pico-local Signal image: the exact pulse and GPIO-backed presentation fores;
+- Pico-local-minimal image: the same exact Signal fores and sign base,
   without the optional Conduit wire/session or BOOTSEL lifecycle-control family;
-- Pico USB/triple remote images: the exact GPIO-backed presentation sink front
+- Pico USB/triple remote images: the exact GPIO-backed presentation sink fore
   plus the explicitly selected bounded USB session-control base;
 - minimal std composition: no production operation offers;
 - text-only std composition: the implemented `text/literal`, `text/upper`,
@@ -134,7 +135,7 @@ Public Rust identifiers use the same vocabulary deliberately:
 | `KindId` | reusable semantic behavior discovery/provenance identity |
 | `KindIdentity` | revision provenance for a kind contract; not a compatibility gate |
 | `GearId` | exact identity of one authored/expanded gear occurrence |
-| `CheckedGear` | one checked gear and its required canonical front |
+| `CheckedGear` | one checked gear and its required canonical fore |
 | `CapabilityOffer` | one boot-scoped exact host offer for a kind |
 | `PlannedGear` | one gear bound to an exact host offer and realization |
 | `ImplementationId` / `ArtifactId` | selected realization provenance sealed by the plan |

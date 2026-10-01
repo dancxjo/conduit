@@ -5,22 +5,22 @@ Conduit uses ordinary nouns very deliberately, but they are easier to learn in *
 | term | meaning |
 |---|---|
 | **type** | reusable semantic contract describing what values mean |
-| **form** | one concrete portable representation of a type; not the type's meaning itself |
+| **code** | an exact portable encoding contract, distinct from type meaning |
 | **info** | one finite typed/structured value carried through cords |
 | **data** | independently addressable immutable content generation |
 | **&T** | ordinary finite info naming one exact data generation containing `T`, not authority or a pointer |
 | **keep** | retained current semantic value with an exact duration |
 
-A type may have more than one form. A current value in a keep may change while an earlier saved data generation remains immutable.
+type meaning and code identity are separate. A current value in a keep may change while an earlier saved data generation remains immutable.
 
 ## Work and realization
 
 | term | meaning |
 |---|---|
 | **kind** | reusable semantic contract for executable work |
-| **fore** | user-visible checked callable signature of a kind or plot |
+| **fore** | user-visible checked callable signature of a kind or form |
 | **back** | one concrete realization compatible with a fore |
-| **gear** | one configured occurrence of a kind in a plot |
+| **gear** | one configured occurrence of a kind in a form |
 | **port** | typed directional point named by a fore and used by gears |
 | **cord** | semantic connection between compatible ports |
 | **line** | finite concrete carriage that may realize a cord across hosts |
@@ -33,14 +33,14 @@ A cord is not a line, and a kind is not its back.
 
 | term | meaning |
 |---|---|
-| **plot** | authored portable course of semantic work: what should happen |
-| **plan** | exact immutable admitted realization of a plot under current truth |
+| **form** | authored portable course of semantic work: what should happen |
+| **plan** | exact immutable admitted realization of a form under current truth |
 | **play** | active execution of one exact plan |
 | **step** | one bounded kernel transition during a play |
 | **host call** | one bounded request from an executing back into host machinery |
 | **sign** | bounded evidence/observation about truth or events |
 
-A changed plan does not imply a changed plot. A sign is evidence, not authority.
+A changed plan does not imply a changed form. A sign is evidence, not authority.
 
 ## Continuity
 
@@ -64,7 +64,7 @@ A host can reboot without becoming a new body; a body can lose a host without ne
 | **mask** | planned user-agent realization of a face |
 | **show** | one finite concrete manifestation through a mask |
 
-A face is not a widget tree, and a show is not authoritative merely because it is visible. **Face is not a synonym, ancestor, or presentation-side version of fore; the concepts are unrelated.**
+A face is not a widget tree, and a show is not authoritative merely because it is visible. **face is not a synonym, ancestor, or presentation-side version of fore; the concepts are unrelated.**
 
 ## Source and system nouns
 
@@ -79,13 +79,13 @@ A face is not a widget tree, and a show is not authoritative merely because it i
 ## The compact map
 
 ```text
-type → form
+type → info (carried through a code)
 
 kind → fore → back
           ↓
         gear → port → cord → line
 
-plot → plan → play
+form → plan → play
 
 body → wake / lull
   ↓
@@ -99,18 +99,13 @@ face → mask → show
 
 The arrows are mnemonic, not a claim that every noun is a pipeline stage.
 
-## Vocabulary migration
+## Proposed vocabulary
 
-The current vocabulary is deliberately moving toward:
-
-```text
-historical executable form  → plot
-representation              → form
-```
-
-The semantic reason is that **plot** better names an authored course of events, while **form** better names the concrete shape of a value.
-
-Exact implemented syntax may lag the conceptual vocabulary during migration; [[Current language surface|Current-language-surface]] is authoritative for what the parser accepts today.
+Current source uses executable `form` and encoding `code`.
+[#4513](https://github.com/dancxjo/conduit/issues/4513) proposes `plot` for the
+executable unit and `form` for portable representation. That proposed pair is
+not the current parser surface. Follow [[Current language surface|Current-language-surface]]
+when writing source.
 
 ## Superseded vocabulary
 
@@ -120,13 +115,11 @@ Historical repository material may use older names.
 |---|---|
 | generic architectural **Data** | **info** |
 | callable **Front** | **fore** |
-| executable **Form** | **plot** |
-| representation contract | **form** |
 | body human-facing semantic surface | **face** |
 | Presenter | **mask** |
 | presentation Manifestation | **show** |
 | HostOperation | **host call** |
-| Seed as privileged body semantic identity | no privileged seed; ordinary plots/workset participate in birth |
+| Seed as privileged body semantic identity | no privileged seed; ordinary forms/workset participate in birth |
 
 The current noun **data** was later reintroduced with the narrower meaning “independently addressable immutable content generation.”
 

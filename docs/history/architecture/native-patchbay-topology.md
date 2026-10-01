@@ -1,7 +1,7 @@
 # Native Patchbay topology projection
 
 > Native topology-projection checkpoint for #556. This records the read-only slice and its original renderer mechanics; it is not a complete description of current Patchbay controls.
-> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+> Current capabilities and remaining proof: [STATUS.md](../../../STATUS.md).
 
 Issue #556 extends the accepted #555 shell with a read-only view over the
 current Observatory boundary. `PatchbayTopology` accepts only validated

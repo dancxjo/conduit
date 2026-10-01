@@ -1,7 +1,7 @@
 # Native Patchbay primitive GUI
 
 > Historical native GUI design spike and first composition for #685, dated August 9, 2026. Dependency versions, comparison judgments, and the original integration gate are retained as decision evidence, not current library recommendations or an instruction to keep a present branch in draft.
-> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+> Current capabilities and remaining proof: [STATUS.md](../../../STATUS.md).
 
 Issue #685 replaces the native form document as the only manifestation with a small graphical
 Patchbay composition. The deterministic document remains available with `F2`; both views consume
@@ -44,8 +44,8 @@ The initial spike used provisional selected-subject state. Its integration gate
 required the typed platform-neutral interaction path from #694: selection and
 meaningful control had to cross ordinary admitted operations before acceptance.
 The current shared implementation is
-[`PatchbayInteraction`](../../products/patchbay/model/src/interaction.rs), with
-[selection and refusal conformance](../../products/patchbay/model/src/interaction_tests.rs).
+[`PatchbayInteraction`](../../../products/patchbay/model/src/interaction.rs), with
+[selection and refusal conformance](../../../products/patchbay/model/src/interaction_tests.rs).
 Hit success alone remains distinct from operation success.
 
 ## Native composition

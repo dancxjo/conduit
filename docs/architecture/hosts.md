@@ -10,13 +10,13 @@ Read the [canon](../conduit-canon.md) for the architectural rules and
 
 ```text
 canonical .conduit source
-    -> checked form and checked fronts
+    -> checked form and checked fores
     -> expanded form, including selected reusable backs
     -> plan over current host offers, resources, authority and lines
     -> prepared host-assigned fragments and numeric kernel tables
     -> play through the shared execution kernel
     -> admitted Host Calls and correlated signs
-    -> presentation and a host-specific Manifestation
+    -> presentation and a host-specific show
 ```
 
 Each stage has its own identity. Source spelling is not checked meaning;
@@ -34,7 +34,7 @@ An old boot's plan bindings do not silently become valid after a restart.
 
 An installed implementation, a current offer, a selected capability, a reserved
 resource, and an active instance are separate states. The planner selects among
-[equal checked fronts](functional-compatibility.md), then seals exact
+[equal checked fores](functional-compatibility.md), then seals exact
 implementation, artifact, host, boot, resource, authority and bound facts.
 A familiar kind name alone does not establish compatibility or availability.
 
@@ -49,7 +49,7 @@ numeric tables before play starts. Hosted storage may allocate during
 preparation; the admitted execution path cannot grow its queues or hide work
 in an unbounded callback stream. Unsupported profiles refuse before execution.
 
-The [execution kernel](../../architecture/kernel/) owns scheduling, typed port
+The [execution kernel](../../architecture/kernel) owns scheduling, typed port
 traffic, atomic fan-out, pressure, operation correlation, closure, cancellation,
 and terminal evidence. Platform adapters perform admitted Host Calls and
 return their exact completions. They do not become a second scheduler.
@@ -70,7 +70,7 @@ One body-wide plan covers the workset; one active play realizes it during a wake
 Workload replacement follows the bounded lifecycle transaction, retaining the
 body and exact evidence. body continuity is not represented by recursively
 pretending that a set of hosts is another host. Reusable composition belongs to
-forms and their fronts/backs.
+forms and their fores/backs.
 
 A cord is a typed semantic connection. A remote cord uses an exact planned
 [line](route-candidates.md), with a separate [session and attachment](session-route-attachment.md).
@@ -82,24 +82,24 @@ creates fresh immutable realization truth.
 
 | Responsibility | Source |
 | --- | --- |
-| Shared architecture vocabulary | [`architecture/core`](../../architecture/core/) |
-| Assigned-plan schema and validation | [`architecture/assigned-plan`](../../architecture/assigned-plan/) |
-| Source, checking and expansion | [`architecture/form`](../../architecture/form/) |
-| Planning and admission | [`architecture/planner`](../../architecture/planner/) |
-| Numeric lowering | [`architecture/plan-lowering`](../../architecture/plan-lowering/) |
-| Shared execution kernel | [`architecture/kernel`](../../architecture/kernel/) |
-| body membership and lifecycle | [`architecture/body`](../../architecture/body/) |
-| Read-only runtime projection | [`architecture/observatory`](../../architecture/observatory/) |
-| Portable hosted implementation | [`targets/std`](../../targets/std/) |
-| Browser host and runtime | [`targets/browser`](../../targets/browser/) |
-| Native ConduitOS machinery | [`targets/conduitos`](../../targets/conduitos/) |
-| RP2040 make and firmware | [`targets/rp2040`](../../targets/rp2040/) |
+| Shared architecture vocabulary | [`architecture/core`](../../architecture/core) |
+| Assigned-plan schema and validation | [`architecture/assigned-plan`](../../architecture/assigned-plan) |
+| Source, checking and expansion | [`architecture/form`](../../architecture/form) |
+| Planning and admission | [`architecture/planner`](../../architecture/planner) |
+| Numeric lowering | [`architecture/plan-lowering`](../../architecture/plan-lowering) |
+| Shared execution kernel | [`architecture/kernel`](../../architecture/kernel) |
+| body membership and lifecycle | [`architecture/body`](../../architecture/body) |
+| Read-only runtime projection | [`architecture/observatory`](../../architecture/observatory) |
+| Portable hosted implementation | [`targets/std`](../../targets/std) |
+| Browser host and runtime | [`targets/browser`](../../targets/browser) |
+| Native ConduitOS machinery | [`targets/conduitos`](../../targets/conduitos) |
+| RP2040 make and firmware | [`targets/rp2040`](../../targets/rp2040) |
 
 [Make](../host-make.md) selects machinery through
 PROFILE → BUILD → IMAGE. Building an image does not create a live host, a boot,
 a body membership, or an offer. Runtime observations establish those facts.
 
-The early [portable-host proposal](portable-hosts.md) and
-[CHS-0 specification](host-specification.md) are retained as historical rationale.
+The early [portable-host proposal](../history/architecture/portable-hosts.md) and
+[CHS-0 specification](../history/architecture/host-specification.md) are retained as historical rationale.
 Their composite-host model and milestone requirements are not current API or
 contributor requirements.

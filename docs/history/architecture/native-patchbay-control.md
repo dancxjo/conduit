@@ -1,7 +1,7 @@
 # Native Patchbay plan and play control
 
 > Native plan/play control checkpoint for #558. Function-key bindings below describe this native slice. Use the current product help for supported entrances and controls.
-> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+> Current capabilities and remaining proof: [STATUS.md](../../../STATUS.md).
 
 Issue #558 adds a control and inspection layer without making Patchbay a planner, scheduler, or
 source of runtime truth. `F5` submits the currently checked and canonically expanded form to the

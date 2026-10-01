@@ -41,7 +41,7 @@ form hello {
     upper: text/upper
     show: presentation/text
     "Hello, world." >> upper >> show
-}
+}.
 ```
 
 Look for `HELLO, WORLD.` and the terminal execution result. The form chooses
