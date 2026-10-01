@@ -47,9 +47,9 @@ The Crèche birth step must:
 - birth the body in its initial LULLED state;
 - retain that same body independently of Tour navigation or closure.
 
-The current Crèche uses its deterministic persona-name catalog in
-`products/workspace/browser/creche-names.mjs`. Generated names are editable labels,
-never body identity.
+The resident Birth Form owns its deterministic persona-name catalog and exact
+derivation contract under `forms/birth`. The browser runtime consumes that owner
+directly; generated names are editable labels, never body identity.
 
 ## The biography is stateful
 
