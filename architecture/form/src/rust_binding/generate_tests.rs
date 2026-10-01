@@ -1090,7 +1090,7 @@ fn ordinary_generation_refuses_missing_drifted_and_unused_external_bindings() {
     assert!(matches!(
         generate_rust_bindings_with_external_bindings(
             &owned.native_types,
-            &[foreign.value_type.clone()],
+            core::slice::from_ref(&foreign.value_type),
             &[],
             &options,
         ),
@@ -1100,7 +1100,7 @@ fn ordinary_generation_refuses_missing_drifted_and_unused_external_bindings() {
     assert!(matches!(
         generate_rust_bindings_with_external_bindings(
             &owned.native_types,
-            &[foreign.value_type.clone()],
+            core::slice::from_ref(&foreign.value_type),
             &[ExternalNativeRustBinding {
                 semantic_identity: "type:drifted",
                 rust_type_path: "dependency::Foreign",

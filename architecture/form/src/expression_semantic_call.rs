@@ -32,7 +32,7 @@ pub(super) fn check(
         if !is_strict_widening(source_name, target) {
             return Err(diagnostic(
                 arguments[0].span(),
-                "integer conversion must widen without changing signedness",
+                "integer conversion must widen while representing the entire source domain",
             ));
         }
         return Ok(CheckedExpressionType::semantic(target));
@@ -122,7 +122,7 @@ fn is_strict_widening(source: &str, target: &str) -> bool {
             _ => return None,
         })
     }
-    matches!((width(source), width(target)), (Some((source_signed, source_width)), Some((target_signed, target_width))) if source_signed == target_signed && source_width < target_width)
+    matches!((width(source), width(target)), (Some((source_signed, source_width)), Some((target_signed, target_width))) if source_width < target_width && (source_signed == target_signed || target_signed))
 }
 
 fn check_front(
