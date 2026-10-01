@@ -1214,6 +1214,35 @@ fn native_record_where_laws_must_be_boolean_and_follow_fields() {
 }
 
 #[test]
+fn pure_expressions_admit_only_explicit_integer_widening_and_variant_tags() {
+    let source = "type Direction =\n    mono\n    | stereo\n\ntype Frame = {\n    count: U16\n    width: U32\n    direction: Direction\n    where value/u32(.count) <= .width\n    where variant/tag(.direction) != \"\"\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
+        .expect("explicit widening and unit-variant tags are pure checked meaning");
+    let frame = checked
+        .native_types
+        .iter()
+        .find(|value| value.name == "Frame")
+        .unwrap();
+    assert_eq!(frame.invariants.len(), 2);
+    for invariant in &frame.invariants {
+        let encoded = invariant.canonical_bytes().unwrap();
+        assert_eq!(
+            crate::PortableExpressionProgram::from_canonical_bytes(&encoded).unwrap(),
+            *invariant
+        );
+    }
+
+    for expression in ["value/u16(.width) == 1", "value/i64(.width) == 1"] {
+        let source = format!("type Bad = {{\n    width: U32\n    where {expression}\n}}\n");
+        let error = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
+            .expect_err("narrowing and signedness changes refuse");
+        assert!(error
+            .message
+            .contains("must widen without changing signedness"));
+    }
+}
+
+#[test]
 fn native_types_preserve_open_semantic_range_ends_for_every_numeric_family() {
     let checked = check(
         "type Positive = Count in 0..\n\

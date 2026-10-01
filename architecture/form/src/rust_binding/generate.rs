@@ -39,6 +39,9 @@ pub struct RustBindingOptions {
     /// Optional Rust constructor argument order for retaining an established
     /// record API. Semantic record identity remains canonically field-ordered.
     pub record_constructor_orders: BTreeMap<String, Vec<String>>,
+    /// Optional Rust constructor names for records whose established public
+    /// constructor maps domain-specific refusals before native validation.
+    pub record_constructor_names: BTreeMap<String, String>,
     /// Optional Rust enum declaration order for preserving an established
     /// Serde variant-index ABI. Keys are authored Type names and values are an
     /// exhaustive, unique list of authored variant tags. This is binding-only
@@ -398,6 +401,11 @@ fn emit_type(
                 .record_constructor_orders
                 .get(&value_type.name)
                 .map(Vec::as_slice),
+            constructor_name: options
+                .record_constructor_names
+                .get(&value_type.name)
+                .map(String::as_str)
+                .unwrap_or("new"),
         },
     )?;
     Ok(())

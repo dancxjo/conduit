@@ -160,7 +160,9 @@ are satisfied.
 |---|---|---|---|---|---|
 | Finance currency, comparison, pair, fixed decimal and money | `semantics/finance/types.conduit` | generated at build time | yes | yes | native binding and finance behavior suites |
 | Finance rate observation and bounded source/profile identities | `semantics/finance/types.conduit` | generated at build time | yes | yes | exact native round trips and text-boundary proof plus finance conversion/reference suites |
+| Linguistic span, token, segment, provenance, annotation and dependency family | `semantics/language/types.conduit` | generated at build time | yes | yes | exact four-token/four-annotation hosted proof, bounded text and native round trips |
 | Finance observed instant, quote freshness/quote and fixed transaction-event family | `semantics/finance/types.conduit` | generated at build time | yes | yes | exact native identities and round trips, bounded identifiers/sources and finance reference suites |
+| Signal Garden state, clock, contact and enriched-observation family | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact bounded native round trips plus deterministic minimal/enriched evolution and authored Form suites |
 | Calendar participant role, invitation state and availability state | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus calendar, AI and std Host suites |
 | Historical origin/overflow and temporal window boundary/position vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and time behavior suites |
 | Pulse observation record | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native record round trip plus canonical six-byte codec and time/browser behavior suites |

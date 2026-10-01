@@ -14,21 +14,62 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
-            copy_record_types: ["MusicalPitch".into(), "PcmClipProfile".into()].into(),
-            copy_record_value_getters: ["MusicalPitch".into()].into(),
+            copy_record_types: [
+                "AudioRenderDemand".into(),
+                "MusicalPitch".into(),
+                "PcmClipProfile".into(),
+                "PcmFrameHeader".into(),
+            ]
+            .into(),
+            copy_record_value_getters: [
+                "AudioRenderDemand".into(),
+                "MusicalPitch".into(),
+                "PcmFrameHeader".into(),
+            ]
+            .into(),
+            public_record_fields: ["AudioRenderDemand".into(), "PcmFrameHeader".into()].into(),
             direct_checked_record_constructors: [
                 "MusicalControlEvent".into(),
                 "MusicalPitch".into(),
             ]
             .into(),
-            record_constructor_orders: [(
-                "MusicalPitch".into(),
-                vec![
-                    "frequency-millihertz".into(),
-                    "a4-reference-millihertz".into(),
-                    "detune-microcents".into(),
-                ],
-            )]
+            record_constructor_orders: [
+                (
+                    "AudioRenderDemand".into(),
+                    vec![
+                        "clock-id".into(),
+                        "start-frame".into(),
+                        "frame-count".into(),
+                        "sequence".into(),
+                    ],
+                ),
+                (
+                    "MusicalPitch".into(),
+                    vec![
+                        "frequency-millihertz".into(),
+                        "a4-reference-millihertz".into(),
+                        "detune-microcents".into(),
+                    ],
+                ),
+                (
+                    "PcmFrameHeader".into(),
+                    vec![
+                        "representation".into(),
+                        "sample-rate-hz".into(),
+                        "layout".into(),
+                        "frame-count".into(),
+                        "clock-id".into(),
+                        "start-frame".into(),
+                        "discontinuity".into(),
+                        "payload-bytes".into(),
+                    ],
+                ),
+            ]
+            .into(),
+            record_constructor_names: [
+                ("AudioRenderDemand".into(), "new_native".into()),
+                ("PcmFrameHeader".into(), "new_native".into()),
+            ]
             .into(),
             ..RustBindingOptions::default()
         },

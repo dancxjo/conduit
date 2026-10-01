@@ -409,7 +409,7 @@ fn infer(
             arguments,
             *span,
             context,
-            |argument, expected| infer(argument, Some(expected), context, node_types),
+            |argument, expected| infer(argument, expected, context, node_types),
         ),
     }?;
     node_types.push(CheckedExpressionNodeType {

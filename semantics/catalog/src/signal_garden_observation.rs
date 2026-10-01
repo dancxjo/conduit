@@ -1,24 +1,13 @@
 //! Exact structured values for reusable Signal Garden observation composition.
 
-use alloc::{vec, vec::Vec};
-use conduit_core::{
-    kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape,
-};
+use conduit_core::{StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue};
+use conduit_form::rust_binding::NativeRustBinding;
 
-use crate::{
-    garden_clock_observation_type, garden_contact_observation_type, GardenClockObservation,
-    GardenContactObservation, GardenEvolutionRefusal,
-};
+use crate::{GardenClockObservation, GardenContactObservation, GardenEvolutionRefusal};
+pub use conduit_alife::GardenEnrichedObservation;
 
 pub const GARDEN_ENRICHED_OBSERVATION_TYPE: &str = "GardenEnrichedObservation";
 pub const GARDEN_ENRICHED_OBSERVATION_INFO_ID: &str = "garden/enriched-observation@1";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GardenEnrichedObservation {
-    pub clock: GardenClockObservation,
-    pub contact: GardenContactObservation,
-}
 
 pub fn combine_garden_observations(
     clock: GardenClockObservation,
@@ -41,32 +30,17 @@ pub fn garden_contact_observation_value(
     if !(0..=conduit_core::Scalar::SCALE).contains(&intensity.raw_microunits()) {
         return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
     }
-    StructuredInfoValue::record(
-        garden_contact_observation_type(),
-        vec![leaf_field(
-            "intensity",
-            "value/scalar",
-            intensity.encode().to_vec(),
-        )?],
-    )
+    observation
+        .into_structured()
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
 }
 
 pub fn garden_enriched_observation_value(
     observation: GardenEnrichedObservation,
 ) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
-    StructuredInfoValue::record(
-        garden_enriched_observation_type(),
-        vec![
-            StructuredFieldValue::new(
-                "clock",
-                crate::garden_clock_observation_value(observation.clock)?,
-            )?,
-            StructuredFieldValue::new(
-                "contact",
-                garden_contact_observation_value(observation.contact)?,
-            )?,
-        ],
-    )
+    observation
+        .into_structured()
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
 }
 
 pub fn decode_garden_contact_observation(
@@ -82,92 +56,24 @@ pub fn decode_garden_enriched_observation(
 ) -> Result<GardenEnrichedObservation, GardenEvolutionRefusal> {
     let value = StructuredInfoValue::from_canonical_bytes(encoded)
         .map_err(|_| GardenEvolutionRefusal::MalformedEnrichedObservation)?;
-    if value.value_type() != &garden_enriched_observation_type() {
-        return Err(GardenEvolutionRefusal::MalformedEnrichedObservation);
-    }
-    Ok(GardenEnrichedObservation {
-        clock: decode_clock_value(
-            record_value_field(&value, "clock")
-                .map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?,
-        )?,
-        contact: decode_contact_value(
-            record_value_field(&value, "contact")
-                .map_err(|_| GardenEvolutionRefusal::MalformedContactObservation)?,
-        )?,
-    })
+    GardenEnrichedObservation::from_structured(value)
+        .map_err(|_| GardenEvolutionRefusal::MalformedEnrichedObservation)
 }
 
 pub fn garden_enriched_observation_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id(GARDEN_ENRICHED_OBSERVATION_INFO_ID),
-        vec![
-            field("clock", garden_clock_observation_type()),
-            field("contact", garden_contact_observation_type()),
-        ],
-    )
-    .expect("reviewed Garden enriched observation record")
+    GardenEnrichedObservation::semantic_type().expect("checked Garden enriched observation Type")
 }
 
 fn decode_clock_value(
     value: &StructuredInfoValue,
 ) -> Result<GardenClockObservation, GardenEvolutionRefusal> {
-    let encoded = value
-        .canonical_bytes()
-        .map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
-    crate::decode_garden_clock_observation(&encoded)
+    GardenClockObservation::from_structured(value.clone())
+        .map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)
 }
 
 fn decode_contact_value(
     value: &StructuredInfoValue,
 ) -> Result<GardenContactObservation, GardenEvolutionRefusal> {
-    if value.value_type() != &garden_contact_observation_type() {
-        return Err(GardenEvolutionRefusal::MalformedContactObservation);
-    }
-    let raw = record_leaf_bytes(value, "intensity")
-        .and_then(|bytes| conduit_core::Scalar::decode(bytes).map_err(|_| ()))
-        .map_err(|_| GardenEvolutionRefusal::MalformedContactObservation)?;
-    if !(0..=conduit_core::Scalar::SCALE).contains(&raw.raw_microunits()) {
-        return Err(GardenEvolutionRefusal::MalformedContactObservation);
-    }
-    Ok(GardenContactObservation { intensity: raw })
-}
-
-fn record_value_field<'a>(
-    value: &'a StructuredInfoValue,
-    name: &str,
-) -> Result<&'a StructuredInfoValue, ()> {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        return Err(());
-    };
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(StructuredFieldValue::value)
-        .ok_or(())
-}
-
-fn record_leaf_bytes<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'a [u8], ()> {
-    let value = record_value_field(value, name)?;
-    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-        return Err(());
-    };
-    Ok(bytes)
-}
-
-fn leaf_field(
-    name: &str,
-    kind: &str,
-    bytes: Vec<u8>,
-) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id(kind)).expect("reviewed Garden leaf"),
-            bytes,
-        )?,
-    )
-}
-
-fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).expect("reviewed Garden observation field")
+    GardenContactObservation::from_structured(value.clone())
+        .map_err(|_| GardenEvolutionRefusal::MalformedContactObservation)
 }

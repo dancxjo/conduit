@@ -7,10 +7,11 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    FieldBitmapRefusal, GardenEvolutionRefusal, GrayScottParameters, LeniaBoundary,
-    LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindCode, ReactionDiffusionBoundaryEdge,
-    ReactionDiffusionBoundaryEdgeCode, ReactionDiffusionPartition, ReactionDiffusionRegion,
-    ReactionDiffusionRegionId,
+    FieldBitmapRefusal, GardenClockObservation, GardenContactObservation,
+    GardenEnrichedObservation, GardenEvolutionRefusal, GardenState, GrayScottParameters,
+    LeniaBoundary, LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindCode,
+    ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode, ReactionDiffusionPartition,
+    ReactionDiffusionRegion, ReactionDiffusionRegionId,
 };
 
 mod distributed_catalog;

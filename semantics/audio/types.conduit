@@ -46,6 +46,26 @@ type PcmChannelLayout =
     mono
     | stereo-left-right
 
+type PcmFrameHeader = {
+    representation: PcmSampleRepresentation
+    sample-rate-hz: U32 in 8000..=192000
+    layout: PcmChannelLayout
+    frame-count: U16 in 1..=2048
+    clock-id: U64 in 1..=18446744073709551615
+    start-frame: U64
+    discontinuity: Boolean
+    payload-bytes: U32 in 1..=65536
+    where .payload-bytes == value/u32(.frame-count) * (variant/tag(.layout) == "mono" ? 1 : 2) * (variant/tag(.representation) == "signed16-little-endian" ? 2 : variant/tag(.representation) == "signed24-little-endian" ? 3 : 4)
+}
+
+type AudioRenderDemand = {
+    clock-id: U64 in 1..=18446744073709551615
+    start-frame: U64
+    frame-count: U16 in 1..=65535
+    sequence: U32
+    where .start-frame <= 18446744073709551615 - value/u64(.frame-count)
+}
+
 type PcmClipProfile = {
     representation: PcmSampleRepresentation
     sample-rate-hz: U32 in 8000..=192000

@@ -1,11 +1,12 @@
 //! Canonical bounded PCM frame information.
 
 use crate::{
-    PcmChannelLayout, PcmChannelLayoutCode, PcmSampleRepresentation, PcmSampleRepresentationCode,
-    SoundInfoError,
+    PcmChannelLayout, PcmChannelLayoutCode, PcmFrameHeader, PcmSampleRepresentation,
+    PcmSampleRepresentationCode, SoundInfoError,
 };
 use alloc::vec::Vec;
 use conduit_core::semantic_digest;
+use core::hash::{Hash, Hasher};
 
 pub const AUDIO_PCM_INFO_ID: &str = "audio/pcm-frames@1";
 pub const PCM_FRAME_HEADER_ENCODED_LEN: usize = 29;
@@ -29,18 +30,6 @@ impl PcmChannelLayout {
             Self::StereoLeftRight => 2,
         }
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct PcmFrameHeader {
-    pub representation: PcmSampleRepresentation,
-    pub sample_rate_hz: u32,
-    pub layout: PcmChannelLayout,
-    pub frame_count: u16,
-    pub clock_id: u64,
-    pub start_frame: u64,
-    pub discontinuity: bool,
-    pub payload_bytes: u32,
 }
 
 impl PcmFrameHeader {
@@ -68,23 +57,27 @@ impl PcmFrameHeader {
         if payload_bytes > MAXIMUM_PCM_FRAME_BYTES {
             return Err(SoundInfoError::OutOfRange("payload-bytes"));
         }
+        // The checks above establish the generated Type's scalar bounds and
+        // payload-width law.  Construct the generated carrier directly so an
+        // admitted audio stream does not re-run the allocating portable
+        // expression evaluator for every PCM block.
         Ok(Self {
+            clock_id,
+            discontinuity,
+            frame_count,
+            layout,
+            payload_bytes,
             representation,
             sample_rate_hz,
-            layout,
-            frame_count,
-            clock_id,
             start_frame,
-            discontinuity,
-            payload_bytes,
         })
     }
 
     pub fn validate_payload(self, payload: &[u8]) -> Result<(), SoundInfoError> {
         let actual = payload.len() as u32;
-        if actual != self.payload_bytes {
+        if actual != self.payload_bytes() {
             return Err(SoundInfoError::InconsistentPcmLength {
-                expected: self.payload_bytes,
+                expected: self.payload_bytes(),
                 actual,
             });
         }
@@ -93,14 +86,14 @@ impl PcmFrameHeader {
 
     pub fn encode(self) -> [u8; PCM_FRAME_HEADER_ENCODED_LEN] {
         let mut out = [0; PCM_FRAME_HEADER_ENCODED_LEN];
-        out[0] = PcmSampleRepresentationCode::encode(self.representation)[0];
-        out[1..5].copy_from_slice(&self.sample_rate_hz.to_le_bytes());
-        out[5] = PcmChannelLayoutCode::encode(self.layout)[0];
-        out[6..8].copy_from_slice(&self.frame_count.to_le_bytes());
-        out[8..16].copy_from_slice(&self.clock_id.to_le_bytes());
-        out[16..24].copy_from_slice(&self.start_frame.to_le_bytes());
-        out[24] = u8::from(self.discontinuity);
-        out[25..29].copy_from_slice(&self.payload_bytes.to_le_bytes());
+        out[0] = PcmSampleRepresentationCode::encode(self.representation())[0];
+        out[1..5].copy_from_slice(&self.sample_rate_hz().to_le_bytes());
+        out[5] = PcmChannelLayoutCode::encode(self.layout())[0];
+        out[6..8].copy_from_slice(&self.frame_count().to_le_bytes());
+        out[8..16].copy_from_slice(&self.clock_id().to_le_bytes());
+        out[16..24].copy_from_slice(&self.start_frame().to_le_bytes());
+        out[24] = u8::from(self.discontinuity());
+        out[25..29].copy_from_slice(&self.payload_bytes().to_le_bytes());
         out
     }
 
@@ -126,9 +119,9 @@ impl PcmFrameHeader {
             discontinuity,
         )?;
         let declared = u32::from_le_bytes(array(encoded, 25)?);
-        if declared != header.payload_bytes {
+        if declared != header.payload_bytes() {
             return Err(SoundInfoError::InconsistentPcmLength {
-                expected: header.payload_bytes,
+                expected: header.payload_bytes(),
                 actual: declared,
             });
         }
@@ -161,6 +154,12 @@ impl PcmFrameHeader {
         let payload = &encoded[PCM_FRAME_HEADER_ENCODED_LEN..];
         header.validate_payload(payload)?;
         Ok((header, payload))
+    }
+}
+
+impl Hash for PcmFrameHeader {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.encode().hash(state);
     }
 }
 
@@ -214,7 +213,7 @@ mod tests {
             false,
         )
         .unwrap();
-        assert_eq!(header.payload_bytes, 1_024);
+        assert_eq!(header.payload_bytes(), 1_024);
         let frame = header.encode_frame(&[0; 1_024]).unwrap();
         let (decoded, payload) = PcmFrameHeader::decode_frame(&frame).unwrap();
         assert_eq!(decoded, header);
