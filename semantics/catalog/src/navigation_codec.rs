@@ -1,6 +1,6 @@
 //! Canonical structured-value codec for portable navigation operations.
 
-use alloc::{format, vec, vec::Vec};
+use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{
     Quantity, QuantityUnit, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
 };
@@ -10,12 +10,20 @@ use crate::navigation_codec_support::*;
 use crate::{
     decode_navigation_goal, decode_navigation_time, local_control, navigation_control_type,
     navigation_pose_type, navigation_route_decision_type, navigation_route_type,
-    navigation_trajectory_type, navigation_traversability_type, route_grid4, time_parameterize,
-    BoundedMotionIntent, ControlDecision, NavigationPose, NavigationRefusal, NavigationRoute,
-    NavigationTrajectory, RouteDecision, TrajectorySegment, Traversability4x4, TraversabilityCell,
-    Validity, Waypoint,
+    navigation_trajectory_type, navigation_traversability_type, route_grid4, ControlDecision,
+    NavigationPose, NavigationRefusal, NavigationRoute, NavigationTrajectory, RouteDecision,
+    TrajectorySegment, Traversability4x4, TraversabilityCell, Validity, Waypoint,
 };
 use conduit_robotics::{motion_request_value, twist_interval_value, ROBOTICS_BODY_FRAME};
+use conduit_robotics::{
+    NavigationControlDecisionMotion, NavigationIdentity64, NavigationPlanningInputIdentity,
+    NavigationRouteDecisionRoute, NavigationRouteIdentity, NavigationTrajectorySegments,
+    NavigationTraversabilityCells, NavigationWaypoints,
+};
+
+fn identity64(value: String) -> Result<NavigationIdentity64, NavigationCodecError> {
+    NavigationIdentity64::new(value).map_err(|_| NavigationCodecError::Malformed)
+}
 
 pub fn decode_navigation_pose(encoded: &[u8]) -> Result<NavigationPose, NavigationCodecError> {
     let value = exact(encoded, &navigation_pose_type())?;
@@ -24,34 +32,35 @@ pub fn decode_navigation_pose(encoded: &[u8]) -> Result<NavigationPose, Navigati
     let position = record_field(pose, "position")?;
     let sample = record_field(observation, "sample")?;
     let validity = validity(record_field(&value, "validity")?)?;
-    Ok(NavigationPose {
-        source_identity: text(record_field(sample, "source_identity")?)?,
-        sample_sequence: count(record_field(sample, "sample_sequence")?)?,
-        clock_identity: validity.0,
-        frame: text(record_field(position, "frame")?)?,
-        x_mm: i32::try_from(quantity(
-            record_field(position, "x")?,
-            QuantityUnit::Millimeter,
-        )?)
-        .map_err(|_| NavigationCodecError::InexactQuantity)?,
-        y_mm: i32::try_from(quantity(
-            record_field(position, "y")?,
-            QuantityUnit::Millimeter,
-        )?)
-        .map_err(|_| NavigationCodecError::InexactQuantity)?,
-        heading_microdegrees: i32::try_from(quantity(
+    let observed_at_ms = u64_quantity(
+        record_field(sample, "sample_time_since_boot")?,
+        QuantityUnit::Millisecond,
+    )?;
+    let validity_value =
+        Validity::new(observed_at_ms, validity.1).map_err(|_| NavigationCodecError::Malformed)?;
+    NavigationPose::new(
+        identity64(validity.0)?,
+        identity64(text(record_field(position, "frame")?)?)?,
+        i32::try_from(quantity(
             record_field(pose, "heading")?,
             QuantityUnit::Microdegree,
         )?)
         .map_err(|_| NavigationCodecError::InexactQuantity)?,
-        validity: Validity {
-            observed_at_ms: u64_quantity(
-                record_field(sample, "sample_time_since_boot")?,
-                QuantityUnit::Millisecond,
-            )?,
-            valid_until_ms: validity.1,
-        },
-    })
+        count(record_field(sample, "sample_sequence")?)?,
+        identity64(text(record_field(sample, "source_identity")?)?)?,
+        validity_value,
+        i32::try_from(quantity(
+            record_field(position, "x")?,
+            QuantityUnit::Millimeter,
+        )?)
+        .map_err(|_| NavigationCodecError::InexactQuantity)?,
+        i32::try_from(quantity(
+            record_field(position, "y")?,
+            QuantityUnit::Millimeter,
+        )?)
+        .map_err(|_| NavigationCodecError::InexactQuantity)?,
+    )
+    .map_err(|_| NavigationCodecError::Malformed)
 }
 
 pub fn decode_navigation_traversability(
@@ -79,26 +88,32 @@ pub fn decode_navigation_traversability(
             _ => Err(NavigationCodecError::Malformed),
         })
         .collect::<Result<_, _>>()?;
-    Ok(Traversability4x4 {
-        source_identity: text(record_field(sample, "source_identity")?)?,
-        sample_sequence: count(record_field(sample, "sample_sequence")?)?,
-        clock_identity: valid.0,
-        frame: text(record_field(&value, "frame")?)?,
-        origin_x_mm: i32_quantity(record_field(origin, "x")?, QuantityUnit::Millimeter)?,
-        origin_y_mm: i32_quantity(record_field(origin, "y")?, QuantityUnit::Millimeter)?,
-        cell_width_mm: u32_quantity(record_field(extent, "width")?, QuantityUnit::Millimeter)?,
-        cell_height_mm: u32_quantity(record_field(extent, "height")?, QuantityUnit::Millimeter)?,
-        validity: Validity {
-            observed_at_ms: u64_quantity(
-                record_field(sample, "sample_time_since_boot")?,
-                QuantityUnit::Millisecond,
-            )?,
-            valid_until_ms: valid.1,
-        },
-        cells: cells
-            .try_into()
-            .map_err(|_| NavigationCodecError::Malformed)?,
-    })
+    let cells: [TraversabilityCell; 16] = cells
+        .try_into()
+        .map_err(|_| NavigationCodecError::Malformed)?;
+    let cells =
+        NavigationTraversabilityCells::new(cells).map_err(|_| NavigationCodecError::Malformed)?;
+    let validity_value = Validity::new(
+        u64_quantity(
+            record_field(sample, "sample_time_since_boot")?,
+            QuantityUnit::Millisecond,
+        )?,
+        valid.1,
+    )
+    .map_err(|_| NavigationCodecError::Malformed)?;
+    Traversability4x4::new(
+        u32_quantity(record_field(extent, "height")?, QuantityUnit::Millimeter)?,
+        u32_quantity(record_field(extent, "width")?, QuantityUnit::Millimeter)?,
+        cells,
+        identity64(valid.0)?,
+        identity64(text(record_field(&value, "frame")?)?)?,
+        i32_quantity(record_field(origin, "x")?, QuantityUnit::Millimeter)?,
+        i32_quantity(record_field(origin, "y")?, QuantityUnit::Millimeter)?,
+        count(record_field(sample, "sample_sequence")?)?,
+        identity64(text(record_field(sample, "source_identity")?)?)?,
+        validity_value,
+    )
+    .map_err(|_| NavigationCodecError::Malformed)
 }
 
 pub fn encode_navigation_pose(
@@ -302,26 +317,36 @@ pub fn decode_navigation_route(encoded: &[u8]) -> Result<NavigationRoute, Naviga
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(NavigationRoute {
-        identity: text(record_field(&value, "route_identity")?)?,
-        goal_identity: text(record_field(&value, "goal_identity")?)?,
-        planner_identity: text(record_field(&value, "planner_identity")?)?,
-        planning_input_identity: text(record_field(&value, "planning_input_identity")?)?,
-        frame: frame.ok_or(NavigationCodecError::Malformed)?,
-        target_heading_microdegrees: i32_quantity(
-            record_field(&value, "target_heading")?,
-            QuantityUnit::Microdegree,
-        )?,
-        position_tolerance_mm: u32_quantity(
-            record_field(&value, "position_tolerance")?,
-            QuantityUnit::Millimeter,
-        )?,
-        heading_tolerance_microdegrees: u32_quantity(
+    let waypoints = conduit_form::rust_binding::BoundedSequence::try_from_iter(waypoints)
+        .map_err(|_| NavigationCodecError::Malformed)?;
+    let waypoints =
+        NavigationWaypoints::new(waypoints).map_err(|_| NavigationCodecError::Malformed)?;
+    NavigationRoute::new(
+        identity64(frame.ok_or(NavigationCodecError::Malformed)?)?,
+        identity64(text(record_field(&value, "goal_identity")?)?)?,
+        u32_quantity(
             record_field(&value, "heading_tolerance")?,
             QuantityUnit::Microdegree,
         )?,
+        NavigationRouteIdentity::new(text(record_field(&value, "route_identity")?)?)
+            .map_err(|_| NavigationCodecError::Malformed)?,
+        identity64(text(record_field(&value, "planner_identity")?)?)?,
+        NavigationPlanningInputIdentity::new(text(record_field(
+            &value,
+            "planning_input_identity",
+        )?)?)
+        .map_err(|_| NavigationCodecError::Malformed)?,
+        u32_quantity(
+            record_field(&value, "position_tolerance")?,
+            QuantityUnit::Millimeter,
+        )?,
+        i32_quantity(
+            record_field(&value, "target_heading")?,
+            QuantityUnit::Microdegree,
+        )?,
         waypoints,
-    })
+    )
+    .map_err(|_| NavigationCodecError::Malformed)
 }
 
 pub fn decode_navigation_trajectory(
@@ -366,49 +391,57 @@ pub fn decode_navigation_trajectory(
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(NavigationTrajectory {
-        route_identity: text(record_field(&value, "route_identity")?)?,
-        goal_identity: text(record_field(&value, "goal_identity")?)?,
-        clock_identity: text(record_field(&value, "clock_identity")?)?,
-        target_heading_microdegrees: i32_quantity(
-            record_field(&value, "target_heading")?,
-            QuantityUnit::Microdegree,
-        )?,
-        position_tolerance_mm: u32_quantity(
-            record_field(&value, "position_tolerance")?,
-            QuantityUnit::Millimeter,
-        )?,
-        heading_tolerance_microdegrees: u32_quantity(
+    let segments = conduit_form::rust_binding::BoundedSequence::try_from_iter(segments)
+        .map_err(|_| NavigationCodecError::Malformed)?;
+    let segments =
+        NavigationTrajectorySegments::new(segments).map_err(|_| NavigationCodecError::Malformed)?;
+    NavigationTrajectory::new(
+        identity64(text(record_field(&value, "clock_identity")?)?)?,
+        identity64(frame.ok_or(NavigationCodecError::Malformed)?)?,
+        identity64(text(record_field(&value, "goal_identity")?)?)?,
+        u32_quantity(
             record_field(&value, "heading_tolerance")?,
             QuantityUnit::Microdegree,
         )?,
-        valid_until_ms: u64_quantity(
+        u32_quantity(
+            record_field(&value, "position_tolerance")?,
+            QuantityUnit::Millimeter,
+        )?,
+        NavigationRouteIdentity::new(text(record_field(&value, "route_identity")?)?)
+            .map_err(|_| NavigationCodecError::Malformed)?,
+        segments,
+        i32_quantity(
+            record_field(&value, "target_heading")?,
+            QuantityUnit::Microdegree,
+        )?,
+        u64_quantity(
             record_field(&value, "valid_until")?,
             QuantityUnit::Millisecond,
         )?,
-        frame: frame.ok_or(NavigationCodecError::Malformed)?,
-        segments,
-    })
+    )
+    .map_err(|_| NavigationCodecError::Malformed)
 }
 
 pub fn encode_route_decision(decision: &RouteDecision) -> Result<Vec<u8>, NavigationCodecError> {
     let (tag, payload) = match decision {
-        RouteDecision::Route(route) => ("route", route_value(route)?),
-        RouteDecision::Hold { goal_identity } => ("hold", refusal_value(goal_identity, "hold")?),
-        RouteDecision::NoPath { goal_identity } => {
-            ("no_path", refusal_value(goal_identity, "no-path")?)
-        }
-        RouteDecision::GoalInvalid { goal_identity } => (
+        RouteDecision::Route(route) => ("route", decision_route_value(route)?),
+        RouteDecision::Hold(payload) => ("hold", refusal_value(payload.goal_identity(), "hold")?),
+        RouteDecision::NoPath(payload) => (
+            "no_path",
+            refusal_value(payload.goal_identity(), "no-path")?,
+        ),
+        RouteDecision::GoalInvalid(payload) => (
             "goal_invalid",
-            refusal_value(goal_identity, "goal-invalid")?,
+            refusal_value(payload.goal_identity(), "goal-invalid")?,
         ),
-        RouteDecision::ObstacleDataUnavailable { goal_identity } => (
+        RouteDecision::ObstacleDataUnavailable(payload) => (
             "obstacle_data_unavailable",
-            refusal_value(goal_identity, "obstacle-data-unavailable")?,
+            refusal_value(payload.goal_identity(), "obstacle-data-unavailable")?,
         ),
-        RouteDecision::PoseStale { goal_identity } => {
-            ("pose_stale", refusal_value(goal_identity, "pose-stale")?)
-        }
+        RouteDecision::PoseStale(payload) => (
+            "pose_stale",
+            refusal_value(payload.goal_identity(), "pose-stale")?,
+        ),
     };
     Ok(
         StructuredInfoValue::variant(navigation_route_decision_type(), tag, payload)?
@@ -513,11 +546,11 @@ pub fn encode_trajectory(value: &NavigationTrajectory) -> Result<Vec<u8>, Naviga
 pub fn encode_control(value: &ControlDecision) -> Result<Vec<u8>, NavigationCodecError> {
     let (tag, payload) = match value {
         ControlDecision::Motion(intent) => ("motion", motion_value(intent)?),
-        ControlDecision::Arrived { goal_identity } => ("arrived", text_value(goal_identity)?),
-        ControlDecision::Hold { goal_identity } => ("hold", text_value(goal_identity)?),
-        ControlDecision::PoseStale { goal_identity } => ("pose_stale", text_value(goal_identity)?),
-        ControlDecision::TrajectoryExpired { goal_identity } => {
-            ("trajectory_expired", text_value(goal_identity)?)
+        ControlDecision::Arrived(payload) => ("arrived", text_value(payload.goal_identity())?),
+        ControlDecision::Hold(payload) => ("hold", text_value(payload.goal_identity())?),
+        ControlDecision::PoseStale(payload) => ("pose_stale", text_value(payload.goal_identity())?),
+        ControlDecision::TrajectoryExpired(payload) => {
+            ("trajectory_expired", text_value(payload.goal_identity())?)
         }
     };
     Ok(StructuredInfoValue::variant(navigation_control_type(), tag, payload)?.canonical_bytes()?)
@@ -543,7 +576,7 @@ pub fn execute_time_parameterize(
     linear_mm: u32,
     angular_microdegrees: u32,
 ) -> Result<Vec<u8>, NavigationCodecError> {
-    encode_trajectory(&time_parameterize(
+    encode_trajectory(&crate::navigation_realization::time_parameterize_route(
         &decode_navigation_route(route)?,
         &decode_navigation_time(time)?,
         interval_ms,
@@ -563,13 +596,15 @@ pub fn execute_local_control(
     )?)
 }
 
-fn route_value(route: &NavigationRoute) -> Result<StructuredInfoValue, NavigationCodecError> {
+fn decision_route_value(
+    route: &NavigationRouteDecisionRoute,
+) -> Result<StructuredInfoValue, NavigationCodecError> {
     let points = route
-        .waypoints
+        .waypoints()
         .iter()
         .map(|point| {
             point2_value(
-                &route.frame,
+                route.frame(),
                 Quantity::new(point.x_mm.into(), QuantityUnit::Millimeter),
                 Quantity::new(point.y_mm.into(), QuantityUnit::Millimeter),
             )
@@ -580,32 +615,35 @@ fn route_value(route: &NavigationRoute) -> Result<StructuredInfoValue, Navigatio
     let ty = navigation_route_type();
     let course_ty = field_type(&ty, "waypoints")?;
     let waypoints =
-        StructuredInfoValue::variant(course_ty, count_tag(route.waypoints.len())?, path)?;
+        StructuredInfoValue::variant(course_ty, count_tag(route.waypoints().len())?, path)?;
     record_value(
         ty,
         vec![
-            ("goal_identity", text_value(&route.goal_identity)?),
+            ("goal_identity", text_value(route.goal_identity())?),
             (
                 "heading_tolerance",
                 quantity_value(
-                    route.heading_tolerance_microdegrees.into(),
+                    (*route.heading_tolerance_microdegrees()).into(),
                     QuantityUnit::Microdegree,
                 )?,
             ),
-            ("planner_identity", text_value(&route.planner_identity)?),
+            ("planner_identity", text_value(route.planner_identity())?),
             (
                 "planning_input_identity",
-                text_value(&route.planning_input_identity)?,
+                text_value(route.planning_input_identity())?,
             ),
             (
                 "position_tolerance",
-                quantity_value(route.position_tolerance_mm.into(), QuantityUnit::Millimeter)?,
+                quantity_value(
+                    (*route.position_tolerance_mm()).into(),
+                    QuantityUnit::Millimeter,
+                )?,
             ),
-            ("route_identity", text_value(&route.identity)?),
+            ("route_identity", text_value(route.identity())?),
             (
                 "target_heading",
                 quantity_value(
-                    route.target_heading_microdegrees.into(),
+                    (*route.target_heading_microdegrees()).into(),
                     QuantityUnit::Microdegree,
                 )?,
             ),
@@ -638,21 +676,23 @@ fn refusal_value(goal: &str, reason: &str) -> Result<StructuredInfoValue, Naviga
     )
 }
 
-fn motion_value(intent: &BoundedMotionIntent) -> Result<StructuredInfoValue, NavigationCodecError> {
+fn motion_value(
+    intent: &NavigationControlDecisionMotion,
+) -> Result<StructuredInfoValue, NavigationCodecError> {
     let twist = twist_interval_value(
         ROBOTICS_BODY_FRAME,
-        Quantity::new(intent.interval_ms.into(), QuantityUnit::Millisecond),
-        Quantity::new(intent.linear_mm.into(), QuantityUnit::Millimeter),
+        Quantity::new((*intent.interval_ms()).into(), QuantityUnit::Millisecond),
+        Quantity::new((*intent.linear_mm()).into(), QuantityUnit::Millimeter),
         Quantity::new(0, QuantityUnit::Millimeter),
         Quantity::new(
-            intent.angular_microdegrees.into(),
+            (*intent.angular_microdegrees()).into(),
             QuantityUnit::Microdegree,
         ),
     )
     .map_err(|_| NavigationCodecError::Robotics)?;
     motion_request_value(
-        &format!("navigation/{}", intent.goal_identity),
-        Quantity::new(intent.ttl_ms.into(), QuantityUnit::Millisecond),
+        &format!("navigation/{}", intent.goal_identity()),
+        Quantity::new((*intent.ttl_ms()).into(), QuantityUnit::Millisecond),
         twist,
     )
     .map_err(|_| NavigationCodecError::Robotics)
