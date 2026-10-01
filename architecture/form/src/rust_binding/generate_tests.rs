@@ -527,6 +527,7 @@ fn generated_bindings_compile_as_an_independent_rust_library() {
     let generated = generate_rust_bindings(
         &checked_types(),
         &RustBindingOptions {
+            boxed_variant_payloads: ["MusicEvent.note".into()].into(),
             copy_nominal_types: ["Digest".into()].into(),
             hash_nominal_types: ["Digest".into()].into(),
             ..RustBindingOptions::default()
@@ -697,6 +698,34 @@ mod generated_round_trip {
         String::from_utf8_lossy(&no_std_output.stderr)
     );
     fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn binding_only_boxing_preserves_semantic_identity_and_refuses_invalid_targets() {
+    let types = checked_types();
+    let plain = generate_rust_bindings(&types, &RustBindingOptions::default()).unwrap();
+    let boxed = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            boxed_variant_payloads: ["MusicEvent.note".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(plain.semantic_type_bytes, boxed.semantic_type_bytes);
+    assert!(boxed.source.contains("Note(Box<MusicEventNote>)"));
+    for path in ["Missing.note", "MusicEvent.missing", "MusicEvent.rest"] {
+        assert_eq!(
+            generate_rust_bindings(
+                &types,
+                &RustBindingOptions {
+                    boxed_variant_payloads: [path.into()].into(),
+                    ..RustBindingOptions::default()
+                },
+            ),
+            Err(RustBindingGenerationError::InvalidSemanticType)
+        );
+    }
 }
 
 #[test]
