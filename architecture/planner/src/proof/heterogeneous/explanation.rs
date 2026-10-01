@@ -1,9 +1,10 @@
 //! Renderer-neutral explanation of the heterogeneous scheduler capstone.
 
-use conduit_planner::proof::heterogeneous::{
+use super::{
     CapstoneDeviceDisposition, CapstoneGainDimension, HeterogeneousCapstoneReport,
     SchedulerProofClass, SchedulerStrategy,
 };
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub const MAX_CAPSTONE_EXPLANATION_BYTES: usize = 4_096;
@@ -58,11 +59,8 @@ impl PatchbayHeterogeneousCapstoneExplanation {
             .gains_by_baseline
             .iter()
             .map(|(strategy, gains)| PatchbayCapstoneBaseline {
-                name: strategy_name(*strategy).to_owned(),
-                gains: gains
-                    .iter()
-                    .map(|gain| gain_name(*gain).to_owned())
-                    .collect(),
+                name: strategy_name(*strategy).into(),
+                gains: gains.iter().map(|gain| gain_name(*gain).into()).collect(),
             })
             .collect();
         let placement_decisions = report

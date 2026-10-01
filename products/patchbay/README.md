@@ -43,14 +43,13 @@ reconstructing a second current-truth registry.
 
 ## Explanation and proof classification
 
-- Voyager scar explanations and the historically named presenter-plan
-  descriptions are reusable inspection projections: they consume exact
-  supplied evidence and are used by ordinary catalog or inspection surfaces.
-  Their legacy names are migration debt, not current architecture; they do not
-  construct Hosts.
-- The heterogeneous capstone baseline is a historical proof specimen. It is
-  compiled only with the model's unit tests and is absent from the ordinary
-  model API.
+- Voyager scar explanations now live with the planner proof evidence they
+  explain. Historically named presenter-plan descriptions remain reusable
+  inspection projections: they consume exact supplied evidence and are used by
+  ordinary catalog or inspection surfaces. Their legacy names are migration
+  debt, not current architecture; they do not construct Hosts.
+- The heterogeneous capstone baseline lives with its planner proof and is
+  compiled only with that proof's tests.
 - Native binaries whose names contain `capstone` remain explicit proof
   entrances. They are not invoked by the installed `conduit` product entrance
   and make no physical claim unless their owning proof records one.
