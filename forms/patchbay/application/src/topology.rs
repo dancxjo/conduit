@@ -3,6 +3,7 @@
 //! These records are a projection and a replanning request. They do not mutate
 //! a plan, schedule a renderer, or grant authority.
 
+use alloc::{format, string::String, vec::Vec};
 use conduit_body::{BodyId, BodyPlan, BodyPlayIdentity};
 use conduit_core::{
     verify_plan, ActivePlayId, ActivePlayIdentity, BootId, CapabilityId, HostId, ImplementationId,
@@ -110,7 +111,7 @@ impl core::fmt::Display for MaskTopologyRefusal {
         write!(f, "Mask topology request refused: {self:?}")
     }
 }
-impl std::error::Error for MaskTopologyRefusal {}
+impl core::error::Error for MaskTopologyRefusal {}
 
 impl MaskTopology {
     /// Project from the body-wide Plan selection and exact terminal receipts.

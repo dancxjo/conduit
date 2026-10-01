@@ -3844,8 +3844,10 @@ dependencies = [
 name = "patchbay-application"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-form",
+ "conduit-patchbay-workbench-conformance",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "patchbay-control",
@@ -3895,6 +3897,7 @@ dependencies = [
  "conduit-std-host",
  "conduit-tongues",
  "conduit-wire",
+ "patchbay-application",
  "patchbay-hosted",
  "patchbay-model",
  "serde",

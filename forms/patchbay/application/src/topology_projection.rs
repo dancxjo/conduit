@@ -1,5 +1,6 @@
 //! Portable semantic projection of exact Mask topology truth.
 
+use alloc::{format, vec};
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationDisclosure,
     PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue,

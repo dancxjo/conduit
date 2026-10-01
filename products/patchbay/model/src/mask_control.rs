@@ -7,10 +7,8 @@ use conduit_body::{
 use conduit_core::SignId;
 use conduit_presentation::{Manifestation, Presentation};
 
-use crate::{
-    MaskTopology, MaskTopologyRefusal, RendererAdapterIdentity, RendererAdapterKind,
-    RendererExecution,
-};
+use crate::{RendererAdapterIdentity, RendererAdapterKind, RendererExecution};
+use patchbay_application::{MaskTopology, MaskTopologyRefusal};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MaskTopologyMode {
