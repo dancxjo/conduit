@@ -15,6 +15,7 @@ pub(super) fn emit_record_binding(
     fields: &[conduit_core::StructuredFieldType],
     names: &BTreeMap<String, String>,
     constructor_order: Option<&[String]>,
+    constructor_name: &str,
 ) -> Result<(), RustBindingGenerationError> {
     trait_header(out, rust_name, constant);
     writeln!(out, "        let mut fields = Vec::new();").expect("String writing is infallible");
@@ -37,7 +38,7 @@ pub(super) fn emit_record_binding(
     writeln!(out, "    fn from_structured(value: StructuredInfoValue) -> Result<Self, NativeBindingRefusal> {{")
         .expect("String writing is infallible");
     exact_type_guard(out);
-    writeln!(out, "        Self::new(").expect("String writing is infallible");
+    writeln!(out, "        Self::{constructor_name}(").expect("String writing is infallible");
     let constructor_fields = constructor_order
         .map(|order| {
             order

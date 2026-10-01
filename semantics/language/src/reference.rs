@@ -2,14 +2,12 @@
 
 use alloc::{
     string::{String, ToString},
-    vec,
     vec::Vec,
 };
-use conduit_core::{
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
-};
+use conduit_core::StructuredInfoValue;
+use conduit_form::rust_binding::NativeRustBinding;
 
-use crate::info::*;
+use crate::*;
 
 struct Lexeme {
     surface: String,
@@ -72,34 +70,30 @@ pub fn tokenize_four(
     let tokens = lexemes
         .iter()
         .enumerate()
-        .map(|(ordinal, lexeme)| token_value(text_identity, ordinal as u64, lexeme))
+        .map(|(ordinal, lexeme)| token(text_identity, ordinal as u64, lexeme))
         .collect::<Result<Vec<_>, _>>()?;
-    let segment = record_value(
-        linguistic_segment_type(),
-        vec![
-            ("identity", text_value("segment/0")),
-            ("kind", unit_variant(segment_kind_type(), "sentence")?),
-            ("span", span_value(text_identity, 0, scalar)?),
-        ],
+    let tokens: [LinguisticToken; 4] =
+        tokens.try_into().map_err(|tokens: Vec<LinguisticToken>| {
+            LinguisticRefusal::WrongTokenCount {
+                expected: LINGUISTIC_TOKEN_COUNT,
+                actual: tokens.len(),
+            }
+        })?;
+    let segment = LinguisticSegment::new(
+        "segment/0".to_string(),
+        LinguisticSegmentKind::sentence(),
+        span(text_identity, 0, scalar)?,
     )?;
-    record_value(
-        linguistic_tokens_four_type(),
-        vec![
-            (
-                "provenance",
-                provenance_value(
-                    "deterministic_rule",
-                    "conduit/std-tokenizer",
-                    "unicode-scalar@1",
-                )?,
-            ),
-            (
-                "segments",
-                collection_value(linguistic_segment_type(), vec![segment])?,
-            ),
-            ("tokens", collection_value(linguistic_token_type(), tokens)?),
-        ],
-    )
+    Ok(LinguisticTokensFour::new(
+        provenance(
+            "deterministic_rule",
+            "conduit/std-tokenizer",
+            "unicode-scalar@1",
+        )?,
+        [segment],
+        tokens,
+    )?
+    .into_structured()?)
 }
 
 fn push_lexeme(
@@ -124,31 +118,26 @@ fn push_lexeme(
     Ok(())
 }
 
-fn token_value(
+fn token(
     text_identity: &str,
     ordinal: u64,
     lexeme: &Lexeme,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    let features = (0..LINGUISTIC_FEATURE_SLOTS)
-        .map(|_| unit_variant(feature_slot_type(), "unused"))
-        .collect::<Result<Vec<_>, _>>()?;
-    record_value(
-        linguistic_token_type(),
-        vec![
-            (
-                "category",
-                unit_variant(
-                    token_category_type(),
-                    if lexeme.word { "word" } else { "punctuation" },
-                )?,
-            ),
-            ("features", collection_value(feature_slot_type(), features)?),
-            ("identity", token_identity_value(text_identity, ordinal)?),
-            ("lemma", unit_variant(optional_text_type(), "absent")?),
-            ("span", span_value(text_identity, lexeme.start, lexeme.end)?),
-            ("surface", text_value(&lexeme.surface)),
+) -> Result<LinguisticToken, LinguisticRefusal> {
+    Ok(LinguisticToken::new(
+        if lexeme.word {
+            LinguisticTokenCategory::word()
+        } else {
+            LinguisticTokenCategory::punctuation()
+        },
+        [
+            LinguisticTokenFeatureSlot::unused(),
+            LinguisticTokenFeatureSlot::unused(),
         ],
-    )
+        token_identity(text_identity, ordinal)?,
+        LinguisticOptionalText::absent(),
+        span(text_identity, lexeme.start, lexeme.end)?,
+        lexeme.surface.clone(),
+    )?)
 }
 
 /// A deterministic hosted-library realization using Rust's Unicode character tables.
@@ -157,7 +146,7 @@ pub fn annotate_with_unicode_library(
 ) -> Result<StructuredInfoValue, LinguisticRefusal> {
     annotation_bundle(
         tokens,
-        provenance_value("library", "rust/core-char", "unicode-alphabetic@1")?,
+        provenance("library", "rust/core-char", "unicode-alphabetic@1")?,
     )
 }
 
@@ -168,216 +157,97 @@ pub fn annotate_with_model_fixture(
 ) -> Result<StructuredInfoValue, LinguisticRefusal> {
     annotation_bundle(
         tokens,
-        provenance_value("model", model_identity, "fixture-output@1")?,
+        provenance("model", model_identity, "fixture-output@1")?,
     )
 }
 
 fn annotation_bundle(
     tokens: &StructuredInfoValue,
-    provenance: StructuredInfoValue,
+    provenance: LinguisticDerivationProvenance,
 ) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    if tokens.value_type() != &linguistic_tokens_four_type() {
-        return Err(LinguisticRefusal::MalformedInfo);
-    }
-    let token_values = collection_field(tokens, "tokens")?;
-    let annotations = token_values
+    let tokens = LinguisticTokensFour::from_structured(tokens.clone())
+        .map_err(|_| LinguisticRefusal::MalformedInfo)?;
+    let annotations = tokens
+        .tokens()
         .iter()
         .map(|token| {
-            let surface = leaf_text(record_field(token, "surface")?)?;
-            let label = if surface.chars().all(char::is_alphabetic) {
+            let label = if token.surface().chars().all(char::is_alphabetic) {
                 "lexical-item"
             } else {
                 "sentence-terminal"
             };
-            record_value(
-                linguistic_annotation_type(),
-                vec![
-                    ("label", leaf_value("value/text", label.as_bytes())),
-                    ("span", record_field(token, "span")?.clone()),
-                ],
-            )
+            Ok(LinguisticAnnotation::new(
+                label.to_string(),
+                token.span().clone(),
+            )?)
         })
-        .collect::<Result<Vec<_>, _>>()?;
-    let identity = |index| record_field(&token_values[index], "identity").cloned();
-    let dependencies = vec![
-        dependency_value(identity(0)?, identity(1)?, "modifier")?,
-        dependency_value(identity(1)?, identity(2)?, "subject")?,
-        dependency_value(identity(3)?, identity(2)?, "punctuation")?,
+        .collect::<Result<Vec<_>, LinguisticRefusal>>()?;
+    let annotations: [LinguisticAnnotation; 4] = annotations
+        .try_into()
+        .map_err(|_| LinguisticRefusal::MalformedInfo)?;
+    let token_values = tokens.tokens();
+    let dependencies = [
+        dependency(
+            token_values[0].identity().clone(),
+            token_values[1].identity().clone(),
+            LinguisticDependencyRelation::modifier(),
+        )?,
+        dependency(
+            token_values[1].identity().clone(),
+            token_values[2].identity().clone(),
+            LinguisticDependencyRelation::subject(),
+        )?,
+        dependency(
+            token_values[3].identity().clone(),
+            token_values[2].identity().clone(),
+            LinguisticDependencyRelation::punctuation(),
+        )?,
     ];
-    record_value(
-        annotation_bundle_four_type(),
-        vec![
-            (
-                "annotations",
-                collection_value(linguistic_annotation_type(), annotations)?,
-            ),
-            (
-                "dependencies",
-                collection_value(dependency_edge_type(), dependencies)?,
-            ),
-            ("provenance", provenance),
-        ],
-    )
+    Ok(AnnotationBundleFour::new(annotations, dependencies, provenance)?.into_structured()?)
 }
 
-fn dependency_value(
-    dependent: StructuredInfoValue,
-    governor: StructuredInfoValue,
-    relation: &str,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    record_value(
-        dependency_edge_type(),
-        vec![
-            ("dependent", dependent),
-            ("governor", governor),
-            (
-                "relation",
-                unit_variant(dependency_relation_type(), relation)?,
-            ),
-        ],
-    )
+fn dependency(
+    dependent: LinguisticTokenIdentity,
+    governor: LinguisticTokenIdentity,
+    relation: LinguisticDependencyRelation,
+) -> Result<LinguisticDependencyEdge, LinguisticRefusal> {
+    Ok(LinguisticDependencyEdge::new(
+        dependent, governor, relation,
+    )?)
 }
 
-fn span_value(
-    text_identity: &str,
-    start: u64,
-    end: u64,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    record_value(
-        text_span_type(),
-        vec![
-            (
-                "basis",
-                unit_variant(offset_basis_type(), "unicode_scalar")?,
-            ),
-            ("end", count_value(end)),
-            ("start", count_value(start)),
-            ("text_identity", text_value(text_identity)),
-        ],
-    )
+fn span(text_identity: &str, start: u64, end: u64) -> Result<TextSpan, LinguisticRefusal> {
+    Ok(TextSpan::new(
+        LinguisticOffsetBasis::unicode_scalar(),
+        end,
+        start,
+        text_identity.to_string(),
+    )?)
 }
 
-fn token_identity_value(
+fn token_identity(
     text_identity: &str,
     ordinal: u64,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    record_value(
-        token_identity_type(),
-        vec![
-            ("ordinal", count_value(ordinal)),
-            ("text_identity", text_value(text_identity)),
-        ],
-    )
+) -> Result<LinguisticTokenIdentity, LinguisticRefusal> {
+    Ok(LinguisticTokenIdentity::new(
+        ordinal,
+        text_identity.to_string(),
+    )?)
 }
 
-fn provenance_value(
+fn provenance(
     tag: &str,
     implementation: &str,
     revision: &str,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    let value_type = provenance_type();
-    let payload_type = variant_payload_type(&value_type, tag)?;
-    let payload = record_value(
-        payload_type,
-        vec![
-            ("implementation", text_value(implementation)),
-            ("revision", text_value(revision)),
-        ],
-    )?;
-    Ok(StructuredInfoValue::variant(value_type, tag, payload)?)
-}
-
-fn unit_variant(
-    value_type: StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    Ok(StructuredInfoValue::variant(
-        value_type,
-        tag,
-        leaf_value("value/unit", &[]),
-    )?)
-}
-
-fn variant_payload_type(
-    value_type: &StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoType, LinguisticRefusal> {
-    let conduit_core::StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape() else {
-        return Err(LinguisticRefusal::MalformedInfo);
-    };
-    cases
-        .iter()
-        .find(|case| case.tag() == tag)
-        .map(|case| case.payload_type().clone())
-        .ok_or(LinguisticRefusal::MalformedInfo)
-}
-
-fn record_value(
-    value_type: StructuredInfoType,
-    fields: Vec<(&str, StructuredInfoValue)>,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    Ok(StructuredInfoValue::record(
-        value_type,
-        fields
-            .into_iter()
-            .map(|(name, value)| StructuredFieldValue::new(name, value))
-            .collect::<Result<Vec<_>, _>>()?,
-    )?)
-}
-
-fn collection_value(
-    element_type: StructuredInfoType,
-    values: Vec<StructuredInfoValue>,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
-    let length = u16::try_from(values.len()).map_err(|_| LinguisticRefusal::MalformedInfo)?;
-    Ok(StructuredInfoValue::collection(
-        bounded(element_type, length),
-        values,
-    )?)
-}
-
-fn text_value(value: &str) -> StructuredInfoValue {
-    leaf_value("value/text", value.as_bytes())
-}
-
-fn count_value(value: u64) -> StructuredInfoValue {
-    leaf_value(
-        conduit_core::COUNT_INFO_ID,
-        &conduit_core::encode_count(value),
-    )
-}
-
-fn leaf_value(kind: &str, value: &[u8]) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(leaf(kind), value.to_vec()).expect("bounded linguistic leaf")
-}
-
-fn record_field<'a>(
-    value: &'a StructuredInfoValue,
-    name: &str,
-) -> Result<&'a StructuredInfoValue, LinguisticRefusal> {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        return Err(LinguisticRefusal::MalformedInfo);
-    };
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(StructuredFieldValue::value)
-        .ok_or(LinguisticRefusal::MalformedInfo)
-}
-
-fn collection_field<'a>(
-    value: &'a StructuredInfoValue,
-    name: &str,
-) -> Result<&'a [StructuredInfoValue], LinguisticRefusal> {
-    let StructuredInfoValueShape::Collection(values) = record_field(value, name)?.shape() else {
-        return Err(LinguisticRefusal::MalformedInfo);
-    };
-    Ok(values)
-}
-
-fn leaf_text(value: &StructuredInfoValue) -> Result<&str, LinguisticRefusal> {
-    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-        return Err(LinguisticRefusal::MalformedInfo);
-    };
-    core::str::from_utf8(bytes).map_err(|_| LinguisticRefusal::MalformedInfo)
+) -> Result<LinguisticDerivationProvenance, LinguisticRefusal> {
+    let implementation = implementation.to_string();
+    let revision = revision.to_string();
+    Ok(match tag {
+        "deterministic_rule" => {
+            LinguisticDerivationProvenance::deterministic_rule(implementation, revision)?
+        }
+        "library" => LinguisticDerivationProvenance::library(implementation, revision)?,
+        "model" => LinguisticDerivationProvenance::model(implementation, revision)?,
+        _ => return Err(LinguisticRefusal::MalformedInfo),
+    })
 }

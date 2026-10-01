@@ -7,7 +7,13 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::LinguisticOffsetBasis;
+pub use generated::{
+    AnnotationBundleFour, LinguisticAnnotation, LinguisticDependencyEdge,
+    LinguisticDependencyRelation, LinguisticDerivationProvenance, LinguisticEvidence,
+    LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind,
+    LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature, LinguisticTokenFeatureSlot,
+    LinguisticTokenIdentity, LinguisticTokensFour, TextSpan,
+};
 
 mod catalog;
 mod info;

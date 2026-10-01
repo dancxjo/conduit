@@ -14,6 +14,10 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             copy_record_types: [
+                "GardenClockObservation".into(),
+                "GardenContactObservation".into(),
+                "GardenEnrichedObservation".into(),
+                "GardenState".into(),
                 "GrayScottParameters".into(),
                 "LeniaParameters".into(),
                 "ReactionDiffusionRegion".into(),
@@ -25,12 +29,16 @@ fn main() {
                 "ReactionDiffusionRegion".into(),
             ]
             .into(),
-            direct_checked_record_constructors: [
+            direct_checked_record_constructors: ["LeniaParameters".into()].into(),
+            public_record_fields: [
+                "GardenClockObservation".into(),
+                "GardenContactObservation".into(),
+                "GardenEnrichedObservation".into(),
+                "GardenState".into(),
                 "GrayScottParameters".into(),
                 "LeniaParameters".into(),
             ]
             .into(),
-            public_record_fields: ["GrayScottParameters".into(), "LeniaParameters".into()].into(),
             record_constructor_orders: [
                 (
                     "ReactionDiffusionRegion".into(),

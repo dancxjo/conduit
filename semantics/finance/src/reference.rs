@@ -1,14 +1,16 @@
 //! Deterministic reference finance fixtures and structured exact-money operations.
 
-use alloc::{vec, vec::Vec};
-use conduit_core::{
-    Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredInfoValueShape,
-};
+use alloc::string::ToString;
+use conduit_core::{Quantity, QuantityUnit, StructuredInfoValue};
 use conduit_form::rust_binding::NativeRustBinding;
 use core::cmp::Ordering;
 
 use crate::finance::*;
+use crate::{
+    FinanceCurrencyPair, FinanceMoneyComparison, FinanceObservedInstant, FinanceOrderIdentity,
+    FinanceQuote, FinanceQuoteFreshness, FinanceQuoteSource, FinanceRejectionReason,
+    FinanceTransactionEvent, FinanceTransactionEventsThree,
+};
 
 pub struct FinanceFixture {
     pub convertible: StructuredInfoValue,
@@ -47,45 +49,24 @@ pub fn compare_money_values(
     right: &StructuredInfoValue,
 ) -> Result<StructuredInfoValue, FinanceRefusal> {
     let comparison = compare_money(decode_money_value(left)?, decode_money_value(right)?)?;
-    unit_variant(
-        finance_money_comparison_type(),
-        match comparison {
-            Ordering::Less => "less",
-            Ordering::Equal => "equal",
-            Ordering::Greater => "greater",
-        },
-    )
+    Ok(match comparison {
+        Ordering::Less => FinanceMoneyComparison::less(),
+        Ordering::Equal => FinanceMoneyComparison::equal(),
+        Ordering::Greater => FinanceMoneyComparison::greater(),
+    }
+    .into_structured()?)
 }
 
 pub fn convert_money_values(
     money: &StructuredInfoValue,
     rate: &StructuredInfoValue,
 ) -> Result<StructuredInfoValue, FinanceRefusal> {
-    if rate.value_type() != &finance_rate_type() {
-        return Err(FinanceRefusal::MalformedInfo);
-    }
-    let instrument = record_field(rate, "instrument")?;
-    let observation = RateObservation::new(
-        Currency::from_tag(variant_tag(record_field(instrument, "base")?)?)?,
-        parse_count(record_field(record_field(rate, "observed_at")?, "ticks")?)?,
-        crate::FinanceRateProfile::new(leaf_text(record_field(rate, "profile")?)?.into())?,
-        Currency::from_tag(variant_tag(record_field(instrument, "quote")?)?)?,
-        FixedDecimal::from_structured(record_field(rate, "rate")?.clone())?,
-        crate::FinanceRateSource::new(leaf_text(record_field(rate, "source")?)?.into())?,
-    )?;
+    let observation = RateObservation::from_structured(rate.clone())?;
     money_value(convert_money(decode_money_value(money)?, &observation)?)
 }
 
 pub fn decode_money_value(value: &StructuredInfoValue) -> Result<Money, FinanceRefusal> {
-    if value.value_type() != &finance_money_type() {
-        return Err(FinanceRefusal::MalformedInfo);
-    }
-    let amount = record_field(value, "amount")?.clone();
-    let currency = variant_tag(record_field(value, "currency")?)?;
-    Ok(Money::new(
-        FixedDecimal::from_structured(amount)?,
-        Currency::from_tag(currency)?,
-    )?)
+    Ok(Money::from_structured(value.clone())?)
 }
 
 pub fn deterministic_rate_observation() -> Result<RateObservation, FinanceRefusal> {
@@ -102,240 +83,44 @@ pub fn deterministic_rate_observation() -> Result<RateObservation, FinanceRefusa
 fn rate_observation_value(
     observation: &RateObservation,
 ) -> Result<StructuredInfoValue, FinanceRefusal> {
-    record_value(
-        finance_rate_type(),
-        vec![
-            (
-                "instrument",
-                instrument_value(*observation.base(), *observation.quote())?,
-            ),
-            ("observed_at", instant_value(*observation.observed_ticks())?),
-            ("profile", text_value(observation.profile().get())),
-            ("rate", observation.rate().clone().into_structured()?),
-            ("source", text_value(observation.source().get())),
-        ],
-    )
+    Ok(observation.clone().into_structured()?)
 }
 
 fn deterministic_quote() -> Result<StructuredInfoValue, FinanceRefusal> {
-    let observed = instant_value(1_788_000_000)?;
-    let reference = instant_value(1_788_000_120)?;
-    let freshness = StructuredInfoValue::variant(
-        finance_freshness_type(),
-        "stale",
-        record_value(
-            freshness_payload_type()?,
-            vec![
-                (
-                    "age",
-                    StructuredInfoValue::leaf(
-                        StructuredInfoType::leaf(conduit_core::kind_id(
-                            conduit_core::QUANTITY_INFO_ID,
-                        ))?,
-                        Quantity::new(120, QuantityUnit::Second).encode().to_vec(),
-                    )?,
-                ),
-                ("reference", reference),
-            ],
-        )?,
-    )?;
-    record_value(
-        finance_quote_type(),
-        vec![
-            (
-                "ask",
-                money_value(Money::new(FixedDecimal::new(108_270, 5)?, Currency::Usd)?)?,
-            ),
-            (
-                "bid",
-                money_value(Money::new(FixedDecimal::new(108_250, 5)?, Currency::Usd)?)?,
-            ),
-            ("freshness", freshness),
-            (
-                "instrument",
-                instrument_value(Currency::Eur, Currency::Usd)?,
-            ),
-            ("observed_at", observed),
-            ("source", text_value("fixture/eur-usd")),
-        ],
-    )
+    let observed = FinanceObservedInstant::new(1_788_000_000)?;
+    let reference = FinanceObservedInstant::new(1_788_000_120)?;
+    Ok(FinanceQuote::new(
+        Money::new(FixedDecimal::new(108_270, 5)?, Currency::Usd)?,
+        Money::new(FixedDecimal::new(108_250, 5)?, Currency::Usd)?,
+        FinanceQuoteFreshness::stale(Quantity::new(120, QuantityUnit::Second), reference)?,
+        FinanceCurrencyPair::new(Currency::Eur, Currency::Usd)?,
+        observed,
+        FinanceQuoteSource::new("fixture/eur-usd".to_string())?,
+    )?
+    .into_structured()?)
 }
 
 fn deterministic_transaction_events() -> Result<StructuredInfoValue, FinanceRefusal> {
-    let event_type = finance_transaction_event_type();
     let amount = Money::new(FixedDecimal::new(10_000, 2)?, Currency::Eur)?;
-    let placed = StructuredInfoValue::variant(
-        event_type.clone(),
-        "placed",
-        record_value(
-            variant_payload_type(&event_type, "placed")?,
-            vec![
-                ("amount", money_value(amount.clone())?),
-                ("observed_at", instant_value(1_788_000_001)?),
-                ("order_id", text_value("fixture/order-1")),
-            ],
-        )?,
+    let placed = FinanceTransactionEvent::placed(
+        amount.clone(),
+        FinanceObservedInstant::new(1_788_000_001)?,
+        FinanceOrderIdentity::new("fixture/order-1".to_string())?,
     )?;
-    let filled = StructuredInfoValue::variant(
-        event_type.clone(),
-        "filled",
-        record_value(
-            variant_payload_type(&event_type, "filled")?,
-            vec![
-                ("amount", money_value(amount)?),
-                ("observed_at", instant_value(1_788_000_002)?),
-                ("order_id", text_value("fixture/order-1")),
-                (
-                    "price",
-                    money_value(Money::new(FixedDecimal::new(108_260, 5)?, Currency::Usd)?)?,
-                ),
-            ],
-        )?,
+    let filled = FinanceTransactionEvent::filled(
+        amount,
+        FinanceObservedInstant::new(1_788_000_002)?,
+        FinanceOrderIdentity::new("fixture/order-1".to_string())?,
+        Money::new(FixedDecimal::new(108_260, 5)?, Currency::Usd)?,
     )?;
-    let rejected = StructuredInfoValue::variant(
-        event_type.clone(),
-        "rejected",
-        record_value(
-            variant_payload_type(&event_type, "rejected")?,
-            vec![
-                ("observed_at", instant_value(1_788_000_003)?),
-                ("order_id", text_value("fixture/order-2")),
-                ("reason", text_value("fixture/limit-refused")),
-            ],
-        )?,
+    let rejected = FinanceTransactionEvent::rejected(
+        FinanceObservedInstant::new(1_788_000_003)?,
+        FinanceOrderIdentity::new("fixture/order-2".to_string())?,
+        FinanceRejectionReason::new("fixture/limit-refused".to_string())?,
     )?;
-    Ok(StructuredInfoValue::collection(
-        finance_transaction_events_type(),
-        vec![placed, filled, rejected],
-    )?)
+    Ok(FinanceTransactionEventsThree::new([placed, filled, rejected])?.into_structured()?)
 }
 
 fn money_value(money: Money) -> Result<StructuredInfoValue, FinanceRefusal> {
     Ok(money.into_structured()?)
-}
-
-fn instrument_value(
-    base: Currency,
-    quote: Currency,
-) -> Result<StructuredInfoValue, FinanceRefusal> {
-    record_value(
-        finance_instrument_type(),
-        vec![
-            ("base", unit_variant(finance_currency_type(), base.tag())?),
-            ("quote", unit_variant(finance_currency_type(), quote.tag())?),
-        ],
-    )
-}
-
-fn instant_value(ticks: u64) -> Result<StructuredInfoValue, FinanceRefusal> {
-    record_value(
-        finance_instant_type(),
-        vec![
-            ("basis", text_value("unix/utc@1")),
-            ("resolution_ticks", count_value(1)),
-            (
-                "scale",
-                StructuredInfoValue::leaf(
-                    StructuredInfoType::leaf(conduit_core::kind_id("time/scale@1"))?,
-                    b"seconds".to_vec(),
-                )?,
-            ),
-            ("ticks", count_value(ticks)),
-            ("uncertainty_ticks", count_value(0)),
-        ],
-    )
-}
-
-fn freshness_payload_type() -> Result<StructuredInfoType, FinanceRefusal> {
-    variant_payload_type(&finance_freshness_type(), "stale")
-}
-
-fn variant_payload_type(
-    value_type: &StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoType, FinanceRefusal> {
-    let StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape() else {
-        return Err(FinanceRefusal::MalformedInfo);
-    };
-    cases
-        .iter()
-        .find(|case| case.tag() == tag)
-        .map(|case| case.payload_type().clone())
-        .ok_or(FinanceRefusal::MalformedInfo)
-}
-
-fn unit_variant(
-    value_type: StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoValue, FinanceRefusal> {
-    Ok(StructuredInfoValue::variant(
-        value_type,
-        tag,
-        StructuredInfoValue::leaf(finance_unit_type(), Vec::new())?,
-    )?)
-}
-
-fn record_value(
-    value_type: StructuredInfoType,
-    fields: Vec<(&str, StructuredInfoValue)>,
-) -> Result<StructuredInfoValue, FinanceRefusal> {
-    Ok(StructuredInfoValue::record(
-        value_type,
-        fields
-            .into_iter()
-            .map(|(name, value)| StructuredFieldValue::new(name, value))
-            .collect::<Result<Vec<_>, _>>()?,
-    )?)
-}
-
-fn text_value(value: &str) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
-        value.as_bytes().to_vec(),
-    )
-    .expect("bounded fixture text")
-}
-
-fn count_value(value: u64) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap(),
-        conduit_core::encode_count(value).to_vec(),
-    )
-    .expect("bounded fixture count")
-}
-
-fn record_field<'a>(
-    value: &'a StructuredInfoValue,
-    name: &str,
-) -> Result<&'a StructuredInfoValue, FinanceRefusal> {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        return Err(FinanceRefusal::MalformedInfo);
-    };
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(StructuredFieldValue::value)
-        .ok_or(FinanceRefusal::MalformedInfo)
-}
-
-fn leaf_bytes(value: &StructuredInfoValue) -> Result<&[u8], FinanceRefusal> {
-    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-        return Err(FinanceRefusal::MalformedInfo);
-    };
-    Ok(bytes)
-}
-
-fn leaf_text(value: &StructuredInfoValue) -> Result<&str, FinanceRefusal> {
-    core::str::from_utf8(leaf_bytes(value)?).map_err(|_| FinanceRefusal::MalformedInfo)
-}
-
-fn parse_count(value: &StructuredInfoValue) -> Result<u64, FinanceRefusal> {
-    conduit_core::decode_count(leaf_bytes(value)?).map_err(|_| FinanceRefusal::MalformedInfo)
-}
-
-fn variant_tag(value: &StructuredInfoValue) -> Result<&str, FinanceRefusal> {
-    let StructuredInfoValueShape::Variant { tag, .. } = value.shape() else {
-        return Err(FinanceRefusal::MalformedInfo);
-    };
-    Ok(tag)
 }

@@ -168,6 +168,16 @@ impl TourSession {
         let hosts = [host];
         let placements = default_expanded_placements(&form, &hosts)
             .map_err(|error| format!("place executable-tour Form: {error:?}"))?;
+        let connection_byte_capacity = if form.gears.iter().any(|gear| {
+            matches!(
+                gear.kind_id.as_str(),
+                conduit_language::TOKENIZE_FOUR_KIND | conduit_language::ANNOTATE_FOUR_KIND
+            )
+        }) {
+            crate::installed_browser::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32
+        } else {
+            crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES as u32
+        };
         let bases = local_bases();
         let plan = plan_expanded_canonical_with_options(
             &form,
@@ -178,8 +188,7 @@ impl TourSession {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: 1,
-                connection_byte_capacity: crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
-                    as u32,
+                connection_byte_capacity,
                 authority_grants: &[],
                 protected_resource_grants: &[],
                 line_offers: &[],
