@@ -29,4 +29,5 @@ conduit-presentation = { path = "../presentation" }
 postcard = { version = "1", features = ["alloc"] }
 
 [build-dependencies]
+conduit-data = { path = "../data" }
 conduit-form = { path = "../../architecture/form" }

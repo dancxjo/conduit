@@ -1109,7 +1109,7 @@ fn ordinary_generation_refuses_missing_drifted_and_unused_external_bindings() {
         crate::check_syntax_document(&crate::parse_syntax_document(source), catalog).unwrap()
     };
     let foreign = checked(
-        "type Foreign = {\n    value: U8\n}\n",
+        "type Foreign = {\n    value: U8?\n}\n",
         &crate::StartupCatalog::new(),
     )
     .native_types

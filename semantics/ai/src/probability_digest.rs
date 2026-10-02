@@ -53,11 +53,11 @@ impl ProbabilitySample {
         probabilistic_digest(
             "probability/sample@1",
             &[self
-                .value
+                .value()
                 .semantic_digest()
                 .map_err(|_| ProbabilityRefusal::InvalidSample)?],
-            &self.provenance,
-            &self.disposition,
+            self.provenance(),
+            self.disposition(),
             &[],
         )
     }
@@ -68,9 +68,9 @@ impl ProbabilitySampleSet {
         self.validate()?;
         probabilistic_digest(
             "probability/samples@1",
-            &tensor_digests(&self.alternatives)?,
-            &self.provenance,
-            &self.disposition,
+            &tensor_digests(self.alternatives().as_slice())?,
+            self.provenance(),
+            self.disposition(),
             &[],
         )
     }
@@ -80,14 +80,14 @@ impl WeightedSamples {
     pub fn semantic_digest(&self) -> Result<[u8; 32], ProbabilityRefusal> {
         self.validate()?;
         let mut extra = Vec::new();
-        for weight in &self.weights {
+        for weight in self.weights() {
             extra.extend_from_slice(&weight.to_le_bytes());
         }
         probabilistic_digest(
             "probability/weighted-samples@1",
-            &tensor_digests(&self.alternatives)?,
-            &self.provenance,
-            &self.disposition,
+            &tensor_digests(self.alternatives().as_slice())?,
+            self.provenance(),
+            self.disposition(),
             &extra,
         )
     }
@@ -99,15 +99,15 @@ impl MeanVariance {
         probabilistic_digest(
             "probability/mean-variance@1",
             &[
-                self.mean
+                self.mean()
                     .semantic_digest()
                     .map_err(|_| ProbabilityRefusal::InvalidSample)?,
-                self.variance
+                self.variance()
                     .semantic_digest()
                     .map_err(|_| ProbabilityRefusal::InvalidVariance)?,
             ],
-            &self.provenance,
-            &self.disposition,
+            self.provenance(),
+            self.disposition(),
             &[],
         )
     }
@@ -119,15 +119,15 @@ impl MeanCovariance {
         probabilistic_digest(
             "probability/mean-covariance@1",
             &[
-                self.mean
+                self.mean()
                     .semantic_digest()
                     .map_err(|_| ProbabilityRefusal::InvalidSample)?,
-                self.covariance
+                self.covariance()
                     .semantic_digest()
                     .map_err(|_| ProbabilityRefusal::InvalidCovariance)?,
             ],
-            &self.provenance,
-            &self.disposition,
+            self.provenance(),
+            self.disposition(),
             &[],
         )
     }
@@ -158,7 +158,7 @@ impl TrajectoryAlternatives {
     pub fn semantic_digest(&self) -> Result<[u8; 32], ProbabilityRefusal> {
         self.validate()?;
         let signals = self
-            .plausible_alternatives
+            .plausible_alternatives()
             .iter()
             .map(|signal| {
                 signal
@@ -169,9 +169,9 @@ impl TrajectoryAlternatives {
         probabilistic_digest(
             "probability/trajectory-alternatives@1",
             &signals,
-            &self.provenance,
-            &self.disposition,
-            &self.observation_identity,
+            self.provenance(),
+            self.disposition(),
+            self.observation_identity().get(),
         )
     }
 }
