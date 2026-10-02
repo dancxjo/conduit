@@ -260,6 +260,26 @@ type ScientificObservationRefusal =
     | unknown_masked_observation
     | duplicate_mask
 
+type ScientificCorpusRefusal =
+    observation {
+        refusal: ScientificObservationRefusal
+    }
+    | invalid_manifest
+    | missing_manifest
+    | empty_corpus
+    | too_many_shards
+    | duplicate_shard
+    | invalid_split
+    | too_many_splits
+    | duplicate_split
+    | empty_membership
+    | too_many_members
+    | duplicate_member
+    | dataset_mismatch
+    | unknown_split
+    | split_leakage
+    | missing_resource
+
 type DataReferenceRefusal =
     malformed
     | wrong_reference_kind

@@ -1,6 +1,6 @@
 use conduit_data::{
-    DataGenerationNamespaceRefusal, DataReferenceRefusal, ScientificObservationRefusal,
-    TensorRefusal,
+    DataGenerationNamespaceRefusal, DataReferenceRefusal, ScientificCorpusRefusal,
+    ScientificObservationRefusal, TensorRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -10,6 +10,15 @@ where
 {
     let structured = value.clone().into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn corpus_refusal_keeps_nested_observation_meaning() {
+    round_trip(
+        ScientificCorpusRefusal::observation(ScientificObservationRefusal::MissingIdentity)
+            .unwrap(),
+    );
+    round_trip(ScientificCorpusRefusal::SplitLeakage);
 }
 
 #[test]
