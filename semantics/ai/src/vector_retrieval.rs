@@ -1,9 +1,11 @@
 use alloc::{string::String, vec::Vec};
+use conduit_form::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    CompatibleMetrics, EmbeddingNormalization, FiniteEmbedding, SimilarityMetric, SimilarityScore,
-    SimilarityThreshold, StructuredResultInvalidity, TemporalProvenance, TemporalRetrievalIntent,
+    CompatibleMetrics, Embedding, EmbeddingNormalization, EmbeddingProfile, FiniteEmbedding,
+    MetadataFilter, MetadataFilters, SimilarityMetric, SimilarityQuery, SimilarityScore,
+    SimilarityThreshold, StructuredResultInvalidity, TemporalProvenance, VectorMetadata,
     VectorRefusal, MAXIMUM_EMBEDDING_DIMENSIONS,
 };
 
@@ -14,30 +16,8 @@ pub const MAXIMUM_VECTOR_METADATA_KEY_BYTES: usize = 64;
 pub const MAXIMUM_VECTOR_METADATA_VALUE_BYTES: usize = 1_024;
 pub const MAXIMUM_SIMILARITY_TOP_K: u32 = 1_024;
 const UNIT_NORM_TOLERANCE: f32 = 0.000_01;
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EmbeddingProfile {
-    pub identity: String,
-    pub semantic_space_identity: String,
-    pub model_identity: String,
-    pub provider_identity: String,
-    pub dimensions: u32,
-    pub normalization: EmbeddingNormalization,
-    pub compatible_metrics: CompatibleMetrics,
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Embedding {
-    pub profile: EmbeddingProfile,
-    pub values: Vec<f32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct VectorMetadata {
-    pub key: String,
-    pub value: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `VectorRecord<T>` Type family.
 pub struct VectorRecord<T> {
     pub value: T,
     pub embedding: Embedding,
@@ -47,23 +27,8 @@ pub struct VectorRecord<T> {
     pub temporal_provenance: Option<TemporalProvenance>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MetadataFilter {
-    Equal { key: String, value: String },
-    Present { key: String },
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SimilarityQuery {
-    pub embedding: Embedding,
-    pub metric: SimilarityMetric,
-    pub top_k: u32,
-    pub threshold: Option<SimilarityThreshold>,
-    pub filters: Vec<MetadataFilter>,
-    pub temporal_intent: Option<TemporalRetrievalIntent>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `SimilarityHit<T>` Type family.
 pub struct SimilarityHit<T> {
     pub value: T,
     pub score: SimilarityScore,
@@ -157,30 +122,84 @@ impl Embedding {
         if embedding.profile_identity().get() != &profile.identity {
             return Err(VectorRefusal::ProfileIdentityMismatch);
         }
-        let result = Self {
-            profile,
-            values: embedding.values_f32(),
-        };
-        if *embedding.dimensions() != result.profile.dimensions {
+        if *embedding.dimensions() != profile.dimensions {
             return Err(VectorRefusal::DimensionMismatch);
         }
+        let result = Self {
+            profile,
+            values: embedding,
+        };
         result.validate()?;
         Ok(result)
     }
 
+    pub fn from_values(profile: EmbeddingProfile, values: Vec<f32>) -> Result<Self, VectorRefusal> {
+        let embedding = FiniteEmbedding::from_values(profile.identity.clone(), values)
+            .map_err(|_: StructuredResultInvalidity| VectorRefusal::InvalidEmbedding)?;
+        Self::from_finite(profile, embedding)
+    }
+
+    pub fn values_f32(&self) -> Vec<f32> {
+        self.values().values_f32()
+    }
+
     pub fn validate(&self) -> Result<(), VectorRefusal> {
-        self.profile.validate()?;
-        FiniteEmbedding::from_values(self.profile.identity.clone(), self.values.clone())
-            .map_err(|_: StructuredResultInvalidity| VectorRefusal::InvalidEmbedding)?
+        self.profile().validate()?;
+        self.values()
             .validate()
             .map_err(|_: StructuredResultInvalidity| VectorRefusal::InvalidEmbedding)?;
-        if self.profile.normalization == EmbeddingNormalization::UnitLength {
-            let norm_squared = dot(&self.values, &self.values)?;
+        if self.values().profile_identity().get() != &self.profile().identity {
+            return Err(VectorRefusal::ProfileIdentityMismatch);
+        }
+        if *self.values().dimensions() != self.profile().dimensions {
+            return Err(VectorRefusal::DimensionMismatch);
+        }
+        if self.profile().normalization == EmbeddingNormalization::UnitLength {
+            let values = self.values_f32();
+            let norm_squared = dot(&values, &values)?;
             if (norm_squared - 1.0).abs() > UNIT_NORM_TOLERANCE {
                 return Err(VectorRefusal::NormalizationMismatch);
             }
         }
         Ok(())
+    }
+}
+
+impl MetadataFilters {
+    pub fn from_values(values: Vec<MetadataFilter>) -> Result<Self, VectorRefusal> {
+        let values =
+            BoundedSequence::try_from_iter(values).map_err(|_| VectorRefusal::TooManyFilters)?;
+        Self::new(values).map_err(|_| VectorRefusal::InvalidMetadata)
+    }
+}
+
+impl Serialize for Embedding {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("Embedding", 2)?;
+        state.serialize_field("profile", self.profile())?;
+        state.serialize_field("values", &self.values_f32())?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Embedding {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct WireEmbedding {
+            profile: EmbeddingProfile,
+            values: Vec<f32>,
+        }
+
+        let wire = WireEmbedding::deserialize(deserializer)?;
+        Self::from_values(wire.profile, wire.values)
+            .map_err(|_| serde::de::Error::custom("invalid embedding"))
     }
 }
 
@@ -199,7 +218,7 @@ impl SimilarityQuery {
         self.embedding.validate()?;
         if !self
             .embedding
-            .profile
+            .profile()
             .compatible_metrics
             .admits(self.metric)
         {
@@ -211,13 +230,17 @@ impl SimilarityQuery {
         if self.top_k > MAXIMUM_SIMILARITY_TOP_K {
             return Err(VectorRefusal::TopKTooLarge);
         }
-        if self.filters.len() > MAXIMUM_VECTOR_FILTERS {
+        if self.filters.get().len() > MAXIMUM_VECTOR_FILTERS {
             return Err(VectorRefusal::TooManyFilters);
         }
-        for filter in &self.filters {
+        for filter in self.filters.get() {
             match filter {
-                MetadataFilter::Equal { key, value } => validate_metadata_member(key, value)?,
-                MetadataFilter::Present { key } => validate_metadata_member(key, "present")?,
+                MetadataFilter::Equal(filter) => {
+                    validate_metadata_member(filter.key(), filter.value())?
+                }
+                MetadataFilter::Present(filter) => {
+                    validate_metadata_member(filter.key(), "present")?
+                }
             }
         }
         if let Some(threshold) = self.threshold {
@@ -237,16 +260,18 @@ impl SimilarityQuery {
         self.validate()?;
         candidate.validate()?;
         self.embedding
-            .profile
-            .compatibility(&candidate.profile, self.metric)?;
+            .profile()
+            .compatibility(candidate.profile(), self.metric)?;
+        let query_values = self.embedding.values_f32();
+        let candidate_values = candidate.values_f32();
         let value = match self.metric {
             SimilarityMetric::DotProductSimilarity => {
-                similarity_score(dot(&self.embedding.values, &candidate.values)?)?
+                similarity_score(dot(&query_values, &candidate_values)?)?
             }
             SimilarityMetric::CosineSimilarity => {
-                let numerator = dot(&self.embedding.values, &candidate.values)?;
-                let left = dot(&self.embedding.values, &self.embedding.values)?;
-                let right = dot(&candidate.values, &candidate.values)?;
+                let numerator = dot(&query_values, &candidate_values)?;
+                let left = dot(&query_values, &query_values)?;
+                let right = dot(&candidate_values, &candidate_values)?;
                 if left == 0.0 || right == 0.0 {
                     return Err(VectorRefusal::ZeroVector);
                 }
@@ -254,7 +279,7 @@ impl SimilarityQuery {
             }
             SimilarityMetric::SquaredEuclideanDistance => {
                 let mut total = 0.0;
-                for (left, right) in self.embedding.values.iter().zip(&candidate.values) {
+                for (left, right) in query_values.iter().zip(&candidate_values) {
                     let delta = left - right;
                     total += delta * delta;
                 }

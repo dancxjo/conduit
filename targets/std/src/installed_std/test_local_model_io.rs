@@ -619,8 +619,8 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         .map_err(|error| format!("encode House context: {error:?}"))?
     } else if placement.outputs[0].value_kind.as_str() == conduit_ai::SIMILARITY_QUERY_VALUE_KIND {
         serde_json::to_vec(&conduit_ai::SimilarityQuery {
-            embedding: conduit_ai::Embedding {
-                profile: conduit_ai::EmbeddingProfile {
+            embedding: conduit_ai::Embedding::from_values(
+                conduit_ai::EmbeddingProfile {
                     identity: "embedding/vector-play-fixture".into(),
                     semantic_space_identity: "space/vector-play-fixture".into(),
                     model_identity: "model/vector-play-fixture".into(),
@@ -630,12 +630,13 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
                     compatible_metrics: conduit_ai::CompatibleMetrics::new(true, true, true)
                         .unwrap(),
                 },
-                values: vec![1.0, 0.0, 0.0],
-            },
+                vec![1.0, 0.0, 0.0],
+            )
+            .unwrap(),
             metric: conduit_ai::SimilarityMetric::CosineSimilarity,
             top_k: 2,
             threshold: None,
-            filters: Vec::new(),
+            filters: conduit_ai::MetadataFilters::from_values(Vec::new()).unwrap(),
             temporal_intent: None,
         })
         .map_err(|error| format!("encode vector-search request: {error}"))?

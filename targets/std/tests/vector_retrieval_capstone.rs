@@ -144,10 +144,8 @@ fn records(profile: &EmbeddingProfile) -> Vec<HostedHnswRecord<ProjectResource>>
         |(value, source, resource, family, values, event_at)| HostedHnswRecord {
             record: VectorRecord {
                 value,
-                embedding: Embedding {
-                    profile: profile.clone(),
-                    values: values.into(),
-                },
+                embedding: Embedding::from_values(profile.clone(), values.into_iter().collect())
+                    .unwrap(),
                 source_identity: source.into(),
                 resource_identity: resource.into(),
                 metadata: vec![VectorMetadata {
@@ -292,14 +290,11 @@ fn heterogeneous_resources_query_as_candidates_through_one_portable_form() {
     assert!(!SOURCE.contains("hnsw"));
 
     let query = SimilarityQuery {
-        embedding: Embedding {
-            profile,
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(profile, vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 4,
         threshold: None,
-        filters: vec![],
+        filters: conduit_ai::MetadataFilters::from_values(vec![]).unwrap(),
         temporal_intent: None,
     };
     let work = hosted_query_work(4, 3).unwrap();
@@ -400,14 +395,11 @@ fn reembedding_requires_fresh_index_handle_offer_and_plan_truth() {
     );
 
     let stale_query = SimilarityQuery {
-        embedding: Embedding {
-            profile: embedding_profile("v1"),
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(embedding_profile("v1"), vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 1,
         threshold: None,
-        filters: vec![],
+        filters: conduit_ai::MetadataFilters::from_values(vec![]).unwrap(),
         temporal_intent: None,
     };
     assert_eq!(
