@@ -141,6 +141,21 @@ fn byte_bindings_retain_the_full_checked_structured_capacity() {
 }
 
 #[test]
+fn quantity_unit_fields_use_the_canonical_native_unit_vocabulary() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Axis = {\n unit: QuantityUnit?\n}\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+
+    assert!(generated
+        .source
+        .contains("unit: Option<conduit_core::QuantityUnit>"));
+}
+
+#[test]
 fn exact_float_law_generates_semantic_wrappers_and_checked_refinements() {
     let generated = generate_rust_bindings(
         &checked_types(),

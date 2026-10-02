@@ -18,6 +18,8 @@ pub const RATIO_INFO_ID: &str = "value/ratio";
 /// Pixel count is an image/display dimension, never physical length.
 pub const PIXEL_COUNT_INFO_ID: &str = "value/pixel-count";
 pub const QUANTITY_ENCODED_LEN: usize = 9;
+pub const QUANTITY_UNIT_INFO_ID: &str = "value/quantity-unit";
+pub const QUANTITY_UNIT_ENCODED_LEN: usize = 1;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum QuantityDimension {
@@ -141,6 +143,20 @@ pub enum QuantityLiteralRefusal {
 }
 
 impl QuantityUnit {
+    pub const fn encode(self) -> [u8; QUANTITY_UNIT_ENCODED_LEN] {
+        [self.tag()]
+    }
+
+    pub fn decode(encoded: &[u8]) -> Result<Self, QuantityDecodeRefusal> {
+        if encoded.len() != QUANTITY_UNIT_ENCODED_LEN {
+            return Err(QuantityDecodeRefusal::WrongLength {
+                expected: QUANTITY_UNIT_ENCODED_LEN,
+                actual: encoded.len(),
+            });
+        }
+        Self::from_tag(encoded[0])
+    }
+
     pub const fn semantic_id(self) -> &'static str {
         match self {
             Self::Nanosecond => "time/nanosecond",
