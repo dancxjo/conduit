@@ -90,7 +90,7 @@ fn candidate(solver: &str, internal_steps: u64) -> IntegrationCandidate {
     IntegrationCandidate {
         trajectory: SampledSignal {
             clock_identity: "experiment/monotonic-ms".into(),
-            start: SignalStart::SampleIndex(0),
+            start: SignalStart::at_sample(0),
             cadence: SignalCadence::Irregular {
                 coordinates: Box::new(tensor(
                     TensorElement::I64,

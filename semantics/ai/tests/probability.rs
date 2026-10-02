@@ -36,7 +36,7 @@ fn provenance() -> StochasticProvenance {
 fn trajectory(value: f32) -> SampledSignal {
     SampledSignal {
         clock_identity: "inference/query-clock".into(),
-        start: SignalStart::SampleIndex(0),
+        start: SignalStart::at_sample(0),
         cadence: SignalCadence::Regular {
             samples: 100,
             per: Quantity::new(1, QuantityUnit::Second),
@@ -160,7 +160,7 @@ fn one_observation_yields_multiple_plausible_articulations_not_one_truth() {
     assert_ne!(alternatives.semantic_digest().unwrap(), [0; 32]);
 
     let mut misaligned = alternatives;
-    misaligned.plausible_alternatives[2].start = SignalStart::SampleIndex(1);
+    misaligned.plausible_alternatives[2].start = SignalStart::at_sample(1);
     assert_eq!(
         misaligned.validate(),
         Err(ProbabilityRefusal::ShapeMismatch)

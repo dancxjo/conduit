@@ -5,7 +5,7 @@ fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
     let payload = vec![0_u8; usize::try_from(count * channels * 4).unwrap()];
     SampledSignal {
         clock_identity: clock.into(),
-        start: SignalStart::SampleIndex(start),
+        start: SignalStart::at_sample(start),
         cadence: SignalCadence::Regular {
             samples: 100,
             per: Quantity::new(1, QuantityUnit::Second),
@@ -50,7 +50,7 @@ fn independently_clocked_audio_f0_and_articulation_do_not_invent_segments() {
 fn windows_preserve_source_clock_and_identity() {
     let value = signal("clock/ema", 10, 8, 2);
     let window = value.window(3, 4).unwrap();
-    assert_eq!(window.start, SignalStart::SampleIndex(13));
+    assert_eq!(window.start, SignalStart::at_sample(13));
     assert_eq!(window.source_signal, value.semantic_digest().unwrap());
     assert_eq!(
         value.window(7, 2),
@@ -67,7 +67,7 @@ fn concatenation_requires_exact_contiguity_and_compatible_descriptors() {
     assert_eq!(joined.sample_shape, [2]);
     assert_eq!(joined.source_parts.len(), 2);
     let mut gap = second.clone();
-    gap.start = SignalStart::SampleIndex(5);
+    gap.start = SignalStart::at_sample(5);
     assert_eq!(
         concatenate(&[first.clone(), gap]),
         Err(SampledSignalRefusal::NoncontiguousSignals)
