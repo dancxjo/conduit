@@ -8,22 +8,53 @@ mod generated {
 
     impl Copy for SynchronizationOutcomeAdjusted {}
     impl Copy for SynchronizationOutcome {}
+
+    impl WeekdaySet {
+        pub const MONDAY: Self = Self(1 << 0);
+        pub const TUESDAY: Self = Self(1 << 1);
+        pub const WEDNESDAY: Self = Self(1 << 2);
+        pub const THURSDAY: Self = Self(1 << 3);
+        pub const FRIDAY: Self = Self(1 << 4);
+        pub const SATURDAY: Self = Self(1 << 5);
+        pub const SUNDAY: Self = Self(1 << 6);
+        pub const WEEKDAYS: Self = Self((1 << 5) - 1);
+
+        pub const fn union(self, other: Self) -> Self {
+            Self(self.0 | other.0)
+        }
+
+        pub const fn contains(self, weekday: Self) -> bool {
+            self.0 & weekday.0 != 0
+        }
+
+        pub const fn bits(self) -> u8 {
+            self.0
+        }
+    }
 }
 pub use generated::{
-    AvailabilityState, CalendarRefusal, CandidateConflict, CivilFoldPolicy, CivilGapPolicy,
-    CivilResolutionChoice, CivilResolutionPolicy, ClockChangeBehavior, HistoricalEntryOrigin,
-    HistoricalEntryOriginCode, HistoricalOverflowPolicy, HistoricalOverflowPolicyCode,
-    IntervalSequence, InvitationState, MeetingProposalRefusal, NamedPatternTemplate, NamedPatternTemplateCommand,
-    NamedPatternTemplateResult, NamedPatternTemplateSlot, NamedPatternTemplateSlots,
-    NormalizedDurationSequence, ParticipantRole, PatternComparison, PatternComparisonRefusal,
-    PulseObservation, RecurrenceRefusal, ReminderOccurrence, ReplayCommand, ReplayCommandFail,
-    ReplayPolicy, ReplayPolicyRate, ReplayState, ReplayStateFailed, RhythmState,
-    ScheduleAssessment, ScheduleEffectIntent, ScheduleRefusal, ScheduleWorkflowLifecycle,
-    ScheduledIntentRefusal,
-    SequenceNormalizationRefusal, SuspendBehavior, SynchronizationOutcome, TimedEventSequence,
-    SynchronizationOutcomeAdjusted, TemplateCollectionRefusal, TemporalBoundary,
-    TemporalWindowPosition, TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
-    WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
+    AvailabilityBasis, AvailabilityInterval, AvailabilityState, CalendarEvent, CalendarEventTime,
+    CalendarRefusal, CandidateConflict, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
+    CivilResolutionPolicy, CivilTrigger, ClockChangeBehavior, ElapsedTrigger,
+    HistoricalEntryOrigin, HistoricalEntryOriginCode, HistoricalOverflowPolicy,
+    HistoricalOverflowPolicyCode, IntervalSequence, InvitationEvidence, InvitationState, LocalDate,
+    LocalDateTime, LocalTime, MeetingCandidate, MeetingProposal, MeetingProposalRefusal,
+    MeetingProposalRequest, MissedOccurrencePolicy, MonotonicClockIdentity, MonotonicDuration,
+    MonotonicInstant, NamedPatternTemplate, NamedPatternTemplateCommand,
+    NamedPatternTemplateResult, NamedPatternTemplateSlot, NamedPatternTemplateSlots, NamedTimeZone,
+    NormalizedDurationSequence, OccurrenceInstant, Participant, ParticipantAvailability,
+    ParticipantRole, PatternComparison, PatternComparisonRefusal, ProposedMeetingSlot,
+    PulseObservation, RecurrenceDefinition, RecurrenceExpansion, RecurrenceOccurrence,
+    RecurrenceRefusal, RecurrenceRule, RecurrenceUntil, RecurrenceWindow, RejectedMeetingSlot,
+    ReminderOccurrence, ReminderSpecification, ReplayCommand, ReplayCommandFail, ReplayPolicy,
+    ReplayPolicyRate, ReplayState, ReplayStateFailed, RhythmState, ScheduleAssessment,
+    ScheduleEffectIntent, ScheduleRefusal, ScheduleWorkflowLifecycle, ScheduledIntentRefusal,
+    ScheduledOccurrenceDecision, SequenceNormalizationRefusal, SuspendBehavior,
+    SynchronizationOutcome, SynchronizationOutcomeAdjusted, TemplateCollectionRefusal,
+    TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow, TemporalWindowPosition,
+    TemporalWindowRefusal, TimedCalendarSpan, TimedEventSequence, TimedPatternRefusal,
+    TriggerObservation, TriggerProfile, WeekdaySet, WorkflowLifecycle, WorkflowTimingOutcome,
+    WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
 };
 
 mod timed_pattern_refusal;
@@ -45,6 +76,7 @@ mod historical_operation;
 mod historical_store;
 mod historical_timeline;
 mod historical_timeline_codec;
+mod native_temporal;
 mod playback_tick;
 mod replay_codec;
 mod replay_command;
@@ -84,14 +116,11 @@ pub use temporal_instant::*;
 pub use temporal_recurrence::*;
 pub use temporal_recurrence_civil::*;
 pub use temporal_schedule::*;
-pub use temporal_window::*;
 
 pub use conduit_core::{
-    CivilTimeBasis, CivilTimeRefusal, ClockCorrelation, LocalDate, LocalDateTime, LocalTime,
-    MonotonicClockIdentity, MonotonicDeadline, MonotonicDuration, MonotonicInstant,
-    MonotonicTimeRefusal, NamedTimeZone, TemporalInstant, TemporalRelation, TemporalRelationError,
-    TemporalScale, UtcOffsetSeconds, ZonedResolution, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
-    UNIX_UTC_CLOCK_BASIS,
+    CivilTimeBasis, CivilTimeRefusal, ClockCorrelation, MonotonicDeadline, MonotonicTimeRefusal,
+    TemporalRelation, TemporalRelationError, UtcOffsetSeconds, ZonedResolution,
+    MAXIMUM_TEMPORAL_IDENTITY_BYTES, UNIX_UTC_CLOCK_BASIS,
 };
 
 #[cfg(feature = "form-catalog")]

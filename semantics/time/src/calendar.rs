@@ -1,94 +1,15 @@
 //! Portable finite calendar meaning over the shared temporal substrate.
 
-use alloc::{string::String, vec::Vec};
-use serde::{Deserialize, Serialize};
-
 use crate::{
-    AvailabilityState, CalendarRefusal, InvitationState, LocalDate, LocalDateTime, NamedTimeZone,
-    ParticipantRole, RecurrenceDefinition, ReminderOccurrence, TemporalInstant, TemporalRelation,
-    TemporalWindow, TemporalWindowRefusal, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    AvailabilityBasis, CalendarEvent, CalendarEventTime, CalendarRefusal, InvitationEvidence,
+    Participant, ParticipantAvailability, ReminderOccurrence, ReminderSpecification,
+    TemporalInstant, TemporalRelation, TemporalWindowRefusal, TimedCalendarSpan,
+    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_CALENDAR_TEXT_BYTES: usize = 1_024;
 pub const MAXIMUM_EVENT_PARTICIPANTS: usize = 64;
 pub const MAXIMUM_EVENT_REMINDERS: usize = 16;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Participant {
-    pub identity: String,
-    pub contact_reference: Option<String>,
-    pub role: ParticipantRole,
-    pub invitation: InvitationEvidence,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InvitationEvidence {
-    Unknown,
-    Observed {
-        state: InvitationState,
-        observed_at: TemporalInstant,
-        source_identity: String,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TimedCalendarSpan {
-    pub local_start: LocalDateTime,
-    pub local_end: LocalDateTime,
-    pub zone: NamedTimeZone,
-    pub instant: TemporalWindow,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CalendarEventTime {
-    Timed(TimedCalendarSpan),
-    AllDay {
-        start: LocalDate,
-        end_exclusive: LocalDate,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReminderSpecification {
-    pub identity: String,
-    pub before_start_ticks: u64,
-    pub scale: crate::TemporalScale,
-    pub delivery_kind: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CalendarEvent {
-    pub identity: String,
-    pub title: String,
-    pub description: String,
-    pub location: String,
-    pub time: CalendarEventTime,
-    pub participants: Vec<Participant>,
-    pub recurrence: Option<RecurrenceDefinition>,
-    pub reminders: Vec<ReminderSpecification>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AvailabilityInterval {
-    pub participant_identity: String,
-    pub interval: TemporalWindow,
-    pub state: AvailabilityState,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AvailabilityBasis {
-    pub identity: String,
-    pub observed_at: TemporalInstant,
-    pub usable_until: TemporalInstant,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ParticipantAvailability {
-    pub participant_identity: String,
-    pub zone: NamedTimeZone,
-    pub basis: AvailabilityBasis,
-    pub intervals: Vec<AvailabilityInterval>,
-}
 
 impl Participant {
     pub fn validate(&self) -> Result<(), CalendarRefusal> {
@@ -100,16 +21,13 @@ impl Participant {
         {
             return Err(CalendarRefusal::InvalidIdentity);
         }
-        if let InvitationEvidence::Observed {
-            observed_at,
-            source_identity,
-            ..
-        } = &self.invitation
-        {
-            observed_at
+        if let InvitationEvidence::Observed(observed) = &self.invitation {
+            observed
+                .observed_at()
                 .validate()
                 .map_err(|_| CalendarRefusal::InvalidInvitationEvidence)?;
-            identity(source_identity).map_err(|_| CalendarRefusal::InvalidInvitationEvidence)?;
+            identity(observed.source_identity())
+                .map_err(|_| CalendarRefusal::InvalidInvitationEvidence)?;
         }
         Ok(())
     }
@@ -134,11 +52,22 @@ impl TimedCalendarSpan {
 impl CalendarEventTime {
     pub fn validate(&self) -> Result<(), CalendarRefusal> {
         match self {
-            Self::Timed(span) => span.validate(),
-            Self::AllDay {
-                start,
-                end_exclusive,
-            } => {
+            Self::Timed(span) => {
+                let span = span.value();
+                span.local_start()
+                    .validate()
+                    .map_err(|_| CalendarRefusal::InvalidTime)?;
+                span.local_end()
+                    .validate()
+                    .map_err(|_| CalendarRefusal::InvalidTime)?;
+                span.zone()
+                    .validate()
+                    .map_err(|_| CalendarRefusal::InvalidTime)?;
+                span.instant().validate().map_err(map_window)
+            }
+            Self::AllDay(value) => {
+                let start = value.start();
+                let end_exclusive = value.end_exclusive();
                 start.validate().map_err(|_| CalendarRefusal::InvalidTime)?;
                 end_exclusive
                     .validate()
@@ -170,8 +99,9 @@ impl CalendarEvent {
                 .any(|value| value.validate().is_err())
             || self
                 .participants
-                .windows(2)
-                .any(|pair| pair[0].identity >= pair[1].identity)
+                .iter()
+                .zip(self.participants.iter().skip(1))
+                .any(|(left, right)| left.identity >= right.identity)
         {
             return Err(CalendarRefusal::InvalidParticipants);
         }
@@ -253,19 +183,19 @@ impl ParticipantAvailability {
             }
             interval.interval.validate().map_err(map_window)?;
         }
-        for pair in self.intervals.windows(2) {
-            let relation = pair[1]
+        for (left, right) in self.intervals.iter().zip(self.intervals.iter().skip(1)) {
+            let relation = right
                 .interval
                 .start()
-                .relation_to(pair[0].interval.end())
+                .relation_to(left.interval.end())
                 .map_err(|_| CalendarRefusal::IncomparableTime)?;
             match relation {
                 TemporalRelation::Past { .. } | TemporalRelation::Indeterminate => {
                     return Err(CalendarRefusal::InvalidAvailability)
                 }
                 TemporalRelation::Present
-                    if pair[0].interval.end_boundary() == crate::TemporalBoundary::Inclusive
-                        && pair[1].interval.start_boundary()
+                    if *left.interval.end_boundary() == crate::TemporalBoundary::Inclusive
+                        && *right.interval.start_boundary()
                             == crate::TemporalBoundary::Inclusive =>
                 {
                     return Err(CalendarRefusal::InvalidAvailability)

@@ -1,38 +1,11 @@
 //! Exact finite windows over comparable temporal instants.
 
-use serde::{Deserialize, Serialize};
-
 use crate::{
-    TemporalBoundary, TemporalInstant, TemporalRelation, TemporalRelationError,
+    TemporalBoundary, TemporalInstant, TemporalRelation, TemporalRelationError, TemporalWindow,
     TemporalWindowPosition, TemporalWindowRefusal,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct TemporalWindow {
-    start: TemporalInstant,
-    start_boundary: TemporalBoundary,
-    end: TemporalInstant,
-    end_boundary: TemporalBoundary,
-}
-
 impl TemporalWindow {
-    pub fn new(
-        start: TemporalInstant,
-        start_boundary: TemporalBoundary,
-        end: TemporalInstant,
-        end_boundary: TemporalBoundary,
-    ) -> Result<Self, TemporalWindowRefusal> {
-        let value = Self {
-            start,
-            start_boundary,
-            end,
-            end_boundary,
-        };
-        value.validate()?;
-        Ok(value)
-    }
-
     pub fn validate(&self) -> Result<(), TemporalWindowRefusal> {
         match self
             .start
@@ -52,22 +25,6 @@ impl TemporalWindow {
                 Err(TemporalWindowRefusal::IndeterminateBoundaryOrder)
             }
         }
-    }
-
-    pub const fn start(&self) -> &TemporalInstant {
-        &self.start
-    }
-
-    pub const fn start_boundary(&self) -> TemporalBoundary {
-        self.start_boundary
-    }
-
-    pub const fn end(&self) -> &TemporalInstant {
-        &self.end
-    }
-
-    pub const fn end_boundary(&self) -> TemporalBoundary {
-        self.end_boundary
     }
 
     pub fn classify(
