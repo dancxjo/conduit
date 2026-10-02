@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4560" height="1160" viewBox="0 0 4560 1160" role="img" aria-labelledby="title desc">
+<title id="title">vision</title>
+<desc id="desc">Checked Conduit Form with exact typed port connections.</desc>
+<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:#d0b876}.gear-hole{fill:#24292f}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#fff8e8;font-size:13px;font-weight:800}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.split-junction{fill:#d6a04f;stroke:#171a1e;stroke-width:3}.join-junction{fill:#55b7c6;stroke:#171a1e;stroke-width:3}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#eaf4ec;font-size:13px;font-weight:750}.cord-tag{fill:#252a2f;stroke:#776746;stroke-width:1}.cord-label{fill:#d9bd82;font-size:10px;font-weight:600}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#55b7c6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e36964"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><path class="gear-mark" d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.6.6 0 0 0 .1-.7l-2-3.5a.6.6 0 0 0-.7-.2l-2.5 1a8 8 0 0 0-1.7-1l-.4-2.6A.6.6 0 0 0 13.8 2h-4a.6.6 0 0 0-.6.4L8.9 5a8 8 0 0 0-1.7 1L4.7 5a.6.6 0 0 0-.7.2L2 8.7a.6.6 0 0 0 .1.7L4.2 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.6.6 0 0 0-.1.7l2 3.5a.6.6 0 0 0 .7.2l2.5-1a8 8 0 0 0 1.7 1l.4 2.6a.6.6 0 0 0 .6.4h4a.6.6 0 0 0 .6-.4l.4-2.6a8 8 0 0 0 1.7-1l2.5 1a.6.6 0 0 0 .7-.2l2-3.5a.6.6 0 0 0-.1-.7z"/><circle class="gear-hole" cx="12" cy="12" r="3.2"/></symbol></defs><rect class="canvas" width="4560" height="1160"/>
+<text class="title" x="50" y="42">Form vision</text>
+<text class="legend" x="50" y="68">ordinary flow —  close - -  quiescence · ·  abnormal - -  ● junction; crossing without dot = separate cords</text>
+<g><title>vision/describe.impression → vision/relate.impression · structured-info/profile-c4ed5cf61a1023771563bf390876c54e6d5793081c14c98d749bce7180fce3fc@1 · payload</title><path class="cord-shadow" d="M3350,538 H3350 H3380 V559 H3690 H3690"/><path class="cord" marker-end="url(#arrow)" d="M3350,538 H3350 H3380 V559 H3690 H3690"/>
+<rect class="cord-tag" x="3479" y="537" width="112" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="3535" y="549">VisualImpression</text>
+</g>
+<g><title>vision/ingress.out → vision/normalize.source · structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1 · payload</title><path class="cord-shadow" d="M870,600 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,600 H1210"/>
+<rect class="cord-tag" x="993" y="578" width="94" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1040" y="590">ImageResource</text>
+</g>
+<g><title>vision/motion.motions → vision/relate.motions · structured-info/profile-bd72631ac19cc183d8e9af572a008e457891ee108443b5461d3a417dddc0788b@1 · payload</title><path class="cord-shadow" d="M2110,320 H2110 H2182 V122 H3618 V601 H3690 H3690"/><path class="cord" marker-end="url(#arrow)" d="M2110,320 H2110 H2182 V122 H3618 V601 H3690 H3690"/>
+<rect class="cord-tag" x="2841" y="100" width="118" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="2900" y="112">VisionMotionsFour</text>
+</g>
+<g><title>vision/normalize.normalized → vision/describe.image · structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1 · payload</title><path class="cord-shadow" d="M1490,600 H1548 H1620 V1078 H2998 V538 H3070 H3070"/><path class="cord" marker-end="url(#arrow)" d="M1490,600 H1548 H1620 V1078 H2998 V538 H3070 H3070"/>
+<circle class="split-junction" cx="1548" cy="600" r="6"><title>fan-out junction</title></circle>
+<rect class="cord-tag" x="2262" y="1056" width="94" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="2309" y="1068">ImageResource</text>
+</g>
+<g><title>vision/normalize.normalized → vision/motion.image · structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1 · payload</title><path class="cord-shadow" d="M1490,600 H1548 H1689 V320 H1830 H1830"/><path class="cord" marker-end="url(#arrow)" d="M1490,600 H1548 H1689 V320 H1830 H1830"/>
+<circle class="split-junction" cx="1548" cy="600" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>vision/normalize.normalized → vision/objects.image · structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1 · payload</title><path class="cord-shadow" d="M1490,600 H1830"/><path class="cord" marker-end="url(#arrow)" d="M1490,600 H1830"/>
+<circle class="split-junction" cx="1548" cy="600" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>vision/normalize.normalized → vision/text.image · structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1 · payload</title><path class="cord-shadow" d="M1490,600 H1548 H1759 V880 H1830 H1830"/><path class="cord" marker-end="url(#arrow)" d="M1490,600 H1548 H1759 V880 H1830 H1830"/>
+<circle class="split-junction" cx="1548" cy="600" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>vision/objects.detections → vision/describe.detections · structured-info/profile-3442c77a4f9b2c6bc4ee695b7400c7490fd5dfa779b685c07bbe75e4df6d88fd@1 · payload</title><path class="cord-shadow" d="M2110,600 H2168 H2240 V1034 H2998 V580 H3070 H3070"/><path class="cord" marker-end="url(#arrow)" d="M2110,600 H2168 H2240 V1034 H2998 V580 H3070 H3070"/>
+<circle class="split-junction" cx="2168" cy="600" r="6"><title>fan-out junction</title></circle>
+<rect class="cord-tag" x="2539" y="1012" width="160" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="2619" y="1024">VisionObjectObservations</text>
+</g>
+<g><title>vision/objects.detections → vision/relate.detections · structured-info/profile-3442c77a4f9b2c6bc4ee695b7400c7490fd5dfa779b685c07bbe75e4df6d88fd@1 · payload</title><path class="cord-shadow" d="M2110,600 H2168 H2240 V188 H3618 V517 H3690 H3690"/><path class="cord" marker-end="url(#arrow)" d="M2110,600 H2168 H2240 V188 H3618 V517 H3690 H3690"/>
+<circle class="split-junction" cx="2168" cy="600" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>vision/objects.detections → vision/tracks.detections · structured-info/profile-3442c77a4f9b2c6bc4ee695b7400c7490fd5dfa779b685c07bbe75e4df6d88fd@1 · payload</title><path class="cord-shadow" d="M2110,600 H2450"/><path class="cord" marker-end="url(#arrow)" d="M2110,600 H2450"/>
+<circle class="split-junction" cx="2168" cy="600" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>vision/text.texts → vision/describe.texts · structured-info/profile-a34efd8455c2a47efd39823137f79b6f7307810b62c8c763151809fcb55021eb@1 · payload</title><path class="cord-shadow" d="M2110,880 H2168 H2240 V210 H2998 V622 H3070 H3070"/><path class="cord" marker-end="url(#arrow)" d="M2110,880 H2168 H2240 V210 H2998 V622 H3070 H3070"/>
+<circle class="split-junction" cx="2168" cy="880" r="6"><title>fan-out junction</title></circle>
+<rect class="cord-tag" x="2563" y="188" width="112" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="2619" y="200">VisionTextsEight</text>
+</g>
+<g><title>vision/text.texts → vision/relate.texts · structured-info/profile-a34efd8455c2a47efd39823137f79b6f7307810b62c8c763151809fcb55021eb@1 · payload</title><path class="cord-shadow" d="M2110,880 H2168 H2240 V990 H3618 V643 H3690 H3690"/><path class="cord" marker-end="url(#arrow)" d="M2110,880 H2168 H2240 V990 H3618 V643 H3690 H3690"/>
+<circle class="split-junction" cx="2168" cy="880" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>vision/tracks.tracks → vision/describe.tracks · structured-info/profile-c93c7f0d11afb8a5485b6283b53ed4150d9d25fa9e46e672ec7be9e7216e951e@1 · payload</title><path class="cord-shadow" d="M2730,600 H2788 H2894 V664 H3070 H3070"/><path class="cord" marker-end="url(#arrow)" d="M2730,600 H2788 H2894 V664 H3070 H3070"/>
+<circle class="split-junction" cx="2788" cy="600" r="6"><title>fan-out junction</title></circle>
+<rect class="cord-tag" x="2926" y="642" width="112" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="2982" y="654">VisionTracksFour</text>
+</g>
+<g><title>vision/tracks.tracks → vision/relate.tracks · structured-info/profile-c93c7f0d11afb8a5485b6283b53ed4150d9d25fa9e46e672ec7be9e7216e951e@1 · payload</title><path class="cord-shadow" d="M2730,600 H2788 H2860 V1100 H3618 V685 H3690 H3690"/><path class="cord" marker-end="url(#arrow)" d="M2730,600 H2788 H2860 V1100 H3618 V685 H3690 H3690"/>
+<circle class="split-junction" cx="2788" cy="600" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>Form.images → vision/ingress.in · structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1 · payload</title><path class="cord-shadow" d="M250,582 H250 H455 V600 H590 H590"/><path class="cord" marker-end="url(#arrow)" d="M250,582 H250 H455 V600 H590 H590"/>
+<rect class="cord-tag" x="305" y="560" width="94" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="352" y="572">ImageResource</text>
+</g>
+<g><title>vision/relate.experience → Form.experience · structured-info/profile-1f9c506b9f4cf61afd7a366b9290f5bda917706bdcd39846d498db4e42fafc7f@1 · payload</title><path class="cord-shadow" d="M3970,517 H3970 H4210 V582 H4310 H4310"/><path class="cord" marker-end="url(#arrow)" d="M3970,517 H3970 H4210 V582 H4310 H4310"/>
+<rect class="cord-tag" x="4034" y="495" width="112" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="4090" y="507">VisualExperience</text>
+</g>
+<g><rect class="gear" x="590" y="520" width="280" height="120" rx="10"/><path class="header" d="M590,530 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/ingress — kind flow/coalesce-latest</title>
+<use href="#gear-mark" x="602" y="531" width="28" height="28"/><text class="label" x="640" y="542">ingress</text><text class="kind" x="640" y="563">vision/ingress</text>
+<g><title>in: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port input-port" cx="590" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="start" x="601" y="604">in</text>
+<g><title>out: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port output-port" cx="870" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="604">out</text>
+</g>
+<g><rect class="gear" x="1210" y="520" width="280" height="120" rx="10"/><path class="header" d="M1210,530 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/normalize — kind vision/normalize</title>
+<use href="#gear-mark" x="1222" y="531" width="28" height="28"/><text class="label" x="1260" y="542">normalize</text><text class="kind" x="1260" y="563">vision/normalize</text>
+<g><title>source: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port input-port" cx="1210" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1221" y="604">source</text>
+<g><title>normalized: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port output-port" cx="1490" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="end" x="1479" y="604">normalized</text>
+</g>
+<g><rect class="gear" x="1830" y="240" width="280" height="120" rx="10"/><path class="header" d="M1830,250 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/motion — kind vision/local-motion</title>
+<use href="#gear-mark" x="1842" y="251" width="28" height="28"/><text class="label" x="1880" y="262">motion</text><text class="kind" x="1880" y="283">vision/motion</text>
+<g><title>image: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port input-port" cx="1830" cy="320" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1841" y="324">image</text>
+<g><title>motions: structured-info/profile-bd72631ac19cc183d8e9af572a008e457891ee108443b5461d3a417dddc0788b@1</title><circle class="port output-port" cx="2110" cy="320" r="5"/></g>
+<text class="port-name" text-anchor="end" x="2099" y="324">motions</text>
+</g>
+<g><rect class="gear" x="1830" y="520" width="280" height="120" rx="10"/><path class="header" d="M1830,530 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/objects — kind vision/local-objects</title>
+<use href="#gear-mark" x="1842" y="531" width="28" height="28"/><text class="label" x="1880" y="542">objects</text><text class="kind" x="1880" y="563">vision/objects</text>
+<g><title>image: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port input-port" cx="1830" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1841" y="604">image</text>
+<g><title>detections: structured-info/profile-3442c77a4f9b2c6bc4ee695b7400c7490fd5dfa779b685c07bbe75e4df6d88fd@1</title><circle class="port output-port" cx="2110" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="end" x="2099" y="604">detections</text>
+</g>
+<g><rect class="gear" x="1830" y="800" width="280" height="120" rx="10"/><path class="header" d="M1830,810 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/text — kind vision/local-ocr</title>
+<use href="#gear-mark" x="1842" y="811" width="28" height="28"/><text class="label" x="1880" y="822">text</text><text class="kind" x="1880" y="843">vision/text</text>
+<g><title>image: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port input-port" cx="1830" cy="880" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1841" y="884">image</text>
+<g><title>texts: structured-info/profile-a34efd8455c2a47efd39823137f79b6f7307810b62c8c763151809fcb55021eb@1</title><circle class="port output-port" cx="2110" cy="880" r="5"/></g>
+<text class="port-name" text-anchor="end" x="2099" y="884">texts</text>
+</g>
+<g><rect class="gear" x="2450" y="520" width="280" height="120" rx="10"/><path class="header" d="M2450,530 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/tracks — kind vision/local-track</title>
+<use href="#gear-mark" x="2462" y="531" width="28" height="28"/><text class="label" x="2500" y="542">tracks</text><text class="kind" x="2500" y="563">vision/tracks</text>
+<g><title>detections: structured-info/profile-3442c77a4f9b2c6bc4ee695b7400c7490fd5dfa779b685c07bbe75e4df6d88fd@1</title><circle class="port input-port" cx="2450" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="start" x="2461" y="604">detections</text>
+<g><title>tracks: structured-info/profile-c93c7f0d11afb8a5485b6283b53ed4150d9d25fa9e46e672ec7be9e7216e951e@1</title><circle class="port output-port" cx="2730" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="end" x="2719" y="604">tracks</text>
+</g>
+<g><rect class="gear" x="3070" y="458" width="280" height="244" rx="10"/><path class="header" d="M3070,468 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/describe — kind vision/model-describe</title>
+<use href="#gear-mark" x="3082" y="469" width="28" height="28"/><text class="label" x="3120" y="480">describe</text><text class="kind" x="3120" y="501">vision/describe</text>
+<g><title>image: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port input-port" cx="3070" cy="538" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3081" y="542">image</text>
+<g><title>detections: structured-info/profile-3442c77a4f9b2c6bc4ee695b7400c7490fd5dfa779b685c07bbe75e4df6d88fd@1</title><circle class="port input-port" cx="3070" cy="580" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3081" y="584">detections</text>
+<g><title>texts: structured-info/profile-a34efd8455c2a47efd39823137f79b6f7307810b62c8c763151809fcb55021eb@1</title><circle class="port input-port" cx="3070" cy="622" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3081" y="626">texts</text>
+<g><title>tracks: structured-info/profile-c93c7f0d11afb8a5485b6283b53ed4150d9d25fa9e46e672ec7be9e7216e951e@1</title><circle class="port input-port" cx="3070" cy="664" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3081" y="668">tracks</text>
+<g><title>impression: structured-info/profile-c4ed5cf61a1023771563bf390876c54e6d5793081c14c98d749bce7180fce3fc@1</title><circle class="port output-port" cx="3350" cy="538" r="5"/></g>
+<text class="port-name" text-anchor="end" x="3339" y="542">impression</text>
+</g>
+<g><rect class="gear" x="3690" y="437" width="280" height="286" rx="10"/><path class="header" d="M3690,447 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>vision/relate — kind vision/relate-experience</title>
+<use href="#gear-mark" x="3702" y="448" width="28" height="28"/><text class="label" x="3740" y="459">relate</text><text class="kind" x="3740" y="480">vision/relate</text>
+<g><title>detections: structured-info/profile-3442c77a4f9b2c6bc4ee695b7400c7490fd5dfa779b685c07bbe75e4df6d88fd@1</title><circle class="port input-port" cx="3690" cy="517" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3701" y="521">detections</text>
+<g><title>impression: structured-info/profile-c4ed5cf61a1023771563bf390876c54e6d5793081c14c98d749bce7180fce3fc@1</title><circle class="port input-port" cx="3690" cy="559" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3701" y="563">impression</text>
+<g><title>motions: structured-info/profile-bd72631ac19cc183d8e9af572a008e457891ee108443b5461d3a417dddc0788b@1</title><circle class="port input-port" cx="3690" cy="601" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3701" y="605">motions</text>
+<g><title>texts: structured-info/profile-a34efd8455c2a47efd39823137f79b6f7307810b62c8c763151809fcb55021eb@1</title><circle class="port input-port" cx="3690" cy="643" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3701" y="647">texts</text>
+<g><title>tracks: structured-info/profile-c93c7f0d11afb8a5485b6283b53ed4150d9d25fa9e46e672ec7be9e7216e951e@1</title><circle class="port input-port" cx="3690" cy="685" r="5"/></g>
+<text class="port-name" text-anchor="start" x="3701" y="689">tracks</text>
+<g><title>experience: structured-info/profile-1f9c506b9f4cf61afd7a366b9290f5bda917706bdcd39846d498db4e42fafc7f@1</title><circle class="port output-port" cx="3970" cy="517" r="5"/></g>
+<text class="port-name" text-anchor="end" x="3959" y="521">experience</text>
+</g>
+<rect class="boundary" x="50" y="528" width="200" height="104" rx="10"/><text class="label" x="66" y="556">Form inputs</text>
+<g><title>images: structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1</title><circle class="port output-port" cx="250" cy="582" r="5"/></g>
+<text class="boundary-port" text-anchor="end" x="238" y="586">images : ImageResource</text>
+<rect class="boundary" x="4310" y="528" width="200" height="104" rx="10"/><text class="label" x="4326" y="556">Form outputs</text>
+<g><title>experience: structured-info/profile-1f9c506b9f4cf61afd7a366b9290f5bda917706bdcd39846d498db4e42fafc7f@1</title><circle class="port input-port" cx="4310" cy="582" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="4322" y="586">experience : VisualExperience</text>
+</svg>

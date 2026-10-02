@@ -16,6 +16,8 @@ Read these in order, or stop when you have enough context to try something:
 3. [[Conduitese]]: the language's basic shapes
 4. [[Conduitese by example|Conduitese-by-example]]: read real source, then compose it
 
+Browse [[Form diagrams|Form-diagrams]] to see checked forms as connected gears.
+
 Keep the [[glossary|Glossary]] nearby; the terms are grouped by what they do.
 
 ## Use
@@ -33,6 +35,7 @@ Keep the [[glossary|Glossary]] nearby; the terms are grouped by what they do.
 - [[Current language surface|Current-language-surface]]: supported spellings and executable evidence
 - [[Architecture]]: vocabulary, semantic paths, and the callable fore
 - [[Forms and flow|Forms-and-flow]]: composition, expressions, and completion
+- [[Form diagrams|Form-diagrams]]: generated gear, port, and cord views
 - [[Types and state|Types-and-state]]: values, bounds, retention, and data
 - [[Terminals and concurrency|Terminals-and-concurrency]]: close, failure, cancellation, and pressure
 - [[Effects and realization|Effects-and-realization]]: effects and exact realization

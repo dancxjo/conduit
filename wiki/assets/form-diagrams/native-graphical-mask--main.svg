@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2700" height="880" viewBox="0 0 2700 880" role="img" aria-labelledby="title desc">
+<title id="title">native-graphical</title>
+<desc id="desc">Checked Conduit Form with exact typed port connections.</desc>
+<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:#d0b876}.gear-hole{fill:#24292f}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#fff8e8;font-size:13px;font-weight:800}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.split-junction{fill:#d6a04f;stroke:#171a1e;stroke-width:3}.join-junction{fill:#55b7c6;stroke:#171a1e;stroke-width:3}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#eaf4ec;font-size:13px;font-weight:750}.cord-tag{fill:#252a2f;stroke:#776746;stroke-width:1}.cord-label{fill:#d9bd82;font-size:10px;font-weight:600}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#55b7c6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e36964"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><path class="gear-mark" d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.6.6 0 0 0 .1-.7l-2-3.5a.6.6 0 0 0-.7-.2l-2.5 1a8 8 0 0 0-1.7-1l-.4-2.6A.6.6 0 0 0 13.8 2h-4a.6.6 0 0 0-.6.4L8.9 5a8 8 0 0 0-1.7 1L4.7 5a.6.6 0 0 0-.7.2L2 8.7a.6.6 0 0 0 .1.7L4.2 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.6.6 0 0 0-.1.7l2 3.5a.6.6 0 0 0 .7.2l2.5-1a8 8 0 0 0 1.7 1l.4 2.6a.6.6 0 0 0 .6.4h4a.6.6 0 0 0 .6-.4l.4-2.6a8 8 0 0 0 1.7-1l2.5 1a.6.6 0 0 0 .7-.2l2-3.5a.6.6 0 0 0-.1-.7z"/><circle class="gear-hole" cx="12" cy="12" r="3.2"/></symbol></defs><rect class="canvas" width="2700" height="880"/>
+<text class="title" x="50" y="42">Form native-graphical</text>
+<text class="legend" x="50" y="68">ordinary flow —  close - -  quiescence · ·  abnormal - -  ● junction; crossing without dot = separate cords</text>
+<g><title>native-graphical/render.show → native-graphical/human.show · presentation/show@1 · payload</title><path class="cord-shadow" d="M1490,440 H1548 H1566 V482 H1830 H1830"/><path class="cord" marker-end="url(#arrow)" d="M1490,440 H1548 H1566 V482 H1830 H1830"/>
+<circle class="split-junction" cx="1548" cy="440" r="6"><title>fan-out junction</title></circle>
+<rect class="cord-tag" x="1633" y="460" width="130" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1698" y="472">presentation/show@1</text>
+</g>
+<g><title>native-graphical/spread.presentation → native-graphical/human.presentation · presentation/presentation@1 · payload</title><path class="cord-shadow" d="M870,320 H928 H1000 V820 H1758 V440 H1830 H1830"/><path class="cord" marker-end="url(#arrow)" d="M870,320 H928 H1000 V820 H1758 V440 H1830 H1830"/>
+<circle class="split-junction" cx="928" cy="320" r="6"><title>fan-out junction</title></circle>
+<rect class="cord-tag" x="1290" y="798" width="178" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1379" y="810">presentation/presentation@1</text>
+</g>
+<g><title>native-graphical/spread.presentation → native-graphical/render.presentation · presentation/presentation@1 · payload</title><path class="cord-shadow" d="M870,320 H928 H999 V440 H1210 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,320 H928 H999 V440 H1210 H1210"/>
+<circle class="split-junction" cx="928" cy="320" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><title>native-graphical/surface.show-resource → native-graphical/render.show-resource · presentation/show-resource@1 · payload</title><path class="cord-shadow" d="M870,600 H870 H1005 V482 H1210 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,600 H870 H1005 V482 H1210 H1210"/>
+<rect class="cord-tag" x="1015" y="460" width="184" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1107" y="472">presentation/show-resource@1</text>
+</g>
+<g><title>Form.face → native-graphical/spread.source · presentation/presentation@1 · payload</title><path class="cord-shadow" d="M250,442 H250 H420 V320 H590 H590"/><path class="cord" marker-end="url(#arrow)" d="M250,442 H250 H420 V320 H590 H590"/>
+<rect class="cord-tag" x="416" y="298" width="178" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="505" y="310">presentation/presentation@1</text>
+</g>
+<g><title>native-graphical/human.interaction → Form.interaction · face/interaction@2 · payload</title><path class="cord-shadow" d="M2110,440 H2110 H2315 V421 H2450 H2450"/><path class="cord" marker-end="url(#arrow)" d="M2110,440 H2110 H2315 V421 H2450 H2450"/>
+<rect class="cord-tag" x="2150" y="418" width="124" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="2212" y="430">face/interaction@2</text>
+</g>
+<g><title>native-graphical/render.show → Form.show · presentation/show@1 · payload</title><path class="cord-shadow" d="M1490,440 H1548 H1620 V166 H2378 V463 H2450 H2450"/><path class="cord" marker-end="url(#arrow)" d="M1490,440 H1548 H1620 V166 H2378 V463 H2450 H2450"/>
+<circle class="split-junction" cx="1548" cy="440" r="6"><title>fan-out junction</title></circle>
+</g>
+<g><rect class="gear" x="590" y="240" width="280" height="120" rx="10"/><path class="header" d="M590,250 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>native-graphical/spread — kind presentation/tee</title>
+<use href="#gear-mark" x="602" y="251" width="28" height="28"/><text class="label" x="640" y="262">spread</text><text class="kind" x="640" y="283">native-graphical/spread</text>
+<g><title>source: presentation/presentation@1</title><circle class="port input-port" cx="590" cy="320" r="5"/></g>
+<text class="port-name" text-anchor="start" x="601" y="324">source</text>
+<g><title>presentation: presentation/presentation@1</title><circle class="port output-port" cx="870" cy="320" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="324">presentation</text>
+</g>
+<g><rect class="gear" x="590" y="520" width="280" height="120" rx="10"/><path class="header" d="M590,530 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>native-graphical/surface — kind presentation/show-resource-source</title>
+<use href="#gear-mark" x="602" y="531" width="28" height="28"/><text class="label" x="640" y="542">surface</text><text class="kind" x="640" y="563">native-graphical/surface</text>
+<g><title>show-resource: presentation/show-resource@1</title><circle class="port output-port" cx="870" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="604">show-resource</text>
+</g>
+<g><rect class="gear" x="1210" y="360" width="280" height="160" rx="10"/><path class="header" d="M1210,370 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>native-graphical/render — kind presentation/resource-renderer</title>
+<use href="#gear-mark" x="1222" y="371" width="28" height="28"/><text class="label" x="1260" y="382">render</text><text class="kind" x="1260" y="403">native-graphical/render</text>
+<g><title>presentation: presentation/presentation@1</title><circle class="port input-port" cx="1210" cy="440" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1221" y="444">presentation</text>
+<g><title>show-resource: presentation/show-resource@1</title><circle class="port input-port" cx="1210" cy="482" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1221" y="486">show-resource</text>
+<g><title>show: presentation/show@1</title><circle class="port output-port" cx="1490" cy="440" r="5"/></g>
+<text class="port-name" text-anchor="end" x="1479" y="444">show</text>
+</g>
+<g><rect class="gear" x="1830" y="360" width="280" height="160" rx="10"/><path class="header" d="M1830,370 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>native-graphical/human — kind face/interaction</title>
+<use href="#gear-mark" x="1842" y="371" width="28" height="28"/><text class="label" x="1880" y="382">human</text><text class="kind" x="1880" y="403">native-graphical/human</text>
+<g><title>presentation: presentation/presentation@1</title><circle class="port input-port" cx="1830" cy="440" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1841" y="444">presentation</text>
+<g><title>show: presentation/show@1</title><circle class="port input-port" cx="1830" cy="482" r="5"/></g>
+<text class="port-name" text-anchor="start" x="1841" y="486">show</text>
+<g><title>interaction: face/interaction@2</title><circle class="port output-port" cx="2110" cy="440" r="5"/></g>
+<text class="port-name" text-anchor="end" x="2099" y="444">interaction</text>
+</g>
+<rect class="boundary" x="50" y="388" width="200" height="104" rx="10"/><text class="label" x="66" y="416">Form inputs</text>
+<g><title>face: presentation/presentation@1</title><circle class="port output-port" cx="250" cy="442" r="5"/></g>
+<text class="boundary-port" text-anchor="end" x="238" y="446">face : presentation/prese…</text>
+<rect class="boundary" x="2450" y="367" width="200" height="146" rx="10"/><text class="label" x="2466" y="395">Form outputs</text>
+<g><title>interaction: face/interaction@2</title><circle class="port input-port" cx="2450" cy="421" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="2462" y="425">interaction : face/interaction@2</text>
+<g><title>show: presentation/show@1</title><circle class="port input-port" cx="2450" cy="463" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="2462" y="467">show : presentation/show@…</text>
+</svg>

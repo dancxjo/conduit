@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1460" height="1004" viewBox="0 0 1460 1004" role="img" aria-labelledby="title desc">
+<title id="title">robotics-diversity</title>
+<desc id="desc">Checked Conduit Form with exact typed port connections.</desc>
+<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#ece6d7}.canvas{fill:#171a1e}.gear{fill:#3a4046;stroke:#858e96;stroke-width:2}.header{fill:#24292f}.gear-mark{fill:#d0b876}.gear-hole{fill:#24292f}.boundary{fill:#263b35;stroke:#71a18a;stroke-width:2}.port{fill:#181c20;stroke-width:3}.input-port{stroke:#55b7c6}.output-port{stroke:#d6a04f}.port-name{fill:#fff8e8;font-size:13px;font-weight:800}.cord-shadow{fill:none;stroke:#171a1e;stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:#55b7c6;stroke-width:3;stroke-linejoin:round}.close{stroke:#a5adb3;stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:#e36964;stroke-dasharray:5 5}.split-junction{fill:#d6a04f;stroke:#171a1e;stroke-width:3}.join-junction{fill:#55b7c6;stroke:#171a1e;stroke-width:3}.kind{fill:#a9c98f;font-size:13px}.boundary-port{fill:#eaf4ec;font-size:13px;font-weight:750}.cord-tag{fill:#252a2f;stroke:#776746;stroke-width:1}.cord-label{fill:#d9bd82;font-size:10px;font-weight:600}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#adb5ba}</style><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#55b7c6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e36964"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><path class="gear-mark" d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.6.6 0 0 0 .1-.7l-2-3.5a.6.6 0 0 0-.7-.2l-2.5 1a8 8 0 0 0-1.7-1l-.4-2.6A.6.6 0 0 0 13.8 2h-4a.6.6 0 0 0-.6.4L8.9 5a8 8 0 0 0-1.7 1L4.7 5a.6.6 0 0 0-.7.2L2 8.7a.6.6 0 0 0 .1.7L4.2 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.6.6 0 0 0-.1.7l2 3.5a.6.6 0 0 0 .7.2l2.5-1a8 8 0 0 0 1.7 1l.4 2.6a.6.6 0 0 0 .6.4h4a.6.6 0 0 0 .6-.4l.4-2.6a8 8 0 0 0 1.7-1l2.5 1a.6.6 0 0 0 .7-.2l2-3.5a.6.6 0 0 0-.1-.7z"/><circle class="gear-hole" cx="12" cy="12" r="3.2"/></symbol></defs><rect class="canvas" width="1460" height="1004"/>
+<text class="title" x="50" y="42">Form robotics-diversity</text>
+<text class="legend" x="50" y="68">ordinary flow —  close - -  quiescence · ·  abnormal - -  ● junction; crossing without dot = separate cords</text>
+<g><title>robotics-diversity/observations.contact → Form.contact · structured-info/profile-c4b10a3b7c57e42ec5b868d57dc51b73d8ccd489676f3a80f4b3db2daa3973bc@1 · payload</title><path class="cord-shadow" d="M870,600 H870 H900 V420 H1210 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,600 H870 H900 V420 H1210 H1210"/>
+<rect class="cord-tag" x="987" y="398" width="136" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1055" y="410">RoboticsContactEvent</text>
+</g>
+<g><title>robotics-diversity/intent.request → Form.motion · structured-info/profile-2cfdb5fbecc25437a5ab9a6232454ca0bd997ad59aaeb93576cbb2a52c93fe0d@1 · payload</title><path class="cord-shadow" d="M870,320 H870 H935 V462 H1210 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,320 H870 H935 V462 H1210 H1210"/>
+<rect class="cord-tag" x="1001" y="440" width="142" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1072" y="452">RoboticsMotionRequest</text>
+</g>
+<g><title>robotics-diversity/observations.pose → Form.pose · structured-info/profile-9e5128da935e9432a0d4db41d54feeb69617e884eebb15b489d4fd75357a6f4c@1 · payload</title><path class="cord-shadow" d="M870,642 H870 H970 V504 H1210 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,642 H870 H970 V504 H1210 H1210"/>
+<rect class="cord-tag" x="1028" y="482" width="124" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1090" y="494">RoboticsPoseSample</text>
+</g>
+<g><title>robotics-diversity/observations.power → Form.power · structured-info/profile-55eb9a6cd79a6779696458ca989f3cb5ea244829fe2d2189276fef7f956823d2@1 · payload</title><path class="cord-shadow" d="M870,684 H870 H1005 V546 H1210 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,684 H870 H1005 V546 H1210 H1210"/>
+<rect class="cord-tag" x="1033" y="524" width="148" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1107" y="536">RoboticsPowerTelemetry</text>
+</g>
+<g><title>robotics-diversity/observations.range → Form.range · structured-info/profile-2cc405a67223b3b654e2ce701ea359ea26dfae68487df480c124df09fb404bb6@1 · payload</title><path class="cord-shadow" d="M870,726 H870 H1040 V588 H1210 H1210"/><path class="cord" marker-end="url(#arrow)" d="M870,726 H870 H1040 V588 H1210 H1210"/>
+<rect class="cord-tag" x="1045" y="566" width="160" height="18" rx="6"/><text class="cord-label" text-anchor="middle" x="1125" y="578">RoboticsRangeObservation</text>
+</g>
+<g><rect class="gear" x="590" y="240" width="280" height="120" rx="10"/><path class="header" d="M590,250 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>robotics-diversity/intent — kind robotics/deterministic-intent</title>
+<use href="#gear-mark" x="602" y="251" width="28" height="28"/><text class="label" x="640" y="262">intent</text><text class="kind" x="640" y="283">robotics-diversity/intent</text>
+<g><title>request: structured-info/profile-2cfdb5fbecc25437a5ab9a6232454ca0bd997ad59aaeb93576cbb2a52c93fe0d@1</title><circle class="port output-port" cx="870" cy="320" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="324">request</text>
+</g>
+<g><rect class="gear" x="590" y="520" width="280" height="244" rx="10"/><path class="header" d="M590,530 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
+<title>robotics-diversity/observations — kind robotics/deterministic-observations</title>
+<use href="#gear-mark" x="602" y="531" width="28" height="28"/><text class="label" x="640" y="542">observations</text><text class="kind" x="640" y="563">robotics-diversity/observatio…</text>
+<g><title>contact: structured-info/profile-c4b10a3b7c57e42ec5b868d57dc51b73d8ccd489676f3a80f4b3db2daa3973bc@1</title><circle class="port output-port" cx="870" cy="600" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="604">contact</text>
+<g><title>pose: structured-info/profile-9e5128da935e9432a0d4db41d54feeb69617e884eebb15b489d4fd75357a6f4c@1</title><circle class="port output-port" cx="870" cy="642" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="646">pose</text>
+<g><title>power: structured-info/profile-55eb9a6cd79a6779696458ca989f3cb5ea244829fe2d2189276fef7f956823d2@1</title><circle class="port output-port" cx="870" cy="684" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="688">power</text>
+<g><title>range: structured-info/profile-2cc405a67223b3b654e2ce701ea359ea26dfae68487df480c124df09fb404bb6@1</title><circle class="port output-port" cx="870" cy="726" r="5"/></g>
+<text class="port-name" text-anchor="end" x="859" y="730">range</text>
+</g>
+<rect class="boundary" x="50" y="450" width="200" height="104" rx="10"/><text class="label" x="66" y="478">Form inputs</text>
+<rect class="boundary" x="1210" y="366" width="200" height="272" rx="10"/><text class="label" x="1226" y="394">Form outputs</text>
+<g><title>contact: structured-info/profile-c4b10a3b7c57e42ec5b868d57dc51b73d8ccd489676f3a80f4b3db2daa3973bc@1</title><circle class="port input-port" cx="1210" cy="420" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="1222" y="424">contact : RoboticsContactEve…</text>
+<g><title>motion: structured-info/profile-2cfdb5fbecc25437a5ab9a6232454ca0bd997ad59aaeb93576cbb2a52c93fe0d@1</title><circle class="port input-port" cx="1210" cy="462" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="1222" y="466">motion : RoboticsMotionRequ…</text>
+<g><title>pose: structured-info/profile-9e5128da935e9432a0d4db41d54feeb69617e884eebb15b489d4fd75357a6f4c@1</title><circle class="port input-port" cx="1210" cy="504" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="1222" y="508">pose : RoboticsPoseSample</text>
+<g><title>power: structured-info/profile-55eb9a6cd79a6779696458ca989f3cb5ea244829fe2d2189276fef7f956823d2@1</title><circle class="port input-port" cx="1210" cy="546" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="1222" y="550">power : RoboticsPowerTelem…</text>
+<g><title>range: structured-info/profile-2cc405a67223b3b654e2ce701ea359ea26dfae68487df480c124df09fb404bb6@1</title><circle class="port input-port" cx="1210" cy="588" r="5"/></g>
+<text class="boundary-port" text-anchor="start" x="1222" y="592">range : RoboticsRangeObser…</text>
+</svg>
