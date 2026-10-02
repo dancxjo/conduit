@@ -9,7 +9,8 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    AnswerSpan, BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy,
+    AnswerClaimSupport, AnswerSpan, BaseProofClass, BatchOrder, CandidateLifecycle,
+    CheckpointPolicy,
     CitationIndices, ClassificationLabel, ClassificationLabels, ClockBasis,
     ClockBasisMonotonicMilliseconds, ClockIdentity, ChunkIdentity, CompatibleMetrics,
     ConfidencePermille, ContextBudgetCost, ContextOmission, ContextOmissionReason,
@@ -23,6 +24,7 @@ pub use generated::{
     FiniteF32, FusionStrategy, FusionStrategyReciprocalRank, GeneratedTextChunk,
     GeneratedTextFlowEvidence, GeneratedTextFlowRefusal, GeneratedTextFlowTerminal,
     GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedClaim,
+    GroundedClaimSupport, GroundedClaimSupportSupported, GroundedClaimSupportUnsupported,
     GroundingDisposition, GroundingInputAssessment, GroundingInputAssessmentConflictingEvidence,
     GroundingInputAssessmentInsufficientEvidence, GroundingLimitation,
     HouseContextProvenanceClass, HouseContextRefusal, HouseModelRequest,

@@ -276,8 +276,8 @@ fn injection_and_unsupported_first_rank_cannot_gain_authority_or_support() {
         GroundedAnswerDisposition::PartiallySupported
     );
     assert!(matches!(
-        answer.claims[0].support,
-        GroundedClaimSupport::Unsupported { .. }
+        answer.claims[0].support(),
+        GroundedClaimSupport::Unsupported(_)
     ));
     let offer = ordinary_rag_answer_offer("pid-r5").unwrap();
     assert!(offer.host_calls.is_empty());

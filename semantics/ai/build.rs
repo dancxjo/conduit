@@ -44,6 +44,7 @@ fn main() {
                 "ContextSelectionOutcome".into(),
                 "ContextSelectionDisposition".into(),
                 "GroundingInputAssessment".into(),
+                "GroundedClaimSupport".into(),
                 "MissingModalityPolicy".into(),
                 "RetrievalMode".into(),
             ]
@@ -119,6 +120,10 @@ fn main() {
             .into(),
             record_constructor_orders: [
                 ("AnswerSpan".into(), vec!["start".into(), "end".into()]),
+                (
+                    "AnswerClaimSupport".into(),
+                    vec!["answer_span".into(), "support".into()],
+                ),
                 (
                     "ContextBudgetCost".into(),
                     vec!["bytes".into(), "tokens".into()],

@@ -1,8 +1,8 @@
 use conduit_ai::{
-    AnswerSpan, CitationIndices, ContextBudgetCost, ContextSelectionOutcome,
-    ContextTruncationReason, GroundedClaim, GroundingInputAssessment, GroundingLimitation,
-    RetrievalIntent, RetrievalIntentIdentity, RetrievalMode, RetrievalModes, RetrievalScore,
-    SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
+    AnswerClaimSupport, AnswerSpan, CitationIndices, ContextBudgetCost, ContextSelectionOutcome,
+    ContextTruncationReason, GroundedClaim, GroundedClaimSupport, GroundingInputAssessment,
+    GroundingLimitation, RetrievalIntent, RetrievalIntentIdentity, RetrievalMode, RetrievalModes,
+    RetrievalScore, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
 };
 use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
@@ -129,4 +129,22 @@ fn grounding_input_assessment_owns_its_bounded_limitation() {
     assert!(GroundingLimitation::new("x".repeat(2_049)).is_err());
     assert!(!include_str!("../src/grounded_answer.rs")
         .contains(concat!("pub enum ", "GroundingInputAssessment")));
+}
+
+#[test]
+fn answer_claim_support_reuses_native_citation_and_limitation_bounds() {
+    let supported = GroundedClaimSupport::supported(
+        CitationIndices::new(BoundedSequence::try_from_iter([0, 127]).unwrap()).unwrap(),
+    )
+    .unwrap();
+    round_trip(AnswerClaimSupport::new(AnswerSpan::new(0, 1).unwrap(), supported).unwrap());
+    let unsupported = GroundedClaimSupport::unsupported(
+        GroundingLimitation::new("source support is absent".into()).unwrap(),
+    )
+    .unwrap();
+    round_trip(AnswerClaimSupport::new(AnswerSpan::new(1, 2).unwrap(), unsupported).unwrap());
+
+    let rust = include_str!("../src/grounded_answer.rs");
+    assert!(!rust.contains(concat!("pub enum ", "GroundedClaimSupport")));
+    assert!(!rust.contains(concat!("pub struct ", "AnswerClaimSupport")));
 }
