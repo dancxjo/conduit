@@ -1,9 +1,10 @@
 //! Scientific observations retain measurement identity, clocks, and lineage.
 
 use alloc::{boxed::Box, string::String, vec::Vec};
-use conduit_core::BoundedResourceRef;
 
-use crate::{SampledSignal, ScientificObservationRefusal, TensorElement, TensorValue};
+use crate::{
+    ObservationProvenance, SampledSignal, ScientificObservationRefusal, TensorElement, TensorValue,
+};
 
 pub const MAXIMUM_OBSERVATIONS_PER_SET: usize = 64;
 pub const MAXIMUM_OBSERVATION_SOURCES: usize = 16;
@@ -13,19 +14,6 @@ pub const MAXIMUM_SCIENTIFIC_IDENTITY_BYTES: usize = 128;
 pub enum ObservationValue {
     Tensor(Box<TensorValue>),
     SampledSignal(Box<SampledSignal>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ObservationProvenance {
-    Measured {
-        source: BoundedResourceRef,
-        measurement_profile: String,
-    },
-    Derived {
-        source_observations: Vec<[u8; 32]>,
-        transform_identity: String,
-        realization_profile: String,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,31 +66,23 @@ impl ScientificObservation {
             }
         }
         match &self.provenance {
-            ObservationProvenance::Measured {
-                source,
-                measurement_profile,
-            } => {
-                source
+            ObservationProvenance::Measured(provenance) => {
+                provenance
+                    .source()
                     .validate()
                     .map_err(|_| ScientificObservationRefusal::MissingSource)?;
-                text(measurement_profile)?;
+                text(provenance.measurement_profile())?;
             }
-            ObservationProvenance::Derived {
-                source_observations,
-                transform_identity,
-                realization_profile,
-            } => {
-                if source_observations.is_empty() {
+            ObservationProvenance::Derived(provenance) => {
+                if provenance
+                    .source_observations()
+                    .iter()
+                    .any(|identity| identity.get() == &[0; 32])
+                {
                     return Err(ScientificObservationRefusal::MissingSource);
                 }
-                if source_observations.len() > MAXIMUM_OBSERVATION_SOURCES {
-                    return Err(ScientificObservationRefusal::TooManySources);
-                }
-                if source_observations.contains(&[0; 32]) {
-                    return Err(ScientificObservationRefusal::MissingSource);
-                }
-                text(transform_identity)?;
-                text(realization_profile)?;
+                text(provenance.transform_identity())?;
+                text(provenance.realization_profile())?;
             }
         }
         Ok(())

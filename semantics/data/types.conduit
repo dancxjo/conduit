@@ -321,6 +321,19 @@ type ScientificAlignmentRefusal =
     | derived_clock_mismatch
     | derived_provenance_mismatch
 
+type ScientificObservationIdentity = collection U8 = 32
+
+type ObservationProvenance =
+    measured {
+        source: ResourceRef
+        measurement-profile: Text <= 128B not in [""]
+    }
+    | derived {
+        source-observations: sequence ScientificObservationIdentity in 1..=16
+        transform-identity: Text <= 128B not in [""]
+        realization-profile: Text <= 128B not in [""]
+    }
+
 type DataReferenceRefusal =
     malformed
     | wrong_reference_kind

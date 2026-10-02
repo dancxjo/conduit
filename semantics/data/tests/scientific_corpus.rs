@@ -36,6 +36,36 @@ fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     }
 }
 
+#[test]
+fn scientific_provenance_round_trips_through_native_payloads() {
+    let measured = ObservationProvenance::measured(
+        "scientific/instrument-capture@1".into(),
+        resource(1, "data/observation-block@1", 128),
+    )
+    .unwrap();
+    let structured = measured.clone().into_structured().unwrap();
+    assert_eq!(
+        ObservationProvenance::from_structured(structured).unwrap(),
+        measured
+    );
+
+    let derived = ObservationProvenance::derived(
+        "scientific/windowed-linear-resample@1".into(),
+        BoundedSequence::try_from_iter([
+            ScientificObservationIdentity::new([2; 32]).unwrap(),
+            ScientificObservationIdentity::new([3; 32]).unwrap(),
+        ])
+        .unwrap(),
+        "calibration/head-correction-1".into(),
+    )
+    .unwrap();
+    let structured = derived.clone().into_structured().unwrap();
+    assert_eq!(
+        ObservationProvenance::from_structured(structured).unwrap(),
+        derived
+    );
+}
+
 fn f32_tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) -> TensorValue {
     let bytes = values
         .iter()
@@ -88,10 +118,11 @@ fn measured(
         clock_identity: Some(clock.into()),
         coordinate_frame: frame.map(Into::into),
         value: ObservationValue::SampledSignal(Box::new(signal(clock, channels, identity as f32))),
-        provenance: ObservationProvenance::Measured {
-            source: resource(identity, "data/observation-block@1", 128),
-            measurement_profile: "scientific/instrument-capture@1".into(),
-        },
+        provenance: ObservationProvenance::measured(
+            "scientific/instrument-capture@1".into(),
+            resource(identity, "data/observation-block@1", 128),
+        )
+        .unwrap(),
     }
 }
 
@@ -239,7 +270,7 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     );
     assert!(matches!(
         aligned.derived_observation.provenance,
-        ObservationProvenance::Derived { .. }
+        ObservationProvenance::Derived(_)
     ));
     assert_ne!(aligned.semantic_digest().unwrap(), [0; 32]);
 }

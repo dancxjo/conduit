@@ -57,11 +57,13 @@ fn main() {
             copy_nominal_types: [
                 "DataGenerationDigest".into(),
                 "DatasetExampleIdentity".into(),
+                "ScientificObservationIdentity".into(),
             ]
             .into(),
             hash_nominal_types: [
                 "DataGenerationDigest".into(),
                 "DatasetExampleIdentity".into(),
+                "ScientificObservationIdentity".into(),
             ]
             .into(),
             copy_record_value_getters: ["DataGenerationNamespace".into()].into(),

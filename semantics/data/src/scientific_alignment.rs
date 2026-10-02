@@ -2,11 +2,12 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::QuantityUnit;
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
     nonzero, text, ClockRelation, ClockRelationQuality, ObservationProvenance, ObservationSet,
     ObservationValue, ScientificAlignmentRefusal, ScientificObservation,
-    ScientificObservationRefusal, TensorElement, TensorValue,
+    ScientificObservationIdentity, ScientificObservationRefusal, TensorElement, TensorValue,
 };
 
 pub const MAXIMUM_COORDINATE_DIMENSIONS: usize = 4;
@@ -174,12 +175,12 @@ impl AlignedTrainingView {
             .as_deref()
             .unwrap_or(&self.clock_relation_identity);
         match &self.derived_observation.provenance {
-            ObservationProvenance::Derived {
-                source_observations,
-                transform_identity,
-                ..
-            } if source_observations.contains(&self.source_observation_identity)
-                && transform_identity == expected_transform => {}
+            ObservationProvenance::Derived(provenance)
+                if provenance
+                    .source_observations()
+                    .iter()
+                    .any(|identity| identity.get() == &self.source_observation_identity)
+                    && provenance.transform_identity() == expected_transform => {}
             _ => return Err(ScientificAlignmentRefusal::DerivedProvenanceMismatch),
         }
         Ok(())
@@ -223,13 +224,18 @@ impl AlignedTrainingView {
                 .map(|(value, _, _)| value.target_frame.clone())
                 .or_else(|| source.coordinate_frame.clone()),
             value: derived_value,
-            provenance: ObservationProvenance::Derived {
-                source_observations: alloc::vec![source.identity],
-                transform_identity: calibration
+            provenance: ObservationProvenance::derived(
+                resampling_profile.into(),
+                BoundedSequence::try_from_iter([ScientificObservationIdentity::new(
+                    source.identity,
+                )
+                .expect("a scientific observation identity is exactly 32 bytes")])
+                .expect("one source observation fits"),
+                calibration
                     .map(|(value, _, _)| value.identity.clone())
                     .unwrap_or_else(|| relation.identity().clone()),
-                realization_profile: resampling_profile.into(),
-            },
+            )
+            .map_err(|_| ScientificAlignmentRefusal::DerivedProvenanceMismatch)?,
         };
         derived
             .validate()
