@@ -204,7 +204,7 @@ fn render_media(html: &mut String, body: &JourneyBodyCell, observed: &TrackStep,
     media.sort_by_key(|item| match item.evidence_class.as_str() {
         "screenshot" => 0,
         "waveform" => 1,
-        "audio" => 2,
+        "audio" | "audio-source" => 2,
         "transcript" => 3,
         _ => 4,
     });
@@ -215,7 +215,7 @@ fn render_media(html: &mut String, body: &JourneyBodyCell, observed: &TrackStep,
             "screenshot" => {
                 let _ = write!(html, "<figure><a href=\"{url}\" target=\"_blank\" rel=\"noopener\" aria-label=\"Open full-size screenshot\"><img src=\"{url}\" alt=\"{caption}\" loading=\"lazy\"></a><figcaption>{caption}</figcaption></figure>");
             }
-            "audio" => {
+            "audio" | "audio-source" => {
                 let _ = write!(html, "<figure><audio controls preload=\"none\" src=\"{url}\"></audio><figcaption>{caption}</figcaption></figure>");
             }
             "waveform" => {

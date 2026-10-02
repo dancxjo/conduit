@@ -11,6 +11,7 @@ mod documentary;
 pub(super) fn write(
     journey: &PreparedOrifinaJourney,
     receipt: &conduit_std_host::local_model_proof::LocalModelLiveProofReceipt,
+    speech: Option<&conduit_std_host::hosted_speech_synthesis::EspeakDiscovery>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let evidence = &journey.receipt.biography;
     let body_sign = |select: fn(&BodyLifecycleEvent) -> bool| {
@@ -395,6 +396,7 @@ pub(super) fn write(
         Path::new("target/journeys/three-bodies/hosted-generative"),
         journey,
         receipt,
+        speech,
     )?;
     Ok(())
 }

@@ -1,0 +1,202 @@
+//! One actual checked speech Plot, realized through the installed Host and WAV effect.
+use crate::cli::GlobalOpts;
+use clap::Args;
+use conduit_core::{BaseImplementationId, ObservationKind, TerminalDisposition};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
+};
+use conduit_std_host::{
+    hosted_speech_synthesis::EspeakDiscovery, hosted_wav_artifact::WavArtifactSelection, StdHost,
+    StdHostComposition, StdHostConfig, TimerAdapter,
+};
+use sha2::{Digest, Sha256};
+use std::{collections::BTreeMap, fs, io::Write, path::PathBuf, time::Duration};
+
+#[derive(Args, Debug)]
+pub(super) struct SpeechProofRequest {
+    #[arg(long)]
+    pub executable: PathBuf,
+    #[arg(long)]
+    pub data: PathBuf,
+    #[arg(long)]
+    pub engine: PathBuf,
+    #[arg(long, default_value = "en-us")]
+    pub voice: String,
+    #[arg(long, default_value = "Hello.")]
+    pub text: String,
+    /// New directory for the exact Plot, Plan, WAV, and execution receipt.
+    #[arg(long)]
+    pub output: PathBuf,
+}
+struct NoTimer;
+impl TimerAdapter for NoTimer {
+    fn wait(&mut self, _: Duration) {}
+}
+
+pub(super) fn prove(
+    request: SpeechProofRequest,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if request.text.is_empty()
+        || request.text.len() > conduit_tongues::MAXIMUM_TEXT_BYTES as usize
+        || request.text.contains('\0')
+    {
+        return Err("speech text must be nonempty UTF-8 of at most 256 bytes, without NUL".into());
+    }
+    if request.output.exists() {
+        return Err("speech proof output must be a new directory".into());
+    }
+    if opts.dry_run {
+        if opts.json {
+            println!(
+                "{}",
+                serde_json::json!({"schema":"conduit.tools/real-speech-proof@1", "dry_run":true, "effects_performed":false})
+            );
+        } else if !opts.quiet {
+            println!("Would check and execute one real speech Plot into an acknowledged WAV artifact; no playback.");
+        }
+        return Ok(());
+    }
+    let discovery = EspeakDiscovery::inspect(
+        &request.executable,
+        &request.data,
+        &request.voice,
+        &[request.engine],
+    )?;
+    let provider_digest = discovery.provider_sha256.clone();
+    // Use the ordinary Host's fresh Boot generator, with only the minimal host
+    // composition and explicitly attached speech/artifact implementations.
+    let fresh = StdHost::new();
+    let advertisement = fresh.advertisement();
+    let config = StdHostConfig {
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        offer_generation: advertisement.offer_generation,
+    };
+    let adapter = discovery.initialize(
+        config.host_id.clone(),
+        config.boot_id.clone(),
+        config.offer_generation,
+        "grant/xtask-real-speech".into(),
+        Duration::from_secs(10),
+    )?;
+    let source = format!("plot real_speech {{\n voice: speech/synthesize(maximum-output-bytes = 131072)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: audio/play\n {} >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n", serde_json::to_string(&request.text)?);
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
+        .map_err(|error| format!("check real speech Plot: {error:?}"))?;
+    let authoring = expand_canonical_plot_for_authoring(&checked, "real_speech", &profiles)
+        .map_err(|error| format!("expand real speech Plot: {error:?}"))?;
+    if let Some(parent) = request
+        .output
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        fs::create_dir_all(parent)?;
+    }
+    fs::create_dir(&request.output)?;
+    let wav_path = request.output.join("speech.wav");
+    let artifact =
+        WavArtifactSelection::new(&wav_path, config.boot_id.clone(), config.offer_generation)?;
+    let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_text());
+    host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
+    let hosts = [host.advertisement().clone()];
+    let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
+        .map_err(|error| format!("place real speech: {error:?}"))?;
+    let grants = [
+        host.speech_synthesis_authority_grant()?,
+        host.wav_artifact_authority_grant("grant/xtask-speech-wav")?,
+    ];
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        &authoring,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
+            authority_grants: &grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &BTreeMap::new(),
+    )
+    .map_err(|error| format!("plan real speech: {error:?}"))?;
+    if plan.fragments.len() != 1 {
+        return Err("speech proof requires exactly one local fragment".into());
+    }
+    write_new(&request.output.join("plot.conduit"), source.as_bytes())?;
+    write_new(
+        &request.output.join("plan.json"),
+        &serde_json::to_vec_pretty(&plan)?,
+    )?;
+    let report = host.run_fragment_to(plan.fragments[0].clone(), &mut Vec::new(), &mut NoTimer)?;
+    if !matches!(
+        report
+            .observations
+            .last()
+            .map(|observation| &observation.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ) {
+        write_new(
+            &request.output.join("failure.json"),
+            &serde_json::to_vec_pretty(&report.observations)?,
+        )?;
+        return Err("real speech Play did not complete; no successful proof receipt issued".into());
+    }
+    let kernel = report
+        .kernel
+        .ok_or("real speech did not execute the installed kernel")?;
+    let [wav] = kernel.wav_artifacts.as_slice() else {
+        return Err("speech proof did not produce exactly one WAV artifact".into());
+    };
+    if !wav.completed || wav.pcm_bytes == 0 {
+        return Err("speech WAV artifact was not acknowledged complete".into());
+    }
+    let bytes = fs::read(&wav_path)?;
+    if bytes.len() != wav.pcm_bytes as usize + 44
+        || bytes.get(..4) != Some(b"RIFF")
+        || bytes.get(8..12) != Some(b"WAVE")
+    {
+        return Err("retained WAV bytes differ from runtime artifact extent".into());
+    }
+    let receipt = serde_json::json!({
+        "schema":"conduit.tools/real-speech-proof@1", "proof_class":"host-execution-audio-artifact", "dry_run":false,
+        "effects_performed":true, "playback_performed":false, "human_listening_proved":false,
+        "source_document_id":checked.source_document_id, "checked_plot_id":authoring.expanded.checked_plot_id,
+        "provider_sha256":provider_digest, "text_sha256":format!("{:x}",Sha256::digest(request.text.as_bytes())),
+        "host_id":hosts[0].host_id, "boot_id":hosts[0].boot_id, "plan_id":plan.plan_id,
+        "active_play":kernel.active_play, "active_play_id":kernel.active_play_id,
+        "wav":{"path":"speech.wav", "sha256":format!("{:x}",Sha256::digest(&bytes)), "bytes":bytes.len(),
+            "pcm_bytes":wav.pcm_bytes, "frames":wav.frames, "blocks":wav.blocks, "completed":wav.completed},
+        "observations":report.observations,
+    });
+    write_new(
+        &request.output.join("receipt.json"),
+        &serde_json::to_vec_pretty(&receipt)?,
+    )?;
+    if opts.json {
+        println!("{}", serde_json::to_string(&receipt)?);
+    } else if !opts.quiet {
+        println!(
+            "Real speech Plan/Play completed; WAV retained at {}. No playback or listening claim.",
+            wav_path.display()
+        );
+    }
+    Ok(())
+}
+fn write_new(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)?;
+    file.write_all(bytes)
+}

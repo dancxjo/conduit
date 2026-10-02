@@ -108,6 +108,7 @@ mod sequence_normalization_back;
 mod simple_presentation_host;
 mod speech_recognition_adapter_back;
 mod speech_synthesis_back;
+mod speech_synthesis_host;
 mod spoken_mask_backs;
 mod state_select_back;
 mod structured_presentation_host;
@@ -257,6 +258,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut speech_recognition,
         mut microphone,
         wav_artifact,
+        speech_synthesis,
         mut vision,
         mut external_fore,
         spoken_mask,
@@ -641,7 +643,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut address_detect_hosts = address_detect_back::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_back::prepare_hosts(fragment)?;
-    let mut speech_synthesis_hosts = speech_synthesis_back::prepare_fake_hosts(fragment)?;
+    let mut speech_synthesis_hosts =
+        speech_synthesis_host::prepare_hosts(fragment, speech_synthesis)?;
     let mut house_prompt_hosts = house_prompt_back::prepare_hosts(fragment);
     let mut body_chat_prompt_hosts = body_chat_prompt_back::prepare_hosts(fragment);
     let mut recognized_turn_commit_hosts = recognized_turn_commit_back::prepare_hosts(fragment);
@@ -2621,47 +2624,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete generated-speech commit: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == conduit_std_offers::DETERMINISTIC_SPEECH_OPERATION {
-                if speech_synthesis_hosts
-                    .get(usize::from(request.node.0))
-                    .is_some_and(Option::is_some)
-                {
-                    let block = speech_synthesis_hosts
-                        .get_mut(usize::from(request.node.0))
-                        .and_then(Option::as_mut)
-                        .ok_or_else(|| {
-                            "speech request has no admitted deterministic provider".to_string()
-                        })?
-                        .execute(input)?;
-                    let output = block
-                        .map(|block| {
-                            let value = scheduler.store_host_value(block).map_err(|error| {
-                                format!("store deterministic speech block: {error:?}")
-                            })?;
-                            BoundedValueRef::new(
-                                value,
-                                lowered_operation.binding.maximum_output_bytes,
-                            )
-                            .map_err(|error| format!("bound deterministic speech block: {error:?}"))
-                        })
-                        .transpose()?;
-                    record_request(&mut requests, request);
-                    scheduler
-                        .complete_host_call(
-                            request.node,
-                            request.request,
-                            HostCallOutcome {
-                                disposition: HostCallDisposition::Completed,
-                                output,
-                                failure: None,
-                            },
-                        )
-                        .map_err(|error| {
-                            format!("complete deterministic speech operation: {error:?}")
-                        })?;
-                    continue;
-                }
-                return Err("speech request has no admitted deterministic proof provider".into());
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::DETERMINISTIC_SPEECH_OPERATION
+                    | conduit_std_offers::ESPEAK_SPEECH_OPERATION
+            ) {
+                let host = speech_synthesis_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or("speech request has no admitted provider")?;
+                host.complete(
+                    &mut scheduler,
+                    request,
+                    lowered_operation.binding.maximum_output_bytes,
+                    control,
+                )?;
+                record_request(&mut requests, request);
+                continue;
             } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
                     Ok(text) => {
