@@ -47,7 +47,7 @@ test("static Handbook applications retain independent local Bodies through use, 
       observation: "The Handbook creates a local Body, then wakes its resident application. The page offers lessons, editable source, and lifecycle controls." });
     await page.screenshot({ path: testInfo.outputPath("01-handbook-first-open.png"), fullPage: true });
 
-    await page.getByRole("link", { name: "Start here", exact: true }).click();
+    await page.getByRole("link", { name: /^Find your bearings/ }).click();
     await page.getByRole("heading", { name: "Start here", exact: true }).waitFor();
     expect((await ready(page)).bodyId).toBe(first.bodyId);
     await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A clock you can stop" });
