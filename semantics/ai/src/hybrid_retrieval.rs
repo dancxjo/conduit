@@ -4,8 +4,8 @@ use alloc::{string::String, vec::Vec};
 
 use crate::{
     Chunk, FusionStrategy, MechanismScore, RagSemanticRefusal, RetrievalMechanism,
-    TemporalEvidenceBatch, TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal,
-    TemporalRetrievalIntent, MAXIMUM_RAG_IDENTITY_BYTES,
+    RetrieverIdentity, TemporalEvidenceBatch, TemporalEvidenceSelection,
+    TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_HYBRID_RETRIEVERS: usize = 8;
@@ -13,12 +13,6 @@ pub const MAXIMUM_HYBRID_CANDIDATES_PER_STAGE: u16 = 1_024;
 pub const MAXIMUM_HYBRID_OUTPUT_CANDIDATES: u16 = 1_024;
 pub const MAXIMUM_HYBRID_WORK_UNITS: u32 = 1_048_576;
 const FUSION_SCORE_SCALE: u64 = 1_000_000;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RetrieverIdentity {
-    pub identity: String,
-    pub mechanism: RetrievalMechanism,
-}
 
 /// A retriever-local observation. These values are retained for inspection
 /// and are never compared across mechanisms by the portable fusion policy.
@@ -176,7 +170,7 @@ impl HybridFusionPolicy {
                 u16::try_from(index + 1).map_err(|_| HybridRetrievalRefusal::ArithmeticOverflow)?;
             candidate
                 .contributions
-                .sort_by(|left, right| left.retriever.identity.cmp(&right.retriever.identity));
+                .sort_by(|left, right| left.retriever.identity().cmp(right.retriever.identity()));
         }
         Ok(HybridRetrievalOutcome::Candidates(fused))
     }
@@ -220,7 +214,7 @@ impl HybridFusionPolicy {
             }
             if !stages
                 .iter()
-                .any(|stage| stage.retriever.mechanism == *mechanism)
+                .any(|stage| *stage.retriever.mechanism() == *mechanism)
             {
                 return Err(HybridRetrievalRefusal::MissingRequiredMechanism);
             }
@@ -228,10 +222,9 @@ impl HybridFusionPolicy {
 
         let mut total_work = 0_u32;
         for (index, stage) in stages.iter().enumerate() {
-            validate_retriever(&stage.retriever)?;
             if stages[index + 1..]
                 .iter()
-                .any(|other| other.retriever.identity == stage.retriever.identity)
+                .any(|other| other.retriever.identity() == stage.retriever.identity())
             {
                 return Err(HybridRetrievalRefusal::DuplicateRetriever);
             }
@@ -265,7 +258,7 @@ impl HybridFusionPolicy {
                     return Err(HybridRetrievalRefusal::DuplicateChunkInStage);
                 }
                 match (
-                    stage.retriever.mechanism,
+                    stage.retriever.mechanism(),
                     &candidate.temporal_evidence_identity,
                 ) {
                     (RetrievalMechanism::Temporal, None) => {
@@ -306,10 +299,6 @@ fn contribution<T>(
         score: candidate.score,
         temporal_evidence_identity: candidate.temporal_evidence_identity.clone(),
     }
-}
-
-fn validate_retriever(retriever: &RetrieverIdentity) -> Result<(), HybridRetrievalRefusal> {
-    validate_identity(&retriever.identity)
 }
 
 fn validate_identity(identity: &str) -> Result<(), HybridRetrievalRefusal> {

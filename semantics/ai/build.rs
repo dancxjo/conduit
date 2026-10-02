@@ -109,6 +109,10 @@ fn main() {
                     ],
                 ),
                 (
+                    "RetrieverIdentity".into(),
+                    vec!["identity".into(), "mechanism".into()],
+                ),
+                (
                     "ValidatedExtraction".into(),
                     vec!["schema_identity".into(), "fields".into()],
                 ),

@@ -55,10 +55,11 @@ fn selected(version: u8, rank: u16, text: &str) -> SelectedContextItem {
                 rank,
                 fusion_score_micros: 100 - u64::from(rank),
                 contributions: vec![RetrievalContribution {
-                    retriever: RetrieverIdentity {
-                        identity: "retriever/vector@1".into(),
-                        mechanism: RetrievalMechanism::VectorSimilarity,
-                    },
+                    retriever: RetrieverIdentity::new(
+                        "retriever/vector@1".into(),
+                        RetrievalMechanism::VectorSimilarity,
+                    )
+                    .unwrap(),
                     stage_rank: rank,
                     score: Some(MechanismScore::SimilarityMicros(999_000)),
                     temporal_evidence_identity: None,

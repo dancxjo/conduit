@@ -9,6 +9,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn chunk(source_identity: u8, version: u8, start: u64, value: &str) -> Chunk<String> {
     Chunk::new(
@@ -62,10 +63,7 @@ fn stage(
     candidates: Vec<StageCandidate<String>>,
 ) -> RetrievalStage<String> {
     RetrievalStage {
-        retriever: RetrieverIdentity {
-            identity: identity.into(),
-            mechanism,
-        },
+        retriever: RetrieverIdentity::new(identity.into(), mechanism).unwrap(),
         work_units: candidates.len() as u32,
         candidates,
     }
@@ -214,7 +212,7 @@ fn vector_lexical_metadata_and_temporal_paths_fuse_with_exact_provenance() {
     assert!(candidates[0]
         .contributions
         .iter()
-        .any(|path| path.retriever.mechanism == RetrievalMechanism::VectorSimilarity));
+        .any(|path| *path.retriever.mechanism() == RetrievalMechanism::VectorSimilarity));
     assert!(candidates[0]
         .contributions
         .iter()
@@ -353,4 +351,21 @@ fn malformed_ranks_duplicate_stage_chunks_and_temporal_identity_leaks_refuse() {
         one.fuse(&leaked, None),
         Err(HybridRetrievalRefusal::UnexpectedTemporalEvidenceIdentity)
     );
+}
+
+#[test]
+fn retriever_identity_is_native_and_exactly_bounded() {
+    for length in [1, 256] {
+        let retriever =
+            RetrieverIdentity::new("x".repeat(length), RetrievalMechanism::Lexical).unwrap();
+        assert_eq!(retriever.identity().len(), length);
+        assert_eq!(
+            RetrieverIdentity::from_structured(retriever.clone().into_structured().unwrap())
+                .unwrap(),
+            retriever
+        );
+    }
+    assert!(RetrieverIdentity::new(String::new(), RetrievalMechanism::Lexical).is_err());
+    assert!(RetrieverIdentity::new("x".repeat(257), RetrievalMechanism::Lexical).is_err());
+    assert!(!include_str!("../src/hybrid_retrieval.rs").contains("pub struct RetrieverIdentity"));
 }

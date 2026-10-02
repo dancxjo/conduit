@@ -89,7 +89,7 @@ impl StepBack<4> for TestOperation {
                         RetrievalMechanism::Metadata,
                         RetrievalMechanism::Temporal,
                     ][index];
-                    if stage.retriever.mechanism != expected_mechanism {
+                    if *stage.retriever.mechanism() != expected_mechanism {
                         return invalid(6);
                     }
                     io.consume(PortId(index as u16)).unwrap();
@@ -211,10 +211,8 @@ fn stages() -> Vec<RetrievalStage<ExtractedSourceValue>> {
         .into_iter()
         .enumerate()
         .map(|(index, mechanism)| RetrievalStage {
-            retriever: RetrieverIdentity {
-                identity: format!("retriever/{mechanism:?}@1"),
-                mechanism,
-            },
+            retriever: RetrieverIdentity::new(format!("retriever/{mechanism:?}@1"), mechanism)
+                .unwrap(),
             candidates: vec![StageCandidate {
                 chunk: chunk(),
                 rank: 1,

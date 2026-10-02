@@ -49,10 +49,7 @@ fn stage(
     temporal: Option<&str>,
 ) -> RetrievalStage<ExtractedSourceValue> {
     RetrievalStage {
-        retriever: RetrieverIdentity {
-            identity: identity.into(),
-            mechanism,
-        },
+        retriever: RetrieverIdentity::new(identity.into(), mechanism).unwrap(),
         candidates: vec![StageCandidate {
             chunk,
             rank: 1,
