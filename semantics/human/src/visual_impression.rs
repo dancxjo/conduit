@@ -5,7 +5,7 @@ use conduit_core::{KindId, SignId};
 
 use crate::{
     ImageObservationReference, VisualEvidenceClass, VisualImpressionDisposition,
-    VisualObservationProvenance, VisualObservationRefusal, MAXIMUM_VISUAL_IDENTITY_BYTES,
+    VisualImpressionRefusal, VisualObservationProvenance, MAXIMUM_VISUAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_VISUAL_IMPRESSION_BYTES: usize = 1_024;
@@ -56,20 +56,6 @@ impl VisualImpression {
             .validate()
             .map_err(VisualImpressionRefusal::InvalidProvenance)
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VisualImpressionRefusal {
-    InvalidSourceImage,
-    EmptyText,
-    TextBound,
-    EmptyIdentity,
-    IdentityBound,
-    ObservationRefBound,
-    DuplicateObservationRef,
-    InvalidTruncation,
-    WrongEvidenceClass,
-    InvalidProvenance(VisualObservationRefusal),
 }
 
 fn validate_text(value: &str) -> Result<(), VisualImpressionRefusal> {

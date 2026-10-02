@@ -3,7 +3,8 @@ use conduit_human::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
     ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
     ExperienceTemporalRole, HumanMediaKind, ImageRegion, KeymapRefusal, SourceAvailability,
-    VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
+    VisualEvidenceClass, VisualExperienceRefusal, VisualExperienceRelationKind,
+    VisualImpressionDisposition, VisualImpressionRefusal, VisualObservationRefusal,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -148,4 +149,70 @@ fn source_and_visual_classifications_round_trip_through_exact_native_types() {
     ] {
         assert_round_trip(value);
     }
+}
+
+#[test]
+fn visual_refusal_families_round_trip_through_exact_native_types() {
+    for value in [
+        VisualObservationRefusal::InvalidImage,
+        VisualObservationRefusal::WrongImageProfile,
+        VisualObservationRefusal::InvalidImageDimensions,
+        VisualObservationRefusal::ImageTooLarge,
+        VisualObservationRefusal::InvalidRegion,
+        VisualObservationRefusal::EmptyText,
+        VisualObservationRefusal::TextBound,
+        VisualObservationRefusal::ConfidenceBound,
+        VisualObservationRefusal::EmptyIdentity,
+        VisualObservationRefusal::IdentityBound,
+        VisualObservationRefusal::InvalidObservationTime,
+        VisualObservationRefusal::WrongEvidenceClass,
+        VisualObservationRefusal::ObservationRefBound,
+        VisualObservationRefusal::DuplicateObservationRef,
+    ] {
+        assert_round_trip(value);
+    }
+
+    for value in [
+        VisualImpressionRefusal::InvalidSourceImage,
+        VisualImpressionRefusal::EmptyText,
+        VisualImpressionRefusal::TextBound,
+        VisualImpressionRefusal::EmptyIdentity,
+        VisualImpressionRefusal::IdentityBound,
+        VisualImpressionRefusal::ObservationRefBound,
+        VisualImpressionRefusal::DuplicateObservationRef,
+        VisualImpressionRefusal::InvalidTruncation,
+        VisualImpressionRefusal::WrongEvidenceClass,
+        VisualImpressionRefusal::InvalidProvenance(VisualObservationRefusal::InvalidRegion),
+    ] {
+        assert_round_trip(value);
+    }
+
+    for value in [
+        VisualExperienceRefusal::InvalidLimits,
+        VisualExperienceRefusal::InvalidSourceImage,
+        VisualExperienceRefusal::WrongSourceImage,
+        VisualExperienceRefusal::ObservationCapacity,
+        VisualExperienceRefusal::ObservationKindCapacity,
+        VisualExperienceRefusal::TextCapacity,
+        VisualExperienceRefusal::DuplicateObservation,
+        VisualExperienceRefusal::InvalidObservation(VisualObservationRefusal::ConfidenceBound),
+        VisualExperienceRefusal::InvalidImpression(VisualImpressionRefusal::InvalidTruncation),
+        VisualExperienceRefusal::RelationCapacity,
+        VisualExperienceRefusal::UnknownRelationEndpoint,
+        VisualExperienceRefusal::SelfRelation,
+        VisualExperienceRefusal::DuplicateRelation,
+        VisualExperienceRefusal::ArithmeticOverflow,
+    ] {
+        assert_round_trip(value);
+    }
+
+    assert!(
+        !include_str!("../src/visual_observation.rs").contains("pub enum VisualObservationRefusal")
+    );
+    assert!(
+        !include_str!("../src/visual_impression.rs").contains("pub enum VisualImpressionRefusal")
+    );
+    assert!(
+        !include_str!("../src/visual_experience.rs").contains("pub enum VisualExperienceRefusal")
+    );
 }

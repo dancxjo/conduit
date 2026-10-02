@@ -70,8 +70,9 @@ pub use generated::{
     OptionAvailability, OptionAvailabilityUnavailable, PointerEvent, RealizationRangePolicy,
     RotaryDirection, RotaryStep, ScalarQuantization, SourceAvailability, TextFragment,
     TouchContact, TouchContactPhase, TouchContactSlot, TouchContacts, TouchFrame,
-    VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
-    VisualImpressionDispositionTruncated,
+    VisualEvidenceClass, VisualExperienceRefusal, VisualExperienceRelationKind,
+    VisualImpressionDisposition, VisualImpressionDispositionTruncated, VisualImpressionRefusal,
+    VisualObservationRefusal,
 };
 
 mod current_experience;
