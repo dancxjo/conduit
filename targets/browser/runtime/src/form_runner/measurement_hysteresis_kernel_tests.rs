@@ -2,16 +2,16 @@
 
 use super::*;
 use conduit_core::{
-    process_owned_line_offer_with_limits, BaseImplementationId, LinkLimits, PortDirection,
-    Quantity, QuantityUnit, StructuredInfoValue, TemporalInstant, TemporalScale,
+    BaseImplementationId, LinkLimits, PortDirection, Quantity, QuantityUnit, StructuredInfoValue,
+    TemporalInstant, TemporalScale, process_owned_line_offer_with_limits,
 };
 use conduit_data::{
     MeasurementHysteresisProfile, MeasurementSummary, MeasurementThresholdPolicy,
     MeasurementThresholdState, MeasurementThresholdTransition,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
-    KindSignature,
+    KindProjection, KindSignature, check_syntax_document, expand_canonical_form,
+    parse_syntax_document,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use std::collections::BTreeMap;
@@ -78,7 +78,9 @@ fn fragment() -> PlanFragment {
     source_host.boot_id = "fixture/hysteresis-source-boot".into();
     source_host.capabilities = vec![source_offer];
 
-    let syntax = parse_syntax_document("form decide {\n source: fixture/measurement-hysteresis-inputs\n decide: data/measurement-hysteresis\n result: conduit-test/measurement-decision-sink\n source.profile >> decide.profile\n source.summary >> decide.summary\n decide.decision >> result.decision\n}\n");
+    let syntax = parse_syntax_document(
+        "form decide {\n source: fixture/measurement-hysteresis-inputs\n decide: data/measurement-hysteresis\n result: conduit-test/measurement-decision-sink\n source.profile >> decide.profile\n source.summary >> decide.summary\n decide.decision >> result.decision\n}\n",
+    );
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "decide", &catalog).unwrap();
     let hosts = [source_host.clone(), browser.clone()];
@@ -227,10 +229,9 @@ fn planned_browser_hysteresis_uses_exact_profile_and_initial_state() {
         uncertainty_ticks: 0,
     };
     let summary = MeasurementSummary {
-        unit: QuantityUnit::Millivolt,
         sample_count: 2,
-        first_observed_at: instant.clone(),
-        last_observed_at: instant,
+        first_observed_at: instant.clone().try_into().unwrap(),
+        last_observed_at: instant.try_into().unwrap(),
         minimum: Quantity::new(40, QuantityUnit::Millivolt),
         maximum: Quantity::new(40, QuantityUnit::Millivolt),
         range: Quantity::new(0, QuantityUnit::Millivolt),

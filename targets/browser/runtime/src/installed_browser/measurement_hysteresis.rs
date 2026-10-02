@@ -1,15 +1,15 @@
 //! Browser production realization of explicitly initialized measurement hysteresis.
 
-use super::factory::{validate_placement, BrowserInstallation};
+use super::factory::{BrowserInstallation, validate_placement};
 use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [
@@ -185,7 +185,7 @@ impl<const PORTS: usize> StepBack<PORTS> for HysteresisBack {
                     return StepOutcome::Complete;
                 }
                 (_, HostCallDisposition::Failed, None, Some(reason)) => {
-                    return StepOutcome::Fail(reason)
+                    return StepOutcome::Fail(reason);
                 }
                 _ => return StepOutcome::Fail(failure(22)),
             }
@@ -345,10 +345,9 @@ mod tests {
         leaf(
             conduit_data::measurement_summary_type(),
             conduit_data::encode_measurement_summary(&conduit_data::MeasurementSummary {
-                unit,
                 sample_count: 1,
-                first_observed_at: instant.clone(),
-                last_observed_at: instant,
+                first_observed_at: instant.clone().try_into().unwrap(),
+                last_observed_at: instant.try_into().unwrap(),
                 minimum: Quantity::new(value, unit),
                 maximum: Quantity::new(value, unit),
                 range: Quantity::new(0, unit),

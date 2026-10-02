@@ -85,9 +85,27 @@ type MeasurementHysteresisProfile = {
     initial-state: MeasurementThresholdState
 }
 
+type MeasurementSummary = {
+    sample-count: U64 in 1..=18446744073709551615
+    first-observed-at: TemporalInstant
+    last-observed-at: TemporalInstant
+    minimum: Quantity
+    maximum: Quantity
+    range: Quantity
+    mean: Quantity
+}
+
 type MeasurementThresholdTransition =
     rose_above
     | fell_below
+
+type MeasurementThresholdDecision = {
+    state: MeasurementThresholdState
+    transition: MeasurementThresholdTransition?
+    evaluated-value: Quantity
+    first-observed-at: TemporalInstant
+    last-observed-at: TemporalInstant
+}
 
 type TensorElement =
     i8

@@ -1,8 +1,8 @@
 use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 use conduit_data::*;
 use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
+    ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_form_for_authoring,
+    parse_syntax_document,
 };
 
 fn summary(value: i64, unit: QuantityUnit, ticks: u64) -> MeasurementSummary {
@@ -14,10 +14,9 @@ fn summary(value: i64, unit: QuantityUnit, ticks: u64) -> MeasurementSummary {
         uncertainty_ticks: 0,
     };
     MeasurementSummary {
-        unit,
         sample_count: 3,
-        first_observed_at: instant.clone(),
-        last_observed_at: instant,
+        first_observed_at: instant.clone().try_into().unwrap(),
+        last_observed_at: instant.try_into().unwrap(),
         minimum: Quantity::new(value, unit),
         maximum: Quantity::new(value, unit),
         range: Quantity::new(0, unit),

@@ -1,22 +1,10 @@
 //! Exact typed summaries derived from a finite measurement window.
 
-use conduit_core::{Quantity, QuantityUnit, TemporalInstant};
+use conduit_core::Quantity;
 
-use crate::{BoundedMeasurementWindow, MeasurementSummaryRefusal};
+use crate::{BoundedMeasurementWindow, MeasurementSummary, MeasurementSummaryRefusal};
 
 pub const MEASUREMENT_SUMMARY_INFO_ID: &str = "data/measurement-summary@1";
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MeasurementSummary {
-    pub unit: QuantityUnit,
-    pub sample_count: u64,
-    pub first_observed_at: TemporalInstant,
-    pub last_observed_at: TemporalInstant,
-    pub minimum: Quantity,
-    pub maximum: Quantity,
-    pub range: Quantity,
-    pub mean: Quantity,
-}
 
 pub fn summarize_measurement_window(
     window: &BoundedMeasurementWindow,
@@ -52,20 +40,9 @@ pub fn summarize_measurement_window(
         .checked_sub(minimum)
         .ok_or(MeasurementSummaryRefusal::ArithmeticOverflow)?;
     Ok(MeasurementSummary {
-        unit,
         sample_count,
-        first_observed_at: first
-            .observed_at
-            .clone()
-            .try_into()
-            .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?,
-        last_observed_at: samples
-            .last()
-            .unwrap()
-            .observed_at
-            .clone()
-            .try_into()
-            .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?,
+        first_observed_at: first.observed_at.clone(),
+        last_observed_at: samples.last().unwrap().observed_at.clone(),
         minimum: Quantity::new(minimum, unit),
         maximum: Quantity::new(maximum, unit),
         range: Quantity::new(range, unit),
