@@ -1,8 +1,27 @@
 use super::*;
-use conduit_ai::{TemporalEvidenceSelection, TemporalRetrievalIntent};
+use conduit_ai::{
+    TemporalEvidenceIdentities, TemporalEvidenceIdentity, TemporalEvidenceSelection,
+    TemporalRetrievalIntent, TemporalRetrievalWindow,
+};
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+    rust_binding::BoundedSequence,
 };
+
+fn selected(identities: &[&str]) -> TemporalEvidenceSelection {
+    TemporalEvidenceSelection::selected(
+        TemporalEvidenceIdentities::new(
+            BoundedSequence::try_from_iter(
+                identities
+                    .iter()
+                    .map(|identity| TemporalEvidenceIdentity::new((*identity).into()).unwrap()),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
 
 fn candidate(identity: &str, kind: ExperienceKind) -> ExperienceCandidate {
     ExperienceCandidate {
@@ -100,24 +119,21 @@ fn temporal_queries_delegate_to_the_generic_temporal_contract() {
     memory.retain(early, true).unwrap();
     assert_eq!(
         memory.select_temporal(100, &TemporalRetrievalIntent::EarliestEvidence, true),
-        Ok(TemporalEvidenceSelection::Selected {
-            identities: vec!["early".into()]
-        })
+        Ok(selected(&["early"]))
     );
     assert_eq!(
         memory.select_temporal(100, &TemporalRetrievalIntent::LatestEvidence, true),
-        Ok(TemporalEvidenceSelection::Selected {
-            identities: vec!["late".into()]
-        })
+        Ok(selected(&["late"]))
     );
     assert_eq!(
         memory.select_temporal(
             100,
-            &TemporalRetrievalIntent::EvidenceWithin { start: 20, end: 40 },
+            &TemporalRetrievalIntent::evidence_within(
+                TemporalRetrievalWindow::new(20, 40).unwrap()
+            )
+            .unwrap(),
             true
         ),
-        Ok(TemporalEvidenceSelection::Selected {
-            identities: vec!["late".into()]
-        })
+        Ok(selected(&["late"]))
     );
 }

@@ -20,6 +20,7 @@ impl ModelResultDisposition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Established serde carrier for the authored `ModelDerivedResult<ModelResultPayload>` Type.
 pub struct ModelDerivedResult {
     pub provenance: ModelResultProvenance,
     pub payload_kind: String,

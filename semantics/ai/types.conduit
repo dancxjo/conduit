@@ -382,6 +382,113 @@ type VectorSearchValue<T> = {
     hits: sequence SimilarityHit<T> in 0..=1024
 }
 
+type RerankedCandidate<T> = {
+    candidate: HybridCandidate<T>
+    original_rank: U16 in 1..=1024
+    reranked_rank: U16 in 1..=1024
+    score: RerankScore
+}
+
+type RerankingReceipt<T> = {
+    policy_identity: Text <= 256B not in [""]
+    proof_class: RerankingProofClass
+    candidates: sequence RerankedCandidate<T> in 1..=1024
+    work_units: U32 in 1..=1048576
+}
+
+type ContextTemporalEvidence<TContext> = {
+    evidence_identity: Text <= 256B not in [""]
+    provenance: TemporalProvenance
+    source: TemporalSource
+    boundary: EntityBoundary?
+    context: TContext
+}
+
+type ContextCandidate<T, TContext> = {
+    reranked: RerankedCandidate<T>
+    reranking_policy_identity: Text <= 256B not in [""]
+    reranking_proof_class: RerankingProofClass
+    temporal: ContextTemporalEvidence<TContext>?
+    redundancy_group: Text <= 256B not in [""]?
+    token_count: U32 in 1..=262144
+}
+
+type SelectedContextItem<T, TContext> = {
+    reranked: RerankedCandidate<T>
+    reranking_policy_identity: Text <= 256B not in [""]
+    reranking_proof_class: RerankingProofClass
+    temporal: ContextTemporalEvidence<TContext>?
+    redundancy_group: Text <= 256B not in [""]?
+    rationale: SelectedContextRationale
+    budget: SelectedContextCost
+}
+
+type StructuredContext<T, TContext> = {
+    policy_identity: Text <= 256B not in [""]
+    token_accounting_profile: Text <= 256B not in [""]
+    redundancy: ContextRedundancyPolicy
+    ordering: ContextOrderingPolicy
+    items: sequence SelectedContextItem<T, TContext> in 1..=64
+    disposition: ContextSelectionDisposition
+    used: SelectedContextCost
+}
+
+type GroundedAnswerRequest<T, TContext> = {
+    identity: Text <= 256B not in [""]
+    retrieval_intent: RetrievalIntent
+    context: StructuredContext<T, TContext>
+}
+
+type ProposedClaimSupport<TCitation> =
+    supported {
+        citations: sequence TCitation in 1..=128
+    }
+    | unsupported {
+        rationale: Text <= 2048B not in [""]
+    }
+
+type ProposedGroundedClaim<TCitation> = {
+    answer_span: AnswerSpan
+    support: ProposedClaimSupport<TCitation>
+}
+
+type GroundedAnswer<TAnswer, TCitation> = {
+    provenance: ModelResultProvenance
+    policy_identity: Text <= 256B not in [""]
+    request_identity: Text <= 256B not in [""]
+    context_policy_identity: Text <= 256B not in [""]
+    model_implementation_identity: Text <= 256B not in [""]
+    model_run_identity: Text <= 256B not in [""]
+    answer_kind: Text <= 256B not in [""]
+    answer: TAnswer
+    disposition: GroundedAnswerDisposition
+    claims: sequence AnswerClaimSupport in 0..=64
+    citations: sequence TCitation in 0..=128
+    limitations: sequence GroundingLimitation in 0..=32
+}
+
+type PortableProposedClaimSupport = ProposedClaimSupport<Citation>
+type PortableProposedGroundedClaim = ProposedGroundedClaim<Citation>
+type GroundedAnswerBytePage = Bytes <= 65536B
+type GroundedAnswerBytePages = sequence GroundedAnswerBytePage in 0..=4
+type PortableGroundedAnswer = GroundedAnswer<GroundedAnswerBytePages, Citation>
+
+type ModelDerivedResult<TPayload> = {
+    provenance: ModelResultProvenance
+    payload_kind: Text <= 256B not in [""]
+    payload: TPayload
+    implementation_identity: Text <= 256B not in [""]
+    request_identity: Text <= 256B not in [""]
+    run_identity: Text <= 256B not in [""]
+    confidence: ConfidencePermille?
+    disposition: ModelResultDisposition
+    determinism: LlmDeterminismProfile
+    accounting: ModelWorkAccounting
+}
+
+type ModelResultPayload = Bytes <= 65536B
+type PortableModelDerivedResult = ModelDerivedResult<ModelResultPayload>
+
 type ExtractionKey = Text <= 64B not in [""]
 type ExtractionValue = Text <= 1024B not in [""]
 

@@ -13,6 +13,7 @@ use conduit_form::rust_binding::BoundedSequence;
 pub const MAXIMUM_GROUNDED_ANSWER_WORK_UNITS: u64 = 1_000_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `GroundedAnswerRequest<T, TContext>` Type family.
 pub struct GroundedAnswerRequest {
     pub identity: String,
     pub retrieval_intent: RetrievalIntent,
@@ -20,18 +21,22 @@ pub struct GroundedAnswerRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Established carrier for the authored `ProposedClaimSupport<Citation>` Type.
 pub enum ProposedClaimSupport {
     Supported { citations: Vec<Citation> },
     Unsupported { rationale: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Established carrier for the authored `ProposedGroundedClaim<Citation>` Type.
 pub struct ProposedGroundedClaim {
     pub answer_span: AnswerSpan,
     pub support: ProposedClaimSupport,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Flat compatibility carrier for the authored
+/// `GroundedAnswer<GroundedAnswerBytePages, Citation>` Type.
 pub struct GroundedAnswer {
     pub provenance: ModelResultProvenance,
     pub policy_identity: String,

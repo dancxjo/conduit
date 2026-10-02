@@ -105,7 +105,7 @@ families are explicit exceptions.
 | `semantics/human/**` | input events, modifiers, regions, image/image-text values, experience Fore inputs/projections, and interaction values/outcomes | media offers/plans/reservations/active instances are R; initialized implementations, current-experience stores, interaction flows and keymap state are M; codecs are W; visual assembly views, source adapters, traces and conformance vectors are C | none; the portable family is native and generated |
 | `semantics/language/**` | spans, tokens, segments, provenance/evidence, annotations and dependencies | private tokenizer scratch state and parser/recognizer machinery are M; construction/Host errors that never cross a typed Fore are M/C | none; the portable family is native and generated |
 | `semantics/net/**` | addresses, endpoints, DNS, attachment info, record-delivery observations and transcript entries | sockets/connections/queues/trackers are M; protocol frames, borrowed codec views, and typed-record codecs are W | none |
-| `semantics/presentation/**` | Face subjects, roles, relationships, properties, content, actions, interaction arguments, navigation, composition, temporal facts, graphics commands and Show-visible semantic values | mask plans/admission/lifecycle/sign correlation are R; renderers, queues, ledgers and generators are M; bitmap/graphics encodings are W; migration-era `ApplicationView` scaffolding is C until removed | staged Face-family grammar and migration |
+| `semantics/presentation/**` | Face subjects, roles, relationships, properties, content, actions, interaction arguments, navigation, composition, temporal facts, graphics commands and Show-visible semantic values | mask plans/admission/lifecycle/sign correlation are R; renderers, queues, ledgers and generators are M; bitmap/graphics encodings are W; migration-era `ApplicationView` scaffolding is C | none; the portable family is native and generated |
 | `semantics/process/**` | executable Job request, argument/environment, output, pressure, usage, lifecycle, exit and terminal-outcome values | planned resource/authority selection and current capability possession are R; OS paths, handles, processes, pipe readers and clocks are M | none; the portable Job family is native and generated |
 | `semantics/purpose/**` | finite portable purpose-state and fulfillment-readiness projections | Body purpose, lifecycle and fulfillment objects remain R in `architecture/body/**`; catalog installation is C | none; the portable projection is native and generated |
 | `semantics/robotics/**` | acceleration, battery, beacon, button, charging, cliff, contact, odometry, orientation, proximity, range and wheel-drop observations | `RoboticsStructuredFixture` and its structured-value refusal are C; fixture/catalog builders are C | none; the portable family is native and generated |
@@ -122,32 +122,37 @@ stated separately rather than treating the entire crate as portable data.
 
 | Scope | Classification |
 |---|---|
-| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Remaining portable families and their exact blockers are enumerated below; no unclassified AI family remains. |
-| `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. Remaining migration depends on bounded-array generation and exact payload review. |
-| `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Domain values still declared here—image/text records, education/schedule/vision values, garden observations/state, button attempts, palette/pixel regions and typed terminal outcomes—are P and must move to domain-owned `.conduit` source. Job values now belong to Process Conduitese; navigation goals, poses, routes and trajectories belong to Robotics Conduitese. |
+| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. The terminal path audit below classifies every surviving handwritten family. |
+| `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. The portable family is native and generated. |
+| `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Former domain values now come from their domain-owned `.conduit` source: Human/Presentation vision, Education, Time, Process, Robotics and the remaining catalogued domains. |
 | `semantics/system-continuity/**` | Reboot request/decision/denial and transition causes exposed through reviewed Fores are P. Host instances, assignments, grants, replacement observations, progress state and acceptance receipts are R. Persistence/wire records are W. |
 
 ### AI ownership completion
 
-Every remaining public AI family has a named owner. Portable families remain
-eligible for migration; the blocker column names the missing source construct
-or upstream semantic dependency rather than treating handwritten Rust as
-authority.
+The terminal review found no portable family whose meaning is owned only by a
+handwritten Rust declaration. `semantics/ai/types.conduit` owns the closed
+payloads and the open payload-parametric retrieval/context/grounding families.
+Generated bindings are used directly where their native shape is the public
+Rust boundary. The few established flat serde or open-generic Rust carriers
+name their exact authored Type family and are compatibility machinery, not a
+second semantic definition.
 
-| Remaining family | Class | Exact blocker or retained owner |
+| Rust scope | Class | Retained owner |
 |---|---|---|
-| Context selection, grounding, interpretation, probability, RAG, relation, reranking, structured-result, temporal and vector request/result records | P | bounded collection fields and fixed digest/byte-array Types must be expressible without weakening their current maxima or exact lengths |
-| Remaining generic retrieval families (`StageCandidate<T>`, `RetrievalStage<T>`, `HybridCandidate<T>`, `HybridRetrievalOutcome<T>`, `VectorSearchValue<T>`) | P | authored generic native Types and thin Rust generic carriers, following the established scheduled-intent binding pattern |
-| Tensor, sampled-signal, dataset, temporal-zone and scheduled-intent payloads | P with external P dependencies | exact native imports for the owning data/time Types; AI must not counterfeit them locally |
-| Float-bearing probability, vector and dynamics values | P | explicit finite/non-finite scalar law and generated equality behavior matching the current semantic contract |
-| Boxed relation, training and dynamics outcome trees | P/R boundary | reviewed finite indirection for portable payloads; Host candidates, receipts and realization facts remain R/M |
-| Source-extraction receipt proof text | R evidence | current `&'static str` proof-class representation must become a bounded semantic vocabulary before any portable projection |
-| Local-model and model-compute offers, sessions and runtime identities | M/R | Host offer, admission and active realization truth; the portable bounded model-cache policy is P and is recorded in the migration ledger |
-| Vector-index handles, authorization, mutable state, mutations and maintenance receipts | R | resource authority, generation and execution evidence |
-| Cross-host lifecycle, training lifecycle, Host step/candidate/receipt, integration realization and proposal-gate authority families | R/M | Plan, play, authority, active-instance or Host execution truth |
-| Form composition candidate and refusal families | C | contain checked/expanded Form compiler representations |
-| Provider HTTP/evidence/failure families and explicit codec modules | M/W | provider realization or named byte-protocol ownership |
-| Kind/Fore contract descriptor modules and conformance fixtures | C | compiler/catalog declarations and proof fixtures, not carried Info |
+| `vector_retrieval.rs`, `hybrid_retrieval.rs`, `rag_semantics.rs`, `reranking.rs`, `context_selection.rs`, `grounded_answer.rs`, `model_result.rs` | G/W over P | Thin open-generic or established flat compatibility carriers for exact Types in `types.conduit`; algorithms retain only relational validation, ordering, fusion, citation membership and flattening/page adaptation. |
+| `interpretation.rs`, `temporal_context.rs`, `temporal_interpretation.rs`, `temporal_follow_up.rs` | R over P | Runtime Sign identity, clock comparison and proposal evidence. Their portable dispositions, intents, provenance, bounds and refusals are native; the assembled records bind those values to runtime observations. |
+| `training.rs`, `training_request.rs`, `training_receipt.rs`, `training_lifecycle.rs` | R/M over P | Native batch/session/request/objective/metric meaning plus mutable model state, Host candidates, commits, receipts and active lifecycle truth. |
+| `relation.rs`, `dynamics.rs`, `learned_lifecycle.rs`, `cross_host_lifecycle.rs`, `embodiment.rs` | R/M over P | Native request, value, policy, refusal and terminal meaning; realizations, candidates, receipts, promotion/rollback grants and active-instance evidence remain execution truth. |
+| `model_artifact.rs`, `model_compute.rs`, `local_model.rs`, `vector_index_resource.rs`, `vector_index_lifecycle.rs` | R/M/W | Artifact/checkpoint format, mutable state, offers, sessions, cache state, authority, handles, generations, mutations and maintenance evidence. Portable profiles, policies, health and refusals are native. |
+| `source_extraction.rs`, `source_extraction_codec.rs`, `hybrid_retrieval_codec.rs` and other `*_codec.rs` | W/R | Borrowed source payloads and named byte encodings plus extraction/execution receipts. Portable lineage, chunks, profiles, limits and typed refusals are native. |
+| `effect_proposal.rs` | R | Authority derivation, proposal-gate decisions, authorized requests and effect receipts; native disposition/refusal vocabulary is used where carried. |
+| `form_composition.rs` | C | Checked/expanded Form candidates and compiler refusal detail. |
+| `provider.rs` and provider submodules | M/W | Provider sessions, HTTP schemas, external failures and realization evidence. |
+| `*_contract.rs`, `bases.rs`, catalog installers and fixtures | C | Kind/Fore declarations, startup configuration, catalog construction and proof data. |
+
+This classification is exhaustive by AI source boundary: a new file or a type
+moved between these rows requires a fresh ownership decision under the
+enforcement rules below.
 
 ## Mechanisms, products, and targets
 
@@ -304,6 +309,7 @@ are satisfied.
 | AI finite embedding | `semantics/ai/types.conduit` | generated at build time with the established flat JSON boundary | yes | yes | native source owns the nonempty 128-byte profile identity, finite F32 values and exact 1–4,096 dimension bound through four bounded pages; Rust retains the dimension/value-count relation and flat JSON compatibility; exact 4,096/4,097 boundary, native and JSON round trips plus vector and std Host consumers |
 | AI vector profile, embedding, metadata/filter, query, record and hit family | `semantics/ai/types.conduit` | generated concrete bindings plus thin Rust carriers for authored `VectorRecord<T>` and `SimilarityHit<T>` | yes | yes | native source owns four bounded profile identities, positive 1–4,096 dimensions, finite embedding composition, 32 metadata/filter bounds, positive 1–1,024 top-k/rank bounds and exact temporal composition; Rust retains compatibility, normalization, metric/threshold and duplicate-metadata laws plus generic algorithm behavior; native/JSON round trips and exact, hosted and capstone vector suites |
 | AI generic retrieval, context, hybrid and vector-search family | `semantics/ai/types.conduit` | generated fusion-policy and contribution bindings plus thin Rust carriers for the eleven authored payload-parametric Types | yes | yes | native source owns exact chunk/lineage composition, policy identity and finite envelope, positive ranks and work, finite 64-item context, 1,024-candidate stages/outcomes/hits and eight-retriever contribution bounds; Rust retains payload-parametric algorithms, contextual uniqueness, fusion, filtering and Host execution behavior |
+| AI reranking, selected-context, grounded-answer and model-output assembly family | `semantics/ai/types.conduit` | exact concrete generated specializations plus named thin Rust compatibility carriers for open payload/context families and established flat serde bytes | yes | yes | native source owns finite 1,024-candidate reranking, 64-item selected context, 128 citations, 64 claims, 32 limitations, four-page/262,144-byte answers and 65,536-byte model payloads; Rust retains relational membership/accounting, algorithmic assembly and flat boundary adaptation |
 | Vector similarity and embedding-normalization vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus vector retrieval and canonical serialization suites |
 | Finite compatible-vector-metrics record | `semantics/ai/types.conduit` | generated at build time with retained Rust Copy/Serde binding traits | yes | yes | exhaustive Boolean combinations, exact JSON/postcard compatibility, and vector/RAG/std consumer suites |
 | AI temporal source, boundary, direction, validity, and window vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus temporal context, retrieval, and serialization suites |
@@ -398,17 +404,16 @@ are satisfied.
 | AI source lineage and citation family | `semantics/ai/types.conduit` | generated at build time over the canonical resource-reference leaf | yes | yes | native source owns exact resource, source span, chunk identity, nonempty 256-byte profile identities, sixteen-transform lineage and optional parent composition; Rust retains source-extent, lineage hashing, duplicate transforms, selected-context membership and authority validation |
 | AI temporal provenance | `semantics/ai/types.conduit` | generated at build time with the established Serde boundary | yes | yes | native source owns the ten distinct optional/required temporal facts and exact clock basis; Rust retains validity ordering, retrieval/reference ordering and canonical relation behavior |
 | AI temporal evidence candidate, bounded batch and selection family | `semantics/ai/types.conduit` | generated at build time with the established Serde boundary | yes | yes | native source owns nonempty 256-byte evidence identities, nonempty batches and selected-identity sets bounded to 128, complete-history evidence and typed unavailable outcomes; Rust retains intent matching, deterministic chronological selection, duplicate/reference checks and exact-search integration |
-| Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
+| Repository-wide terminal ownership audit | family-owned `.conduit` sources | generated bindings or named thin compatibility carriers | yes | yes | every surviving handwritten semantic-domain family is classified by source boundary as C, R, M or W; portable open-generic/compatibility carriers name their exact authored Type and specialization |
 
 The completed foundations remove any general “language support” excuse for a
 handwritten P declaration. Generated generic bindings, payload-rich variants,
 record refinements and full-size bounded byte carriers are available. Checked
 `Bytes <= 65536B` values now retain that exact bound without stack-sized native
 frames, and the canonical structured envelope has finite room for the payload
-and its framing. Remaining blockers must name the exact payload shape, target
-constraint or unresolved Fore ownership question. As migrations land, add
-reviewed family receipts and keep the classification history rather than
-erasing it.
+and its framing. Future exceptions must name the exact payload shape, target
+constraint or unresolved Fore ownership question. Add reviewed family receipts
+and keep the classification history rather than erasing it.
 
 ## Enforcement rules
 

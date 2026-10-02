@@ -1,15 +1,18 @@
 //! Finite autobiographical experience selection without a Pete-private runtime.
 
 use conduit_ai::{
-    ClockBasis, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceSelection,
-    TemporalEvidenceSelectionRefusal, TemporalProvenance, TemporalReference,
-    TemporalRetrievalIntent, TemporalSource, TemporalValidity,
+    ClockBasis, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceCandidates,
+    TemporalEvidenceIdentity, TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal,
+    TemporalProvenance, TemporalReference, TemporalRetrievalIntent, TemporalSource,
+    TemporalValidity,
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{
+    rust_binding::BoundedSequence, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+};
 use serde::{Deserialize, Serialize};
 
 pub const PETE_MEMORY_RETAIN_KIND: &str = "pete/memory-retain";
@@ -211,7 +214,8 @@ impl BoundedAutobiography {
         let candidates = records
             .iter()
             .map(|record| TemporalEvidenceCandidate {
-                identity: record.candidate.identity.clone(),
+                identity: TemporalEvidenceIdentity::new(record.candidate.identity.clone())
+                    .expect("retained experience identities are bounded"),
                 provenance: TemporalProvenance {
                     event_at: Some(record.candidate.provenance[0].event_at_millis),
                     valid_from: Some(record.candidate.provenance[0].event_at_millis),
@@ -236,7 +240,12 @@ impl BoundedAutobiography {
                     TemporalValidity::Historical
                 },
             })
-            .collect();
+            .collect::<Vec<_>>();
+        let candidates = TemporalEvidenceCandidates::new(
+            BoundedSequence::try_from_iter(candidates)
+                .expect("autobiography capacity matches the temporal evidence bound"),
+        )
+        .expect("retained experience candidates are nonempty");
         TemporalEvidenceBatch {
             reference: TemporalReference {
                 reference_at: reference_at_millis,

@@ -18,6 +18,7 @@ pub const MAXIMUM_CONTEXT_BYTES: u32 = 1_048_576;
 pub const MAXIMUM_CONTEXT_SELECTION_TOKENS: u32 = 262_144;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `ContextTemporalEvidence<TContext>` Type family.
 pub struct ContextTemporalEvidence {
     pub evidence_identity: String,
     pub provenance: TemporalProvenance,
@@ -27,6 +28,7 @@ pub struct ContextTemporalEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `ContextCandidate<T, TContext>` Type family.
 pub struct ContextCandidate {
     pub reranked: RerankedCandidate,
     pub reranking_policy_identity: String,
@@ -38,6 +40,7 @@ pub struct ContextCandidate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `SelectedContextItem<T, TContext>` Type family.
 pub struct SelectedContextItem {
     pub reranked: RerankedCandidate,
     pub reranking_policy_identity: String,
@@ -49,6 +52,7 @@ pub struct SelectedContextItem {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `StructuredContext<T, TContext>` Type family.
 pub struct StructuredContext {
     pub policy_identity: String,
     pub token_accounting_profile: String,
