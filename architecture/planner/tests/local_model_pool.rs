@@ -6,11 +6,12 @@ use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
     CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
     HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannerCapabilityOffer,
-    PlannerLimits, PlannerProfileId, PlanningRequestAuthority, PlayUnsatisfiedReason,
-    PoolMemberLimits, PoolOperationId, PoolRealizationHealth, PoolRealizationObservation,
-    PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth, ResourceObservation,
-    SharedPoolId, SignId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
-    SHARED_POOL_ADMIT_HOST_CALL_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    PlannerLimits, PlannerProfileId, PlanningRefusalReason, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId, PoolRealizationHealth,
+    PoolRealizationObservation, PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth,
+    ResourceObservation, SharedPoolId, SignId, PROTOCOL_VERSION,
+    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
+    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
@@ -377,6 +378,9 @@ struct DeterministicReceipt<'a> {
     replacement_plan_id: &'a str,
     replacement_play_id: &'a str,
     replacement_preserved_body_and_wake: bool,
+    successful_recovery_semantic_terminal: Option<&'a str>,
+    unrecoverable_terminal_kind: &'a str,
+    unrecoverable_terminal_category: &'a str,
 }
 
 fn retain_receipt(receipt: &DeterministicReceipt<'_>) {
@@ -680,6 +684,39 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     assert!(replacement_events
         .iter()
         .all(|event| event.validate().is_ok()));
+    let request_sign_id = SignId::from("sign/model-pool-replan-request/5");
+    let successful_terminal = exhausted
+        .terminal_after_planning_outcome(
+            &plan,
+            &request_sign_id,
+            &replacement_events[0],
+            &conduit_core::kind_id("llm/generate"),
+            &conduit_core::GearId::from("model-service/workers"),
+            &conduit_core::PortId::from("result"),
+        )
+        .unwrap();
+    assert_eq!(successful_terminal, None);
+    let planning_refused = conduit_core::ControlLoopEvent::PlanningRefused {
+        prior_plan_id: plan.plan_id.clone(),
+        request_sign_id: request_sign_id.clone(),
+        reason: PlanningRefusalReason::NoCompatibleRealization,
+        sign_id: SignId::from("sign/model-pool-replan-refused/5"),
+    };
+    let unrecoverable_terminal = exhausted
+        .terminal_after_planning_outcome(
+            &plan,
+            &request_sign_id,
+            &planning_refused,
+            &conduit_core::kind_id("llm/generate"),
+            &conduit_core::GearId::from("model-service/workers"),
+            &conduit_core::PortId::from("result"),
+        )
+        .unwrap()
+        .expect("final planning refusal must emit typed abnormal truth");
+    assert_eq!(
+        unrecoverable_terminal.category(),
+        conduit_core::TerminalCategory::UnavailableRealization
+    );
     retain_receipt(&DeterministicReceipt {
         schema: "conduit.llm-generate-pool-proof/v1",
         proof_class: "deterministic-hosted-integration",
@@ -698,7 +735,7 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
                 operation_id: "model-request/1",
                 disposition: "selected",
                 realization: Some(first.member.placement.realization),
-                observation_signs: first_signs,
+                observation_signs: first_signs.clone(),
                 planning_requested: false,
             },
             SelectionReceipt {
@@ -712,7 +749,7 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
                 operation_id: "model-request/1",
                 disposition: "provider-lost-no-replay",
                 realization: Some(first.member.placement.realization),
-                observation_signs: vec![],
+                observation_signs: first_signs,
                 planning_requested: false,
             },
             SelectionReceipt {
@@ -741,5 +778,8 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         replacement_plan_id: replacement.plan_id.as_str(),
         replacement_play_id: replacement_play.active_play_id.as_str(),
         replacement_preserved_body_and_wake: true,
+        successful_recovery_semantic_terminal: None,
+        unrecoverable_terminal_kind: conduit_core::TERMINAL_INFO_ID,
+        unrecoverable_terminal_category: "UnavailableRealization",
     });
 }

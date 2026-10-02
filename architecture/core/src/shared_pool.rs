@@ -1,8 +1,8 @@
 use crate::{
-    AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFront, ConnectionId,
-    ControlLoopEvent, HostId, ImplementationId, OfferGeneration, PlacementId, Plan, PlanId,
-    PlanningRequestAuthority, PlayUnsatisfiedReason, PortId, ResourceBinding, ResourceObservation,
-    SignId,
+    terminal_cause_digest, AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId,
+    CheckedFront, ConnectionId, ControlLoopEvent, GearId, HostId, ImplementationId, KindId,
+    OfferGeneration, PlacementId, Plan, PlanId, PlanningRequestAuthority, PlayUnsatisfiedReason,
+    PortId, ResourceBinding, ResourceObservation, SignId, TerminalCategory, TerminalInfo,
 };
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -149,6 +149,8 @@ pub enum PoolSelectionEvidenceError {
     InvalidDisposition,
     MissingObservation,
     RequesterOutsidePlan,
+    InvalidPlanningOutcome,
+    InvalidTerminalCause,
 }
 
 impl PoolSelectionEvidence {
@@ -232,6 +234,63 @@ impl PoolSelectionEvidence {
         ];
         debug_assert!(events.iter().all(|event| event.validate().is_ok()));
         Ok(events)
+    }
+
+    /// Resolve the semantic terminal consequence of fresh planning after this
+    /// pool exhausted its immutable envelope. A successful replacement is
+    /// realization recovery and therefore produces no abnormal semantic value;
+    /// a final planning refusal produces one typed value correlated to the
+    /// exhaustion, request, and refusal Signs.
+    pub fn terminal_after_planning_outcome(
+        &self,
+        plan: &Plan,
+        request_sign_id: &SignId,
+        outcome: &ControlLoopEvent,
+        origin_kind: &KindId,
+        origin_gear: &GearId,
+        origin_port: &PortId,
+    ) -> Result<Option<TerminalInfo>, PoolSelectionEvidenceError> {
+        self.validate(plan)?;
+        if self.disposition != PoolSelectionDisposition::EnvelopeExhausted
+            || self.selected_realization.is_some()
+            || outcome.validate().is_err()
+        {
+            return Err(PoolSelectionEvidenceError::InvalidPlanningOutcome);
+        }
+        let refusal_sign_id = match outcome {
+            ControlLoopEvent::PlanningSucceeded {
+                prior_plan_id,
+                request_sign_id: outcome_request_sign_id,
+                ..
+            } if prior_plan_id == &plan.plan_id && outcome_request_sign_id == request_sign_id => {
+                return Ok(None)
+            }
+            ControlLoopEvent::PlanningRefused {
+                prior_plan_id,
+                request_sign_id: outcome_request_sign_id,
+                sign_id,
+                ..
+            } if prior_plan_id == &plan.plan_id && outcome_request_sign_id == request_sign_id => {
+                sign_id
+            }
+            _ => return Err(PoolSelectionEvidenceError::InvalidPlanningOutcome),
+        };
+        let cause_digest = terminal_cause_digest(
+            origin_kind,
+            origin_gear,
+            origin_port,
+            &[
+                self.sign_id.clone(),
+                request_sign_id.clone(),
+                refusal_sign_id.clone(),
+            ],
+            None,
+        )
+        .map_err(|_| PoolSelectionEvidenceError::InvalidTerminalCause)?;
+        Ok(Some(TerminalInfo::new(
+            TerminalCategory::UnavailableRealization,
+            cause_digest,
+        )))
     }
 }
 
