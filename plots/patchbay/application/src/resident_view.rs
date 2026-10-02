@@ -71,7 +71,6 @@ impl PatchbayApplicationPort {
                 PatchbayActivePlotState::Playing => "Playing",
                 PatchbayActivePlotState::Lulled => "Lulled",
             };
-            let focus = if plot.focused { " · foreground" } else { "" };
             nodes.push(node(
                 Some(1),
                 ApplicationComponent::Button,
@@ -85,7 +84,7 @@ impl PatchbayApplicationPort {
                 Some(1),
                 ApplicationComponent::Status,
                 &format!("active-plot-status-{index}"),
-                &format!("{state}{focus}"),
+                state,
                 "",
                 0,
                 None,
@@ -94,7 +93,16 @@ impl PatchbayApplicationPort {
                 Some(1),
                 ApplicationComponent::Status,
                 &format!("checked-plot-{index}"),
-                &format!("{} · checked {}", plot.title, plot.checked_plot_id),
+                &format!(
+                    "{} · checked {}{}",
+                    plot.title,
+                    plot.checked_plot_id,
+                    if plot.focused {
+                        " · focused when this inspector was prepared"
+                    } else {
+                        ""
+                    }
+                ),
                 "",
                 0,
                 None,

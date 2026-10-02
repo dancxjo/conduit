@@ -49,6 +49,7 @@ try {
     ["handbook", new URL("handbook/", server.url).href],
     ["start-here", new URL("handbook/Start-here.html", server.url).href],
     ["field-station", fieldUrl.href], ["current-product", new URL("current-product.html", server.url).href],
+    ["handbook-journey", new URL("journeys/verticals/handbook/", server.url).href],
   ];
   for (const [layout, width] of [["desktop", 1280], ["mobile", 390]]) {
     await page.setViewportSize({ width, height: 900 });
@@ -56,6 +57,11 @@ try {
       errors.length = 0;
       const response = await page.goto(url);
       assert(response?.ok(), `${layout} ${id}: navigation failed`);
+      if (id === "handbook-journey") {
+        const captures = page.locator('.journey-steps img');
+        assert.equal(await captures.count(), 7, "Handbook journey retains every captured action");
+        await decodeImages(captures);
+      }
       if (id === "workspace") {
         await page.getByRole("button", { name: "Birth Body", exact: true }).waitFor();
         assert.equal(await page.getByRole("main").count(), 1, "Workspace main landmark");

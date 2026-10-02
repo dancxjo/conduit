@@ -71,7 +71,7 @@ fn active_body_opens_as_a_simple_plot_list_before_graph_inspection() {
     assert!(initial
         .nodes
         .iter()
-        .any(|node| node.key == "active-plot-status-1" && node.text.eq("Playing · foreground")));
+        .any(|node| node.key == "active-plot-status-1" && node.text == "Playing"));
     let disclosure = initial
         .nodes
         .iter()
@@ -86,6 +86,15 @@ fn active_body_opens_as_a_simple_plot_list_before_graph_inspection() {
         .nodes
         .iter()
         .any(|node| node.key == "body-play" && node.parent == Some(disclosure)));
+    assert!(initial.nodes.iter().any(|node| node.key == "checked-plot-1"
+        && node
+            .text
+            .contains("focused when this inspector was prepared")
+        && node.parent == Some(disclosure)));
+    assert!(!initial
+        .nodes
+        .iter()
+        .any(|node| node.text.contains("foreground")));
     assert!(!initial.nodes.iter().any(|node| node.key == "subject"));
     assert!(initial
         .nodes
