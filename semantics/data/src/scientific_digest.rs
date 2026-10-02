@@ -220,7 +220,10 @@ impl DatasetSplitMembership {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.dataset_identity);
         push_text(&mut bytes, &self.split_identity);
-        push_digests(&mut bytes, &self.examples);
+        push_len(&mut bytes, self.identities().count());
+        for identity in self.identities() {
+            bytes.extend_from_slice(identity.get());
+        }
         Ok(semantic_digest(
             "science/dataset-split-membership@1",
             &bytes,

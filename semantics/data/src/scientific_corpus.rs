@@ -1,22 +1,19 @@
 //! Large corpus identity, finite manifests, and stable split membership.
 
+use alloc::vec::Vec;
+
 use crate::{
-    duplicate, nonzero, text, DatasetDescriptor, ScientificCorpusRefusal,
-    ScientificObservationRefusal,
+    duplicate, nonzero, text, DatasetDescriptor, DatasetExampleIdentity, DatasetExamplePage,
+    DatasetSplitMembership, ScientificCorpusRefusal, ScientificObservationRefusal,
 };
-use alloc::{string::String, vec::Vec};
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
 pub const CORPUS_MANIFEST_PROFILE: &str = "data/corpus-manifest@1";
 pub const MAXIMUM_CORPUS_SHARDS: usize = 64;
 pub const MAXIMUM_DATASET_SPLITS: usize = 16;
 pub const MAXIMUM_SPLIT_MEMBERS_PER_RECORD: usize = 4096;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DatasetSplitMembership {
-    pub dataset_identity: [u8; 32],
-    pub split_identity: String,
-    pub examples: Vec<[u8; 32]>,
-}
+const EXAMPLE_IDENTITY_BYTES: usize = 32;
+const EXAMPLES_PER_PAGE: usize = DatasetExamplePage::MAXIMUM_BYTES / EXAMPLE_IDENTITY_BYTES;
 
 impl From<ScientificObservationRefusal> for ScientificCorpusRefusal {
     fn from(refusal: ScientificObservationRefusal) -> Self {
@@ -117,19 +114,81 @@ impl DatasetDescriptor {
 }
 
 impl DatasetSplitMembership {
+    pub fn page<I>(identities: I) -> Result<DatasetExamplePage, ScientificCorpusRefusal>
+    where
+        I: IntoIterator<Item = DatasetExampleIdentity>,
+    {
+        let mut bytes = Vec::new();
+        for identity in identities {
+            bytes.extend_from_slice(identity.get());
+        }
+        if bytes.is_empty() || bytes.len() > DatasetExamplePage::MAXIMUM_BYTES {
+            return Err(ScientificCorpusRefusal::InvalidMembershipPage);
+        }
+        DatasetExamplePage::new(
+            BoundedBytes::new(&bytes).expect("a checked membership page fits its byte carrier"),
+        )
+        .map_err(|_| ScientificCorpusRefusal::InvalidMembershipPage)
+    }
+
+    pub fn pages<I>(
+        identities: I,
+    ) -> Result<BoundedSequence<DatasetExamplePage, 128>, ScientificCorpusRefusal>
+    where
+        I: IntoIterator<Item = DatasetExampleIdentity>,
+    {
+        let identities = identities.into_iter().collect::<Vec<_>>();
+        if identities.is_empty() || identities.len() > MAXIMUM_SPLIT_MEMBERS_PER_RECORD {
+            return Err(ScientificCorpusRefusal::TooManyMembers);
+        }
+        BoundedSequence::try_from_iter(
+            identities
+                .chunks(EXAMPLES_PER_PAGE)
+                .map(|chunk| Self::page(chunk.iter().copied()))
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .map_err(|_| ScientificCorpusRefusal::TooManyMembers)
+    }
+
+    pub fn identities(&self) -> impl Iterator<Item = DatasetExampleIdentity> + '_ {
+        self.examples.iter().flat_map(|page| {
+            page.get()
+                .as_slice()
+                .chunks_exact(EXAMPLE_IDENTITY_BYTES)
+                .map(|identity| {
+                    DatasetExampleIdentity::new(
+                        identity
+                            .try_into()
+                            .expect("a validated identity chunk is exact"),
+                    )
+                    .expect("a dataset example identity is exactly 32 bytes")
+                })
+        })
+    }
+
     pub fn validate(&self) -> Result<(), ScientificCorpusRefusal> {
         nonzero(self.dataset_identity).map_err(ScientificCorpusRefusal::from)?;
         text(&self.split_identity).map_err(ScientificCorpusRefusal::from)?;
         if self.examples.is_empty() {
             return Err(ScientificCorpusRefusal::EmptyMembership);
         }
-        if self.examples.len() > MAXIMUM_SPLIT_MEMBERS_PER_RECORD {
+        if self.examples.iter().enumerate().any(|(index, page)| {
+            let length = page.get().as_slice().len();
+            length == 0
+                || length % EXAMPLE_IDENTITY_BYTES != 0
+                || (index + 1 != self.examples.len()
+                    && length != EXAMPLES_PER_PAGE * EXAMPLE_IDENTITY_BYTES)
+        }) {
+            return Err(ScientificCorpusRefusal::InvalidMembershipPage);
+        }
+        let example_count = self.identities().count();
+        if example_count > MAXIMUM_SPLIT_MEMBERS_PER_RECORD {
             return Err(ScientificCorpusRefusal::TooManyMembers);
         }
-        if self.examples.contains(&[0; 32]) {
+        if self.identities().any(|identity| identity.get() == &[0; 32]) {
             return Err(ScientificObservationRefusal::MissingIdentity.into());
         }
-        if duplicate(self.examples.iter().copied()) {
+        if duplicate(self.identities().map(|identity| *identity.get())) {
             return Err(ScientificCorpusRefusal::DuplicateMember);
         }
         Ok(())
@@ -149,9 +208,8 @@ pub fn prove_splits_disjoint(
         return Err(ScientificCorpusRefusal::DuplicateSplit);
     }
     if left
-        .examples
-        .iter()
-        .any(|example| right.examples.contains(example))
+        .identities()
+        .any(|example| right.identities().any(|candidate| candidate == example))
     {
         return Err(ScientificCorpusRefusal::SplitLeakage);
     }

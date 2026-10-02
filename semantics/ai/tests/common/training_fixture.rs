@@ -4,8 +4,8 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::{
-    DatasetDescriptor, DatasetSplitMembership, TensorAxisRole, TensorElement,
-    CORPUS_MANIFEST_PROFILE,
+    DatasetDescriptor, DatasetExampleIdentity, DatasetSplitMembership, TensorAxisRole,
+    TensorElement, CORPUS_MANIFEST_PROFILE,
 };
 use conduit_form::rust_binding::BoundedSequence;
 
@@ -84,18 +84,18 @@ pub fn corpus() -> (DatasetDescriptor, DatasetSplitMembership) {
         license_profile: Some("license/research-example@1".into()),
         example_count: 4,
         manifest: resource(3, CORPUS_MANIFEST_PROFILE, 1024),
-        shards: BoundedSequence::try_from_iter([resource(4, "data/corpus-shard@1", 8192)])
+        shards: BoundedSequence::try_from_iter([resource(4, "data/corpus-shard@1", 8192)]).unwrap(),
+        split_identities: BoundedSequence::try_from_iter(["train".into(), "evaluation".into()])
             .unwrap(),
-        split_identities: BoundedSequence::try_from_iter([
-            "train".into(),
-            "evaluation".into(),
-        ])
-        .unwrap(),
     };
     let split = DatasetSplitMembership {
         dataset_identity: dataset.identity,
         split_identity: "train".into(),
-        examples: vec![[10; 32], [11; 32], [12; 32]],
+        examples: DatasetSplitMembership::pages(
+            [[10; 32], [11; 32], [12; 32]]
+                .map(|identity| DatasetExampleIdentity::new(identity).unwrap()),
+        )
+        .unwrap(),
     };
     (dataset, split)
 }

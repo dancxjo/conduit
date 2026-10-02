@@ -5,6 +5,24 @@ use conduit_core::{
 use conduit_data::*;
 use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
+fn example_pages<const N: usize>(
+    identities: [[u8; 32]; N],
+) -> BoundedSequence<DatasetExamplePage, 128> {
+    DatasetSplitMembership::pages(
+        identities.map(|identity| DatasetExampleIdentity::new(identity).unwrap()),
+    )
+    .unwrap()
+}
+
+fn maximum_example_pages() -> BoundedSequence<DatasetExamplePage, 128> {
+    DatasetSplitMembership::pages((0_u32..4096).map(|index| {
+        let mut identity = [0_u8; 32];
+        identity[..4].copy_from_slice(&(index + 1).to_le_bytes());
+        DatasetExampleIdentity::new(identity).unwrap()
+    }))
+    .unwrap()
+}
+
 fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     BoundedResourceRef {
         identity: ResourceSemanticIdentity::from_digest([identity; 32]),
@@ -269,18 +287,16 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
         license_profile: Some("license/research-example@1".into()),
         example_count: 3,
         manifest: resource(12, CORPUS_MANIFEST_PROFILE, 512),
-        shards: BoundedSequence::try_from_iter([resource(
-            13,
-            "data/corpus-shard@1",
-            4096,
-        )])
-        .unwrap(),
-        split_identities: BoundedSequence::try_from_iter(["train".into(), "test".into()])
+        shards: BoundedSequence::try_from_iter([resource(13, "data/corpus-shard@1", 4096)])
             .unwrap(),
+        split_identities: BoundedSequence::try_from_iter(["train".into(), "test".into()]).unwrap(),
     };
     dataset.validate().unwrap();
     let structured = dataset.clone().into_structured().unwrap();
-    assert_eq!(DatasetDescriptor::from_structured(structured).unwrap(), dataset);
+    assert_eq!(
+        DatasetDescriptor::from_structured(structured).unwrap(),
+        dataset
+    );
     assert_ne!(dataset.semantic_digest().unwrap(), [0; 32]);
     assert_eq!(
         dataset.require_resources(&[[12; 32]]),
@@ -290,12 +306,12 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
     let train = DatasetSplitMembership {
         dataset_identity: dataset.identity,
         split_identity: "train".into(),
-        examples: vec![[21; 32], [22; 32]],
+        examples: example_pages([[21; 32], [22; 32]]),
     };
     let mut test = DatasetSplitMembership {
         dataset_identity: dataset.identity,
         split_identity: "test".into(),
-        examples: vec![[23; 32]],
+        examples: example_pages([[23; 32]]),
     };
     dataset.validate_membership(&train).unwrap();
     dataset.validate_membership(&test).unwrap();
@@ -304,7 +320,7 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
         test.semantic_digest().unwrap()
     );
     prove_splits_disjoint(&train, &test).unwrap();
-    test.examples.push([22; 32]);
+    test.examples = example_pages([[23; 32], [22; 32]]);
     assert_eq!(
         prove_splits_disjoint(&train, &test),
         Err(ScientificCorpusRefusal::SplitLeakage)
@@ -315,5 +331,23 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
     assert_eq!(
         malformed.validate(),
         Err(ScientificCorpusRefusal::InvalidManifest)
+    );
+}
+
+#[test]
+fn dataset_split_membership_preserves_the_full_4096_example_bound() {
+    let membership = DatasetSplitMembership {
+        dataset_identity: [11; 32],
+        split_identity: "maximum".into(),
+        examples: maximum_example_pages(),
+    };
+
+    assert_eq!(membership.identities().count(), 4096);
+    membership.validate().unwrap();
+
+    let structured = membership.clone().into_structured().unwrap();
+    assert_eq!(
+        DatasetSplitMembership::from_structured(structured).unwrap(),
+        membership
     );
 }

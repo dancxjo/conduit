@@ -298,6 +298,7 @@ type ScientificCorpusRefusal =
     | too_many_splits
     | duplicate_split
     | empty_membership
+    | invalid_membership_page
     | too_many_members
     | duplicate_member
     | dataset_mismatch
@@ -354,6 +355,16 @@ type DatasetDescriptor = {
     manifest: ResourceRef
     shards: sequence ResourceRef in 1..=64
     split-identities: sequence Text in 1..=16
+}
+
+type DatasetExampleIdentity = collection U8 = 32
+
+type DatasetExamplePage = Bytes <= 1024B
+
+type DatasetSplitMembership = {
+    dataset-identity: collection U8 = 32
+    split-identity: Text <= 128B not in [""]
+    examples: sequence DatasetExamplePage in 1..=128
 }
 
 type TabularColumnType =
