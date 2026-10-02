@@ -1,5 +1,7 @@
 //! Body lifecycle truth; all execution identities come from the installed kernel.
 use super::state;
+#[path = "participants/mod.rs"]
+mod participants;
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
@@ -19,6 +21,7 @@ pub(super) struct Owner {
     session: BodyLifecycleSession,
     resident: ResidentPlot,
     last_execution: Option<serde_json::Value>,
+    admissions: Option<conduit_body::AdmissionManager>,
 }
 impl Owner {
     pub(super) fn open(
@@ -98,6 +101,7 @@ impl Owner {
             session,
             resident,
             last_execution: None,
+            admissions: None,
         })
     }
     pub(super) fn persist(&mut self, root: &Path) -> Result<(), String> {
@@ -106,10 +110,16 @@ impl Owner {
                 "owner biography archive capacity requires an admitted archive store".into(),
             );
         }
-        state::retain(root, self.session.evidence(), self.last_execution.as_ref())
+        state::retain(
+            root,
+            self.session.evidence(),
+            self.last_execution.as_ref(),
+            self.admissions.as_ref(),
+        )
     }
     pub(super) fn restore_execution(&mut self, root: &Path) -> Result<(), String> {
         self.last_execution = state::execution(root)?;
+        self.admissions = state::admissions(root, &self.session.evidence().body_id)?;
         Ok(())
     }
     pub(super) fn truth(&self) -> serde_json::Value {
