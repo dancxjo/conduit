@@ -461,7 +461,10 @@ fn all_six_query_classes_retain_bounded_machine_readable_explanations() {
     assert!(receipts[4].temporal_evidence.candidates.iter().any(|item| item.validity == TemporalValidity::Current));
     assert!(receipts[4].temporal_evidence.candidates.iter().any(|item| item.validity == TemporalValidity::Superseded));
     assert!(receipts[4].context.items.iter().any(|item| item.temporal.as_ref().unwrap().context.validity == TemporalValidity::UnknownWhetherCurrent));
-    assert!(matches!(receipts[4].context.disposition, ContextSelectionDisposition::Omitted { .. }));
+    assert!(matches!(
+        receipts[4].context.disposition,
+        ContextSelectionDisposition::Omitted(_)
+    ));
     assert_eq!(receipts[4].answer.disposition, GroundedAnswerDisposition::InsufficientEvidence);
     assert!(!receipts[5]
         .stages

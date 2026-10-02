@@ -292,9 +292,10 @@ fn finite_context_is_chronological_diverse_structured_and_inspectable() {
         temporal_relation(&context.items[0]),
         Some(TemporalRelation::Past { .. })
     ));
-    let ContextSelectionDisposition::Omitted { candidates } = context.disposition else {
+    let ContextSelectionDisposition::Omitted(omitted) = context.disposition else {
         panic!("reviewed redundancy must remain visible");
     };
+    let candidates = omitted.candidates().get();
     assert_eq!(candidates.len(), 1);
     assert_eq!(
         candidates[0].reason,
@@ -323,9 +324,10 @@ fn finite_token_budget_makes_each_truncation_inspectable() {
     .unwrap();
     let context = policy.select(&context_candidates()).unwrap();
     assert_eq!(context.items.len(), 1);
-    let ContextSelectionDisposition::Omitted { candidates } = context.disposition else {
+    let ContextSelectionDisposition::Omitted(omitted) = context.disposition else {
         panic!("token truncation must remain visible");
     };
+    let candidates = omitted.candidates().get();
     assert_eq!(candidates.len(), 2);
     assert!(candidates
         .iter()

@@ -40,7 +40,11 @@ fn main() {
                 "NonnegativeFiniteF32".into(),
             ]
             .into(),
-            serde_variant_exclusions: ["MissingModalityPolicy".into()].into(),
+            serde_variant_exclusions: [
+                "ContextSelectionDisposition".into(),
+                "MissingModalityPolicy".into(),
+            ]
+            .into(),
             serde_record_types: [
                 "CompatibleMetrics".into(),
                 "ExtractedField".into(),
