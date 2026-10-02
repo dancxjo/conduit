@@ -216,12 +216,13 @@ fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> Ret
     let HybridRetrievalOutcome::Candidates(fused) = outcome else {
         panic!("complete fixture history must resolve the boundary")
     };
-    let reranking = RerankingPolicy {
-        identity: "rerank/preserve-hybrid-deterministic@1".into(),
-        strategy: RerankingStrategy::PreserveHybridFusion,
-        maximum_candidates: 16,
-        maximum_work_units: 128,
-    }
+    let reranking = RerankingPolicy::new(
+        "rerank/preserve-hybrid-deterministic@1".into(),
+        RerankingStrategy::PreserveHybridFusion,
+        16,
+        128,
+    )
+    .unwrap()
     .rerank(&fused, &[])
     .unwrap();
     let candidates = reranking

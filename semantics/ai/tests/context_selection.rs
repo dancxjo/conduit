@@ -12,6 +12,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalRelation,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn chunk(version: u8, start: u64, text: &str) -> Chunk<ExtractedSourceValue> {
     Chunk::new(
@@ -83,12 +84,37 @@ fn candidates() -> Vec<HybridCandidate<ExtractedSourceValue>> {
 }
 
 fn deterministic_policy() -> RerankingPolicy {
-    RerankingPolicy {
-        identity: "rerank/preserve-hybrid@1".into(),
-        strategy: RerankingStrategy::PreserveHybridFusion,
-        maximum_candidates: 8,
-        maximum_work_units: 32,
-    }
+    RerankingPolicy::new(
+        "rerank/preserve-hybrid@1".into(),
+        RerankingStrategy::PreserveHybridFusion,
+        8,
+        32,
+    )
+    .unwrap()
+}
+
+#[test]
+fn reranking_policy_is_native_and_intrinsically_bounded() {
+    let policy = deterministic_policy();
+    assert_eq!(
+        RerankingPolicy::from_structured(policy.clone().into_structured().unwrap()).unwrap(),
+        policy
+    );
+    assert!(RerankingPolicy::new(
+        "rerank/too-many@1".into(),
+        RerankingStrategy::PreserveHybridFusion,
+        1_025,
+        32,
+    )
+    .is_err());
+    assert!(RerankingPolicy::new(
+        "rerank/no-work@1".into(),
+        RerankingStrategy::PreserveHybridFusion,
+        8,
+        0,
+    )
+    .is_err());
+    assert!(!include_str!("../src/reranking.rs").contains("pub struct RerankingPolicy"));
 }
 
 fn provenance(event_at: u64) -> TemporalProvenance {
@@ -197,16 +223,17 @@ fn deterministic_and_model_reranking_keep_exact_evidence_but_distinct_proof() {
             work_units: 2,
         })
         .collect();
-    let model_policy = RerankingPolicy {
-        identity: "rerank/model-observation@1".into(),
-        strategy: RerankingStrategy::observed_scores(
+    let model_policy = RerankingPolicy::new(
+        "rerank/model-observation@1".into(),
+        RerankingStrategy::observed_scores(
             RerankingProofClass::ModelDerived,
             "scoring-run/7".into(),
         )
         .unwrap(),
-        maximum_candidates: 8,
-        maximum_work_units: 32,
-    };
+        8,
+        32,
+    )
+    .unwrap();
     let model = model_policy.rerank(&candidates, &observations).unwrap();
     assert_eq!(model.proof_class, RerankingProofClass::ModelDerived);
     assert_ne!(
@@ -222,16 +249,17 @@ fn deterministic_and_model_reranking_keep_exact_evidence_but_distinct_proof() {
         assert_eq!(reranked.candidate.chunk.lineage, original.chunk.lineage);
         assert_eq!(reranked.candidate.contributions, original.contributions);
     }
-    let swapped = RerankingPolicy {
-        identity: "rerank/model-observation@1".into(),
-        strategy: RerankingStrategy::observed_scores(
+    let swapped = RerankingPolicy::new(
+        "rerank/model-observation@1".into(),
+        RerankingStrategy::observed_scores(
             RerankingProofClass::ModelDerived,
             "scoring-run/another-model".into(),
         )
         .unwrap(),
-        maximum_candidates: 8,
-        maximum_work_units: 32,
-    }
+        8,
+        32,
+    )
+    .unwrap()
     .rerank(&candidates, &observations)
     .unwrap();
     for (before, after) in model.candidates.iter().zip(&swapped.candidates) {
@@ -336,10 +364,15 @@ fn every_budget_and_required_annotation_fails_closed() {
 #[test]
 fn scorer_observations_are_exact_finite_and_cannot_invent_candidates() {
     let candidates = candidates();
-    let mut policy = deterministic_policy();
-    policy.strategy = RerankingStrategy::observed_scores(
-        RerankingProofClass::ModelDerived,
-        "scoring-run/8".into(),
+    let policy = RerankingPolicy::new(
+        "rerank/model-observation@1".into(),
+        RerankingStrategy::observed_scores(
+            RerankingProofClass::ModelDerived,
+            "scoring-run/8".into(),
+        )
+        .unwrap(),
+        8,
+        32,
     )
     .unwrap();
     let missing = [RerankObservation {
@@ -368,9 +401,15 @@ fn scorer_observations_are_exact_finite_and_cannot_invent_candidates() {
         policy.rerank(&candidates, &overwork),
         Err(RerankingRefusal::ZeroObservationWork)
     );
-    policy.strategy = RerankingStrategy::observed_scores(
-        RerankingProofClass::DeterministicConformance,
-        "scoring-run/invalid-proof".into(),
+    let policy = RerankingPolicy::new(
+        "rerank/invalid-proof@1".into(),
+        RerankingStrategy::observed_scores(
+            RerankingProofClass::DeterministicConformance,
+            "scoring-run/invalid-proof".into(),
+        )
+        .unwrap(),
+        8,
+        32,
     )
     .unwrap();
     assert_eq!(

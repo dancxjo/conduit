@@ -374,6 +374,13 @@ type RerankingStrategy =
         scoring_run_identity: Text <= 256B not in [""]
     }
 
+type RerankingPolicy = {
+    identity: Text <= 256B not in [""]
+    strategy: RerankingStrategy
+    maximum_candidates: U16 in 1..=1024
+    maximum_work_units: U32 in 1..=1048576
+}
+
 type RandomnessProfile =
     deterministic
     | explicit_seed {
