@@ -248,6 +248,17 @@ fn main() {
                     ],
                 ),
                 (
+                    "SupportedRelationQuery".into(),
+                    vec![
+                        "evidence_variables".into(),
+                        "target_variables".into(),
+                        "mode".into(),
+                        "result_profile".into(),
+                        "maximum_work_units".into(),
+                        "maximum_output_bytes".into(),
+                    ],
+                ),
+                (
                     "ValidatedExtraction".into(),
                     vec!["schema_identity".into(), "fields".into()],
                 ),
