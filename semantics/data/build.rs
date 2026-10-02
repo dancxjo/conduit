@@ -113,6 +113,7 @@ fn main() {
                 ],
             )]
             .into(),
+            serde_variant_exclusions: ["DataGenerationRefusal".into()].into(),
             ..RustBindingOptions::default()
         },
     )

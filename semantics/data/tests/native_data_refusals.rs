@@ -1,6 +1,7 @@
 use conduit_data::{
-    DataGenerationNamespaceRefusal, DataReferenceRefusal, ScientificAlignmentRefusal,
-    ScientificCorpusRefusal, ScientificObservationRefusal, TensorRefusal,
+    DataGenerationNamespaceRefusal, DataGenerationRefusal, DataReferenceRefusal,
+    ScientificAlignmentRefusal, ScientificCorpusRefusal, ScientificObservationRefusal,
+    TensorRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -86,4 +87,18 @@ fn immutable_data_reference_refusals_are_native() {
     ] {
         round_trip(value);
     }
+
+    for value in [
+        DataGenerationRefusal::InvalidBounds,
+        DataGenerationRefusal::WrongContentKind,
+        DataGenerationRefusal::ValueTooLarge,
+        DataGenerationRefusal::GenerationCapacityExhausted,
+        DataGenerationRefusal::ByteCapacityExhausted,
+        DataGenerationRefusal::ReferenceOutputCapacity,
+        DataGenerationRefusal::GenerationNotRetained,
+        DataGenerationRefusal::ExtentMismatch,
+    ] {
+        round_trip(value);
+    }
+    round_trip(DataGenerationRefusal::reference(DataReferenceRefusal::WrongAccessClass).unwrap());
 }
