@@ -1,0 +1,260 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Conduitese · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Conduitese" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a aria-current="page" href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 4 of 23</p><p>Conduitese is the authored language of Conduit.</p>
+<p>The simplest description is:</p>
+<blockquote>
+<p><strong>Conduitese describes semantic intent and construction truth without baking present realization machinery into portable meaning.</strong></p>
+</blockquote>
+<p>It is intentionally unlike an imperative systems language. There is no ambient process model, hidden callback loop, arbitrary mutable heap, exception unwinding, or “just call this platform API” escape hatch in portable source.</p>
+<p>The language is designed around a question: <strong>what must remain true if the same authored meaning is realized on different machinery?</strong> Whatever belongs to that answer should be visible in semantic source; whatever depends on the current world belongs to construction, planning, or execution.</p>
+<h2 id="one-language-several-kinds-of-authored-truth">One language, several kinds of authored truth</h2>
+<p>Canonical <code>.conduit</code> source carries several different kinds of statements:</p>
+<table><thead><tr><th>authored thing</th><th>purpose</th></tr></thead><tbody>
+<tr><td><strong>form</strong></td><td>portable semantic work and relationships</td></tr>
+<tr><td><strong>type</strong></td><td>reusable semantic meaning of values</td></tr>
+<tr><td><strong>code</strong></td><td>one exact portable encoding of a type</td></tr>
+<tr><td><strong>host</strong></td><td>intended finite host construction</td></tr>
+<tr><td><strong>body</strong></td><td>intended durable body/part/host construction</td></tr>
+<tr><td><strong>pack</strong></td><td>source shipment and dependency description</td></tr>
+</tbody></table>
+<p>These share one lexical and diagnostic world, but they do not mean the same thing.</p>
+<p>A form describes <strong>what should happen</strong>. A type describes <strong>what information means</strong>. A code describes <strong>one portable encoding of a type</strong>. host and body source describe intended construction. A pack describes source/distribution identity.</p>
+<p>None of those declarations creates live runtime truth such as the current <code>BootId</code>, active plan, present line, current authority, or observed device.</p>
+<p>Current source uses <code>form</code> for executable composition and <code>code</code> for encoding.
+The <code>plot</code>/<code>form</code> reassignment in <a href="https://github.com/dancxjo/conduit/issues/4513">#4513</a>
+is proposed. Examples here use implemented spelling; see
+<a href="Current-language-surface.html">Current language surface</a> for its proof boundaries.</p>
+<h2 id="forms-are-semantic-graphs">forms are semantic graphs</h2>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">button_across_room</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">button</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">input/button</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">state</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">input/button-indicator-state</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">indicator</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/indicator-state</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">button</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">state</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">indicator</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>A named <strong>gear</strong> is one configured occurrence of a semantic <strong>kind</strong>. Typed <strong>ports</strong> are connected by <strong>cords</strong>. <code>&gt;&gt;</code> is the authored direction token.</p>
+<p>The form says what should connect. A plan later decides where and how those connections are realized.</p>
+<h2 id="kind-fore-back-gear">kind, fore, back, gear</h2>
+<p>These four words are worth learning early:</p>
+<pre><code class="language-text">kind   reusable semantic meaning of work
+fore   the checked callable boundary of that kind/form
+back   one concrete realization behind that fore
+gear   one configured occurrence of a kind in a form
+</code></pre>
+<p>A gear invokes a kind through its <strong>fore</strong>. A host offers a compatible back. A plan selects the exact back.</p>
+<p>A fore is basically Conduit's function signature: the callable surface an author sees and writes against. For a form, the parenthesized declaration is its fore; for a kind, the fore records the same callable shape in the catalog.</p>
+<p>A checked fore includes the public calling facts that affect compatibility, such as startup parameters, runtime ports, their names and directions, value types, temporal shapes, and any declared shorthand input-to-output path.</p>
+<p>Some older repository prose and internal Rust names still say <strong>front</strong>. That is historical/internal vocabulary for this callable signature. <strong>face is unrelated</strong>: face belongs to human interaction and presentation, not callability.</p>
+<h2 id="forms-are-live-unless-completed">forms are live unless completed</h2>
+<p>A form without a trailing full stop is live:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">clock-demo</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">clock</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">time/every</span><span class="syntax-delimiter">(</span><span class="syntax-number">1s</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">clock</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/tick</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/clock-demo.svg" alt="The clock demo form as connected gears" /></p>
+<p>Structural drain means quiescence. Later admitted input may resume the same play.</p>
+<p>A trailing full stop makes structural drain a completion witness:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">finite-example</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">input</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">output</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/finite-example.svg" alt="The finite example form as connected gears" /></p>
+<p>The <code>.</code> is not an executable "stop now" statement. It changes the meaning of the form boundary.</p>
+<h2 id="finite-by-default">Finite by default</h2>
+<p>Every checked value type has an exact finite bound.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">title</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+</span><span class="syntax-name">memo</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4KiB</span><span class="syntax-whitespace">
+</span><span class="syntax-name">count</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1..</span><span class="syntax-operator">=</span><span class="syntax-number">100</span><span class="syntax-whitespace">
+</span><span class="syntax-name">choice</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;x&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;y&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;z&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">code</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">64B</span><span class="syntax-whitespace"> </span><span class="syntax-operator">~</span><span class="syntax-whitespace"> </span><span class="syntax-identity">/</span><span class="syntax-delimiter">[</span><span class="syntax-name">A-Z</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-delimiter">[</span><span class="syntax-name">0-9</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-identity">/</span><span class="syntax-whitespace">
+</span><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">32B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">not</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;root&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;admin&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Text without an explicit bound receives the canonical finite default during checking.</p>
+<p>Refinements are checked relations, not runtime validation callbacks.</p>
+<h2 id="values-flows-and-current-are-different">Values, flows, and Current are different</h2>
+<p>Conduitese does not pretend all "things that contain T" are interchangeable.</p>
+<pre><code class="language-text">T       one ordinary value
+T...    flow of values
+T...|   flow with meaningful normal close
+$T      current retained value
+T?      optional value
+$T?     optional current value
+</code></pre>
+<p>The distinctions matter for pressure, completion, sampling, state, cancellation, and replay.</p>
+<h2 id="keep-is-retained-current-truth">keep is retained current truth</h2>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">frequency</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Frequency</span><span class="syntax-delimiter">(</span><span class="syntax-number">440Hz</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-name">play</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>A <code>keep</code> is not an imperative variable. It is semantic current state with an exact lifetime.</p>
+<p>Longer-lived forms may say:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">note</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4KiB</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">life</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The persistence vertical is deliberately strict about the difference between "retain current truth" and "publish an immutable saved generation."</p>
+<p>See <a href="State-time-and-data.html">State, time and data</a>.</p>
+<h2 id="explicit-current-sampling">Explicit Current sampling</h2>
+<p>There is no silent <code>$T -&gt; T</code> coercion.</p>
+<p>The standard glyph <code>@</code> names ordinary <code>current/sample</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">note</span><span class="syntax-whitespace"> </span><span class="syntax-operator">@</span><span class="syntax-whitespace"> </span><span class="syntax-name">save-request</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">save.value</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>This means: when the semantic trigger is consumed, sample the exact causally visible current note and emit one ordinary value.</p>
+<h2 id="glyphs-are-gear-names-not-operators">Glyphs are gear names, not operators</h2>
+<p>The default glyph prelude includes:</p>
+<pre><code class="language-text">&gt;&lt;   flow/merge
+&amp;&gt;   flow/zip
+?&gt;   flow/race
+&lt;&gt;   state/combine-latest
+@    current/sample
+</code></pre>
+<p>A glyph is merely a lexical name for an ordinary gear.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>has the same checked meaning as:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>There is no custom precedence, type-directed overloading, or hidden glyph runtime.</p>
+<p>Authors can opt out:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">sans</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">glyphs</span><span class="syntax-whitespace">
+</span></code></pre>
+<h2 id="imports-and-packs">Imports and packs</h2>
+<p>Imports use <code>with</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">audio/forms/tone</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry/</span><span class="syntax-delimiter">{</span><span class="syntax-name">vector2</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">matrix2</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors/temperature</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">room-temperature</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The ecosystem noun is <strong>pack</strong>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">pack</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">version</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1.4.0</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">ship</span><span class="syntax-whitespace"> </span><span class="syntax-name">temperature</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">need</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^</span><span class="syntax-identity">2.1</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Pack identity, source identity, module paths, and semantic kind/type identity remain distinct.</p>
+<h2 id="conduitese-can-now-author-semantic-types">Conduitese can now author semantic types</h2>
+<p>Conduitese v1 is actively moving portable semantic type ownership out of handwritten Rust.</p>
+<p>A merged current-tree example is:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">LinguisticOffsetBasis</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">unicode_scalar</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">utf8_byte</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Rust consumes a generated binding from that authoritative Conduitese type rather than independently defining its meaning.</p>
+<p>The larger v1 direction is summarized as:</p>
+<blockquote>
+<p><strong>type : info :: kind : gear</strong></p>
+</blockquote>
+<p>A type is reusable semantic meaning for finite information. An info value is one value of that type. A kind is reusable semantic meaning for work. A gear is one configured occurrence of that kind.</p>
+<p>The migration is ongoing. Do not assume every existing Rust semantic type has moved yet.</p>
+<h2 id="types-have-codes">types have codes</h2>
+<p>A semantic type and its portable encoding are separate. This declaration comes
+from <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/alife/types.conduit">the artificial-life types</a>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">LeniaRegionChunkKind</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">work</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">code</span><span class="syntax-whitespace"> </span><span class="syntax-identity">alife/lenia-region-chunk-kind</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">LeniaRegionChunkKind</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">u8</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">from</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The type owns the alternatives. The code assigns consecutive <code>u8</code> tags starting
+at 1. <code>work</code> does not mean <code>1</code>; it is carried by that tag in this code.
+Generated bindings consume the checked mapping rather than restating it in Rust.</p>
+<h2 id="host-source-is-still-conduitese">host source is still Conduitese</h2>
+<p>Canonical host authoring keeps construction facts separate from live runtime truth:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-name">conduitos-native</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">target</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">conduitos/x86_64/pc</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">build</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">release</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">loader</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">limine</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/surface</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">slots</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8MiB</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">mmio</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">base</span><span class="syntax-whitespace"> </span><span class="syntax-identity">machine/mmio</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">framebuffer</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">display/linear-framebuffer</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">memory</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">mmio</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">graphics</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/graphics</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">surface</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">surface</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">display</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">framebuffer</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">bounds</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">heap</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">16MiB</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">calls</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">signs</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">1024</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>This describes machinery to build and bounds to admit. It does not claim a device was discovered, a host booted, an offer exists, or a plan selected anything.</p>
+<h2 id="body-wardrobe-is-authored-too">body wardrobe is authored, too</h2>
+<p>masks remain ordinary forms. A body may state encounter policy:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/native-graphical</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/spoken</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">body</span><span class="syntax-whitespace"> </span><span class="syntax-name">roseau</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">wear</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">want</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace"> </span><span class="syntax-name">over</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The comma list is unordered eligibility. The optional <code>want</code> line alone carries
+preference. Same-plan recovery can select only an eligible route already sealed
+by that immutable plan; a newly available route requires ordinary replacement planning.</p>
+<h2 id="what-conduitese-deliberately-does-not-have">What Conduitese deliberately does not have</h2>
+<p>Current v1 direction explicitly rejects:</p>
+<ul>
+<li>general mutable variables;</li>
+<li>arbitrary imperative loops;</li>
+<li>exceptions and hidden unwinding;</li>
+<li><code>async</code> / <code>await</code> as an execution ontology;</li>
+<li>classes/object identity;</li>
+<li>ambient services or authority;</li>
+<li>unbounded collections;</li>
+<li>author-asserted purity or replay safety;</li>
+<li>hidden host-language callbacks.</li>
+</ul>
+<p>Instead, bounds, effects, state, terminal behavior, and temporal relationships are meant to remain inspectable.</p>
+<h2 id="current-v1-growth">Current v1 growth</h2>
+<p>The remaining v1 self-authoring work is tracked by <a href="https://github.com/dancxjo/conduit/issues/4375">#4375</a>. Authored payload-rich types, checked behavioral parameters, generated bindings, concise expansion, and bounded activation are present. Bounded each/select/fold/scan and collection are implemented with the scoped proof recorded by completed <a href="https://github.com/dancxjo/conduit/issues/4378">#4378</a>. Current work includes the audited migration of remaining portable semantic families and record-law proof propagation in <a href="https://github.com/dancxjo/conduit/issues/4639">#4639</a>. See <a href="Current-language-surface.html">the current reference</a> for exact syntax and target limits.</p>
+<p>Proposed syntax in open issues is <strong>not automatically canon</strong>. The exact current language surface lives in <a href="Current-language-surface.html">Current language surface</a>.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Conduitese-by-example.html">Conduitese by example<b aria-hidden="true">→</b></a></nav></main></div></body></html>

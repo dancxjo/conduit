@@ -1,0 +1,98 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Form diagrams · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Form-diagrams" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a aria-current="page" href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 6 of 23</p><h1 id="form-diagrams">Form diagrams</h1>
+<p>These diagrams are generated from checked Conduitese with the public
+<code>conduit diagram</code> entrance. They show every gear in the form and the exact
+cords between named ports.</p>
+<p>On each gear, the large label is the <strong>port name</strong>. The smaller label is the
+port's <strong>info type</strong>, which is also used on cord labels. Arrowheads show flow;
+a marked junction is a real fan-in or fan-out, while crossing cords without a
+junction remain separate.</p>
+<p>Generate the same view locally with:</p>
+<pre><code class="language-sh">conduit diagram forms/vision/main.conduit --output vision.svg
+</code></pre>
+<h2 id="a-few-forms-at-a-glance">A few forms at a glance</h2>
+<h3 id="vision">Vision</h3>
+<p><img src="assets/form-diagrams/vision--main.svg" alt="The vision form&#39;s gears and cords" /></p>
+<h3 id="firefly-choir">Firefly choir</h3>
+<p><img src="assets/form-diagrams/firefly-choir--main.svg" alt="The firefly choir form&#39;s gears and cords" /></p>
+<h3 id="morse-network">Morse network</h3>
+<p><img src="assets/form-diagrams/morse-network--main.svg" alt="The Morse network form&#39;s gears and cords" /></p>
+<h3 id="addressed-utterance">Addressed utterance</h3>
+<p><img src="assets/form-diagrams/addressed-utterance--main.svg" alt="The addressed utterance form&#39;s gears and cords" /></p>
+<h2 id="diagram-index">Diagram index</h2>
+<ul>
+<li><a href="assets/form-diagrams/addressed-utterance--main.svg">Addressed utterance</a></li>
+<li><a href="assets/form-diagrams/arithmetic-lesson--main.svg">Arithmetic lesson</a></li>
+<li><a href="assets/form-diagrams/bounded-job--main.svg">Bounded job</a></li>
+<li><a href="assets/form-diagrams/bounded-stroke-capture--main.svg">Bounded stroke capture</a></li>
+<li><a href="assets/form-diagrams/breadboard-instrument--main.svg">Breadboard instrument</a></li>
+<li><a href="assets/form-diagrams/clock--main.svg">Clock</a></li>
+<li><a href="assets/form-diagrams/count--main.svg">Count</a></li>
+<li><a href="assets/form-diagrams/default-welcome--main.svg">Default welcome</a></li>
+<li><a href="assets/form-diagrams/firefly-choir--main.svg">Firefly choir</a></li>
+<li><a href="assets/form-diagrams/firefly-line-follower--main.svg">Firefly line follower</a></li>
+<li><a href="assets/form-diagrams/generalized-input--main.svg">Generalized input</a></li>
+<li><a href="assets/form-diagrams/geometry-spatial--main.svg">Geometry spatial</a></li>
+<li><a href="assets/form-diagrams/greet--main.svg">Greet</a></li>
+<li><a href="assets/form-diagrams/heartbeat-phase-follower--main.svg">Heartbeat phase follower</a></li>
+<li><a href="assets/form-diagrams/hello--main.svg">Hello</a></li>
+<li><a href="assets/form-diagrams/lenia-orbium--main.svg">Lenia Orbium</a></li>
+<li><a href="assets/form-diagrams/little-life--main.svg">Little Life</a></li>
+<li><a href="assets/form-diagrams/messaging-delivery--main.svg">Messaging delivery</a></li>
+<li><a href="assets/form-diagrams/morse-network--main.svg">Morse network</a></li>
+<li><a href="assets/form-diagrams/native-graphical-mask--main.svg">Native graphical mask</a></li>
+<li><a href="assets/form-diagrams/network-resolution--main.svg">Network resolution</a></li>
+<li><a href="assets/form-diagrams/patchbay-front-door--main.svg">Patchbay front door</a></li>
+<li><a href="assets/form-diagrams/phase-synchronization--main.svg">Phase synchronization</a></li>
+<li><a href="assets/form-diagrams/pulse-observation--main.svg">Pulse observation</a></li>
+<li><a href="assets/form-diagrams/rhythm-lesson--main.svg">Rhythm lesson</a></li>
+<li><a href="assets/form-diagrams/robotics-diversity--main.svg">Robotics diversity</a></li>
+<li><a href="assets/form-diagrams/robotics-range--main.svg">Robotics range</a></li>
+<li><a href="assets/form-diagrams/route-annotation-stroke--main.svg">Route annotation stroke</a></li>
+<li><a href="assets/form-diagrams/scheduling-workflow--main.svg">Scheduling workflow</a></li>
+<li><a href="assets/form-diagrams/signal-demo--main.svg">Signal demo</a></li>
+<li><a href="assets/form-diagrams/spoken-mask--main.svg">Spoken mask</a></li>
+<li><a href="assets/form-diagrams/vision--main.svg">Vision</a></li>
+<li><a href="assets/form-diagrams/vision-metadata--main.svg">Vision metadata</a></li>
+</ul>
+<h2 id="coverage">Coverage</h2>
+<p>This gallery contains the 33 forms that the standard product catalogs can
+check directly. Other source forms currently depend on additional kind
+catalogs or signatures and are therefore rejected before diagram generation.
+That distinction is intentional: this page does not substitute unchecked or
+stale pictures for a checked Form.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Glossary.html">Glossary<b aria-hidden="true">→</b></a></nav></main></div></body></html>

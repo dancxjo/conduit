@@ -1,0 +1,225 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Architecture tour · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Architecture-tour" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a aria-current="page" href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 3 of 23</p><p>Conduit has one recurring move:</p>
+<blockquote>
+<p><strong>Separate semantic meaning from concrete realization, then join them explicitly in a plan.</strong></p>
+</blockquote>
+<p>Nearly every important noun exists to protect one side of that boundary.</p>
+<h2 id="begin-with-the-authored-happening">Begin with the authored happening</h2>
+<p>The user authors a <strong>form</strong>: a portable description of the intended course of semantic work.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">hello</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">upper</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">show</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/text</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-string">&quot;Hello, world.&quot;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">show</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/hello.svg" alt="The hello form as connected gears" /></p>
+<p>A form is not a deployment recipe. It does not have to say which process, operating system, transport, device, library, or machine performs each piece of work.</p>
+<p>It says what work is required and how that work relates.</p>
+<p>The declaration is executable <code>form</code> source. <a href="Current-language-surface.html">Current language surface</a> records the supported grammar and separates proposals from implemented behavior.</p>
+<h2 id="read-the-semantic-graph">Read the semantic graph</h2>
+<p>Inside the form, each named <strong>gear</strong> is one occurrence of a semantic <strong>kind</strong>.</p>
+<pre><code class="language-text">literal → text/upper → presentation/text
+</code></pre>
+<p>A kind says what reusable work means. Its <strong>fore</strong> is the function-like signature presented to authors: startup parameters and typed runtime ports, including their direction, value type, and temporal shape. <strong>cords</strong> connect compatible ports named by those fores.</p>
+<p>At this altitude, the graph says nothing about where the gears will run.</p>
+<p>That is deliberate: “uppercase text” should not become “call this Rust function on Linux” merely because the first implementation happened to be written that way.</p>
+<h2 id="realization-lives-behind-the-fore">Realization lives behind the fore</h2>
+<p>A <strong>back</strong> is one concrete realization of a kind.</p>
+<p>A host might offer several backs for the same semantic kind:</p>
+<pre><code class="language-text">presentation/text
+  ↳ native graphical back
+  ↳ browser back
+  ↳ speech back
+  ↳ deterministic linear-text back
+</code></pre>
+<p>These backs are not interchangeable because machines are magically equivalent. They are candidates because each one truthfully claims compatibility with the same semantic obligation and exact fore signature.</p>
+<p>The planner may then consider:</p>
+<ul>
+<li>host and boot identity;</li>
+<li>available backs and implementations;</li>
+<li>resources and bases;</li>
+<li>explicit authority;</li>
+<li>line availability;</li>
+<li>queue and memory envelopes;</li>
+<li>policy and preferences;</li>
+<li>required signs/evidence;</li>
+<li>execution limits.</li>
+</ul>
+<h2 id="planning-is-the-meeting-point">Planning is the meeting point</h2>
+<p>The form supplies enduring intent; the world supplies current facts.</p>
+<pre><code class="language-text">form
+  +
+body / hosts / boots / backs / resources / authority / lines
+  ↓
+planner
+  ↓
+immutable plan
+</code></pre>
+<p>The <strong>plan</strong> is not a fuzzy strategy. It is the exact admitted realization selected for this moment.</p>
+<p>A plan may say, in effect:</p>
+<pre><code class="language-text">gear A → Host 1 / Boot 7 / Back X
+gear B → Host 2 / Boot 3 / Back Y
+cord A→B → Line L
+queues → these exact bounds
+effects → this exact authority
+</code></pre>
+<p>Once sealed, the plan becomes history. A later change produces explicit fallback already admitted by that plan or a replacement plan; the old plan is not silently edited.</p>
+<h2 id="play-is-execution-not-selection">play is execution, not selection</h2>
+<p>A <strong>play</strong> is one active execution of one exact plan.</p>
+<pre><code class="language-text">form ≠ plan ≠ play
+</code></pre>
+<p>A plan can exist without being played. The same plan may be played more than once. A replacement plan may realize the same form after the world changes.</p>
+<p>Execution advances through bounded <strong>steps</strong>. A step may move info, invoke a back, make a bounded host call, observe pressure, quiesce, complete, or terminate abnormally according to the checked meaning and sealed realization.</p>
+<h2 id="quiescence-is-a-pause-not-a-conclusion">Quiescence is a pause, not a conclusion</h2>
+<p>Reactive software often reaches moments when no admitted work can presently progress.</p>
+<p>Conduit names that <strong>quiescence</strong> rather than pretending the computation has ended.</p>
+<pre><code class="language-text">active → quiescent → active
+</code></pre>
+<p>A live play may later continue when new admitted work arrives. Semantic completion is different: the form must explicitly establish that the relevant drain is sufficient evidence that the authored work is finished.</p>
+<p>This is one reason Conduit can model always-on/reactive systems without turning “the event loop is currently idle” into “the program terminated.”</p>
+<h2 id="cords-are-not-lines">cords are not lines</h2>
+<p>A <strong>cord</strong> is semantic composition. A <strong>line</strong> is concrete carriage.</p>
+<p>Suppose one form contains:</p>
+<pre><code class="language-text">sensor → classify → display
+</code></pre>
+<p>Planning may put all three gears on one host, or place the sensor and classifier on different hosts:</p>
+<pre><code class="language-text">form:
+  sensor &gt;&gt; classify &gt;&gt; display
+
+plan:
+  sensor   on Host A
+  classify on Host B
+  display  on Host B
+
+realization:
+  sensor→classify cord uses Line L
+</code></pre>
+<p>If line L disappears, the cord did not become semantically different. The realization became invalid. Planning is the place to reconcile that new truth.</p>
+<h2 id="a-body-is-the-thing-that-continues">A body is the thing that continues</h2>
+<p>A <strong>body</strong> is the durable logical computer.</p>
+<p>hosts come and go; hosts reboot; lines appear and vanish; plans are replaced; plays begin and end. The body can remain the same continuant across those changes.</p>
+<pre><code class="language-text">body
+  ├─ durable parts
+  ├─ current hosts
+  │    └─ current boots
+  ├─ resident forms
+  ├─ current plan
+  └─ active play
+</code></pre>
+<p>A <strong>wake</strong> is a period of active availability. A <strong>lull</strong> preserves the body's continuity while active play ceases.</p>
+<p>This distinction lets the architecture answer “what stayed the same?” without using process lifetime as a proxy for identity.</p>
+<h2 id="information-has-meaning-and-code">Information has meaning and code</h2>
+<p>A <strong>type</strong> says what a value means; <strong>info</strong> is one value of that type.
+A <strong>code</strong> states an exact portable encoding without changing the meaning.</p>
+<pre><code class="language-text">type = meaning
+info = typed value
+code = encoding contract
+</code></pre>
+<p>For example, a finite variant can use a compact byte code. The assigned tag is
+a compatibility fact, not the meaning of the variant itself. Current support
+and examples belong in <a href="Current-language-surface.html">the language reference</a>.</p>
+<h2 id="time-has-several-different-promises">Time has several different promises</h2>
+<p>Conduit refuses to collapse every temporal relationship into “mutable state.”</p>
+<ul>
+<li><strong>info</strong> is a value flowing now;</li>
+<li>a <strong>keep</strong> is current truth retained for an exact duration;</li>
+<li><strong>data</strong> is an independently addressable immutable generation;</li>
+<li><strong>save</strong> publishes one generation;</li>
+<li><strong>load</strong> recovers typed info.</li>
+</ul>
+<p>These distinctions preserve causality and durability promises that ordinary variable/storage terminology often smears together.</p>
+<h2 id="human-meaning-has-its-own-realization-boundary">Human meaning has its own realization boundary</h2>
+<p>The human-facing path has the same shape:</p>
+<pre><code class="language-text">authoritative body truth
+        ↓
+      face
+        ↓
+      mask
+        ↓
+      show
+</code></pre>
+<p>The <strong>face</strong> contains the humanly relevant meaning and agency. A <strong>mask</strong> realizes that face for a user agent or medium. A <strong>show</strong> is one concrete manifestation.</p>
+<p>A browser DOM, a spoken interaction, a native surface, and a terminal transcript can therefore be different shows of the same face without any one rendering becoming the application truth.</p>
+<h2 id="signs-make-adaptation-explainable">signs make adaptation explainable</h2>
+<p>A <strong>sign</strong> is bounded evidence that something was selected, attempted, observed, completed, refused, lost, or replaced.</p>
+<p>Good signs let the system answer causal questions:</p>
+<ul>
+<li>which plan selected this back?</li>
+<li>which host and boot supplied it?</li>
+<li>which line carried this cord?</li>
+<li>what observation invalidated the realization?</li>
+<li>was fallback already admitted?</li>
+<li>did planning create a replacement plan?</li>
+<li>was work replayed, moved, continued, or refused?</li>
+</ul>
+<p>A sign is evidence, never authority.</p>
+<h2 id="the-whole-movement">The whole movement</h2>
+<pre><code class="language-text">AUTHORED MEANING
+
+type → info
+kind → fore
+form containing gears, ports, and cords
+        │
+        │ meets current truth
+        ▼
+PLANNING
+
+backs + hosts + resources + authority + lines
+        │
+        ▼
+exact immutable plan
+        │
+        ▼
+EXECUTION
+
+play → steps → signs
+
+CONTINUITY
+
+body persists across hosts, boots, plans, plays, wakes, and lulls
+
+PRESENTATION
+
+face → mask → show
+</code></pre>
+<p>The architecture is easiest to understand not by memorizing all the nouns, but by asking one recurring question:</p>
+<blockquote>
+<p><strong>Is this fact part of enduring meaning, or part of the present realization of that meaning?</strong></p>
+</blockquote>
+<p>When that question is answered at the right altitude, many difficult distributed-systems questions become much less mysterious.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Conduitese.html">Conduitese<b aria-hidden="true">→</b></a></nav></main></div></body></html>

@@ -1,0 +1,116 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Evidence and proof · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Evidence-and-proof" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a aria-current="page" href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 21 of 23</p><p>Conduit treats evidence as typed truth with a scope.</p>
+<p>A passing test, browser run, emulator boot, physical device run, and human enactment establish different things. One does not magically upgrade into another.</p>
+<h2 id="signs">signs</h2>
+<p>A <strong>sign</strong> is bounded evidence about what is true or what happened.</p>
+<p>signs can record:</p>
+<ul>
+<li>selection;</li>
+<li>preparation;</li>
+<li>execution;</li>
+<li>completion;</li>
+<li>abnormal termination;</li>
+<li>cancellation;</li>
+<li>effect attempts;</li>
+<li>host/line loss;</li>
+<li>replanning;</li>
+<li>body lifecycle transitions.</li>
+</ul>
+<p>A sign is not authority. Recording "camera available" does not grant camera permission.</p>
+<h2 id="proof-classes">Proof classes</h2>
+<table><thead><tr><th>proof</th><th>what it establishes</th></tr></thead><tbody>
+<tr><td>deterministic contract test</td><td>identities, bounds, transitions, refusal behavior in the tested model</td></tr>
+<tr><td>hosted execution</td><td>real implementation running in that hosted environment</td></tr>
+<tr><td>browser execution</td><td>real browser/WASM path under the stated browser profile</td></tr>
+<tr><td>emulator execution</td><td>freestanding image on the specified emulated machine</td></tr>
+<tr><td>live transport</td><td>actual messages crossed the named transport/session</td></tr>
+<tr><td>physical/HIL</td><td>named firmware/device behavior under recorded physical conditions</td></tr>
+<tr><td>human enactment</td><td>a person actually completed the interaction</td></tr>
+<tr><td>released-product proof</td><td>an exact accepted commit crossed the protected release boundary</td></tr>
+</tbody></table>
+<p>These classes can compose, but they do not substitute for one another.</p>
+<h2 id="why-the-distinction-matters">Why the distinction matters</h2>
+<p>Examples of claims Conduit deliberately refuses:</p>
+<ul>
+<li>"QEMU booted, therefore the physical laptop works."</li>
+<li>"The model generated narration, therefore a human heard speech."</li>
+<li>"Firmware compiled, therefore the Pico is attached and running it."</li>
+<li>"A screenshot exists, therefore it depicts the event claimed by the caption."</li>
+<li>"A provider failed but fallback worked, therefore the semantic endpoint failed."</li>
+<li>"The code contains a back, therefore the current host offers it."</li>
+</ul>
+<h2 id="exact-identities-matter">Exact identities matter</h2>
+<p>Good evidence binds the identities relevant to the claim:</p>
+<pre><code class="language-text">source document
+checked form
+expanded form
+body
+wake
+host
+boot
+plan
+play
+back
+line
+show
+sign
+artifact
+</code></pre>
+<p>Not every event needs every identity, but evidence should not blur the ones that matter.</p>
+<h2 id="causal-evidence">Causal evidence</h2>
+<p>The causal DAG work exists because "event B happened after event A" is not enough to prove A caused B.</p>
+<p>For recovery, useful evidence distinguishes:</p>
+<pre><code class="language-text">observation of loss
+ -&gt; invalidation
+ -&gt; fallback selection OR planning request
+ -&gt; replacement selection/refusal
+ -&gt; continued work or terminal outcome
+</code></pre>
+<p>A bounded causal trace should also admit truncation honestly instead of silently dropping ancestors and pretending the history is complete.</p>
+<h2 id="visual-evidence">Visual evidence</h2>
+<p>A screenshot should be correlated to the exact event it claims to illustrate.</p>
+<p>Three bodies explicitly learned this lesson: reusing one stale frame as birth, lull, failure, and recovery evidence is worse than omitting a frame.</p>
+<p>See the repository's <a href="https://github.com/dancxjo/conduit/blob/dev/docs/visual-evidence.md">visual evidence guide</a>.</p>
+<h2 id="current-product-truth">Current product truth</h2>
+<p>The published <a href="https://dancxjo.github.io/conduit/current-product.html">current-product truth surface</a> records development/release/publication identities and retained proof receipts.</p>
+<p>It is useful precisely because "source contains capability" and "accepted product has evidence for capability" are different statements.</p>
+<h2 id="how-to-read-this-wiki">How to read this Wiki</h2>
+<p>The learning pages may say a mechanism or semantic path <strong>exists in the development tree</strong>. That is not automatically a stable-release or physical-hardware claim.</p>
+<p>When a page says <strong>canonical</strong>, it is talking about intended language/architecture law.</p>
+<p>When it says <strong>current tree</strong>, it is talking about code/source present on <code>dev</code>.</p>
+<p>When it says <strong>planned</strong> or <strong>open</strong>, it is not yet a claim of implementation.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Project-status-and-roadmap.html">Project status and roadmap<b aria-hidden="true">→</b></a></nav></main></div></body></html>

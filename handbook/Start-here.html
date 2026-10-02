@@ -1,0 +1,103 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Start here · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Start-here" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a aria-current="page" href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 8 of 23</p><p>You can meet Conduit at three levels: <strong>look at it</strong>, <strong>run it hosted</strong>, or <strong>boot ConduitOS</strong>.</p>
+<h2 id="1-look-before-building">1. Look before building</h2>
+<p>The body Workspace and visual journeys are the quickest entrances:</p>
+<ul>
+<li><a href="https://dancxjo.github.io/conduit/workspace/">body Workspace</a></li>
+<li><a href="https://dancxjo.github.io/conduit/current/conduitos/x86_64/">ConduitOS visual journey</a></li>
+<li><a href="https://dancxjo.github.io/conduit/current-product.html">Current product truth</a></li>
+</ul>
+<p>The Workspace exposes resident forms. The ConduitOS journey is evidence from a real QEMU boot, not a mock screenshot deck.</p>
+<h2 id="2-run-the-first-hosted-form">2. Run the first hosted form</h2>
+<p>Install Git and Rust through rustup, then use the pinned toolchain in a
+checkout of <code>dev</code>. A native linker is needed. See
+<a href="https://github.com/dancxjo/conduit/blob/dev/CONTRIBUTING.md">contributor setup</a>
+for prerequisites. <code>cargo xtask doctor</code> is an optional cross-target diagnostic;
+missing browser or Pico tools do not block the hosted example.</p>
+<pre><code class="language-bash">cargo xtask make host std
+</code></pre>
+<p>The command checks, plans, and executes <a href="https://github.com/dancxjo/conduit/blob/dev/forms/hello/main.conduit">forms/hello/main.conduit</a> through the production kernel.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">hello</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">upper</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">show</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/text</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-string">&quot;Hello, world.&quot;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">show</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/hello.svg" alt="The hello form as connected gears" /></p>
+<p>Read it left to right:</p>
+<ol>
+<li>the literal produces text;</li>
+<li><code>text/upper</code> transforms it;</li>
+<li><code>presentation/text</code> presents it;</li>
+<li>the trailing full stop says structural drain is semantic completion.</li>
+</ol>
+<p>The form does not choose an OS-specific implementation. Planning does that later.</p>
+<h2 id="3-run-the-integration-truth-loop">3. Run the integration truth loop</h2>
+<pre><code class="language-bash">cargo xtask integrate
+</code></pre>
+<p>This exercises representative language, planning, kernel, hosted execution, body lifecycle, multi-placement, recovery, and Patchbay paths. It is deliberately broader than one example and narrower than release proof.</p>
+<h2 id="4-open-patchbay">4. Open Patchbay</h2>
+<p>Native:</p>
+<pre><code class="language-bash">cargo xtask prove journey patchbay --on native
+</code></pre>
+<p>Browser:</p>
+<pre><code class="language-bash">rustup target add wasm32-unknown-unknown
+cargo xtask prove journey patchbay --on browser
+</code></pre>
+<p>Patchbay is a projection over real body and execution truth. It is not another scheduler.</p>
+<h2 id="5-boot-conduitos">5. boot ConduitOS</h2>
+<pre><code class="language-bash">cargo xtask make conduitos live x86_64
+cargo xtask make conduitos live-boot x86_64
+</code></pre>
+<p>The first builds the x86_64 live ISO. The second verifies and boots it in visible QEMU.</p>
+<p>Inside the graphical system, birth a body, wake it, run resident forms, and inspect the same plan/play truth through Patchbay.</p>
+<h2 id="6-read-source-not-just-screenshots">6. Read source, not just screenshots</h2>
+<p>A good beginner sequence is:</p>
+<ol>
+<li><a href="https://github.com/dancxjo/conduit/blob/dev/forms/hello/main.conduit">Hello</a></li>
+<li><a href="https://github.com/dancxjo/conduit/blob/dev/forms/clock/main.conduit">Clock</a></li>
+<li><a href="https://github.com/dancxjo/conduit/blob/dev/forms/memory-lantern/main.conduit">Memory Lantern</a></li>
+<li><a href="https://github.com/dancxjo/conduit/blob/dev/forms/pocket-theremin/main.conduit">Pocket Theremin</a></li>
+<li><a href="https://github.com/dancxjo/conduit/blob/dev/forms/desk-telegraph/main.conduit">Desk Telegraph</a></li>
+<li><a href="https://github.com/dancxjo/conduit/blob/dev/forms/body-chat/main.conduit">body Chat</a></li>
+</ol>
+<p>Then read <a href="Conduitese-by-example.html">Conduitese by example</a>.</p>
+<h2 id="proof-has-a-scope">Proof has a scope</h2>
+<p>A successful hosted run proves the hosted path you ran. A QEMU run proves the specified emulated machine. Firmware compilation does not prove a physical board. A generated transcript does not prove a human heard speech.</p>
+<p>That discipline is part of Conduit's design, not paperwork bolted on afterward. See <a href="Evidence-and-proof.html">Evidence and proof</a>.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Bodies-hosts-plans-and-plays.html">Bodies hosts plans and plays<b aria-hidden="true">→</b></a></nav></main></div></body></html>

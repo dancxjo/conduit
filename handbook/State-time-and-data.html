@@ -1,0 +1,160 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>State time and data · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-State-time-and-data" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a aria-current="page" href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 10 of 23</p><p>Conduitese treats temporal shape as meaning, not container trivia.</p>
+<h2 id="time-is-part-of-meaning">Time is part of meaning</h2>
+<p>Many programming models treat time as something that happens <em>to</em> values after the type system has finished its work.</p>
+<p>Conduit treats temporal shape as semantic information.</p>
+<p>“One value,” “a stream of values,” “the current retained value,” “an immutable saved generation,” and “a value that may arrive later” are not merely different containers around the same <code>T</code>; they make different promises about causality, pressure, lifetime, completion, and replay.</p>
+<p>That is why the language gives these distinctions visible syntax instead of hiding them behind mutable variables and callbacks.</p>
+<h2 id="four-common-temporal-shapes">Four common temporal shapes</h2>
+<pre><code class="language-text">T       one ordinary value
+T...    a flow of values
+T...|   a closing flow
+$T      a current retained value
+</code></pre>
+<p>Optionality composes with these forms, so <code>T?</code> and <code>$T?</code> remain distinct.</p>
+<h2 id="keep-means-retained-current-truth">keep means retained current truth</h2>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">frequency</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Frequency</span><span class="syntax-delimiter">(</span><span class="syntax-number">440Hz</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-name">play</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The Pocket Theremin uses this to retain current frequency.</p>
+<p>A longer-lived value can request a longer semantic duration:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">note</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4KiB</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">life</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The duration is part of the semantic contract. A plan that cannot supply sufficient durability should refuse rather than silently shorten the promise.</p>
+<p>A keep is not a mutable variable with a nicer name. It is a current semantic value with an exact retention law.</p>
+<h2 id="current-is-not-value">Current is not Value</h2>
+<p>There is no implicit conversion from <code>$T</code> to <code>T</code>.</p>
+<p>Why? Because silently reading the latest current value at an arbitrary moment would hide causality.</p>
+<p>Sampling is explicit:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">note</span><span class="syntax-whitespace"> </span><span class="syntax-operator">@</span><span class="syntax-whitespace"> </span><span class="syntax-name">save-request</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">snapshot</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The <code>@</code> glyph names <code>current/sample</code>.</p>
+<p>One accepted trigger owns one sample. The observed generation is the exact current generation causally visible when that trigger is consumed.</p>
+<h2 id="save-is-not-keep">Save is not keep</h2>
+<p>The guiding persistence distinction is:</p>
+<blockquote>
+<p><strong>keep says how long current truth must live. save says make this particular truth independently addressable.</strong></p>
+</blockquote>
+<p>An independently addressable generation is <strong>data</strong>.</p>
+<p>Conceptually:</p>
+<pre><code class="language-text">keep T        current retained truth
+&amp;T            ordinary finite info naming immutable data
+save          publish a generation
+load          recover typed info from a named generation
+</code></pre>
+<p><code>&amp;T</code> is not a pointer and does not grant authority.</p>
+<p>Saving one generation does not freeze the keep:</p>
+<pre><code class="language-text">keep: A -&gt; B -&gt; C -&gt; D
+            |
+            save C as generation G
+
+later:
+keep is D
+G still names immutable C
+</code></pre>
+<p>That is why the Durable Notebook vertical refuses "autosave fiction." See <a href="https://github.com/dancxjo/conduit/issues/4116">#4116</a>.</p>
+<h2 id="live-versus-finite-forms">Live versus finite forms</h2>
+<p>A live form:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">clock-demo</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">clock</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">time/every</span><span class="syntax-delimiter">(</span><span class="syntax-number">1s</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">clock</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/tick</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/clock-demo.svg" alt="The clock demo form as connected gears" /></p>
+<p>can quiesce and resume.</p>
+<p>A finite-on-drain form:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">upper</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">input</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">output</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/upper.svg" alt="The finite upper form as connected gears" /></p>
+<p>turns structural drain into semantic completion.</p>
+<p>The full stop does not mean "kill the scheduler now."</p>
+<h2 id="quiescence-is-not-completion">Quiescence is not completion</h2>
+<p>A live play may have no admitted work capable of progress and still remain alive.</p>
+<p>That state is <strong>quiescence</strong>.</p>
+<pre><code class="language-text">active → quiescent → active
+</code></pre>
+<p>Later admitted work can wake the same play again. Semantic completion is stronger: it means the authored form has supplied a completion witness, such as structural drain on a form explicitly marked finite-on-drain.</p>
+<p>The distinction prevents an idle reactive system from being mistaken for a finished one.</p>
+<h2 id="source-activation-is-ordinary-semantic-work">Source activation is ordinary semantic work</h2>
+<p>External conditions can activate source gears:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">scheduled-reminder</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">source</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">notification/deterministic-reminder</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">deliver</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">notification/deliver-reminder</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-identity">source.reminder</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">deliver.reminder</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>A timer, button, network receive, or sensor can be a source of admitted work. Conduit does not need a callback language to model that.</p>
+<h2 id="multi-input-time-must-be-explicit">Multi-input time must be explicit</h2>
+<p>Two independent runtime inputs do not silently synchronize because an expression mentions both.</p>
+<p>Different temporal operations remain different:</p>
+<pre><code class="language-text">merge arrivals
+zip next values
+race first admissible winner
+combine current/latest values
+sample current on a trigger
+deadline
+window
+</code></pre>
+<p>The standard glyphs preserve that distinction:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">a</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;&lt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">b</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">merged</span><span class="syntax-whitespace">
+</span><span class="syntax-name">left</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&amp;&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">right</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">pair</span><span class="syntax-whitespace">
+</span><span class="syntax-name">primary</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">secondary</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">winner</span><span class="syntax-whitespace">
+</span><span class="syntax-name">a</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">b</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">latest-pair</span><span class="syntax-whitespace">
+</span><span class="syntax-name">note</span><span class="syntax-whitespace"> </span><span class="syntax-operator">@</span><span class="syntax-whitespace"> </span><span class="syntax-name">save-request</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">snapshot</span><span class="syntax-whitespace">
+</span></code></pre>
+<h2 id="pressure-is-semantic-too">Pressure is semantic too</h2>
+<p>Fan-out is explicit:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">observation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">display</span><span class="syntax-whitespace">
+</span><span class="syntax-name">observation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">tone</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>A slow display may not silently make an audio branch lossy. Dropping, sampling, coalescing, buffering, and coupling are semantic policy where desired.</p>
+<p>Queues and retained histories are bounded.</p>
+<h2 id="terminal-truth-is-separate-from-time">Terminal truth is separate from time</h2>
+<p>Conduit distinguishes:</p>
+<pre><code class="language-text">normal close
+typed abnormal terminal
+semantic cancellation request
+scheduler/plan cancellation
+</code></pre>
+<p>A cancel request is not proof that cancellation succeeded. A recovered provider fault does not necessarily become a semantic endpoint fault. Unrecoverable abnormal truth may not disappear.</p>
+<p>The exact laws are in <a href="Terminals-and-concurrency.html">Terminals and concurrency reference</a>.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Lines-networking-and-replanning.html">Lines networking and replanning<b aria-hidden="true">→</b></a></nav></main></div></body></html>

@@ -1,0 +1,164 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Face Mask and Show · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Face-Mask-and-Show" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a aria-current="page" href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 12 of 23</p><p>Conduit's human-interface architecture separates <strong>what a person should be able to understand or do</strong> from <strong>how a particular medium realizes that encounter</strong>.</p>
+<pre><code class="language-text">authoritative truth
+      ↓
+face
+      ↓
+mask
+      ↓
+show
+</code></pre>
+<h2 id="the-human-interface-has-a-semantic-waist">The human interface has a semantic waist</h2>
+<p>Conduit does not try to invent one universal widget toolkit.</p>
+<p>Instead, it asks for the smallest renderer-neutral layer rich enough to preserve <strong>what the person is meant to understand and what agency the person is meant to have</strong>.</p>
+<p>That layer is the <strong>face</strong>.</p>
+<p>Everything above the face is domain and body truth. Everything below it is realization for a medium, user agent, device, accessibility mode, or presentation technology.</p>
+<p>This is the same architectural move used elsewhere: meaning first, exact realization second.</p>
+<h2 id="face">face</h2>
+<p>A <strong>face</strong> is the body's renderer-neutral semantic encounter.</p>
+<p>It can carry things such as:</p>
+<ul>
+<li>subjects and relationships;</li>
+<li>typed content;</li>
+<li>wording;</li>
+<li>actions and inputs;</li>
+<li>semantic order;</li>
+<li>context and provenance;</li>
+<li>what is currently relevant or refused.</li>
+</ul>
+<p>face is not a widget tree. It does not mean HTML, windows, panes, pixels, speech timing, or terminal escape sequences.</p>
+<h2 id="mask">mask</h2>
+<p>A <strong>mask</strong> is an ordinary form serving the user-agent realization role.</p>
+<p>Current tree graphical mask:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">native-graphical</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">face</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">interaction</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">FaceInteraction</span><span class="syntax-operator">...|</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">show</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Show</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">spread</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/tee</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">render</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/renderer</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">human</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">face/interaction</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">face</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">spread.presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">spread.presentation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">render.presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">spread.presentation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">human.presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">render.show</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">human.show</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">render.show</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">show</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">human.interaction</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">interaction</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The spoken mask has the same semantic role but may be realized through speech/audio machinery.</p>
+<p>There is no special <code>mask</code> declaration. mask is a role played by an ordinary checked form.</p>
+<h2 id="show">show</h2>
+<p>A <strong>show</strong> is one finite realized occurrence of a face through a mask.</p>
+<p>Examples:</p>
+<ul>
+<li>a browser DOM/SVG encounter;</li>
+<li>a native window;</li>
+<li>a ConduitOS surface;</li>
+<li>speech;</li>
+<li>deterministic linear text;</li>
+<li>another admitted medium.</li>
+</ul>
+<p>shows need not look or sound alike.</p>
+<h2 id="semantic-fidelity-is-not-visual-sameness">Semantic fidelity is not visual sameness</h2>
+<p>Two shows can differ radically while remaining faithful to the same face.</p>
+<p>A graphical show may use spatial layout; a spoken show may use sequence and prosody; a terminal show may use terse text. The invariant is not pixel identity. The invariant is preservation of the face's semantic structure, relationships, actions, state, and relevant emphasis.</p>
+<p>This makes accessibility and alternative media architectural peers rather than after-the-fact translations of a privileged screen.</p>
+<h2 id="same-meaning-does-not-mean-same-furniture">Same meaning does not mean same furniture</h2>
+<p>The face conformance work deliberately attacks familiar interfaces across radically different media.</p>
+<p>A meaningful cross-medium property may belong in face:</p>
+<ul>
+<li>emphasis when it changes understanding;</li>
+<li>semantic contrast;</li>
+<li>ordered traversal;</li>
+<li>source/destination roles;</li>
+<li>independent exploration when it changes what can be done.</li>
+</ul>
+<p>Medium furniture belongs downstream:</p>
+<ul>
+<li>red;</li>
+<li>48pt;</li>
+<li>left pane;</li>
+<li>two columns;</li>
+<li>fly-in animation.</li>
+</ul>
+<p>The test is not "can every UI be serialized?" It is "can the humanly relevant meaning and agency survive realization?"</p>
+<p>See <a href="https://github.com/dancxjo/conduit/issues/4167">#4167</a>.</p>
+<h2 id="wardrobe">Wardrobe</h2>
+<p>A body can author mask policy:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/native-graphical</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/spoken</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">body</span><span class="syntax-whitespace"> </span><span class="syntax-name">roseau</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">wear</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">want</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace"> </span><span class="syntax-name">over</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>wear graphical, spoken</code> permits either mask without ranking them. Only routes
+already sealed into the current plan are candidates for same-plan selection.</p>
+<p><code>want</code> is optional policy among semantically eligible alternatives. It cannot make an ineligible mask valid.</p>
+<p>Runtime <code>wear</code> and <code>doff</code> request wardrobe change and therefore planning where required. They do not mutate an immutable plan.</p>
+<h2 id="direct-and-recursive-masks-are-peers">Direct and recursive masks are peers</h2>
+<p>A browser might realize a graphical mask directly at a high semantic seam.</p>
+<p>ConduitOS might realize the same role recursively:</p>
+<pre><code class="language-text">face
+ -&gt; graphical mask
+ -&gt; layout/compositor
+ -&gt; raster
+ -&gt; scanout
+ -&gt; show
+</code></pre>
+<p>Both can be honest realizations if they preserve the mask contract. Conduit does not force every host through framebuffer-shaped machinery.</p>
+<h2 id="generative-masks-are-not-semantic-authority">Generative masks are not semantic authority</h2>
+<p>A model can participate in realization without becoming the application.</p>
+<p>The important direction is:</p>
+<pre><code class="language-text">exact face truth
+ -&gt; generative interpretation
+ -&gt; validation against exact semantic constraints
+ -&gt; show
+</code></pre>
+<p>Model prose does not create actions, authority, state, or domain truth by eloquence alone.</p>
+<p>The closed LLM mask issues built validation and correlation precisely to keep generative presentation expressive without giving it application authority.</p>
+<h2 id="residue-is-not-current-truth">Residue is not current truth</h2>
+<p>A show can physically outlive the face revision that produced it.</p>
+<p>A stale frame, retained DOM, buffered audio file, printed page, or transcript is <strong>residue</strong>, not proof of the current face/mask state.</p>
+<p>This matters especially during replan and recovery.</p>
+<h2 id="patchbay-is-an-ordinary-participant">Patchbay is an ordinary participant</h2>
+<p>Patchbay is not the definition of face. It is an inspection/workbench application whose own encounter should obey the same face/mask/show rules as everything else.</p>
+<p>That is an architectural pressure test: the debugger should not require a second UI ontology.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines<b aria-hidden="true">→</b></a></nav></main></div></body></html>

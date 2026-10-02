@@ -1,0 +1,254 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Forms and flow · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Forms-and-flow" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a aria-current="page" href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 16 of 23</p><h2 id="forms-and-completion">forms and completion</h2>
+<p>For a visual companion to the syntax below, browse the generated
+<a href="Form-diagrams.html">Form diagrams</a>.</p>
+<p>A form is <strong>live by default</strong>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">live-example</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">reading</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Temperature</span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">label</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">reading</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-number">30°C</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;hot&quot;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;fine&quot;</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">label</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>A trailing full stop after the closing brace declares <strong>semantic completion on structural drain</strong>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">finite-example</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">input</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">output</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/finite-example.svg" alt="The finite example form as connected gears" /></p>
+<h2 id="semantic-full-stop-versus">Semantic full stop: <code>}</code> versus <code>}.</code></h2>
+<p>The full stop belongs to the <strong>form as a whole</strong>, not to the sequence of statements inside its back.</p>
+<p>Canonical law:</p>
+<pre><code class="language-text">}     structural drain = quiescence; the play remains live for later admitted work
+}.    structural drain = semantic fulfillment; the play terminates normally as completed
+</code></pre>
+<p>More precisely:</p>
+<blockquote>
+<p>A trailing <code>.</code> on the form declares that when its admitted realization reaches <strong>structural drain under the ordinary scheduler law</strong>, that drain is a sufficient completion witness for the form's authored meaning.</p>
+</blockquote>
+<p>The period does <strong>not</strong> mean “stop executing now,” and it is not an executable statement, gear, cord, effect, cancellation request, or timeout.</p>
+<p>It also does <strong>not</strong> mean “terminate whenever nothing happens to be runnable this instant.” Temporary lack of runnable work, an outstanding admitted activation, waiting input/provider work, or any other condition that has not reached the scheduler's actual structural-drain state is not promoted to completion by punctuation.</p>
+<p>Without the trailing full stop, the same structural drain is <strong>quiescence</strong>. The exact play remains alive and may continue when later admitted input or activation arrives.</p>
+<p>With the trailing full stop, the same structural drain is <strong>semantic completion</strong>. The play may terminate normally with completed disposition.</p>
+<p>Thus the punctuation changes checked meaning, plan completion policy, and lifecycle behavior:</p>
+<pre><code class="language-text">form ... { ... }     live form
+form ... { ... }.    finite-on-drain form
+</code></pre>
+<p>This is intentionally punctuation on the form boundary. Do <strong>not</strong> encode semantic completion as a freestanding <code>.</code> statement inside the body.</p>
+<p>The historical/current implementation that accepts a standalone body <code>.</code> is now a migration target, not canon.</p>
+<p>The English keyword <code>complete</code> is <strong>not Conduitese</strong> and must be rejected rather than retained as a compatibility alias.</p>
+<p>A standalone <code>...</code> currently tolerated by old parsing is <strong>not canonical semantic syntax</strong>. It may survive losslessly as authoring trivia/TODO, but it must not acquire continuation, infinity, liveness, completion, or execution meaning.</p>
+<h2>Provenance: #3939 plus this canonical amendment in #4109.</h2>
+<h2 id="cords-and-fore-direction">cords and fore direction: <code>&gt;&gt;</code></h2>
+<p><code>&gt;&gt;</code> is the <strong>one canonical authored cord/direction token</strong>.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">source</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">transform</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">sink</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">upper</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">input</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">output</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/upper.svg" alt="The upper form as connected gears" /></p>
+<p>Where a paired fore is useful:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">upper</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">input</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/upper.svg" alt="The same upper topology with a paired fore" /></p>
+<p>The ordinary operators <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, and <code>&lt;=</code> belong to comparison/constraint mathematics, <strong>not graph carriage</strong>.</p>
+<p>Reserve expression shifts:</p>
+<pre><code class="language-text">&gt;&gt;    cord / fore direction
+&gt;&gt;&gt;   right shift in pure expressions
+&lt;&lt;&lt;   left shift in pure expressions
+</code></pre>
+<p>Historical <code>&gt;</code> cord source remains historical evidence. <strong>Do not make <code>&gt;</code> a current compatibility spelling.</strong></p>
+<p>Provenance: #3967.</p>
+<hr />
+<h2 id="pure-one-input-expressions">Pure one-input expressions</h2>
+<p>A pure expression has <strong>one current runtime input</strong>, written:</p>
+<pre><code class="language-text">.        whole input
+.field   record field
+.0       tuple element
+</code></pre>
+<p>and may reference immutable lexical/startup values.</p>
+<p>Pure expressions are finite and may not hide:</p>
+<ul>
+<li>host calls/effects;</li>
+<li>keep/state ownership;</li>
+<li>a second temporal input;</li>
+<li>waits/suspension;</li>
+<li>clock/random/resource acquisition except as explicit semantic input.</li>
+</ul>
+<p>Examples:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">reading</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-identity">.temperature</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-number">30°C</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;hot&quot;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;fine&quot;</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">label</span><span class="syntax-whitespace">
+</span><span class="syntax-name">flags</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">(</span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-number">8</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&amp;</span><span class="syntax-whitespace"> </span><span class="syntax-name">0xff</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">byte</span><span class="syntax-whitespace">
+</span></code></pre>
+<h2 id="ternary">Ternary</h2>
+<p>Canonical pure value-selection sugar:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">condition</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-name">yes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">no</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The condition is Boolean, branches unify to one exact finite result type/bound, and only the selected pure branch evaluates.</p>
+<p>Ternary is <strong>not graph routing</strong>.</p>
+<p>Provenance: #3964, #3969.</p>
+<hr />
+<h2 id="systems-grade-scalar-expressions">Systems-grade scalar expressions</h2>
+<p>Pure expressions admit exact fixed-width integer types when width is semantic:</p>
+<pre><code class="language-text">U8 U16 U32 U64 U128
+I8 I16 I32 I64 I128
+</code></pre>
+<p>Canonical integer literal families include decimal, hexadecimal, binary and octal with optional readability separators:</p>
+<pre><code class="language-text">255
+0xff
+0x8000_0000
+0b1000_0001
+0o755
+</code></pre>
+<p>Do not import C integer promotions, host-sized <code>usize/isize</code>, target-dependent wrapping, UB, or silent truncation.</p>
+<p>Canonical Boolean operators:</p>
+<pre><code class="language-text">!a
+a &amp;&amp; b
+a || b
+</code></pre>
+<p>Canonical bitwise operators for admitted exact integer/bitset types:</p>
+<pre><code class="language-text">a &amp; b
+a | b
+a ^ b
+</code></pre>
+<p>Shift spelling remains:</p>
+<pre><code class="language-text">&gt;&gt;&gt;   right shift
+&lt;&lt;&lt;   left shift
+&gt;&gt;    Cord / Fore direction, never an expression shift
+</code></pre>
+<p>Right-shift behavior follows checked signedness. Out-of-range shift counts require one portable checked refusal/result law rather than host-language masking/UB.</p>
+<p>Ergonomic number law:</p>
+<blockquote>
+<p><strong>Make unsafe ambiguity impossible; do not make machine widths homework.</strong></p>
+</blockquote>
+<p>Use exact widths where representation is meaning (register/wire/device/ABI). Ordinary arithmetic/counts/quantities should normally use semantic numeric types with planner/compiler-selected safe representation inside exact bounds.</p>
+<p>Required precedence, highest to lowest:</p>
+<pre><code class="language-text">primary / projection
+unary
+* / %
++ -
+&lt;&lt;&lt; &gt;&gt;&gt;
+&lt; &lt;= &gt; &gt;=
+== !=
+&amp;
+^
+|
+&amp;&amp;
+||
+?:
+&gt;&gt; Cord outside expression islands
+</code></pre>
+<p>No operator meaning may depend on whitespace.</p>
+<p>Provenance: #3964, #3967, #4014.</p>
+<hr />
+<h2 id="immutable-locals">Immutable locals</h2>
+<p>Canonical local binding:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">limit</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">30°C</span><span class="syntax-whitespace">
+</span><span class="syntax-name">matrix</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace"> </span><span class="syntax-name">a</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">b</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">0</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">c</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">0</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">d</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>=</code> declares an immutable lexical relationship. It is not assignment and not temporal sequencing.</p>
+<p>No shadowing of startup parameters, ports, gear names, locals, or imported aliases in the same scope.</p>
+<p>Local dependency cycles refuse. Runtime-flow capture requires explicit graph/value machinery and must not turn locals into hidden state.</p>
+<p>Provenance: #4052.</p>
+<hr />
+<h2 id="exactly-one-graph-routing">Exactly-one graph routing</h2>
+<p>Canonical routing:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">value</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">pattern-or-guard</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">route</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">_</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">otherwise-route</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Example:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">reading</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">.temperature</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-number">30°C</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">alert</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">_</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">_</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Rules:</p>
+<ul>
+<li>routing selects exactly one track;</li>
+<li><code>.</code> is the current selected payload;</li>
+<li>final bare <code>_:</code> is the otherwise arm where permitted;</li>
+<li>closed variants require exhaustive arms;</li>
+<li>missing, duplicate, overlapping, unreachable, multiple-otherwise and non-final-otherwise cases refuse;</li>
+<li>unselected effects do not execute;</li>
+<li>graph routing remains distinct from pure ternary.</li>
+</ul>
+<p>A route-side bare <code>_</code> means <strong>deliberate discard</strong>, once historical payload-placeholder uses have been migrated to <code>.</code>.</p>
+<p>Provenance: #3938, #4062.</p>
+<hr />
+<h2 id="unary-filter-sugar-when">Unary filter sugar: <code>when</code></h2>
+<p>Canonical unary value filter:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">temperature</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">when</span><span class="syntax-delimiter">(</span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">limit</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">alarm</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>It lowers to ordinary checked routing plus discard.</p>
+<p>It has one current runtime input <code>.</code> and may capture immutable lexical/startup values.</p>
+<p>It does <strong>not</strong> hide a second temporal input or temporal join.</p>
+<p>For flows it preserves modality/terminal law:</p>
+<pre><code class="language-text">T...  -&gt; T...
+T...| -&gt; T...|
+</code></pre>
+<p>For one <code>T</code>, rejecting the value must have an explicit zero-or-one/optional law, naturally <code>T?</code>; it must not pretend to remain unconditional <code>T -&gt; T</code>.</p>
+<p>There is <strong>no pre-release <code>where</code> compatibility alias</strong>.</p>
+<p>Provenance: #4044.</p>
+<hr />
+<h2 id="source-gears">Source gears</h2>
+<p>A source gear is ordinary checked work whose activation may originate from an admitted external condition rather than an upstream runtime data cord.</p>
+<p>Examples: timer, input device, network receive, sensor observation.</p>
+<p>There is <strong>no callback syntax and no second event-loop runtime</strong>. External readiness enters the same bounded scheduler/kernel activation model and obeys ordinary pressure, terminal and lifecycle law.</p>
+<p>Provenance: #4060.</p>
+<hr />
+<h2 id="pure-semantic-kind-call-sugar">Pure semantic kind-call sugar</h2>
+<p>Reviewed pure semantic kinds may use function-shaped expression sugar:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">sine</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/sin</span><span class="syntax-delimiter">(</span><span class="syntax-name">angle</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>This lowers to ordinary semantic kind application. It is not a parser-owned intrinsic or second function runtime.</p>
+<p>Eligibility is derived from checked semantic properties. Authors do not write “pinky promise this is pure.”</p>
+<p>Effectful, stateful, suspending or authority-bearing kinds refuse in pure expression context.</p>
+<p>Provenance: #4053, #4070, #4071.</p>
+<hr />
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Types-and-state.html">Types and state<b aria-hidden="true">→</b></a></nav></main></div></body></html>

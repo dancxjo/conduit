@@ -1,0 +1,134 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Glossary · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Glossary" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a aria-current="page" href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 7 of 23</p><p>Conduit uses ordinary nouns very deliberately, but they are easier to learn in <strong>small semantic clusters</strong> than as one ceremonial procession.</p>
+<h2 id="information">Information</h2>
+<table><thead><tr><th>term</th><th>meaning</th></tr></thead><tbody>
+<tr><td><strong>type</strong></td><td>reusable semantic contract describing what values mean</td></tr>
+<tr><td><strong>code</strong></td><td>an exact portable encoding contract, distinct from type meaning</td></tr>
+<tr><td><strong>info</strong></td><td>one finite typed/structured value carried through cords</td></tr>
+<tr><td><strong>data</strong></td><td>independently addressable immutable content generation</td></tr>
+<tr><td><strong>&amp;T</strong></td><td>ordinary finite info naming one exact data generation containing <code>T</code>, not authority or a pointer</td></tr>
+<tr><td><strong>keep</strong></td><td>retained current semantic value with an exact duration</td></tr>
+</tbody></table>
+<p>type meaning and code identity are separate. A current value in a keep may change while an earlier saved data generation remains immutable.</p>
+<h2 id="work-and-realization">Work and realization</h2>
+<table><thead><tr><th>term</th><th>meaning</th></tr></thead><tbody>
+<tr><td><strong>kind</strong></td><td>reusable semantic contract for executable work</td></tr>
+<tr><td><strong>fore</strong></td><td>user-visible checked callable signature of a kind or form</td></tr>
+<tr><td><strong>back</strong></td><td>one concrete realization compatible with a fore</td></tr>
+<tr><td><strong>gear</strong></td><td>one configured occurrence of a kind in a form</td></tr>
+<tr><td><strong>port</strong></td><td>typed directional point named by a fore and used by gears</td></tr>
+<tr><td><strong>cord</strong></td><td>semantic connection between compatible ports</td></tr>
+<tr><td><strong>line</strong></td><td>finite concrete carriage that may realize a cord across hosts</td></tr>
+<tr><td><strong>base</strong></td><td>concrete mechanism/resource boundary beneath a host</td></tr>
+<tr><td><strong>resource</strong></td><td>admitted runtime possession required by realization</td></tr>
+</tbody></table>
+<p>A cord is not a line, and a kind is not its back.</p>
+<h2 id="authored-execution">Authored execution</h2>
+<table><thead><tr><th>term</th><th>meaning</th></tr></thead><tbody>
+<tr><td><strong>form</strong></td><td>authored portable course of semantic work: what should happen</td></tr>
+<tr><td><strong>plan</strong></td><td>exact immutable admitted realization of a form under current truth</td></tr>
+<tr><td><strong>play</strong></td><td>active execution of one exact plan</td></tr>
+<tr><td><strong>step</strong></td><td>one bounded kernel transition during a play</td></tr>
+<tr><td><strong>host call</strong></td><td>one bounded request from an executing back into host machinery</td></tr>
+<tr><td><strong>sign</strong></td><td>bounded evidence/observation about truth or events</td></tr>
+</tbody></table>
+<p>A changed plan does not imply a changed form. A sign is evidence, not authority.</p>
+<h2 id="continuity">Continuity</h2>
+<table><thead><tr><th>term</th><th>meaning</th></tr></thead><tbody>
+<tr><td><strong>body</strong></td><td>durable logical computer that can continue while machinery changes</td></tr>
+<tr><td><strong>part</strong></td><td>durable membership relationship inside a body</td></tr>
+<tr><td><strong>host</strong></td><td>current realization environment capable of offering backs</td></tr>
+<tr><td><strong>boot</strong></td><td>one current incarnation/generation of a host</td></tr>
+<tr><td><strong>birth</strong></td><td>explicit authorized creation of a body</td></tr>
+<tr><td><strong>wake</strong></td><td>body lifecycle transition into active availability</td></tr>
+<tr><td><strong>lull</strong></td><td>body lifecycle transition out of active play while preserving continuity</td></tr>
+</tbody></table>
+<p>A host can reboot without becoming a new body; a body can lose a host without necessarily losing its identity.</p>
+<h2 id="human-encounter">Human encounter</h2>
+<table><thead><tr><th>term</th><th>meaning</th></tr></thead><tbody>
+<tr><td><strong>face</strong></td><td>body's human-facing semantic encounter and agency</td></tr>
+<tr><td><strong>mask</strong></td><td>planned user-agent realization of a face</td></tr>
+<tr><td><strong>show</strong></td><td>one finite concrete manifestation through a mask</td></tr>
+</tbody></table>
+<p>A face is not a widget tree, and a show is not authoritative merely because it is visible. <strong>face is not a synonym, ancestor, or presentation-side version of fore; the concepts are unrelated.</strong></p>
+<h2 id="source-and-system-nouns">Source and system nouns</h2>
+<table><thead><tr><th>term</th><th>meaning</th></tr></thead><tbody>
+<tr><td><strong>pack</strong></td><td>authored source/dependency shipment unit</td></tr>
+<tr><td><strong>Conduitese</strong></td><td>human-authored language of <code>.conduit</code> source</td></tr>
+<tr><td><strong>ConduitOS</strong></td><td>freestanding Conduit host environment</td></tr>
+<tr><td><strong>Patchbay</strong></td><td>inspection/workbench projection over authoritative Conduit truth</td></tr>
+<tr><td><strong>Crèche</strong></td><td>zero-body/birth entrance and body-creation experience</td></tr>
+</tbody></table>
+<h2 id="the-compact-map">The compact map</h2>
+<pre><code class="language-text">type → info (carried through a code)
+
+kind → fore → back
+          ↓
+        gear → port → cord → line
+
+form → plan → play
+
+body → wake / lull
+  ↓
+ hosts / boots / parts
+
+keep ↔ current truth
+data ↔ immutable named generation
+
+face → mask → show
+</code></pre>
+<p>The arrows are mnemonic, not a claim that every noun is a pipeline stage.</p>
+<h2 id="proposed-vocabulary">Proposed vocabulary</h2>
+<p>Current source uses executable <code>form</code> and encoding <code>code</code>.
+<a href="https://github.com/dancxjo/conduit/issues/4513">#4513</a> proposes <code>plot</code> for the
+executable unit and <code>form</code> for portable representation. That proposed pair is
+not the current parser surface. Follow <a href="Current-language-surface.html">Current language surface</a>
+when writing source.</p>
+<h2 id="superseded-vocabulary">Superseded vocabulary</h2>
+<p>Historical repository material may use older names.</p>
+<table><thead><tr><th>historical</th><th>current</th></tr></thead><tbody>
+<tr><td>generic architectural <strong>Data</strong></td><td><strong>info</strong></td></tr>
+<tr><td>callable <strong>Front</strong></td><td><strong>fore</strong></td></tr>
+<tr><td>body human-facing semantic surface</td><td><strong>face</strong></td></tr>
+<tr><td>Presenter</td><td><strong>mask</strong></td></tr>
+<tr><td>presentation Manifestation</td><td><strong>show</strong></td></tr>
+<tr><td>HostOperation</td><td><strong>host call</strong></td></tr>
+<tr><td>Seed as privileged body semantic identity</td><td>no privileged seed; ordinary forms/workset participate in birth</td></tr>
+</tbody></table>
+<p>The current noun <strong>data</strong> was later reintroduced with the narrower meaning “independently addressable immutable content generation.”</p>
+<p>Do not blindly rewrite historical proof or receipts. Old evidence should keep the words it actually recorded.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Start-here.html">Start here<b aria-hidden="true">→</b></a></nav></main></div></body></html>

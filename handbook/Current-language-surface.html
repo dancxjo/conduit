@@ -1,0 +1,317 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Current language surface · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Current-language-surface" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a aria-current="page" href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 14 of 23</p><h1 id="current-language-surface">Current language surface</h1>
+<p>This reference describes the checked development surface reviewed on
+<strong>1 October 2026</strong>. Source tests linked below establish grammar and checking;
+target tests establish the named execution paths. Published products can lag
+<code>dev</code>. Detailed semantic laws live on the topic pages in the sidebar.</p>
+<h2 id="declarations-and-status">Declarations and status</h2>
+<ul>
+<li><code>form</code> declares executable composition; its parenthesized <strong>fore</strong> is the callable signature</li>
+<li><code>type</code> declares semantic value meaning</li>
+<li><code>code</code> declares a portable encoding, separate from type identity</li>
+<li><code>host</code>, <code>body</code>, and <code>pack</code> declare construction or shipment truth, not live runtime state</li>
+</ul>
+<p><code>plot</code> and the reassignment of <code>form</code> to representation remain proposed in
+<a href="https://github.com/dancxjo/conduit/issues/4513">#4513</a>. <code>representation</code> is
+rejected as an obsolete keyword. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/surface_parser.rs">parser</a>
+and <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/syntax_check_tests.rs">syntax tests</a>.</p>
+<h2 id="callable-composition">Callable composition</h2>
+<h3 id="named-type-parameters">Named type parameters</h3>
+<p>This signature sketch omits its implementation; <code>...</code> below is an editorial
+placeholder, not runnable body syntax. The complete bounded <code>flow/each</code> example
+later on this page shows a checked generic implementation.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">latest</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">item</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">values</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">current</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-operator">$</span><span class="syntax-name">item</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>type</code> is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as <code>latest(item = Text)</code>. This form-parameter surface does not require runtime erasure, implicit <code>any</code>, or hidden closures. Owner: #4059.</p>
+<h3 id="explicit-current-sampling">Explicit Current sampling</h3>
+<p>There is no implicit <code>$T -&gt; T</code> coercion. <code>current/sample</code> samples one Current value for each accepted semantic trigger; <code>$T</code> yields <code>T</code>, and <code>$T?</code> yields <code>T?</code>. The sampled generation is the exact current generation causally visible when the trigger is consumed. It is distinct from cadence-driven <code>time/sample</code>.</p>
+<p>Canonical concise spelling:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">note</span><span class="syntax-whitespace"> </span><span class="syntax-operator">@</span><span class="syntax-whitespace"> </span><span class="syntax-name">save-request</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">save.value</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Owner: #4064; first persistence proof: #4116.</p>
+<h3 id="finite-variants">Finite variants</h3>
+<p>Construction is qualified by exact variant type:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-identity">MusicEvent.note</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">{</span><span class="syntax-whitespace"> </span><span class="syntax-name">velocity</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">96</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">pitches</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-number">60</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">62</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">}</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">MusicEvent.rest</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Graph matching is:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">event</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">[</span><span class="syntax-identity">MusicEvent.note</span><span class="syntax-delimiter">]</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">play-note</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">[</span><span class="syntax-identity">MusicEvent.rest</span><span class="syntax-delimiter">]</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep-silence</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Within a selected payload-bearing case, <code>.</code> is the case payload. Payloadless cases omit empty-call ceremony. Closed variants remain exhaustive. Owner: #4002.</p>
+<h3 id="gear-glyphs">gear glyphs</h3>
+<p>A gear may have an ordinary word name or a lexical glyph name. A glyph names an already-defined kind or one configured gear occurrence; it does not define an operator, precedence, associativity, fixity, parser rule, overload set, effect, or runtime.</p>
+<p>For a one-input / one-output fore:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>has the exact checked meaning of <code>input &gt;&gt; text/upper &gt;&gt; output</code>.</p>
+<p>For exact multi-input fores, glyph operands bind in canonical fore order. A reviewed variadic homogeneous fore may flatten repeated use into one gear occurrence, e.g. <code>a &gt;&lt; b &gt;&lt; c &gt;&gt; merged</code>.</p>
+<p>The standard glyph prelude is in lexical scope by default:</p>
+<pre><code class="language-text">&gt;&lt;   flow/merge
+&amp;&gt;   flow/zip
+?&gt;   flow/race
+&lt;&gt;   state/combine-latest
+@    current/sample
+</code></pre>
+<p>A source file may opt out at its header:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">sans</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">glyphs</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Explicit glyph imports remain legal afterward. One glyph has one lexical referent; there is no type-directed overloading. Mixed adjacent glyphs require explicit grouping. The prelude is versioned with the language surface and participates in checked source identity; it is not a mutable ambient pack dependency.</p>
+<p>Checked expansion, plans and signs expose the ordinary gear behind every glyph. There is no glyph runtime. Owner: #4335.</p>
+<h3 id="checked-refinements-and-portable-patterns">Checked refinements and portable patterns</h3>
+<p><code>when(...)</code> remains runtime graph filtering. Checked type refinements are written directly as relations on the type:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">choice</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;x&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;y&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;z&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace">
+</span><span class="syntax-name">count</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1..</span><span class="syntax-operator">=</span><span class="syntax-number">100</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">code</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">64B</span><span class="syntax-whitespace"> </span><span class="syntax-operator">~</span><span class="syntax-whitespace"> </span><span class="syntax-identity">/matches</span><span class="syntax-delimiter">(</span><span class="syntax-operator">?</span><span class="syntax-operator">:</span><span class="syntax-name">lookahead</span><span class="syntax-delimiter">)</span><span class="syntax-delimiter">(</span><span class="syntax-operator">?&lt;</span><span class="syntax-name">name</span><span class="syntax-operator">&gt;</span><span class="syntax-delimiter">[</span><span class="syntax-name">A-Z</span><span class="syntax-delimiter">]</span><span class="syntax-name">+</span><span class="syntax-delimiter">)</span><span class="syntax-identity">/i</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Adjacent refinement relations are conjunctive:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">code</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;AB12&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;CD34&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace"> </span><span class="syntax-operator">~</span><span class="syntax-whitespace"> </span><span class="syntax-identity">/</span><span class="syntax-delimiter">[</span><span class="syntax-name">A-Z</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-delimiter">[</span><span class="syntax-name">0-9</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-identity">/</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>in [a, b, c]</code> is finite membership. <code>in a..b</code> is lower-inclusive / upper-exclusive; <code>in a..=b</code> is inclusive at both ends. Missing range ends express semantic openness: <code>Count in 4..</code> has no authored upper endpoint, while <code>Scalar in ..=1.000000</code> has no authored lower endpoint. This does not reserve infinite storage; each actual value still needs a finite admitted carrier. <code>in ..</code> adds no refinement and is rejected. See the <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/refinement_tests.rs">range tests</a>.</p>
+<p><code>~ /.../flags</code> is the canonical portable text-pattern relation. Slash literals use Conduit's bounded regular language, not a host-selected regex dialect. The admitted language includes ordinary regular constructs plus non-capturing groups, named groups, and bounded-compilable positive/negative lookahead; it excludes backreferences, recursion, embedded code and any construct whose work cannot be admitted finitely.</p>
+<p><code>~ /pattern/</code> succeeds when the pattern has a match within the bounded text. Authors use canonical anchors when whole-value matching is intended. Flags are a finite reviewed Conduit set and participate in checked identity; a Boolean refinement does not admit a meaningless global-iteration flag.</p>
+<p>The older <code>where pattern(...)</code>, <code>where range(...)</code> and <code>where member(...)</code> spellings are migration targets, not compatibility aliases. Owner: #4199.</p>
+<h2 id="native-types-codes-and-record-laws">Native types, codes, and record laws</h2>
+<h3 id="generic-native-types">Generic native types</h3>
+<p>Native type declarations can bind checked type parameters using angle brackets:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Pair</span><span class="syntax-operator">&lt;</span><span class="syntax-name">T</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">left</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">T</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">right</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">T</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">TextPair</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Pair</span><span class="syntax-operator">&lt;</span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">16B</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>This differs from a form's named <code>item: type</code> parameter above. Checking
+substitutes each argument through the complete finite structure and its laws.
+The concrete identity includes the exact generic declaration and arguments;
+play receives no open parameter, runtime closure, or dynamic dispatcher.
+Invalid arity, unused/duplicate parameters, unknown applications, and recursive
+or unbounded instantiation refuse. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/syntax_check_tests.rs">generic type tests</a>
+and <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/native_type/generic.rs">checker</a>.</p>
+<p>A real current family is
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/data/types.conduit"><code>DataGenerationValue&lt;T&gt;</code></a>,
+whose text specialization is bounded to 4096 bytes. This language support does
+not mean all generic domain families have already migrated.</p>
+<h3 id="compact-codes">Compact codes</h3>
+<p>This <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/alife/types.conduit">checked-in declaration</a>
+keeps semantic alternatives separate from byte tags:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">LeniaRegionChunkKind</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">work</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">code</span><span class="syntax-whitespace"> </span><span class="syntax-identity">alife/lenia-region-chunk-kind</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">LeniaRegionChunkKind</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">u8</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">from</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The compact code assigns consecutive <code>u8</code> tags beginning at 1. The checked
+mapping owns finite extent/work, compatibility identity, and invalid-tag
+refusal; generated bindings do not independently restate the mapping. This
+example does not claim every proposed record or wire-layout encoding exists.</p>
+<h3 id="record-laws">Record laws</h3>
+<p>Records can own pure Boolean laws over the complete value:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Interval</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">start</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U32</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">end</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U32</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">where</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.start</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.end</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>where</code> laws participate in type identity and are enforced at generated
+construction and decode boundaries. They use the finite checked expression
+language. Real declarations include
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/language/types.conduit">linguistic spans</a>
+and <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/audio/types.conduit">audio frame laws</a>.
+The <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/rust_binding/generate_tests.rs">generated-binding tests</a>
+cover refusal and independent bindings.</p>
+<p><code>variant/tag(value)</code> returns ordinary <code>Text</code>. A comparison such as
+<code>variant/tag(.direction) == "mono"</code> is checked as text equality; the compared
+literal is not validated against the variant alternatives. A typo can therefore
+remain well-typed while making a law false. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/expression_semantic_call.rs">semantic call checker</a>
+and the record-law syntax tests.</p>
+<p>Construction-time enforcement is implemented by
+<a href="https://github.com/dancxjo/conduit/pull/4638">#4638</a>. General propagation of
+these facts into consuming forms and removal of proven-safe arithmetic checks
+remains open in <a href="https://github.com/dancxjo/conduit/issues/4639">#4639</a>.</p>
+<h2 id="bounded-each-select-fold-and-scan">Bounded each, select, fold, and scan</h2>
+<p>These are checked activation coordinators around exact selected behavior,
+not general loops or runtime closures. The following wrapper is copied from
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/activation_tests.rs">activation conformance source</a>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-identity">flow/each</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">item</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">result</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">transform</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">kind</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">value</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">values</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-operator">...|</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-operator">...|</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">each</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">activate</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">transform</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">values</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">each.value</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">each.mapped</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">mapped</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Here <code>flow/each</code> is a <strong>source-defined wrapper</strong>, not an implicit installed
+catalog kind. With an exact checked <code>text/normalize</code> form in scope, the fixture
+specializes it with:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">flow/each</span><span class="syntax-delimiter">(</span><span class="syntax-name">item</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">transform</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/normalize</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The same test file defines these body fragments within full declared fores:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">selection</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">select</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">predicate</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-name">values</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">selection.value</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">selection.selected</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">selected</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">folder</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">fold</span><span class="syntax-delimiter">(</span><span class="syntax-name">initial</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-identity">integer/add</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-name">items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">folder.item</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">folder.combined</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">scanner</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">scan</span><span class="syntax-delimiter">(</span><span class="syntax-name">initial</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-identity">integer/add</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-name">items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">scanner.item</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">scanner.combined</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">accumulators</span><span class="syntax-whitespace">
+</span></code></pre>
+<ul>
+<li><code>activate</code> requires exact value-input/value-output behavior; a flow behavior is refused</li>
+<li><code>select</code> calls a Boolean predicate and emits the retained original item through <code>selected</code> when true</li>
+<li><code>fold</code> and <code>scan</code> require two value inputs, <code>accumulator</code> and <code>item</code>, and one <code>combined</code> output; the fixtures use exact <code>U64 &lt;= 28B</code> ports and an <code>initial: U64</code> parameter</li>
+<li><code>fold</code> returns one value on normal close; <code>scan</code> exposes the closing-flow progression</li>
+<li><code>maximum-items</code> is a positive exact <code>u16</code> admission bound, not an unbounded iterator</li>
+</ul>
+<p>The predicate/combine declarations in the checking fixtures are contract
+fixtures, not complete useful algorithms. Their execution is proved separately
+through the selected target backs.</p>
+<p><a href="https://github.com/dancxjo/conduit/issues/4378#issuecomment-5923888244">#4378 is complete</a>
+for each/select/fold/scan and bounded collection from a closing flow. Evidence
+covers <a href="https://github.com/dancxjo/conduit/blob/dev/targets/std/src/flow_activation/tests.rs">std activation</a>,
+<a href="https://github.com/dancxjo/conduit/blob/dev/targets/browser/runtime/src/flow_activation/tests.rs">browser runtime activation</a>,
+<a href="https://github.com/dancxjo/conduit/blob/dev/targets/browser/runtime/src/flow_activation/tests/installed_inventory.rs">installed browser behavior</a>,
+and <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/data/src/flow_collect_back_tests.rs">shared collect laws</a>.
+Pressure, cancellation, abnormal termination, bounds, and receipt identity stay
+explicit. Browser runtime/WASM proof is not browser interaction/E2E proof.
+Embedded applicability was audited, but current admitted ConduitOS resident
+forms do not exercise these combinators; this is not universal embedded
+execution evidence.</p>
+<h2 id="resources-and-construction">Resources and construction</h2>
+<h3 id="runtime-bound-resources">Runtime-bound resources</h3>
+<p>Canonical authored type spelling is <code>resource T</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">region</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">machine/memory/mmio/region</span><span class="syntax-whitespace">
+</span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/surface</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Keep distinct:</p>
+<pre><code class="language-text">{ address, length }   forgeable descriptive info
+&amp;T                    ordinary info naming immutable data
+resource T            admitted runtime possession
+</code></pre>
+<p>There are no resource literals and no parallel <code>capability T</code> wrapper. Owner: #4065.</p>
+<h3 id="imports-and-packs">Imports and packs</h3>
+<p>Source imports use <code>with</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">audio/forms/tone</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry/</span><span class="syntax-delimiter">{</span><span class="syntax-name">vector2</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">matrix2</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors/temperature</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">room-temperature</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Aliases may be ordinary names or admitted gear glyphs.</p>
+<p>The authored ecosystem noun is <strong>pack</strong>. Pack authoring uses <code>pack.conduit</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">pack</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">version</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1.4.0</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">ship</span><span class="syntax-whitespace"> </span><span class="syntax-name">temperature</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">need</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^</span><span class="syntax-identity">2.1</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>package</code> is not an authored compatibility keyword. Resolution produces generated exact lock truth in <code>conduit.lock</code>. Pack/version/module/source/content/distribution identities remain distinct from semantic kind identity. Imports grant no runtime authority and execute no code. Owner: #4055.</p>
+<h3 id="body-wardrobe">body wardrobe</h3>
+<p>mask remains an ordinary form role; there is no <code>mask</code> declaration.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/native-graphical</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/spoken</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">body</span><span class="syntax-whitespace"> </span><span class="syntax-name">roseau</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">wear</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">want</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace"> </span><span class="syntax-name">over</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>wear a, b</code> is an unordered bounded set of permitted masks; comma order carries no preference. <code>want</code> is optional ordered policy only among eligible alternatives. Same-plan selection may use only exact routes already sealed by that plan; otherwise loss requires ordinary replacement planning. The legacy <code>wear a else b</code> spelling is rejected because its ordered fallback meaning cannot be silently migrated into unordered eligibility. Runtime <code>wear</code> and <code>doff</code> request planning where required and never mutate an immutable plan in place. Owner: #4115.</p>
+<p>Body construction schema 2 owns this wardrobe shape. Schema 1 remains a
+distinct legacy contract and is not reinterpreted as unordered eligibility.</p>
+<h3 id="host-source">host source</h3>
+<p>host source is limited to construction truth: construction parameters, finite declared <code>resource</code> pools, concrete <code>base</code> boundaries, reviewed <code>back</code> realizations, and explicit policy/bounds.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-name">conduitos-native</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">target</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">conduitos/x86_64/pc</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">build</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">release</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">loader</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">limine</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/surface</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">slots</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8MiB</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">mmio</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">base</span><span class="syntax-whitespace"> </span><span class="syntax-identity">machine/mmio</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">framebuffer</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">display/linear-framebuffer</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">memory</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">mmio</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">graphics</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/graphics</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">surface</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">surface</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">display</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">framebuffer</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">policy</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">authority</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">explicit</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">ambient</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">false</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">bounds</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">heap</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">16MiB</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">calls</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">signs</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">1024</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>driver</code> and <code>facility</code> are not separate source ontologies. host source does not author current HostId, BootId, offers, device instances, authority, observations, lines, plans or plays. A line remains current connectivity realization, not profile source. Owner: #4117.</p>
+<hr />
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Architecture.html">Architecture<b aria-hidden="true">→</b></a></nav></main></div></body></html>

@@ -1,0 +1,154 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Lines networking and replanning · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Lines-networking-and-replanning" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a aria-current="page" href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 11 of 23</p><p>Conduit does not make networking disappear. It keeps network mechanism out of portable meaning until realization actually needs it.</p>
+<h2 id="networking-is-not-erased-it-is-put-at-the-right-altitude">Networking is not erased; it is put at the right altitude</h2>
+<p>“Location transparency” becomes dangerous when it turns failures, latency, authority, and transport limits into invisible surprises.</p>
+<p>Conduit therefore does not promise that remote work behaves exactly like local work. It promises a cleaner distinction:</p>
+<ul>
+<li>the <strong>cord</strong> belongs to authored semantic composition;</li>
+<li>the <strong>line</strong> belongs to the exact realization chosen to carry that cord.</li>
+</ul>
+<p>The semantic graph can stay stable while planning tells the truth about where carriage crosses a machine boundary.</p>
+<h2 id="cord-versus-line">cord versus line</h2>
+<p>A <strong>cord</strong> is a semantic connection between compatible ports.</p>
+<p>A <strong>line</strong> is one finite connectivity realization that can carry a cord between hosts.</p>
+<pre><code class="language-text">cord = meaning/composition
+line = realized carriage
+</code></pre>
+<p>A form can therefore be written without naming WebSocket, USB, Bluetooth, WebRTC, a relay, or a local socket.</p>
+<h2 id="a-network-operation-can-still-be-semantic-when-networking-is-the-point">A network operation can still be semantic when networking is the point</h2>
+<p>Current tree:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">network-resolution</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">connection</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NetworkConnectionState</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">dns</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">DnsResult</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">endpoint</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">net/deterministic-endpoint</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">query</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">net/deterministic-dns-query</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">connect</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">net/connect</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">resolve</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">net/resolve-dns</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-identity">endpoint.endpoint</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">connect.endpoint</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">query.query</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">resolve.query</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">connect.state</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">connection</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">resolve.result</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">dns</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/network-resolution.svg" alt="The network resolution form as connected gears" /></p>
+<p>Here connection and DNS meaning are themselves the subject of the form.</p>
+<p>That is different from a portable button/indicator form whose cord merely happens to cross a network during realization.</p>
+<h2 id="remote-carriage-does-not-grant-membership">Remote carriage does not grant membership</h2>
+<p>These facts remain separate:</p>
+<pre><code class="language-text">reachable
+authenticated
+trusted
+member of body
+authorized for a capability
+selected by a plan
+</code></pre>
+<p>Seeing a host does not admit it into a body. body membership does not grant every effect. A line does not mint authority.</p>
+<h2 id="current-line-mechanisms">Current line mechanisms</h2>
+<p>The development tree has evidence for bounded combinations of:</p>
+<ul>
+<li>local/loopback transport;</li>
+<li>WebSocket;</li>
+<li>USB CDC;</li>
+<li>protected relay;</li>
+<li>WebRTC DataChannel;</li>
+<li>attended serial candidates.</li>
+</ul>
+<p>The shared rendezvous model can advertise multiple exact route candidates. Each host attempts only mechanisms it actually supports.</p>
+<p>ConduitOS truthfully skipping WebRTC is better than pretending the transport exists for symmetry.</p>
+<h2 id="failure-and-recovery">Failure and recovery</h2>
+<p>A disappearing line is an observation that may invalidate part of a realization.</p>
+<p>There are two major recovery shapes.</p>
+<h3 id="same-plan-fallback">Same-plan fallback</h3>
+<p>If the plan already admitted another exact route/provider:</p>
+<pre><code class="language-text">Plan P
+  route A
+  route B
+
+A lost
+ -&gt; B selected under sealed fallback law
+ -&gt; PlanId stays P
+</code></pre>
+<h3 id="true-replan">True replan</h3>
+<p>If current plan P can no longer satisfy the obligation:</p>
+<pre><code class="language-text">loss observation
+ -&gt; planning requested
+ -&gt; fresh offers/resources/routes
+ -&gt; Plan P2 or refusal
+</code></pre>
+<p>P remains immutable history.</p>
+<h2 id="two-ollamas-is-the-clean-distributed-stress-test">Two Ollamas is the clean distributed stress test</h2>
+<p>The <a href="https://github.com/dancxjo/conduit/issues/4092">Two Ollamas vertical #4092</a> uses one semantic model request and two substitutable provider realizations to prove:</p>
+<ul>
+<li>exact host/boot/provider selection;</li>
+<li>same-plan fallback;</li>
+<li>true replacement planning;</li>
+<li>replay/movement legality derived from checked meaning;</li>
+<li>causal evidence explaining what changed;</li>
+<li>no Ollama-specific scheduler law.</li>
+</ul>
+<p>Provider URLs, HTTP framing, credentials, and model vendor identity remain below the portable LLM fore.</p>
+<h2 id="desk-telegraph-shows-the-communication-waist">Desk Telegraph shows the communication waist</h2>
+<p>Current tree:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">bounded-record-send</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">maximum-items</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">maximum-frame-bytes</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4096</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">frame</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">FramedTypedRecord</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">queued</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">FramedTypedRecord</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">queue</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">record/ordered-send-queue</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-items</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-frame-bytes</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">frame</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">queue</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">queued</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The queue has explicit finite pressure. Later remote carriage can be added without turning transport into the meaning of typed records.</p>
+<h2 id="no-hidden-retry">No hidden retry</h2>
+<p>Retry is a semantic promise.</p>
+<p>A host, base, or line cannot quietly retry effectful work because "networks are flaky." Replay/movement eligibility derives from the checked work. If an external effect may already have committed, Conduit needs a real idempotency/transaction/replay law, not optimism.</p>
+<h2 id="causality-should-be-explainable">Causality should be explainable</h2>
+<p>Good distributed evidence answers:</p>
+<ul>
+<li>what became unavailable?</li>
+<li>which exact observation established that?</li>
+<li>was fallback already admitted?</li>
+<li>did PlanId change?</li>
+<li>was work replayed or moved?</li>
+<li>why was that legal?</li>
+<li>did semantic work continue?</li>
+<li>if not, what exact terminal truth escaped?</li>
+</ul>
+<p>Timestamps alone are not causality.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Face-Mask-and-Show.html">Face Mask and Show<b aria-hidden="true">→</b></a></nav></main></div></body></html>

@@ -1,0 +1,122 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Architecture · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Architecture" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a aria-current="page" href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 15 of 23</p><h2 id="vocabulary">Vocabulary</h2>
+<p>In prose, these are ordinary lowercase nouns:</p>
+<p><code>form</code>, <code>body</code>, <code>info</code>, <code>kind</code>, <code>gear</code>, <code>port</code>, <code>cord</code>, <code>fore</code>, <code>back</code>, <code>host</code>, <code>plan</code>, <code>play</code>.</p>
+<p>Use capitalization normally at sentence starts and for actual proper names/code identifiers such as <code>Conduit</code>, <code>ConduitOS</code>, <code>Patchbay</code>, <code>BodyId</code>, or Rust <code>Form</code>.</p>
+<p>Provenance: #4066.</p>
+<hr />
+<h2 id="semantic-paths-and-the-fore-boundary">Semantic paths and the fore boundary</h2>
+<p>Semantic kind paths are <strong>arbitrarily deep cladistic names</strong>, not fixed-rank <code>category/leaf</code> tuples.</p>
+<pre><code class="language-text">machine/memory/mmio/read/u32
+bus/pci/function/bar
+audio/hda/codec/verb
+math/matrix/multiply
+</code></pre>
+<p>Common prefixes may express organization/ancestry, but <strong>path depth and prefix do not establish type compatibility</strong>. Exact semantic compatibility comes from reviewed kind identity/contract and fore law.</p>
+<p>Canonical grammar direction:</p>
+<pre><code class="language-text">KindPath := Name ("/" Name)+
+</code></pre>
+<p>Apply ordinary identifier/source-size bounds rather than a small aesthetic depth limit.</p>
+<p><strong>fore</strong> is the canonical user-facing noun for the checked callable signature of a kind/form:</p>
+<pre><code class="language-text">Kind = semantic meaning of the work
+Fore = the function-like signature through which it is called
+Back = one concrete realization compatible with that Fore
+</code></pre>
+<p>The fore is not merely an internal compiler boundary. It is the callable surface presented to authors. For an authored form, the parenthesized declaration is its fore; catalog kinds expose the same concept.</p>
+<p>A checked fore includes the public calling facts that participate in functional compatibility:</p>
+<pre><code class="language-text">startup parameters
+  names, order, value types, required/default shape
+
+runtime ports
+  names, directions, value types, temporal shapes
+
+declared shorthand
+  input -&gt; output path, where present
+</code></pre>
+<p><code>fore</code> need not be a literal source keyword for the concept to be user-facing: the signature itself is the fore.</p>
+<p><strong>face is unrelated to fore.</strong> face belongs to the separate human-interaction/presentation architecture; it is not a renamed callable boundary and should not be taught as part of this vocabulary lineage.</p>
+<p>Shared fore shape alone does not make different kinds semantically substitutable. Equal fores mean they can be called the same way; semantic contract identity says whether they mean the same work.</p>
+<p>Provenance: #3998, #4037.</p>
+<hr />
+<h2 id="architectural-altitude-and-superseded-vocabulary">Architectural altitude and superseded vocabulary</h2>
+<p>Keep each noun at one altitude:</p>
+<pre><code class="language-text">Kind      semantic contract: what something means
+Fore      user-visible checked callable signature of a Kind/Form
+Back      one concrete realization compatible with that Kind/Fore
+Gear      one configured occurrence/invocation of a Kind in a Form
+Port      typed directional point named by a Fore and used by a Gear
+Cord      semantic connection between compatible Ports
+info      general typed/structured value carried through Cords
+data      independently addressable content generation (section 6A), not the generic payload noun
+Base      concrete mechanism/resource boundary beneath a Host
+Line      finite connectivity realization
+Sign      bounded evidence/observation about what is true or what happened
+Host      truthful finite current realization offers for one Boot
+Plan      exact immutable selected realization
+Play      active execution of one exact Plan
+Step      one bounded kernel transition while advancing a Play
+Host Call one bounded request an executing Back makes across the Host boundary
+Body      durable continuant
+Face      Body's human-facing semantic encounter and control grammar
+Mask      planned user-agent realization of a Face
+Show      one finite realized occurrence through a Mask
+</code></pre>
+<p>Compact execution sentence:</p>
+<blockquote>
+<p><strong>A gear invokes a kind through its fore. A host offers a back for that kind. A plan chooses the back. A play advances it in steps. A step may make a host Call.</strong></p>
+</blockquote>
+<p>Compact flow sentence:</p>
+<blockquote>
+<p><strong>gears exchange info through cords; lines may realize cross-host carriage; signs tell planning/execution what the realized world establishes.</strong></p>
+</blockquote>
+<p>Lifecycle action vocabulary uses <strong>birth</strong> for the explicit authorized action that creates a body. A birth event/sign is evidence of that transition. birth creates the continuant; it does not implicitly Wake, plan or play. WAKE and LULL remain body lifecycle concepts distinct from boot and play.</p>
+<h3 id="supersession-map">Supersession map</h3>
+<p>Historical tickets may contain earlier nouns. Current meaning is:</p>
+<pre><code class="language-text">generic architectural Data     -&gt; info
+old/internal callable Front    -&gt; fore (user-visible callable signature)
+Body human-facing semantic surface -&gt; face (separate presentation concept; unrelated to fore)
+Presenter                      -&gt; mask
+presentation Manifestation     -&gt; show
+HostOperation                  -&gt; host call
+BE BORN / BORN action label    -&gt; birth
+</code></pre>
+<p>This is semantic migration, not blind text replacement. Historical evidence keeps the words it actually recorded.</p>
+<p>The reintroduced current noun <strong>data</strong> is intentionally narrower than the retired generic Data noun: data now means independently addressable content under section 6A.</p>
+<p>Do not use Capability as a generic synonym for implementation/offer. Capability retains possession/authority meaning where appropriate.</p>
+<p>Provenance: #610, #615, #644, #1281, #3831, #3862, #3863, #3865, #4037, #3951.</p>
+<hr />
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Forms-and-flow.html">Forms and flow<b aria-hidden="true">→</b></a></nav></main></div></body></html>

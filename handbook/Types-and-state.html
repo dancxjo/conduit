@@ -1,0 +1,262 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Types and state · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Types-and-state" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a aria-current="page" href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 17 of 23</p><h2 id="semantic-domains-may-be-open-execution-may-not-be">Semantic domains may be open; execution may not be</h2>
+<p>Conduit distinguishes <strong>the set of values a type means</strong> from <strong>the resources required to represent and execute one actual value</strong>.</p>
+<p>A semantic numeric domain may therefore be open-ended:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Temperature</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Scalar</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">-273.15.</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Integer</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">0.</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">AtMostOne</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Scalar</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">..</span><span class="syntax-operator">=</span><span class="syntax-number">1</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The semantic meaning is not truncated merely because one host uses a finite machine representation.</p>
+<p>The runtime promise is different:</p>
+<blockquote>
+<p><strong>Semantic domains may be unbounded; execution resources may not be.</strong></p>
+</blockquote>
+<p>An actual value must still be representable by the selected code/back and admitted within finite resource envelopes. A semantically valid value that a particular host cannot represent is a representation/admission problem, not a reason to lie about the type's meaning.</p>
+<p>Variable-sized values and collections still need finite execution bounds. For example:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+</span><span class="syntax-name">memo</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4KiB</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>A bare <code>Text</code> receives the canonical finite value-size default during checking; explicit bounds use <code>&lt;=</code>.</p>
+<p>The distinction is:</p>
+<pre><code class="language-text">unbounded semantic value domain     allowed
+unbounded collection growth         not implicit
+unbounded stream backlog            not implicit
+unbounded retained storage growth   not implicit
+unbounded execution resource use    not admitted
+</code></pre>
+<p>Bounds constrain realizable values and resource use. They do not themselves imply retention, persistence, allocation strategy, or authority.</p>
+<h2 id="type-info-and-code">type, info, and code</h2>
+<p>A <strong>type</strong> owns semantic meaning; <strong>info</strong> is one finite value of that type.
+A <strong>code</strong> owns a portable encoding contract. A variant case does not mean its
+byte tag, and changing a selected code does not redefine the type.</p>
+<p>The current compact-code declaration maps a finite variant to <code>u8</code> tags, with
+checked mapping, finite extent/work, compatibility identity, and invalid-tag
+refusal. This does not claim arbitrary record layouts, byte orders, or every
+proposed wire/storage representation. See
+<a href="Current-language-surface.html">Current language surface</a> for the current example.</p>
+<p>The executable declaration remains <code>form</code>. The reassignment of that word to
+representation, paired with executable <code>plot</code>, remains proposed in
+<a href="https://github.com/dancxjo/conduit/issues/4513">#4513</a>.</p>
+<h2 id="checked-type-identity-is-not-source-spelling">Checked type identity is not source spelling</h2>
+<p>Source aliases are authoring convenience only.</p>
+<blockquote>
+<p><strong>Two source spellings that resolve to the same exact semantic type must produce the same checked type/fore identity. Renaming an alias must not change plan compatibility.</strong></p>
+</blockquote>
+<p>This applies to startup parameters as well as runtime ports.</p>
+<p>Checked startup-parameter contracts therefore carry canonical semantic type/profile identity, not raw alias text.</p>
+<p>If omitted arguments are semantically filled before realization and a changed default changes meaning, the canonicalized default semantics must be represented at the correct checked layer rather than hidden behind a mere <code>has_default</code> bit.</p>
+<p>Implementation/artifact identity is never a substitute for semantic type identity.</p>
+<p>Provenance: #3724.</p>
+<hr />
+<h2 id="temporal-value-modalities">Temporal value modalities</h2>
+<p>Canonical meanings:</p>
+<pre><code class="language-text">T       one finite value
+$T      immediately observable current T
+T...    flow: more values may arrive; no promised normal close
+T...|   closing flow: zero or more values plus meaningful normal close
+T?      ordinary finite optional T
+$T?     immediately observable current optional T
+</code></pre>
+<p><code>T?</code> is semantic sugar for a finite two-case variant:</p>
+<pre><code class="language-text">none
+some(T)
+</code></pre>
+<p>It is not nullable-everything, <code>null</code>, <code>nil</code>, <code>undefined</code>, or truthiness.</p>
+<p><code>$T</code> is not weakened to “maybe initialized later.” Use <code>$T?</code> when the current answer may explicitly be none.</p>
+<p>Provenance: #3970, #4048 and established temporal ancestry.</p>
+<hr />
+<h2 id="keep-explicit-retained-current-value">keep: explicit retained current value</h2>
+<p>Canonical retained-value grammar:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">count</span><span class="syntax-operator">:</span><span class="syntax-whitespace">    </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-delimiter">(</span><span class="syntax-number">0</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">life</span><span class="syntax-whitespace">
+</span><span class="syntax-name">middle</span><span class="syntax-operator">:</span><span class="syntax-whitespace">   </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Integer</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-name">play</span><span class="syntax-whitespace">
+</span><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace">     </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">128B</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">body</span><span class="syntax-whitespace">
+</span><span class="syntax-name">draft</span><span class="syntax-operator">:</span><span class="syntax-whitespace">    </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4KiB</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-name">wake</span><span class="syntax-whitespace">
+</span><span class="syntax-name">cache</span><span class="syntax-operator">:</span><span class="syntax-whitespace">    </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">2MiB</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-name">boot</span><span class="syntax-whitespace">
+</span><span class="syntax-name">scratch</span><span class="syntax-operator">:</span><span class="syntax-whitespace">  </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Conceptually:</p>
+<pre><code class="language-text">name ":" "keep" retained-value [ "&lt;=" finite-bound ] [ duration ]
+</code></pre>
+<p>Durations:</p>
+<pre><code class="language-text">for this step
+for this play
+for this wake
+for this boot
+for this body
+for life
+</code></pre>
+<p>Rules:</p>
+<ul>
+<li>omitted duration canonicalizes to <strong>for this step</strong>;</li>
+<li><code>for life</code> is exact source sugar for <code>for this body</code>;</li>
+<li>bounds are constraints, not constructor configuration;</li>
+<li>duration is semantic lifetime, not storage mechanism;</li>
+<li>keep owns one explicit current value and is the explicit temporal/cycle-breaking boundary;</li>
+<li>no arbitrary port acquires implicit recurrence.</li>
+</ul>
+<p>Canonical sugar when the checked fore is unambiguous:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">latest</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Temperature</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-name">wake</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">readings</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">latest</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">current</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>gear-name sugar resolves the one eligible input/output port by cord direction. Ambiguity must refuse and require explicit port spelling.</p>
+<p>Provenance: #3956, #3977.</p>
+<hr />
+<h2 id="data-t-save-load-and-disk">data, <code>&amp;T</code>, save, load and disk</h2>
+<p>Preserve the natural-duration distinction recovered from #3954/#3958:</p>
+<pre><code class="language-text">info     typed value flowing through Ports/Cords
+keep     one current retained info value with explicit duration
+data     bounded independently addressable content with identity/generation/lifetime
+&amp;T       ordinary info naming one exact data generation containing T
+save     publish one value as data
+load     read exact data back into bounded typed info
+disk     durable data residence/domain
+sign     evidence of what occurred
+</code></pre>
+<p>Canonical data-reference type spelling:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">saved</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&amp;</span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-name">image</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&amp;</span><span class="syntax-name">Image</span><span class="syntax-whitespace">
+</span><span class="syntax-name">memory</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&amp;</span><span class="syntax-name">Experience</span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Law:</p>
+<pre><code class="language-text">T     the value itself
+&amp;T    ordinary info naming one exact data generation containing T
+</code></pre>
+<p><code>&amp;T</code> is <strong>not</strong> a pointer, borrow, path, residence, capability, handle or authority token. Initially reject accidental recursive <code>&amp;&amp;T</code> spelling unless a concrete semantic need later earns it.</p>
+<p><code>&amp;T</code> in type grammar coexists with infix bitwise <code>&amp;</code> in expression grammar. Grammar position, never whitespace, distinguishes them.</p>
+<p>keep duration and explicit publication are different promises:</p>
+<blockquote>
+<p><strong>If a form says a value must last, planning selects a back that can truthfully make it last or refuses. save is publication, not survival.</strong></p>
+</blockquote>
+<p>Therefore:</p>
+<ul>
+<li>body-lived keep may survive host/boot replacement without authored save/load;</li>
+<li>save produces one immutable independently addressable generation after complete validation;</li>
+<li>load returns ordinary info and does not receive privileged access to a destination keep;</li>
+<li>disk names durable data residence without implying POSIX paths/VFS/files;</li>
+<li>generic non-content resource pools remain resources where data would be nonsense.</li>
+</ul>
+<p>Exact catalog kind paths for save/load remain owned by their semantic catalog; do not freeze an incidental implementation spelling here.</p>
+<p>Living proof owner: #4116.</p>
+<p>Provenance: #3954, #3958.</p>
+<hr />
+<h2 id="anonymous-finite-structures">Anonymous finite structures</h2>
+<p>Anonymous records:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-delimiter">{</span><span class="syntax-whitespace"> </span><span class="syntax-name">a</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">expr</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">b</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">expr</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">{</span><span class="syntax-whitespace"> </span><span class="syntax-name">a</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">b</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">              </span><span class="syntax-comment"># punning when exact and unambiguous</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Tuples:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-delimiter">(</span><span class="syntax-number">0</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">(</span><span class="syntax-identity">.1</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.0</span><span class="syntax-whitespace"> </span><span class="syntax-name">+</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.1</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>These are finite structural info with deterministic checked identity. They are suitable for local algorithmic state without polluting the global semantic catalog.</p>
+<p>Public fores should still prefer named semantic types where the shape has reusable domain meaning.</p>
+<p>Provenance: #3968.</p>
+<hr />
+<h2 id="bounded-variable-length-sequences">Bounded variable-length sequences</h2>
+<p>Variable cardinality remains finite without leaking storage capacity into semantic nouns.</p>
+<p>Canonical semantic shape:</p>
+<pre><code class="language-text">sequence of Element
+  minimum items
+  maximum items
+  actual finite item count in the value
+</code></pre>
+<p>The exact checked identity includes element type and bounds.</p>
+<p>Law:</p>
+<blockquote>
+<p><strong>Capacity is contract, not noun, unless exact cardinality is itself semantic.</strong></p>
+</blockquote>
+<p>Prefer semantic names such as:</p>
+<pre><code class="language-text">VisionDetections
+LinguisticTokens
+Path
+Rows
+</code></pre>
+<p>whose checked profiles carry their finite bounds, rather than storage-shaped names such as <code>VisionDetectionsFour</code> or <code>Rows64</code>.</p>
+<p>A suffix/count remains appropriate when exact cardinality is meaning, such as an RGB triplet, 3D vector, exact matrix dimension or protocol tuple.</p>
+<p>An empty sequence is a real zero-item sequence, not a fixed storage vector padded with <code>unused</code> cases.</p>
+<p>Encoding/validation must carry exact sequence type/bounds and actual item count, and remain allocation-free-capable for constrained targets.</p>
+<p>Exact authored sequence syntax beyond the accepted structural forms remains subject to parser/canon conformance; do not invent a second collection language.</p>
+<p>Provenance: #3717, structured-info ancestry #1386/#1387.</p>
+<hr />
+<h2 id="quantities">Quantities</h2>
+<p>Units are semantic source, not decorative typography.</p>
+<p>Canonical examples:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">target</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">21°C</span><span class="syntax-whitespace">
+</span><span class="syntax-name">delay</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">250ms</span><span class="syntax-whitespace">
+</span><span class="syntax-name">distance</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">3.2m</span><span class="syntax-whitespace">
+</span><span class="syntax-name">angle</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">90°</span><span class="syntax-whitespace">
+</span><span class="syntax-name">voltage</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">12V</span><span class="syntax-whitespace">
+</span><span class="syntax-name">rate</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">440Hz</span><span class="syntax-whitespace">
+</span><span class="syntax-name">width</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">640px</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The unit participates in the quantity type/dimension.</p>
+<p>In particular:</p>
+<pre><code class="language-text">21°C   Celsius
+21C    must not silently mean Celsius
+</code></pre>
+<p>Do not collapse all dimensioned values into one undifferentiated runtime <code>Quantity</code> contract merely because they share a representation. A distance-to-frequency transformation must be checked as such.</p>
+<p>Affine units such as °C/K use reviewed conversion law.</p>
+<p>Provenance: #3975.</p>
+<hr />
+<h2 id="finite-variants">Finite variants</h2>
+<p>Semantic law is canonical: variants are finite typed structured info, with exact cases and optional bounded payloads.</p>
+<p>Existing structured-info heritage such as:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">note_on</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">{</span><span class="syntax-whitespace"> </span><span class="syntax-name">velocity</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">96</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">pitches</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-number">60</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">62</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">}</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>is the preferred construction direction.</p>
+<p>Graph patterns use the routing machinery. Preferred direction already recorded:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">event</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">[</span><span class="syntax-identity">MusicEvent.note</span><span class="syntax-delimiter">]</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">play-note</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">[</span><span class="syntax-identity">MusicEvent.rest</span><span class="syntax-delimiter">]</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">.</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep-silence</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Closed variants must be exhaustive.</p>
+<p><strong>STATUS: FROZEN.</strong> Qualified construction uses <code>Variant.case(payload)</code> / payloadless <code>Variant.case</code>; graph matching uses <code>[Variant.case]</code>. Closed variants remain exhaustive. See #4002.</p>
+<p>Provenance: #4002.</p>
+<hr />
+<h2 id="resource-capability-valued-ports">Resource/capability-valued ports</h2>
+<p>Low-level forms may pass admitted runtime resources through typed ports, but <strong>descriptive info cannot forge authority</strong>.</p>
+<pre><code class="language-text">{ address, length }        descriptive info
+MmioRegion capability      admitted unforgeable resource/authority
+</code></pre>
+<p>Resource values are created only by admitted backs/kernel operations and carry exact lifecycle/provenance constraints. Impossible cross-host transfer must refuse before play.</p>
+<p>No raw pointers, integer handles as authority, or serializable capability tokens by default.</p>
+<p>Canonical source spelling is <code>resource T</code>. There are no resource literals and no parallel <code>capability T</code> wrapper.</p>
+<p>Provenance: #4065.</p>
+<hr />
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Terminals-and-concurrency.html">Terminals and concurrency<b aria-hidden="true">→</b></a></nav></main></div></body></html>

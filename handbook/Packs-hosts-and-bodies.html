@@ -1,0 +1,124 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Packs hosts and bodies · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Packs-hosts-and-bodies" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a aria-current="page" href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 20 of 23</p><h2 id="one-conduit-language-for-form-host-body-and-pack-source">One Conduit language for form, host, body and pack source</h2>
+<p>The repository has four canonical <code>.conduit</code> document roles:</p>
+<pre><code class="language-text">form      portable semantic meaning
+host      intended finite Host construction
+body      intended Body/Part/Host construction and spore binding
+pack      finite source/shipment/dependency description
+</code></pre>
+<p>They share one tokenizer, declaration/value syntax, spans and diagnostic model. There is no separate public TOML/YAML/JSON authoring language for host or body construction.</p>
+<p>Canonical source families include:</p>
+<pre><code class="language-text">program.conduit
+machine.host.conduit
+house.body.conduit
+</code></pre>
+<p>Current <code>*.host.conduit</code> source lowers into the accepted checked host configuration/profile -&gt; build -&gt; image path.</p>
+<p>Current <code>*.body.conduit</code> source composes checked host sources and bounded body/spore construction metadata.</p>
+<p>Construction source never makes live runtime truth:</p>
+<pre><code class="language-text">host source
+  != HostId / BootId
+  != current offers / observations / authority
+  != plan / play
+
+body source
+  != current membership/presence
+  != current lines
+  != plan / play
+</code></pre>
+<p>body birth itself consumes checked ordinary forms as the initial workload under the current body lifecycle; there is no privileged Seed semantic identity.</p>
+<p>Do not invent another parser or embed TOML/YAML blobs inside <code>.conduit</code>.</p>
+<p>The exact <strong>existing</strong> host/body grammar is implemented. New fields/declaration forms needed for richer mask/resource/facility composition must be earned as minimal general extensions, not treated as permission to redesign the document roles.</p>
+<p>Provenance: #1752, #1780, #2284. Living native/host pressure test: #4117.</p>
+<hr />
+<h2 id="generics">Generics</h2>
+<p>Reusable forms use named type parameters such as <code>item: type</code>, with named
+application arguments when inference is insufficient. Native type families
+have a separate checked surface, <code>type Pair&lt;T&gt; = ...</code> and <code>Pair&lt;Text&gt;</code>. Both
+specialize to finite checked meaning before play. See
+<a href="Current-language-surface.html#generic-native-types">Current language surface</a>.</p>
+<p>Form signature sketch; the body is omitted, so <code>...</code> is not runnable source:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-name">latest</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">item</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">values</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">current</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-operator">$</span><span class="syntax-name">item</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><strong>STATUS: FROZEN.</strong> <code>name: type</code> is canonical; explicit application uses ordinary named arguments where inference is insufficient. See #4059.</p>
+<p>No implicit <code>any</code>, wildcard zoo, or runtime type erasure requirement.</p>
+<p>Provenance: #4059.</p>
+<hr />
+<h2 id="packs-imports-resolution-and-distribution">Packs, imports, resolution and distribution</h2>
+<p>Keep these identities distinct:</p>
+<pre><code class="language-text">semantic Kind path
+authored Form/source identity
+pack identity + pack version
+module/source path
+local alias
+resolved pack content digest
+distribution location
+git repository + commit
+installed artifact
+Back implementation/artifact identity
+</code></pre>
+<p>A slash-separated kind path is not a pack path, module path, URL, git identity or installed artifact.</p>
+<p>Canonical ecosystem laws:</p>
+<ul>
+<li>packs explicitly ship their public source surface;</li>
+<li>imports never grant runtime authority;</li>
+<li>build-time pack acquisition is separate from runtime network/line effects;</li>
+<li>pack version is not kind semantic contract identity;</li>
+<li>git commit is provenance/distribution truth, not semantic identity;</li>
+<li>accepted builds resolve a finite exact dependency graph;</li>
+<li>a lock representation pins exact content/versions/commits and contains no credentials or machine-specific absolute paths;</li>
+<li>locked local content permits offline check/build;</li>
+<li>different carriers may provide identical pack content;</li>
+<li>acquired bytes are untrusted until digest/schema/pack validation succeeds;</li>
+<li>no arbitrary install/build scripts by default.</li>
+</ul>
+<p>Source import spelling is canonical <code>with</code> syntax:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">audio/forms/tone</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry/</span><span class="syntax-delimiter">{</span><span class="syntax-name">vector2</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">matrix2</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors/temperature</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">room-temperature</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>with</code> aliases may be ordinary identifiers or admissible gear glyphs under #4335. Pack authoring uses <code>pack.conduit</code>; generated exact lock truth uses <code>conduit.lock</code>.</p>
+<p>Pack versioning may use familiar version syntax for ecosystem convenience, but Conduit's checker decides semantic compatibility; version numbers are not a universal compatibility oracle.</p>
+<p>Provenance: #4054–#4058.</p>
+<hr />
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Evidence-and-proof.html">Evidence and proof<b aria-hidden="true">→</b></a></nav></main></div></body></html>

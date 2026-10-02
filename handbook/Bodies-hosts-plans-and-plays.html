@@ -1,0 +1,205 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Bodies hosts plans and plays · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Bodies-hosts-plans-and-plays" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a aria-current="page" href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 9 of 23</p><p>These words answer different questions.</p>
+<table><thead><tr><th>noun</th><th>question</th></tr></thead><tbody>
+<tr><td><strong>body</strong></td><td>what durable computer is this?</td></tr>
+<tr><td><strong>part</strong></td><td>what durably belongs to that body?</td></tr>
+<tr><td><strong>host</strong></td><td>what current machine/runtime can offer work?</td></tr>
+<tr><td><strong>boot</strong></td><td>which current incarnation of that host is this?</td></tr>
+<tr><td><strong>plan</strong></td><td>exactly how will this work be realized?</td></tr>
+<tr><td><strong>play</strong></td><td>which active execution of that plan is happening now?</td></tr>
+</tbody></table>
+<p>Collapsing any two of them makes recovery and distributed execution dishonest.</p>
+<h2 id="continuity-is-an-authored-architectural-fact">Continuity is an authored architectural fact</h2>
+<p>Traditional software often borrows identity from whatever process, VM, container, or machine happens to be alive. That is convenient until the mechanism changes.</p>
+<p>Conduit instead gives continuity its own noun: <strong>body</strong>.</p>
+<p>A body is the thing that is allowed to remain “the same computer” while hosts reboot, hosts disappear, plans are replaced, and plays begin and end. This does not mean the body is metaphysically immortal; it means continuity is represented explicitly rather than guessed from process lifetime.</p>
+<p>That is why the nouns below are intentionally not synonyms.</p>
+<h2 id="a-body-can-outlive-a-host">A body can outlive a host</h2>
+<p>Imagine a house body with a browser, a Linux machine, and a microcontroller.</p>
+<p>The browser tab can close. The Linux machine can reboot. The microcontroller can disappear and return.</p>
+<p>Those events change <strong>presence</strong> and <strong>boot truth</strong>. They do not necessarily change body identity or durable part membership.</p>
+<h2 id="birth-is-explicit">Birth is explicit</h2>
+<p>Birth creates the durable continuant. It does not secretly mean wake, plan, or play.</p>
+<p>A typical lifecycle has distinct evidence:</p>
+<pre><code class="language-text">birth
+ -&gt; wake
+ -&gt; plan
+ -&gt; play
+ -&gt; lull
+ -&gt; later wake
+ -&gt; new or reused planning truth
+</code></pre>
+<p>A body can begin with zero, one, or many forms. No initial form remains permanently privileged.</p>
+<h2 id="host-source-constructs-machinery">host source constructs machinery</h2>
+<p>Canonical host source is intentionally finite:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-name">conduitos-native</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">target</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">conduitos/x86_64/pc</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">build</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">release</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">loader</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">limine</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/surface</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">slots</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8MiB</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">mmio</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">base</span><span class="syntax-whitespace"> </span><span class="syntax-identity">machine/mmio</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">framebuffer</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">display/linear-framebuffer</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">memory</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">mmio</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">graphics</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/graphics</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">surface</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">surface</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">display</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">framebuffer</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">policy</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">authority</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">explicit</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">ambient</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">false</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">bounds</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">heap</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">16MiB</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">calls</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">signs</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">1024</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>That source can help build an image. It does <strong>not</strong> author:</p>
+<ul>
+<li>a current HostId;</li>
+<li>a current BootId;</li>
+<li>current device instances;</li>
+<li>current offers;</li>
+<li>a current line;</li>
+<li>authority;</li>
+<li>a plan;</li>
+<li>a play.</li>
+</ul>
+<p>boot and runtime observation establish those facts later.</p>
+<h2 id="existing-body-construction-source">Existing body-construction source</h2>
+<p>The current tree contains complete body-construction examples such as Pete. The present Pete profile composes several host configurations:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">body</span><span class="syntax-whitespace"> </span><span class="syntax-name">pete-r1</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+  </span><span class="syntax-name">schema</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-whitespace">
+  </span><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;forebrain&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">part</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;part:forebrain&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">configuration</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;../../../targets/std/profiles/linux-computer.host.conduit&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+  </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+  </span><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;brainstem&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">part</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;part:brainstem&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">configuration</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;../../../targets/rp2040/profiles/pico-w.host.conduit&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+  </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+  </span><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;eyes&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">configuration</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;../../../targets/browser/profiles/browser-page.host.conduit&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+  </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>See <a href="https://github.com/dancxjo/conduit/blob/dev/bodies/pete/profiles/pete-r1.body.conduit">bodies/pete/profiles/pete-r1.body.conduit</a>.</p>
+<p>This is construction intent. Current membership, presence, offers, lines, plans, and plays remain runtime truth.</p>
+<h2 id="forms-belong-to-the-body-realizations-belong-to-plans">forms belong to the body; realizations belong to plans</h2>
+<p>A resident <strong>form</strong> is authored intent. It may survive changes in the machinery that currently realizes it.</p>
+<p>When a host disappears, Conduit does not need to rewrite the form into a new machine-specific program. It can ask a narrower question: <strong>given the same form and the new current truth, is there another admissible plan?</strong></p>
+<p>That separation is the architectural basis for recovery without semantic drift.</p>
+<h2 id="planning-is-where-meaning-meets-reality">Planning is where meaning meets reality</h2>
+<p>The planner starts from a checked form and current realization truth.</p>
+<pre><code class="language-text">checked semantic requirement
+        +
+current host offers/resources/authority/lines
+        ↓
+semantically eligible candidates
+        ↓
+policy
+        ↓
+exact immutable plan
+</code></pre>
+<p>A plan may bind:</p>
+<ul>
+<li>a gear to an exact host and boot;</li>
+<li>an exact back;</li>
+<li>an exact implementation/artifact;</li>
+<li>bases and resources;</li>
+<li>authority;</li>
+<li>lines;</li>
+<li>queue bounds;</li>
+<li>expected signs;</li>
+<li>execution limits.</li>
+</ul>
+<p>The plan is history once created. Important change produces a replacement plan rather than editing the old one in place.</p>
+<h2 id="same-plan-fallback-versus-replan">Same-plan fallback versus replan</h2>
+<p>These are not synonyms.</p>
+<h3 id="same-plan-fallback">Same-plan fallback</h3>
+<p>If plan P already sealed two exact alternatives:</p>
+<pre><code class="language-text">Plan P
+  provider A
+  provider B
+</code></pre>
+<p>and A becomes unavailable, B may be selected under the sealed fallback law without changing PlanId.</p>
+<h3 id="replacement-planning">Replacement planning</h3>
+<p>If no remaining admitted realization can satisfy the semantic obligation:</p>
+<pre><code class="language-text">invalidating observation
+ -&gt; planning requested
+ -&gt; fresh current truth
+ -&gt; Plan P2 or refusal
+ -&gt; fresh play where required
+</code></pre>
+<p>The old plan remains immutable evidence.</p>
+<p>The distributed Two Ollamas vertical exists largely to prove this distinction end to end. See <a href="https://github.com/dancxjo/conduit/issues/4092">#4092</a>.</p>
+<h2 id="a-play-is-active-execution">A play is active execution</h2>
+<p>A play owns execution history for one exact plan. The same plan may be played more than once.</p>
+<p>During play, the kernel does not quietly rediscover the graph or acquire ambient authority. New realization decisions belong to explicit fallback already admitted by the plan or to a new planning pass.</p>
+<h2 id="why-this-matters">Why this matters</h2>
+<p>Without these identity boundaries, phrases such as "the computer recovered" become ambiguous.</p>
+<p>Conduit wants to answer precisely:</p>
+<ul>
+<li>Was it the same body?</li>
+<li>Same part?</li>
+<li>Same host?</li>
+<li>Fresh boot?</li>
+<li>Same plan?</li>
+<li>Same play?</li>
+<li>Same line?</li>
+<li>Same semantic obligation?</li>
+<li>Was work replayed, moved, or merely continued?</li>
+</ul>
+<p>The architecture makes those questions representable instead of reconstructing them from logs after the fact.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="State-time-and-data.html">State time and data<b aria-hidden="true">→</b></a></nav></main></div></body></html>

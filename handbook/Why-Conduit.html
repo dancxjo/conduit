@@ -1,0 +1,183 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Why Conduit · Conduit handbook</title><link rel="stylesheet" href="../conduit.css"><link rel="stylesheet" href="handbook.css"></head><body class="handbook-page handbook-page-Why-Conduit" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="handbook-masthead"><a href="../">Conduit</a><span>Handbook</span><a href="https://github.com/dancxjo/conduit">Source</a></header><div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a aria-current="page" href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Form-diagrams.html">Form diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Forms-and-flow.html">Forms and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Journey 2 of 23</p><p>Conduit begins with a stubborn observation: a useful program has a <strong>meaning</strong> that is not identical to the machinery presently available to carry it out.</p>
+<p>A camera pipeline is not an x86 process graph. A reminder is not a timer file descriptor. A conversation is not a browser DOM. A connection between two pieces of work is not a WebSocket. Those mechanisms may realize the meaning, sometimes very well, but the mechanism is not the meaning.</p>
+<p>Conduit tries to keep that distinction explicit all the way from source to execution.</p>
+<blockquote>
+<p><strong>Author the intended happening; let planning meet it with the world that actually exists.</strong></p>
+</blockquote>
+<p>The result is not “write once, run anywhere” in the usual sense. Conduit does not pretend machines are interchangeable. It does the opposite: portable meaning stays portable <strong>because realization is allowed to remain exact, local, finite, and truthful</strong>.</p>
+<h2 id="the-central-movement-form-plan-play">The central movement: form, plan, play</h2>
+<p>The most important three nouns describe three different moments.</p>
+<ul>
+<li>A <strong>form</strong> is the authored course of events: what should happen and how semantic work relates.</li>
+<li>A <strong>plan</strong> is one exact, admitted way of realizing that form given the body, hosts, backs, lines, resources, authority, and other current facts.</li>
+<li>A <strong>play</strong> is that plan in motion.</li>
+</ul>
+<p>Conceptually:</p>
+<pre><code class="language-text">form
+  + current truth about the world
+  ↓ planning
+plan
+  ↓ execution
+play
+</code></pre>
+<p>This separation is the answer to a surprisingly large family of systems problems.</p>
+<p>When a host disappears, the form need not change. When a different implementation is selected, the kind need not change. When a cord moves from local memory to a network carrier, the semantic connection need not change. Conduit changes the <strong>plan</strong> when reality changes rather than quietly rewriting the authored meaning.</p>
+<p>That is what “continuous planning” is meant to preserve: not constant recomputation, but the continued availability of planning as the lawful place where changed reality is reconciled with enduring intent.</p>
+<h2 id="meaning-and-code">Meaning and code</h2>
+<p>A <strong>type</strong> says what a value means. A <strong>code</strong> declares one exact portable
+encoding of that meaning. An info value is one value of the type.</p>
+<pre><code class="language-text">type  = semantic meaning
+info  = one typed value
+code  = a portable encoding contract
+</code></pre>
+<p>A variant such as <code>work</code> does not mean the byte <code>1</code>; a code can assign it that
+tag without making the tag its semantic identity. Current compact codes cover
+finite variant tags. See <a href="Current-language-surface.html">Current language surface</a>
+for the checked declaration and its scope.</p>
+<h2 id="meaning-and-realization-of-work">Meaning and realization of work</h2>
+<p>Work has another small cluster of nouns:</p>
+<ul>
+<li>a <strong>kind</strong> says what a reusable operation means;</li>
+<li>its <strong>fore</strong> is the checked function-like signature through which authors call that meaning;</li>
+<li>a <strong>back</strong> is one concrete realization compatible with that kind and fore;</li>
+<li>a <strong>gear</strong> is one configured occurrence of a kind in a form.</li>
+</ul>
+<p>A form can therefore ask for semantic work without choosing the final implementation.</p>
+<pre><code class="language-text">kind      what work means
+fore      the callable signature presented to the author
+back      one way to realize it
+gear      one occurrence in the authored form
+</code></pre>
+<p>A host may offer several backs for the same kind. Planning chooses among eligible backs using current, finite facts rather than source-code accident.</p>
+<h2 id="ports-cords-and-lines">ports, cords, and lines</h2>
+<p>A <strong>port</strong> is a typed directional point declared by a fore and used by gears. A <strong>cord</strong> connects compatible ports. A <strong>line</strong> is concrete carriage that may realize a cord when the connected gears do not share the same local mechanism.</p>
+<p>That produces another useful distinction:</p>
+<pre><code class="language-text">cord  = semantic relationship
+line  = realized carriage
+</code></pre>
+<p>A cord can remain the same cord whether the plan realizes it through shared memory, USB, WebSocket, WebRTC, a relay, or some future mechanism. If networking itself is the meaning, networking appears in the form as semantic work; if networking is merely carriage, it belongs to realization.</p>
+<h2 id="one-computer-changing-machinery">One computer, changing machinery</h2>
+<p>A <strong>body</strong> is the enduring logical computer.</p>
+<p>A <strong>host</strong> is current machinery capable of offering realizations. A <strong>boot</strong> is one current incarnation of a host. A <strong>part</strong> is a durable membership relationship in the body. A body may <strong>wake</strong> into activity and <strong>lull</strong> without ceasing to be the same body.</p>
+<p>These distinctions let Conduit say something more precise than “the computer restarted” or “the service moved”:</p>
+<ul>
+<li>same body or a different one?</li>
+<li>same part or a replacement?</li>
+<li>same host with a fresh boot?</li>
+<li>same plan or a replacement plan?</li>
+<li>same play or a new play?</li>
+</ul>
+<p>Continuity belongs to the body, not to any one process or machine.</p>
+<h2 id="state-is-a-promise-not-a-variable">State is a promise, not a variable</h2>
+<p>A <strong>keep</strong> says that some current semantic truth must remain available for an exact duration.</p>
+<p>That is different from saving data.</p>
+<ul>
+<li><strong>keep</strong> promises retention of current truth;</li>
+<li><strong>data</strong> is an independently addressable immutable generation;</li>
+<li><strong>save</strong> publishes one generation as data;</li>
+<li><strong>load</strong> recovers typed info from it.</li>
+</ul>
+<p>This is why Conduit resists treating every temporal problem as mutation of a heap cell. Duration, publication, identity, and causality are separate promises and should remain visible.</p>
+<h2 id="fore-and-face-are-unrelated">fore and face are unrelated</h2>
+<p>The words happen to sound spatial, but they live in different parts of the architecture.</p>
+<p>A <strong>fore</strong> is a callable signature, roughly the role a function signature plays in an ordinary language. A <strong>face</strong> is human-facing semantic interaction and presentation. Neither is a specialization or realization of the other.</p>
+<h2 id="human-meaning-is-not-a-widget-tree">Human meaning is not a widget tree</h2>
+<p>Presentation uses another three-part separation:</p>
+<ul>
+<li>the <strong>face</strong> is the humanly relevant meaning and agency of the encounter;</li>
+<li>a <strong>mask</strong> is one planned realization of that face for a user agent or medium;</li>
+<li>a <strong>show</strong> is one concrete manifested occurrence.</li>
+</ul>
+<pre><code class="language-text">face → mask → show
+</code></pre>
+<p>The same face can be shown through a browser, a native surface, speech, terminal text, or another admitted medium without declaring any one of those mechanisms to be the application truth.</p>
+<p>A show may even physically remain after its source face is stale. Residue is not current truth.</p>
+<h2 id="evidence-is-not-authority">Evidence is not authority</h2>
+<p>A <strong>sign</strong> records bounded evidence about what was selected, attempted, observed, completed, refused, lost, or replaced.</p>
+<p>signs are important because distributed and adaptive systems otherwise become stories reconstructed from logs. Conduit instead tries to make important causal facts first-class.</p>
+<p>But evidence does not grant permission. A sign may prove that a host exists; it does not authorize that host to perform an effect. Availability, membership, trust, authority, eligibility, selection, and execution remain distinct facts.</p>
+<h2 id="finite-execution-open-meaning">Finite execution, open meaning</h2>
+<p>Conduit is strict about runtime finitude without requiring every semantic domain to be finite.</p>
+<p>A semantic type may describe an open-ended mathematical range. The scheduler still requires actual values, queues, collections, retained state, calls, and other resources to fit admitted finite envelopes.</p>
+<p>The rule is:</p>
+<blockquote>
+<p><strong>Semantic domains may be unbounded; execution resources may not be.</strong></p>
+</blockquote>
+<p>This lets the language describe the world honestly without promising infinite machines.</p>
+<h2 id="quiescence-is-not-completion">Quiescence is not completion</h2>
+<p>A live play may become <strong>quiescent</strong> when no admitted work can presently make progress. Quiescence is a pause, not a terminal state; later admitted work may wake the same play again.</p>
+<p>Semantic completion is a stronger claim. When a form explicitly says that structural drain is sufficient completion, the play may terminate normally at that point.</p>
+<p>This distinction matters for continuously reactive systems: “nothing to do right now” and “the authored work is finished” are not synonyms.</p>
+<h2 id="the-philosophy-in-one-diagram">The philosophy in one diagram</h2>
+<pre><code class="language-text">information                    work
+-----------                    ----
+type → info                    kind → fore → back
+                                  ↓
+                                gear
+                                  ↓ ports
+form ──────────────────────── cords
+  +                             ↓
+current body/host truth       lines when needed
+  ↓
+plan
+  ↓
+play
+  ↓
+signs
+
+body persists across hosts, boots, plans, and plays
+face → mask → show keeps human meaning separate from rendering
+keep / data keeps temporal truth separate from publication
+</code></pre>
+<p>The vocabulary is intentionally ordinary, but it is best learned in these local clusters rather than as one grand taxonomy.</p>
+<h2 id="what-conduit-is-resisting">What Conduit is resisting</h2>
+<p>Many systems work by allowing meaning to leak gradually into mechanism:</p>
+<ul>
+<li>deployment files become part of application semantics;</li>
+<li>process identity becomes service identity;</li>
+<li>retries become accidental behavior;</li>
+<li>UI trees become domain state;</li>
+<li>network reachability becomes authority;</li>
+<li>storage layout becomes type meaning;</li>
+<li>mutable memory becomes the only model of time;</li>
+<li>logs become the only source of causal evidence.</li>
+</ul>
+<p>Conduit is an attempt to keep those seams visible enough to reason about, check, plan, replace, and explain.</p>
+<p>The names and syntax will continue to sharpen, but these separations are the part intended to endure.</p>
+<p>For the architectural walk-through, continue with <a href="Architecture-tour.html">Architecture tour</a>. For exact implemented syntax rather than the conceptual vocabulary, see <a href="Current-language-surface.html">Current language surface</a>.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue the journey</span><a href="Architecture-tour.html">Architecture tour<b aria-hidden="true">→</b></a></nav></main></div></body></html>
