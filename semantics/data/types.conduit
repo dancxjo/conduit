@@ -305,6 +305,21 @@ type ScientificCorpusRefusal =
     | split_leakage
     | missing_resource
 
+type ScientificAlignmentRefusal =
+    observation {
+        refusal: ScientificObservationRefusal
+    }
+    | invalid_relation
+    | incompatible_clock_relation
+    | unknown_source_observation
+    | invalid_coordinate_frame
+    | invalid_calibration
+    | calibration_frame_mismatch
+    | calibration_shape_mismatch
+    | missing_calibration_source
+    | derived_clock_mismatch
+    | derived_provenance_mismatch
+
 type DataReferenceRefusal =
     malformed
     | wrong_reference_kind
