@@ -656,6 +656,9 @@ name = "conduit-birth-plot"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-core",
+ "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "serde",
  "serde_json",
