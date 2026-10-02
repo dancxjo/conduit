@@ -154,14 +154,12 @@ impl DatasetSplitMembership {
         self.examples.iter().flat_map(|page| {
             page.get()
                 .as_slice()
-                .chunks_exact(EXAMPLE_IDENTITY_BYTES)
+                .as_chunks::<EXAMPLE_IDENTITY_BYTES>()
+                .0
+                .iter()
                 .map(|identity| {
-                    DatasetExampleIdentity::new(
-                        identity
-                            .try_into()
-                            .expect("a validated identity chunk is exact"),
-                    )
-                    .expect("a dataset example identity is exactly 32 bytes")
+                    DatasetExampleIdentity::new(*identity)
+                        .expect("a dataset example identity is exactly 32 bytes")
                 })
         })
     }

@@ -8,7 +8,7 @@ use conduit_core::{
 
 use crate::{
     data_access_class, maximum_data_reference_encoded_bytes, DataGenerationDigest,
-    DataGenerationNamespace, DataGenerationNamespaceRefusal, DataReference, DataReferenceRefusal,
+    DataGenerationNamespace, DataGenerationNamespaceRefusal, DataGenerationRefusal, DataReference,
 };
 
 const DATA_VERSION_DIGEST_DOMAIN: &str = "data/immutable-generation-version@1";
@@ -75,19 +75,6 @@ pub struct PreparedDataGenerationStore {
     retained_bytes: usize,
     generation_count: usize,
     generations: Vec<PreparedGeneration>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DataGenerationRefusal {
-    InvalidBounds,
-    WrongContentKind,
-    ValueTooLarge,
-    GenerationCapacityExhausted,
-    ByteCapacityExhausted,
-    ReferenceOutputCapacity,
-    Reference(DataReferenceRefusal),
-    GenerationNotRetained,
-    ExtentMismatch,
 }
 
 impl DataGenerationStore {

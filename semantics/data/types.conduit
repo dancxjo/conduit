@@ -459,6 +459,17 @@ type DataReferenceRefusal =
     | expiring_generation
     | item_extent
 
+type DataGenerationRefusal =
+    invalid_bounds
+    | wrong_content_kind
+    | value_too_large
+    | generation_capacity_exhausted
+    | byte_capacity_exhausted
+    | reference_output_capacity
+    | reference DataReferenceRefusal
+    | generation_not_retained
+    | extent_mismatch
+
 type DataGenerationNamespaceRefusal =
     empty
     | too_large
