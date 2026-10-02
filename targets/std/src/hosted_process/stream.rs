@@ -1,6 +1,19 @@
 //! Demand-driven subprocess stdout. No worker drains ahead of the consumer.
 use super::*;
+#[cfg(test)]
+pub(crate) mod observations;
 use std::process::{ChildStderr, ChildStdin, ChildStdout};
+
+#[derive(Clone, Debug)]
+pub(crate) enum StreamFailure {
+    StdoutBoundExceeded,
+    Terminal(ProcessTerminal),
+}
+impl From<ProcessTerminal> for StreamFailure {
+    fn from(value: ProcessTerminal) -> Self {
+        Self::Terminal(value)
+    }
+}
 
 pub(crate) struct ProcessStream {
     child: ChildGuard,
@@ -17,7 +30,7 @@ pub(crate) struct ProcessStream {
     started: Instant,
     timeout: Duration,
     finished: bool,
-    failure: Option<ProcessTerminal>,
+    failure: Option<StreamFailure>,
 }
 impl ProcessStream {
     pub(crate) fn start(request: &ProcessRequest<'_>) -> Result<Self, ProcessError> {
@@ -82,12 +95,12 @@ impl ProcessStream {
         &mut self,
         output: &mut [u8],
         cancelled: impl Fn() -> bool,
-    ) -> Result<usize, ProcessTerminal> {
+    ) -> Result<usize, StreamFailure> {
         if let Some(failure) = &self.failure {
             return Err(failure.clone());
         }
         if output.is_empty() {
-            return Err(ProcessTerminal::ProviderLost("empty read buffer".into()));
+            return Err(ProcessTerminal::ProviderLost("empty read buffer".into()).into());
         }
         if self.finished {
             return Ok(0);
@@ -101,6 +114,7 @@ impl ProcessStream {
                 None
             };
             if let Some(failure) = failure {
+                let failure = StreamFailure::Terminal(failure);
                 self.failure = Some(failure.clone());
                 self.retire();
                 return Err(failure);
@@ -117,8 +131,9 @@ impl ProcessStream {
             }
         }
     }
-    fn poll(&mut self, output: &mut [u8]) -> Result<Option<usize>, ProcessTerminal> {
-        let failure = |e: io::Error| ProcessTerminal::ProviderLost(e.to_string());
+    fn poll(&mut self, output: &mut [u8]) -> Result<Option<usize>, StreamFailure> {
+        let failure =
+            |e: io::Error| StreamFailure::Terminal(ProcessTerminal::ProviderLost(e.to_string()));
         if let Some(input) = &mut self.stdin {
             match input.write(&self.input[self.sent..self.input_len]) {
                 Ok(size) => {
@@ -141,9 +156,9 @@ impl ProcessStream {
                 self.stderr_eof = size == 0;
                 self.stderr_bytes += size;
                 if self.stderr_bytes > 4096 {
-                    return Err(ProcessTerminal::ProviderLost(
-                        "stderr bound exceeded".into(),
-                    ));
+                    return Err(
+                        ProcessTerminal::ProviderLost("stderr bound exceeded".into()).into(),
+                    );
                 }
             }
             Err(e)
@@ -163,7 +178,7 @@ impl ProcessStream {
                     if status.success() {
                         Ok(Some(0))
                     } else {
-                        Err(ProcessTerminal::Exited(status))
+                        Err(ProcessTerminal::Exited(status).into())
                     }
                 }
                 None => Ok(None),
@@ -171,10 +186,14 @@ impl ProcessStream {
             Ok(size) => {
                 self.output_bytes += size;
                 if self.output_bytes > self.maximum_output {
-                    return Err(ProcessTerminal::ProviderLost(
-                        "stdout bound exceeded".into(),
-                    ));
+                    return Err(StreamFailure::StdoutBoundExceeded);
                 }
+                #[cfg(test)]
+                observations::emit(observations::Event {
+                    pid: self.child.0.id(),
+                    stdout_bytes: self.output_bytes,
+                    reaped: None,
+                });
                 Ok(Some(size))
             }
             Err(e)
@@ -191,7 +210,13 @@ impl ProcessStream {
     pub(crate) fn retire(&mut self) {
         if !self.finished {
             terminate(&mut self.child.0);
-            let _ = self.child.0.wait();
+            let _reaped = self.child.0.wait().is_ok();
+            #[cfg(test)]
+            observations::emit(observations::Event {
+                pid: self.child.0.id(),
+                stdout_bytes: self.output_bytes,
+                reaped: Some(_reaped),
+            });
             self.child.1 = true;
             self.finished = true;
             self.stdin.take();
@@ -250,7 +275,13 @@ mod tests {
             let result = stream.read(&mut [0; 8], || cancel);
             assert!(matches!(
                 (&result, cancel),
-                (Err(ProcessTerminal::Cancelled), true) | (Err(ProcessTerminal::TimedOut), false)
+                (
+                    Err(StreamFailure::Terminal(ProcessTerminal::Cancelled)),
+                    true
+                ) | (
+                    Err(StreamFailure::Terminal(ProcessTerminal::TimedOut)),
+                    false
+                )
             ));
             assert!(stream.finished && stream.child.1);
             assert!(stream.read(&mut [0; 8], || false).is_err());
@@ -268,7 +299,15 @@ mod tests {
                 match stream.read(&mut [0; 16], || false) {
                     Ok(0) => break,
                     Ok(_) => {}
-                    Err(_) => {
+                    Err(error) => {
+                        if script.starts_with("printf") {
+                            assert!(matches!(error, StreamFailure::StdoutBoundExceeded));
+                        } else {
+                            assert!(matches!(
+                                error,
+                                StreamFailure::Terminal(ProcessTerminal::ProviderLost(_))
+                            ));
+                        }
                         refused = true;
                         break;
                     }

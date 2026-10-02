@@ -33,6 +33,15 @@ pub fn audio_play_contract() -> StandardKindContract {
 }
 
 pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
+    let mut configuration = vec![
+        u64_configuration(AUDIO_CONVERT_OUTPUT_RATE_KEY, 48_000, 8_000, 192_000),
+        text_one_of_configuration(
+            AUDIO_CONVERT_OUTPUT_LAYOUT_KEY,
+            "stereo-left-right",
+            &["mono", "stereo-left-right"],
+        ),
+    ];
+    configuration.extend(stream_work_configuration(2_622, 3_000));
     StandardKindContract {
         kind_id: kind_id(AUDIO_CONVERT_PCM_PROFILE_KIND),
         plain_name: "Convert PCM profile".to_string(),
@@ -40,14 +49,7 @@ pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
             .to_string(),
         inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
         outputs: vec![port("converted", AUDIO_PCM_INFO_ID, PortDirection::Output)],
-        configuration: { let mut configuration = vec![
-            u64_configuration(AUDIO_CONVERT_OUTPUT_RATE_KEY, 48_000, 8_000, 192_000),
-            text_one_of_configuration(
-                AUDIO_CONVERT_OUTPUT_LAYOUT_KEY,
-                "stereo-left-right",
-                &["mono", "stereo-left-right"],
-            ),
-        ]; configuration.extend(stream_work_configuration(2_622, 3_000)); configuration },
+        configuration,
         limits: audio_limits(),
         terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,

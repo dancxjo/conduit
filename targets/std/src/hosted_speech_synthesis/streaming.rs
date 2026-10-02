@@ -1,6 +1,6 @@
 //! One ordered utterance, fixed PCM storage, demand-driven real synthesis.
 use super::*;
-use crate::hosted_process::stream::ProcessStream;
+use crate::hosted_process::stream::{ProcessStream, StreamFailure};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 
 #[derive(Clone, Copy)]
@@ -213,10 +213,11 @@ impl<'a> StreamingSpeech<'a> {
         Ok(Some(&self.block))
     }
 }
-fn terminal(value: ProcessTerminal) -> EspeakFailure {
+fn terminal(value: StreamFailure) -> EspeakFailure {
     match value {
-        ProcessTerminal::Cancelled => EspeakFailure::Cancelled,
-        ProcessTerminal::TimedOut => EspeakFailure::Timeout,
+        StreamFailure::StdoutBoundExceeded => EspeakFailure::OutputOverflow,
+        StreamFailure::Terminal(ProcessTerminal::Cancelled) => EspeakFailure::Cancelled,
+        StreamFailure::Terminal(ProcessTerminal::TimedOut) => EspeakFailure::Timeout,
         _ => EspeakFailure::ProviderLost,
     }
 }
@@ -224,6 +225,24 @@ fn terminal(value: ProcessTerminal) -> EspeakFailure {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn process_pcm_budget_failure_keeps_its_work_exhaustion_identity() {
+        let pcm = terminal(StreamFailure::StdoutBoundExceeded);
+        assert_eq!(pcm, EspeakFailure::OutputOverflow);
+        assert_eq!(
+            pcm.host_failure().1.code,
+            conduit_kernel::FailureCode::WorkBudgetExhausted
+        );
+        let diagnostic = terminal(StreamFailure::Terminal(ProcessTerminal::ProviderLost(
+            "stderr bound exceeded".into(),
+        )));
+        assert_eq!(diagnostic, EspeakFailure::ProviderLost);
+        assert_eq!(
+            diagnostic.host_failure().1.code,
+            conduit_kernel::FailureCode::HostCallFailed
+        );
+    }
+
     #[test]
     fn stream_contract_admits_explicit_total_work_without_changing_single_shot() {
         let single = conduit_tongues::synthesize_semantic_contract();

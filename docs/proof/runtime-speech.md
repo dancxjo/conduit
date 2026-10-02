@@ -56,6 +56,12 @@ Only completed output is published and acknowledged. Pressure stops draining;
 cancellation retires the process and incomplete artifact. This command proves
 the synthesis/output path, not a Body Face or a Mask Show.
 
+The playback and conversion contracts also carry explicit block and audio-time
+budgets. Browser playback accounts for mixed sample rates exactly within its
+finite `rational128` profile. An exhausted arithmetic capacity is a distinct
+storage refusal; it never rounds duration down or sends the rejected block to
+the audio device.
+
 The streamed Mask uses a separate closing-Flow projection from an already
 validated outward Speech segment. Its 1024-byte semantic envelope and the
 commit contract's revised envelope are explicit. The existing single-shot
@@ -67,8 +73,8 @@ To include runtime-produced speech in a current local-model documentary, add
 `--speech-voice` to `cargo xtask make host prove-local-model` together with
 `--orifina-presenter --journey-documentary`. This still requires an already-local
 model and an explicit `--admitted-memory-mib` limit. The retained current
-Presenter result passes through an ordinary streaming spoken Mask; its WAV is bound to
-the acknowledged Show. Reusing one state's audio for several views of that
+Presenter result passes through an ordinary streaming spoken Mask; its WAV is
+bound to the acknowledged Show. Reusing one state's audio for several views of that
 state does not claim another model inference or synthesis occurred.
 
 A requested audio failure prevents sealing the documentary track. Without the

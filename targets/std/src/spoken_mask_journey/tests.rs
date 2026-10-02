@@ -8,7 +8,7 @@ fn presentation() -> Presentation {
     presentation_with_text("Ready.")
 }
 
-fn presentation_with_text(text: &str) -> Presentation {
+pub(super) fn presentation_with_text(text: &str) -> Presentation {
     let body = Body::born(
         SourceDocumentId::from("source/presentation-fixture"),
         CheckedPlotId::from("checked/presentation-fixture"),
@@ -48,7 +48,7 @@ fn presentation_with_text(text: &str) -> Presentation {
     .unwrap()
 }
 
-fn retained(presentation: Presentation) -> GeneratedManifestationCandidate {
+pub(super) fn retained(presentation: Presentation) -> GeneratedManifestationCandidate {
     let request = GenerativePresenterRequest::from_presentation(
         "request/retained".into(),
         GenerativePresenterPolicy {

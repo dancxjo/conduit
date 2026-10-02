@@ -947,7 +947,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
         }
-        while let Some(request) = scheduler.next_host_request() {
+        while !control.stop_requested() {
+            let Some(request) = scheduler.next_host_request() else {
+                break;
+            };
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read std host input: {error:?}"))?;
@@ -3298,6 +3301,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     },
                 )
                 .map_err(|error| format!("complete std host-call: {error:?}"))?;
+        }
+        // A synchronous effect may observe a newly requested stop. Return to
+        // the ordinary cancellation owner before its cancelled completion can
+        // be interpreted as an unrelated Back failure, preserving the request.
+        if accepted_stop.is_none() && control.stop_requested() {
+            continue;
         }
         let status = match scheduler.step() {
             Ok(status) => status,
