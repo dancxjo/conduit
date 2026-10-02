@@ -2,8 +2,8 @@ use conduit_ai::{
     ClockBasis, ClockIdentity, EntityBoundary, TemporalContextRefusal, TemporalProvenance,
     TemporalRetrievalIntent, TemporalSource,
 };
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_core::TemporalRelation;
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn provenance() -> TemporalProvenance {
     TemporalProvenance {
@@ -136,15 +136,13 @@ fn event_ordering_refuses_different_clock_bases() {
 
 #[test]
 fn retrieval_intent_names_boundaries_and_rejects_reversed_windows() {
-    assert!(TemporalRetrievalIntent::DurationSince {
-        boundary: EntityBoundary::Born
-    }
-    .validate()
-    .is_ok());
-    assert_eq!(
-        TemporalRetrievalIntent::EvidenceWithin { start: 20, end: 10 }.validate(),
-        Err(TemporalContextRefusal::ReversedQueryWindow)
+    assert!(
+        TemporalRetrievalIntent::duration_since(EntityBoundary::Born)
+            .unwrap()
+            .validate()
+            .is_ok()
     );
+    assert!(conduit_ai::TemporalRetrievalWindow::new(20, 10).is_err());
 }
 
 #[test]

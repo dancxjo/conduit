@@ -3,8 +3,8 @@ use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, Tem
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ClockBasis, EntityBoundary, TemporalContextRefusal, TemporalReference, TemporalSource,
-    TemporalValidity, TemporalWindowRelation, TransitionDirection,
+    ClockBasis, TemporalContextRefusal, TemporalReference, TemporalRetrievalIntent, TemporalSource,
+    TemporalValidity, TemporalWindowRelation,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,17 +19,6 @@ pub struct TemporalProvenance {
     pub reference_at: u64,
     pub clock_basis: ClockBasis,
     pub uncertainty_millis: Option<u64>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalRetrievalIntent {
-    EarliestEvidence,
-    LatestEvidence,
-    StateValidAt { instant: u64 },
-    Transition { direction: TransitionDirection },
-    DurationSince { boundary: EntityBoundary },
-    EventOrdering,
-    EvidenceWithin { start: u64, end: u64 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -170,8 +159,8 @@ fn map_relation_error(error: TemporalRelationError) -> TemporalContextRefusal {
 
 impl TemporalRetrievalIntent {
     pub fn validate(&self) -> Result<(), TemporalContextRefusal> {
-        if let Self::EvidenceWithin { start, end } = self {
-            if start > end {
+        if let Self::EvidenceWithin(payload) = self {
+            if payload.window().start() > payload.window().end() {
                 return Err(TemporalContextRefusal::ReversedQueryWindow);
             }
         }

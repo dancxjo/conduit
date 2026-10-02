@@ -158,12 +158,7 @@ fn top_k_threshold_filters_and_temporal_intent_are_finite_and_typed() {
         Err(VectorRefusal::ThresholdMetricMismatch)
     );
 
-    let mut temporal = query(SimilarityMetric::DotProductSimilarity);
-    temporal.temporal_intent = Some(TemporalRetrievalIntent::EvidenceWithin { start: 2, end: 1 });
-    assert_eq!(
-        temporal.validate(),
-        Err(VectorRefusal::InvalidTemporalIntent)
-    );
+    assert!(conduit_ai::TemporalRetrievalWindow::new(2, 1).is_err());
 }
 
 #[test]

@@ -60,6 +60,7 @@ fn main() {
                 "ProfileReportedConfidence".into(),
                 "SourceExtractionLimits".into(),
                 "TemporalReference".into(),
+                "TemporalRetrievalWindow".into(),
             ]
             .into(),
             copy_record_types: [
@@ -312,6 +313,10 @@ fn main() {
                         "output_identity".into(),
                         "participation".into(),
                     ],
+                ),
+                (
+                    "TemporalRetrievalWindow".into(),
+                    vec!["start".into(), "end".into()],
                 ),
                 (
                     "TrainingMetric".into(),
