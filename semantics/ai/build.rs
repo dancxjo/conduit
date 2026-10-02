@@ -142,6 +142,10 @@ fn main() {
                     vec!["label".into(), "allowed_labels".into()],
                 ),
                 (
+                    "GroundedClaim".into(),
+                    vec!["answer_span".into(), "citation_indices".into()],
+                ),
+                (
                     "GroundedAnswerPolicy".into(),
                     vec![
                         "identity".into(),
