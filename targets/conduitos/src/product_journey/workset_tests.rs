@@ -1,6 +1,6 @@
 use super::test_support::{fixture, invoke, key};
 use super::*;
-use alloc::{collections::BTreeSet, vec::Vec};
+use alloc::vec::Vec;
 use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
 use conduit_human::KeyTransition;
@@ -77,18 +77,10 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
     assert_eq!(started.gear_ids.len(), 14);
     assert_eq!(started.cord_ids.len(), 10);
-    let surface = started
-        .mask
-        .as_ref()
-        .and_then(|mask| mask.shows.first())
-        .and_then(|show| show.surface_possession.as_ref())
-        .expect("native graphical Mask moves its exact surface possession");
-    assert_eq!(surface.lifecycle, "revoked-at-play-end");
-    assert_eq!(surface.provider_generation, 1);
-    assert_eq!(
-        surface.resource_pool_id.as_str(),
-        "conduitos/test/framebuffer/surface"
-    );
+    let mask = started.mask.as_ref().unwrap();
+    assert_eq!(mask.route_disposition, "planned-route-awaiting-show");
+    assert!(mask.shows.is_empty());
+    assert!(mask.show_id.is_none());
     let admitted = journey.workspace_projection().unwrap();
     assert!(admitted.plots.iter().all(|plot| {
         plot.input.as_ref().is_some_and(|input| {
@@ -199,67 +191,13 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
         .as_ref()
         .expect("replacement retains Mask truth");
     assert!(mask.actions.contains(&"doff"));
-    assert_eq!(mask.route_disposition, "selected-executed-route");
+    assert_eq!(mask.route_disposition, "planned-route-awaiting-show");
     assert_eq!(mask.planning_disposition, "not-required");
-    assert!(mask.show_id.is_some() && mask.manifestation_id.is_some());
-    assert!(mask.presentation_id.is_some() && mask.presentation_revision.is_some());
-    assert_eq!(mask.mask_actions.len(), 10);
-    assert_eq!(
-        mask.mask_actions
-            .iter()
-            .map(|outcome| outcome.action_id)
-            .collect::<Vec<_>>(),
-        conduit_presentation::MASK_JOURNEY_ACTIONS.map(conduit_presentation::MaskJourneyAction::id)
-    );
-    assert!(
-        mask.mask_actions
-            .iter()
-            .all(|outcome| outcome.presentation_id == mask.presentation_id.as_deref().unwrap())
-    );
-    let initial_show = &mask.mask_actions[0];
-    let preferred = &mask.mask_actions[2];
-    assert_eq!(preferred.plan_id, initial_show.plan_id);
-    assert_ne!(preferred.show_id, initial_show.show_id);
-    assert_ne!(preferred.selected_route_id, initial_show.selected_route_id);
-    assert_ne!(
-        preferred.selected_mask_plot_id,
-        initial_show.selected_mask_plot_id
-    );
-    for unavailable in &mask.mask_actions[3..6] {
-        assert_eq!(unavailable.plan_id, initial_show.plan_id);
-        assert!(unavailable.show_id.is_none());
-    }
-    let replacement = &mask.mask_actions[6];
-    assert_ne!(replacement.plan_id, initial_show.plan_id);
-    assert!(replacement.show_id.is_none());
-    assert_eq!(mask.mask_actions[7].plan_id, replacement.plan_id);
-    assert!(mask.mask_actions[7].show_id.is_some());
-    let restored = &mask.mask_actions[9];
-    assert!(restored.show_id.is_some());
-    assert_eq!(restored.plan_id, replacement.plan_id);
-    assert_eq!(
-        mask.mask_actions
-            .iter()
-            .filter_map(|outcome| outcome.show_id.as_deref())
-            .collect::<BTreeSet<_>>()
-            .len(),
-        4
-    );
-    assert_eq!(
-        restored.selected_mask_plot_id,
-        initial_show.selected_mask_plot_id
-    );
-    assert!(mask.kernel_signs > 0 && mask.fore_endpoints >= 3);
-    assert_eq!(mask.shows.len(), 1);
-    assert_eq!(mask.shows[0].mask_show_id, mask.show_id.as_deref().unwrap());
-    assert_eq!(
-        mask.shows[0].manifestation_id,
-        mask.manifestation_id.as_deref().unwrap()
-    );
-    assert_eq!(
-        mask.shows[0].presentation_id,
-        mask.presentation_id.as_deref().unwrap()
-    );
+    assert!(mask.show_id.is_none() && mask.manifestation_id.is_none());
+    assert!(mask.presentation_id.is_none() && mask.presentation_revision.is_none());
+    assert!(mask.mask_actions.is_empty() && mask.shows.is_empty());
+    assert_eq!(mask.kernel_signs, 0);
+    assert_eq!(mask.fore_endpoints, 0);
     assert!(
         mask.mask_plan_ids
             .iter()
@@ -298,7 +236,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
             .count(),
         2
     );
-    assert_ne!(
+    assert_eq!(
         restored_view
             .nodes
             .iter()
@@ -306,6 +244,12 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
             .unwrap()
             .value,
         initial_graphics
+    );
+    assert!(
+        restored_view
+            .nodes
+            .iter()
+            .any(|node| { node.key == "mask-stage-0" && node.text.contains("unavailable") })
     );
 }
 

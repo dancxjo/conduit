@@ -1,0 +1,8 @@
+plot host-face-snapshot (
+ >> snapshot: Presentation
+ face: Presentation >>
+) {
+ forward: presentation/tee
+ snapshot >> forward.source
+ forward.presentation >> face
+}
