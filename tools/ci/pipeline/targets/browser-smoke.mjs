@@ -16,7 +16,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   page.on('requestfailed', request => errors.push(`${request.url()}: ${request.failure()?.errorText}`));
   await page.goto(entrance.url);
-  await page.locator('[data-body-tutorial]').waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Birth Body', exact: true }).waitFor({ state: 'visible' });
   if (await page.getByRole('main').count() !== 1 || await page.getByRole('heading', { level: 1 }).count() < 1) {
     throw new Error('Workspace lacks its main landmark or heading');
   }

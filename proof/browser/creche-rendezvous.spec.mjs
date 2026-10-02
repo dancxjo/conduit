@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { openCrecheStep, reviewAndBirth } from "./creche-test-actions.mjs";
+import { openWorkspaceMachineRunner } from "./workspace-machine-test-actions.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 
 let entrance;
@@ -24,11 +24,7 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
   });
   try {
     const code = await rendezvousCode(running);
-    await page.goto(entrance.url);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-    await reviewAndBirth(page);
-    await openCrecheStep(page, "3. Physical Host");
-    const runner = page.locator(".physical-host-runner");
+    const runner = await openWorkspaceMachineRunner(page, entrance);
     await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
     await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
     const input = runner.getByLabel("Running host rendezvous code");
