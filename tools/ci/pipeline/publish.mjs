@@ -213,7 +213,7 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
         });
       }
       if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Published tag does not identify accepted main');
-      if (output) await appendFile(output, `main-sha=${accepted}\nsource-sha=${source}\n`);
+      if (output) await appendFile(output, `main-sha=${accepted}\nsource-sha=${source}\nsite-current=${main() === accepted}\n`);
       return { sourceSha: source, mainSha: accepted, treeSha: sourceTree, tag, manifest };
     } finally {
       await rm(staging, { recursive: true, force: true });

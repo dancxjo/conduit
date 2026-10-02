@@ -18,7 +18,7 @@ export async function prepareFieldStationPackage() {
   const staged = await exists(path.join(stagedDistributionRoot, "browser-page.json"));
   if (!staged) {
     await rm(distributionRoot, { recursive: true, force: true });
-    run("cargo", ["+stable", "xtask", "host", "release", "--platform", "browser", "--output",
+    run("cargo", ["+stable", "xtask", "make", "host", "release", "--platform", "browser", "--output",
       distributionRoot, "--source-identity", "field-station-clock@1"]);
   }
   const source = staged ? stagedDistributionRoot : distributionRoot;

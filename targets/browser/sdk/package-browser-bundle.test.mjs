@@ -65,6 +65,8 @@ try {
   const listing = JSON.parse(packed.stdout)[0].files.map(({ path: file }) => file);
   assert(listing.includes("browser-sdk.mjs"));
   assert(listing.includes("browser-sdk-plots.mjs"));
+  assert(listing.includes("browser-sdk-continuity.mjs"));
+  assert(listing.includes("browser-sdk-syntax.mjs"));
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
@@ -74,6 +76,42 @@ try {
   assert(listing.includes("bundle/runtime.wasm"));
   const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });
   assert.equal(imported.status, 0, imported.stderr);
+
+  // The static application composes this exact bundle, including its SDK graph.
+  const app = path.join(scratch, "application");
+  await mkdir(app);
+  await writeFile(path.join(app, "index.html"), "<!doctype html><html><head><title>Local body</title></head><body></body></html>");
+  await writeFile(path.join(app, "app.mjs"), "export async function startApplication(context) {}\n");
+  await writeFile(path.join(app, "birth.json"), JSON.stringify({ name: "My body", initialPlotNames: ["hello"] }));
+  const template = {
+    schema: "conduit.browser/application-package-template@1", application_id: "example/static-one",
+    state_compatibility: { identity: "example/local-state", version: 1 }, host_implementations: ["browser/indexeddb@1"],
+    resources: [
+      { role: "shell", kind: "content", path: "index.html", maximum_bytes: 1024, dependencies: [] },
+      { role: "application-module", kind: "module", path: "app.mjs", maximum_bytes: 1024, dependencies: [] },
+      { role: "birth-specification", kind: "content", path: "birth.json", maximum_bytes: 1024, dependencies: [] },
+    ],
+  };
+  const templatePath = path.join(app, "application.template.json");
+  await writeFile(templatePath, JSON.stringify(template));
+  const staticOutput = path.join(scratch, "static");
+  const staticScript = path.resolve(root, "../tools/package-static-application.mjs");
+  const staticResult = spawnSync(process.execPath, [staticScript, templatePath, source, staticOutput], { encoding: "utf8" });
+  assert.equal(staticResult.status, 0, staticResult.stderr);
+  const appManifest = JSON.parse(await readFile(path.join(staticOutput, "application.application.json"), "utf8"));
+  assert.equal(appManifest.application_id, template.application_id);
+  assert.equal(appManifest.resources.filter(resource => resource.role === "runtime").length, 1);
+  assert(appManifest.resources.find(resource => resource.role === "browser-sdk").dependencies.length > 0);
+  for (const resource of appManifest.resources) {
+    assert.equal(await sha256(await readFile(path.join(staticOutput, resource.path))), resource.sha256);
+  }
+  const overwrite = spawnSync(process.execPath, [staticScript, templatePath, source, staticOutput], { encoding: "utf8" });
+  assert.notEqual(overwrite.status, 0);
+  template.resources[0].path = "../outside.html";
+  await writeFile(templatePath, JSON.stringify(template));
+  const unsafe = spawnSync(process.execPath, [staticScript, templatePath, source, path.join(scratch, "unsafe")], { encoding: "utf8" });
+  assert.notEqual(unsafe.status, 0);
+  assert.match(unsafe.stderr, /Unsafe application path/);
 
   await writeFile(path.join(source, "runtime.wasm"), new Uint8Array([1, 2, 3]));
   const rejected = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, path.join(scratch, "rejected")], { encoding: "utf8" });

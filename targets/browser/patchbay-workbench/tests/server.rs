@@ -325,7 +325,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let manifest: serde_json::Value =
         serde_json::from_str(package.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(manifest["application_id"], "conduit.application/patchbay");
-    assert_eq!(manifest["resources"].as_array().unwrap().len(), 28);
+    assert_eq!(manifest["resources"].as_array().unwrap().len(), 29);
     assert!(manifest["resources"]
         .as_array()
         .unwrap()

@@ -586,18 +586,13 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(index.contains("latest 32 published source commits"));
     assert!(index.contains("Publication source:"));
     assert!(!index.contains("Current accepted main:"));
-    assert!(index.contains("One Journey.<br><em>Three Bodies.</em>"));
-    assert!(index.contains("Evidence not yet admitted for this commit"));
-    assert!(index.contains("The evidence library"));
+    assert!(index.contains("Choose what you want to do"));
+    assert!(index.contains("Technical examples"));
     assert!(index.contains("conduit-three-body-flagship@2"));
-    for action in crate::three_body_actions::REQUIRED_ACTIONS {
-        assert!(index.contains(action.title()));
-    }
-    assert_eq!(index.matches("<ol class=\"semantic-spine\">").count(), 1);
-    assert!(!index.contains("presentation Host"));
-    assert!(index.contains("journey-card"));
-    assert!(index.contains("Follow the evidence"));
-    assert!(index.contains("Browse the completed vertical journeys"));
+    assert!(index.contains("Main navigation"));
+    assert!(index.contains("Read a clock, reload, then rest"));
+    assert!(index.contains("Start, use, inspect, and stop a body"));
+    assert!(index.contains("Browse goals and capture availability"));
     let catalogue: serde_json::Value =
         serde_json::from_slice(&fs::read(site_root.join("catalogue.json")).unwrap()).unwrap();
     assert_eq!(catalogue["schema"], "conduit.vertical-journey-catalogue/v1");
@@ -637,7 +632,7 @@ fn gallery_publishes_current_history_and_provenance() {
             .join("index.html")
             .is_file());
     }
-    assert!(index.contains("Current x86_64 ConduitOS emulator console evidence"));
+    assert!(index.contains("Inspect a ConduitOS emulator run"));
     assert!(scenario.contains("1440x1000"));
     assert!(scenario.contains("Exact provenance"));
     assert!(site_root

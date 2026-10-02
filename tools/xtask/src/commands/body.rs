@@ -15,6 +15,8 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 mod scaffold;
+#[path = "body/static.rs"]
+mod static_application;
 
 use scaffold::{BodyTemplate, HostAssignment};
 
@@ -26,6 +28,8 @@ pub struct BodyArgs {
 
 #[derive(Subcommand, Debug)]
 enum BodyCommand {
+    /// Package a birthable local browser application as self-contained static files.
+    Static(static_application::StaticArgs),
     /// Create one checked canonical Body description from repository Host recipes.
     New {
         /// Body name; prompted for in an interactive terminal when omitted.
@@ -92,6 +96,7 @@ struct HostReport<'a> {
 
 pub fn run(args: BodyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
+        BodyCommand::Static(args) => static_application::run(args, opts),
         BodyCommand::New {
             name,
             template,

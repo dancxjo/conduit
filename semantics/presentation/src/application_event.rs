@@ -43,7 +43,8 @@ impl ApplicationEvent {
         {
             referenced = true;
             match node.component {
-                super::ApplicationComponent::TextInput
+                super::ApplicationComponent::PatchbayCanvas
+                | super::ApplicationComponent::TextInput
                 | super::ApplicationComponent::Select
                 | super::ApplicationComponent::TextArea
                     if self.value.len() > node.value_capacity as usize
@@ -51,7 +52,8 @@ impl ApplicationEvent {
                 {
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
-                super::ApplicationComponent::TextInput
+                super::ApplicationComponent::PatchbayCanvas
+                | super::ApplicationComponent::TextInput
                 | super::ApplicationComponent::Select
                 | super::ApplicationComponent::TextArea => {}
                 _ if !self.value.is_empty() => {

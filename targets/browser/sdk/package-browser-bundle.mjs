@@ -76,10 +76,10 @@ for (const file of release.files) {
 for (const name of ["browser-page.json", "browser-bundle-release.json"]) {
   await copyFile(path.join(bundleRoot, name), path.join(outputRoot, "bundle", name));
 }
-for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-plots.mjs", "browser-sdk-events.mjs", "browser-sdk-face.mjs", "browser-sdk.d.ts", "README.md"]) {
+for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-plots.mjs", "browser-sdk-continuity.mjs", "browser-sdk-syntax.mjs", "browser-sdk-events.mjs", "browser-sdk-face.mjs", "browser-sdk.d.ts", "README.md"]) {
   await copyFile(path.join(ROOT, name), path.join(outputRoot, name));
 }
-for (const name of ["browser-body-host.mjs", "browser-body-input.mjs", "browser-human-input.mjs", "browser-audio-cue.mjs", "browser-pcm-audio.mjs", "browser-plot-effects.mjs", "application-presentation.mjs", "application-theme.mjs", "browser-runtime-bridge.mjs", "browser-application-storage.mjs", "browser-membership.js", "browser-host-identity.mjs", "body-webrtc-sessions.mjs", "body-webrtc-session.mjs", "webrtc-datachannel-line.mjs", "webrtc-session-runtime.mjs"]) {
+for (const name of ["browser-body-host.mjs", "browser-body-input.mjs", "browser-human-input.mjs", "browser-audio-cue.mjs", "browser-pcm-audio.mjs", "browser-plot-effects.mjs", "application-presentation.mjs", "application-graph-canvas.mjs", "application-syntax-presentation.mjs", "application-theme.mjs", "browser-body-continuity.mjs", "browser-runtime-bridge.mjs", "browser-application-storage.mjs", "browser-membership.js", "browser-host-identity.mjs", "body-webrtc-sessions.mjs", "body-webrtc-session.mjs", "webrtc-datachannel-line.mjs", "webrtc-session-runtime.mjs"]) {
   const source = path.join(HOST_ASSETS, name);
   const destination = path.join(outputRoot, "host", "assets", name);
   await mkdir(path.dirname(destination), { recursive: true });
@@ -123,4 +123,11 @@ function safePath(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 256
     && !value.startsWith("/") && !value.includes("\\") && !value.includes("%")
     && !value.split("/").some((segment) => !segment || segment === "." || segment === "..");
+}
+
+// SDK-owned helpers retain the same packaged Host asset boundary as the facade.
+for (const name of ["browser-sdk-continuity.mjs", "browser-sdk-syntax.mjs"]) {
+  const file = path.join(outputRoot, name);
+  const source = await readFile(file, "utf8");
+  await writeFile(file, source.replaceAll('"../host/assets/', '"./host/assets/').replaceAll("'../host/assets/", "'./host/assets/"));
 }

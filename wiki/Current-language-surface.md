@@ -207,9 +207,14 @@ remain well-typed while making a law false. See the
 and the record-law syntax tests.
 
 Construction-time enforcement is implemented by
-[#4638](https://github.com/dancxjo/conduit/pull/4638). General propagation of
-these facts into consuming plots and removal of proven-safe arithmetic checks
-remains open in [#4639](https://github.com/dancxjo/conduit/issues/4639).
+[#4638](https://github.com/dancxjo/conduit/pull/4638). Completed
+[#4639](https://github.com/dancxjo/conduit/issues/4639) carries applicable record
+and scalar invariant facts into consuming-plot arithmetic proofs. For example,
+`.end - .start` is proven safe when the input type establishes `.start <= .end`;
+`.end + 1` remains checked without a sufficient upper bound. The
+[portable arithmetic tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/canonical_expansion_tests.rs)
+cover both outcomes. This is bounded proof propagation, not permission to erase
+arbitrary arithmetic checks.
 
 ## Bounded each, select, fold, and scan
 

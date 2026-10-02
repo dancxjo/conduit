@@ -1,6 +1,7 @@
 import { cpSync, existsSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { cargo, command, digest, xtask } from './common.mjs';
+import { assembleSite } from './site.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
 // Cross-target deployment tests require another lane's artifacts and are not
@@ -9,6 +10,9 @@ const SPECS = [
   'workspace-arrival', 'workspace-birth-naming', 'sdk-external-body-execution',
   'workspace-membership', 'workspace-library', 'workspace-resident-applications',
   'workspace-continuity',
+  'field-station-clock',
+  'sdk-body-participation',
+  'static-body-application',
   'creche-browser-configuration', 'creche-rendezvous',
   'signal-dom-host', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
   'browser-host-entrance', 'browser-media-host', 'browser-device-base', 'browser-usb-device-base',
@@ -37,7 +41,13 @@ export function browser(directory) {
   // Stage the runtime already sealed by the release command; no second WASM build.
   command('sh', ['targets/browser/tools/stage-browser-workspace.sh',
     path.join(releases, 'runtime.wasm'), product, releases]);
+  xtask('make', 'body', 'static', '--application', 'targets/browser/handbook/handbook.application.template.json',
+    '--output', 'target/handbook-static', '--release', releases, '--handbook');
+  xtask('make', 'body', 'static', '--application', 'targets/browser/examples/clock-lab/application.template.json',
+    '--output', 'target/handbook-static-second', '--release', releases);
   const before = inventory(product);
+  const handbookBefore = inventory('target/handbook-static');
+  const clockBefore = inventory('target/handbook-static-second');
   command('node', ['--test', ...[
     'browser-body-input', 'browser-body-host', 'workspace-handoff', 'browser-plot-effects',
     'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'physical-host-workflow',
@@ -53,9 +63,15 @@ export function browser(directory) {
   if (JSON.stringify(before) !== JSON.stringify(inventory(product))) throw new Error('Browser proof modified its staged product');
   cpSync(product, path.join(directory, 'workspace'), { recursive: true, errorOnExist: true, force: false });
   if (JSON.stringify(before) !== JSON.stringify(inventory(path.join(directory, 'workspace')))) throw new Error('Browser product copy changed bytes');
+  if (JSON.stringify(handbookBefore) !== JSON.stringify(inventory('target/handbook-static'))
+    || JSON.stringify(clockBefore) !== JSON.stringify(inventory('target/handbook-static-second'))) throw new Error('Static Body proof modified its products');
+  const site = path.join(directory, 'site');
+  assembleSite(site, process.env.CONDUIT_CHECKOUT_SHA);
+  command('node', ['proof/browser/verify-public-site.mjs', site, path.join(directory, 'site-proof')]);
   writeFileSync(path.join(directory, 'proof-scope.json'), JSON.stringify({
     product: 'workspace/', project: 'chromium', workers: 1, retries: 0, specs: SPECS,
     additionalProof: 'Workspace WCAG 2.2 AA and local asset/link smoke',
-    excluded: 'Cross-target download/deployment, Pages homepage, Patchbay, physical/HIL, other browser projects; mixed-membership requires the absent browser-parts-capstone binary',
+    website: 'Homepage, handbook, journeys, Field Station captures, shared navigation and responsive layout',
+    excluded: 'Cross-target download/deployment, Patchbay, physical/HIL, other browser projects; mixed-membership requires the absent browser-parts-capstone binary',
   }, null, 2));
 }

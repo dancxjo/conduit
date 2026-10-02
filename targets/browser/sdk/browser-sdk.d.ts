@@ -42,7 +42,22 @@ export class BrowserFaceClient {
 }
 
 /** Read-only projection of one exact browser Host and Boot incarnation. */
+export interface BrowserSyntaxProjection {
+  readonly protocol: "conduit.syntax-highlight-projection@1";
+  readonly source_bytes: number;
+  readonly kinds: readonly string[];
+  readonly spans: readonly (readonly [number, number, number])[];
+}
+export interface BrowserSyntaxEditor {
+  render(): void;
+  destroy(): void;
+}
+
 export class BrowserHost {
+  /** Attach native syntax highlighting while preserving the accessible textarea. */
+  attachEditor(textarea: HTMLTextAreaElement): BrowserSyntaxEditor;
+  /** Return the bounded canonical Rust syntax projection, or throw on refusal. */
+  syntax(source: string): BrowserSyntaxProjection;
   private constructor();
   readonly schema: "conduit.browser/host@1";
   readonly packageVersion: string;
@@ -83,6 +98,10 @@ export class BrowserHost {
   birth(options: { name: string; plots: readonly (BrowserPlot | CheckedPlot | CheckedSource)[] }): Promise<BrowserBody>;
   /** Recover the retained Body under this fresh Boot. Returns null when no Body is retained. */
   recover(): Promise<BrowserBody | null>;
+  /** Terminate owned execution and release this application session. */
+  close(): Promise<void>;
+  /** Forget only this application state, preserving durable Host identity. */
+  forget(): Promise<void>;
 }
 
 export class BrowserBodyParticipation {
@@ -223,15 +242,21 @@ export class BrowserBody {
   current(): Promise<Readonly<Record<string, unknown>>>;
   /** Refresh one immutable projection of current Rust Body and Host evidence. */
   snapshot(): Promise<BrowserBodySnapshot>;
-  /** Project the exact checked topology for consumption by a Patchbay Mask. */
+  plots(): Promise<CheckedSource>;
+  /** Project the selected resident Plot from a bundle (or the sole resident Plot). Refuses identity mismatch. */
   patchbay(): Promise<BrowserBodyPatchbay>;
   /** Stream retained runtime events; replay is opt-in and notifications are polled/coalesced from bounded evidence. */
   events(options?: { replay?: boolean; pollIntervalMillis?: number; signal?: AbortSignal }): AsyncIterable<BrowserBodyEvent>;
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
-  wake(): Promise<BrowserPlay>;
+  wake(options?: { root?: Element | ShadowRoot; presentationRootFor?: (placement: Readonly<{
+    checkedPlotId: string; placementId: string; gearId: string;
+  }>) => Element | ShadowRoot }): Promise<BrowserPlay>;
   /** Terminate or close the current Play and record the exact Body lull transition. */
   lull(): Promise<Readonly<Record<string, unknown>>>;
+  close(): Promise<void>;
+  select(plot: BrowserPlot | CheckedPlot | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
   install(plot: BrowserPlot | CheckedPlot | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
+  replace(previous: BrowserPlot | CheckedPlot | CheckedSource, plot: BrowserPlot | CheckedPlot | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
   remove(plot: BrowserPlot | CheckedPlot | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
 }
 
@@ -306,15 +331,20 @@ export class BrowserPlay {
 
 export interface BrowserOptions {
   /** An application-owned Element or ShadowRoot used only for presentation. */
-  root: Element | ShadowRoot;
+  root?: Element | ShadowRoot;
   /** Same-origin directory containing the exact package-bound BrowserBundle. */
   bundleRoot?: string | URL;
   /** Optional assertion that this package contains the expected checked PROFILE. */
   profileId?: string;
   /** Use a fresh Host identity for an intentionally ephemeral Host. */
   durable?: boolean;
+  application?: {
+    identity: string;
+    stateCompatibility: { identity: string; version: number };
+    packageDigest: string;
+  };
 }
 
 export const Conduit: Readonly<{
-  browser(options: BrowserOptions): Promise<BrowserHost>;
+  browser(options?: BrowserOptions): Promise<BrowserHost>;
 }>;

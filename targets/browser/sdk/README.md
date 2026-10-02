@@ -220,6 +220,7 @@ const authoredPatchbay = authored.patchbay();
 
 // Patchbay is a Body-owned semantic projection. A workbench Mask, not the SDK,
 // decides how to realize it in HTML.
+// A bundled Body projects its selected resident Plot; select it first.
 const patchbay = await body.patchbay();
 
 const controller = new AbortController();
@@ -230,6 +231,11 @@ for await (const event of body.events({ signal: controller.signal })) {
 
 For a no-bundler static page, serve the complete package directory from the
 same origin and import `browser-sdk.mjs` directly:
+
+`await Conduit.browser()` admits a Host and a fresh Boot without creating a
+Body or painting anything into the page. Static documentation and recorded
+journeys do not need the SDK or WASM at all. Supply an application-owned `root`
+when that Host will run a Body through the current DOM adapter:
 
 ```html
 <main id="conduit"></main>
@@ -248,6 +254,12 @@ that differs from the package's image. Module code is imported only from bytes
 whose identities were admitted by those manifests. The application's root is
 used as a Mask realization surface for the body's Face; it contributes no Host,
 Profile, or authority fact.
+
+The SDK leaves the supplied root unchanged during Host admission and refresh.
+Applications choose their own status UI. The current Body adapter requires a
+connected surface when waking a Body; without one, Wake refuses with
+`ApplicationSurfaceUnavailable`. Rootless Host admission does not imply that
+all Body work can run without an output surface.
 
 An application bundler needs no Conduit compiler. If it does not preserve the
 package's adjacent `bundle/` directory, publish that directory as static assets
@@ -295,3 +307,9 @@ offers remain a refreshed projection of Boot evidence. Plots and Body workload
 operations use that same admitted Browser runtime. Typed refusal classes retain
 machine category, operation, and runtime evidence. Typed events, full Play
 lifecycle, and reload recovery are layered on the same Host and Body contracts.
+
+Workset installation and replacement preserve each reviewed bundle entry's
+presentation profile. `body.patchbay()` projects the selected resident source
+and checks its exact source/Plot identities; it refuses ambiguity or a runtime
+projection with a different identity. The resident Patchbay Plot remains the
+workbench for inspecting a complete Body plan.

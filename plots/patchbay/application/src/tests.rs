@@ -202,3 +202,50 @@ fn mask_topology_is_visible_and_requests_the_exact_body_plan() {
         })
     );
 }
+
+#[test]
+fn resident_canvas_preserves_exact_graph_and_authoritative_subject_selection() {
+    use conduit_presentation::application_canvas::ApplicationCanvas;
+    let plot = plot();
+    let mut port = PatchbayApplicationPort::open(
+        &plot,
+        PlanId::from("plan/current"),
+        PlanId::from("body-plan/current"),
+    )
+    .unwrap();
+    let initial = port.apply(&[]).unwrap();
+    let view = ApplicationView::decode(&initial.view).unwrap();
+    let canvas = view
+        .nodes
+        .iter()
+        .find(|node| node.component == ApplicationComponent::PatchbayCanvas)
+        .unwrap();
+    let graph = ApplicationCanvas::decode(&canvas.value).unwrap();
+    assert_eq!(graph.checked_plot, plot.checked_plot_id.as_str());
+    assert_eq!(graph.expanded_plot, plot.expanded_plot_id.as_str());
+    assert_eq!(graph.plan, "plan/current");
+    assert_eq!(graph.body_plan, "body-plan/current");
+    assert_eq!(graph.cords.len(), port.graph().cords.len());
+    let subject = String::from(port.graph().subject_identities().last().unwrap());
+    let event = ApplicationEvent {
+        revision: view.revision,
+        action: resident_canvas::SELECT_SUBJECT.into(),
+        kind: ApplicationEventKind::Change,
+        value: subject.as_bytes().to_vec(),
+    };
+    let encoded = event.encode(&view).unwrap();
+    port.apply(&encoded).unwrap();
+    assert_eq!(port.inspection().unwrap().subject_identity, subject);
+    assert!(
+        port.apply(&encoded).is_err(),
+        "stale graph interaction must refuse"
+    );
+    let current = ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap();
+    let invalid = ApplicationEvent {
+        revision: current.revision,
+        value: b"not-a-resident-subject".to_vec(),
+        ..event
+    };
+    assert!(port.apply(&invalid.encode(&current).unwrap()).is_err());
+    assert_eq!(port.inspection().unwrap().subject_identity, subject);
+}

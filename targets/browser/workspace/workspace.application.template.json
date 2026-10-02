@@ -469,10 +469,21 @@
       "maximum_bytes": 40960,
       "dependencies": [
         {
+          "role": "application-graph-canvas",
+          "specifier": "./application-graph-canvas.mjs"
+        },
+        {
           "role": "application-theme",
           "specifier": "./application-theme.mjs"
         }
       ]
+    },
+    {
+      "role": "application-graph-canvas",
+      "kind": "module",
+      "path": "application-graph-canvas.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": []
     },
     {
       "role": "application-theme",

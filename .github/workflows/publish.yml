@@ -22,6 +22,11 @@ jobs:
       contents: write
       pull-requests: write
       statuses: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -46,7 +51,17 @@ jobs:
             tar -xf "$archive" -C target/bundle
           done
       - name: Verify, promote through PR, and publish without rebuilding
+        id: release
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
         run: cargo xtask ci pipeline publish "$RUN_ID" target/bundle
+      - name: Upload the tested website
+        if: steps.release.outputs.site-current == 'true'
+        uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: target/bundle/browser/site
+      - name: Deploy the tested website
+        if: steps.release.outputs.site-current == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1
