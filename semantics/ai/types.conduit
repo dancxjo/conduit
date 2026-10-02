@@ -242,6 +242,19 @@ type TemporalWindowRelation =
     | overlaps
     | unknown
 
+type ClockIdentity = Text <= 128B not in [""]
+
+type ClockBasis =
+    unix_epoch_milliseconds
+    | monotonic_milliseconds {
+        identity: ClockIdentity
+    }
+
+type TemporalReference = {
+    reference_at: U64
+    clock_basis: ClockBasis
+}
+
 type ContextRedundancyPolicy =
     keep_all
     | one_per_reviewed_group
@@ -521,9 +534,7 @@ type HybridRetrievalOfferInvalidity =
     | process_identity_too_large
 
 type TemporalContextRefusal =
-    empty_clock_identity
-    | clock_identity_too_large
-    | reversed_validity_interval
+    reversed_validity_interval
     | retrieval_after_reference
     | clock_basis_mismatch
     | source_unavailable
