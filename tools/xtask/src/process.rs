@@ -1,9 +1,8 @@
 use std::{
-    env,
     ffi::OsStr,
     fmt,
-    path::{Path, PathBuf},
-    process::{Command, ExitStatus, Stdio},
+    path::Path,
+    process::{ExitStatus, Stdio},
     time::Instant,
 };
 
@@ -309,36 +308,8 @@ fn run_step_with_arguments_and_environment(
     }
 }
 
-/// Build a command for a tool, accepting Cargo-installed binaries even when the
-/// invoking shell did not source Cargo's PATH setup.
-pub fn command_for(program: &str) -> Command {
-    Command::new(resolve_program(program))
-}
-
-fn resolve_program(program: &str) -> PathBuf {
-    let program_path = Path::new(program);
-    if program_path.components().count() > 1 || path_contains_program(program) {
-        return program_path.to_path_buf();
-    }
-
-    if let Some(path) = cargo_bin_program(program).filter(|path| path.is_file()) {
-        return path;
-    }
-
-    program_path.to_path_buf()
-}
-
-fn path_contains_program(program: &str) -> bool {
-    env::var_os("PATH")
-        .is_some_and(|paths| env::split_paths(&paths).any(|path| path.join(program).is_file()))
-}
-
-fn cargo_bin_program(program: &str) -> Option<PathBuf> {
-    let cargo_home = env::var_os("CARGO_HOME")
-        .map(PathBuf::from)
-        .or_else(|| env::var_os("HOME").map(|home| PathBuf::from(home).join(".cargo")))?;
-    Some(cargo_home.join("bin").join(program))
-}
+mod tool_command;
+pub use tool_command::command_for;
 
 #[cfg(test)]
 mod tests {
