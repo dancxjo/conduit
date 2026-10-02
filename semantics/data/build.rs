@@ -66,6 +66,7 @@ fn main() {
                 "MeasurementSummary".into(),
                 "MeasurementThresholdDecision".into(),
                 "MeasurementWindowProfile".into(),
+                "SignalWindow".into(),
             ]
             .into(),
             record_constructor_names: [("DataGenerationNamespace".into(), "from_digest".into())]
