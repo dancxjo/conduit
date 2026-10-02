@@ -1104,6 +1104,28 @@ type ShadowResourceEnvelope = {
     where .maximum_work_units > 0
 }
 
+type TrainingResourceEnvelope = {
+    model_bytes: U64
+    working_memory_bytes: U64
+    compute_lanes: U32
+    maximum_batch_items: U32
+    maximum_batch_bytes: U64
+    maximum_steps: U64
+    maximum_work_units: U64
+    maximum_checkpoint_bytes: U64
+    maximum_in_flight_steps: U16
+    where .model_bytes > 0
+    where .working_memory_bytes > 0
+    where .compute_lanes > 0
+    where .maximum_batch_items > 0
+    where .maximum_batch_items <= 4096
+    where .maximum_batch_bytes > 0
+    where .maximum_steps > 0
+    where .maximum_work_units > 0
+    where .maximum_checkpoint_bytes > 0
+    where .maximum_in_flight_steps == 1
+}
+
 type EmbodimentStage =
     perception_only
     | expressive

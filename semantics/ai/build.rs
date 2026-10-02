@@ -61,6 +61,7 @@ fn main() {
                 "ProfileReportedConfidence".into(),
                 "SourceExtractionLimits".into(),
                 "ShadowResourceEnvelope".into(),
+                "TrainingResourceEnvelope".into(),
             ]
             .into(),
             copy_record_value_getters: [
@@ -69,6 +70,7 @@ fn main() {
                 "LlmWorkBounds".into(),
                 "ShadowResourceEnvelope".into(),
                 "SourceExtractionLimits".into(),
+                "TrainingResourceEnvelope".into(),
             ]
             .into(),
             direct_checked_record_constructors: [
@@ -219,6 +221,20 @@ fn main() {
                         "maximum_input_bytes".into(),
                         "maximum_output_bytes".into(),
                         "maximum_work_units".into(),
+                    ],
+                ),
+                (
+                    "TrainingResourceEnvelope".into(),
+                    vec![
+                        "model_bytes".into(),
+                        "working_memory_bytes".into(),
+                        "compute_lanes".into(),
+                        "maximum_batch_items".into(),
+                        "maximum_batch_bytes".into(),
+                        "maximum_steps".into(),
+                        "maximum_work_units".into(),
+                        "maximum_checkpoint_bytes".into(),
+                        "maximum_in_flight_steps".into(),
                     ],
                 ),
                 (

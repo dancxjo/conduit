@@ -55,8 +55,9 @@ pub use generated::{
     StochasticProvenance, StructuredResultInvalidity,
     TemporalContextRefusal, TemporalEvidenceSelectionRefusal, TemporalInterpretationRefusal,
     TemporalReference, TemporalSource, TemporalValidity, TemporalWindowRelation, TrainStepFailure,
-    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingRefusal, TransitionDirection,
-    ValidatedExtraction, VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
+    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingRefusal,
+    TrainingResourceEnvelope, TransitionDirection, ValidatedExtraction, VectorIndexHealth,
+    VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
     VectorRefusal, VectorSearchExecutionProofClass, VectorSearchOfferInvalidity,
     VectorSearchProofClass, WiredHouseContextItem,
 };

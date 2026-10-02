@@ -1,8 +1,8 @@
 use conduit_ai::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, ModelComputeLifecycle, ModelComputeOperation,
     ModelComputeRefusal, ModelSignatureRefusal, ObjectiveParticipation, PortableComputeClass,
-    RelationQueryMode, RelationRefusal, TrainingRefusal, VectorIndexHealth,
-    VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
+    RelationQueryMode, RelationRefusal, TrainingRefusal, TrainingResourceEnvelope,
+    VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -16,6 +16,17 @@ where
 
 #[test]
 fn training_vocabularies_round_trip_through_native_types() {
+    assert_round_trip(
+        TrainingResourceEnvelope::new(4096, 1_048_576, 2, 4096, 65_536, 3, 10_000, 16_384, 1)
+            .unwrap(),
+    );
+    assert!(
+        TrainingResourceEnvelope::new(4096, 1_048_576, 2, 4097, 65_536, 3, 10_000, 16_384, 1)
+            .is_err()
+    );
+    assert!(!include_str!("../src/training.rs")
+        .contains(concat!("pub struct ", "TrainingResourceEnvelope")));
+
     for participation in [
         ObjectiveParticipation::Optimize,
         ObjectiveParticipation::ObserveOnly,

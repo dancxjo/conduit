@@ -7,7 +7,7 @@ use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 use crate::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, MissingModalityPolicy, ModelArtifact,
     MutableModelState, ObjectiveParticipation, RandomnessProfile, TrainStepFailure,
-    TrainingRefusal,
+    TrainingRefusal, TrainingResourceEnvelope,
 };
 
 #[path = "training_request.rs"]
@@ -51,19 +51,6 @@ pub struct TrainingBatch {
     pub encoded_bytes: u64,
     pub order: BatchOrder,
     pub stochastic_seed: Option<u64>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct TrainingResourceEnvelope {
-    pub model_bytes: u64,
-    pub working_memory_bytes: u64,
-    pub compute_lanes: u32,
-    pub maximum_batch_items: u32,
-    pub maximum_batch_bytes: u64,
-    pub maximum_steps: u64,
-    pub maximum_work_units: u64,
-    pub maximum_checkpoint_bytes: u64,
-    pub maximum_in_flight_steps: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -175,8 +162,7 @@ impl TrainingSession {
             return Err(TrainingRefusal::InvalidSplit);
         }
         validate_objectives(&self.objectives)?;
-        self.resources.validate()?;
-        if self.resources.model_bytes < artifact.content.extent.bytes
+        if self.resources.model_bytes() < artifact.content.extent.bytes
             || self.model_modalities.is_empty()
             || self.model_modalities.len() > MAXIMUM_BATCH_MODALITIES
         {
@@ -250,7 +236,7 @@ impl TrainingSession {
             lifetime: conduit_core::StateLifetime::Play,
             retained: None,
             maximum_value_bytes: maximum_state_bytes,
-            continuation: StateContinuation::MaximumTransitions(self.resources.maximum_steps),
+            continuation: StateContinuation::MaximumTransitions(self.resources.maximum_steps()),
         })
     }
 
@@ -299,7 +285,7 @@ impl TrainingSession {
             .consumed_work_units
             .checked_add(candidate.consumed_work_units)
             .ok_or(TrainingRefusal::WorkBoundExceeded)?;
-        if consumed_work_units > self.resources.maximum_work_units {
+        if consumed_work_units > self.resources.maximum_work_units() {
             return Err(TrainingRefusal::WorkBoundExceeded);
         }
         let next = TrainingState {
@@ -346,7 +332,7 @@ impl TrainingSession {
         realization.validate_for(self, artifact)?;
         batch.validate_for(self, split)?;
         validate_metrics(&metrics, &self.objectives)?;
-        if consumed_work_units == 0 || consumed_work_units > self.resources.maximum_work_units {
+        if consumed_work_units == 0 || consumed_work_units > self.resources.maximum_work_units() {
             return Err(TrainingRefusal::WorkBoundExceeded);
         }
         let scheduled = match self.evaluation_policy {
@@ -354,7 +340,9 @@ impl TrainingSession {
             EvaluationPolicy::EverySteps(interval) => {
                 state.completed_steps.is_multiple_of(interval)
             }
-            EvaluationPolicy::AtCompletion => state.completed_steps == self.resources.maximum_steps,
+            EvaluationPolicy::AtCompletion => {
+                state.completed_steps == self.resources.maximum_steps()
+            }
         };
         if !scheduled {
             return Err(TrainingRefusal::EvaluationNotScheduled);
@@ -392,7 +380,7 @@ impl TrainingSession {
         if checkpoint.generation != state.model.generation {
             return Err(TrainingRefusal::StaleState);
         }
-        if checkpoint.content.extent.bytes > self.resources.maximum_checkpoint_bytes {
+        if checkpoint.content.extent.bytes > self.resources.maximum_checkpoint_bytes() {
             return Err(TrainingRefusal::CheckpointBoundExceeded);
         }
         validate_metrics(&metric_summaries, &self.objectives)?;
@@ -401,7 +389,9 @@ impl TrainingSession {
             CheckpointPolicy::EverySteps(interval) => {
                 state.completed_steps.is_multiple_of(interval)
             }
-            CheckpointPolicy::AtCompletion => state.completed_steps == self.resources.maximum_steps,
+            CheckpointPolicy::AtCompletion => {
+                state.completed_steps == self.resources.maximum_steps()
+            }
         };
         if !scheduled {
             return Err(TrainingRefusal::CheckpointNotScheduled);

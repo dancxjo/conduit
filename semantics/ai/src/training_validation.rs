@@ -11,8 +11,8 @@ impl TrainingState {
         artifact: &ModelArtifact,
     ) -> Result<(), TrainingRefusal> {
         if self.session_identity != session.identity
-            || self.completed_steps > session.resources.maximum_steps
-            || self.consumed_work_units > session.resources.maximum_work_units
+            || self.completed_steps > session.resources.maximum_steps()
+            || self.consumed_work_units > session.resources.maximum_work_units()
             || self.model.generation
                 != self
                     .initial_generation
@@ -24,25 +24,6 @@ impl TrainingState {
         self.model
             .validate(artifact)
             .map_err(|_| TrainingRefusal::StaleState)
-    }
-}
-
-impl TrainingResourceEnvelope {
-    pub(super) fn validate(&self) -> Result<(), TrainingRefusal> {
-        if self.model_bytes == 0
-            || self.working_memory_bytes == 0
-            || self.compute_lanes == 0
-            || self.maximum_batch_items == 0
-            || self.maximum_batch_items as usize > MAXIMUM_BATCH_EXAMPLES
-            || self.maximum_batch_bytes == 0
-            || self.maximum_steps == 0
-            || self.maximum_work_units == 0
-            || self.maximum_checkpoint_bytes == 0
-            || self.maximum_in_flight_steps != 1
-        {
-            return Err(TrainingRefusal::InvalidResourceEnvelope);
-        }
-        Ok(())
     }
 }
 
@@ -67,9 +48,9 @@ impl TrainingBatch {
         {
             return Err(TrainingRefusal::InvalidBatch);
         }
-        if self.example_identities.len() > session.resources.maximum_batch_items as usize
+        if self.example_identities.len() > session.resources.maximum_batch_items() as usize
             || self.encoded_bytes == 0
-            || self.encoded_bytes > session.resources.maximum_batch_bytes
+            || self.encoded_bytes > session.resources.maximum_batch_bytes()
             || self.present_modalities.is_empty()
             || self.present_modalities.len() > MAXIMUM_BATCH_MODALITIES
             || has_duplicate_text(&self.present_modalities)
@@ -119,11 +100,11 @@ impl TrainStepRequest {
         session: &TrainingSession,
         split: &DatasetSplitMembership,
     ) -> Result<(), TrainingRefusal> {
-        if self.step == 0 || self.step > session.resources.maximum_steps {
+        if self.step == 0 || self.step > session.resources.maximum_steps() {
             return Err(TrainingRefusal::StepBoundExceeded);
         }
         if self.admitted_work_units == 0
-            || self.admitted_work_units > session.resources.maximum_work_units
+            || self.admitted_work_units > session.resources.maximum_work_units()
         {
             return Err(TrainingRefusal::WorkBoundExceeded);
         }
