@@ -73,6 +73,7 @@ package_test_shard!(
         "patchbay-control",
         "patchbay-graph",
         "patchbay-application",
+        "patchbay-svg-mask",
     ],
     []
 );

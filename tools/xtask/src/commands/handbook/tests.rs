@@ -50,3 +50,10 @@ fn sidebar_order_drives_the_reading_journey() {
     let current = current_sidebar(&rendered, "Why-Conduit");
     assert!(current.contains("aria-current=\"page\" href=\"Why-Conduit.html\""));
 }
+
+#[test]
+fn handbook_shell_loads_the_diagram_viewport_enhancement() {
+    let shell = page_shell("Form-diagrams", "Form diagrams", "", "", None, None);
+    assert!(shell.contains("<script type=\"module\" src=\"handbook.mjs\"></script>"));
+    assert!(shell.contains("<link rel=\"stylesheet\" href=\"svg-viewport.css\">"));
+}

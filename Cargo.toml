@@ -67,6 +67,7 @@ members = [
 	"forms/patchbay/graph",
 	"forms/patchbay",
 	"forms/patchbay/workbench/host-contract",
+	"forms/patchbay/workbench/svg-mask",
 	"bodies/pete",
 	"forms/little-seismograph/fixture",
 
