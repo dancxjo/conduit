@@ -627,6 +627,16 @@ type DrawRelationship =
 type ProbabilityDigest = collection U8 = 32
 type ChunkIdentity = collection U8 = 32
 
+type SourceRef = {
+    resource: ResourceRef
+}
+
+type Citation = {
+    source: SourceRef
+    span: SourceSpan
+    chunk_identity: ChunkIdentity
+}
+
 type StochasticProvenance = {
     model_artifact_identity: ProbabilityDigest
     checkpoint_identity: ProbabilityDigest?

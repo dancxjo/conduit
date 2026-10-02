@@ -13,6 +13,14 @@ fn main() {
         conduit_data::SampledSignal::semantic_type().expect("SampledSignal semantic Type checks");
     let mut catalog = StartupCatalog::new();
     catalog
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_form::rust_binding::semantic_core::kind_id(
+                conduit_form::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
+            ),
+        )
+        .expect("resource references are one exact portable leaf");
+    catalog
         .insert_structured_type("TensorValue", tensor_value.clone())
         .expect("TensorValue installs once");
     catalog
@@ -144,12 +152,14 @@ fn main() {
             ]
             .into(),
             public_record_fields: [
+                "Citation".into(),
                 "ContextOmission".into(),
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
                 "IntegrationAccuracy".into(),
                 "ModelWorkAccounting".into(),
                 "SelectedContextCost".into(),
+                "SourceRef".into(),
                 "TemporalReference".into(),
                 "ValidatedExtraction".into(),
             ]
