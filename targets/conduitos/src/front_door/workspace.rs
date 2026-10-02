@@ -74,6 +74,10 @@ impl FrontDoor {
             || workspace.plots.len() > crate::native_workset::NATIVE_PLOT_CAPACITY
             || workspace
                 .plots
+                .windows(2)
+                .any(|pair| pair[0].plot >= pair[1].plot)
+            || workspace
+                .plots
                 .iter()
                 .filter(|plot| plot.foreground)
                 .count()
@@ -118,12 +122,13 @@ impl FrontDoor {
                     .iter()
                     .zip(&workspace.plots)
                     .all(|(left, right)| left.plot == right.plot && left.title == right.title);
-            let admitted_append = workspace.plots.len() == previous.plots.len() + 1
-                && previous
-                    .plots
-                    .iter()
-                    .zip(&workspace.plots)
-                    .all(|(left, right)| left.plot == right.plot && left.title == right.title)
+            let admitted_insert = workspace.plots.len() == previous.plots.len() + 1
+                && previous.plots.iter().all(|prior| {
+                    workspace
+                        .plots
+                        .iter()
+                        .any(|current| current.plot == prior.plot && current.title == prior.title)
+                })
                 && self.journey.as_ref().is_some_and(|prior| {
                     prior
                         .workload_revision
@@ -132,15 +137,24 @@ impl FrontDoor {
                 })
                 && journey.workload_sign_id.is_some();
             // Selection and output cannot rewrite membership. The sole growth
-            // case is an exact append backed by the Body/Wake workload event.
-            if !unchanged && !admitted_append {
+            // case is one exact canonical insertion backed by the Body/Wake event.
+            if !unchanged && !admitted_insert {
                 return Err(Error::Presentation);
             }
-            if admitted_append {
-                let appended = workspace.plots.last().ok_or(Error::Presentation)?;
-                let kind = crate::native_workset::resolve(&appended.plot)
+            if admitted_insert {
+                let inserted = workspace
+                    .plots
+                    .iter()
+                    .find(|current| {
+                        !previous
+                            .plots
+                            .iter()
+                            .any(|prior| prior.plot == current.plot)
+                    })
+                    .ok_or(Error::Presentation)?;
+                let kind = crate::native_workset::resolve(&inserted.plot)
                     .map_err(|_| Error::Presentation)?;
-                if kind.title() != appended.title {
+                if kind.title() != inserted.title {
                     return Err(Error::Presentation);
                 }
             }
