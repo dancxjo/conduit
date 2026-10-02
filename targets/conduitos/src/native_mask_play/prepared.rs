@@ -2,16 +2,16 @@
 use super::*;
 use crate::native_compositor::ScanoutAcknowledgement;
 use conduit_core::{HostBaseId, PortDirection, SignId};
-use conduit_kernel::scheduler::{
-    HostCallRequest, RemoteIngressOutcome, RemoteTerminalDisposition, SchedulerStatus,
+use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
+use conduit_kernel::{
+    BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, NodeId, RequestId, SignSink,
 };
-use conduit_kernel::{HostCallOutcome, SignSink};
 use conduit_plan_lowering::lowering::LoweredForePort;
-use conduit_presentation::MaskShow;
+use conduit_presentation::{ManifestationLifecycle, MaskShow};
 
 pub struct NativeMaskRendererRequest {
-    presentation: Presentation,
-    prepared_show: MaskShow,
+    pub(super) presentation: Presentation,
+    pub(super) prepared_show: MaskShow,
     display_base_id: HostBaseId,
 }
 
@@ -30,14 +30,15 @@ impl NativeMaskRendererRequest {
 /// Preparation allocates finite serialized values. No drawing or successful
 /// renderer completion occurs here. Dropping any incomplete execution cancels it.
 pub struct PreparedNativeMaskPlay {
-    scheduler: Scheduler,
+    pub(super) scheduler: alloc::boxed::Box<Scheduler>,
     request: HostCallRequest,
-    renderer: NativeMaskRendererRequest,
-    show_fore: LoweredForePort,
-    interaction_fore: LoweredForePort,
+    pub(super) renderer: NativeMaskRendererRequest,
+    pub(super) show_fore: LoweredForePort,
+    interaction_node: NodeId,
+    pub(super) interaction_fore: LoweredForePort,
     show_bytes: Vec<u8>,
-    receipt: Option<NativeMaskPlayReceipt>,
-    retired: bool,
+    pub(super) receipt: Option<NativeMaskPlayReceipt>,
+    pub(super) retired: bool,
 }
 
 impl PreparedNativeMaskPlay {
@@ -113,6 +114,33 @@ impl PreparedNativeMaskPlay {
         {
             return Err(NativeMaskPlayError::Shape);
         }
+        let interaction_node = lowered
+            .nodes
+            .iter()
+            .find(|node| {
+                fragment.placements.iter().any(|placement| {
+                    placement.placement_id == node.placement_id
+                        && placement.kind_id.as_str() == conduit_presentation::FACE_INTERACTION_KIND
+                })
+            })
+            .ok_or(NativeMaskPlayError::Shape)?
+            .node;
+        let mut interaction_calls = lowered
+            .host_calls
+            .iter()
+            .filter(|call| call.node == interaction_node);
+        let interaction_call = interaction_calls.next().ok_or(NativeMaskPlayError::Shape)?;
+        if interaction_calls.next().is_some()
+            || interaction_call.call != HostCallId(0)
+            || interaction_call.contract_id.as_str() != "conduit.host/presentation-interaction@1"
+            || interaction_call
+                .target_kind
+                .as_ref()
+                .map(|kind| kind.as_str())
+                != Some(conduit_presentation::FACE_INTERACTION_VALUE_KIND)
+        {
+            return Err(NativeMaskPlayError::Shape);
+        }
         let fore = |name: &str, direction| {
             lowered
                 .fore_ports
@@ -124,7 +152,7 @@ impl PreparedNativeMaskPlay {
         let face_fore = fore("face", PortDirection::Input)?;
         let show_fore = fore("show", PortDirection::Output)?;
         let interaction_fore = fore("interaction", PortDirection::Output)?;
-        let mut scheduler = scheduler(fragment, &lowered)?;
+        let mut scheduler = alloc::boxed::Box::new(scheduler(fragment, &lowered)?);
         if scheduler
             .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &presentation_bytes)
             .map_err(|_| NativeMaskPlayError::ForeAdmit)?
@@ -173,6 +201,7 @@ impl PreparedNativeMaskPlay {
             },
             show_fore,
             interaction_fore,
+            interaction_node,
             show_bytes,
             retired: false,
             receipt: Some(NativeMaskPlayReceipt {
@@ -195,10 +224,10 @@ impl PreparedNativeMaskPlay {
         &self.renderer
     }
 
-    pub fn complete(
+    pub fn complete_render(
         mut self,
         ack: &ScanoutAcknowledgement<'_>,
-    ) -> Result<NativeMaskPlayReceipt, NativeMaskPlayError> {
+    ) -> Result<NativeMaskInteractionSession, NativeMaskPlayError> {
         let actual = ack.composition();
         let expected = &self.renderer.prepared_show.show;
         if actual.presentation_id != expected.presentation_id
@@ -240,9 +269,22 @@ impl PreparedNativeMaskPlay {
             )
             .map_err(|_| NativeMaskPlayError::HostComplete)?;
         let mut observed_show = false;
+        let mut pending_interaction = None;
         for _ in 0..64 {
-            if self.scheduler.next_host_request().is_some() {
-                return Err(NativeMaskPlayError::HostComplete);
+            if let Some(request) = self.scheduler.next_host_request() {
+                if pending_interaction.is_some()
+                    || request.node != self.interaction_node
+                    || request.call != HostCallId(0)
+                    || request.request != RequestId(1)
+                    || self
+                        .scheduler
+                        .host_value(request.input.value)
+                        .map_err(|_| NativeMaskPlayError::Value)?
+                        != self.show_bytes
+                {
+                    return Err(NativeMaskPlayError::HostComplete);
+                }
+                pending_interaction = Some(request);
             }
             while let Some(offer) = self
                 .scheduler
@@ -274,35 +316,46 @@ impl PreparedNativeMaskPlay {
                     .map_err(|_| NativeMaskPlayError::ForeOutput)?;
                 observed_show = true;
             }
-            match self
-                .scheduler
-                .step()
-                .map_err(|_| NativeMaskPlayError::Kernel)?
-            {
-                SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Drained if observed_show => {
-                    if self
-                        .scheduler
-                        .remote_egress_terminal_disposition(
-                            self.interaction_fore.endpoint,
-                            self.interaction_fore.cord,
-                        )
-                        .map_err(|_| NativeMaskPlayError::ForeOutput)?
-                        != Some(RemoteTerminalDisposition::NormalClose)
-                    {
-                        return Err(NativeMaskPlayError::ForeOutput);
-                    }
-                    let mut receipt = self.receipt.take().ok_or(NativeMaskPlayError::Kernel)?;
-                    receipt.kernel_signs = self.scheduler.signs().len();
-                    receipt.scanout_frame_sequence = ack.frame_sequence();
-                    receipt.scanout_pixels_written = ack.pixels_written();
-                    self.retired = true;
-                    return Ok(receipt);
-                }
-                _ => return Err(NativeMaskPlayError::Kernel),
+            if observed_show && let Some(request) = pending_interaction.take() {
+                self.renderer.prepared_show = self
+                    .renderer
+                    .prepared_show
+                    .transition(
+                        ManifestationLifecycle::Available,
+                        SignId::from("conduitos/mask/render-available"),
+                    )
+                    .map_err(|_| NativeMaskPlayError::Presentation)?;
+                self.renderer
+                    .prepared_show
+                    .validate(&self.renderer.presentation)
+                    .map_err(|_| NativeMaskPlayError::Presentation)?;
+                let receipt = self.receipt.as_mut().ok_or(NativeMaskPlayError::Kernel)?;
+                receipt.kernel_signs = self.scheduler.signs().len();
+                receipt.scanout_frame_sequence = ack.frame_sequence();
+                receipt.scanout_pixels_written = ack.pixels_written();
+                return Ok(NativeMaskInteractionSession {
+                    play: self,
+                    request,
+                });
+            }
+            if !matches!(
+                self.scheduler
+                    .step()
+                    .map_err(|_| NativeMaskPlayError::Kernel)?,
+                SchedulerStatus::Progress { .. }
+            ) {
+                return Err(NativeMaskPlayError::Kernel);
             }
         }
         Err(NativeMaskPlayError::Kernel)
+    }
+
+    /// Complete a render-only use by explicitly closing its interaction Fore.
+    pub fn complete(
+        self,
+        ack: &ScanoutAcknowledgement<'_>,
+    ) -> Result<NativeMaskPlayReceipt, NativeMaskPlayError> {
+        self.complete_render(ack)?.close_without_input()
     }
 
     pub fn cancel(mut self) -> Result<(), NativeMaskPlayError> {
