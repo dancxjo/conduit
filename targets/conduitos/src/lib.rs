@@ -171,6 +171,8 @@ mod native_mask_journey;
     feature = "aarch64-orange-pi-5"
 ))]
 mod native_mask_play;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod native_participant;
 #[cfg(any(
     test,
     target_arch = "x86_64",

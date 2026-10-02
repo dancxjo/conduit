@@ -86,7 +86,7 @@ impl ProductJourney {
         let resident = native_workset::resident(plot).map_err(JourneyError::Workset)?;
         let next_body = body
             .admit_plot(
-                resident,
+                resident.clone(),
                 SignId::from(format!("conduitos/product/plot-admitted/{}", self.revision)),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
@@ -102,12 +102,29 @@ impl ProductJourney {
                 )),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
+        let insertion = next_body
+            .workset
+            .plots()
+            .iter()
+            .position(|entry| entry == &resident)
+            .ok_or(JourneyError::InvalidTransition)?;
+        let previous_len = body.workset.len();
+        if previous_len >= self.plots.len() || insertion > previous_len {
+            return Err(JourneyError::InvalidTransition);
+        }
         if let Some(kernel) = self.kernel.as_mut() {
             kernel.cancel().map_err(JourneyError::Play)?;
             self.retained_kernel_sign_gap = kernel.sign_retention_gap();
         }
-        let slot = body.workset.len();
-        self.plots[slot] = Some(plot);
+        // BodyWorkset is canonically sorted, so admission can insert anywhere.
+        // Keep semantic identities, retained results and foreground selection aligned.
+        self.plots[insertion..=previous_len].rotate_right(1);
+        self.plots[insertion] = Some(plot);
+        self.results[insertion..=previous_len].rotate_right(1);
+        self.results[insertion] = PlotResult::new();
+        if self.foreground >= insertion {
+            self.foreground += 1;
+        }
         self.body = Some(next_body);
         self.wake = Some(next_wake);
         self.plan = None;
@@ -212,3 +229,7 @@ impl ProductJourney {
         self.results[self.foreground].text(self.plots[self.foreground])
     }
 }
+
+#[cfg(test)]
+#[path = "workset_admission_tests.rs"]
+mod admission_tests;

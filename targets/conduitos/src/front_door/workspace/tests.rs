@@ -101,3 +101,41 @@ fn stopped_play_refusal_remains_visible_until_a_new_play_starts() {
     door.observe_body(journey, workspace).unwrap();
     assert!(door.refusal.is_none());
 }
+
+#[test]
+fn canonical_insertion_requires_workload_evidence_and_preserves_existing_identities() {
+    let (mut door, mut journey, mut workspace) = fixture();
+    journey.workload_revision = Some(0);
+    door.observe_body(journey.clone(), workspace.clone())
+        .unwrap();
+    let added = native_workset::resident(NativePlot::KeyboardCanvas).unwrap();
+    assert!(added < workspace.plots[0].plot);
+    workspace.plots.insert(
+        0,
+        WorkspacePlot {
+            plot: added,
+            title: NativePlot::KeyboardCanvas.title(),
+            foreground: false,
+            input: None,
+        },
+    );
+    journey.revision += 1;
+    workspace.revision = journey.revision;
+    assert!(
+        door.observe_body(journey.clone(), workspace.clone())
+            .is_err()
+    );
+    journey.workload_revision = Some(1);
+    assert!(
+        door.observe_body(journey.clone(), workspace.clone())
+            .is_err()
+    );
+    journey.workload_sign_id = Some("sign/real-workload-event".into());
+    let mut unsorted = workspace.clone();
+    unsorted.plots.swap(0, 1);
+    assert!(door.observe_body(journey.clone(), unsorted).is_err());
+    let mut renamed = workspace.clone();
+    renamed.plots[1].title = "Unrelated identity";
+    assert!(door.observe_body(journey.clone(), renamed).is_err());
+    door.observe_body(journey, workspace).unwrap();
+}
