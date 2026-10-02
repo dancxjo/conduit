@@ -35,9 +35,20 @@ test('comparison includes cache overhead and preserves honest negative savings',
   assert.equal(result.coldPreparationMs, 10600);
   assert.equal(result.warmPreparationMs, 2900);
   assert.equal(result.savedMs, 7700);
+  assert.equal(result.uncachedSetupMs, 10000);
+  assert.equal(result.warmVersusUncachedSavedMs, 7100);
   assert.equal(result.operationCounts.cold['install/success'], 1);
   warm.restoreMs = 20000;
   assert(compare(cold, warm).savedMs < 0);
+});
+test('cache population cost cannot conceal a regression against uncached setup', () => {
+  const cold = sample('cold');
+  cold.saveMs = 100000;
+  const warm = sample('warm');
+  warm.restoreMs = 9000;
+  const result = compare(cold, warm);
+  assert(result.savedMs > 0);
+  assert.equal(result.warmVersusUncachedSavedMs, -1000);
 });
 test('identity object ordering and tool ordering do not invalidate the same installed closure', () => {
   const cold = sample('cold');

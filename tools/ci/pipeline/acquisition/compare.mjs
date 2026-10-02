@@ -61,9 +61,13 @@ export function compare(cold, warm) {
     cacheKey: cold.cacheKey, runnerImage: cold.runnerImage,
     coldPreparationMs: total(cold), warmPreparationMs: total(warm),
     savedMs: total(cold) - total(warm),
+    // Cache population is a real first-run cost, but is not work an uncached
+    // setup would perform. Keep that comparison separate from cold vs warm.
+    uncachedSetupMs: cold.setupMs,
+    warmVersusUncachedSavedMs: cold.setupMs - total(warm),
     operationCounts: { cold: counts(cold), warm: counts(warm) },
     speedup: total(warm) > 0 ? total(cold) / total(warm) : null,
-    interpretation: 'Project-cache cold versus exact restored-cache warm on fresh hosted runners; runner image tools are preinstalled. Acquisition only, not product build or proof. Checkout and baseline Rust/Node provisioning are excluded from these preparation durations.',
+    interpretation: 'Project-cache cold versus exact restored-cache warm on fresh hosted runners; runner image tools are preinstalled. Acquisition only, not product build or proof. Checkout and baseline Rust/Node provisioning are excluded. warmVersusUncachedSavedMs excludes cold cache lookup and population overhead from the baseline; a negative value means restoring the cache cost more than uncached setup in this pair.',
     cold, warm,
   };
 }

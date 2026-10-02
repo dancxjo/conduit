@@ -69,7 +69,9 @@ tools, AVR, and both ESP compiler families. Measurements include cache
 restoration and saving, but exclude common checkout and baseline Rust/Node
 provisioning. They require matching source, runner image, specification, and
 actual tool identities. A slower warm run is retained as a regression rather
-than reported as a speedup. Existing runner-image tools are part of the
+than reported as a speedup. The report separately compares warm preparation
+against uncached setup alone, so the cost of populating a cache cannot hide
+a regression. Existing runner-image tools are part of the
 recorded baseline; “cold” does not mean an empty machine.
 
 ## Combined development
