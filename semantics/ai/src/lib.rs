@@ -19,8 +19,8 @@ pub use generated::{
     ExtractedField, ExtractionFields, ExtractionKey, ExtractionValue, FiniteClassification,
     FiniteF32, FusionStrategy, FusionStrategyReciprocalRank, GeneratedTextChunk,
     GeneratedTextFlowEvidence, GeneratedTextFlowRefusal, GeneratedTextFlowTerminal,
-    GroundedAnswerDisposition, GroundedAnswerPolicy,
-    GroundedAnswerRefusal, GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
+    GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundingDisposition,
+    HouseContextProvenanceClass, HouseContextRefusal, HouseModelRequest,
     HumanAssessmentDisposition, HybridRetrievalOfferInvalidity, IntegrationAccuracy,
     IntegrationTerminal, InterpretationDisposition, InterpretationInvalidity,
     InterpretationProvenance, LearnedLifecycleRefusal, LlmDeterminismProfile,
@@ -51,7 +51,7 @@ pub use generated::{
     TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingRefusal, TransitionDirection,
     ValidatedExtraction, VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
     VectorRefusal, VectorSearchExecutionProofClass, VectorSearchOfferInvalidity,
-    VectorSearchProofClass,
+    VectorSearchProofClass, WiredHouseContextItem,
 };
 
 mod bases;
