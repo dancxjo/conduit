@@ -46,9 +46,6 @@ pub(super) fn install_types(
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
-        .insert_structured_type("InputSurfacePoint", position().output_type().clone())
-        .map_err(debug)?;
-    startup
         .insert_structured_type("Point2", conduit_presentation::point2_type())
         .map_err(debug)?;
     for selector in [position(), x(), y()] {

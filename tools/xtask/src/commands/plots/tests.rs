@@ -56,7 +56,15 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .filter(|result| result.proof_mode == "check")
         .collect();
     assert_eq!(checks.len(), inventory.plots.len());
-    assert!(checks.iter().all(|result| result.status == "passed"));
+    assert!(
+        checks.iter().all(|result| result.status == "passed"),
+        "reviewed plot checks failed: {:?}",
+        checks
+            .iter()
+            .filter(|result| result.status != "passed")
+            .map(|result| (&result.slug, &result.plot_entry, &result.reason))
+            .collect::<Vec<_>>()
+    );
     let little_seismograph = checks
         .iter()
         .find(|result| result.slug == "little-seismograph")

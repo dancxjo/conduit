@@ -52,8 +52,7 @@ fn archived_v1_sources_retain_identity_and_are_explicitly_refused() {
         );
         let diagnostic = loaded
             .check()
-            .err()
-            .expect("historical executable form is refused");
+            .expect_err("historical executable form is refused");
         assert!(diagnostic.contains("CND-FRM-019"), "{diagnostic}");
     }
 }
