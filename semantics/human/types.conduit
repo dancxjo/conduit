@@ -176,6 +176,45 @@ type ExperienceTemporalRefusal =
     | future_observation
     | indeterminate_age
 
+type ExperienceRefusal =
+    invalid-limits
+    | empty-identity
+    | duplicate-identity
+    | item-capacity
+    | temporal-role-capacity
+    | domain-capacity
+    | model-derived-capacity
+    | selected-memory-capacity
+    | item-bytes
+    | encoded-bytes
+    | source-capacity
+    | duplicate-source
+    | relationship-capacity
+    | unknown-relationship-endpoint
+    | duplicate-relationship
+    | conflict-alternative-capacity
+    | invalid-epistemic-combination
+    | identity-bytes
+    | invalid-source
+    | invalid-time
+    | invalid-temporal-context
+    | temporal-classification ExperienceTemporalRefusal
+    | temporal-role-mismatch
+    | arithmetic-overflow
+
+type ExperienceUpdateRefusal =
+    invalid-limits
+    | pending-update-capacity
+    | stale-revision
+    | future-revision
+    | revision-overflow
+    | no-semantic-change
+    | experience ExperienceRefusal
+
+type CurrentExperienceInspectionError =
+    empty-item-identity
+    | unknown-item
+
 type ExperienceAvailability =
     present
     | not_observed
@@ -295,6 +334,15 @@ type VisualExperienceRefusal =
     | self-relation
     | duplicate-relation
     | arithmetic-overflow
+
+type ExperienceSourceRefusal =
+    invalid-visual-observation VisualObservationRefusal
+    | invalid-visual-impression VisualImpressionRefusal
+    | empty-value
+    | value-bound
+    | invalid-identity
+    | invalid-time
+    | source-bound
 
 type InteractionRefusal =
     invalid_identity

@@ -1,9 +1,10 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
-    ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
-    ExperienceTemporalRole, HumanMediaKind, ImageRegion, KeymapRefusal, SourceAvailability,
-    VisualEvidenceClass, VisualExperienceRefusal, VisualExperienceRelationKind,
+    CurrentExperienceInspectionError, ExperienceAvailability, ExperienceCertainty,
+    ExperienceDomain, ExperienceOrigin, ExperienceRefusal, ExperienceRelationKind,
+    ExperienceSourceRefusal, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
+    ExperienceTemporalRole, ExperienceUpdateRefusal, HumanMediaKind, ImageRegion, KeymapRefusal,
+    SourceAvailability, VisualEvidenceClass, VisualExperienceRefusal, VisualExperienceRelationKind,
     VisualImpressionDisposition, VisualImpressionRefusal, VisualObservationRefusal,
 };
 
@@ -215,4 +216,83 @@ fn visual_refusal_families_round_trip_through_exact_native_types() {
     assert!(
         !include_str!("../src/visual_experience.rs").contains("pub enum VisualExperienceRefusal")
     );
+}
+
+#[test]
+fn current_experience_refusal_tree_round_trips_through_exact_native_types() {
+    for value in [
+        ExperienceRefusal::InvalidLimits,
+        ExperienceRefusal::EmptyIdentity,
+        ExperienceRefusal::DuplicateIdentity,
+        ExperienceRefusal::ItemCapacity,
+        ExperienceRefusal::TemporalRoleCapacity,
+        ExperienceRefusal::DomainCapacity,
+        ExperienceRefusal::ModelDerivedCapacity,
+        ExperienceRefusal::SelectedMemoryCapacity,
+        ExperienceRefusal::ItemBytes,
+        ExperienceRefusal::EncodedBytes,
+        ExperienceRefusal::SourceCapacity,
+        ExperienceRefusal::DuplicateSource,
+        ExperienceRefusal::RelationshipCapacity,
+        ExperienceRefusal::UnknownRelationshipEndpoint,
+        ExperienceRefusal::DuplicateRelationship,
+        ExperienceRefusal::ConflictAlternativeCapacity,
+        ExperienceRefusal::InvalidEpistemicCombination,
+        ExperienceRefusal::IdentityBytes,
+        ExperienceRefusal::InvalidSource,
+        ExperienceRefusal::InvalidTime,
+        ExperienceRefusal::InvalidTemporalContext,
+        ExperienceRefusal::TemporalClassification(ExperienceTemporalRefusal::FutureObservation),
+        ExperienceRefusal::TemporalRoleMismatch,
+        ExperienceRefusal::ArithmeticOverflow,
+    ] {
+        assert_round_trip(value);
+    }
+
+    for value in [
+        ExperienceSourceRefusal::InvalidVisualObservation(
+            VisualObservationRefusal::WrongEvidenceClass,
+        ),
+        ExperienceSourceRefusal::InvalidVisualImpression(
+            VisualImpressionRefusal::InvalidTruncation,
+        ),
+        ExperienceSourceRefusal::EmptyValue,
+        ExperienceSourceRefusal::ValueBound,
+        ExperienceSourceRefusal::InvalidIdentity,
+        ExperienceSourceRefusal::InvalidTime,
+        ExperienceSourceRefusal::SourceBound,
+    ] {
+        assert_round_trip(value);
+    }
+
+    for value in [
+        ExperienceUpdateRefusal::InvalidLimits,
+        ExperienceUpdateRefusal::PendingUpdateCapacity,
+        ExperienceUpdateRefusal::StaleRevision,
+        ExperienceUpdateRefusal::FutureRevision,
+        ExperienceUpdateRefusal::RevisionOverflow,
+        ExperienceUpdateRefusal::NoSemanticChange,
+        ExperienceUpdateRefusal::Experience(ExperienceRefusal::DuplicateIdentity),
+    ] {
+        assert_round_trip(value);
+    }
+
+    for value in [
+        CurrentExperienceInspectionError::EmptyItemIdentity,
+        CurrentExperienceInspectionError::UnknownItem,
+    ] {
+        assert_round_trip(value);
+    }
+
+    for source in [
+        include_str!("../src/current_experience.rs"),
+        include_str!("../src/current_experience_trace.rs"),
+        include_str!("../src/experience_sources.rs"),
+        include_str!("../src/experience_updates.rs"),
+    ] {
+        assert!(!source.contains("pub enum ExperienceRefusal"));
+        assert!(!source.contains("pub enum ExperienceSourceRefusal"));
+        assert!(!source.contains("pub enum ExperienceUpdateRefusal"));
+        assert!(!source.contains("pub enum CurrentExperienceInspectionError"));
+    }
 }

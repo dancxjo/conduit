@@ -3,7 +3,8 @@
 use alloc::{boxed::Box, vec::Vec};
 
 use crate::{
-    CurrentExperience, ExperienceItem, ExperienceRefusal, ExperienceRelation, ExperienceSourceRef,
+    CurrentExperience, ExperienceItem, ExperienceRelation, ExperienceSourceRef,
+    ExperienceUpdateRefusal,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -32,17 +33,6 @@ pub struct ExperienceUpdate {
 pub struct ExperienceRevisionSnapshot {
     pub revision: ExperienceRevision,
     pub experience: CurrentExperience,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceUpdateRefusal {
-    InvalidLimits,
-    PendingUpdateCapacity,
-    StaleRevision,
-    FutureRevision,
-    RevisionOverflow,
-    NoSemanticChange,
-    Experience(ExperienceRefusal),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
