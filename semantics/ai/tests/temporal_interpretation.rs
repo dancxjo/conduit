@@ -80,7 +80,7 @@ fn gap_fold_and_timezone_abbreviation_remain_distinct_refusals() {
     let local = local(2026, 8, 24, 13, 0);
     ambiguous.candidate_starts[0] = ZonedResolution::Ambiguous {
         local,
-        zone: zone().try_into().unwrap(),
+        zone: zone(),
         earlier: wall(1_100_000),
         later: wall(1_103_600),
     };
@@ -92,7 +92,7 @@ fn gap_fold_and_timezone_abbreviation_remain_distinct_refusals() {
     let mut nonexistent = truth();
     nonexistent.candidate_starts[0] = ZonedResolution::Nonexistent {
         local,
-        zone: zone().try_into().unwrap(),
+        zone: zone(),
         gap_before: wall(1_100_000),
         gap_after: wall(1_103_600),
     };

@@ -1,146 +1,119 @@
 # CI for contributors and agents
 
-Open ordinary pull requests to `dev`. The release train handles publication
-to `main`; you do not need to operate it to contribute.
+Open ordinary pull requests to `dev`. Read the single required `candidate`
+result. Its failure identifies the command and source being checked; reproduce
+through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
-The executable definitions live in [the workflow directory](../../.github/workflows/).
+## Candidate
 
-## Enter development
+The pipeline scans the diff, checks patch hygiene, Rust formatting, locked
+workspace metadata and firmware lockfiles, artifact/publication invariants, and
+Actions syntax. Three
+broad unit shards cover foundation, hosts, and products; workspace Clippy runs
+alongside them. These use the repository's existing package ownership list.
+Expensive targets start only after every unit and lint shard passes.
 
-1. Start from current `dev` and make one reviewable change.
-2. Open a pull request to `dev`.
-3. Read the single `candidate` result:
-   - **passed** — the boundary checks and affected integration proof passed, so the change may merge;
-   - **failed** — fix the named boundary, formatting, controller, or affected-product failure;
-   - **cancelled** — a newer push superseded it; follow the newest head.
-4. Merge after review.
+Selection is deliberately small and conservative:
 
-Entry runs inexpensive patch, formatting, and controller checks first. After
-those pass, impact planning runs the affected workspace, browser, firmware,
-product, or ConduitOS proof before the required `candidate` result becomes
-green. Documentation-only and unrelated target worlds remain cheap; complete
-release make stays in promotion.
+| Change | Target families |
+| --- | --- |
+| Prose documentation only | Preflight |
+| Browser, browser proof, site | Browser |
+| Isolated target firmware | Its family |
+| Hosted source | Hosted and browser |
+| Shared target runtime, offers, or make libraries | All |
+| ConduitOS | ConduitOS and Orange Pi |
+| Shared code, manifests, tools, workflows, unknown paths | All |
 
-Do not dispatch reconciliation, copy commit identities into comments, poll every
-child job, or preserve an obsolete candidate run. The newest head owns the PR.
+Both names of a rename are included. An empty diff selects all. There are no
+receipt-reuse fingerprints or path dependency controllers. The selection rules
+live in `tools/ci/pipeline/plan.mjs`.
+
+Every selected target owns setup, build, proof, packaging, and one final
+artifact upload on its runner. Targets never depend on an unrelated target.
+Target caches retain only Cargo compiler directories and dependencies; staged
+products, proof outputs, and receipts always start fresh.
+Once the target matrix starts, a failure does not cancel siblings. Code tests
+have no retries. Acquisition may have one bounded infrastructure retry.
+Browser acceptance keeps pinned Chromium, one worker, and zero retries.
 
 ## Combined development
 
-Every merge queues integration of that combined `dev` tree. This is where
-affected product, browser, firmware, and ConduitOS interactions may report bugs.
-A running integration finishes; newer development waits behind it
-instead of starving the lane by repeatedly cancelling healthy work.
-Only the newest pending update is needed. Both integration suites compare with
-the common ancestor of the candidate and accepted `main`, rather than the last
-push. Thus a docs-only update cannot hide a runtime change whose pending
-integration was coalesced. The captured candidate stays exact while it runs.
+Every push to `dev` runs all supported targets. Running integration finishes;
+newer pending updates coalesce. The full target list is explicit in
+`tools/ci/pipeline/targets.mjs`; adding a target changes both scheduling and the
+required publication set. There is no second product build campaign.
 
-A current integration failure is work to repair through an ordinary PR. It does
-not retroactively invalidate the history of every contributing PR.
+A lane writes a receipt only after its build and proof succeed. The receipt
+records its source commit, target, proof class, and complete product file hashes.
+Products leave the runner in tar archives so executable permissions survive
+artifact transfer. Failed lanes can retain diagnostics, but cannot issue a
+successful product receipt. GitHub's **Re-run failed jobs** keeps successful
+siblings; test failures are never automatically retried.
 
-## Automatic release train
+Build proof for firmware and boards without CI hardware remains **build proof
+only**. Executable smoke, browser execution, and ConduitOS emulator boot are
+separate classes. None is physical or human acceptance. Browser coverage names
+its actual executed specs; cross-device enactment remains separate work.
+LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
+emulators before boot because their large-page translation can corrupt the
+bootloader's module handoff.
 
-After development integration succeeds, automation asks:
+## Publication
 
-1. Is any release open, including one that failed and needs repair? If yes,
-   stop. Is release synchronization open? Wait for it too.
-2. Read the newest completed integration from GitHub. It must have succeeded;
-   a newer running integration can continue while that proven batch releases.
-3. Skip a batch already accepted by `main`. Require that it still belongs to
-   `dev` and includes all accepted release fixes. A delayed event is a wake-up,
-   not an instruction to recreate its old snapshot.
-4. Create exactly one `release/<captured-dev-sha>` PR. Later work accumulates
-   in `dev`, which is the next-batch queue. No successor release PR is created.
+Only a successful, repository-owned `push` integration run can publish. The
+publisher independently checks the run identity and every required artifact;
+missing targets, wrong source commits, altered files, unknown targets, and
+mismatched proof classes refuse publication. PR artifacts cannot enter this
+path. A manually dispatched integration is diagnostic and does not auto-release.
 
-Failure cancels the attempt, not ownership of the batch. Repair that same
-release after the attempt becomes terminal. An unrelated dev commit is not
-evidence that the release defect was fixed. A closed release is not reopened
-automatically for the same captured commit. Explicit abandonment requires a
-reviewed replacement decision.
+Publication creates `release/<tested-dev-sha>` and promotes through a PR to
+`main`. Another open release or release synchronization blocks a successor.
+Accepted `main` must be an ancestor of the tested source, or a prior release
+merge with an identical tree to its source parent, which is an ancestor of the
+new source. This avoids empty synchronization commits and their duplicate CI.
+The merge is guarded
+by the release head, and its resulting tree must equal the tested tree before
+any release assets are published. The release manifest records the tested
+source SHA and accepted main merge SHA separately; a merge commit is not
+misrepresented as the original tested commit.
 
-The release branch contains everything accumulated in `dev`. Exhaustive proof
-runs there. Workspace checks run alongside x86 to report deterministic failures
-without waiting for emulator proof; both remain required by the final check gate.
-The x86 gate runs after classification, pinned tools, and its prepared-image
-build. Other platform check jobs wait for selected x86 proof;
-the product make/browser/carrier pipeline waits for the check suite.
-This deliberately trades some green-run parallelism for early rejection of a
-known failing machine before spending a full release's build budget. A failure
-or cancellation cannot open the downstream gate. Unselected development proof
-may still be skipped; exhaustive release proof cannot omit x86.
+The publisher packages the verified products as GitHub Release assets. It does
+not run unit tests, rebuild products, or start another CI campaign. A rerun
+validates existing publication before resuming; it never silently replaces a
+published asset. Publication creates and verifies the exact release tag before
+creating a release, so a later workflow change on dev does not require granting
+the publisher permission to edit workflows. GitHub retains the complete run and
+check identities.
 
-The prepared x86 proof image is built once and distributed with its exact digest
-to the five compatible hardware proofs. It is an architecture-proof appliance,
-not the differently configured product host image. Product artifacts are also
-built once per target and shared by staging, browser proofs, sealing, and Pages;
-Crèche acceptance boots the exported artifact without rebuilding it. Neither a
-cache hit nor force-pushing replaces required execution proof.
+This software release path does not regenerate documentary journeys or replace
+the existing `gh-pages` site. That separately retained evidence must not be
+relabelled as proof for a new software release. Tested browser products are
+included in the release bundle alongside the other targets.
 
-If proof exposes a cross-product bug, the trusted monitor cancels the
-known-bad attempt promptly while preserving its exact failure evidence. Only
-after that attempt is terminal may a repair advance the release branch and run
-as a fresh exact head. A healthy running attempt is never cancelled by newer
-development. A release with no progress for 15 minutes
-or more than 45 minutes total remains the lane owner and is reported as stuck
-in the release-lane workflow summary. The watchdog does not open GitHub issues
-for liveness observations. After merge, automation returns release fixes to `dev`.
-The next successful development integration starts the next batch. A ten-minute
-admission check also revisits current evidence if completion occurred while the
-release or synchronization was still open; it never retries failed proof.
+## Operation and validation
 
-**Promote dev to main** runs this same admission check, including successful
-integration, open ownership, and accepted-fix checks. It cannot bypass proof.
+The workflows are `candidate.yml`, `integration.yml`, `publish.yml`, and the
+shared `ci.yml`. There are no approval monitors, scheduled reconcilers, dead-man
+pollers, artifact retry wrappers, or controller-to-controller wake-ups.
+Publication uses one concurrency group and repository branch protection remains
+in force. Development requires `candidate`; main requires `release-verification`
+after complete artifact verification. Both required statuses are bound to the
+GitHub Actions app. Main force pushes are disabled. The repository allows
+Actions to create pull requests.
 
-The existing lane watchdog still handles early failure, stuck-run classification,
-and superseded unstarted runs left by the old multi-PR policy. New admission
-does not manufacture those queues. Installing this change does not authorize
-discarding existing release repairs; finish or explicitly resolve those PRs.
+```sh
+cargo xtask ci pipeline setup-ci
+cargo xtask ci pipeline preflight BASE_SHA
+cargo xtask ci pipeline unit foundation
+cargo xtask ci pipeline scan BASE_SHA HEAD_SHA
+cargo xtask ci pipeline setup conduitos-x86_64
+cargo xtask ci pipeline target conduitos-x86_64 HEAD_SHA
+cargo xtask ci pipeline verify target/bundle HEAD_SHA
+```
 
-Successful promotion has one finalization owner: the release-lane reconciler
-dispatches `finalize-release.yml` with the exact successful promotion run.
-The finalizer independently verifies that run and merges only its exact head,
-then dispatches Pages and synchronization. This explicit dispatch also survives
-GitHub's workflow-run chain limit after a trusted approval rerun.
-The long-running release monitor handles approval and early failure; it never
-competes to merge or dispatch duplicate publication work.
-
-Promotion uses a merge commit rather than squashing the release PR. The release
-branch already is the reviewed batch boundary, and retaining its ancestry lets
-the automatic development sync distinguish accepted release repairs from work
-that accumulated later in `dev`. Squashing an environment promotion erases that
-relationship and turns the routine return merge into a large false conflict.
-
-## Documentary publication is downstream
-
-Promotion does not generate or require a complete Three Bodies documentary or
-the gallery-only One Plot, Two Fronts and Little Life evidence. Pages first
-retains the exact accepted software carrier and a bounded context linking its
-main commit, release source, promotion run, carrier, and source tree, without
-replacing the public site. `journey-publication.yml` then consumes immutable
-claim-specific producer evidence, creates gallery-only evidence against that
-exact accepted source, and atomically deploys the complete software and
-documentary carrier. A failed documentary build therefore leaves the last
-accepted public Journeys and ConduitOS evidence intact instead of replacing
-them with a partial site.
-
-A documentary failure cannot fail, mutate, or revoke the accepted release. A
-successful documentary run reseals and publishes a new carrier over the same
-accepted source tree and refuses to deploy if `main` has advanced. It may be
-rerun explicitly with the exact successful Pages run that retained the context;
-it never guesses a release or upgrades documentary observations into runtime
-proof.
-
-## Statuses
-
-| Status | Meaning | Action |
-| --- | --- | --- |
-| `candidate` passed | This exact PR head and its affected integration may enter `dev` | Review and merge |
-| `candidate` failed | A boundary check or affected integration failed | Fix the named failure |
-| `dev-integration` failed | The latest combined development tree has a bug | Repair it through an ordinary PR |
-| `promotion` failed | The current release batch is not releasable | Fix the release branch |
-| `promotion` passed | The exact repaired release head is releasable | None; auto-merge continues |
-| `promotion` stuck | The lane exceeded its bounded progress window | Inspect the release-lane workflow summary and current promotion run |
-
-Proof keys, receipts, artifact digests, and runner identities are machine-facing
-diagnostics. They may appear inside a failed job, but they are not contributor
-state and must not become required ceremony again.
+`setup-ci` installs checksum-verified actionlint; target setup installs that
+lane's prerequisites. Missing tools or unavailable physical devices are not
+successful proof. Artifact retention is fourteen days; expired input requires a
+fresh integration, not fabricated receipts. Behavioral tests cover refusal and
+identity invariants rather than fixing YAML job names or ordering strings.

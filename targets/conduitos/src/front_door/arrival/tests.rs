@@ -254,15 +254,14 @@ fn native_plot_availability_is_reviewed_independently() {
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
         panic!("the available plot can be included")
     };
-    assert_eq!(
-        selection.workset.plots(),
-        &[
-            crate::native_workset::resident(crate::native_workset::NativePlot::Tour).unwrap(),
-            crate::native_workset::resident(crate::native_workset::NativePlot::MemoryLantern)
-                .unwrap(),
-            crate::native_workset::resident(crate::native_workset::NativePlot::Patchbay).unwrap(),
-        ]
-    );
+    let mut expected = [
+        crate::native_workset::resident(crate::native_workset::NativePlot::Tour).unwrap(),
+        crate::native_workset::resident(crate::native_workset::NativePlot::MemoryLantern).unwrap(),
+        crate::native_workset::resident(crate::native_workset::NativePlot::Patchbay).unwrap(),
+    ];
+    // Worksets are canonical identity sets, independent of menu display order.
+    expected.sort();
+    assert_eq!(selection.workset.plots(), &expected);
 }
 
 #[test]

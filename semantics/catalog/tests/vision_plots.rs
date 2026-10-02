@@ -78,11 +78,18 @@ fn continuous_vision_ports_carry_exact_observation_and_model_provenance() {
     }
 
     let texts = conduit_semantic_catalog::vision_texts_type();
+    let StructuredInfoTypeShape::Nominal {
+        representation: texts_sequence,
+        ..
+    } = texts.shape()
+    else {
+        panic!("visible text sequence must retain its native named Type")
+    };
     let StructuredInfoTypeShape::Sequence {
         element,
         minimum_items,
         maximum_items,
-    } = texts.shape()
+    } = texts_sequence.shape()
     else {
         panic!("visible text must be a bounded sequence")
     };
@@ -99,11 +106,18 @@ fn continuous_vision_ports_carry_exact_observation_and_model_provenance() {
     );
 
     let tracks = conduit_semantic_catalog::vision_tracks_type();
+    let StructuredInfoTypeShape::Nominal {
+        representation: tracks_sequence,
+        ..
+    } = tracks.shape()
+    else {
+        panic!("track sequence must retain its native named Type")
+    };
     let StructuredInfoTypeShape::Sequence {
         element,
         minimum_items,
         maximum_items,
-    } = tracks.shape()
+    } = tracks_sequence.shape()
     else {
         panic!("tracks must be a bounded sequence")
     };

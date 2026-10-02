@@ -75,6 +75,8 @@ fn main() {
         ],
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            // Vision slots retain their bounded payload inline during play.
+            inline_variant_types: ["VisionDetectionSlot".into()].into(),
             serde_variant_exclusions: [
                 "FaceUtteranceProvenance".into(),
                 "PresentationCompositionKind".into(),

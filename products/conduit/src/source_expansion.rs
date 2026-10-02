@@ -151,7 +151,7 @@ mod tests {
         ));
         std::fs::write(
             &path,
-            "sans glyphs\nwith pair as &>\nform pair (\n  >> left: Text\n  >> right: Text\n  paired: Text >>\n) {\n}\nform example (\n  >> left: Text\n  >> right: Text\n  paired: Text >>\n) {\n  left &> right >> paired\n}\n",
+            "sans glyphs\nwith pair as &>\nplot pair (\n  >> left: Text\n  >> right: Text\n  paired: Text >>\n) {\n}\nplot example (\n  >> left: Text\n  >> right: Text\n  paired: Text >>\n) {\n  left &> right >> paired\n}\n",
         )
         .unwrap();
 

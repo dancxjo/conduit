@@ -37,7 +37,7 @@ pub(super) fn execute_entry(
     } else {
         "decode: json/decode\n source.value >> decode.source\n decode.value >> application.request\n application.snapshot >> sink.value"
     };
-    let source = format!("{TODO}\nform todo-fixture {{\n source: conduit-test/json-text-source\n application: {entry}\n sink: conduit-test/json-text-sink\n {wiring}\n}}\n");
+    let source = format!("{TODO}\nplot todo-fixture {{\n source: conduit-test/json-text-source\n application: {entry}\n sink: conduit-test/json-text-sink\n {wiring}\n}}\n");
     let parsed = parse_syntax_document(&source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();

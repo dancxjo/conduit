@@ -41,12 +41,7 @@ fn pete_interpretation_candidate_is_body_scoped_non_actuating_and_rollback_capab
         baseline,
         candidate,
         shared_input_set_identity: [69; 32],
-        resources: ShadowResourceEnvelope {
-            maximum_runs: 1,
-            maximum_input_bytes: 256,
-            maximum_output_bytes: 128,
-            maximum_work_units: 32,
-        },
+        resources: ShadowResourceEnvelope::new(1, 256, 128, 32).unwrap(),
         candidate_output_route: "observation/pete/interpretation-shadow".into(),
         protected_effect_routes: vec!["effect/pete/create-wheels".into()],
     };

@@ -775,7 +775,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         lowered
             .host_calls
             .iter()
-            .any(|operation| operation.contract_id == keyboard_contract_id),
+            .map(|operation| &operation.contract_id),
     );
     let mut indicator_host = indicator_host::IndicatorHost::prepare(
         indicator,

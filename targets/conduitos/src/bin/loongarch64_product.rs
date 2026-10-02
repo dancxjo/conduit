@@ -135,7 +135,8 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         image_physical_start: image_start as u64,
         image_length: image_end.saturating_sub(image_start) as u64,
         memory_region_count: 1,
-        artifact_count: 0,
+        // The exact spore module above is a real boot artifact, even unbound.
+        artifact_count: 1,
         framebuffer_count: 0,
         command_line_bytes: 0,
         runtime_arena: RuntimeArena {

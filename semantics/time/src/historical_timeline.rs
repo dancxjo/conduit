@@ -111,6 +111,10 @@ impl BoundedHistoricalTimeline {
         value: BoundedResourceRef,
     ) -> Result<u64, HistoricalTimelineRefusal> {
         self.validate_entry(&identity, &event_time, &value)?;
+        // Finish the native adaptation before eviction can change retained history.
+        let event_time = event_time
+            .try_into()
+            .map_err(|_| HistoricalTimelineRefusal::InvalidEventTime)?;
         let bytes = value.extent.bytes;
         if bytes > self.maximum_referenced_bytes {
             return Err(HistoricalTimelineRefusal::EntryExceedsByteLimit);
@@ -140,9 +144,7 @@ impl BoundedHistoricalTimeline {
         self.slots[tail].entry = Some(HistoricalTimelineEntry {
             sequence: self.next_sequence,
             identity,
-            event_time: event_time
-                .try_into()
-                .map_err(|_| HistoricalTimelineRefusal::InvalidEventTime)?,
+            event_time,
             origin,
             value,
         });
@@ -293,11 +295,7 @@ impl BoundedHistoricalTimeline {
             replay.push(crate::HistoricalReplayEntry {
                 sequence: entry.sequence,
                 identity: entry.identity.clone(),
-                event_time: entry
-                    .event_time
-                    .clone()
-                    .try_into()
-                    .expect("validated history time has one native projection"),
+                event_time: entry.event_time.clone(),
                 origin: entry.origin,
                 value: entry.value.clone(),
             });

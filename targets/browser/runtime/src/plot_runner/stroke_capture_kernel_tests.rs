@@ -73,7 +73,7 @@ fn fragment() -> PlanFragment {
     source_host.capabilities = vec![source_offer];
 
     let syntax = parse_syntax_document(
-        "plot stroke {\n source: fixture/point-flow\n capture: bounded-stroke-capture\n result: conduit-test/stroke-sink\n source.point >> capture.point\n capture.stroke >> result.stroke\n}\n\nform bounded-stroke-capture (\n point: Point2...| >> stroke: Path2Four\n) {\n capture: geometry/capture-bounded-stroke\n point >> capture.point\n capture.stroke >> stroke\n}\n",
+        "plot stroke {\n source: fixture/point-flow\n capture: bounded-stroke-capture\n result: conduit-test/stroke-sink\n source.point >> capture.point\n capture.stroke >> result.stroke\n}\n\nplot bounded-stroke-capture (\n point: Point2...| >> stroke: Path2Four\n) {\n capture: geometry/capture-bounded-stroke\n point >> capture.point\n capture.stroke >> stroke\n}\n",
     );
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "stroke", &catalog).unwrap();

@@ -86,16 +86,13 @@ fn human_machine_and_model_commitments_share_time_but_not_identity_or_authority(
     let reminder = meeting_reminder(&event.identity);
     let ready = reminder
         .decide(
-            &TriggerObservation::Civil {
-                now: wall(4_910),
-                clock_change_observed: false,
-            },
+            &TriggerObservation::civil(false, wall(4_910)).unwrap(),
             false,
         )
         .unwrap();
     let mut delivery = RecordingReminder::default();
     assert_eq!(
-        deliver_ready_reminder(&reminder, ready, None, &mut delivery),
+        deliver_ready_reminder(&reminder, ready.clone(), None, &mut delivery),
         Err(ReminderDeliveryRefusal::MissingAuthority)
     );
     let reminder_receipt =
@@ -134,9 +131,13 @@ fn human_machine_and_model_commitments_share_time_but_not_identity_or_authority(
 fn capstone_failures_remain_distinct_across_time_and_provider_boundaries() {
     let mut fixture = meeting_fixture();
     for participant in &mut fixture.availability {
-        for interval in &mut participant.intervals {
-            interval.state = AvailabilityState::Busy;
-        }
+        participant.intervals = conduit_plot::rust_binding::BoundedSequence::try_from_iter(
+            participant.intervals.iter().cloned().map(|mut interval| {
+                interval.state = AvailabilityState::Busy;
+                interval
+            }),
+        )
+        .unwrap();
     }
     assert_eq!(
         fixture.request.propose(&fixture.availability),
@@ -160,56 +161,50 @@ fn capstone_failures_remain_distinct_across_time_and_provider_boundaries() {
 
     let elapsed = elapsed_follow_up();
     let same_clock = match &elapsed.trigger {
-        TriggerProfile::Elapsed(trigger) => trigger.opens_at.clock().clone(),
+        TriggerProfile::Elapsed(trigger) => trigger.value().opens_at.clock().clone(),
         TriggerProfile::Civil(_) => unreachable!(),
     };
     assert_eq!(
         elapsed.decide(
-            &TriggerObservation::Elapsed {
-                now: MonotonicInstant::new(110, same_clock.clone()).unwrap(),
-                suspend_observed: true,
-            },
+            &TriggerObservation::elapsed(
+                MonotonicInstant::new(same_clock.clone(), 110).unwrap(),
+                true
+            )
+            .unwrap(),
             false,
         ),
         Ok(ScheduledOccurrenceDecision::Suspended)
     );
     let rebooted = MonotonicClockIdentity::new(
-        HostId::from("host/machine"),
-        BootId::from("boot/replacement"),
         "std/monotonic@1".into(),
-        TemporalScale::Milliseconds,
+        "boot/replacement".into(),
+        "host/machine".into(),
         1,
+        TemporalScale::Milliseconds,
         0,
     )
     .unwrap();
     assert_eq!(
         elapsed.decide(
-            &TriggerObservation::Elapsed {
-                now: MonotonicInstant::new(110, rebooted).unwrap(),
-                suspend_observed: false,
-            },
+            &TriggerObservation::elapsed(MonotonicInstant::new(rebooted, 110).unwrap(), false)
+                .unwrap(),
             false,
         ),
         Ok(ScheduledOccurrenceDecision::Rebooted)
     );
     assert_eq!(
         elapsed.decide(
-            &TriggerObservation::Elapsed {
-                now: MonotonicInstant::new(110, same_clock).unwrap(),
-                suspend_observed: false,
-            },
+            &TriggerObservation::elapsed(MonotonicInstant::new(same_clock, 110).unwrap(), false)
+                .unwrap(),
             false,
         ),
-        Ok(ScheduledOccurrenceDecision::Ready { lateness_ticks: 10 })
+        Ok(ScheduledOccurrenceDecision::ready(10).unwrap())
     );
 
     let civil = meeting_reminder("event/capstone");
     assert_eq!(
         civil.decide(
-            &TriggerObservation::Civil {
-                now: wall(4_010),
-                clock_change_observed: true,
-            },
+            &TriggerObservation::civil(true, wall(4_010)).unwrap(),
             false,
         ),
         Ok(ScheduledOccurrenceDecision::ClockChanged)
@@ -239,14 +234,14 @@ fn meeting_fixture() -> MeetingFixture {
             observed_at: wall(990),
             usable_until: wall(1_010),
         },
-        intervals: candidates
-            .iter()
-            .map(|candidate| AvailabilityInterval {
+        intervals: conduit_plot::rust_binding::BoundedSequence::try_from_iter(
+            candidates.iter().map(|candidate| AvailabilityInterval {
                 participant_identity: identity.into(),
                 interval: candidate.interval.clone(),
                 state: AvailabilityState::Free,
-            })
-            .collect(),
+            }),
+        )
+        .unwrap(),
     };
     let availability = vec![
         participant("person/alex", "America/Los_Angeles"),
@@ -256,8 +251,13 @@ fn meeting_fixture() -> MeetingFixture {
         request: MeetingProposalRequest {
             identity: "proposal/cross-zone/capstone".into(),
             reference_at: wall(1_000),
-            participant_identities: vec!["person/alex".into(), "person/bob".into()],
-            candidates,
+            participant_identities: conduit_plot::rust_binding::BoundedSequence::try_from_iter([
+                "person/alex".into(),
+                "person/bob".into(),
+            ])
+            .unwrap(),
+            candidates: conduit_plot::rust_binding::BoundedSequence::try_from_iter(candidates)
+                .unwrap(),
             maximum_results: 3,
         },
         availability,
@@ -270,13 +270,14 @@ fn event_from(approved: &conduit_time::ProposedMeetingSlot) -> CalendarEvent {
         title: "Cross-zone capstone".into(),
         description: String::new(),
         location: String::new(),
-        time: CalendarEventTime::Timed(TimedCalendarSpan {
+        time: CalendarEventTime::timed(TimedCalendarSpan {
             local_start: local(2026, 8, 25, 9, 30),
             local_end: local(2026, 8, 25, 10, 0),
             zone: zone("America/Los_Angeles", "tzdb/2026b"),
             instant: approved.interval.clone(),
-        }),
-        participants: vec![
+        })
+        .unwrap(),
+        participants: conduit_plot::rust_binding::BoundedSequence::try_from_iter([
             Participant {
                 identity: "person/alex".into(),
                 contact_reference: Some("calendar/alex".into()),
@@ -289,9 +290,10 @@ fn event_from(approved: &conduit_time::ProposedMeetingSlot) -> CalendarEvent {
                 role: ParticipantRole::Required,
                 invitation: InvitationEvidence::Unknown,
             },
-        ],
+        ])
+        .unwrap(),
         recurrence: None,
-        reminders: vec![],
+        reminders: Default::default(),
     }
 }
 
@@ -302,13 +304,14 @@ fn meeting_reminder(event_identity: &str) -> ScheduledIntent<ReminderOccurrence>
             identity: "recurrence/reminder/capstone/occurrence/0".into(),
             recurrence_identity: "recurrence/reminder/capstone".into(),
             ordinal: 0,
-            at: OccurrenceInstant::Wall(wall(4_900)),
+            at: OccurrenceInstant::wall(wall(4_900)).unwrap(),
         },
-        trigger: TriggerProfile::Civil(CivilTrigger {
+        trigger: TriggerProfile::civil(CivilTrigger {
             window: window(4_900, 5_000),
             zone: zone("America/Los_Angeles", "tzdb/2026b"),
             clock_change: ClockChangeBehavior::RefuseAfterChange,
-        }),
+        })
+        .unwrap(),
         missed: MissedOccurrencePolicy::Skip,
         payload: ReminderOccurrence {
             identity: "reminder/event/capstone/occurrence/0".into(),
@@ -321,31 +324,32 @@ fn meeting_reminder(event_identity: &str) -> ScheduledIntent<ReminderOccurrence>
 
 fn elapsed_follow_up() -> ScheduledIntent<&'static str> {
     let clock = MonotonicClockIdentity::new(
-        HostId::from("host/machine"),
-        BootId::from("boot/original"),
         "std/monotonic@1".into(),
-        TemporalScale::Milliseconds,
+        "boot/original".into(),
+        "host/machine".into(),
         1,
+        TemporalScale::Milliseconds,
         0,
     )
     .unwrap();
-    let opens = MonotonicInstant::new(100, clock).unwrap();
+    let opens = MonotonicInstant::new(clock, 100).unwrap();
     ScheduledIntent {
         identity: "scheduled/machine/capstone#0".into(),
         occurrence: RecurrenceOccurrence {
             identity: "recurrence/machine/capstone/occurrence/0".into(),
             recurrence_identity: "recurrence/machine/capstone".into(),
             ordinal: 0,
-            at: OccurrenceInstant::Monotonic(opens.clone()),
+            at: OccurrenceInstant::monotonic(opens.clone()).unwrap(),
         },
-        trigger: TriggerProfile::Elapsed(
+        trigger: TriggerProfile::elapsed(
             elapsed_trigger_window(
                 opens,
-                MonotonicDuration::new(20, TemporalScale::Milliseconds),
+                MonotonicDuration::new(20, TemporalScale::Milliseconds).unwrap(),
                 SuspendBehavior::RefuseAfterSuspend,
             )
             .unwrap(),
-        ),
+        )
+        .unwrap(),
         missed: MissedOccurrencePolicy::Expire,
         payload: "machine-payload",
     }
@@ -456,9 +460,9 @@ fn wire_event() -> GoogleWireEvent {
 
 fn unique(local: LocalDateTime, zone: NamedTimeZone, instant: TemporalInstant) -> ZonedResolution {
     ZonedResolution::Unique {
-        local,
-        zone,
-        instant,
+        local: local.try_into().unwrap(),
+        zone: zone.try_into().unwrap(),
+        instant: instant.try_into().unwrap(),
     }
 }
 
@@ -467,6 +471,7 @@ fn local(year: i32, month: u8, day: u8, hour: u8, minute: u8) -> LocalDateTime {
         LocalDate::new(year, month, day).unwrap(),
         LocalTime::new(hour, minute, 0, 0).unwrap(),
     )
+    .unwrap()
 }
 
 fn zone(identity: &str, rule_set: &str) -> NamedTimeZone {

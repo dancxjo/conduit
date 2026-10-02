@@ -216,7 +216,7 @@ impl BodyKernel {
             input,
             self.operations
                 .iter()
-                .any(|operation| keyboard(&operation.contract_id)),
+                .map(|operation| &operation.contract_id),
         );
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let result = (|| -> Result<TerminalDisposition, String> {

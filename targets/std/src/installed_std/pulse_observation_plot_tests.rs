@@ -28,7 +28,7 @@ fn reusable_pulse_plot_plans_and_executes_outside_choir() {
             configuration: vec![],
         })
         .unwrap();
-    let source = format!("{}\nform metronome {{\n clock: time/tick(count = 3, period-ms = 320)\n pulse: pulse-observation(period-ms = 320)\n clock.tick >> pulse.tick\n result: conduit-test/pulse-sink\n pulse.observation >> result.observation\n}}",include_str!("../../../../plots/pulse-observation/main.conduit"));
+    let source = format!("{}\nplot metronome {{\n clock: time/tick(count = 3, period-ms = 320)\n pulse: pulse-observation(period-ms = 320)\n clock.tick >> pulse.tick\n result: conduit-test/pulse-sink\n pulse.observation >> result.observation\n}}",include_str!("../../../../plots/pulse-observation/main.conduit"));
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "metronome", &profile).unwrap();
     let host = crate::StdHost::new_with_composition(

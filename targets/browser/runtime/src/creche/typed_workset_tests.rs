@@ -173,6 +173,49 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
         )
         .unwrap();
         assert_eq!(plans.len(), 2);
+        // Native structured profiles must fit the combined admitted arena, not
+        // merely pass each Plot's independent lowering.
+        use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetBounds};
+        let fragments: Vec<_> = plans.iter().flat_map(|part| &part.plan.fragments).collect();
+        let limits = crate::installed_browser::envelope_limits();
+        let bounds = FragmentSetBounds {
+            fragments: conduit_body::MAX_BODY_PLOTS as u16,
+            nodes: limits.maximum_gears as u16,
+            cords: limits.maximum_cords as u16,
+            queue_slots: limits.queue_slots as u16,
+            value_bytes: limits.total_value_bytes,
+            sign_items: limits.sign_items,
+            sign_bytes: u32::from(limits.sign_items)
+                * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
+        };
+        lower_local_fragment_set(
+            &fragments,
+            conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
+            bounds,
+        )
+        .unwrap();
+        let page_profile: serde_json::Value =
+            serde_json::from_str(include_str!("../../../profiles/browser-page.profile.json"))
+                .unwrap();
+        assert!(
+            u64::from(limits.total_value_bytes)
+                < page_profile["bounds"]["heap_arena_bytes"].as_u64().unwrap()
+        );
+        let too_small = FragmentSetBounds {
+            value_bytes: 640 * 1024,
+            ..bounds
+        };
+        let refusal = lower_local_fragment_set(
+            &fragments,
+            conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
+            too_small,
+        )
+        .unwrap_err();
+        assert!(matches!(
+            refusal,
+            conduit_plan_lowering::fragment_set::FragmentSetError::Capacity(_)
+        ));
+
         let selector = plans
             .iter()
             .flat_map(|part| &part.plan.fragments)

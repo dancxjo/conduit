@@ -24,9 +24,9 @@ fn civil_reminder_fires_once_without_executing_or_mutating_the_event() {
             identity: "recurrence/meeting-reminder/occurrence/0".into(),
             recurrence_identity: "recurrence/meeting-reminder".into(),
             ordinal: 0,
-            at: OccurrenceInstant::Wall(start.clone()),
+            at: OccurrenceInstant::wall(start.clone()).unwrap(),
         },
-        trigger: TriggerProfile::Civil(CivilTrigger {
+        trigger: TriggerProfile::civil(CivilTrigger {
             window: TemporalWindow::new(
                 start,
                 TemporalBoundary::Inclusive,
@@ -36,7 +36,8 @@ fn civil_reminder_fires_once_without_executing_or_mutating_the_event() {
             .unwrap(),
             zone: NamedTimeZone::new("America/Los_Angeles".into(), "tzdb/2026b".into()).unwrap(),
             clock_change: ClockChangeBehavior::ReevaluateWindow,
-        }),
+        })
+        .unwrap(),
         missed: MissedOccurrencePolicy::Skip,
         payload: ReminderOccurrence {
             identity: "reminder/meeting/occurrence/0".into(),
@@ -47,21 +48,15 @@ fn civil_reminder_fires_once_without_executing_or_mutating_the_event() {
     };
     let decision = scheduled
         .decide(
-            &TriggerObservation::Civil {
-                now: wall(1_020),
-                clock_change_observed: false,
-            },
+            &TriggerObservation::civil(false, wall(1_020)).unwrap(),
             false,
         )
         .unwrap();
-    assert_eq!(
-        decision,
-        ScheduledOccurrenceDecision::Ready { lateness_ticks: 20 }
-    );
+    assert_eq!(decision, ScheduledOccurrenceDecision::ready(20).unwrap());
 
     let mut adapter = RecordingAdapter::default();
     assert_eq!(
-        deliver_ready_reminder(&scheduled, decision, None, &mut adapter),
+        deliver_ready_reminder(&scheduled, decision.clone(), None, &mut adapter),
         Err(ReminderDeliveryRefusal::MissingAuthority)
     );
     assert!(adapter.delivered.is_empty());

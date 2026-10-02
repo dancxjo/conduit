@@ -69,7 +69,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             kind_id: kind_id("text/join"),
             kind_contract_revision: KindIdentity::from("text/join@1"),
             inputs: vec![port("text", PortDirection::Input)],
-            outputs: vec![port("text", PortDirection::Output)],
+            outputs: vec![port("joined", PortDirection::Output)],
             configuration: vec![KindConfigurationField {
                 key: "prefix".into(),
                 default_value: ConfigurationValue::U64(1),

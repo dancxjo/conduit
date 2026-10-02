@@ -77,12 +77,12 @@ export function createBodyInvitationReceiver({ location, onReceive }) {
   receiver.className = "body-invitation-receiver";
   receiver.innerHTML = `<h2>Join an existing Body</h2>
     <p>Paste an invitation link or portable code. Decoding it creates no membership; you will inspect and explicitly accept the same invitation next.</p>
-    <plot><label>Body invitation link or code<input type="text" autocomplete="off" spellcheck="false" required></label>
-    <button type="submit">Inspect invitation</button></plot><p role="status"></p>`;
-  const plot = receiver.querySelector("plot");
+    <form><label>Body invitation link or code<input type="text" autocomplete="off" spellcheck="false" required></label>
+    <button type="submit">Inspect invitation</button></form><p role="status"></p>`;
+  const form = receiver.querySelector("form");
   const input = receiver.querySelector("input");
   const status = receiver.querySelector('[role="status"]');
-  plot.addEventListener("submit", event => {
+  form.addEventListener("submit", event => {
     event.preventDefault();
     try {
       const decoded = readPastedBodyInvitation(input.value, location);

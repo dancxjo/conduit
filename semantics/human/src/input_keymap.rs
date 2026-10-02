@@ -11,10 +11,11 @@ impl TextFragment {
     pub fn from_char(value: char) -> Self {
         let value = value as u32;
         if value <= 55_295 {
-            Self::basic(value).expect("a basic Rust char is one valid Unicode scalar")
+            // Rust char already excludes surrogates and values above U+10FFFF.
+            // Preserve that checked value without constructing a validation graph.
+            Self::Basic(value)
         } else {
-            Self::supplementary(value)
-                .expect("a supplementary Rust char is one valid Unicode scalar")
+            Self::Supplementary(value)
         }
     }
 

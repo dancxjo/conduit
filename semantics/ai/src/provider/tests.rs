@@ -486,7 +486,7 @@ fn json_proof_offer(
         Vec::new(),
     );
     offer.shorthand = Some((
-        conduit_core::port_id("value"),
+        conduit_core::port_id("source"),
         conduit_core::port_id("value"),
     ));
     offer

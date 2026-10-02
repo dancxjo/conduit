@@ -188,7 +188,7 @@ fn greet_front_is_collapsed_then_its_checked_back_can_be_opened() {
     assert_eq!(hello.outputs[0].identity, "composition/hello/output/text");
     assert_eq!(
         hello.input_bindings[0].internal_port,
-        "port/default-welcome/hello/join/input/text"
+        "port/default-welcome/hello/join/input/source"
     );
     assert_eq!(
         hello.output_bindings[0].internal_port,
@@ -481,7 +481,7 @@ fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
     assert!(editor
         .view()
         .source
-        .contains("literal.text >> upper-2.text"));
+        .contains("literal.text >> upper-2.source"));
     let rerouted = PatchbayGraph::from_expanded(&editor.expand_plot("reroute").unwrap()).unwrap();
     assert_ne!(
         original_ids,
@@ -518,7 +518,7 @@ fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
     assert!(editor
         .view()
         .source
-        .contains("literal-2.text >> upper-2.text"));
+        .contains("literal-2.text >> upper-2.source"));
     let source_rerouted =
         PatchbayGraph::from_expanded(&editor.expand_plot("reroute").unwrap()).unwrap();
     editor

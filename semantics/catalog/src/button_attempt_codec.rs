@@ -95,7 +95,7 @@ fn pressed_transition(input: &[u8], type_prefix: &[u8]) -> Result<bool, ButtonAt
     expect_bytes(&mut input, b"sequence")?;
     expect_byte(&mut input, 0)?;
     let sequence = take_bytes(&mut input)?;
-    if conduit_core::decode_count(sequence).is_err() || !input.is_empty() {
+    if <[u8; 8]>::try_from(sequence).is_err() || !input.is_empty() {
         return Err(ButtonAttemptRefusal::MalformedTransition);
     }
     Ok(phase == b"pressed")

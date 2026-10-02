@@ -6,7 +6,11 @@
 mod bounded;
 mod generate;
 mod generate_conversion;
+mod generate_direct;
 mod generate_invariant;
+#[cfg(test)]
+mod generate_layout_tests;
+mod generate_options;
 mod generate_package;
 #[cfg(test)]
 mod generate_tests;

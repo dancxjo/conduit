@@ -2,6 +2,7 @@ use crate::process::Step;
 
 macro_rules! package_test_shard {
     ($packages:ident, $step:ident, $id:literal, $description:literal, [$($package:literal),+ $(,)?], [$($trailing:literal),* $(,)?]) => {
+        #[cfg(test)]
         const $packages: &[&str] = &[$($package),+];
         const $step: Step = Step::new(
             $id,
@@ -58,6 +59,8 @@ package_test_shard!(
         "conduit-midi",
         "conduit-presentation",
         "conduit-protected-line",
+        "conduit-process",
+        "conduit-purpose",
         "conduit-robotics",
         "conduit-body",
         "conduit-birth-plot",
@@ -135,6 +138,7 @@ pub enum WorkspaceShard {
 }
 
 impl WorkspaceShard {
+    #[cfg(test)]
     pub const ALL: [Self; 6] = [
         Self::Lint,
         Self::TestFoundation,
@@ -143,26 +147,6 @@ impl WorkspaceShard {
         Self::Portable,
         Self::Pico,
     ];
-
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Lint => "lint",
-            Self::TestFoundation => "test-foundation",
-            Self::TestHosts => "test-hosts",
-            Self::TestProducts => "test-products",
-            Self::Portable => "portable",
-            Self::Pico => "pico",
-        }
-    }
-
-    pub const fn test_packages(self) -> &'static [&'static str] {
-        match self {
-            Self::TestFoundation => FOUNDATION_TEST_PACKAGES,
-            Self::TestHosts => HOST_TEST_PACKAGES,
-            Self::TestProducts => PRODUCT_TEST_PACKAGES,
-            _ => &[],
-        }
-    }
 
     pub fn package_test_step(self) -> Option<&'static Step> {
         match self {

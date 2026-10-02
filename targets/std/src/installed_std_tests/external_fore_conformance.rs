@@ -28,7 +28,7 @@ fn ordinary_open_plot_runs_through_sealed_fore_and_observed_terminal() {
  upper: Text >>
 ) {
  operation: text/upper
- text >> operation.text
+ text >> operation.source
 operation.text >> upper
 }
 "#;
@@ -125,8 +125,8 @@ fn one_external_fore_payload_is_delivered_to_every_sealed_internal_branch() {
 ) {
  first-operation: text/upper
  second-operation: text/upper
- text >> first-operation.text
- text >> second-operation.text
+ text >> first-operation.source
+ text >> second-operation.source
  first-operation.text >> first
  second-operation.text >> second
 }

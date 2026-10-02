@@ -348,7 +348,9 @@ fn leaf_and_total_canonical_byte_bounds_fail_before_checked_identity() {
     assert_eq!(error.code, "CND-FRM-051");
     assert!(error.message.contains("leaf literal exceeds"));
 
-    let item = "b".repeat(4_000);
+    let item_bytes = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES / 18;
+    assert!(item_bytes <= conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES);
+    let item = "b".repeat(item_bytes);
     let items = core::iter::repeat_n(item, 20).collect::<Vec<_>>().join(",");
     let source = format!("plot bad {{\n sink: test/consume-batch([{items}])\n}}\n");
     let parsed = parse_syntax_document(&source);
@@ -356,7 +358,7 @@ fn leaf_and_total_canonical_byte_bounds_fail_before_checked_identity() {
     assert_eq!(error.code, "CND-FRM-051");
     assert!(error.message.contains("canonical encoding bound"));
 
-    let item = "c".repeat(4_000);
+    let item = "c".repeat(item_bytes);
     let mut items = core::iter::repeat_n(item, 19).collect::<Vec<_>>();
     items.push("parameter".into());
     let source = format!(
@@ -404,8 +406,8 @@ fn quantity_literals_become_exact_canonical_leaf_bytes_during_plot_checking() {
 fn malformed_quantity_literals_refuse_at_the_owned_source_span() {
     for (literal, refusal) in [
         ("17", "MissingUnit"),
-        ("17fortnight", "UnknownUnit"),
-        ("0.1ns", "Inexact"),
+        ("17unknownunit", "UnknownUnit"),
+        ("0.1ps", "Inexact"),
         ("9223372036854775808ms", "InvalidValue"),
     ] {
         let source = format!(

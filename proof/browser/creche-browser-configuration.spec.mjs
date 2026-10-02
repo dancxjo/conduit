@@ -210,9 +210,8 @@ async function openBrowserRunner(page, preset = "Interactive", add = []) {
 }
 
 async function exerciseProfile(page, realization, rich) {
-  return page.evaluate(async ({ realization, rich }) => {
+  await page.evaluate(async ({ realization, rich }) => {
     const { openBrowserHumanInput } = await import(new URL("../../targets/browser/host/assets/browser-human-input.mjs", location.href).href);
-    const { openBrowserApplicationStorage } = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
     const root = document.createElement("button");
     root.textContent = "capstone input surface";
     root.style.cssText = "display:block;width:200px;height:100px";
@@ -220,27 +219,42 @@ async function exerciseProfile(page, realization, rich) {
     const input = openBrowserHumanInput({ target: root, boot: realization });
     let pointer;
     if (rich) {
-      pointer = await new Promise((resolve, reject) => {
-        const stop = input.observePointer((value, error) => { stop(); error ? reject(error) : resolve({ ...value, plan_id: "plan/rich/pointer" }); });
-        root.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 50, clientY: 25, buttons: 1 }));
+      pointer = new Promise(resolve => {
+        const stop = input.observePointer((value, error) => {
+          stop();
+          resolve(error ? { error: error.code } : { ...value, plan_id: "plan/rich/pointer" });
+        });
       });
     } else {
       try { input.observePointer(() => {}); pointer = "accepted"; } catch (error) { pointer = error.code; }
     }
-    let storage;
-    try {
-      const adapter = await openBrowserApplicationStorage("conduit.plot/profile-capstone", 1, `sha256:${"a".repeat(64)}`, {
-        implementationRegistry: realization.implementation_registry.map(({ id }) => id),
-      });
-      await adapter.writeJson("ordinary-plan", { count: 1 });
-      storage = { plan_id: "plan/rich/storage", value: await adapter.readJson("ordinary-plan") };
-      await adapter.clearApplication();
-      adapter.close();
-    } catch (error) { storage = error.code; }
-    input.close();
-    root.remove();
-    return { pointer, storage };
+    globalThis.__conduitProfileUse = { root, input, pointer };
   }, { realization, rich });
+  // A real pointer action owns capture; synthetic DOM events have no active
+  // browser pointer and cannot establish the adapter's capture contract.
+  if (rich) await page.getByRole("button", { name: "capstone input surface", exact: true }).click();
+  return page.evaluate(async realization => {
+    const use = globalThis.__conduitProfileUse;
+    try {
+      const pointer = await use.pointer;
+      const { openBrowserApplicationStorage } = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
+      let storage;
+      try {
+        const adapter = await openBrowserApplicationStorage("conduit.plot/profile-capstone", 1, `sha256:${"a".repeat(64)}`, {
+          implementationRegistry: realization.implementation_registry.map(({ id }) => id),
+        });
+        await adapter.writeJson("ordinary-plan", { count: 1 });
+        storage = { plan_id: "plan/rich/storage", value: await adapter.readJson("ordinary-plan") };
+        await adapter.clearApplication();
+        adapter.close();
+      } catch (error) { storage = error.code; }
+      return { pointer, storage };
+    } finally {
+      use.input.close();
+      use.root.remove();
+      delete globalThis.__conduitProfileUse;
+    }
+  }, realization);
 }
 
 function summarizeProfile(evidence, use) {

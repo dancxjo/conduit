@@ -80,7 +80,7 @@ fn fragment() -> PlanFragment {
 
     let syntax = parse_syntax_document("plot measurement-plot-demo {\n source: fixture/measurement-window\n project: data/measurement-plot(points = 2, when-full = \"evenly-spaced\")\n result: conduit-test/measurement-plot-sink\n source.window >> project.window\n project.series >> result.series\n}\n");
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_plot(&checked, "plot", &catalog).unwrap();
+    let expanded = expand_canonical_plot(&checked, "measurement-plot-demo", &catalog).unwrap();
     let hosts = [source_host.clone(), browser.clone()];
     let placements = PlacementChoices {
         by_gear: expanded
@@ -126,7 +126,7 @@ fn fragment() -> PlanFragment {
     let crossing = expanded
         .connections
         .iter()
-        .find(|cord| cord.source_gear_id.as_str() == "plot/source")
+        .find(|cord| cord.source_gear_id.as_str() == "measurement-plot-demo/source")
         .unwrap();
     let candidates = BTreeMap::from([(
         (

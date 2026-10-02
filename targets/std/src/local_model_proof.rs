@@ -275,7 +275,7 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
         &mut profiles,
     );
     let source = format!(
-        "{}\n{}\nform house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> recognized.result\n recognized.text >> addressed.recognized\n addresses.value >> addressed.addresses\n addressed.detection >> house.detection\n context.value >> house.context\n house.response >> sink.value\n}}\n",
+        "{}\n{}\nplot house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> recognized.result\n recognized.text >> addressed.recognized\n addresses.value >> addressed.addresses\n addressed.detection >> house.detection\n context.value >> house.context\n house.response >> sink.value\n}}\n",
         include_str!("../../../plots/addressed-utterance/main.conduit"),
         include_str!("../../../plots/house-conversation/main.conduit"),
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,

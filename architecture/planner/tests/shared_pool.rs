@@ -18,7 +18,7 @@ use conduit_plot::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-const SOURCE: &str = "plot chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
+const SOURCE: &str = "plot chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nplot consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nplot room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
 
 fn peer_front() -> conduit_core::CheckedFront {
     let checked =

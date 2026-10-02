@@ -15,6 +15,9 @@ use std::sync::OnceLock;
 
 pub(crate) const HOST_CALL: &str = "conduit.host/normalized-quantity-scalar@1";
 const IMPLEMENTATION: &str = "browser/kernel-normalized-quantity-scalar@1";
+pub(crate) const RATIO_HOST_CALL: &str = "conduit.host/normalized-ratio-scalar@1";
+const RATIO_IMPLEMENTATION: &str = "browser/kernel-normalized-ratio-scalar@1";
+static RATIO_CONVERTER: OnceLock<PreparedNormalizedQuantity> = OnceLock::new();
 static CONVERTER: OnceLock<PreparedNormalizedQuantity> = OnceLock::new();
 
 pub(super) static NORMALIZE: BrowserInstallation = BrowserInstallation {
@@ -24,18 +27,40 @@ pub(super) static NORMALIZE: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
+pub(super) static NORMALIZE_RATIO: BrowserInstallation = BrowserInstallation {
+    implementation_id: RATIO_IMPLEMENTATION,
+    offer: ratio_offer,
+    prepare: prepare_ratio,
+    perform: None,
+};
 fn offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::normalized_quantity_semantic_contract();
+    offer_for(false)
+}
+fn ratio_offer() -> CapabilityOffer {
+    offer_for(true)
+}
+fn offer_for(ratio: bool) -> CapabilityOffer {
+    let implementation = if ratio {
+        RATIO_IMPLEMENTATION
+    } else {
+        IMPLEMENTATION
+    };
+    let operation = if ratio { RATIO_HOST_CALL } else { HOST_CALL };
+    let contract = if ratio {
+        conduit_semantic_catalog::normalized_ratio_semantic_contract()
+    } else {
+        conduit_semantic_catalog::normalized_quantity_semantic_contract()
+    };
     let target_kind = Some(contract.kind_id.clone());
     BackOfferBuilder::new(
         contract,
         Back {
-            capability_id: CapabilityId::from(IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
+            capability_id: CapabilityId::from(implementation),
+            execution_profile_id: ExecutionProfileId::from(implementation),
+            implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("conduit-browser-runtime/normalized-quantity-scalar@1"),
             host_calls: vec![HostCallRequirement {
-                contract_id: HOST_CALL.into(),
+                contract_id: operation.into(),
                 target_kind,
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
@@ -52,11 +77,24 @@ fn prepare(
     placement: &conduit_core::PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserBack, String> {
-    validate_placement(placement, &offer())?;
+    prepare_for(placement, false)
+}
+fn prepare_ratio(
+    placement: &conduit_core::PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<BrowserBack, String> {
+    prepare_for(placement, true)
+}
+fn prepare_for(placement: &conduit_core::PlannedGear, ratio: bool) -> Result<BrowserBack, String> {
+    validate_placement(placement, &offer_for(ratio))?;
     if !placement.configuration.is_empty() {
         return Err("normalized Quantity conversion accepts no configuration".into());
     }
-    CONVERTER.get_or_init(PreparedNormalizedQuantity::new);
+    if ratio {
+        RATIO_CONVERTER.get_or_init(PreparedNormalizedQuantity::ratio);
+    } else {
+        CONVERTER.get_or_init(PreparedNormalizedQuantity::new);
+    }
     Ok(BrowserBack::installed_step(NormalizeBack {
         pending: false,
         next_request: 0,
@@ -65,7 +103,18 @@ fn prepare(
 }
 
 pub(crate) fn transform(input: &[u8]) -> Result<[u8; conduit_core::SCALAR_ENCODED_LEN], Failure> {
-    let converter = CONVERTER.get().ok_or(failure(14))?;
+    transform_with(input, &CONVERTER)
+}
+pub(crate) fn transform_ratio(
+    input: &[u8],
+) -> Result<[u8; conduit_core::SCALAR_ENCODED_LEN], Failure> {
+    transform_with(input, &RATIO_CONVERTER)
+}
+fn transform_with(
+    input: &[u8],
+    converter: &OnceLock<PreparedNormalizedQuantity>,
+) -> Result<[u8; conduit_core::SCALAR_ENCODED_LEN], Failure> {
+    let converter = converter.get().ok_or(failure(14))?;
     converter
         .convert(input)
         .map(|value| value.encode())

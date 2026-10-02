@@ -5,8 +5,8 @@ use conduit_core::StructuredInfoType;
 use conduit_human::{
     GamepadState, InputAxisSlot, InputAxisSlots, InputAxisState, InputButtonPhase, InputButtonSlot,
     InputButtonSlots, InputButtonState, InputButtonTransition, InputPressure, InputPressurePolicy,
-    PointerEvent, RotaryDirection, RotaryStep, TouchContact, TouchContactPhase, TouchContactSlot,
-    TouchContacts, TouchFrame,
+    InputSurfacePoint, PointerEvent, RotaryDirection, RotaryStep, TouchContact, TouchContactPhase,
+    TouchContactSlot, TouchContacts, TouchFrame,
 };
 use conduit_plot::rust_binding::NativeRustBinding;
 
@@ -14,6 +14,7 @@ pub const INPUT_BUTTON_TRANSITION_TYPE: &str = "InputButtonTransition";
 pub const INPUT_AXIS_STATE_TYPE: &str = "InputAxisState";
 pub const INPUT_AXIS_SLOTS_TYPE: &str = "InputAxisSlots";
 pub const INPUT_BUTTON_SLOTS_TYPE: &str = "InputButtonSlots";
+pub const INPUT_SURFACE_POINT_TYPE: &str = "InputSurfacePoint";
 pub const POINTER_EVENT_TYPE: &str = "PointerEvent";
 /// Delivery classification retained independently of semantic Type identity.
 pub const POINTER_EVENT_INFO_ID: &str = "input/pointer-event@1";
@@ -59,6 +60,9 @@ pub fn input_axis_slot_type() -> StructuredInfoType {
 pub fn input_axis_slots_type() -> StructuredInfoType {
     native::<InputAxisSlots>()
 }
+pub fn input_surface_point_type() -> StructuredInfoType {
+    native::<InputSurfacePoint>()
+}
 pub fn pointer_event_type() -> StructuredInfoType {
     native::<PointerEvent>()
 }
@@ -94,6 +98,7 @@ pub fn generalized_input_registered_types() -> Vec<(&'static str, StructuredInfo
         (INPUT_AXIS_SLOTS_TYPE, input_axis_slots_type()),
         (INPUT_BUTTON_SLOTS_TYPE, input_button_slots_type()),
         (POINTER_EVENT_TYPE, pointer_event_type()),
+        (INPUT_SURFACE_POINT_TYPE, input_surface_point_type()),
         (TOUCH_FRAME_TYPE, touch_frame_type()),
         (ROTARY_STEP_TYPE, rotary_step_type()),
         (GAMEPAD_STATE_TYPE, gamepad_state_type()),

@@ -670,14 +670,8 @@ mod tests {
             Cli::try_parse_from(["xtask", "check", "workspace"]).expect("check command parses");
         assert!(matches!(check.command, Command::Check(_)));
 
-        let ci = Cli::try_parse_from([
-            "xtask",
-            "ci",
-            "plan",
-            "0123456789012345678901234567890123456789",
-            "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
-        ])
-        .expect("CI impact plan command parses");
+        let ci = Cli::try_parse_from(["xtask", "ci", "standalone-locks"])
+            .expect("standalone lock check command parses");
         assert!(matches!(ci.command, Command::Ci(_)));
 
         let prove = Cli::try_parse_from(["xtask", "prove", "std-browser-s4"])

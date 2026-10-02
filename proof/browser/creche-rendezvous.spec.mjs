@@ -1,6 +1,11 @@
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { openCrecheStep, reviewAndBirth } from "./creche-test-actions.mjs";
+import { openWorkspaceMachineRunner } from "./workspace-machine-test-actions.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 
 let entrance;
@@ -12,17 +17,14 @@ test.beforeEach(async () => {
 test.afterEach(() => entrance?.child.kill());
 
 test("a rendezvous code admits one already-running raw Host through the web Crèche", async ({ page }) => {
-  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--timeout-seconds", "30"], {
-    cwd: new URL("../..", import.meta.url).pathname,
+  const installed = await startInstalledHost();
+  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
+    cwd: installed.root,
     stdio: ["ignore", "pipe", "pipe"],
   });
   try {
     const code = await rendezvousCode(running);
-    await page.goto(entrance.url);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-    await reviewAndBirth(page);
-    await openCrecheStep(page, "3. Physical Host");
-    const runner = page.locator(".physical-host-runner");
+    const runner = await openWorkspaceMachineRunner(page, entrance);
     await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
     await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
     const input = runner.getByLabel("Running host rendezvous code");
@@ -36,42 +38,118 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
     await expect(runner.locator('[data-application-key="physical-stage-realize"]')).toContainText("InvitationDelivered");
     await runner.getByRole("button", { name: "Observe Boot and join" }).click();
     await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
-    await runner.getByRole("button", { name: "Admit Part and offers" }).click();
-    await expect(runner.locator('[data-application-key="physical-stage-admit"]')).toContainText("revision");
-    await expect(runner.locator('[data-application-slot="physical-status"]')).toContainText("Physical Part admitted");
-
     const evidence = JSON.parse((await runner.locator(".physical-evidence details code").allTextContents()).join(""));
     expect(evidence).toMatchObject({
       target: { id: "std/x86_64/computer" },
       intention: { mode: "attach-running", supported: true },
       obtainment: { line_id: "conduit-line/loopback-websocket@1", membership_claimed: false },
       realization: { terminal: "InvitationDelivered", membership_claimed: false },
-      admission: { disposition: "admitted" },
     });
+    // Successful admission returns the current Workspace to its membership panel.
+    const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
+    await runner.getByRole("button", { name: "Admit Part and offers" }).click();
+    await expect(page.locator(".member-card")).toHaveCount(2);
+    const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
+    expect(after.evidence.membership.revision).toBeGreaterThan(before.revision);
+    const added = after.evidence.membership.parts.find(part => part.current?.host_id === evidence.observation.host_id);
+    expect(added).toMatchObject({
+      state: "Admitted",
+      current: { host_id: evidence.observation.host_id, boot_id: evidence.observation.boot_id },
+    });
+    const offer = after.current_host_offers.find(item => item.host_id === evidence.observation.host_id);
+    expect(offer).toMatchObject({ host_id: evidence.observation.host_id, boot_id: evidence.observation.boot_id });
+    expect(offer.capabilities.length).toBeGreaterThan(0);
     await expectProcessSuccess(running);
   } finally {
-    if (running.exitCode === null) running.kill();
+    try {
+      await stopProcess(running);
+    } finally {
+      await installed.close();
+    }
   }
 });
 
+async function startInstalledHost() {
+  const root = fileURLToPath(new URL("../..", import.meta.url));
+  const stateDir = await mkdtemp(join(tmpdir(), "conduit-creche-rendezvous-"));
+  let service;
+  const close = async () => {
+    await stopProcess(service);
+    await rm(stateDir, { recursive: true, force: true });
+  };
+  try {
+    // Installation metadata is a fixture; admission is produced by the live service.
+    const productExecutable = join(stateDir, "reviewed-host-image");
+    await writeFile(productExecutable, "conduit creche rendezvous proof image");
+    await writeFile(join(stateDir, "installation.json"), JSON.stringify({
+      schema: "conduit.install/durable-host@1",
+      host_id: `host/creche-proof/${randomUUID()}`,
+      release_source_identity: "commit:creche-proof",
+      release_bundle_sha256: `sha256:${"a".repeat(64)}`,
+      product_executable: productExecutable,
+      body_state: null,
+      joined_body_state: null,
+    }));
+    await writeFile(join(stateDir, "control.token"), Buffer.alloc(32, 7));
+    service = spawn("target/debug/conduit", ["host", "service", "run", "--state-dir", stateDir], {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    await processOutput(service, / is running/, "durable host service");
+    return { root, stateDir, close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
+
+function stopProcess(child) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const finish = error => {
+      clearTimeout(killTimeout);
+      clearTimeout(exitTimeout);
+      child.off("exit", onExit);
+      if (error) reject(error);
+      else resolve();
+    };
+    const onExit = () => finish();
+    const killTimeout = setTimeout(() => child.kill("SIGKILL"), 2_000);
+    const exitTimeout = setTimeout(() => finish(new Error("Host process did not exit during cleanup")), 5_000);
+    child.once("exit", onExit);
+    child.kill();
+  });
+}
+
 function rendezvousCode(child) {
+  return processOutput(child, /Rendezvous code: (C1-WS-[0-9A-F-]+)/, "rendezvous code")
+    .then(match => match[1]);
+}
+
+function processOutput(child, pattern, label) {
   let output = "";
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`rendezvous code was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/Rendezvous code: (C1-WS-[0-9A-F-]+)/);
-      if (match) {
-        clearTimeout(timeout);
-        resolve(match[1]);
-      }
+    const finish = (error, match) => {
+      clearTimeout(timeout);
+      child.stdout.off("data", inspect);
+      child.stderr.off("data", inspect);
+      child.off("exit", onExit);
+      child.off("error", onError);
+      if (error) reject(error);
+      else resolve(match);
     };
+    const inspect = chunk => {
+      output += chunk.toString();
+      const match = output.match(pattern);
+      if (match) finish(null, match);
+    };
+    const onExit = status => finish(new Error(`${label} exited before readiness (${status})\n${output}`));
+    const onError = error => finish(error);
+    const timeout = setTimeout(() => finish(new Error(`${label} was not ready\n${output}`)), 10_000);
     child.stdout.on("data", inspect);
     child.stderr.on("data", inspect);
-    child.once("exit", (status) => {
-      clearTimeout(timeout);
-      reject(new Error(`running host exited before producing a code (${status})\n${output}`));
-    });
+    child.once("exit", onExit);
+    child.once("error", onError);
   });
 }
 

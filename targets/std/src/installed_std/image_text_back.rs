@@ -194,21 +194,19 @@ impl ImageTextHost {
         self.output.extend_from_slice(&self.record_type);
         record_start(&mut self.output, 4);
         field_leaf(&mut self.output, "caption", &self.caption);
-        field_leaf(&mut self.output, "content_digest", &digest);
+        text(&mut self.output, "content_digest");
+        self.output.push(1);
+        length(&mut self.output, digest.len());
+        for byte in digest {
+            self.output.push(0);
+            length(&mut self.output, 1);
+            self.output.push(byte);
+        }
         text(&mut self.output, "image");
         self.output.extend_from_slice(&self.image_node);
         text(&mut self.output, "metadata");
         self.output.push(1);
-        length(
-            &mut self.output,
-            conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES,
-        );
-        for _ in 0..conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES {
-            self.output.push(3);
-            text(&mut self.output, "absent");
-            self.output.push(0);
-            length(&mut self.output, 0);
-        }
+        length(&mut self.output, 0);
         Ok(Some(&self.output))
     }
 }

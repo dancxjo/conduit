@@ -404,8 +404,6 @@ pub struct HostedContinuousVision<P> {
     width: u16,
     height: u16,
     last: Option<HostedVisionObservation>,
-    #[cfg(test)]
-    output: Vec<u8>,
 }
 
 impl<P: HostedVisionProvider> HostedContinuousVision<P> {
@@ -422,8 +420,6 @@ impl<P: HostedVisionProvider> HostedContinuousVision<P> {
             width,
             height,
             last: None,
-            #[cfg(test)]
-            output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         })
     }
 

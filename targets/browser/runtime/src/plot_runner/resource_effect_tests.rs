@@ -71,7 +71,7 @@ fn prepare(
         "restore: todo/restore-summary\n sink: conduit-test/json-sink\n storage.value >> restore.snapshot\n restore.result >> sink.value"
     };
     let todo = include_str!("../../../../../plots/todo/main.conduit");
-    let source = format!("{todo}\nform storage-proof {{\n source: {source_kind}\n storage: {kind}(reference = \"{hex}\")\n source.value >> storage.value\n {tail}\n}}");
+    let source = format!("{todo}\nplot storage-proof {{\n source: {source_kind}\n storage: {kind}(reference = \"{hex}\")\n source.value >> storage.source\n {tail}\n}}");
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&source),
         &startup,

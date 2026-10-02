@@ -333,7 +333,7 @@ pub(crate) fn install_navigation_catalog(
     for offer in navigation_source_offers() {
         install_offer(startup, catalog, offer);
     }
-    let request_kind = conduit_robotics::robotics_motion_request_type();
+    let request_kind = conduit_semantic_catalog::navigation_bounded_motion_intent_type();
     install_offer(
         startup,
         catalog,

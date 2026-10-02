@@ -2,7 +2,7 @@ Permissive Binary License
 
 Version 1.0, July 2019
 
-Redistribution.  Redistribution and use in binary plot, without
+Redistribution.  Redistribution and use in binary form, without
 modification, are permitted provided that the following conditions are
 met:
 

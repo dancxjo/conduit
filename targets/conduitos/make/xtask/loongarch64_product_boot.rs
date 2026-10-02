@@ -34,12 +34,13 @@ pub(super) fn boot_twice(
         serde_json::to_vec_pretty(&snapshot).map_err(invalid)?,
     )
     .map_err(|e| refusal("loongarch64-product-proof-unavailable", e.to_string()))?;
-    prove_patchbay(&paths, &snapshot_path, &first)?;
+    prove_patchbay(&snapshot_path, &first)?;
     let proof = serde_json::json!({
         "schema": "conduit.conduitos/loongarch64-product-proof@1",
         "base_commit": git_head(&paths.root)?, "image_sha256": sha256_file(image)?,
         "first": first, "second": second, "fresh_host_id": true, "fresh_boot_id": true,
-        "native_patchbay_consumed": true, "stopped_by_harness": true
+        "native_patchbay_consumed": true,
+        "patchbay_projection": "shared-workbench-library", "stopped_by_harness": true
     });
     fs::write(
         paths.target.join("loongarch64-product-proof.json"),
@@ -106,26 +107,11 @@ fn parse_one(text: &str, prefix: &str, name: &str) -> Result<serde_json::Value, 
 }
 
 fn prove_patchbay(
-    paths: &Paths,
     snapshot: &std::path::Path,
     product: &serde_json::Value,
 ) -> Result<(), ConduitosError> {
-    let output = super::profile::command(
-        "cargo",
-        &[
-            "run",
-            "--quiet",
-            "-p",
-            "patchbay-native",
-            "--",
-            "--linear-observatory-snapshot",
-            snapshot.to_str().unwrap_or_default(),
-        ],
-        &paths.root,
-        "patchbay-rejected-loongarch64-product",
-    )?;
-    let linear = String::from_utf8(output.stdout)
-        .map_err(|e| refusal("patchbay-rejected-loongarch64-product", e.to_string()))?;
+    let linear =
+        super::product_patchbay::render(snapshot, "patchbay-rejected-loongarch64-product")?;
     for required in [
         product["host_id"].as_str().unwrap_or_default(),
         product["boot_id"].as_str().unwrap_or_default(),
