@@ -65,6 +65,7 @@ pub mod make;
 mod native_components;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
+pub mod native_face_snapshot;
 pub mod native_workset;
 pub mod observatory;
 pub mod offer;
