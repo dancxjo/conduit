@@ -95,6 +95,12 @@ Build proof for firmware and boards without CI hardware remains **build proof
 only**. Executable smoke, browser execution, and ConduitOS emulator boot are
 separate classes. None is physical or human acceptance. Browser coverage names
 its actual executed specs; cross-device enactment remains separate work.
+The x86_64 lane also runs the full graphical user journey against the same
+verified product IMAGE: birth, workload changes, execution, input, native Masks,
+USB connectivity, loss and lull. `cargo xtask make host verify OUTPUT --journey`
+reuses that artifact, checks its digest before and after, and binds the guest's
+profile/build identities to its manifest. It does not build a second proof
+image. The lane retains the journey records and QMP screenshots with the product.
 LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
 emulators before boot because their large-page translation can corrupt the
 bootloader's module handoff.

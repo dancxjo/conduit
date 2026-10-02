@@ -70,9 +70,12 @@ pub(super) enum HostCommand {
     /// Verify one final target IMAGE and its exact BUILD closure.
     Verify {
         output: PathBuf,
-        /// Boot the verified IMAGE through the deterministic x86_64 QEMU appliance.
+        /// Boot the verified IMAGE through its target's emulator proof.
         #[arg(long)]
         boot: bool,
+        /// Exercise the full x86_64 user journey on this exact retained IMAGE.
+        #[arg(long)]
+        journey: bool,
     },
     /// Prove one body across native, browser, and headless PROFILE-built Hosts.
     Capstone {

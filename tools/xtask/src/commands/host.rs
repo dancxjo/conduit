@@ -255,10 +255,17 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             &speech,
             opts,
         ),
-        HostCommand::Verify { output, boot } => {
+        HostCommand::Verify {
+            output,
+            boot,
+            journey,
+        } => {
             let manifest = host_target::verify_target(&output)?;
             if boot {
                 host_target::boot_target(&output, &manifest, opts)?;
+            }
+            if journey {
+                host_target::prove_journey(&output, &manifest, opts)?;
             }
             if opts.json {
                 println!("{}", serde_json::to_string(&manifest)?);

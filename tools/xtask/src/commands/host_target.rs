@@ -151,6 +151,22 @@ pub fn boot_target(
     Ok(())
 }
 
+pub fn prove_journey(
+    output: &Path,
+    manifest: &TargetBuildManifest,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    crate::commands::conduitos::target_build::prove_profile_journey(
+        &output.join(&manifest.image.file),
+        &manifest.resolved_build,
+        &manifest.image.sha256,
+        &manifest.resolved_description_binding,
+        opts,
+    )?;
+    verify_target(output)?;
+    Ok(())
+}
+
 fn verify_file(
     output: &Path,
     artifact: &ArtifactReceipt,
