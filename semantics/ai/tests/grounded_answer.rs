@@ -2,13 +2,13 @@ use conduit_ai::{
     AnswerSpan, Chunk, Citation, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionDisposition, ExtractedSourceValue, ExtractionLineage,
     GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedAnswerRequest,
-    GroundedClaimSupport, GroundingInputAssessment, HybridCandidate, LlmDeterminismProfile,
-    MechanismScore, ModelDerivedResult, ModelRefusal, ModelResultDisposition,
-    ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim,
-    RerankScore, RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
-    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrieverIdentity,
-    SelectedContextCost, SelectedContextItem, SelectedContextRationale, SourceRef, SourceSpan,
-    SourceSpanUnit, StructuredContext,
+    GroundedClaimSupport, GroundingInputAssessment, GroundingLimitation, HybridCandidate,
+    LlmDeterminismProfile, MechanismScore, ModelDerivedResult, ModelRefusal,
+    ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport,
+    ProposedGroundedClaim, RerankScore, RerankedCandidate, RerankingProofClass,
+    RetrievalContribution, RetrievalIntent, RetrievalIntentIdentity, RetrievalMechanism,
+    RetrievalMode, RetrievalModes, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
+    SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -279,15 +279,17 @@ fn unsupported_claims_and_evidence_dispositions_remain_explicit() {
 
     for (assessment, expected) in [
         (
-            GroundingInputAssessment::InsufficientEvidence {
-                limitation: "origin evidence is absent".into(),
-            },
+            GroundingInputAssessment::insufficient_evidence(
+                GroundingLimitation::new("origin evidence is absent".into()).unwrap(),
+            )
+            .unwrap(),
             GroundedAnswerDisposition::InsufficientEvidence,
         ),
         (
-            GroundingInputAssessment::ConflictingEvidence {
-                limitation: "selected sources disagree".into(),
-            },
+            GroundingInputAssessment::conflicting_evidence(
+                GroundingLimitation::new("selected sources disagree".into()).unwrap(),
+            )
+            .unwrap(),
             GroundedAnswerDisposition::ConflictingEvidence,
         ),
     ] {

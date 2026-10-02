@@ -1,8 +1,8 @@
 use conduit_ai::{
     AnswerSpan, CitationIndices, ContextBudgetCost, ContextSelectionOutcome,
-    ContextTruncationReason, GroundedClaim, RetrievalIntent, RetrievalIntentIdentity,
-    RetrievalMode, RetrievalModes, RetrievalScore, SourceSpan, SourceSpanUnit,
-    TemporalRetrievalIntent,
+    ContextTruncationReason, GroundedClaim, GroundingInputAssessment, GroundingLimitation,
+    RetrievalIntent, RetrievalIntentIdentity, RetrievalMode, RetrievalModes, RetrievalScore,
+    SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
 };
 use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
@@ -108,4 +108,25 @@ fn retrieval_intent_owns_its_modes_identity_and_candidate_ceiling() {
     assert!(
         !include_str!("../src/rag_semantics.rs").contains(concat!("pub enum ", "RetrievalMode"))
     );
+}
+
+#[test]
+fn grounding_input_assessment_owns_its_bounded_limitation() {
+    round_trip(GroundingInputAssessment::Sufficient);
+    round_trip(
+        GroundingInputAssessment::insufficient_evidence(
+            GroundingLimitation::new("x".repeat(2_048)).unwrap(),
+        )
+        .unwrap(),
+    );
+    round_trip(
+        GroundingInputAssessment::conflicting_evidence(
+            GroundingLimitation::new("sources disagree".into()).unwrap(),
+        )
+        .unwrap(),
+    );
+    assert!(GroundingLimitation::new(String::new()).is_err());
+    assert!(GroundingLimitation::new("x".repeat(2_049)).is_err());
+    assert!(!include_str!("../src/grounded_answer.rs")
+        .contains(concat!("pub enum ", "GroundingInputAssessment")));
 }

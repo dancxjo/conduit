@@ -3,14 +3,15 @@ use conduit_ai::{
     ContextRedundancyPolicy, ContextSelectionDisposition, ContextSelectionPolicy,
     ContextTemporalEvidence, EntityBoundary, ExtractedSourceValue, ExtractionLineage,
     FusionStrategy, GroundedAnswer, GroundedAnswerDisposition, GroundedAnswerPolicy,
-    GroundedAnswerRequest, GroundingInputAssessment, HybridCandidate, HybridFusionPolicy,
-    HybridRetrievalOutcome, LlmDeterminismProfile, MechanismScore, ModelDerivedResult,
-    ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport,
-    ProposedGroundedClaim, RerankingPolicy, RerankingReceipt, RerankingStrategy,
-    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrievalStage,
-    RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate, StructuredContext,
-    TemporalContext, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalProvenance,
-    TemporalReference, TemporalRetrievalIntent, TemporalSource, TemporalValidity,
+    GroundedAnswerRequest, GroundingInputAssessment, GroundingLimitation, HybridCandidate,
+    HybridFusionPolicy, HybridRetrievalOutcome, LlmDeterminismProfile, MechanismScore,
+    ModelDerivedResult, ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting,
+    ProposedClaimSupport, ProposedGroundedClaim, RerankingPolicy, RerankingReceipt,
+    RerankingStrategy, RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes,
+    RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate,
+    StructuredContext, TemporalContext, TemporalEvidenceBatch, TemporalEvidenceCandidate,
+    TemporalProvenance, TemporalReference, TemporalRetrievalIntent, TemporalSource,
+    TemporalValidity,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -312,9 +313,11 @@ fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> Ret
     let assessment = if case.sufficient {
         GroundingInputAssessment::Sufficient
     } else {
-        GroundingInputAssessment::InsufficientEvidence {
-            limitation: "Finite context omitted required current evidence.".into(),
-        }
+        GroundingInputAssessment::insufficient_evidence(
+            GroundingLimitation::new("Finite context omitted required current evidence.".into())
+                .unwrap(),
+        )
+        .unwrap()
     };
     let answer = GroundedAnswerPolicy::new(
         "grounding/exact-context-citations@1".into(),

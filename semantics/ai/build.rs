@@ -43,6 +43,7 @@ fn main() {
             serde_variant_exclusions: [
                 "ContextSelectionOutcome".into(),
                 "ContextSelectionDisposition".into(),
+                "GroundingInputAssessment".into(),
                 "MissingModalityPolicy".into(),
                 "RetrievalMode".into(),
             ]
