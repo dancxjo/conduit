@@ -429,7 +429,7 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
     assert!(stage.contains("cargo +1.98.1 xtask check forms bundle-workspace-catalog"));
     assert!(stage.contains("target/reviewed-form-bundles/initial-body.conduit"));
     assert!(stage.contains("target/reviewed-form-bundles/workspace-catalog.json"));
-    assert!(stage.contains("products/workspace/tools/stage-workspace-product.sh"));
+    assert!(stage.contains("targets/browser/tools/stage-browser-workspace.sh"));
     assert!(!stage.contains("stage-creche-product"));
     assert!(!stage.contains("target/creche-product"));
     assert!(stage.contains("--root target/creche-release-artifacts"));
@@ -691,10 +691,7 @@ fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
 
     assert!(workflow.contains("cargo xtask ci pages-resolver-proof --locked"));
     assert!(!workflow.contains("node --test proof/ci/"));
-    for proof in [
-        "proof/ci/pages-product-run-selection.spec.mjs",
-        "proof/ci/pages-workflow-paths.spec.mjs",
-    ] {
+    for proof in ["proof/ci/pages-product-run-selection.spec.mjs"] {
         assert_eq!(
             dispatcher.matches(proof).count(),
             1,

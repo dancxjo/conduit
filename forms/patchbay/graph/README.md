@@ -5,7 +5,7 @@ and recursive form-boundary projections. It derives them from checked and
 expanded form truth; it does not own execution, host offers, rendering, or
 input-device state.
 
-`patchbay-model` retains its existing public paths by re-exporting this
+`conduit-patchbay-workbench` retains its existing public paths by re-exporting this
 package. Hosted and native consumers can therefore share the same identities,
 connection compatibility, inspection facts, and graph bounds.
 

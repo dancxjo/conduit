@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startServer() {
-  const process = spawn("target/debug/patchbay-html", ["--documentary-fixture"], { stdio: ["ignore", "pipe", "pipe"] });
+  const process = spawn("target/debug/conduit-browser-patchbay-workbench", ["--documentary-fixture"], { stdio: ["ignore", "pipe", "pipe"] });
   const errors = [];
   process.stderr.setEncoding("utf8");
   process.stderr.on("data", chunk => errors.push(chunk));

@@ -22,7 +22,7 @@ The [handbook](../wiki/Home.md) is also published as the
 | Read, check, and run examples | [Try forms](try-forms.md), [reviewed collection](../forms/README.md) |
 | Choose a product or target | [Products](../products/README.md), [targets](../targets/README.md) |
 | Build a body or host artifact | [body building](body-building.md), [host make](host-make.md) |
-| Understand birth, lifecycle, and inspection | [Self-hosted biography](self-hosted-biography.md), [Patchbay](../products/patchbay/README.md) |
+| Understand birth, lifecycle, and inspection | [Self-hosted biography](self-hosted-biography.md), [Patchbay](../forms/patchbay/workbench/README.md) |
 | Run a private remote rendezvous | [User-operated relay](user-operated-relay.md) |
 | Export a package and provenance | [Supply-chain export](supply-chain-export.md) |
 | Retain or reproduce visual proof | [Visual evidence](visual-evidence.md) |

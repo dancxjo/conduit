@@ -1,0 +1,87 @@
+use conduit_body::{
+    Body, BodyBiographyEvidence, BodyGraduationChoice, BodyGraduationEvidence, BodyMembership,
+    BodyWorkset, ResidentForm,
+};
+use conduit_browser_patchbay_workbench::{body_workbench_snapshot, BrowserBodyWorkbenchEntrance};
+use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_presentation::PresentationRole;
+
+fn resident(name: &str) -> ResidentForm {
+    ResidentForm::new(
+        SourceDocumentId::from("source/reviewed-inventory"),
+        CheckedFormId::from(format!("checked/{name}")),
+    )
+}
+
+#[test]
+fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
+    let initial = [
+        resident("clock"),
+        resident("lantern"),
+        resident("telegraph"),
+    ];
+    let body = Body::born_with_forms(
+        BodyWorkset::from_forms(initial.clone()).unwrap(),
+        1,
+        SignId::from("sign/born"),
+    )
+    .unwrap();
+    let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+    let mut biography =
+        BodyBiographyEvidence::born(body.clone(), membership, "Talvi Applebough".into()).unwrap();
+    biography
+        .graduate(BodyGraduationEvidence {
+            body_id: body.body_id.clone(),
+            sequence: 2,
+            sign_id: SignId::from("sign/graduated"),
+            choice: BodyGraduationChoice::ExternalReader,
+            reader_plan_id: None,
+            reader_implementation_id: None,
+        })
+        .unwrap();
+
+    let encoded = serde_json::to_vec(&biography).unwrap();
+    let snapshot =
+        body_workbench_snapshot(1, &encoded, BrowserBodyWorkbenchEntrance::ExternalReader).unwrap();
+    let workbench = snapshot.body_workbench.unwrap();
+    assert_eq!(
+        workbench.current["active_forms"].as_array().unwrap().len(),
+        3
+    );
+    assert_eq!(workbench.current["workload_revision"], 0);
+    assert!(snapshot.presentation.properties.iter().any(|property| {
+        property.subject == format!("body/{}", body.body_id.as_str())
+            && property.name == "workload-revision"
+            && property.value == conduit_presentation::PresentationPropertyValue::Count(0)
+    }));
+    let visible_forms = snapshot
+        .presentation
+        .subjects
+        .iter()
+        .filter(|subject| subject.role == PresentationRole::Form)
+        .map(|subject| subject.name.as_str())
+        .collect::<Vec<_>>();
+    for form in initial {
+        assert!(visible_forms.contains(&form.checked_form_id.as_str()));
+        assert!(snapshot
+            .presentation
+            .relationships
+            .iter()
+            .any(|relationship| {
+                relationship.source == format!("body/{}", body.body_id.as_str())
+                    && relationship.target == format!("form/{}", form.checked_form_id.as_str())
+                    && relationship.kind
+                        == conduit_presentation::PresentationRelationshipKind::Contains
+            }));
+    }
+    assert!(!snapshot
+        .presentation
+        .relationships
+        .iter()
+        .any(|relationship| {
+            relationship.source == format!("body/{}", body.body_id.as_str())
+                && relationship.kind == conduit_presentation::PresentationRelationshipKind::Realizes
+                && relationship.target.starts_with("form/")
+        }));
+    assert_eq!(snapshot.presentation.basis.body_id, Some(body.body_id));
+}

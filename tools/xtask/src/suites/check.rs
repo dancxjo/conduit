@@ -744,7 +744,12 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
         "check.input-semantics.patchbay",
         "test finite Patchbay input controls",
         "cargo",
-        &["test", "-p", "patchbay-model", "input_semantic_controls"],
+        &[
+            "test",
+            "-p",
+            "conduit-patchbay-workbench",
+            "input_semantic_controls",
+        ],
     ),
     Step::new(
         "check.input-semantics.conduitos-peer-vectors",

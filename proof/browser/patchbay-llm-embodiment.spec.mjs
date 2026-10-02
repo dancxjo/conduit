@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startStage(stage) {
-  const binary=process.env.CONDUIT_PATCHBAY_HTML_BIN||"target/debug/patchbay-html";
+  const binary=process.env.CONDUIT_PATCHBAY_HTML_BIN||"target/debug/conduit-browser-patchbay-workbench";
   const processHandle=spawn(binary,["--llm-embodiment-fixture",String(stage)],{stdio:["ignore","pipe","pipe"]});
   const errors=[];
   processHandle.stderr.setEncoding("utf8");

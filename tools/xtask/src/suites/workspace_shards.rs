@@ -91,9 +91,9 @@ package_test_shard!(
         "conduit-little-seismograph-fixture",
         "conduitos",
         "patchbay-hosted",
-        "patchbay-model",
+        "conduit-patchbay-workbench",
         "patchbay-workbench-host-contract",
-        "patchbay-html",
+        "conduit-browser-patchbay-workbench",
     ],
     []
 );

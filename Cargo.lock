@@ -581,7 +581,6 @@ dependencies = [
  "conduit-wire",
  "conduit-workspace-make",
  "getrandom 0.3.4",
- "patchbay-svg-mask",
  "rcgen",
  "serde",
  "serde_json",
@@ -735,6 +734,29 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-browser-patchbay-workbench"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-body-make",
+ "conduit-browser-host",
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-patchbay-workbench",
+ "conduit-plan-lowering",
+ "conduit-presentation",
+ "conduit-semantic-catalog",
+ "conduit-std-host",
+ "conduit-tongues",
+ "conduit-wire",
+ "patchbay-application",
+ "patchbay-hosted",
+ "serde",
+ "serde_json",
+ "tungstenite",
 ]
 
 [[package]]
@@ -1074,6 +1096,45 @@ dependencies = [
  "conduit-planner",
  "conduit-signal",
  "conduit-signal-conformance",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "conduit-patchbay-workbench"
+version = "0.1.0"
+dependencies = [
+ "conduit-ai",
+ "conduit-birth-form",
+ "conduit-body",
+ "conduit-body-make",
+ "conduit-browser-runtime",
+ "conduit-chat",
+ "conduit-core",
+ "conduit-data",
+ "conduit-form",
+ "conduit-human",
+ "conduit-kernel",
+ "conduit-little-seismograph-fixture",
+ "conduit-net",
+ "conduit-observatory",
+ "conduit-patchbay-workbench-conformance",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-presentation",
+ "conduit-semantic-catalog",
+ "conduit-signal",
+ "conduit-signal-conformance",
+ "conduit-std-host",
+ "conduit-std-offers",
+ "conduit-text",
+ "conduit-time",
+ "conduit-wire",
+ "conduit-workspace-make",
+ "patchbay-application",
+ "patchbay-control",
+ "patchbay-graph",
+ "patchbay-workbench-host-contract",
  "serde",
  "serde_json",
 ]
@@ -3250,77 +3311,6 @@ dependencies = [
  "conduit-form",
  "conduit-std-host",
  "patchbay-workbench-host-contract",
-]
-
-[[package]]
-name = "patchbay-html"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-body-make",
- "conduit-browser-host",
- "conduit-core",
- "conduit-kernel",
- "conduit-plan-lowering",
- "conduit-presentation",
- "conduit-semantic-catalog",
- "conduit-std-host",
- "conduit-tongues",
- "conduit-wire",
- "patchbay-application",
- "patchbay-hosted",
- "patchbay-model",
- "serde",
- "serde_json",
- "tungstenite",
-]
-
-[[package]]
-name = "patchbay-model"
-version = "0.1.0"
-dependencies = [
- "conduit-ai",
- "conduit-birth-form",
- "conduit-body",
- "conduit-body-make",
- "conduit-browser-runtime",
- "conduit-chat",
- "conduit-core",
- "conduit-data",
- "conduit-form",
- "conduit-human",
- "conduit-kernel",
- "conduit-little-seismograph-fixture",
- "conduit-net",
- "conduit-observatory",
- "conduit-patchbay-workbench-conformance",
- "conduit-plan-lowering",
- "conduit-planner",
- "conduit-presentation",
- "conduit-semantic-catalog",
- "conduit-signal",
- "conduit-signal-conformance",
- "conduit-std-host",
- "conduit-std-offers",
- "conduit-text",
- "conduit-time",
- "conduit-wire",
- "conduit-workspace-make",
- "patchbay-application",
- "patchbay-control",
- "patchbay-graph",
- "patchbay-workbench-host-contract",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "patchbay-svg-mask"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-form",
- "conduit-semantic-catalog",
 ]
 
 [[package]]

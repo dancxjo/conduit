@@ -15,7 +15,7 @@ function declaration(browser,testInfo,name) {
     required:true,
     provenance:{
       scenario_id:`patchbay-html.${name}@1`,
-      step_id:"prove.browser-host.patchbay-html-matrix",
+      step_id:"prove.browser-host.conduit-browser-patchbay-workbench-matrix",
       browser_engine:"chromium",
       browser_version:browser.version(),
       viewport:`${viewport.width}x${viewport.height}`,

@@ -187,7 +187,7 @@ async function finishExternalBody(page, journey) {
 }
 
 async function startCoordinator(evidencePath, invitation, forms) {
-  const process = spawn("target/debug/patchbay-html", [
+  const process = spawn("target/debug/conduit-browser-patchbay-workbench", [
     "--body-evidence", evidencePath,
     "--external-reader",
     "--body-invitation", invitation,

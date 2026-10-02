@@ -147,12 +147,11 @@ fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
         .map(|spec| spec.id)
         .collect()
 }
-const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
+const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 8] = [
     ".github/workflows/product-carrier.yml",
     ".github/workflows/pages-deploy.yml",
     ".github/workflows/pages-deploy-pr-proof.yml",
     "proof/ci/pages-product-run-selection.spec.mjs",
-    "proof/ci/pages-workflow-paths.spec.mjs",
     "tools/ci/pages-product-run-selection.mjs",
     "tools/ci/resolve-pages-product-run.mjs",
     "tools/xtask/src/commands/ci/impact.rs",
@@ -178,14 +177,14 @@ const DEBUGGER_KERNEL_SLICE: [&str; 7] = [
 ];
 const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
     "Cargo.lock",
-    "products/patchbay/html/Cargo.toml",
-    "products/patchbay/html/assets/app.css",
-    "products/patchbay/html/assets/app.js",
-    "products/patchbay/html/assets/index.html",
-    "products/patchbay/html/assets/patchbay.application.template.json",
-    "products/patchbay/html/src/server.rs",
-    "products/patchbay/html/src/server/http.rs",
-    "products/patchbay/html/tests/server.rs",
+    "targets/browser/patchbay-workbench/Cargo.toml",
+    "targets/browser/patchbay-workbench/assets/app.css",
+    "targets/browser/patchbay-workbench/assets/app.js",
+    "targets/browser/patchbay-workbench/assets/index.html",
+    "targets/browser/patchbay-workbench/assets/patchbay.application.template.json",
+    "targets/browser/patchbay-workbench/src/server.rs",
+    "targets/browser/patchbay-workbench/src/server/http.rs",
+    "targets/browser/patchbay-workbench/tests/server.rs",
     "proof/browser/patchbay-debugger-watch.spec.mjs",
     "proof/browser/patchbay-html.spec.mjs",
 ];
@@ -193,7 +192,7 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     ".github/workflows/product-carrier.yml",
     "make/workspace/tests/family_contracts.rs",
     "proof/browser/creche-raspberry-pi.spec.mjs",
-    "products/workspace/tools/stage-workspace-product.sh",
+    "targets/browser/tools/stage-browser-workspace.sh",
     "targets/browser/runtime/src/creche/spore_target.rs",
     "targets/raspberry-pi/deployment/browser/creche-adapter.mjs",
     "targets/raspberry-pi/deployment/browser/image.mjs",
@@ -206,7 +205,7 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
 fn is_tongues_analysis_path(path: &str) -> bool {
     path.starts_with("semantics/tongues/")
         || path == "forms/tongues-dynamics-analysis/main.conduit"
-        || path == "products/patchbay/html/src/learned_demo.rs"
+        || path == "targets/browser/patchbay-workbench/src/learned_demo.rs"
         || path == "proof/browser/patchbay-debugger-watch.spec.mjs"
         || path == "tools/xtask/src/commands/ci/impact.rs"
         || path == "tools/xtask/src/commands/ci/impact/tests.rs"
@@ -220,11 +219,11 @@ fn is_tongues_analysis_path(path: &str) -> bool {
 
 fn is_creche_presentation_path(path: &str) -> bool {
     path == "proof/browser/creche-browser-configuration.spec.mjs"
-        || path == "products/workspace/tools/stage-workspace-product.sh"
+        || path == "targets/browser/tools/stage-browser-workspace.sh"
         || path == "targets/browser/host/src/server.rs"
         || path == "targets/browser/host/src/server/tests.rs"
         || path == "targets/browser/host/assets/application-presentation.mjs"
-        || path.starts_with("products/workspace/browser/creche")
+        || path.starts_with("targets/browser/workspace/creche")
 }
 
 fn is_repository_tool_test(path: &str) -> bool {
@@ -419,10 +418,10 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
             BTreeSet::from([
                 "conduit-browser-host",
                 "conduit-browser-runtime",
-                "patchbay-html",
+                "conduit-browser-patchbay-workbench",
                 "patchbay-hosted",
                 "patchbay-control",
-                "patchbay-model",
+                "conduit-patchbay-workbench",
             ]),
         ),
         (
@@ -441,7 +440,7 @@ fn direct_prefixes(suite: &str) -> &'static [&'static str] {
         "esp32" => &["targets/esp32/"],
         "browser" => &[
             "targets/browser/",
-            "products/patchbay/html/",
+            "targets/browser/patchbay-workbench/",
             "proof/browser/",
             "assets/",
         ],
@@ -517,10 +516,10 @@ fn plan_for_paths(
         .all(|path| PATCHBAY_PACKAGE_SLICE.contains(&path.as_str()))
         && [
             "Cargo.lock",
-            "products/patchbay/html/Cargo.toml",
-            "products/patchbay/html/assets/patchbay.application.template.json",
-            "products/patchbay/html/assets/index.html",
-            "products/patchbay/html/src/server.rs",
+            "targets/browser/patchbay-workbench/Cargo.toml",
+            "targets/browser/patchbay-workbench/assets/patchbay.application.template.json",
+            "targets/browser/patchbay-workbench/assets/index.html",
+            "targets/browser/patchbay-workbench/src/server.rs",
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
@@ -530,7 +529,7 @@ fn plan_for_paths(
         && [
             ".github/workflows/product-carrier.yml",
             "proof/browser/creche-raspberry-pi.spec.mjs",
-            "products/workspace/tools/stage-workspace-product.sh",
+            "targets/browser/tools/stage-browser-workspace.sh",
             "targets/browser/runtime/src/creche/spore_target.rs",
             "targets/raspberry-pi/make/src/lib.rs",
         ]
@@ -541,7 +540,7 @@ fn plan_for_paths(
         .all(|path| is_creche_presentation_path(path))
         && substantive
             .iter()
-            .any(|path| path.starts_with("products/workspace/browser/creche"))
+            .any(|path| path.starts_with("targets/browser/workspace/creche"))
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/browser/creche-browser-configuration.spec.mjs");
@@ -562,7 +561,7 @@ fn plan_for_paths(
             .any(|path| path.starts_with("semantics/tongues/"))
         && substantive
             .iter()
-            .any(|path| path.as_str() == "products/patchbay/html/src/learned_demo.rs")
+            .any(|path| path.as_str() == "targets/browser/patchbay-workbench/src/learned_demo.rs")
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/browser/patchbay-debugger-watch.spec.mjs")
@@ -1041,7 +1040,7 @@ fn browser_admission_shards(
 
     let mut shards = vec!["browser-host"];
     if paths.iter().any(|path| {
-        path.starts_with("products/workspace/")
+        path.starts_with("targets/browser/workspace/")
             || path.starts_with("make/workspace/")
             || path.starts_with("targets/browser/runtime/src/creche/")
             || path.starts_with("proof/browser/workspace-")

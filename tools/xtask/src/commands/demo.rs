@@ -86,7 +86,7 @@ pub fn run_patchbay(
         &[
             "run",
             "-p",
-            "patchbay-html",
+            "conduit-browser-patchbay-workbench",
             "--",
             "--seed",
             "Text Lab",

@@ -5,7 +5,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startPublicEntrance() {
-  const child = spawn("target/debug/patchbay-html", [
+  const child = spawn("target/debug/conduit-browser-patchbay-workbench", [
     "--form", "Text Lab", "forms/text-lab/main.conduit",
     "--form", "Hello", "forms/hello/main.conduit",
   ], {

@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startServer() {
-  const process = spawn("target/debug/patchbay-html", ["--recursive-form-proof"], {
+  const process = spawn("target/debug/conduit-browser-patchbay-workbench", ["--recursive-form-proof"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { prepareWorkspaceVoicePlay } from "../../products/workspace/browser/workspace-voice-play.mjs";
+import { prepareWorkspaceVoicePlay } from "../../targets/browser/workspace/workspace-voice-play.mjs";
 
 function fixture() {
   const events = [];

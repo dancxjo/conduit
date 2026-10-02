@@ -6,7 +6,7 @@ import test from "node:test";
 test("retired Tour and Creche products have no source trees", () => {
   assert.deepEqual(readdirSync("targets/browser/host/assets").filter((name) => /^(book|tour|creche)[.-]/.test(name)), []);
   assert.equal(existsSync("products/creche"), false);
-  assert.ok(existsSync("products/patchbay/html/assets/patchbay.application.template.json"));
+  assert.ok(existsSync("targets/browser/patchbay-workbench/assets/patchbay.application.template.json"));
 });
 
 test("browser WebRTC realization is owned by the browser Host", () => {
@@ -18,10 +18,10 @@ test("browser WebRTC realization is owned by the browser Host", () => {
   ];
   for (const name of names) {
     assert.ok(existsSync(`targets/browser/host/assets/${name}`), `browser Host is missing ${name}`);
-    assert.ok(!existsSync(`products/patchbay/html/assets/${name}`), `Patchbay still owns ${name}`);
+    assert.ok(!existsSync(`targets/browser/patchbay-workbench/assets/${name}`), `Patchbay still owns ${name}`);
   }
   const descriptor = JSON.parse(
-    readFileSync("products/patchbay/html/assets/patchbay.application.template.json", "utf8"),
+    readFileSync("targets/browser/patchbay-workbench/assets/patchbay.application.template.json", "utf8"),
   );
   for (const role of ["body-webrtc-sessions", "body-webrtc-session", "webrtc-line", "webrtc-runtime"]) {
     const resource = descriptor.resources.find((candidate) => candidate.role === role);
@@ -34,11 +34,11 @@ test("generic browser membership is owned by the browser Host", () => {
   assert.match(source, /export async function joinBrowserBody/);
   assert.match(source, /\.\/body-webrtc-sessions\.mjs/);
   assert.doesNotMatch(source, /Patchbay/);
-  assert.equal(existsSync("products/patchbay/html/assets/browser-membership.js"), false);
+  assert.equal(existsSync("targets/browser/patchbay-workbench/assets/browser-membership.js"), false);
 });
 
 test("Workspace package dependencies name real source owners", () => {
-    const root = resolve("products/workspace/browser");
+    const root = resolve("targets/browser/workspace");
     const descriptor = JSON.parse(readFileSync(`${root}/workspace.application.template.json`, "utf8"));
     const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
     assert.equal(descriptor.application_id, "conduit.application/workspace");
@@ -56,7 +56,7 @@ test("Workspace package dependencies name real source owners", () => {
 });
 
 test("target source moves preserve declared browser resource URLs and relative dependencies", () => {
-  const root = resolve("products/workspace/browser");
+  const root = resolve("targets/browser/workspace");
   const descriptor = JSON.parse(readFileSync(`${root}/workspace.application.template.json`, "utf8"));
   const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
   const entry = descriptor.resources.find((resource) => resource.path === "creche-installed-targets.mjs");

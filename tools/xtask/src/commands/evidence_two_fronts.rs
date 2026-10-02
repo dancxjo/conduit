@@ -28,7 +28,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
             "-p",
             "patchbay-native",
             "-p",
-            "patchbay-html",
+            "conduit-browser-patchbay-workbench",
         ]),
         "build the two renderer entrances",
     )?;
