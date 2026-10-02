@@ -19,7 +19,9 @@ use conduit_presentation::{PlannedMaskPlot, Presentation};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-pub const MAX_MASK_VALUE_BYTES: usize = 4 * 1024;
+// The current complete Tutorial Face is 11,550 encoded bytes. This finite
+// native profile admits it whole; larger Faces still require a new admission.
+pub const MAX_MASK_VALUE_BYTES: usize = 16 * 1024;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 4;
 const CORDS: usize = 6;
@@ -27,8 +29,10 @@ const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = 4;
 // One value per fixed Cord queue slot plus one result per pending Host Call.
 const VALUES: usize = CORDS + NODES;
-const STORAGE_VALUE_BYTES: usize = conduit_presentation::MAX_FACE_INTERACTION_BYTES;
-const VALUE_BYTES: usize = VALUES * MAX_MASK_VALUE_BYTES;
+const INTERACTION_VALUE_BYTES: usize = conduit_presentation::MAX_FACE_INTERACTION_BYTES;
+const STORAGE_VALUE_BYTES: usize = MAX_MASK_VALUE_BYTES;
+// Five Face/Show queues, one interaction queue, and the two Host Call results.
+const VALUE_BYTES: usize = 6 * MAX_MASK_VALUE_BYTES + 2 * INTERACTION_VALUE_BYTES;
 const SIGNS: usize = 96;
 
 type Scheduler = FixedScheduler<
@@ -204,9 +208,9 @@ fn scheduler(
         .map_err(|_| NativeMaskPlayError::SchedulerCreate)
 }
 
-/// The preallocated store reserves 10 slots of 8192 bytes at preparation; its live
+/// The preallocated store reserves 10 finite value slots at preparation; its live
 /// byte budget follows the admitted Cord queues plus the two bounded Host Call
-/// results. Native rendering narrows its larger semantic offer to 4096 bytes;
+/// results. Native rendering narrows its larger semantic offer to 16 KiB;
 /// interaction retains its declared 8192-byte bound. No budget grows during Play.
 fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMaskPlayError> {
     if usize::from(lowered.cord_value_slots) > CORDS || lowered.host_calls.len() != 2 {
@@ -219,11 +223,14 @@ fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMask
         }
         let bound = match call.contract_id.as_str() {
             "conduit.host/present@1" => MAX_MASK_VALUE_BYTES,
-            "conduit.host/presentation-interaction@1" => STORAGE_VALUE_BYTES,
+            "conduit.host/presentation-interaction@1" => INTERACTION_VALUE_BYTES,
             _ => return Err(NativeMaskPlayError::Shape),
         } as u32;
+        if call.binding.maximum_output_bytes > bound {
+            return Err(NativeMaskPlayError::Pressure);
+        }
         bytes = bytes
-            .checked_add(call.binding.maximum_output_bytes.min(bound))
+            .checked_add(call.binding.maximum_output_bytes)
             .ok_or(NativeMaskPlayError::Pressure)?;
     }
     if bytes as usize > VALUE_BYTES {
