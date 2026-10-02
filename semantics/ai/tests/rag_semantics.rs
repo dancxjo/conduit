@@ -122,10 +122,8 @@ fn temporal_boundary_intent_is_typed_and_bounded() {
 fn candidates_context_and_citations_remain_distinct_and_exact() {
     let mut context = context();
     context.validate_against(&intent()).unwrap();
-    context.outcome = ContextSelectionOutcome::Truncated {
-        omitted_candidates: 2,
-        reason: ContextTruncationReason::TokenBudget,
-    };
+    context.outcome =
+        ContextSelectionOutcome::truncated(2, ContextTruncationReason::TokenBudget).unwrap();
     context.validate_against(&intent()).unwrap();
     let citation = conduit_ai::Citation {
         source: context.items[0].candidate.chunk.lineage.source.clone(),
@@ -218,14 +216,7 @@ fn malformed_spans_ranks_budgets_and_claims_fail_closed() {
     context.items[0].candidate.rank = 1;
     assert!(ContextBudgetCost::new(0, 0).is_err());
     context.items[0].budget = ContextBudgetCost::new(30, 8).unwrap();
-    context.outcome = ContextSelectionOutcome::Truncated {
-        omitted_candidates: 0,
-        reason: ContextTruncationReason::TokenBudget,
-    };
-    assert_eq!(
-        context.validate_against(&intent()),
-        Err(RagSemanticRefusal::EmptyTruncation)
-    );
+    assert!(ContextSelectionOutcome::truncated(0, ContextTruncationReason::TokenBudget).is_err());
 }
 
 #[test]

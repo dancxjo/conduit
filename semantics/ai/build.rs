@@ -41,6 +41,7 @@ fn main() {
             ]
             .into(),
             serde_variant_exclusions: [
+                "ContextSelectionOutcome".into(),
                 "ContextSelectionDisposition".into(),
                 "MissingModalityPolicy".into(),
             ]
