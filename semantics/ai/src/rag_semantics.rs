@@ -6,13 +6,13 @@
 //! portable contract.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
+use conduit_core::ResourceReferenceRefusal;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    ChunkIdentity, ContextBudgetCost, ContextSelectionOutcome, ContextSelectionRationale,
+    ChunkIdentity, Citation, ContextBudgetCost, ContextSelectionOutcome, ContextSelectionRationale,
     GroundedClaim, GroundingDisposition, ModelResultProvenance, RetrievalIntent, RetrievalMode,
-    RetrievalScore, SourceSpan, SourceSpanUnit,
+    RetrievalScore, SourceRef, SourceSpan, SourceSpanUnit,
 };
 
 pub const MAXIMUM_TRANSFORM_LINEAGE: usize = 16;
@@ -23,11 +23,6 @@ pub const MAXIMUM_GROUNDED_ANSWER_BYTES: usize = 262_144;
 pub const MAXIMUM_GROUNDING_LIMITATIONS: usize = 32;
 pub const MAXIMUM_RAG_IDENTITY_BYTES: usize = 256;
 pub const MAXIMUM_RAG_TEXT_BYTES: usize = 2_048;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SourceRef {
-    pub resource: BoundedResourceRef,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExtractionLineage {
@@ -63,13 +58,6 @@ pub struct ContextItem<T> {
 pub struct ContextSelection<T> {
     pub items: Vec<ContextItem<T>>,
     pub outcome: ContextSelectionOutcome,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Citation {
-    pub source: SourceRef,
-    pub span: SourceSpan,
-    pub chunk_identity: ChunkIdentity,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

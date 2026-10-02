@@ -24,6 +24,22 @@ fn chunk_identity_is_one_native_fixed_digest() {
     assert!(
         !include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "ChunkIdentity"))
     );
+
+    let source = source(3);
+    let structured = source.clone().into_structured().unwrap();
+    assert_eq!(SourceRef::from_structured(structured).unwrap(), source);
+    let citation = conduit_ai::Citation {
+        source,
+        span: SourceSpan::new(SourceSpanUnit::Bytes, 10, 40).unwrap(),
+        chunk_identity: identity,
+    };
+    let structured = citation.clone().into_structured().unwrap();
+    assert_eq!(
+        conduit_ai::Citation::from_structured(structured).unwrap(),
+        citation
+    );
+    assert!(!include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "SourceRef")));
+    assert!(!include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "Citation")));
 }
 
 fn source(version: u8) -> SourceRef {
