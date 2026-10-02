@@ -25,6 +25,8 @@ form finite-example (
 }.
 ```
 
+![The finite example form as connected gears](assets/sample-diagrams/finite-example.svg)
+
 ## Semantic full stop: `}` versus `}.`
 
 The full stop belongs to the **form as a whole**, not to the sequence of statements inside its back.
@@ -81,6 +83,8 @@ form upper (
 }
 ```
 
+![The upper form as connected gears](assets/sample-diagrams/upper.svg)
+
 Where a paired fore is useful:
 
 ```conduit
@@ -90,6 +94,8 @@ form upper (
     input >> text/upper >> output
 }
 ```
+
+![The same upper topology with a paired fore](assets/sample-diagrams/upper.svg)
 
 The ordinary operators `>`, `<`, `>=`, and `<=` belong to comparison/constraint mathematics, **not graph carriage**.
 

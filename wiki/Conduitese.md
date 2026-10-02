@@ -78,6 +78,8 @@ form clock-demo {
 }
 ```
 
+![The clock demo form as connected gears](assets/sample-diagrams/clock-demo.svg)
+
 Structural drain means quiescence. Later admitted input may resume the same play.
 
 A trailing full stop makes structural drain a completion witness:
@@ -90,6 +92,8 @@ form finite-example (
     input >> text/upper >> output
 }.
 ```
+
+![The finite example form as connected gears](assets/sample-diagrams/finite-example.svg)
 
 The `.` is not an executable "stop now" statement. It changes the meaning of the form boundary.
 

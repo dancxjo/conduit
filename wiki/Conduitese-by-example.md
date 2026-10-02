@@ -13,6 +13,8 @@ form hello {
 }.
 ```
 
+![The hello form as connected gears](assets/sample-diagrams/hello.svg)
+
 There is no explicit main function, process, display handle, or stdout. The form composes semantic work. The full stop says drain completes the form.
 
 ## Clock: a standing live form
@@ -25,6 +27,8 @@ form clock-demo {
     clock >> presentation/tick
 }
 ```
+
+![The clock demo form as connected gears](assets/sample-diagrams/clock-demo.svg)
 
 No trailing full stop. The form remains alive between ticks.
 
@@ -133,6 +137,8 @@ form pulse-manifestation (
 }
 ```
 
+![The light-only pulse manifestation as connected gears](assets/sample-diagrams/pulse-manifestation.svg)
+
 This is light-only because there is no tone gear and no tone cord. Sound is not a runtime flag that a host may quietly toggle.
 
 ## Explicit enrichment
@@ -150,6 +156,8 @@ form pulse-light-tone-manifestation (
     observe.observation >> tone.pulse
 }
 ```
+
+![The light-and-tone pulse manifestation with explicit fan-out](assets/sample-diagrams/pulse-light-tone-manifestation.svg)
 
 The fan-out is visible.
 
