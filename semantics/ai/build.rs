@@ -107,6 +107,7 @@ fn main() {
                 "ProfileReportedConfidence".into(),
                 "SourceExtractionLimits".into(),
                 "TemporalReference".into(),
+                "TemporalProvenance".into(),
                 "TemporalRetrievalWindow".into(),
             ]
             .into(),
@@ -162,6 +163,7 @@ fn main() {
                 "SelectedContextCost".into(),
                 "SourceRef".into(),
                 "TemporalReference".into(),
+                "TemporalProvenance".into(),
                 "ValidatedExtraction".into(),
             ]
             .into(),

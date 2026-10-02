@@ -148,12 +148,19 @@ fn retrieval_intent_names_boundaries_and_rejects_reversed_windows() {
 #[test]
 fn provenance_round_trip_preserves_distinct_temporal_facts() {
     let fact = provenance();
+    let structured = fact.clone().into_structured().unwrap();
+    assert_eq!(
+        TemporalProvenance::from_structured(structured).unwrap(),
+        fact
+    );
     let encoded = serde_json::to_string(&fact).unwrap();
     let decoded: TemporalProvenance = serde_json::from_str(&encoded).unwrap();
     assert_eq!(decoded, fact);
     assert_ne!(decoded.event_at, decoded.recorded_at);
     assert_ne!(decoded.recorded_at, decoded.ingested_at);
     assert_ne!(decoded.ingested_at, Some(decoded.retrieved_at));
+    assert!(!include_str!("../src/temporal_context.rs")
+        .contains(concat!("pub struct ", "TemporalProvenance")));
 }
 
 #[test]

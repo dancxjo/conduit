@@ -3,23 +3,9 @@ use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, Tem
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ClockBasis, TemporalContextRefusal, TemporalReference, TemporalRetrievalIntent, TemporalSource,
-    TemporalValidity, TemporalWindowRelation,
+    ClockBasis, TemporalContextRefusal, TemporalProvenance, TemporalReference,
+    TemporalRetrievalIntent, TemporalSource, TemporalValidity, TemporalWindowRelation,
 };
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalProvenance {
-    pub event_at: Option<u64>,
-    pub valid_from: Option<u64>,
-    pub valid_until: Option<u64>,
-    pub observed_at: Option<u64>,
-    pub recorded_at: Option<u64>,
-    pub ingested_at: Option<u64>,
-    pub retrieved_at: u64,
-    pub reference_at: u64,
-    pub clock_basis: ClockBasis,
-    pub uncertainty_millis: Option<u64>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalContext {
