@@ -7,6 +7,7 @@ mod interaction_affordance;
 mod scanout_acknowledgement;
 mod surface_buffer;
 mod surface_lifecycle;
+mod surface_update;
 pub use scanout_acknowledgement::ScanoutAcknowledgement;
 
 #[cfg(not(feature = "native-compositor"))]
@@ -202,15 +203,19 @@ pub(super) struct CompositorSurface {
     buffer: SurfaceBuffer,
     binding: Option<SurfaceBinding>,
     receipt: Option<CompositionReceipt>,
+    input_ready: bool,
 }
 
 impl CompositorSurface {
+    pub(super) const fn is_raster_ready(&self) -> bool {
+        self.binding.is_some() && self.receipt.is_some()
+    }
     /// A binding is routable and composable only while pixels for that exact
     /// Manifestation revision inhabit the current surface extent. Resizing
     /// retains the binding's revision fence but invalidates those pixels until
     /// a newer Presentation revision is manifested.
     pub(super) const fn is_ready(&self) -> bool {
-        self.binding.is_some() && self.receipt.is_some()
+        self.is_raster_ready() && self.input_ready
     }
 }
 
@@ -293,86 +298,10 @@ impl NativeCompositor {
             buffer,
             binding: None,
             receipt: None,
+            input_ready: false,
         });
         self.admitted_pixels = admitted_pixels;
         Ok(())
-    }
-
-    pub fn update_surface(
-        &mut self,
-        presentation: &Presentation,
-        manifestation: &Manifestation,
-        plan: &Plan,
-        surface_id: &str,
-        display_base_id: &HostBaseId,
-        scene: &GraphicsScene,
-    ) -> Result<&CompositionReceipt, NativeCompositorError> {
-        self.validate_manifestation(
-            presentation,
-            manifestation,
-            plan,
-            surface_id,
-            display_base_id,
-        )?;
-        let surface = self
-            .surfaces
-            .iter_mut()
-            .find(|surface| surface.surface_id == surface_id)
-            .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
-        if let Some(binding) = &surface.binding {
-            if binding.plan_id != manifestation.plan_id
-                || binding.placement_id != manifestation.placement_id
-                || binding.front_subject != manifestation.front_subject
-            {
-                return Err(NativeCompositorError::SurfaceAlreadyBound);
-            }
-            if presentation.revision <= binding.last_revision {
-                return Err(NativeCompositorError::StaleSurfaceRevision);
-            }
-        }
-        // A failed raster update must not leave the old revision routable.
-        surface.receipt = None;
-        self.scanout_pixels = [0; MAX_COMPOSITOR_SURFACES];
-        surface.buffer.clear();
-        #[cfg(feature = "native-compositor")]
-        let display =
-            crate::display::typography::render_scene(&mut surface.buffer, scene, |_, command| {
-                command.text_role().into()
-            })?;
-        #[cfg(not(feature = "native-compositor"))]
-        let display = render_scene(&mut surface.buffer, scene)?;
-        surface.binding = Some(SurfaceBinding {
-            manifestation_id: manifestation.manifestation_id.clone(),
-            plan_id: manifestation.plan_id.clone(),
-            placement_id: manifestation.placement_id.clone(),
-            front_subject: manifestation.front_subject.clone(),
-            last_revision: presentation.revision,
-        });
-        surface.receipt = Some(CompositionReceipt {
-            presentation_id: presentation.identity.clone(),
-            manifestation_id: manifestation.manifestation_id.clone(),
-            plan_id: manifestation.plan_id.clone(),
-            active_play_id: manifestation.active_play_id.clone(),
-            play_sequence: manifestation.play_sequence,
-            placement_id: manifestation.placement_id.clone(),
-            host_id: manifestation.host_id.clone(),
-            boot_id: manifestation.boot_id.clone(),
-            offer_generation: manifestation.offer_generation,
-            presenter_implementation_id: manifestation.presenter_implementation_id.clone(),
-            presenter_capability_id: manifestation.presenter_capability_id.clone(),
-            presenter_artifact_id: manifestation.presenter_artifact_id.clone(),
-            front_subject: manifestation.front_subject.clone(),
-            display_base_id: display_base_id.clone(),
-            surface_id: surface_id.into(),
-            display,
-        });
-        if surface.visible {
-            self.damage.add_layout(surface.bounds)?;
-        }
-        surface
-            .receipt
-            .as_ref()
-            .ok_or(NativeCompositorError::SurfaceNotAdmitted)
     }
 
     fn validate_surface_id(&self, surface_id: &str) -> Result<(), NativeCompositorError> {
@@ -382,38 +311,7 @@ impl NativeCompositor {
             Err(NativeCompositorError::UnadmittedSurface)
         }
     }
-    fn validate_manifestation(
-        &self,
-        presentation: &Presentation,
-        manifestation: &Manifestation,
-        plan: &Plan,
-        surface_id: &str,
-        display_base_id: &HostBaseId,
-    ) -> Result<(), NativeCompositorError> {
-        self.validate_surface_id(surface_id)?;
-        if !self
-            .admission
-            .placement_ids
-            .contains(&manifestation.placement_id)
-        {
-            return Err(NativeCompositorError::UnadmittedPlacement);
-        }
-        if manifestation.host_id != self.admission.host_id
-            || manifestation.boot_id != self.admission.boot_id
-            || manifestation.offer_generation != self.admission.offer_generation
-            || manifestation.presenter_implementation_id
-                != self.admission.presenter_implementation_id
-            || display_base_id != &self.admission.display_base_id
-            || manifestation.target_subject != surface_id
-            || manifestation.lifecycle != ManifestationLifecycle::Available
-        {
-            return Err(NativeCompositorError::StaleIdentity);
-        }
-        manifestation
-            .validate_against(presentation, plan)
-            .map_err(map_manifestation_error)?;
-        Ok(())
-    }
+
     fn surface_mut(
         &mut self,
         surface_id: &str,
