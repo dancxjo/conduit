@@ -46,8 +46,9 @@ Their presence is not an additional physical or release acceptance claim:
   covers source replacement, reload/restart, independent browser profiles,
   same-origin application isolation, tab ownership, and reset. New body identity
   derivation includes its birth sign; retained legacy identities remain valid.
-  Protected integration, stable publication, and public verification remain
-  required before #4804 is complete.
+  Protected integration, stable publication, and public verification completed
+  on 2 October 2026; [#4804 is accepted](https://github.com/dancxjo/conduit/issues/4804#issuecomment-5960026693).
+  The live shared-Body journey remains separate work under #4807.
 
 - **Native semantic Types and compact Forms (#4382, #4428):**
   Conduitese owns nominal scalar, record, variant, optional, data-reference,
