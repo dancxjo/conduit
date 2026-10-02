@@ -4,9 +4,18 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_form::rust_binding::semantic_core::kind_id(
+                conduit_form::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
+            ),
+        )
+        .expect("resource references are one exact portable leaf");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
-        &StartupCatalog::new(),
+        &catalog,
     )
     .expect("time semantic Types must check");
     let generated = generate_rust_bindings_with_codes(
@@ -101,8 +110,10 @@ fn main() {
                 "CalendarEvent".into(),
                 "CivilTrigger".into(),
                 "ElapsedTrigger".into(),
+                "HistoricalReplayEntry".into(),
                 "LocalDateTime".into(),
                 "MeetingCandidate".into(),
+                "OwnedReplayEvent".into(),
                 "MeetingProposal".into(),
                 "MeetingProposalRequest".into(),
                 "Participant".into(),

@@ -1,9 +1,9 @@
 //! Finite replay sequencing with historical and playback time kept distinct.
 
-use alloc::{string::String, vec::Vec};
-use conduit_core::{BoundedResourceRef, TemporalInstant};
+use alloc::vec::Vec;
+use conduit_core::BoundedResourceRef;
 
-use crate::{ReplayPolicy, ReplayState};
+use crate::{HistoricalReplayEntry, ReplayPolicy, ReplayState, TemporalInstant};
 
 // This finite state remains a plain copy value at the controller boundary.
 impl Copy for crate::ReplayStateFailed {}
@@ -19,15 +19,6 @@ pub const REPLAY_MODE_RATE: &str = "rate";
 
 pub const REPLAY_CONTROL_KIND: &str = "time/replay-control";
 pub const REPLAY_CONTROL_CONTRACT_REVISION: &str = "conduit.time/replay-control@1";
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HistoricalReplayEntry {
-    pub sequence: u64,
-    pub identity: String,
-    pub event_time: TemporalInstant,
-    pub origin: crate::HistoricalEntryOrigin,
-    pub value: BoundedResourceRef,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ReplayEmission<'a> {
@@ -119,7 +110,10 @@ impl BoundedReplayController {
             }
             if index > 0
                 && entry.event_time.ticks - entries[0].event_time.ticks
-                    > maximum_duration_ticks(entry.event_time.scale, maximum_duration_seconds)
+                    > maximum_duration_ticks(
+                        entry.event_time.scale.into(),
+                        maximum_duration_seconds,
+                    )
             {
                 return Err(ReplayRefusal::ReplayDurationExceeded);
             }

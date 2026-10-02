@@ -12,7 +12,9 @@ fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
             clock_basis: "observation-clock".into(),
             resolution_ticks: 2,
             uncertainty_ticks: 1,
-        },
+        }
+        .try_into()
+        .unwrap(),
         origin: HistoricalEntryOrigin::MachineObservation,
         value: common::replay_value(1, "bench/record@1"),
     }
