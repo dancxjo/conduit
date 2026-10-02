@@ -5,6 +5,7 @@ import { planChanges } from './plan.mjs';
 import { sealTarget, verifyBundle } from './receipts.mjs';
 import { TARGETS, setupTarget, runTarget } from './targets.mjs';
 import { setupCi, setupUnit } from './setup.mjs';
+import { assertSourceCheckout } from './source.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -69,14 +70,12 @@ try {
       if (args.length !== 2) throw new Error('usage: target <target> <sha>');
       const item = target(args[0]);
       const sha = exactSha(args[1]);
-      if (run('git', ['rev-parse', 'HEAD'], true) !== sha) throw new Error('target checkout does not match source SHA');
-      run('git', ['diff', '--exit-code', 'HEAD', '--']);
+      assertSourceCheckout(sha);
       const directory = resolve('target/pipeline', item.id);
       if (existsSync(directory)) throw new Error(`refusing stale target output: ${directory}`);
       mkdirSync(directory, { recursive: true });
       await runTarget(item.id, directory);
-      if (run('git', ['rev-parse', 'HEAD'], true) !== sha) throw new Error('target checkout changed during proof');
-      run('git', ['diff', '--exit-code', 'HEAD', '--']);
+      assertSourceCheckout(sha);
       await sealTarget({ directory, target: item.id, sha, proofClass: item.proofClass });
       console.log(`PASS: ${item.id} (${item.proofClass}) at ${sha}`);
       break;
