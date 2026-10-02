@@ -56,11 +56,7 @@ fn intent() -> RetrievalIntent {
 fn lineage(version: u8, start: u64, end: u64) -> ExtractionLineage {
     ExtractionLineage {
         source: source(version),
-        span: SourceSpan {
-            unit: SourceSpanUnit::Bytes,
-            start,
-            end,
-        },
+        span: SourceSpan::new(SourceSpanUnit::Bytes, start, end).unwrap(),
         extraction_profile: "extract/markdown-blocks@1".into(),
         transform_profiles: vec!["transform/normalize-newlines@1".into()],
         parent_chunk: None,
@@ -96,7 +92,8 @@ fn exact_source_version_span_and_transform_lineage_derive_chunk_identity() {
     changed_version.source = source(4);
     assert_ne!(changed_version.identity().unwrap(), identity);
     let mut changed_span = base.clone();
-    changed_span.span.end = 41;
+    changed_span.span =
+        SourceSpan::new(changed_span.span.unit(), changed_span.span.start(), 41).unwrap();
     assert_ne!(changed_span.identity().unwrap(), identity);
     let mut changed_transform = base;
     changed_transform
@@ -168,7 +165,7 @@ fn grounded_results_are_model_derived_and_citation_fenced() {
         answer: b"The project began here.".to_vec(),
         disposition: GroundingDisposition::Supported,
         claims: vec![GroundedClaim {
-            answer_span: AnswerSpan { start: 0, end: 23 },
+            answer_span: AnswerSpan::new(0, 23).unwrap(),
             citation_indices: vec![0],
         }],
         citations: vec![citation],
@@ -177,7 +174,8 @@ fn grounded_results_are_model_derived_and_citation_fenced() {
     assert_eq!(result.validate_against(&intent(), &context), Ok(()));
 
     let mut made = result.clone();
-    made.citations[0].span.end += 1;
+    let span = made.citations[0].span;
+    made.citations[0].span = SourceSpan::new(span.unit(), span.start(), span.end() + 1).unwrap();
     assert_eq!(
         made.validate_against(&intent(), &context),
         Err(RagSemanticRefusal::CitationNotInContext)
@@ -205,16 +203,10 @@ fn insufficient_and_conflicting_evidence_are_first_class() {
 
 #[test]
 fn malformed_spans_ranks_budgets_and_claims_fail_closed() {
-    let mut invalid_lineage = lineage(3, 40, 40);
-    assert_eq!(
-        invalid_lineage.identity(),
-        Err(RagSemanticRefusal::EmptySpan)
-    );
-    invalid_lineage.span = SourceSpan {
-        unit: SourceSpanUnit::Items,
-        start: 99,
-        end: 101,
-    };
+    assert!(SourceSpan::new(SourceSpanUnit::Bytes, 40, 40).is_err());
+    assert!(AnswerSpan::new(23, 23).is_err());
+    let mut invalid_lineage = lineage(3, 40, 41);
+    invalid_lineage.span = SourceSpan::new(SourceSpanUnit::Items, 99, 101).unwrap();
     assert_eq!(
         invalid_lineage.identity(),
         Err(RagSemanticRefusal::SpanOutsideSource)

@@ -37,11 +37,7 @@ fn selected_item(version: u8, rank: u16, start: u64, text: &str) -> SelectedCont
     let chunk = Chunk::new(
         ExtractionLineage {
             source: source(version),
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start,
-                end: start + text.len() as u64,
-            },
+            span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + text.len() as u64).unwrap(),
             extraction_profile: "extract/text-utf8@1".into(),
             transform_profiles: vec![],
             parent_chunk: None,
@@ -187,13 +183,13 @@ fn citation(request: &GroundedAnswerRequest, index: usize) -> Citation {
 fn supported_claims(request: &GroundedAnswerRequest) -> Vec<ProposedGroundedClaim> {
     vec![
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 0, end: 27 },
+            answer_span: AnswerSpan::new(0, 27).unwrap(),
             support: ProposedClaimSupport::Supported {
                 citations: vec![citation(request, 0)],
             },
         },
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 29, end: 58 },
+            answer_span: AnswerSpan::new(29, 58).unwrap(),
             support: ProposedClaimSupport::Supported {
                 citations: vec![citation(request, 1)],
             },

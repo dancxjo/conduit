@@ -10,8 +10,9 @@ use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    ChunkIdentity, ContextSelectionRationale, ContextTruncationReason, GroundingDisposition,
-    ModelResultProvenance, SourceSpanUnit, TemporalRetrievalIntent,
+    AnswerSpan, ChunkIdentity, ContextSelectionRationale, ContextTruncationReason,
+    GroundingDisposition, ModelResultProvenance, SourceSpan, SourceSpanUnit,
+    TemporalRetrievalIntent,
 };
 
 pub const MAXIMUM_RETRIEVAL_MODES: usize = 8;
@@ -44,12 +45,6 @@ pub struct SourceRef {
     pub resource: BoundedResourceRef,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SourceSpan {
-    pub unit: SourceSpanUnit,
-    pub start: u64,
-    pub end: u64,
-}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExtractionLineage {
     pub source: SourceRef,
@@ -114,12 +109,6 @@ pub struct Citation {
     pub chunk_identity: ChunkIdentity,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AnswerSpan {
-    pub start: u32,
-    pub end: u32,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GroundedClaim {
     pub answer_span: AnswerSpan,
@@ -148,7 +137,6 @@ pub enum RagSemanticRefusal {
     CandidateLimitZero,
     CandidateLimitExceeded,
     InvalidResourceReference,
-    EmptySpan,
     SpanOutsideSource,
     MissingItemExtent,
     TooMuchTransformLineage,
@@ -220,10 +208,7 @@ impl SourceRef {
 impl SourceSpan {
     pub fn validate_against(&self, source: &SourceRef) -> Result<(), RagSemanticRefusal> {
         source.validate()?;
-        if self.start >= self.end {
-            return Err(RagSemanticRefusal::EmptySpan);
-        }
-        let limit = match self.unit {
+        let limit = match self.unit() {
             SourceSpanUnit::Bytes => source.resource.extent.bytes,
             SourceSpanUnit::Items => source
                 .resource
@@ -231,7 +216,7 @@ impl SourceSpan {
                 .items
                 .ok_or(RagSemanticRefusal::MissingItemExtent)?,
         };
-        if self.end > limit {
+        if self.end() > limit {
             return Err(RagSemanticRefusal::SpanOutsideSource);
         }
         Ok(())
@@ -283,12 +268,12 @@ impl ExtractionLineage {
         let (source, version) = self.source.canonical_identity();
         digest.update(source);
         digest.update(version);
-        digest.update([match self.span.unit {
+        digest.update([match self.span.unit() {
             SourceSpanUnit::Bytes => 0,
             SourceSpanUnit::Items => 1,
         }]);
-        digest.update(self.span.start.to_le_bytes());
-        digest.update(self.span.end.to_le_bytes());
+        digest.update(self.span.start().to_le_bytes());
+        digest.update(self.span.end().to_le_bytes());
         update_string(&mut digest, &self.extraction_profile);
         digest.update((self.transform_profiles.len() as u16).to_le_bytes());
         for transform in &self.transform_profiles {
@@ -420,9 +405,7 @@ impl GroundedResult {
             citation.validate_against(context)?;
         }
         for claim in &self.claims {
-            if claim.answer_span.start >= claim.answer_span.end
-                || claim.answer_span.end as usize > self.answer.len()
-            {
+            if claim.answer_span.end() as usize > self.answer.len() {
                 return Err(RagSemanticRefusal::InvalidAnswerSpan);
             }
             if claim.citation_indices.is_empty() {

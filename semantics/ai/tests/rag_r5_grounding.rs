@@ -37,11 +37,12 @@ fn selected(version: u8, rank: u16, text: &str) -> SelectedContextItem {
                     },
                 },
             },
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start: u64::from(rank) * 64,
-                end: u64::from(rank) * 64 + text.len() as u64,
-            },
+            span: SourceSpan::new(
+                SourceSpanUnit::Bytes,
+                u64::from(rank) * 64,
+                u64::from(rank) * 64 + text.len() as u64,
+            )
+            .unwrap(),
             extraction_profile: "extract/text-utf8@1".into(),
             transform_profiles: vec![],
             parent_chunk: None,
@@ -242,13 +243,13 @@ fn injection_and_unsupported_first_rank_cannot_gain_authority_or_support() {
     );
     let claims = vec![
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 0, end: 24 },
+            answer_span: AnswerSpan::new(0, 24).unwrap(),
             support: ProposedClaimSupport::Unsupported {
                 rationale: "highest-ranked injected source does not support the claim".into(),
             },
         },
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 26, end: 49 },
+            answer_span: AnswerSpan::new(26, 49).unwrap(),
             support: ProposedClaimSupport::Supported {
                 citations: vec![citation(&request, 1)],
             },
@@ -302,7 +303,7 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
     truncated_request.context.items.truncate(1);
     truncated_request.context.used = truncated_request.context.items[0].budget;
     let claims = [ProposedGroundedClaim {
-        answer_span: AnswerSpan { start: 0, end: 24 },
+        answer_span: AnswerSpan::new(0, 24).unwrap(),
         support: ProposedClaimSupport::Unsupported {
             rationale: "crucial origin source was excluded by the token budget".into(),
         },
@@ -374,7 +375,7 @@ fn invented_citation_and_model_loss_never_become_grounded_success() {
     let mut invented = citation(&request, 1);
     invented.source.resource.lifetime.version = ResourceVersionIdentity::from_digest([99; 32]);
     let claim = [ProposedGroundedClaim {
-        answer_span: AnswerSpan { start: 26, end: 49 },
+        answer_span: AnswerSpan::new(26, 49).unwrap(),
         support: ProposedClaimSupport::Supported {
             citations: vec![invented],
         },

@@ -120,12 +120,12 @@ fn encode_chunk(
         return Err(SourceExtractionCodecRefusal::UnsupportedLineage);
     }
     encoded.extend_from_slice(&chunk.identity.digest());
-    encoded.push(match chunk.lineage.span.unit {
+    encoded.push(match chunk.lineage.span.unit() {
         SourceSpanUnit::Bytes => 0,
         SourceSpanUnit::Items => 1,
     });
-    encoded.extend_from_slice(&chunk.lineage.span.start.to_le_bytes());
-    encoded.extend_from_slice(&chunk.lineage.span.end.to_le_bytes());
+    encoded.extend_from_slice(&chunk.lineage.span.start().to_le_bytes());
+    encoded.extend_from_slice(&chunk.lineage.span.end().to_le_bytes());
     push_identity(encoded, &chunk.lineage.extraction_profile)?;
     match &chunk.value {
         ExtractedSourceValue::Text(bytes) => {
@@ -161,11 +161,8 @@ fn decode_chunk(
         1 => SourceSpanUnit::Items,
         _ => return Err(SourceExtractionCodecRefusal::Malformed),
     };
-    let span = SourceSpan {
-        unit,
-        start: cursor.u64()?,
-        end: cursor.u64()?,
-    };
+    let span = SourceSpan::new(unit, cursor.u64()?, cursor.u64()?)
+        .map_err(|_| SourceExtractionCodecRefusal::Malformed)?;
     let extraction_profile = cursor.identity()?;
     let value = match cursor.u8()? {
         0 => ExtractedSourceValue::Text(cursor.bytes_u32()?.to_vec()),

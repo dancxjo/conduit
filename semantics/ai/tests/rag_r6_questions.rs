@@ -93,11 +93,7 @@ fn evidence(
                     },
                 },
             },
-            span: SourceSpan {
-                unit: span_unit,
-                start: 0,
-                end: span_end,
-            },
+            span: SourceSpan::new(span_unit, 0, span_end).unwrap(),
             extraction_profile: format!("extract/{family}@1"),
             transform_profiles: vec![],
             parent_chunk: None,
@@ -300,18 +296,12 @@ fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> Ret
             })
             .collect();
         vec![ProposedGroundedClaim {
-            answer_span: AnswerSpan {
-                start: 0,
-                end: payload.len() as u32,
-            },
+            answer_span: AnswerSpan::new(0, payload.len() as u32).unwrap(),
             support: ProposedClaimSupport::Supported { citations },
         }]
     } else {
         vec![ProposedGroundedClaim {
-            answer_span: AnswerSpan {
-                start: 0,
-                end: payload.len() as u32,
-            },
+            answer_span: AnswerSpan::new(0, payload.len() as u32).unwrap(),
             support: ProposedClaimSupport::Unsupported {
                 rationale: "The omitted source is required to answer exactly.".into(),
             },
