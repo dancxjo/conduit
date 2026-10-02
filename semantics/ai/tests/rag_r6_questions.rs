@@ -160,10 +160,7 @@ fn stages(case: &QueryCase, vector_identity: &str) -> Vec<RetrievalStage<Extract
                 })
                 .collect::<Vec<_>>();
             RetrievalStage {
-                retriever: RetrieverIdentity {
-                    identity,
-                    mechanism: *mechanism,
-                },
+                retriever: RetrieverIdentity::new(identity, *mechanism).unwrap(),
                 work_units: candidates.len() as u32,
                 candidates,
             }
@@ -466,7 +463,10 @@ fn all_six_query_classes_retain_bounded_machine_readable_explanations() {
     assert!(receipts[4].context.items.iter().any(|item| item.temporal.as_ref().unwrap().context.validity == TemporalValidity::UnknownWhetherCurrent));
     assert!(matches!(receipts[4].context.disposition, ContextSelectionDisposition::Omitted { .. }));
     assert_eq!(receipts[4].answer.disposition, GroundedAnswerDisposition::InsufficientEvidence);
-    assert!(!receipts[5].stages.iter().any(|stage| stage.retriever.mechanism == RetrievalMechanism::VectorSimilarity));
+    assert!(!receipts[5]
+        .stages
+        .iter()
+        .any(|stage| *stage.retriever.mechanism() == RetrievalMechanism::VectorSimilarity));
 
     let families = cases().into_iter().flat_map(|case| case.evidence).map(|item| item.family).collect::<Vec<_>>();
     for family in ["repository", "documentation", "sign", "summary", "calendar", "catalog"] {
@@ -484,6 +484,9 @@ fn model_and_vector_realization_swaps_preserve_grounded_semantics() {
     assert_eq!(first.answer.disposition, second.answer.disposition);
     assert_eq!(first.answer.citations, second.answer.citations);
     assert_ne!(first.answer.model_implementation_identity, second.answer.model_implementation_identity);
-    assert_ne!(first.stages[0].retriever.identity, second.stages[0].retriever.identity);
+    assert_ne!(
+        first.stages[0].retriever.identity(),
+        second.stages[0].retriever.identity()
+    );
     assert_eq!(first.context.items.iter().map(|item| item.reranked.candidate.chunk.identity).collect::<Vec<_>>(), second.context.items.iter().map(|item| item.reranked.candidate.chunk.identity).collect::<Vec<_>>());
 }

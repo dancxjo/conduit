@@ -54,19 +54,21 @@ fn hybrid(rank: u16, version: u8, start: u64, text: &str) -> HybridCandidate<Ext
         fusion_score_micros: 100_000 - u64::from(rank),
         contributions: vec![
             RetrievalContribution {
-                retriever: RetrieverIdentity {
-                    identity: "retriever/vector@1".into(),
-                    mechanism: RetrievalMechanism::VectorSimilarity,
-                },
+                retriever: RetrieverIdentity::new(
+                    "retriever/vector@1".into(),
+                    RetrievalMechanism::VectorSimilarity,
+                )
+                .unwrap(),
                 stage_rank: rank,
                 score: Some(MechanismScore::SimilarityMicros(900_000)),
                 temporal_evidence_identity: None,
             },
             RetrievalContribution {
-                retriever: RetrieverIdentity {
-                    identity: "retriever/temporal@1".into(),
-                    mechanism: RetrievalMechanism::Temporal,
-                },
+                retriever: RetrieverIdentity::new(
+                    "retriever/temporal@1".into(),
+                    RetrievalMechanism::Temporal,
+                )
+                .unwrap(),
                 stage_rank: rank,
                 score: Some(MechanismScore::TemporalBoundary),
                 temporal_evidence_identity: Some(evidence),
@@ -340,8 +342,9 @@ fn every_budget_and_required_annotation_fails_closed() {
         ContextSelectionPolicy::from_structured(policy.clone().into_structured().unwrap()).unwrap(),
         policy
     );
-    assert!(!include_str!("../src/context_selection.rs")
-        .contains("pub struct ContextSelectionPolicy"));
+    assert!(
+        !include_str!("../src/context_selection.rs").contains("pub struct ContextSelectionPolicy")
+    );
     for bounds in [(0, 64, 8, 8), (2, 0, 8, 8), (2, 64, 0, 8), (2, 64, 8, 0)] {
         assert!(ContextSelectionPolicy::new(
             "context/invalid-bound@1".into(),

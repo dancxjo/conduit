@@ -123,10 +123,11 @@ fn request() -> GroundedAnswerRequest {
                 rank: 1,
                 fusion_score_micros: 100_000,
                 contributions: vec![RetrievalContribution {
-                    retriever: RetrieverIdentity {
-                        identity: "retriever/temporal-exact@1".into(),
-                        mechanism: RetrievalMechanism::Temporal,
-                    },
+                    retriever: RetrieverIdentity::new(
+                        "retriever/temporal-exact@1".into(),
+                        RetrievalMechanism::Temporal,
+                    )
+                    .unwrap(),
                     stage_rank: 1,
                     score: Some(MechanismScore::TemporalBoundary),
                     temporal_evidence_identity: Some("experience/battery/1".into()),

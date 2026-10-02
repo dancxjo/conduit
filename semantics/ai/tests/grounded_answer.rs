@@ -56,10 +56,11 @@ fn selected_item(version: u8, rank: u16, start: u64, text: &str) -> SelectedCont
                 rank,
                 fusion_score_micros: 100_000 - u64::from(rank),
                 contributions: vec![RetrievalContribution {
-                    retriever: RetrieverIdentity {
-                        identity: "retriever/exact@1".into(),
-                        mechanism: RetrievalMechanism::DomainExact,
-                    },
+                    retriever: RetrieverIdentity::new(
+                        "retriever/exact@1".into(),
+                        RetrievalMechanism::DomainExact,
+                    )
+                    .unwrap(),
                     stage_rank: rank,
                     score: Some(MechanismScore::ExactMatch),
                     temporal_evidence_identity: None,
@@ -138,8 +139,7 @@ fn grounded_answer_policy_is_native_and_intrinsically_bounded() {
         64,
     )
     .is_err());
-    assert!(!include_str!("../src/grounded_answer.rs")
-        .contains("pub struct GroundedAnswerPolicy"));
+    assert!(!include_str!("../src/grounded_answer.rs").contains("pub struct GroundedAnswerPolicy"));
 }
 
 fn model_result(
@@ -351,7 +351,12 @@ fn forged_context_accounting_and_every_policy_bound_fail_closed() {
         ),
         Err(GroundedAnswerRefusal::ContextAccountingMismatch)
     );
-    for bounds in [(0, 8, 8, 64), (1_024, 0, 8, 64), (1_024, 8, 0, 64), (1_024, 8, 8, 0)] {
+    for bounds in [
+        (0, 8, 8, 64),
+        (1_024, 0, 8, 64),
+        (1_024, 8, 0, 64),
+        (1_024, 8, 8, 0),
+    ] {
         assert!(GroundedAnswerPolicy::new(
             "grounding/invalid-bound@1".into(),
             "value/text-utf8@1".into(),

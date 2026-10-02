@@ -394,6 +394,11 @@ type RetrievalMechanism =
     | temporal
     | domain_exact
 
+type RetrieverIdentity = {
+    identity: Text <= 256B not in [""]
+    mechanism: RetrievalMechanism
+}
+
 code ai/retrieval-mechanism = RetrievalMechanism as u8
 
 type RerankingProofClass =
