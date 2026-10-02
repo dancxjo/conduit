@@ -11,6 +11,9 @@ use std::cell::RefCell;
 #[path = "workspace_refusal.rs"]
 mod refusal;
 use refusal::Refusal;
+#[path = "workspace_workset.rs"]
+mod workset;
+use workset::WorksetEdit;
 
 const HOST_OFFERS_BYTES: usize =
     conduit_body::MAX_BODY_PARTS * conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
@@ -196,12 +199,6 @@ struct ReceivedSpawnProof {
     boot_id: BootId,
     nonce: [u8; 32],
     signature: Vec<u8>,
-}
-
-#[derive(Deserialize)]
-enum WorksetEdit {
-    Install,
-    Remove,
 }
 
 #[derive(Serialize)]
@@ -718,19 +715,8 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 source,
                 edit,
             } => {
-                crate::plot_runner::workspace::require_empty()?;
-                match edit {
-                    WorksetEdit::Install => {
-                        crate::creche::require_workspace_plot(&source, &plot)?;
-                        candidate
-                            .admit_plot(expected_revision, plot.clone(), &host_id, &boot_id)
-                            .map_err(debug)?;
-                        candidate.select_plot(&plot).map_err(debug)?;
-                    }
-                    WorksetEdit::Remove => candidate
-                        .remove_plot(expected_revision, &plot, &host_id, &boot_id)
-                        .map_err(debug)?,
-                }
+                candidate = workset::change(&candidate, &host_id, &boot_id,
+                    expected_revision, plot, &source, edit)?;
             }
             Request::SelectPlot { plot } => candidate.select_plot(&plot).map_err(debug)?,
             Request::Propose {

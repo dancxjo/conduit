@@ -21,6 +21,10 @@ pub(crate) enum EvidenceCommand {
     ThreeBodyJourneyContract(ThreeBodyJourneyContractArgs),
     /// Add an already-verified three-Body Journey to a built Pages gallery.
     StageThreeBodyJourney(StageThreeBodyJourneyArgs),
+    /// Refresh only the presentation of a retained three-body record.
+    RenderRecordedThreeBody { root: PathBuf },
+    /// Refresh the gallery around retained evidence without a new capture.
+    RefreshGallery { site_root: PathBuf },
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OnePlotTwoFronts(TwoFrontsArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
@@ -175,6 +179,12 @@ pub fn run(command: EvidenceCommand) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceCommand::StageThreeBodyJourney(args) => {
             three_body_journey::stage(args.publication_root, args.site_root, args.commit)
                 .map_err(Into::into)
+        }
+        EvidenceCommand::RenderRecordedThreeBody { root } => {
+            three_body_journey::render_recorded(root).map_err(Into::into)
+        }
+        EvidenceCommand::RefreshGallery { site_root } => {
+            evidence::refresh_gallery(&site_root).map_err(Into::into)
         }
         EvidenceCommand::OnePlotTwoFronts(args) => two_fronts::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),

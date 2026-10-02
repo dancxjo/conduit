@@ -164,6 +164,8 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const elements = [];
   let audio = null;
   let pcmAudio = null, pushToTalk = null;
+  const dispatchController = new AbortController();
+  let closeResult = null;
   let input = null, timerSlots = [], clock = false, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
   let startOutcome = "not-attempted";
   const window = outputRoot.ownerDocument.defaultView;
@@ -389,16 +391,18 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     run() {
       assertCurrent();
       if (!started || completion) throw new Error("browser Body must be started exactly once before dispatch");
-      completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge })
+      completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge,
+        signal: dispatchController.signal, isCurrent: () => !closed })
         .then(receipt => {
           if (receipt?.schema === "conduit.tour/manifestation-receipt@3") terminal = receipt;
-          return receipt;
+          return receipt ?? terminal;
         });
       return completion;
     },
     close() {
-      if (closed) return;
+      if (closed) return closeResult;
       closed = true;
+      dispatchController.abort();
       audio?.close();
       pcmAudio?.close();
       routing?.close();
@@ -408,7 +412,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const status = (startAccepted || startOutcome === "unknown") && !terminal ? api.conduit_tour_cancel() : null;
       try {
         const receipt = status !== null && status >= 0 ? readOutput(bridge) : terminal;
-        return { status, receipt, startOutcome };
+        terminal = receipt;
+        closeResult = { status, receipt, startOutcome };
+        return closeResult;
       } finally { elements.forEach(element => element.remove());owners.delete(api); }
     },
   });

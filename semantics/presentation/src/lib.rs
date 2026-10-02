@@ -11,6 +11,8 @@
 
 extern crate alloc;
 
+pub mod application_canvas;
+
 #[allow(dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));

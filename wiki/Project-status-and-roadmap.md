@@ -23,9 +23,3 @@ is actively implementing it. Follow an issue for its latest scope and state.
 ## Language boundaries worth knowing
 
 - Executable `plot` and portable representation `form` are implemented on `dev` by [#4800](https://github.com/dancxjo/conduit/pull/4800); [#4513](https://github.com/dancxjo/conduit/issues/4513) retains the separate stable-acceptance requirement
-- [#4378](https://github.com/dancxjo/conduit/issues/4378) completed bounded each/select/fold/scan and collection, with scoped std/browser runtime proof and an explicit embedded applicability limit
-- Record `where` laws are enforced at generated construction boundaries; [#4639](https://github.com/dancxjo/conduit/issues/4639) still owns general propagation into consuming-plot arithmetic proofs
-- [#4375](https://github.com/dancxjo/conduit/issues/4375) tracks the remaining native semantic ownership migration
-
-Use the reference for exact examples and evidence. This page routes to current
-owners rather than keeping a competing release diary.

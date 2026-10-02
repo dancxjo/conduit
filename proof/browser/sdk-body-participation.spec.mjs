@@ -68,3 +68,52 @@ test("the browser SDK lends its exact admitted Host and Boot to an external Body
     if (probe.process.exitCode === null) probe.process.kill("SIGTERM");
   }
 });
+
+test("Host admission and refresh do not require or paint an application surface", async ({ page }) => {
+  // A real served package document gives this page the package's same-origin
+  // environment without starting a demonstration application or injecting state.
+  await page.goto("/target/field-station-sdk/browser-sdk-package.json");
+  const truth = await page.evaluate(async () => {
+    const { Conduit } = await import("/target/field-station-sdk/browser-sdk.mjs");
+    const before = document.body.innerHTML;
+    const host = await Conduit.browser();
+    const admitted = host.current();
+    const refreshed = await host.refresh();
+    const afterRootless = document.body.innerHTML;
+    const rooted = await Conduit.browser({ root: document.body, durable: false });
+    await rooted.refresh();
+    return { before, afterRootless, afterRooted: document.body.innerHTML,
+      admitted, refreshed, rooted: rooted.current() };
+  });
+  expect(truth.admitted.schema).toBe("conduit.browser/host-snapshot@1");
+  expect(truth.admitted.id).toBeTruthy();
+  expect(truth.admitted.bootId).toBeTruthy();
+  expect(truth.admitted.offers.length).toBeGreaterThan(0);
+  expect(truth.refreshed.id).toBe(truth.admitted.id);
+  expect(truth.refreshed.bootId).toBe(truth.admitted.bootId);
+  expect(truth.rooted.offers.length).toBeGreaterThan(0);
+  expect(truth.afterRootless).toBe(truth.before);
+  expect(truth.afterRooted).toBe(truth.before);
+});
+
+test("a rootless Host refuses Body execution before acquiring a missing application surface", async ({ page }) => {
+  await page.goto("/target/field-station-sdk/browser-sdk-package.json");
+  const result = await page.evaluate(async () => {
+    const { Conduit, ResourceLossError } = await import("/target/field-station-sdk/browser-sdk.mjs");
+    const host = await Conduit.browser({ durable: false });
+    const response = await fetch("/plots/clock/main.conduit");
+    if (!response.ok) throw new Error("canonical Clock Plot is unavailable");
+    const checked = await host.plot(await response.text()).check();
+    if (!checked.ok || checked.plots.length !== 1) throw new Error("canonical Clock Plot was refused");
+    const body = await host.birth({ name: "Surface admission", plots: checked.plots });
+    try {
+      await body.wake();
+      throw new Error("Body execution unexpectedly acquired an absent surface");
+    } catch (error) {
+      return { typed: error instanceof ResourceLossError, code: error.code,
+        operation: error.operation, message: error.message };
+    }
+  });
+  expect(result).toMatchObject({ typed: true, code: "ApplicationSurfaceUnavailable", operation: "Body.wake" });
+  expect(result.message).toContain("connected application-owned root");
+});

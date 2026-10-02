@@ -97,6 +97,9 @@ export class BrowserBody {
   #persistence = Promise.resolve();
   #persistenceFailure = null;
   #patchbaySequence = 0;
+  #closing = null;
+  #closed = false;
+  #operations = Promise.resolve();
   constructor(key, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement, source, receipt, sequence, storage, opened = false }) {
     if (key !== BODY_KEY) throw new TypeError("BrowserBody values come from admitted Host birth or recovery");
     this.#bridge = bridge; this.#host = host; this.#boot = boot;
@@ -112,7 +115,9 @@ export class BrowserBody {
   get id() { return this.#receipt.body_id; }
   get receipt() { return this.#receipt; }
 
-  async current() {
+  current() { return this.#operate(() => this.#current()); }
+
+  async #current() {
     await this.#openWorkspace();
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Current" });
     if (status < 0) throw sdkRefusal("Body.current", outputJson, this.#identities());
@@ -121,12 +126,17 @@ export class BrowserBody {
 
   snapshot() { return this.current(); }
 
+  /** Recheck the exact retained source inventory in this runtime. */
+  plots() { return this.#operate(() => new BrowserPlot(this.#source, this.#bridge).check()); }
+
   /**
    * Project this Body's exact checked Plot through Rust. The SDK never parses,
    * reconstructs, or renders the topology; a Patchbay workbench Mask consumes
    * the returned immutable value.
    */
-  async patchbay() {
+  patchbay() { return this.#operate(() => this.#patchbay()); }
+
+  async #patchbay() {
     await this.#openWorkspace();
     if (this.#patchbaySequence >= Number.MAX_SAFE_INTEGER) {
       throw sdkRefusal("Body.patchbay", {
@@ -135,14 +145,31 @@ export class BrowserBody {
       }, this.#identities());
     }
     const sequence = ++this.#patchbaySequence;
-    const current = await this.current();
-    const projected = this.#bridge.projectPatchbay(this.#source, BigInt(sequence));
+    const current = await this.#current();
+    const resident = current.evidence?.body?.workset?.plots;
+    let projectionSource = this.#source;
+    let projectedIdentity = null;
+    const bundle = reviewedBundle(this.#source);
+    if (bundle) {
+      const selected = current.foreground ?? (resident?.length === 1 ? resident[0] : null);
+      const inventory = await new BrowserPlot(this.#source, this.#bridge).check();
+      const entry = inventory.plots.find(plot => plot.sourceDocumentId === selected?.source_document_id
+        && plot.checkedPlotId === selected?.checked_plot_id);
+      if (!entry) throw sdkRefusal("Body.patchbay", {
+        code: "PatchbayPlotIdentityMismatch",
+        message: "Select one resident checked Plot before projecting the bundled Body",
+      }, this.#identities());
+      projectionSource = entry.source;
+      projectedIdentity = selected;
+    }
+    const projected = this.#bridge.projectPatchbay(projectionSource, BigInt(sequence));
     if (projected.status < 0) {
       throw sdkRefusal("Body.patchbay", projected.outputJson, this.#identities());
     }
     const topology = freezePatchbayProjection(projected.outputJson);
-    const resident = current.evidence?.body?.workset?.plots;
-    if (!Array.isArray(resident) || !resident.some((plot) =>
+    if ((projectedIdentity && (projectedIdentity.source_document_id !== topology.source_document_id
+      || projectedIdentity.checked_plot_id !== topology.checked_plot_id))
+      || !Array.isArray(resident) || !resident.some((plot) =>
       plot.source_document_id === topology.source_document_id
       && plot.checked_plot_id === topology.checked_plot_id)) {
       throw sdkRefusal("Body.patchbay", {
@@ -163,6 +190,7 @@ export class BrowserBody {
   }
 
   events({ replay = false, pollIntervalMillis = 250, signal } = {}) {
+    this.#requireOpen();
     return createBodyEventStream({
       readSnapshot: () => this.current(), signal, replay, pollIntervalMillis,
       reserve: () => {
@@ -176,7 +204,9 @@ export class BrowserBody {
   }
 
   /** Admit one exact Plan and return the Play receipt emitted by the Rust runtime. */
-  async wake() {
+  wake(options = {}) { return this.#operate(() => this.#wake(options)); }
+
+  async #wake({ root = this.#root, presentationRootFor } = {}) {
     if (this.#play) throw sdkRefusal("Body.wake", { code: "PlayAlreadyActive", message: "Body already has an active Play" }, this.#identities());
     await this.#openWorkspace();
     const proposalResult = this.#bridge.workspaceRequest({
@@ -190,8 +220,13 @@ export class BrowserBody {
     try {
       adapter = this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
-        inputTarget: this.#root, outputRoot: this.#root,
-        foregroundPlot: () => proposal.plan.plots[0]?.plot?.checked_plot_id ?? proposal.plan.plots[0]?.plan.checked_plot_id,
+        inputTarget: root, outputRoot: root, presentationRootFor,
+        foregroundPlot: () => {
+          const current = this.#bridge.workspaceRequest({ action: "Current" });
+          if (current.status < 0) throw sdkRefusal("Body.foreground", current.outputJson, this.#identities());
+          return current.outputJson.foreground?.checked_plot_id
+            ?? proposal.plan.plots[0]?.plot?.checked_plot_id ?? proposal.plan.plots[0]?.plan.checked_plot_id;
+        },
       });
       const started = adapter.start(proposal.wake.wake_sequence);
       playStarted = true;
@@ -216,7 +251,9 @@ export class BrowserBody {
     }
   }
 
-  async lull() {
+  lull() { return this.#operate(() => this.#lull()); }
+
+  async #lull() {
     if (!this.#play) throw sdkRefusal("Body.lull", { code: "NoActivePlay", message: "Body has no active Play" }, this.#identities());
     const play = this.#play;
     const receipt = await play.terminate();
@@ -227,11 +264,52 @@ export class BrowserBody {
     if (response.status < 0) throw sdkRefusal("Body.lull", response.outputJson, this.#identities());
     this.#play = null;
     await this.#retain();
-    return this.current();
+    return this.#current();
   }
 
-  async install(plot) { return this.#changeWorkset("Install", plot); }
-  async remove(plot) { return this.#changeWorkset("Remove", plot); }
+  /** Select one resident checked Plot through the runtime, retaining its foreground. */
+  select(plot) { return this.#operate(() => this.#select(plot)); }
+
+  async #select(plot) {
+    const checked = await checkedPlotValue(plot, this.#bridge);
+    await this.#openWorkspace();
+    const result = this.#bridge.workspaceRequest({ action: "SelectPlot", plot: {
+      source_document_id: checked.sourceDocumentId, checked_plot_id: checked.checkedPlotId,
+    } });
+    if (result.status < 0) throw sdkRefusal("Body.select", result.outputJson, this.#identities());
+    await this.#retain();
+    return this.#current();
+  }
+
+  install(plot) { return this.#operate(() => this.#changeWorkset("Install", plot)); }
+  remove(plot) { return this.#operate(() => this.#changeWorkset("Remove", plot)); }
+  replace(previous, plot) { return this.#operate(() => this.#changeWorkset("Replace", plot, previous)); }
+
+  /** End execution and settle durable writes before releasing application ownership. */
+  close() {
+    if (this.#closing) return this.#closing;
+    this.#closed = true;
+    this.#closing = (async () => {
+      await this.#operations;
+      if (this.#play) await this.#lull();
+      await this.#persistence;
+      if (this.#persistenceFailure) throw this.#persistenceFailure;
+    })();
+    return this.#closing;
+  }
+
+  #operate(operation) {
+    try { this.#requireOpen(); } catch (error) { return Promise.reject(error); }
+    const result = this.#operations.then(operation);
+    this.#operations = result.catch(() => {});
+    return result;
+  }
+
+  #requireOpen() {
+    if (this.#closed) throw sdkRefusal("Body.operation", {
+      code: "BodyClosed", message: "This Body handle has released its application ownership",
+    }, this.#identities());
+  }
 
   #identities() { return { bodyId: this.id, hostId: this.#host, bootId: this.#boot }; }
 
@@ -260,21 +338,55 @@ export class BrowserBody {
     }
   }
 
-  async #changeWorkset(edit, plot) {
+  async #changeWorkset(edit, plot, previousPlot = null) {
     const checked = await checkedPlotValue(plot, this.#bridge);
-    if (checked.documentSource !== this.#source) throw new TypeError("Plot source must match the Body's checked source document");
-    const current = await this.current();
+    const replaced = previousPlot ? await checkedPlotValue(previousPlot, this.#bridge) : null;
+    const current = await this.#current();
+    let nextSource = this.#source;
+    if (edit !== "Remove" && checked.documentSource !== this.#source) {
+      const inventory = await new BrowserPlot(this.#source, this.#bridge).check();
+      if (!inventory.ok) throw sdkRefusal("Body.install.source", inventory.refusal, this.#identities());
+      const resident = current.evidence.body.workset.plots;
+      const entries = inventory.plots.filter(entry => entry.name !== checked.name);
+      const previous = inventory.plots.find(entry => entry.name === checked.name);
+      if (previous && previous.checkedPlotId !== checked.checkedPlotId
+        && previous.checkedPlotId !== replaced?.checkedPlotId
+        && resident.some(entry => entry.checked_plot_id === previous.checkedPlotId)) {
+        throw sdkRefusal("Body.install", { code: "ResidentPlotConflict",
+          message: "Remove the previous checked Plot before installing a changed Plot with the same name" }, this.#identities());
+      }
+      entries.push(checked);
+      nextSource = JSON.stringify({ schema: "conduit.creche/reviewed-plot-bundle@2", plots: entries.map(bundleEntry) });
+    }
     const expectedRevision = current.evidence.body.workload_revision;
     const { status, outputJson } = this.#bridge.workspaceRequest({
       action: "ChangeWorkset", host_id: this.#host, boot_id: this.#boot,
       expected_revision: expectedRevision,
       plot: { source_document_id: checked.sourceDocumentId, checked_plot_id: checked.checkedPlotId },
-      source: this.#source, edit,
+      source: nextSource, edit: replaced ? { Replace: { previous: { source_document_id: replaced.sourceDocumentId, checked_plot_id: replaced.checkedPlotId } } } : edit,
     });
     if (status < 0) throw sdkRefusal(`Body.${edit.toLowerCase()}`, outputJson, this.#identities(), expectedRevision);
+    this.#source = nextSource;
     await this.#retain();
-    return this.current();
+    return this.#current();
   }
+}
+
+// This only preserves the reviewed envelope; Rust still checks every source and
+// presentation profile when the new workset is admitted.
+function reviewedBundle(source) {
+  try {
+    const value = JSON.parse(source);
+    return value?.schema === "conduit.creche/reviewed-plot-bundle@2" && Array.isArray(value.plots) ? value : null;
+  } catch { return null; }
+}
+
+function bundleEntry(plot) {
+  const original = reviewedBundle(plot.documentSource)?.plots.find(entry =>
+    entry.source === plot.source && (entry.entry ?? entry.slug.replaceAll("-", "_")) === plot.name);
+  return original ? { ...original } : {
+    slug: plot.name, entry: plot.name, title: plot.title ?? plot.name, source: plot.source,
+  };
 }
 
 function freezePatchbayProjection(value, operation = "Body.patchbay") {
@@ -401,6 +513,10 @@ export async function recoverBrowserBody({ bridge, host, boot, api, root, create
     advertisement: membership.advertisement(),
   });
   if (restored.status < 0) throw sdkRefusal("Host.recover", restored.outputJson, { hostId: host, bootId: boot });
+  if (retained.durable.foreground) {
+    const selected = bridge.workspaceRequest({ action: "SelectPlot", plot: retained.durable.foreground });
+    if (selected.status < 0) throw sdkRefusal("Host.recover.foreground", selected.outputJson, { hostId: host, bootId: boot });
+  }
   const evidence = restored.outputJson?.evidence;
   if (!evidence?.body_id) throw sdkRefusal("Host.recover", {
     code: "RecoveryEvidenceMissing",

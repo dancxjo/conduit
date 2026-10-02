@@ -107,23 +107,3 @@ Current development source uses executable `plot` and representation `form`:
 migration from [#4513](https://github.com/dancxjo/conduit/issues/4513). Former
 executable `form` and representation `code` declarations are rejected. Follow
 [[Current language surface|Current-language-surface]] when writing source.
-
-## Superseded vocabulary
-
-Historical repository material may use older names.
-
-| historical | current |
-|---|---|
-| executable **Form** | **plot** |
-| representation **code** | **form** |
-| generic architectural **Data** | **info** |
-| callable **Front** | **fore** |
-| body human-facing semantic surface | **face** |
-| Presenter | **mask** |
-| presentation Manifestation | **show** |
-| HostOperation | **host call** |
-| Seed as privileged body semantic identity | no privileged seed; ordinary plots/workset participate in birth |
-
-The current noun **data** was later reintroduced with the narrower meaning “independently addressable immutable content generation.”
-
-Do not blindly rewrite historical proof or receipts. Old evidence should keep the words it actually recorded.

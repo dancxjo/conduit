@@ -4,9 +4,6 @@
 }
 
 body { margin: 0; background: var(--conduit-background); color: var(--conduit-text-primary); }
-.handbook-masthead { min-height: 3.75rem; padding: .8rem max(1.25rem, calc((100vw - 96rem) / 2)); display: flex; align-items: center; gap: 1.4rem; border-bottom: 1px solid var(--handbook-rule); background: var(--conduit-surface); font-weight: 720; }
-.handbook-masthead a { color: var(--conduit-emphasis); text-decoration: none; }
-.handbook-masthead a:last-child { margin-left: auto; color: var(--conduit-text-secondary); }
 .handbook-layout { width: min(96rem, 100%); margin: 0 auto; display: grid; grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr); }
 .handbook-sidebar { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow: auto; padding: 2rem 1.4rem 3rem; border-right: 1px solid var(--handbook-rule); }
 .handbook-sidebar h3 { margin: 1.6rem 0 .65rem; color: var(--conduit-text-secondary); font: 700 .72rem/1.2 var(--conduit-font-mono); text-transform: uppercase; letter-spacing: .12em; }

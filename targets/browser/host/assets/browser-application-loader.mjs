@@ -250,8 +250,11 @@ export async function loadBrowserApplication(manifestReference) {
     return url;
   }
 
+  const sdk = byRole.has("browser-sdk")
+    ? await (await import("./browser-application-sdk.mjs")).admitApplicationSdk(manifest, admittedBytes)
+    : null;
   const storage = await openBrowserApplicationStorage(
-    manifest.stateCompatibility.identity,
+    sdk?.continuity.identity ?? manifest.stateCompatibility.identity,
     manifest.stateCompatibility.version,
     manifest.packageDigest,
     { implementationRegistry: manifest.hostImplementations },
@@ -271,7 +274,7 @@ export async function loadBrowserApplication(manifestReference) {
   const presentationFor = (scope) => createApplicationPresentationHost(scope);
   const context = Object.freeze({
     schema: "conduit.browser/application-context@1", manifest, storage, presentation, presentationFor, bytes, text,
-    admitProfileGatedBrowserBoot,
+    admitProfileGatedBrowserBoot, ...(sdk ? { browser: sdk.browser } : {}),
   });
   await module.startApplication(context);
   settleApplicationSuspense("ready");

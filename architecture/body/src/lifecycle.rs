@@ -12,7 +12,10 @@ use crate::{
     WakeLifecycleEvent,
 };
 
+mod body_identity;
 mod workload;
+use body_identity::bind_body;
+pub use body_identity::BodyIdentityDerivation;
 
 pub const MAX_BODY_SIGNS: usize = 16;
 pub const MAX_WAKE_SIGNS: usize = 32;
@@ -39,12 +42,6 @@ pub struct BodyFulfillment {
     pub authority_grant_id: AuthorityGrantId,
     pub attribution: alloc::string::String,
     pub settled_obligations: Vec<FulfillmentObligation>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BodyIdentityDerivation {
-    /// Canonical initial Plot workset plus the attributable birth sequence.
-    InitialWorksetV2,
 }
 
 /// Current workload truth at the boundary before the retained lifecycle-event
@@ -200,10 +197,15 @@ impl Body {
     ) -> Result<Self, BodyLifecycleError> {
         validate_ids(&[sign_id.as_str()])?;
         initial_workset.validate()?;
-        let body_id = bind_body_v2(&initial_workset, birth_sequence);
+        let body_id = bind_body(
+            &initial_workset,
+            birth_sequence,
+            &sign_id,
+            BodyIdentityDerivation::InitialWorksetBirthSignV3,
+        );
         Ok(Self {
             body_id,
-            identity_derivation: BodyIdentityDerivation::InitialWorksetV2,
+            identity_derivation: BodyIdentityDerivation::InitialWorksetBirthSignV3,
             workset: initial_workset.clone(),
             workload_revision: 0,
             birth_sequence,
@@ -342,14 +344,21 @@ impl Body {
             self.workload_revision,
             self.history_checkpoint.as_ref(),
         )?;
-        let initial = match self.events.first() {
+        let (initial, birth_sign) = match self.events.first() {
             Some(BodyLifecycleEvent::Born {
-                initial_workset, ..
-            }) => initial_workset,
+                initial_workset,
+                sign_id,
+                ..
+            }) => (initial_workset, sign_id),
             _ => return Err(BodyLifecycleError::InvalidTransition),
         };
-        if self.identity_derivation != BodyIdentityDerivation::InitialWorksetV2
-            || self.body_id != bind_body_v2(initial, self.birth_sequence)
+        if self.body_id
+            != bind_body(
+                initial,
+                self.birth_sequence,
+                birth_sign,
+                self.identity_derivation,
+            )
         {
             return Err(BodyLifecycleError::InvalidIdentity);
         }
@@ -645,14 +654,4 @@ impl Wake {
         self.events.push(event);
         Ok(())
     }
-}
-
-fn bind_body_v2(initial_workset: &BodyWorkset, birth_sequence: u64) -> BodyId {
-    let mut values = alloc::vec::Vec::with_capacity(1 + initial_workset.len() * 2);
-    values.push("conduit.body/identity@2");
-    for plot in initial_workset.plots() {
-        values.push(plot.source_document_id.as_str());
-        values.push(plot.checked_plot_id.as_str());
-    }
-    BodyId::bound(bind_identity("body", &values, birth_sequence))
 }

@@ -136,7 +136,16 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await expect(page.locator("#surface-title")).toHaveText("Pocket Theremin");
   const surface = page.locator("#plot-input[data-pocket-theremin]");
   await expect(surface).toBeVisible();
+  // Raw mouse coordinates do not perform locator scrolling. Bring the surface
+  // into view and check every gesture extreme before starting pointer input.
+  await surface.scrollIntoViewIfNeeded();
   const bounds = await surface.boundingBox();
+  const viewport = page.viewportSize();
+  expect(bounds).not.toBeNull();
+  expect(bounds.x + bounds.width * 0.15).toBeGreaterThanOrEqual(0);
+  expect(bounds.y + bounds.height * 0.15).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width * 0.98).toBeLessThan(viewport.width);
+  expect(bounds.y + bounds.height * 0.85).toBeLessThan(viewport.height);
   await page.mouse.move(bounds.x + bounds.width * 0.15, bounds.y + bounds.height * 0.85);
   await page.mouse.down();
   await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(2);

@@ -113,6 +113,9 @@ impl ApplicationView {
                     | ApplicationComponent::NavigationLink
                     | ApplicationComponent::Link
             );
+            let has_value = has_value
+                || (node.component == ApplicationComponent::PatchbayCanvas
+                    && !node.value.is_empty());
             let value_capacity = usize::try_from(node.value_capacity)
                 .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
             if has_value
@@ -127,6 +130,9 @@ impl ApplicationView {
                     && (value_capacity != 0 || !node.value.is_empty()))
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if node.component == ApplicationComponent::PatchbayCanvas && !node.value.is_empty() {
+                crate::application_canvas::ApplicationCanvas::decode(&node.value)?;
             }
             if node.component == ApplicationComponent::Navigation
                 && ((!node.value.is_empty()

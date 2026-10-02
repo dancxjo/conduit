@@ -11,6 +11,7 @@ mod obligation;
 mod output;
 mod process;
 mod proof;
+mod site;
 mod suites;
 mod three_body_actions;
 mod workspace;

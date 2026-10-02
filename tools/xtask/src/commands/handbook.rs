@@ -1,4 +1,5 @@
 //! Static handbook and Pages-root construction from repository-owned sources.
+pub(crate) mod static_body;
 
 use clap::Args;
 use conduit_plot::{highlight_syntax, SyntaxHighlightKind};
@@ -6,7 +7,6 @@ use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Options, Parser, Tag, T
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 const MAXIMUM_PAGES: usize = 64;
 const MAXIMUM_MARKDOWN_BYTES: usize = 2 * 1024 * 1024;
@@ -35,15 +35,16 @@ pub fn run_pages_root(args: PagesRootArgs) -> Result<(), Box<dyn std::error::Err
     let output = &args.output;
     refuse_existing(output)?;
     fs::create_dir(output)?;
-    render_masthead(output)?;
+    render_site_page("site/index.html", output.join("index.html"), "home")?;
     copy_file("site/site.css", output.join("site.css"))?;
     copy_file(
         "targets/browser/host/assets/conduit.css",
         output.join("conduit.css"),
     )?;
-    copy_file(
+    render_site_page(
         "site/current-product.html",
         output.join("current-product.html"),
+        "status",
     )?;
     copy_file(
         "site/current-product.mjs",
@@ -96,7 +97,12 @@ fn build_handbook(source: &Path, output: &Path) -> Result<(), Box<dyn std::error
 
     for (stem, markdown) in &pages {
         let title = page_title(markdown).unwrap_or_else(|| readable_name(stem));
-        let article = render_markdown(markdown)?;
+        let mut article = render_markdown(markdown)?;
+        if !article.contains("<h1") {
+            let mut heading = String::new();
+            escape_html_into(&title, &mut heading);
+            article = format!("<h1>{heading}</h1>{article}");
+        }
         let position = reading_order.iter().position(|page| page == stem);
         let next = position
             .and_then(|index| reading_order.get(index + 1))
@@ -369,6 +375,8 @@ fn page_shell(
     progress: Option<(usize, usize)>,
     next: Option<(&String, &String)>,
 ) -> String {
+    let styles = crate::site::styles();
+    let navigation = crate::site::navigation("handbook");
     let mut escaped_title = String::new();
     escape_html_into(title, &mut escaped_title);
     let progress = progress.map_or_else(String::new, |(current, total)| {
@@ -381,7 +389,7 @@ fn page_shell(
         format!("<nav class=\"handbook-continue\" aria-label=\"Continue reading\"><span>Continue reading</span><a href=\"{next_stem}.html\">{escaped_next}<b aria-hidden=\"true\">→</b></a></nav>")
     });
     format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark light\"><title>{escaped_title} · Conduit handbook</title><link rel=\"stylesheet\" href=\"../conduit.css\"><link rel=\"stylesheet\" href=\"handbook.css\"><link rel=\"stylesheet\" href=\"svg-viewport.css\"><script type=\"module\" src=\"handbook.mjs\"></script></head><body class=\"handbook-page handbook-page-{stem}\" data-application-theme=\"conduit.presentation/phosphor@1\"><a class=\"conduit-skip-link\" href=\"#handbook-content\">Skip to content</a><header class=\"handbook-masthead\"><a href=\"../\">Conduit</a><span>Handbook</span><a href=\"https://github.com/dancxjo/conduit\">Source</a></header><div class=\"handbook-layout\"><aside class=\"handbook-sidebar\" aria-label=\"Handbook navigation\">{sidebar}</aside><main id=\"handbook-content\" class=\"handbook-article\" tabindex=\"-1\">{progress}{article}{continuation}</main></div></body></html>"
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark light\"><title>{escaped_title} · Conduit handbook</title><style>{styles}</style><link rel=\"stylesheet\" href=\"handbook.css\"><link rel=\"stylesheet\" href=\"svg-viewport.css\"><script type=\"module\" src=\"handbook.mjs\"></script></head><body class=\"handbook-page handbook-page-{stem}\" data-application-theme=\"conduit.presentation/phosphor@1\"><a class=\"conduit-skip-link\" href=\"#handbook-content\">Skip to content</a>{navigation}<div class=\"handbook-layout\"><aside class=\"handbook-sidebar\" aria-label=\"Handbook navigation\">{sidebar}</aside><main id=\"handbook-content\" class=\"handbook-article\" tabindex=\"-1\">{progress}{article}{continuation}</main></div></body></html>"
     )
 }
 
@@ -431,18 +439,24 @@ fn copy_tree(
     Ok(())
 }
 
-fn render_masthead(output: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let status = Command::new("node")
-        .args([
-            "targets/browser/tools/render-product-masthead.mjs",
-            "site/index.html",
-        ])
-        .arg(output.join("index.html"))
-        .args(["home", "The body is the computer."])
-        .status()?;
-    if !status.success() {
-        return Err("product masthead rendering failed".into());
+fn render_site_page(
+    source: &str,
+    output: PathBuf,
+    current: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let source = fs::read_to_string(source)?;
+    let marker = "<!-- conduit-site-navigation -->";
+    if source.matches(marker).count() != 1 {
+        return Err("site source must contain exactly one navigation marker".into());
     }
+    let page = source
+        .replace(marker, &crate::site::navigation(current))
+        .replace("<link rel=\"stylesheet\" href=\"./conduit.css\">", "");
+    let page = page.replace(
+        "</head>",
+        &format!("<style>{}</style></head>", crate::site::styles()),
+    );
+    fs::write(output, page)?;
     Ok(())
 }
 

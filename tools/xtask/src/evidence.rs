@@ -19,7 +19,7 @@ mod gallery;
 mod verification;
 
 pub use documentation::{verify_documentation_references, DocumentationReferenceRequest};
-pub use gallery::{publish_gallery, GalleryRequest};
+pub use gallery::{publish_gallery, refresh_gallery, GalleryRequest};
 pub use verification::{
     verify, ExpectedEvidenceResult, VerificationRequest, VerifiedEvidence, VerifiedOutput,
 };

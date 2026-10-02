@@ -43,7 +43,11 @@ impl PatchbayTargets {
                     planned.plan.plan_id.clone(),
                     prepared.plan.plan_id.clone(),
                 )
-                .map_err(|_| super::WorksetRefusal::Plan)?,
+                .map_err(|_| super::WorksetRefusal::Plan)?
+                // This admitted 3 KiB native view presents exact text inspection.
+                // It does not consume the browser's inline graph payload; native
+                // Tour graph scenes have their own projection/rendering path.
+                .with_canvas_delivery(patchbay_application::PatchbayCanvasDelivery::TextInspection),
             ));
         }
         Ok(Self { ports, selected })
@@ -150,4 +154,55 @@ fn offer(
     offer.limits.max_queue_items = 1;
     offer.limits.max_queue_bytes = input.max(output);
     offer
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_presentation::{
+        ApplicationComponent, ApplicationEvent, ApplicationEventKind, ApplicationView,
+    };
+
+    #[test]
+    fn every_native_patchbay_inspection_fits_the_admitted_view_value() {
+        let (ids, offer) = super::super::tests::fixture();
+        let wake = super::super::tests::wake(&super::super::inventory());
+        let prepared = super::super::prepare(&wake, &ids, &offer, "build").unwrap();
+        let resident = super::super::resident(super::super::NativePlot::Patchbay).unwrap();
+        let index = prepared
+            .plan
+            .plots
+            .iter()
+            .position(|plot| plot.plot == resident)
+            .unwrap();
+        let mut targets = PatchbayTargets::prepare(&prepared, index).unwrap();
+        for port in targets.ports.iter_mut().flatten() {
+            let count = port.graph().subject_identities().count();
+            for _ in 0..count {
+                let output = port.apply(&[]).unwrap();
+                assert!(
+                    output.view.len() <= VIEW_BYTES as usize,
+                    "native inspector emitted {} bytes beyond admitted {}",
+                    output.view.len(),
+                    VIEW_BYTES
+                );
+                let view = ApplicationView::decode(&output.view).unwrap();
+                assert!(view.nodes.iter().any(|node| node.key == "subject"));
+                assert!(view.nodes.iter().any(|node| node.key == "exact-evidence"));
+                assert!(
+                    !view
+                        .nodes
+                        .iter()
+                        .any(|node| node.component == ApplicationComponent::PatchbayCanvas)
+                );
+                let event = ApplicationEvent {
+                    revision: view.revision,
+                    action: patchbay_application::INSPECT_NEXT_ACTION_ID.into(),
+                    kind: ApplicationEventKind::Activate,
+                    value: alloc::vec::Vec::new(),
+                };
+                port.apply(&event.encode(&view).unwrap()).unwrap();
+            }
+        }
+    }
 }
