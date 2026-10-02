@@ -60,6 +60,13 @@ impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
         self.values.last()
     }
 
+    pub fn contains(&self, value: &T) -> bool
+    where
+        T: PartialEq,
+    {
+        self.values.contains(value)
+    }
+
     pub fn binary_search(&self, value: &T) -> Result<usize, usize>
     where
         T: Ord,

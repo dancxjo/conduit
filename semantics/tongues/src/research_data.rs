@@ -5,6 +5,7 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::{prove_splits_disjoint, DatasetDescriptor, DatasetSplitMembership};
+use conduit_form::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -229,18 +230,20 @@ impl Pb2007Slice {
                 "data/corpus-manifest@1",
                 PB2007_SLICE_BYTES.len() as u64,
             ),
-            shards: self
-                .utterances
-                .iter()
-                .map(|value| {
+            shards: BoundedSequence::try_from_iter(self.utterances.iter().map(|value| {
                     resource(
                         example_identity(&value.identity),
                         "data/paired-observation-shard@1",
                         16,
                     )
-                })
-                .collect(),
-            split_identities: vec!["train".into(), "validation".into(), "test".into()],
+                }))
+                .expect("the reviewed corpus has at most 64 shards"),
+            split_identities: BoundedSequence::try_from_iter([
+                "train".into(),
+                "validation".into(),
+                "test".into(),
+            ])
+            .expect("three reviewed split identities fit"),
         };
         let splits = descriptor
             .split_identities

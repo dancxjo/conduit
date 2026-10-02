@@ -11,7 +11,7 @@ pub use generated::{
     ClockRelation, ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationDigest,
     DataGenerationNamespace, DataGenerationNamespaceRefusal, DataGenerationTextValue,
     DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal, DataSaveTextTerminal,
-    DataSaveTextTerminalCode, FileCopyOutcome, FileCopyResult, FullWindowPolicy,
+    DataSaveTextTerminalCode, DatasetDescriptor, FileCopyOutcome, FileCopyResult, FullWindowPolicy,
     FullWindowPolicyCode, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotPoint,
     MeasurementPlotProfile, MeasurementPlotRefusal, MeasurementPlotSeries,
     MeasurementHysteresisProfile, MeasurementRange, MeasurementSummaryRefusal,

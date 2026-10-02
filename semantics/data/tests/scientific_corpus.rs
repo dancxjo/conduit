@@ -3,6 +3,7 @@ use conduit_core::{
     ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::*;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     BoundedResourceRef {
@@ -268,10 +269,18 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
         license_profile: Some("license/research-example@1".into()),
         example_count: 3,
         manifest: resource(12, CORPUS_MANIFEST_PROFILE, 512),
-        shards: vec![resource(13, "data/corpus-shard@1", 4096)],
-        split_identities: vec!["train".into(), "test".into()],
+        shards: BoundedSequence::try_from_iter([resource(
+            13,
+            "data/corpus-shard@1",
+            4096,
+        )])
+        .unwrap(),
+        split_identities: BoundedSequence::try_from_iter(["train".into(), "test".into()])
+            .unwrap(),
     };
     dataset.validate().unwrap();
+    let structured = dataset.clone().into_structured().unwrap();
+    assert_eq!(DatasetDescriptor::from_structured(structured).unwrap(), dataset);
     assert_ne!(dataset.semantic_digest().unwrap(), [0; 32]);
     assert_eq!(
         dataset.require_resources(&[[12; 32]]),

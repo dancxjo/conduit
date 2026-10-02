@@ -254,6 +254,17 @@ type DataGenerationValue<T> = {
 
 type DataGenerationTextValue = DataGenerationValue<Text <= 4096B>
 
+type DatasetDescriptor = {
+    identity: collection U8 = 32
+    schema-profile: Text <= 128B not in [""]
+    citation-identity: Text <= 128B not in [""]?
+    license-profile: Text <= 128B not in [""]?
+    example-count: U64 in 1..=18446744073709551615
+    manifest: ResourceRef
+    shards: sequence ResourceRef in 1..=64
+    split-identities: sequence Text in 1..=16
+}
+
 type TabularColumnType =
     boolean
     | count
