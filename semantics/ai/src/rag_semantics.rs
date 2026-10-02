@@ -10,8 +10,8 @@ use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    AnswerSpan, ChunkIdentity, ContextBudgetCost, ContextSelectionRationale,
-    ContextTruncationReason, GroundingDisposition, ModelResultProvenance, RetrievalScore,
+    AnswerSpan, ChunkIdentity, ContextBudgetCost, ContextSelectionOutcome,
+    ContextSelectionRationale, GroundingDisposition, ModelResultProvenance, RetrievalScore,
     SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
 };
 
@@ -75,15 +75,6 @@ pub struct ContextItem<T> {
     pub budget: ContextBudgetCost,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextSelectionOutcome {
-    Complete,
-    Truncated {
-        omitted_candidates: u16,
-        reason: ContextTruncationReason,
-    },
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContextSelection<T> {
     pub items: Vec<ContextItem<T>>,
@@ -134,7 +125,6 @@ pub enum RagSemanticRefusal {
     RankExceedsIntent,
     EmptyRetrievalBasis,
     ContextItemLimitExceeded,
-    EmptyTruncation,
     CitationLimitExceeded,
     CitationNotInContext,
     AnswerTooLarge,
@@ -326,15 +316,6 @@ impl<T> ContextSelection<T> {
         }
         for item in &self.items {
             item.validate_against(intent)?;
-        }
-        if matches!(
-            self.outcome,
-            ContextSelectionOutcome::Truncated {
-                omitted_candidates: 0,
-                ..
-            }
-        ) {
-            return Err(RagSemanticRefusal::EmptyTruncation);
         }
         Ok(())
     }

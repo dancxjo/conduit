@@ -1,4 +1,7 @@
-use conduit_ai::{AnswerSpan, ContextBudgetCost, RetrievalScore, SourceSpan, SourceSpanUnit};
+use conduit_ai::{
+    AnswerSpan, ContextBudgetCost, ContextSelectionOutcome, ContextTruncationReason,
+    RetrievalScore, SourceSpan, SourceSpanUnit,
+};
 use conduit_form::rust_binding::NativeRustBinding;
 
 fn round_trip<T>(value: T)
@@ -36,4 +39,18 @@ fn retrieval_score_and_context_budget_are_native_values() {
     let rust = include_str!("../src/rag_semantics.rs");
     assert!(!rust.contains(concat!("pub struct ", "RetrievalScore")));
     assert!(!rust.contains(concat!("pub struct ", "ContextBudgetCost")));
+}
+
+#[test]
+fn context_selection_outcome_owns_positive_omission_truth() {
+    round_trip(ContextSelectionOutcome::Complete);
+    round_trip(
+        ContextSelectionOutcome::truncated(1_024, ContextTruncationReason::TokenBudget).unwrap(),
+    );
+    assert!(ContextSelectionOutcome::truncated(0, ContextTruncationReason::ItemBudget).is_err());
+    assert!(
+        ContextSelectionOutcome::truncated(1_025, ContextTruncationReason::ItemBudget).is_err()
+    );
+    assert!(!include_str!("../src/rag_semantics.rs")
+        .contains(concat!("pub enum ", "ContextSelectionOutcome")));
 }

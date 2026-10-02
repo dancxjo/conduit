@@ -344,6 +344,13 @@ type ContextBudgetCost = {
     where .bytes > 0 || .tokens > 0
 }
 
+type ContextSelectionOutcome =
+    complete
+    | truncated {
+        omitted_candidates: U16 in 1..=1024
+        reason: ContextTruncationReason
+    }
+
 type SourceExtractionProfile =
     text_utf8 {
         overlap_bytes: U32
