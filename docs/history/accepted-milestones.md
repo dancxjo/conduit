@@ -5,7 +5,7 @@ documentation review. Read [current status](../../STATUS.md) for the capability
 summary and [the roadmap](../roadmap.md) for unfinished work.
 
 These records describe individual checkpoints, with their original proof limits,
-commands, workflow names, and machine identities. Statements such as “current,”
+terminology, commands, workflow names, and machine identities. Statements such as “current,”
 “not yet,” and “no implementation” refer to that checkpoint; later entries may
 supersede them. In particular, the early copy-file denial, catalog counts, browser
 matrix, and CI requirements below are not current instructions. Use the

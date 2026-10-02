@@ -79,7 +79,7 @@ A face is not a widget tree, and a show is not authoritative merely because it i
 ## The compact map
 
 ```text
-type → info (carried through a code)
+type → info (carried through a form)
 
 kind → fore → back
           ↓
@@ -99,13 +99,14 @@ face → mask → show
 
 The arrows are mnemonic, not a claim that every noun is a pipeline stage.
 
-## Proposed vocabulary
+## Current vocabulary
 
-Current source uses executable `plot` and encoding `code`.
-[#4513](https://github.com/dancxjo/conduit/issues/4513) proposes `plot` for the
-executable unit and `plot` for portable representation. That proposed pair is
-not the current parser surface. Follow [[Current language surface|Current-language-surface]]
-when writing source.
+Current development source uses executable `plot` and representation `form`:
+`type → form` and `plot → plan → play`.
+[#4800](https://github.com/dancxjo/conduit/pull/4800) implements the paired
+migration from [#4513](https://github.com/dancxjo/conduit/issues/4513). Former
+executable `form` and representation `code` declarations are rejected. Follow
+[[Current language surface|Current-language-surface]] when writing source.
 
 ## Superseded vocabulary
 
@@ -113,6 +114,8 @@ Historical repository material may use older names.
 
 | historical | current |
 |---|---|
+| executable **Form** | **plot** |
+| representation **code** | **form** |
 | generic architectural **Data** | **info** |
 | callable **Front** | **fore** |
 | body human-facing semantic surface | **face** |

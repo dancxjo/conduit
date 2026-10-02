@@ -238,7 +238,7 @@ A type is reusable semantic meaning for finite information. An info value is one
 
 The migration is ongoing. Do not assume every existing Rust semantic type has moved yet.
 
-## types have Forms
+## types have forms
 
 A semantic type and its portable encoding are separate. This declaration comes
 from [the artificial-life types](https://github.com/dancxjo/conduit/blob/dev/semantics/alife/types.conduit):
@@ -252,7 +252,7 @@ form alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
 ```
 
 The type owns the alternatives. The form assigns consecutive `u8` tags starting
-at 1. `work` does not mean `1`; it is carried by that tag in this code.
+at 1. `work` does not mean `1`; it is carried by that tag in this form.
 Generated bindings consume the checked mapping rather than restating it in Rust.
 
 ## host source is still Conduitese

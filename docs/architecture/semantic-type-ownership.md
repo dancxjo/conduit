@@ -24,7 +24,7 @@ moving a type across a boundary requires reviewing its classification.
 | **C — checker/compiler representation** | Parser, checked syntax, semantic-contract model, catalog construction, or lowering machinery | Remains handwritten Rust; may refer to native Type identities but does not become source info |
 | **R — runtime identity or evidence** | Host, Boot, Body, Plan, Play, line, sign, admission, reservation, lifecycle, or execution truth | Remains architectural Rust unless an exact Fore deliberately carries a separate portable projection |
 | **M — Host/Back/Base mechanism** | Provider state, prepared executor, device driver, adapter, renderer, or platform implementation | Remains handwritten Rust behind the Host boundary |
-| **W — external wire/ABI/storage representation** | Bytes owned by a named external protocol, provider schema, firmware ABI, or transport frame | Remains an adapter at that boundary; Conduit-owned compatibility mappings are native `code` declarations |
+| **W — external wire/ABI/storage representation** | Bytes owned by a named external protocol, provider schema, firmware ABI, or transport frame | Remains an adapter at that boundary; Conduit-owned compatibility mappings are native `form` declarations |
 | **G — generated binding** | Rust mirror generated from an authoritative native Type | Generated deterministically under #4381; never an independent semantic owner |
 
 Fixtures, test oracles, builders, errors about Rust API misuse, and prepared
@@ -32,10 +32,10 @@ allocation objects inherit the class of the machinery they exercise. A typed
 failure that actually crosses a Fore is **P**, even when its Rust name ends in
 `Error` or `Refusal`.
 
-## Type, code, binding, and adapter
+## Type, form, binding, and adapter
 
-A semantic `type` states what a value means. A named `code` states one portable
-compatibility contract for carrying or storing that value. Changing a code
+A semantic `type` states what a value means. A named `form` states one portable
+compatibility contract for carrying or storing that value. Changing a form
 does not change Type identity, and a Type may have several Forms.
 
 A generated binding is target-language machinery derived from checked Types
@@ -45,7 +45,7 @@ only translation to a separately governed protocol or mechanism. “The mapping
 is small” and “Rust already serializes it” do not establish an external
 boundary.
 
-The ordinary compact plot derives iota tags from authored variant order:
+The ordinary compact form derives iota tags from authored variant order:
 
 ```conduit
 type SaveRefusal =
@@ -111,7 +111,7 @@ families are explicit exceptions.
 | `semantics/robotics/**` | acceleration, battery, beacon, button, charging, cliff, contact, odometry, orientation, proximity, range and wheel-drop observations | `RoboticsStructuredFixture` and its structured-value refusal are C; fixture/catalog builders are C | none; the portable family is native and generated |
 | `semantics/signal/**` | Signal, Trigger and finite pulse/toggle/trigger configurations | encoders are M/W according to the exact carrier | none; the portable family is native and generated for fixed no-std carriers |
 | `semantics/text/**` | addresses, Morse patterns/segments/transitions and text configuration values | interpreters are M; Kind contracts are C; provider errors remain M unless exported as a typed terminal | none; the portable family is native and generated |
-| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, historical/replay commands and results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec plots are W; Kind configuration/checker contracts are C; `ScheduledIntent<T>` is the generated family’s thin open-generic Rust carrier | none; the portable family is native and generated |
+| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, historical/replay commands and results, temporal windows and policies | stores/controllers and `*Back` executors are M; external codec representations are W; Kind configuration/checker contracts are C; `ScheduledIntent<T>` is the generated family’s thin open-generic Rust carrier | none; the portable family is native and generated |
 | `semantics/tongues/**` | speech commit/message boundaries, recognition attempts/results, output conditions, terminal outcomes and emitted speech signs | recognizers, committers, acoustic windows and training machinery are M; dataset/model file representations are W; planning/specimen/receipt and research reports are C | none; every reviewed portable Fore payload is native and generated |
 | `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | recursive JSON values with aggregate depth/node/string budgets |
 
