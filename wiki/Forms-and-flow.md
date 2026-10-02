@@ -1,5 +1,8 @@
 ## forms and completion
 
+For a visual companion to the syntax below, browse the generated
+[[Form diagrams|Form-diagrams]].
+
 A form is **live by default**:
 
 ```conduit
