@@ -72,7 +72,7 @@ impl TemporalEvidenceBatch {
 
         let identities = match intent {
             TemporalRetrievalIntent::EarliestEvidence
-            | TemporalRetrievalIntent::DurationSince { .. } => {
+            | TemporalRetrievalIntent::DurationSince(_) => {
                 vec![matches[0].1.clone()]
             }
             TemporalRetrievalIntent::LatestEvidence => {
@@ -139,24 +139,25 @@ fn candidate_matches(
         TemporalRetrievalIntent::EarliestEvidence
         | TemporalRetrievalIntent::LatestEvidence
         | TemporalRetrievalIntent::EventOrdering => true,
-        TemporalRetrievalIntent::StateValidAt { instant } => {
+        TemporalRetrievalIntent::StateValidAt(payload) => {
+            let query_instant = *payload.instant();
             candidate
                 .provenance
                 .valid_from
-                .is_some_and(|start| start <= *instant)
+                .is_some_and(|start| start <= query_instant)
                 && candidate
                     .provenance
                     .valid_until
-                    .is_none_or(|end| *instant <= end)
+                    .is_none_or(|end| query_instant <= end)
         }
-        TemporalRetrievalIntent::Transition { direction } => {
-            candidate.transition == Some(*direction)
+        TemporalRetrievalIntent::Transition(payload) => {
+            candidate.transition == Some(*payload.direction())
         }
-        TemporalRetrievalIntent::DurationSince { boundary } => {
-            candidate.boundary == Some(*boundary)
+        TemporalRetrievalIntent::DurationSince(payload) => {
+            candidate.boundary == Some(*payload.boundary())
         }
-        TemporalRetrievalIntent::EvidenceWithin { start, end } => {
-            *start <= instant && instant <= *end
+        TemporalRetrievalIntent::EvidenceWithin(payload) => {
+            *payload.window().start() <= instant && instant <= *payload.window().end()
         }
     }
 }
@@ -165,10 +166,10 @@ fn needs_earlier_history(intent: &TemporalRetrievalIntent) -> bool {
     matches!(
         intent,
         TemporalRetrievalIntent::EarliestEvidence
-            | TemporalRetrievalIntent::StateValidAt { .. }
-            | TemporalRetrievalIntent::Transition { .. }
-            | TemporalRetrievalIntent::DurationSince { .. }
-            | TemporalRetrievalIntent::EvidenceWithin { .. }
+            | TemporalRetrievalIntent::StateValidAt(_)
+            | TemporalRetrievalIntent::Transition(_)
+            | TemporalRetrievalIntent::DurationSince(_)
+            | TemporalRetrievalIntent::EvidenceWithin(_)
     )
 }
 
@@ -223,9 +224,9 @@ mod tests {
             Ok(TemporalEvidenceSelection::NeedEarlierHistory)
         );
         assert_eq!(
-            recent.select(&TemporalRetrievalIntent::DurationSince {
-                boundary: EntityBoundary::Created,
-            }),
+            recent.select(
+                &TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap(),
+            ),
             Ok(TemporalEvidenceSelection::NeedEarlierHistory)
         );
     }
@@ -236,9 +237,9 @@ mod tests {
         origin.boundary = Some(EntityBoundary::Created);
         let evidence = batch(vec![candidate("summary/recent", 900), origin], true);
         assert_eq!(
-            evidence.select(&TemporalRetrievalIntent::DurationSince {
-                boundary: EntityBoundary::Created,
-            }),
+            evidence.select(
+                &TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap(),
+            ),
             Ok(TemporalEvidenceSelection::Selected {
                 identities: vec!["project/created".to_string()]
             })
@@ -261,7 +262,7 @@ mod tests {
         state_a.validity = TemporalValidity::Historical;
         let evidence = batch(vec![candidate("state/C", 401), state_b, state_a], true);
         assert_eq!(
-            evidence.select(&TemporalRetrievalIntent::StateValidAt { instant: 300 }),
+            evidence.select(&TemporalRetrievalIntent::state_valid_at(300).unwrap()),
             Ok(TemporalEvidenceSelection::Selected {
                 identities: vec!["state/B".to_string()]
             })
@@ -281,11 +282,8 @@ mod tests {
     #[test]
     fn complete_history_reports_missing_boundary_without_fabricating_duration() {
         assert_eq!(
-            batch(vec![candidate("summary/recent", 900)], true).select(
-                &TemporalRetrievalIntent::DurationSince {
-                    boundary: EntityBoundary::Created,
-                }
-            ),
+            batch(vec![candidate("summary/recent", 900)], true)
+                .select(&TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap()),
             Ok(TemporalEvidenceSelection::BoundaryUnavailable)
         );
     }

@@ -42,12 +42,7 @@ fn model_request_carries_typed_reference_and_retrieval_intent() {
 fn invalid_clock_and_query_window_refuse_before_interpretation() {
     assert!(conduit_ai::ClockIdentity::new(String::new()).is_err());
 
-    let mut reversed = request();
-    reversed.temporal_intent = Some(TemporalRetrievalIntent::EvidenceWithin { start: 20, end: 10 });
-    assert_eq!(
-        reversed.validate(),
-        Err(InterpretationInvalidity::InvalidTemporalContext)
-    );
+    assert!(conduit_ai::TemporalRetrievalWindow::new(20, 10).is_err());
 }
 
 fn interpretation() -> ModelInterpretation {
@@ -113,16 +108,15 @@ fn profile_reported_confidence_is_native_and_exactly_bounded() {
         let confidence = ProfileReportedConfidence::new(score_permille).unwrap();
         assert_eq!(*confidence.score_permille(), score_permille);
         assert_eq!(
-            ProfileReportedConfidence::from_structured(
-                confidence.into_structured().unwrap(),
-            )
-            .unwrap(),
+            ProfileReportedConfidence::from_structured(confidence.into_structured().unwrap(),)
+                .unwrap(),
             confidence
         );
     }
     assert!(ProfileReportedConfidence::new(1_001).is_err());
-    assert!(!include_str!("../src/interpretation.rs")
-        .contains("pub struct ProfileReportedConfidence"));
+    assert!(
+        !include_str!("../src/interpretation.rs").contains("pub struct ProfileReportedConfidence")
+    );
 }
 
 #[test]

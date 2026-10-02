@@ -366,10 +366,12 @@ fn cases() -> Vec<QueryCase> {
         },
         QueryCase {
             identity: "query/duration",
-            modes: vec![RetrievalMode::Boundary(TemporalRetrievalIntent::DurationSince { boundary: EntityBoundary::Created })],
-            hard_filter: Some(TemporalRetrievalIntent::DurationSince {
-                boundary: EntityBoundary::Created,
-            }),
+            modes: vec![RetrievalMode::Boundary(
+                TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap(),
+            )],
+            hard_filter: Some(
+                TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap(),
+            ),
             evidence: vec![
                 evidence(4, 9, "summary/recent", "summary", "Recent summary of the RAG work.", (950, TemporalValidity::Current, None, None)),
                 evidence(5, 1, "docs/origin", "documentation", "The project began here.", (100, TemporalValidity::Historical, None, Some(EntityBoundary::Created))),
@@ -381,8 +383,10 @@ fn cases() -> Vec<QueryCase> {
         },
         QueryCase {
             identity: "query/historical",
-            modes: vec![RetrievalMode::Temporal(TemporalRetrievalIntent::StateValidAt { instant: 250 })],
-            hard_filter: Some(TemporalRetrievalIntent::StateValidAt { instant: 250 }),
+            modes: vec![RetrievalMode::Temporal(
+                TemporalRetrievalIntent::state_valid_at(250).unwrap(),
+            )],
+            hard_filter: Some(TemporalRetrievalIntent::state_valid_at(250).unwrap()),
             evidence: vec![
                 evidence(6, 1, "sign/state-a", "sign", "R2 was active.", (200, TemporalValidity::Historical, Some(299), None)),
                 evidence(7, 1, "sign/state-b", "sign", "R3 is active.", (300, TemporalValidity::Current, None, None)),
@@ -408,7 +412,16 @@ fn cases() -> Vec<QueryCase> {
         },
         QueryCase {
             identity: "query/cross-domain",
-            modes: vec![RetrievalMode::Exact, RetrievalMode::Metadata, RetrievalMode::Temporal(TemporalRetrievalIntent::EvidenceWithin { start: 850, end: 950 })],
+            modes: vec![
+                RetrievalMode::Exact,
+                RetrievalMode::Metadata,
+                RetrievalMode::Temporal(
+                    TemporalRetrievalIntent::evidence_within(
+                        conduit_ai::TemporalRetrievalWindow::new(850, 950).unwrap(),
+                    )
+                    .unwrap(),
+                ),
+            ],
             hard_filter: None,
             evidence: vec![
                 evidence(11, 1, "calendar/demo", "calendar", "Demo at 900 requires reduced-safe motion.", (900, TemporalValidity::Current, None, None)),
@@ -444,7 +457,10 @@ fn all_six_query_classes_retain_bounded_machine_readable_explanations() {
             }));
         }
     }
-    assert_eq!(receipts[2].temporal_filter, Some(TemporalRetrievalIntent::DurationSince { boundary: EntityBoundary::Created }));
+    assert_eq!(
+        receipts[2].temporal_filter,
+        Some(TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap())
+    );
     assert_eq!(receipts[2].context.items[0].temporal.as_ref().unwrap().evidence_identity, "docs/origin");
     assert_eq!(receipts[2].context.items[0].temporal.as_ref().unwrap().provenance.age(TemporalSource::Event), Ok(900));
     assert_eq!(receipts[3].context.items[0].temporal.as_ref().unwrap().context.validity, TemporalValidity::Historical);

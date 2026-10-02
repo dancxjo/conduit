@@ -249,26 +249,22 @@ fn temporal_intents_select_exact_portable_evidence_before_scoring() {
             vec!["source/b", "source/c", "source/a"],
         ),
         (
-            TemporalRetrievalIntent::StateValidAt { instant: 225 },
+            TemporalRetrievalIntent::state_valid_at(225).unwrap(),
             vec!["source/b", "source/a"],
         ),
         (
-            TemporalRetrievalIntent::Transition {
-                direction: TransitionDirection::IntoState,
-            },
+            TemporalRetrievalIntent::transition(TransitionDirection::IntoState).unwrap(),
             vec!["source/b"],
         ),
         (
-            TemporalRetrievalIntent::DurationSince {
-                boundary: EntityBoundary::Started,
-            },
+            TemporalRetrievalIntent::duration_since(EntityBoundary::Started).unwrap(),
             vec!["source/a"],
         ),
         (
-            TemporalRetrievalIntent::EvidenceWithin {
-                start: 150,
-                end: 250,
-            },
+            TemporalRetrievalIntent::evidence_within(
+                conduit_ai::TemporalRetrievalWindow::new(150, 250).unwrap(),
+            )
+            .unwrap(),
             vec!["source/b"],
         ),
     ] {

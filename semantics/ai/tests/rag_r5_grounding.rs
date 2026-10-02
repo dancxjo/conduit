@@ -9,7 +9,7 @@ use conduit_ai::{
     RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
     RetrievalMechanism, RetrievalMode, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
     SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
-    TemporalProvenance, TemporalRetrievalIntent, TemporalSource,
+    TemporalProvenance, TemporalRetrievalIntent, TemporalRetrievalWindow, TemporalSource,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -219,10 +219,10 @@ fn old_observation_origin_and_valid_at_intents_keep_temporal_truth() {
         RetrievalIntent {
             identity: "intent/valid-at".into(),
             modes: vec![RetrievalMode::Temporal(
-                TemporalRetrievalIntent::EvidenceWithin {
-                    start: 200,
-                    end: 300,
-                },
+                TemporalRetrievalIntent::evidence_within(
+                    TemporalRetrievalWindow::new(200, 300).unwrap(),
+                )
+                .unwrap(),
             )],
             maximum_candidates: 8,
         },

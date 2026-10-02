@@ -104,14 +104,7 @@ fn exact_source_version_span_and_transform_lineage_derive_chunk_identity() {
 #[test]
 fn temporal_boundary_intent_is_typed_and_bounded() {
     assert_eq!(intent().validate(), Ok(()));
-    let mut invalid = intent();
-    invalid.modes = vec![RetrievalMode::Temporal(
-        TemporalRetrievalIntent::EvidenceWithin { start: 9, end: 2 },
-    )];
-    assert_eq!(
-        invalid.validate(),
-        Err(RagSemanticRefusal::InvalidTemporalIntent)
-    );
+    assert!(conduit_ai::TemporalRetrievalWindow::new(9, 2).is_err());
     let mut duplicate = intent();
     duplicate.modes = vec![RetrievalMode::Exact, RetrievalMode::Exact];
     assert_eq!(

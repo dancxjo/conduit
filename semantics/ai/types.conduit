@@ -242,6 +242,29 @@ type TransitionDirection =
     into_state
     | out_of_state
 
+type TemporalRetrievalWindow = {
+    start: U64
+    end: U64
+    where .start <= .end
+}
+
+type TemporalRetrievalIntent =
+    earliest_evidence
+    | latest_evidence
+    | state_valid_at {
+        instant: U64
+    }
+    | transition {
+        direction: TransitionDirection
+    }
+    | duration_since {
+        boundary: EntityBoundary
+    }
+    | event_ordering
+    | evidence_within {
+        window: TemporalRetrievalWindow
+    }
+
 type TemporalValidity =
     current
     | historical

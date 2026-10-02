@@ -80,9 +80,8 @@ fn policy(temporal: bool) -> HybridFusionPolicy {
             RetrievalMechanism::Metadata,
             RetrievalMechanism::Temporal,
         ],
-        temporal_hard_filter: temporal.then_some(TemporalRetrievalIntent::DurationSince {
-            boundary: EntityBoundary::Created,
-        }),
+        temporal_hard_filter: temporal
+            .then(|| TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap()),
         maximum_candidates_per_stage: 8,
         maximum_output_candidates: 8,
         maximum_total_work_units: 32,
