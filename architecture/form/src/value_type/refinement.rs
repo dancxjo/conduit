@@ -454,6 +454,7 @@ fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
         | PrimitiveInfoKind::Angle
         | PrimitiveInfoKind::Ratio
         | PrimitiveInfoKind::PixelCount => Some(conduit_core::QUANTITY_ENCODED_LEN as u32),
+        PrimitiveInfoKind::QuantityUnit => Some(conduit_core::QUANTITY_UNIT_ENCODED_LEN as u32),
         kind @ (PrimitiveInfoKind::U8
         | PrimitiveInfoKind::U16
         | PrimitiveInfoKind::U32
