@@ -60,7 +60,7 @@ fn weighted_alternatives_are_finite_normalized_and_seeded() {
     };
     weighted.validate().unwrap();
     assert_ne!(weighted.semantic_digest().unwrap(), [0; 32]);
-    assert_eq!(weighted.summary().unwrap().result_count, 2);
+    assert_eq!(*weighted.summary().unwrap().result_count(), 2);
 
     let mut malformed = weighted.clone();
     malformed.weights[1] = 399_999_999;
@@ -149,7 +149,7 @@ fn one_observation_yields_multiple_plausible_articulations_not_one_truth() {
     };
     alternatives.validate().unwrap();
     assert_eq!(alternatives.plausible_alternatives.len(), 3);
-    assert_eq!(alternatives.summary().unwrap().result_count, 3);
+    assert_eq!(*alternatives.summary().unwrap().result_count(), 3);
     assert_eq!(
         alternatives.provenance.randomness(),
         &RandomnessProfile::explicit_seed(42).unwrap()

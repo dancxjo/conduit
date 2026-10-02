@@ -4,8 +4,8 @@ use alloc::vec::Vec;
 use conduit_data::{SampledSignal, TensorElement, TensorValue};
 
 use crate::{
-    LogScoreKind, ProbabilisticDisposition, ProbabilityRefusal, RandomnessProfile,
-    StochasticProvenance,
+    LogScoreKind, ProbabilisticDisposition, ProbabilityClaimProfile, ProbabilityRefusal,
+    ProbabilitySummary, StochasticProvenance,
 };
 
 pub const MAXIMUM_PROBABILITY_SAMPLES: usize = 64;
@@ -72,16 +72,6 @@ pub struct TrajectoryAlternatives {
     pub disposition: ProbabilisticDisposition,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProbabilitySummary {
-    pub claim_profile: &'static str,
-    pub result_count: u32,
-    pub model_artifact_identity: [u8; 32],
-    pub query_identity: [u8; 32],
-    pub randomness: RandomnessProfile,
-    pub disposition: ProbabilisticDisposition,
-}
-
 impl StochasticProvenance {
     pub fn validate(&self) -> Result<(), ProbabilityRefusal> {
         nonzero(*self.model_artifact_identity().get())?;
@@ -134,7 +124,7 @@ impl ProbabilitySampleSet {
     pub fn summary(&self) -> Result<ProbabilitySummary, ProbabilityRefusal> {
         self.validate()?;
         Ok(summary(
-            "samples",
+            ProbabilityClaimProfile::Samples,
             self.alternatives.len(),
             &self.provenance,
             &self.disposition,
@@ -164,7 +154,7 @@ impl WeightedSamples {
     pub fn summary(&self) -> Result<ProbabilitySummary, ProbabilityRefusal> {
         self.validate()?;
         Ok(summary(
-            "weighted-samples",
+            ProbabilityClaimProfile::WeightedSamples,
             self.alternatives.len(),
             &self.provenance,
             &self.disposition,
@@ -260,7 +250,7 @@ impl TrajectoryAlternatives {
     pub fn summary(&self) -> Result<ProbabilitySummary, ProbabilityRefusal> {
         self.validate()?;
         Ok(summary(
-            "trajectory-alternatives",
+            ProbabilityClaimProfile::TrajectoryAlternatives,
             self.plausible_alternatives.len(),
             &self.provenance,
             &self.disposition,
@@ -269,19 +259,20 @@ impl TrajectoryAlternatives {
 }
 
 fn summary(
-    claim_profile: &'static str,
+    claim_profile: ProbabilityClaimProfile,
     count: usize,
     provenance: &StochasticProvenance,
     disposition: &ProbabilisticDisposition,
 ) -> ProbabilitySummary {
-    ProbabilitySummary {
+    ProbabilitySummary::new(
         claim_profile,
-        result_count: count as u32,
-        model_artifact_identity: *provenance.model_artifact_identity().get(),
-        query_identity: *provenance.query_identity().get(),
-        randomness: provenance.randomness().clone(),
-        disposition: disposition.clone(),
-    }
+        count as u32,
+        provenance.model_artifact_identity().clone(),
+        provenance.query_identity().clone(),
+        provenance.randomness().clone(),
+        disposition.clone(),
+    )
+    .expect("validated probability summary fields satisfy native meaning")
 }
 
 fn validate_samples(samples: &[TensorValue]) -> Result<(), ProbabilityRefusal> {

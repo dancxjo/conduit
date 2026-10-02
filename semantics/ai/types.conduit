@@ -490,6 +490,20 @@ type StochasticProvenance = {
     draws: DrawRelationship
 }
 
+type ProbabilityClaimProfile =
+    samples
+    | weighted_samples
+    | trajectory_alternatives
+
+type ProbabilitySummary = {
+    claim_profile: ProbabilityClaimProfile
+    result_count: U32
+    model_artifact_identity: ProbabilityDigest
+    query_identity: ProbabilityDigest
+    randomness: RandomnessProfile
+    disposition: ProbabilisticDisposition
+}
+
 type ProbabilisticDisposition =
     exact
     | approximate {
