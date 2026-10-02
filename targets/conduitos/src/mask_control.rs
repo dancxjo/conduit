@@ -676,8 +676,8 @@ fn renderer_host(
                     contract_id: HostCallContractId::from("conduit.host/present@1"),
                     target_kind: Some(kind_id(target_kind)),
                     maximum_in_flight: 1,
-                    maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
-                    maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
+                    maximum_input_bytes: crate::native_mask_play::MAX_MASK_VALUE_BYTES as u32,
+                    maximum_output_bytes: crate::native_mask_play::MAX_MASK_VALUE_BYTES as u32,
                 },
                 authority_requirement: present_authority_requirement(kind_id(target_kind)),
                 limits: CapabilityLimits {
