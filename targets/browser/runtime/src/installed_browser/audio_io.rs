@@ -83,7 +83,7 @@ pub(crate) fn capture_offer() -> CapabilityOffer {
 
 pub(crate) fn playback_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_play_contract();
-    conduit_semantic_catalog::realization_offer(
+    let mut offer = conduit_semantic_catalog::realization_offer(
         contract,
         conduit_semantic_catalog::AUDIO_PLAY_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
@@ -106,7 +106,11 @@ pub(crate) fn playback_offer() -> CapabilityOffer {
             host_call_contract_id: HostCallContractId::from(PLAY_OPERATION),
             subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
         }],
-    )
+    );
+    // The advertised browser profile admits this exact value-store queue bound.
+    // Keep installation validation aligned with the offer selected by planning.
+    offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    offer
 }
 
 fn prepare_capture(

@@ -90,6 +90,50 @@ fn gcd(mut left: u128, mut right: u128) -> u128 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn advertised_playback_placement_is_accepted_and_limit_substitution_refused() {
+        let host =
+            crate::installed_browser::advertisement("budget-host".into(), "budget-boot".into());
+        let offer = host
+            .capabilities
+            .into_iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str() == super::super::PLAY_IMPLEMENTATION
+            })
+            .unwrap();
+        assert_eq!(offer.limits, super::super::playback_offer().limits);
+        let mut placement = conduit_core::planned_gear_from_parts! {
+            semantic_contract: offer.semantic_contract,
+            placement_id: "playback-placement".into(),
+            gear_id: "playback".into(),
+            kind_id: offer.kind_id,
+            kind_contract_revision: offer.kind_contract_revision,
+            execution_profile_id: offer.implementation.execution_profile_id,
+            configuration: vec![
+                conduit_core::ConfigurationEntry { key: "maximum-blocks".into(), value: ConfigurationValue::U64(3072) },
+                conduit_core::ConfigurationEntry { key: "maximum-audio-millis".into(), value: ConfigurationValue::U64(16384) },
+            ],
+            host_id: "budget-host".into(),
+            boot_id: "budget-boot".into(),
+            offer_generation: conduit_core::OfferGeneration(1),
+            capability_id: offer.capability_id,
+            implementation_id: offer.implementation.implementation_id,
+            artifact_id: offer.implementation.artifact_id,
+            base: None,
+            realization_characteristics: Vec::new(),
+            limits: offer.limits,
+            inputs: offer.inputs,
+            outputs: offer.outputs,
+            terminal_transductions: Vec::new(),
+            host_calls: offer.host_calls,
+            resources: Vec::new(),
+            authority: Vec::new(),
+            pool_references: Vec::new(),
+        };
+        assert!(PlaybackBudget::from_placement(&placement).is_ok());
+        placement.limits.max_queue_bytes += 1;
+        assert!(PlaybackBudget::from_placement(&placement).is_err());
+    }
     fn frame(rate: u32, count: u16) -> PcmFrameHeader {
         PcmFrameHeader::new(
             conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
