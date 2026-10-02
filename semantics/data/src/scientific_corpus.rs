@@ -1,7 +1,10 @@
 //! Large corpus identity, finite manifests, and stable split membership.
 
+use crate::{
+    duplicate, nonzero, text, DatasetDescriptor, ScientificCorpusRefusal,
+    ScientificObservationRefusal,
+};
 use alloc::{string::String, vec::Vec};
-use crate::{duplicate, nonzero, text, DatasetDescriptor, ScientificObservationRefusal};
 
 pub const CORPUS_MANIFEST_PROFILE: &str = "data/corpus-manifest@1";
 pub const MAXIMUM_CORPUS_SHARDS: usize = 64;
@@ -15,35 +18,21 @@ pub struct DatasetSplitMembership {
     pub examples: Vec<[u8; 32]>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScientificCorpusRefusal {
-    Observation(ScientificObservationRefusal),
-    InvalidManifest,
-    MissingManifest,
-    EmptyCorpus,
-    TooManyShards,
-    DuplicateShard,
-    InvalidSplit,
-    TooManySplits,
-    DuplicateSplit,
-    EmptyMembership,
-    TooManyMembers,
-    DuplicateMember,
-    DatasetMismatch,
-    UnknownSplit,
-    SplitLeakage,
-    MissingResource,
+impl From<ScientificObservationRefusal> for ScientificCorpusRefusal {
+    fn from(refusal: ScientificObservationRefusal) -> Self {
+        Self::observation(refusal).expect("an authored observation refusal is valid")
+    }
 }
 
 impl DatasetDescriptor {
     pub fn validate(&self) -> Result<(), ScientificCorpusRefusal> {
-        nonzero(self.identity).map_err(ScientificCorpusRefusal::Observation)?;
-        text(&self.schema_profile).map_err(ScientificCorpusRefusal::Observation)?;
+        nonzero(self.identity).map_err(ScientificCorpusRefusal::from)?;
+        text(&self.schema_profile).map_err(ScientificCorpusRefusal::from)?;
         if let Some(citation) = &self.citation_identity {
-            text(citation).map_err(ScientificCorpusRefusal::Observation)?;
+            text(citation).map_err(ScientificCorpusRefusal::from)?;
         }
         if let Some(license) = &self.license_profile {
-            text(license).map_err(ScientificCorpusRefusal::Observation)?;
+            text(license).map_err(ScientificCorpusRefusal::from)?;
         }
         if self.example_count == 0 {
             return Err(ScientificCorpusRefusal::EmptyCorpus);
@@ -80,7 +69,7 @@ impl DatasetDescriptor {
             return Err(ScientificCorpusRefusal::TooManySplits);
         }
         for split in &self.split_identities {
-            text(split).map_err(ScientificCorpusRefusal::Observation)?;
+            text(split).map_err(ScientificCorpusRefusal::from)?;
         }
         if self
             .split_identities
@@ -129,8 +118,8 @@ impl DatasetDescriptor {
 
 impl DatasetSplitMembership {
     pub fn validate(&self) -> Result<(), ScientificCorpusRefusal> {
-        nonzero(self.dataset_identity).map_err(ScientificCorpusRefusal::Observation)?;
-        text(&self.split_identity).map_err(ScientificCorpusRefusal::Observation)?;
+        nonzero(self.dataset_identity).map_err(ScientificCorpusRefusal::from)?;
+        text(&self.split_identity).map_err(ScientificCorpusRefusal::from)?;
         if self.examples.is_empty() {
             return Err(ScientificCorpusRefusal::EmptyMembership);
         }
@@ -138,9 +127,7 @@ impl DatasetSplitMembership {
             return Err(ScientificCorpusRefusal::TooManyMembers);
         }
         if self.examples.contains(&[0; 32]) {
-            return Err(ScientificCorpusRefusal::Observation(
-                ScientificObservationRefusal::MissingIdentity,
-            ));
+            return Err(ScientificObservationRefusal::MissingIdentity.into());
         }
         if duplicate(self.examples.iter().copied()) {
             return Err(ScientificCorpusRefusal::DuplicateMember);
