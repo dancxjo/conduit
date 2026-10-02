@@ -1,4 +1,8 @@
-//! Host-neutral reaction-diffusion work and independently evolved region truth.
+//! Host-neutral reaction-diffusion realization work and independently evolved region truth.
+//!
+//! The portable field, parameter, cell, region and partition meanings live in
+//! `types.conduit`. The records here exist only after a plan has selected an
+//! exact partition and are runtime work/state, not additional authored types.
 
 use alloc::{vec, vec::Vec};
 
