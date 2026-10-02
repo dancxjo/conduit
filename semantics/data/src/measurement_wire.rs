@@ -91,7 +91,10 @@ pub fn decode_measurement_window(
     let mut samples = Vec::with_capacity(capacity);
     for _ in 0..count {
         let value = input.quantity()?;
-        let observed_at = input.instant()?;
+        let observed_at = input
+            .instant()?
+            .try_into()
+            .map_err(|_| MeasurementWireRefusal::Malformed)?;
         let uncertainty = match input.u8()? {
             0 => None,
             1 => Some(input.quantity()?),
@@ -139,8 +142,18 @@ pub fn encode_measurement_summary(
     let mut bytes = Vec::with_capacity(256);
     bytes.push(1);
     bytes.extend_from_slice(&summary.sample_count.to_le_bytes());
-    put_instant(&mut bytes, &summary.first_observed_at)?;
-    put_instant(&mut bytes, &summary.last_observed_at)?;
+    let first = summary
+        .first_observed_at
+        .clone()
+        .try_into()
+        .map_err(|_| MeasurementWireRefusal::Malformed)?;
+    let last = summary
+        .last_observed_at
+        .clone()
+        .try_into()
+        .map_err(|_| MeasurementWireRefusal::Malformed)?;
+    put_instant(&mut bytes, &first)?;
+    put_instant(&mut bytes, &last)?;
     for quantity in [
         summary.minimum,
         summary.maximum,
@@ -256,18 +269,18 @@ fn put_text(output: &mut Vec<u8>, value: &str) -> Result<(), MeasurementWireRefu
 
 fn put_instant(
     output: &mut Vec<u8>,
-    value: &TemporalInstant,
+    value: &conduit_time::NativeTemporalInstant,
 ) -> Result<(), MeasurementWireRefusal> {
-    output.extend_from_slice(&value.ticks.to_le_bytes());
-    output.push(match value.scale {
-        TemporalScale::Seconds => 0,
-        TemporalScale::Milliseconds => 1,
-        TemporalScale::Microseconds => 2,
-        TemporalScale::Nanoseconds => 3,
+    output.extend_from_slice(&value.ticks().to_le_bytes());
+    output.push(match value.scale() {
+        conduit_time::NativeTemporalScale::Seconds => 0,
+        conduit_time::NativeTemporalScale::Milliseconds => 1,
+        conduit_time::NativeTemporalScale::Microseconds => 2,
+        conduit_time::NativeTemporalScale::Nanoseconds => 3,
     });
-    put_text(output, &value.clock_basis)?;
-    output.extend_from_slice(&value.resolution_ticks.to_le_bytes());
-    output.extend_from_slice(&value.uncertainty_ticks.to_le_bytes());
+    put_text(output, value.clock_basis())?;
+    output.extend_from_slice(&value.resolution_ticks().to_le_bytes());
+    output.extend_from_slice(&value.uncertainty_ticks().to_le_bytes());
     Ok(())
 }
 
@@ -359,7 +372,9 @@ mod tests {
                 clock_basis: "wire-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
+            }
+            .try_into()
+            .unwrap(),
             uncertainty: Some(Quantity::new(1, conduit_core::QuantityUnit::Millivolt)),
         }
     }

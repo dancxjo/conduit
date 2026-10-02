@@ -386,7 +386,9 @@ mod tests {
                 clock_basis: "browser-window-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
+            }
+            .try_into()
+            .unwrap(),
             uncertainty: None,
         }
     }
@@ -472,7 +474,9 @@ mod tests {
             observed_at: TemporalInstant {
                 clock_basis: "other-clock".into(),
                 ..sample(1, 1).observed_at
-            },
+            }
+            .try_into()
+            .unwrap(),
             ..sample(1, 1)
         };
         let wrong_clock = leaf(

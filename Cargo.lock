@@ -847,6 +847,7 @@ dependencies = [
  "conduit-form",
  "conduit-kernel",
  "conduit-little-seismograph-fixture",
+ "conduit-time",
 ]
 
 [[package]]

@@ -1,4 +1,7 @@
-use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
+use conduit_form::rust_binding::{
+    generate_rust_bindings_with_codes_and_external_bindings, ExternalNativeRustBinding,
+    RustBindingOptions,
+};
 use conduit_form::{
     check_syntax_document, generate_ecmascript_codes, parse_syntax_document, StartupCatalog,
 };
@@ -15,14 +18,31 @@ fn main() {
             ),
         )
         .expect("resource references are one exact portable leaf");
+    let temporal_instant =
+        conduit_time::NativeTemporalInstant::semantic_type().expect("temporal instant Type checks");
+    catalog
+        .insert_structured_type("TemporalInstant", temporal_instant.clone())
+        .expect("temporal instant Type installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
     )
     .expect("data semantic Types must check");
-    let generated = generate_rust_bindings_with_codes(
+    let temporal_identity = match temporal_instant.shape() {
+        conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
+            schema,
+            ..
+        } => schema.as_str().to_owned(),
+        _ => panic!("temporal instant has one named record identity"),
+    };
+    let generated = generate_rust_bindings_with_codes_and_external_bindings(
         &checked.native_types,
         &checked.codes,
+        &[temporal_instant],
+        &[ExternalNativeRustBinding {
+            semantic_identity: &temporal_identity,
+            rust_type_path: "conduit_time::NativeTemporalInstant",
+        }],
         &RustBindingOptions {
             boxed_variant_payloads: ["TabularQueryOutcomeFour.inline".into()].into(),
             copy_record_types: [
@@ -42,6 +62,7 @@ fn main() {
                 "MeasurementHysteresisProfile".into(),
                 "MeasurementPlotProfile".into(),
                 "MeasurementRange".into(),
+                "MeasurementSample".into(),
             ]
             .into(),
             record_constructor_names: [("DataGenerationNamespace".into(), "from_digest".into())]

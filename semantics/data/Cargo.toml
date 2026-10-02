@@ -10,6 +10,7 @@ kernel-step = ["dep:conduit-kernel"]
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form" }
+conduit-time = { path = "../time", default-features = false }
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc", "step-test-support"] }
 
 [dev-dependencies]
@@ -17,3 +18,4 @@ conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fi
 
 [build-dependencies]
 conduit-form = { path = "../../architecture/form" }
+conduit-time = { path = "../time", default-features = false }

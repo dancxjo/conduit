@@ -182,7 +182,9 @@ fn window_value() -> Vec<u8> {
                     clock_basis: "fixture-clock".into(),
                     resolution_ticks: 1,
                     uncertainty_ticks: 0,
-                },
+                }
+                .try_into()
+                .unwrap(),
                 uncertainty: None,
             })
             .unwrap();

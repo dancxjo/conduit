@@ -105,7 +105,9 @@ pub fn deterministic_little_seismograph_inputs() -> (
                 clock_basis: "fixture-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
+            }
+            .try_into()
+            .expect("fixture instant is valid"),
             uncertainty: None,
         })
         .collect();
