@@ -1,12 +1,14 @@
 //! Grounded answer assembly from one admitted context and ordinary LLM result.
 
 use crate::{
-    llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, GroundedAnswerPolicy,
-    GroundedAnswerRefusal, GroundingInputAssessment, ModelDerivedResult, ModelResultDisposition,
+    llm_contract, AnswerClaimSupport, AnswerSpan, Citation, CitationIndices,
+    GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedClaimSupport,
+    GroundingInputAssessment, GroundingLimitation, ModelDerivedResult, ModelResultDisposition,
     ModelResultProvenance, RetrievalIntent, StructuredContext, LLM_GENERATE_KIND,
     MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
 };
 use alloc::{string::String, vec::Vec};
+use conduit_form::rust_binding::BoundedSequence;
 
 pub const MAXIMUM_GROUNDED_ANSWER_WORK_UNITS: u64 = 1_000_000;
 
@@ -27,18 +29,6 @@ pub enum ProposedClaimSupport {
 pub struct ProposedGroundedClaim {
     pub answer_span: AnswerSpan,
     pub support: ProposedClaimSupport,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GroundedClaimSupport {
-    Supported { citation_indices: Vec<u16> },
-    Unsupported { rationale: String },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AnswerClaimSupport {
-    pub answer_span: AnswerSpan,
-    pub support: GroundedClaimSupport,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -128,22 +118,29 @@ impl GroundedAnswerPolicy {
                         }
                         indices.push(index);
                     }
-                    GroundedClaimSupport::Supported {
-                        citation_indices: indices,
-                    }
+                    GroundedClaimSupport::supported(
+                        CitationIndices::new(
+                            BoundedSequence::try_from_iter(indices)
+                                .expect("grounding policy admits at most 128 citations"),
+                        )
+                        .expect("supported claims always contain citations"),
+                    )
+                    .expect("checked citation indices make valid support")
                 }
                 ProposedClaimSupport::Unsupported { rationale } => {
                     validate_limitation(rationale)?;
                     unsupported = true;
-                    GroundedClaimSupport::Unsupported {
-                        rationale: rationale.clone(),
-                    }
+                    GroundedClaimSupport::unsupported(
+                        GroundingLimitation::new(rationale.clone())
+                            .expect("validated rationale is a grounding limitation"),
+                    )
+                    .expect("checked limitation makes valid unsupported support")
                 }
             };
-            claims.push(AnswerClaimSupport {
-                answer_span: proposed.answer_span,
-                support,
-            });
+            claims.push(
+                AnswerClaimSupport::new(proposed.answer_span, support)
+                    .expect("checked span and support make valid claim support"),
+            );
         }
         let (disposition, limitations) = match assessment {
             GroundingInputAssessment::Sufficient => (

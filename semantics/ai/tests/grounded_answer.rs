@@ -273,8 +273,8 @@ fn unsupported_claims_and_evidence_dispositions_remain_explicit() {
         GroundedAnswerDisposition::PartiallySupported
     );
     assert!(matches!(
-        partial.claims[1].support,
-        GroundedClaimSupport::Unsupported { .. }
+        partial.claims[1].support(),
+        GroundedClaimSupport::Unsupported(_)
     ));
 
     for (assessment, expected) in [

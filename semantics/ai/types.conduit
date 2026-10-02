@@ -395,6 +395,19 @@ type GroundingInputAssessment =
         limitation: GroundingLimitation
     }
 
+type GroundedClaimSupport =
+    supported {
+        citation_indices: CitationIndices
+    }
+    | unsupported {
+        rationale: GroundingLimitation
+    }
+
+type AnswerClaimSupport = {
+    answer_span: AnswerSpan
+    support: GroundedClaimSupport
+}
+
 type RetrievalScore = {
     value_micros: I64
 }

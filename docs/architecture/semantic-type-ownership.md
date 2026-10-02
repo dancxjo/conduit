@@ -387,6 +387,7 @@ are satisfied.
 | AI temporal retrieval intent | `semantics/ai/types.conduit` | generated at build time with the established Serde boundary | yes | yes | native payload-rich meaning owns earliest/latest/state/transition/boundary/ordering/window intent and the non-reversed query-window law; temporal selection remains behavioral Rust |
 | AI RAG retrieval intent | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns the bounded nonempty identity, one-to-eight semantic/exact/metadata/temporal/boundary modes and positive 1–1,024 candidate ceiling; Rust retains duplicate-mode and nested temporal validation |
 | AI grounding input assessment | `semantics/ai/types.conduit` | generated at build time | yes | yes | native payload-rich meaning owns sufficient, insufficient and conflicting evidence assessments plus nonempty limitation text bounded to 2,048 bytes; answer assembly remains behavioral Rust |
+| AI grounded answer claim support | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns supported citation indices versus unsupported bounded rationale and composes either with an exact answer span; citation resolution and answer assembly remain behavioral Rust |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a
