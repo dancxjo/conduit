@@ -54,6 +54,7 @@ fn main() {
             copy_record_types: [
                 "CompatibleMetrics".into(),
                 "IntegrationAccuracy".into(),
+                "IntegrationResourceEnvelope".into(),
                 "GeneratedTextFlowEvidence".into(),
                 "LlmWorkBounds".into(),
                 "ModelWorkAccounting".into(),
@@ -63,6 +64,7 @@ fn main() {
             .into(),
             copy_record_value_getters: [
                 "IntegrationAccuracy".into(),
+                "IntegrationResourceEnvelope".into(),
                 "LlmWorkBounds".into(),
                 "SourceExtractionLimits".into(),
             ]
@@ -129,6 +131,19 @@ fn main() {
                         "absolute-tolerance-millionths".into(),
                         "relative-tolerance-millionths".into(),
                         "maximum-estimated-error-millionths".into(),
+                    ],
+                ),
+                (
+                    "IntegrationResourceEnvelope".into(),
+                    vec![
+                        "maximum_state_bytes".into(),
+                        "maximum_context_bytes".into(),
+                        "maximum_output_samples".into(),
+                        "maximum_output_bytes".into(),
+                        "maximum_internal_steps".into(),
+                        "maximum_function_evaluations".into(),
+                        "maximum_work_units".into(),
+                        "memory_ceiling_bytes".into(),
                     ],
                 ),
                 (

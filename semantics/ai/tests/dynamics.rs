@@ -59,16 +59,8 @@ fn contract() -> IntegrateContract {
             relative_tolerance_millionths: 10,
             maximum_estimated_error_millionths: 1_000,
         },
-        resources: IntegrationResourceEnvelope {
-            maximum_state_bytes: 128,
-            maximum_context_bytes: 128,
-            maximum_output_samples: 8,
-            maximum_output_bytes: 512,
-            maximum_internal_steps: 128,
-            maximum_function_evaluations: 512,
-            maximum_work_units: 2_048,
-            memory_ceiling_bytes: 16_384,
-        },
+        resources: IntegrationResourceEnvelope::new(128, 128, 8, 512, 128, 512, 2_048, 16_384)
+            .unwrap(),
     }
 }
 
@@ -221,7 +213,7 @@ fn work_exhaustion_cancellation_and_failures_never_commit_state() {
     }
 
     let mut overrun = candidate("adaptive-rk", 20);
-    overrun.function_evaluations = contract.resources.maximum_function_evaluations + 1;
+    overrun.function_evaluations = contract.resources.maximum_function_evaluations() + 1;
     assert_eq!(
         contract.realize(
             &request,
@@ -278,7 +270,5 @@ fn exact_grid_stale_state_resource_bounds_and_unsupported_sde_refuse() {
         Err(DynamicsRefusal::UnsupportedStochasticProfile)
     );
 
-    let mut unbounded = contract;
-    unbounded.resources.maximum_internal_steps = 0;
-    assert_eq!(unbounded.validate(), Err(DynamicsRefusal::InvalidResources));
+    assert!(IntegrationResourceEnvelope::new(128, 128, 8, 512, 0, 512, 2_048, 16_384).is_err());
 }
