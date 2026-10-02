@@ -132,7 +132,8 @@ jobs:
           name: diagnostics-${{ matrix.id }}
           path: |
             proof/browser/test-results/
-            target/conduitos/live/
+            target/conduitos/**/*.log
+            target/conduitos/**/*.json
           if-no-files-found: ignore
           retention-days: 7
   complete:
