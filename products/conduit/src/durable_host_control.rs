@@ -41,6 +41,10 @@ pub(crate) struct DurableHostRuntime {
 }
 
 impl DurableHostRuntime {
+    pub(crate) fn into_owner_host(self) -> StdHost {
+        self.host
+    }
+
     pub(crate) fn new(target_id: String, image_content_digest: String, host: StdHost) -> Self {
         Self {
             target_id,
