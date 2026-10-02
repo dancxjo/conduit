@@ -1,4 +1,8 @@
-//! Finite host-neutral partition and directed boundary truth.
+//! Finite host-neutral partition realization and directed boundary truth.
+//!
+//! Conduitese owns the portable region and partition values. The state below
+//! tracks one admitted execution generation, including exchanged boundary
+//! truth, and therefore remains bounded runtime machinery.
 
 use alloc::vec;
 use alloc::vec::Vec;

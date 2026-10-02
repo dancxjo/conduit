@@ -1,4 +1,8 @@
 //! Fixed bounded Lenia region chunks carried as ordinary session payloads.
+//!
+//! Chunk headers, borrowed views, assembly state and their refusals are the
+//! explicit transfer protocol (W). Portable Lenia meaning remains in
+//! `types.conduit`; these declarations do not define a second semantic family.
 
 use crate::{
     LeniaFieldId, LeniaRegion, LeniaRegionChunkKind, LeniaRegionChunkKindCode, LeniaRegionId,
