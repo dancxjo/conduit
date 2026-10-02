@@ -1,4 +1,8 @@
-//! Bounded relation of typed visual observations from one exact image generation.
+//! Bounded assembly state for one visual experience.
+//!
+//! Presentation Conduitese owns the portable observation, relation and complete
+//! experience values. This module validates and accumulates Human construction
+//! views before the Catalog bridge creates those native values (class C/M).
 
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{KindId, SignId};

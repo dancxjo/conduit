@@ -1,4 +1,8 @@
 //! Bounded, versioned interchange encoding for image-and-text records.
+//!
+//! The record and its semantic refusal are native Human Types. The byte layout,
+//! cursor and `ImageTextCodecRefusal` belong only to the explicit carrier
+//! boundary (class W).
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{BoundedResourceRef, KindId, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES};

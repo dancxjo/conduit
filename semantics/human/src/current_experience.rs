@@ -1,4 +1,10 @@
-//! Portable, bounded semantic relation of a body's current experience.
+//! Bounded current-experience state machinery.
+//!
+//! Portable Fore inputs and projections are the native `Experience*Input`,
+//! `ExperienceSourceStatus`, and `CurrentExperienceProjection` Types. The
+//! records here retain admitted core identities, encoded values, indexes and
+//! relationship state while that projection evolves; they never define a
+//! separate Fore payload or wire contract (class M).
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{
