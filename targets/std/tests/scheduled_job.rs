@@ -1,8 +1,8 @@
 #![cfg(unix)]
 
 use conduit_core::{
-    kind_id, AuthorityContractId, BootId, BoundedResourceRef, HostId, ResourceClassId,
-    ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
+    kind_id, AuthorityContractId, BoundedResourceRef, ResourceClassId, ResourceExtent,
+    ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_semantic_catalog::{
     ready_job_request, JobArguments, JobEnvironment, JobExecutable, JobLifecycleEvent,
@@ -21,15 +21,15 @@ mod job_support;
 #[test]
 fn ready_elapsed_occurrence_executes_only_through_separate_job_authority() {
     let clock = MonotonicClockIdentity::new(
-        HostId::from("host/scheduled-job"),
-        BootId::from("boot/scheduled-job"),
         "std/monotonic@1".into(),
-        TemporalScale::Milliseconds,
+        "boot/scheduled-job".into(),
+        "host/scheduled-job".into(),
         1,
+        TemporalScale::Milliseconds,
         0,
     )
     .unwrap();
-    let opens = MonotonicInstant::new(100, clock.clone()).unwrap();
+    let opens = MonotonicInstant::new(clock.clone(), 100).unwrap();
     let request = request();
     let scheduled = ScheduledIntent {
         identity: "scheduled/job/printf#0".into(),
@@ -37,32 +37,28 @@ fn ready_elapsed_occurrence_executes_only_through_separate_job_authority() {
             identity: "recurrence/job/occurrence/0".into(),
             recurrence_identity: "recurrence/job".into(),
             ordinal: 0,
-            at: OccurrenceInstant::Monotonic(opens.clone()),
+            at: OccurrenceInstant::monotonic(opens.clone()).unwrap(),
         },
-        trigger: TriggerProfile::Elapsed(
+        trigger: TriggerProfile::elapsed(
             conduit_time::elapsed_trigger_window(
                 opens,
-                MonotonicDuration::new(10, TemporalScale::Milliseconds),
+                MonotonicDuration::new(10, TemporalScale::Milliseconds).unwrap(),
                 SuspendBehavior::ClockIncludesSuspend,
             )
             .unwrap(),
-        ),
+        )
+        .unwrap(),
         missed: MissedOccurrencePolicy::Expire,
         payload: request,
     };
     let decision = scheduled
         .decide(
-            &TriggerObservation::Elapsed {
-                now: MonotonicInstant::new(102, clock).unwrap(),
-                suspend_observed: false,
-            },
+            &TriggerObservation::elapsed(MonotonicInstant::new(clock, 102).unwrap(), false)
+                .unwrap(),
             false,
         )
         .unwrap();
-    assert_eq!(
-        decision,
-        ScheduledOccurrenceDecision::Ready { lateness_ticks: 2 }
-    );
+    assert_eq!(decision, ScheduledOccurrenceDecision::ready(2).unwrap());
     let request = ready_job_request(&scheduled, decision).unwrap();
 
     let placement = job_support::planned_job(request);

@@ -5,6 +5,6 @@ plot text-lab {
     presentation: presentation/text
 
     keyboard.key >> keymap.key
-    keymap.text >> uppercase.text
+    keymap.text >> uppercase.source
     uppercase.text >> presentation.text
 }

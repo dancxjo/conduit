@@ -53,6 +53,7 @@ try {
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
       run('cargo', ['fmt', '--all', '--check']);
       run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true);
+      run('cargo', ['xtask', 'ci', 'standalone-locks', '--locked']);
       const specs = readdirSync('proof/ci').filter(name => name.startsWith('pipeline-') && name.endsWith('.spec.mjs')).map(name => `proof/ci/${name}`);
       run('node', ['--test', ...specs]);
       // Syntax validation is required in CI, not a silently optional dependency.

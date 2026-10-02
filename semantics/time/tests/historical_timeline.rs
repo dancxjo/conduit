@@ -295,3 +295,39 @@ fn typed_history_is_an_ordinary_checked_plot_with_explicit_policy() {
     assert_eq!(history.kind_id.as_str(), HISTORICAL_TIMELINE_KIND);
     assert_eq!(history.configuration.len(), 7);
 }
+
+#[test]
+fn invalid_native_time_cannot_evict_retained_history() {
+    let mut history = timeline(1, 8, HistoricalOverflowPolicy::EvictOldestWithGap);
+    history
+        .append(
+            "retained".into(),
+            time(1),
+            HistoricalEntryOrigin::MachineObservation,
+            value(1, 8, "observation/temperature@1"),
+        )
+        .unwrap();
+    let mut invalid = time(2);
+    invalid.resolution_ticks = 0;
+    assert_eq!(
+        history.append(
+            "invalid".into(),
+            invalid,
+            HistoricalEntryOrigin::MachineObservation,
+            value(2, 8, "observation/temperature@1"),
+        ),
+        Err(HistoricalTimelineRefusal::InvalidEventTime)
+    );
+    assert_eq!(history.entry(0).unwrap().identity, "retained");
+    assert_eq!(history.referenced_bytes(), 8);
+    assert!(history.retention_gap().is_none());
+    assert_eq!(
+        history.append(
+            "next".into(),
+            time(3),
+            HistoricalEntryOrigin::MachineObservation,
+            value(3, 8, "observation/temperature@1"),
+        ),
+        Ok(11)
+    );
+}

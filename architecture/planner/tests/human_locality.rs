@@ -28,7 +28,7 @@ fn plot() -> conduit_plot::CheckedPlot {
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     conduit_plot::parse(
-        "plot text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key >> keymap.key\n keymap.text >> uppercase.text\n uppercase.text >> presentation.text\n}\n",
+        "plot text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key >> keymap.key\n keymap.text >> uppercase.source\n uppercase.text >> presentation.text\n}\n",
         &profile,
     )
     .expect("the unchanged text-lab Plot checks")

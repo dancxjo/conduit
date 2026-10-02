@@ -2,7 +2,10 @@
 
 #[cfg(test)]
 mod tests {
-    use conduit_ai::{TemporalEvidenceSelection, TemporalRetrievalIntent};
+    use conduit_ai::{
+        TemporalEvidenceIdentities, TemporalEvidenceIdentity, TemporalEvidenceSelection,
+        TemporalRetrievalIntent,
+    };
     use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, BodyWorkset};
     use conduit_composite::{
         KernelCompositeBoundary, KernelCompositeDefinition, KernelCompositeFrontBinding,
@@ -28,6 +31,7 @@ mod tests {
         HOMEOSTASIS_IMPLEMENTATION, HOMEOSTASIS_POLICY_REVISION, HOMEOSTATIC_STATE_KIND,
     };
     use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
+    use conduit_plot::rust_binding::BoundedSequence;
     use conduit_plot::{CompositeFrontTerminal, ExpandedAuthoringPlot};
     use conduit_presentation::{
         Presentation, PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel,
@@ -171,9 +175,17 @@ mod tests {
             .unwrap();
         assert_eq!(
             selected,
-            TemporalEvidenceSelection::Selected {
-                identities: vec!["experience/pete/episode-a/resistor-change".into()]
-            }
+            TemporalEvidenceSelection::selected(
+                TemporalEvidenceIdentities::new(
+                    BoundedSequence::try_from_iter([TemporalEvidenceIdentity::new(
+                        "experience/pete/episode-a/resistor-change".into(),
+                    )
+                    .unwrap(),])
+                    .unwrap(),
+                )
+                .unwrap(),
+            )
+            .unwrap()
         );
         let retained = memory.records(true).unwrap();
         assert_eq!(retained[0].candidate.provenance[0].event_at_millis, 1_000);

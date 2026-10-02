@@ -48,9 +48,34 @@ pub fn install_normalized_quantity_catalog(
         kind: NORMALIZED_QUANTITY_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: NORMALIZED_RATIO_KIND.into(),
+        startup_parameters: Vec::new(),
+    })?;
+    profile
+        .insert_kind(normalized_ratio_semantic_contract())
+        .map_err(|error| alloc::format!("{error}"))?;
     profile
         .insert_kind(normalized_quantity_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))
+}
+
+/// Convert the exact Ratio leaf emitted by normalized input surfaces.
+pub const NORMALIZED_RATIO_KIND: &str = "math/normalized-ratio-scalar";
+pub const NORMALIZED_RATIO_REVISION: &str = "conduit.std/normalized-ratio-scalar@1";
+
+pub fn normalized_ratio_semantic_contract() -> Kind {
+    let mut contract = normalized_quantity_semantic_contract();
+    contract.kind_id = conduit_core::kind_id(NORMALIZED_RATIO_KIND);
+    contract.kind_contract_revision = NORMALIZED_RATIO_REVISION.into();
+    contract.inputs[0].value_kind =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::RATIO_INFO_ID))
+            .expect("canonical Ratio leaf")
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone();
+    contract
 }
 
 /// The canonical leaf envelope is admitted once, before execution.
@@ -69,6 +94,22 @@ impl PreparedNormalizedQuantity {
         Self {
             prefix: crate::quantity_info_prefix(),
         }
+    }
+
+    pub fn ratio() -> Self {
+        let quantity = Quantity::new(0, QuantityUnit::Millionth).encode();
+        let mut prefix = conduit_core::StructuredInfoValue::leaf(
+            conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                conduit_core::RATIO_INFO_ID,
+            ))
+            .expect("canonical Ratio leaf"),
+            quantity.to_vec(),
+        )
+        .expect("valid Ratio")
+        .canonical_bytes()
+        .expect("bounded Ratio envelope");
+        prefix.truncate(prefix.len() - QUANTITY_ENCODED_LEN);
+        Self { prefix }
     }
 
     /// Prefix equality checks the exact canonical type, shape and leaf length.
@@ -105,6 +146,54 @@ mod tests {
         .unwrap()
         .canonical_bytes()
         .unwrap()
+    }
+
+    #[test]
+    fn normalized_ratio_preserves_bounds_and_refuses_quantity_identity() {
+        let converter = PreparedNormalizedQuantity::ratio();
+        let ratio = |value, unit| {
+            StructuredInfoValue::leaf(
+                conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                    conduit_core::RATIO_INFO_ID,
+                ))
+                .unwrap(),
+                Quantity::new(value, unit).encode().to_vec(),
+            )
+            .unwrap()
+            .canonical_bytes()
+            .unwrap()
+        };
+        for value in [0, 1, 250_000, 999_999, 1_000_000] {
+            assert_eq!(
+                converter.convert(&ratio(value, QuantityUnit::Millionth)),
+                Ok(Scalar::from_raw_microunits(value))
+            );
+        }
+        for value in [-1, 1_000_001] {
+            assert_eq!(
+                converter.convert(&ratio(value, QuantityUnit::Millionth)),
+                Err(NormalizedQuantityRefusal::OutOfDomain)
+            );
+        }
+        assert_eq!(
+            converter.convert(&ratio(1, QuantityUnit::Percent)),
+            Err(NormalizedQuantityRefusal::IncompatibleUnit)
+        );
+        assert_eq!(
+            converter.convert(&leaf(250_000, QuantityUnit::Millionth)),
+            Err(NormalizedQuantityRefusal::MalformedOrWrongType)
+        );
+        assert_eq!(
+            PreparedNormalizedQuantity::new().convert(&ratio(250_000, QuantityUnit::Millionth)),
+            Err(NormalizedQuantityRefusal::MalformedOrWrongType)
+        );
+        let bytes = ratio(250_000, QuantityUnit::Millionth);
+        for length in 0..bytes.len() {
+            assert_eq!(
+                converter.convert(&bytes[..length]),
+                Err(NormalizedQuantityRefusal::MalformedOrWrongType)
+            );
+        }
     }
 
     #[test]

@@ -7,7 +7,8 @@ through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 ## Candidate
 
 The pipeline scans the diff, checks patch hygiene, Rust formatting, locked
-workspace metadata, artifact/publication invariants, and Actions syntax. Three
+workspace metadata and firmware lockfiles, artifact/publication invariants, and
+Actions syntax. Three
 broad unit shards cover foundation, hosts, and products; workspace Clippy runs
 alongside them. These use the repository's existing package ownership list.
 Expensive targets start only after every unit and lint shard passes.
@@ -18,7 +19,9 @@ Selection is deliberately small and conservative:
 | --- | --- |
 | Prose documentation only | Preflight |
 | Browser, browser proof, site | Browser |
-| A target directory | Its family |
+| Isolated target firmware | Its family |
+| Hosted source | Hosted and browser |
+| Shared target runtime, offers, or make libraries | All |
 | ConduitOS | ConduitOS and Orange Pi |
 | Shared code, manifests, tools, workflows, unknown paths | All |
 
@@ -73,7 +76,10 @@ misrepresented as the original tested commit.
 The publisher packages the verified products as GitHub Release assets. It does
 not run unit tests, rebuild products, or start another CI campaign. A rerun
 validates existing publication before resuming; it never silently replaces a
-published asset. GitHub retains the complete run and check identities.
+published asset. Publication creates and verifies the exact release tag before
+creating a release, so a later workflow change on dev does not require granting
+the publisher permission to edit workflows. GitHub retains the complete run and
+check identities.
 
 This software release path does not regenerate documentary journeys or replace
 the existing `gh-pages` site. That separately retained evidence must not be
@@ -86,8 +92,10 @@ The workflows are `candidate.yml`, `integration.yml`, `publish.yml`, and the
 shared `ci.yml`. There are no approval monitors, scheduled reconcilers, dead-man
 pollers, artifact retry wrappers, or controller-to-controller wake-ups.
 Publication uses one concurrency group and repository branch protection remains
-in force. Required PR status is `candidate`; configure it after installing the
-workflow. The repository must allow Actions to create pull requests.
+in force. Development requires `candidate`; main requires `release-verification`
+after complete artifact verification. Both required statuses are bound to the
+GitHub Actions app. Main force pushes are disabled. The repository allows
+Actions to create pull requests.
 
 ```sh
 cargo xtask ci pipeline setup-ci

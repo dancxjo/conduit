@@ -77,6 +77,7 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::quantity::MAP,
     &crate::installed_browser::quantity::DISTANCE,
     &crate::installed_browser::normalized_quantity::NORMALIZE,
+    &crate::installed_browser::normalized_quantity::NORMALIZE_RATIO,
     &crate::installed_browser::pointer::POINTER,
     &crate::installed_browser::pointer_selector::POSITION,
     &crate::installed_browser::pointer_selector::X,

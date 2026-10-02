@@ -95,7 +95,7 @@ fn fragment(interactive: bool) -> PlanFragment {
         "garden-state-step"
     };
     let source = format!(
-        "{}\nform garden-kernel-proof {{\n source: {}\n evolve: {}\n result: {}\n source.prior >> evolve.prior\n source.clock >> evolve.clock\n{} evolve.next >> result.state\n}}\n",
+        "{}\nplot garden-kernel-proof {{\n source: {}\n evolve: {}\n result: {}\n source.prior >> evolve.prior\n source.clock >> evolve.clock\n{} evolve.next >> result.state\n}}\n",
         include_str!("../../../../../plots/signal-garden/main.conduit"),
         SOURCE_KIND,
         evolve_plot,

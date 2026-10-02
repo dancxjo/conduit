@@ -24,7 +24,7 @@ jobs:
       matrix: ${{ steps.scan.outputs.matrix }}
       docs-only: ${{ steps.scan.outputs.docs-only }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.sha }}
           fetch-depth: 0
@@ -32,7 +32,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rustfmt,clippy
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
       - name: Install CI validation tools
@@ -58,14 +58,14 @@ jobs:
       matrix:
         shard: [foundation, hosts, products, lint]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.sha }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: clippy
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
       - uses: Swatinem/rust-cache@v2
@@ -91,14 +91,14 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.sha }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src,llvm-tools-preview
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
       - uses: Swatinem/rust-cache@v2
@@ -118,7 +118,7 @@ jobs:
         env:
           TARGET: ${{ matrix.id }}
         run: tar -cf "target/$TARGET.tar" -C target/pipeline "$TARGET"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: product-${{ matrix.id }}
           path: target/${{ matrix.id }}.tar
@@ -126,7 +126,7 @@ jobs:
           retention-days: 14
       - name: Retain failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: diagnostics-${{ matrix.id }}
           path: |

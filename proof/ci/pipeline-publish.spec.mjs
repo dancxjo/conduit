@@ -30,6 +30,7 @@ async function fixture(t) {
       event: 'push', head_branch: 'dev', path: '.github/workflows/integration.yml',
       status: 'completed', conclusion: 'success', head_sha: source },
     head: source, main: previous, acceptedTree: tree, ancestor: true,
+    dev: '9'.repeat(40), devContainsSource: true,
     open: [], own: [], refs: [], releases: [], assets: [], calls: [], uploads: 0,
   };
   const response = value => ({ status: 0, stdout: typeof value === 'string' ? value : JSON.stringify(value), stderr: '' });
@@ -46,6 +47,7 @@ async function fixture(t) {
         if (state.failUpload === state.uploads) return { status: 1, stderr: 'simulated upload failure' };
         copyFileSync(args[3], path.join(storage, name));
         state.assets.push({ name, id: state.assets.length + 1 });
+        if (state.moveTagDuringUpload) state.tagSha = previous;
       } else {
         copyFileSync(path.join(storage, name), path.join(args[args.indexOf('--dir') + 1], name));
       }
@@ -61,6 +63,11 @@ async function fixture(t) {
     else if (endpoint === `git/commits/${accepted}`) result = state.mainCommit ?? { tree: { sha: state.acceptedTree } };
     else if (endpoint === `git/commits/${previous}`) result = { tree: { sha: tree }, parents: [] };
     else if (endpoint === `git/commits/${'f'.repeat(40)}`) result = { tree: { sha: state.priorSourceTree } };
+    else if (endpoint === 'git/ref/heads/dev') result = { object: { sha: state.dev } };
+    else if (endpoint === `compare/${source}...${state.dev}`) {
+      result = { status: state.devContainsSource ? 'ahead' : 'diverged',
+        merge_base_commit: { sha: state.devContainsSource ? source : previous } };
+    }
     else if (endpoint === 'git/ref/heads/main') result = { object: { sha: state.main } };
     else if (endpoint.startsWith('compare/')) {
       const ancestor = endpoint.slice('compare/'.length).split('...')[0];
@@ -69,13 +76,23 @@ async function fixture(t) {
     } else if (endpoint.startsWith('pulls?state=open')) result = state.open;
     else if (endpoint.startsWith('pulls?state=all')) result = state.own;
     else if (endpoint.startsWith('git/matching-refs/heads/')) result = state.refs;
-    else if (endpoint.startsWith('git/matching-refs/tags/')) result = [];
+    else if (endpoint.startsWith('git/matching-refs/tags/')) result = state.tagSha ? [{ ref: `refs/tags/release-${source}`, object: { sha: state.tagSha } }] : [];
     else if (endpoint === 'git/refs' && method === 'POST') {
       result = { ref: fields.ref, object: { sha: fields.sha } };
-      state.refs.push(result);
+      if (fields.ref.startsWith('refs/tags/')) {
+        if (state.failTagCreation) return { status: 1, stderr: 'simulated tag authorization failure' };
+        assert.equal(fields.sha, accepted);
+        state.tagSha = fields.sha;
+      } else state.refs.push(result);
     } else if (endpoint === 'pulls' && method === 'POST') {
       result = { number: 9, state: 'open', head: { sha: source, repo: { full_name: repository }, ref: fields.head } };
       state.own.push(result);
+    } else if (endpoint === `statuses/${source}` && method === 'POST') {
+      if (state.failStatus) return { status: 1, stderr: 'simulated status failure' };
+      assert.equal(fields.state, 'success');
+      assert.equal(fields.context, 'release-verification');
+      assert.equal(fields.target_url, `https://github.com/${repository}/actions/runs/123`);
+      result = fields;
     } else if (endpoint === 'pulls/9/merge' && method === 'PUT') {
       assert.equal(fields.sha, source);
       assert.equal(fields.merge_method, 'merge');
@@ -85,9 +102,10 @@ async function fixture(t) {
       result = { merged: true, sha: accepted };
     } else if (endpoint === 'releases?per_page=100') result = state.releases;
     else if (endpoint === 'releases' && method === 'POST') {
-      assert.equal(fields.target_commitish, accepted);
+      assert.equal(state.tagSha, accepted, 'exact accepted tag must precede release creation');
+      assert.equal(fields.target_commitish, undefined, 'existing tag owns identity without historical target_commitish');
       assert.equal(fields.draft, 'true');
-      result = { id: 7, tag_name: fields.tag_name, target_commitish: fields.target_commitish, draft: true, prerelease: false };
+      result = { id: 7, tag_name: fields.tag_name, target_commitish: 'dev', draft: true, prerelease: false };
       state.releases.push(result);
     } else if (endpoint === 'releases/7/assets?per_page=100') result = state.assets;
     else if (endpoint === 'releases/7' && method === 'PATCH') {
@@ -114,6 +132,10 @@ test('promotes a release PR and publishes verified artifacts with separate sourc
   assert.equal(result.treeSha, tree);
   assert.equal(f.state.releases[0].draft, false);
   assert.equal(f.state.uploads, 2);
+  const statusIndex = f.state.calls.findIndex(call => call[2] === `repos/${repository}/statuses/${source}`);
+  const mergeIndex = f.state.calls.findIndex(call => call[2] === `repos/${repository}/pulls/9/merge`);
+  assert.ok(statusIndex > 0);
+  assert.equal(mergeIndex, statusIndex + 1, 'exact-source status must succeed immediately before guarded merge');
   const manifest = JSON.parse(await readFile(path.join(f.storage, 'manifest.json'), 'utf8'));
   assert.equal(manifest.testedSourceSha, source);
   assert.equal(manifest.acceptedMainSha, accepted);
@@ -135,6 +157,7 @@ for (const [name, mutate] of [
   ['fork source', s => { s.integration.head_repository.full_name = 'other/conduit'; }],
   ['wrong checkout', s => { s.head = previous; }],
   ['diverged main', s => { s.ancestor = false; }],
+  ['source removed from dev', s => { s.devContainsSource = false; }],
   ['another release', s => { s.open = [{ head: { ref: 'release/another' } }]; }],
   ['open synchronization', s => { s.open = [{ head: { ref: 'sync/another' } }]; }],
 ]) {
@@ -219,4 +242,40 @@ test('main-only content in a previous release merge blocks the next promotion', 
   f.state.mainCommit = { tree: { sha: tree }, parents: [{ sha: previous }, { sha: 'f'.repeat(40) }] };
   await assert.rejects(f.publish(), /tree differs/);
   assert.equal(mutations(f.state).length, 0);
+});
+
+
+test('failed commit status prevents the release PR merge and publication', async t => {
+  const f = await fixture(t);
+  f.state.failStatus = true;
+  await assert.rejects(f.publish(), /status failure/);
+  assert.equal(f.state.main, previous);
+  assert.ok(!f.state.calls.some(call => call[2]?.endsWith('/merge')));
+  assert.equal(f.state.uploads, 0);
+  assert.equal(f.state.releases.length, 0);
+});
+
+
+test('tag authorization failure leaves main accepted but creates no release or assets', async t => {
+  const f = await fixture(t);
+  f.state.failTagCreation = true;
+  await assert.rejects(f.publish(), /tag authorization failure/);
+  assert.equal(f.state.main, accepted);
+  assert.equal(f.state.releases.length, 0);
+  assert.equal(f.state.uploads, 0);
+});
+
+test('pre-existing wrong tag is never replaced', async t => {
+  const f = await fixture(t);
+  f.state.tagSha = previous;
+  await assert.rejects(f.publish(), /tag has moved/);
+  assert.equal(f.state.tagSha, previous);
+  assert.equal(f.state.releases.length, 0);
+});
+
+test('tag movement while assets upload prevents publishing the draft', async t => {
+  const f = await fixture(t);
+  f.state.moveTagDuringUpload = true;
+  await assert.rejects(f.publish(), /tag changed before publication/);
+  assert.equal(f.state.releases[0].draft, true);
 });

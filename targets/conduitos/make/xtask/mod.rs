@@ -66,6 +66,7 @@ mod orange_pi_5_image;
 mod orange_pi_5_media;
 mod pc_speaker_proof;
 mod prepared_proof_image;
+mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
 mod prove;

@@ -22,15 +22,15 @@ plot pocket-theremin (
 # surface to the canonical Plot and selects browser audio playback.
 plot phone-two-axis-controller {
     controller: input/pointer-source
-    x-normalize: math/normalized-quantity-scalar
-    y-normalize: math/normalized-quantity-scalar
+    x-normalize: math/normalized-ratio-scalar
+    y-normalize: math/normalized-ratio-scalar
     pitch-distance: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = "cm", range-policy = "clamp", quantization = "nearest")
     cadence: time/every(freq = 40ms)
     instrument: pocket-theremin
     play: audio/play
 
-    controller.pointer >> project(PointerEvent.position) >> project(Point2.x) >> x-normalize.in
-    controller.pointer >> project(PointerEvent.position) >> project(Point2.y) >> y-normalize.in
+    controller.pointer >> project(PointerEvent.position) >> project(InputSurfacePoint.x) >> x-normalize.in
+    controller.pointer >> project(PointerEvent.position) >> project(InputSurfacePoint.y) >> y-normalize.in
     x-normalize.out >> pitch-distance.in
     pitch-distance.out >> instrument.pitch-distance
     y-normalize.out >> instrument.volume

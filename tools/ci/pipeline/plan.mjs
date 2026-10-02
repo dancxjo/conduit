@@ -17,8 +17,12 @@ function familiesFor(path) {
   if (/(^|\/)(Cargo\.(toml|lock)|package(-lock)?\.json|rust-toolchain(\.toml)?)$/.test(path)) {
     return FAMILIES;
   }
+  // These target subtrees are libraries consumed across target families.
+  // Keep this conservative rather than reconstructing Cargo's dependency graph.
+  if (/^targets\/[^/]+\/(runtime|offers|make|network-realization)\//.test(path)) return FAMILIES;
   if (/^(targets\/browser|proof\/browser|site)\//.test(path)) return ["browser"];
-  if (path.startsWith("targets/std/")) return ["hosted"];
+  // The browser lane executes hosted admission and WebChat helper binaries.
+  if (path.startsWith("targets/std/")) return ["browser", "hosted"];
   // Orange Pi media uses the shared ConduitOS implementation.
   if (path.startsWith("targets/conduitos/")) return ["conduitos", "orange-pi"];
   for (const family of ["esp32", "avr", "raspberry-pi", "orange-pi", "rp2040"]) {

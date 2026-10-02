@@ -23,6 +23,16 @@ fn main() {
         &checked.type_forms,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            // Core clock adaptation moves owned strings into checked native
+            // fields without materializing a structured graph during play.
+            direct_checked_record_constructors: ["TemporalInstant".into()].into(),
+            // Resource references have finite inline storage. Keep commands and
+            // outcomes inline rather than adding a per-operation box allocation.
+            inline_variant_types: [
+                "HistoricalTimelineCommand".into(),
+                "HistoricalTimelineOutcome".into(),
+            ]
+            .into(),
             serde_variant_exclusions: [
                 "HistoricalTimelineCommand".into(),
                 "HistoricalTimelineOutcome".into(),

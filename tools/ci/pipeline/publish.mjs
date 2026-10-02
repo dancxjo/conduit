@@ -72,6 +72,9 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
     const checkout = run('git', ['rev-parse', 'HEAD']);
     const integration = api(`${base}/actions/runs/${runId}`);
     const source = validateIntegrationRun(integration, repository, checkout);
+    const development = api(`${base}/git/ref/heads/dev`).object?.sha;
+    if (!SHA.test(development ?? '')) fail('Invalid development branch identity');
+    requireAncestor(api(`${base}/compare/${source}...${development}`), source);
     const receipts = await verifyBundle({ directory, sha: source, targets });
     const sourceTree = api(`${base}/git/commits/${source}`).tree?.sha;
     requireTreeIdentity(sourceTree, run('git', ['rev-parse', `${source}^{tree}`]));
@@ -125,6 +128,14 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
       // GitHub guards the head SHA. Recheck the base immediately before merging;
       // the post-merge tree check also refuses publication on a base race.
       if (main() !== sourceMain) fail('Main changed during release preparation; rerun publication');
+      const verification = api(`${base}/statuses/${source}`, 'POST', {
+        state: 'success', context: 'release-verification',
+        description: 'Required artifacts, source identity, and release ancestry verified',
+        target_url: integration.html_url || `https://github.com/${repository}/actions/runs/${runId}`,
+      });
+      if (verification.state !== 'success' || verification.context !== 'release-verification') {
+        fail('GitHub did not record successful release verification; merge refused');
+      }
       const result = api(`${base}/pulls/${pr.number}/merge`, 'PUT', { sha: source, merge_method: 'merge' });
       if (result.merged !== true || !SHA.test(result.sha ?? '')) fail('Release PR was not merged');
       accepted = result.sha;
@@ -154,15 +165,22 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
       const allAssets = [...assets, { name: manifestName, sha256: await digest(path.join(staging, manifestName)) }];
       const releases = pages(`${base}/releases?per_page=100`);
       let release = releases.find(item => item.tag_name === tag);
+      const tagRefs = api(`${base}/git/matching-refs/tags/${tag}`);
+      const existingTag = tagRefs.find(item => item.ref === `refs/tags/${tag}`);
+      if (existingTag && existingTag.object?.sha !== accepted) fail('Release tag has moved or has a different accepted identity');
+      if (!existingTag) {
+        if (release && !release.draft) fail('Published release tag is missing');
+        api(`${base}/git/refs`, 'POST', { ref: `refs/tags/${tag}`, sha: accepted });
+      }
+      if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Release tag does not identify accepted main');
       if (release) {
-        if (release.target_commitish !== accepted || release.prerelease) fail('Existing release has a different accepted identity');
-        if (!release.draft && api(`${base}/commits/${tag}`).sha !== accepted) fail('Release tag has moved');
+        if (release.prerelease) fail('Existing release has a different publication class');
       } else {
-        const tagRefs = api(`${base}/git/matching-refs/tags/${tag}`);
-        const existingTag = tagRefs.find(item => item.ref === `refs/tags/${tag}`);
-        if (existingTag && existingTag.object?.sha !== accepted) fail('Existing tag has a different accepted identity');
+        // The already-verified tag owns the commit identity. target_commitish is
+        // unused for an existing tag; omitting a historical value also avoids
+        // requesting permission to modify old workflow files on release APIs.
         release = api(`${base}/releases`, 'POST', {
-          tag_name: tag, target_commitish: accepted, name: `Conduit ${source.slice(0, 12)}`,
+          tag_name: tag, name: `Conduit ${source.slice(0, 12)}`,
           body: `Tested source: ${source}\nAccepted main: ${accepted}\nIdentical tree: ${sourceTree}\nIntegration run: ${runId}\nProof classes are recorded separately for every target in manifest.json.`,
           draft: true, prerelease: false,
         });
@@ -186,6 +204,7 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
           run('gh', ['release', 'upload', tag, path.join(staging, asset.name), '--repo', repository]);
         }
       }
+      if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Release tag changed before publication');
       if (release.draft) api(`${base}/releases/${release.id}`, 'PATCH', { draft: false });
       if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Published tag does not identify accepted main');
       if (output) await appendFile(output, `main-sha=${accepted}\nsource-sha=${source}\n`);

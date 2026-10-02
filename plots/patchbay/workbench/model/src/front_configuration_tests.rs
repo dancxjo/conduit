@@ -287,7 +287,7 @@ fn front_edit_preserves_gear_identity_and_reseals_all_plot_identities() {
 #[test]
 fn front_edit_accepts_an_open_back_with_runtime_front_ports() {
     let mut editor = editor(
-        "plot greet (\n    name: Text >> text: Text\n) {\n    join: text/join(\"Hello\")\n    name >> join >> text\n}\n\nform welcome {\n    hello: greet\n    \"Travis\" >> hello >> presentation/text\n}\n",
+        "plot greet (\n    name: Text >> text: Text\n) {\n    join: text/join(\"Hello\")\n    name >> join >> text\n}\n\nplot welcome {\n    hello: greet\n    \"Travis\" >> hello >> presentation/text\n}\n",
     );
     editor.open_back("greet").unwrap();
     let before = editor.expand_plot_for_authoring("greet").unwrap();

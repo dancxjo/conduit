@@ -26,7 +26,7 @@ pub(super) fn execute(input: &str, entry: &str) -> Result<String, String> {
     } else {
         "decode: json/decode\n source.value >> decode.source\n decode.value >> application.request\n application.snapshot >> sink.value"
     };
-    let source = format!("{TODO}\nform browser-todo-fixture {{\n source: conduit-test/json-source\n application: {entry}\n sink: conduit-test/json-sink\n {wiring}\n}}");
+    let source = format!("{TODO}\nplot browser-todo-fixture {{\n source: conduit-test/json-source\n application: {entry}\n sink: conduit-test/json-sink\n {wiring}\n}}");
     let syntax = conduit_plot::parse_syntax_document(&source);
     let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =

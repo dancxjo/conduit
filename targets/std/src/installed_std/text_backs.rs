@@ -407,7 +407,12 @@ fn validate_identity(
         || placement.inputs.len() != inputs
         || placement.outputs.len() != outputs
         || placement.inputs.iter().any(|port| {
-            port.port_id.as_str() != "text"
+            port.port_id.as_str()
+                != if matches!(kind, TEXT_UPPER_KIND | TEXT_JOIN_KIND) {
+                    "source"
+                } else {
+                    "text"
+                }
                 || port.value_kind.as_str() != TEXT_PRESENTATION_VALUE_KIND
                 || port.direction != PortDirection::Input
         })

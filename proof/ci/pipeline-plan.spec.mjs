@@ -28,7 +28,7 @@ test("target-local changes select the owning family", () => {
     ["targets/browser/src/lib.rs", ["browser"]],
     ["proof/browser/workspace.spec.ts", ["browser"]],
     ["site/index.html", ["browser"]],
-    ["targets/std/src/lib.rs", ["hosted"]],
+    ["targets/std/src/lib.rs", ["browser", "hosted"]],
     ["targets/conduitos/kernel/src/lib.rs", ["conduitos", "orange-pi"]],
     ...["esp32", "avr", "raspberry-pi", "orange-pi", "rp2040"]
       .map((family) => [`targets/${family}/src/lib.rs`, [family]]),
@@ -50,4 +50,28 @@ test("full integration always selects every family, even for prose", () => {
 test("malformed path collections cannot silently become docs-only", () => {
   assert.throws(() => planChanges("README.md"), TypeError);
   assert.throws(() => planChanges([null]), TypeError);
+});
+
+
+test("shared target libraries retain every consuming platform proof", () => {
+  for (const path of [
+    "targets/browser/runtime/src/lib.rs",
+    "targets/std/offers/src/lib.rs",
+    "targets/std/make/src/lib.rs",
+    "targets/browser/make/src/lib.rs",
+    "targets/esp32/make/src/lib.rs",
+    "targets/avr/make/src/lib.rs",
+    "targets/raspberry-pi/make/src/lib.rs",
+    "targets/rp2040/make/src/lib.rs",
+    "targets/rp2040/network-realization/src/lib.rs",
+    "targets/conduitos/make/xtask/mod.rs",
+  ]) assert.deepEqual(planChanges([path]), all, path);
+});
+
+test("isolated firmware remains target-local despite shared target libraries", () => {
+  for (const family of ["avr", "esp32", "rp2040"]) {
+    assert.deepEqual(planChanges([`targets/${family}/firmware/device/src/main.rs`]), {
+      docsOnly: false, families: [family],
+    });
+  }
 });

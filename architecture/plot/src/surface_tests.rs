@@ -318,7 +318,10 @@ fn native_fixed_collection_requires_one_exact_finite_length() {
     ));
     for source in [
         "type Quartet = collection U16\n",
-        "type Quartet = collection U16 = 257\n",
+        &format!(
+            "type Quartet = collection U16 = {}\n",
+            conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS + 1
+        ),
     ] {
         let document = parse_syntax_document(source);
         assert!(!document.diagnostics.is_empty(), "accepted {source}");

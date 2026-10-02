@@ -94,7 +94,8 @@ pub(crate) use limits::{
 };
 pub(crate) use membership_offer::advertisement as membership_advertisement;
 pub(crate) use normalized_quantity::{
-    transform as normalize_quantity, HOST_CALL as NORMALIZE_QUANTITY_OPERATION,
+    transform as normalize_quantity, transform_ratio as normalize_ratio,
+    HOST_CALL as NORMALIZE_QUANTITY_OPERATION, RATIO_HOST_CALL as NORMALIZE_RATIO_OPERATION,
 };
 
 fn record_delivery_refusal_detail(refusal: conduit_net::RecordDeliveryRefusal) -> u16 {

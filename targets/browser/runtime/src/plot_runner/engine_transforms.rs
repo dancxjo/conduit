@@ -918,8 +918,19 @@ pub(in crate::plot_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::NORMALIZE_QUANTITY_OPERATION {
-        let converted = crate::installed_browser::normalize_quantity(
+    if matches!(
+        operation.contract_id.as_str(),
+        crate::installed_browser::NORMALIZE_QUANTITY_OPERATION
+            | crate::installed_browser::NORMALIZE_RATIO_OPERATION
+    ) {
+        let normalize = if operation.contract_id.as_str()
+            == crate::installed_browser::NORMALIZE_RATIO_OPERATION
+        {
+            crate::installed_browser::normalize_ratio
+        } else {
+            crate::installed_browser::normalize_quantity
+        };
+        let converted = normalize(
             scheduler
                 .host_value(request.input.value)
                 .map_err(debug_error)?,

@@ -5,6 +5,7 @@ extern crate alloc;
 #[allow(clippy::clone_on_copy, clippy::too_many_arguments, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+    include!("key_event_construction.rs");
 
     impl Copy for KeyModifiers {}
 

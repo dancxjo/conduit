@@ -83,10 +83,10 @@ fn committed_external_barge_in_cancels_generation_and_pending_speech_exactly() {
     speech.cancel();
     let speech_evidence = speech.evidence(Some(1), None, committed_pcm.len() as u64);
     assert_eq!(
-        generation_evidence.terminal,
+        *generation_evidence.terminal(),
         GeneratedTextFlowTerminal::Cancelled
     );
-    assert_eq!(generation_evidence.chunks, 1);
+    assert_eq!(*generation_evidence.chunks(), 1);
     assert!(speech.pending_text().is_empty());
     assert!(speech_evidence.cancelled);
     assert_eq!(speech_evidence.segment_count, 1);
@@ -219,8 +219,11 @@ fn checked_live_plot_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     assert!(first_audio_before_generation_closed);
     assert!(!pcm_flow.is_empty());
     assert!(pcm_flow.iter().all(|block| !block.is_empty()));
-    assert_eq!(generation_evidence.chunks, 2);
-    assert_eq!(generation_evidence.generated_bytes, expected.len() as u64);
+    assert_eq!(*generation_evidence.chunks(), 2);
+    assert_eq!(
+        *generation_evidence.generated_bytes(),
+        expected.len() as u64
+    );
     let speech_evidence = speech.evidence(
         Some(1),
         Some(1),

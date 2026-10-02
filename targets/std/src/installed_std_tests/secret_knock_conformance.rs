@@ -93,7 +93,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let transition_values = encoded_values(&transitions);
     let command_values = encoded_values(&commands);
     let source = format!(
-        "{}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output >> knock.transitions\n    commands.output >> knock.template_commands\n}}\n",
+        "{}\nplot secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output >> knock.transitions\n    commands.output >> knock.template_commands\n}}\n",
         include_str!("../../../../plots/secret-knock/main.conduit"),
     );
     let syntax = parse_syntax_document(&source);

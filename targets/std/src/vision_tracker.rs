@@ -323,6 +323,9 @@ fn parse_object<'a>(cursor: &mut Cursor<'a>) -> Result<ParsedObject<'a>, &'stati
         "uncertainty_ticks",
     ] {
         cursor.field(field)?;
+        if field == "scale" {
+            cursor.variant()?;
+        }
         cursor.leaf()?;
     }
     cursor.field("provider_instance")?;
@@ -441,7 +444,9 @@ fn encode_provenance(
     wire_record(output, 5);
     text_field(output, "clock_basis", clock_basis);
     count_field(output, "resolution_ticks", 1);
-    text_field(output, "scale", "microseconds");
+    wire_text(output, "scale");
+    wire_variant(output, "microseconds");
+    wire_leaf(output, &[]);
     count_field(output, "ticks", observed_at_micros);
     count_field(output, "uncertainty_ticks", 0);
     text_field(output, "provider_instance", provider);

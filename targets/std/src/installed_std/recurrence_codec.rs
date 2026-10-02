@@ -282,11 +282,11 @@ pub(super) fn occurrence_instant(value: &OccurrenceInstant) -> Result<Structured
                     value_field("instant", instant_value(instant)?),
                     value_field(
                         "local_date",
-                        leaf("time/local-date@1", &format_date(local.date.clone()))?,
+                        leaf("time/local-date@1", &format_date(local.date))?,
                     ),
                     value_field(
                         "local_time",
-                        leaf("time/local-time@1", &format_time(local.time.clone()))?,
+                        leaf("time/local-time@1", &format_time(local.time))?,
                     ),
                     value_field(
                         "resolution",

@@ -78,7 +78,7 @@ pub(super) fn append(
                 ));
                 let value = observations.and_then(|observed| {
                     match (gear, direction, port.port_id.as_str()) {
-                        ("meet-one-gear/change", "in", "text") => observed.upper_input.text(),
+                        ("meet-one-gear/change", "in", "source") => observed.upper_input.text(),
                         ("meet-one-gear/change", "out", "text") => observed.upper_output.text(),
                         ("meet-one-gear/result", "in", "text") => {
                             observed.presentation_input.text()

@@ -5,7 +5,7 @@ plot todo/state-step (
     request: value/json@1 >> tasks: value/json@1
 ) {
     edit: json/collection-step
-    request >> edit.value
+    request >> edit.source
     edit.value >> tasks
 }
 
@@ -32,7 +32,7 @@ plot todo/summary (
     tasks: value/json@1 >> summary: value/json@1
 ) {
     count: json/boolean-summary(field = "complete")
-    tasks >> count.value
+    tasks >> count.source
     count.value >> summary
 }
 

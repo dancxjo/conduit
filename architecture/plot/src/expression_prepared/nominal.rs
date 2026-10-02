@@ -14,7 +14,7 @@ pub(super) fn input_payload<'a>(
     )
 }
 
-pub(super) fn append_output(out: &mut Vec<u8>, value_type: &[u8], value: &PrimitiveValue) {
+pub(super) fn append_output(out: &mut Vec<u8>, value_type: &[u8], value: &PrimitiveValue<'_>) {
     out.extend_from_slice(value_type);
     out.push(0);
     out.extend_from_slice(&(value.length as u32).to_le_bytes());

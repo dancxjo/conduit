@@ -139,3 +139,15 @@ fn native_relation_adapter_matches_core_overflow_and_incomparability() {
         })
     );
 }
+
+#[test]
+fn native_clock_basis_limit_counts_utf8_bytes() {
+    let maximum = "é".repeat(MAXIMUM_TEMPORAL_IDENTITY_BYTES / 2);
+    assert!(
+        NativeTemporalInstant::new(maximum.clone(), 1, NativeTemporalScale::Seconds, 0, 0,).is_ok()
+    );
+    assert!(matches!(
+        NativeTemporalInstant::new(maximum + "é", 1, NativeTemporalScale::Seconds, 0, 0,),
+        Err(NativeBindingRefusal::ViolatedConstraint { .. })
+    ));
+}

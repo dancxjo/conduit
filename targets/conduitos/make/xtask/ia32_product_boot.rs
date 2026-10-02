@@ -141,7 +141,7 @@ pub(super) fn boot_twice(
             .map_err(|error| refusal("ia32-product-proof-invalid", error.to_string()))?,
     )
     .map_err(|error| refusal("ia32-product-proof-unavailable", error.to_string()))?;
-    prove_patchbay(&paths, &snapshot_path, &first)?;
+    prove_patchbay(&snapshot_path, &first)?;
     let proof = serde_json::json!({
         "schema": "conduit.conduitos/ia32-product-proof@2",
         "proof_class": "freestanding-ia32-emulator-dual-firmware-carrier",
@@ -160,6 +160,7 @@ pub(super) fn boot_twice(
         "legacy_bios_vga_text_receipt": true,
         "same_immutable_image": true,
         "native_patchbay_consumed": true,
+        "patchbay_projection": "shared-workbench-library",
         "stopped_by_harness": true
     });
     fs::write(
@@ -172,29 +173,10 @@ pub(super) fn boot_twice(
 }
 
 fn prove_patchbay(
-    paths: &Paths,
     snapshot: &std::path::Path,
     product: &serde_json::Value,
 ) -> Result<(), ConduitosError> {
-    let snapshot = snapshot
-        .to_str()
-        .ok_or_else(|| refusal("patchbay-rejected-ia32-product", "non-UTF-8 path"))?;
-    let output = super::profile::command(
-        "cargo",
-        &[
-            "run",
-            "--quiet",
-            "-p",
-            "patchbay-native",
-            "--",
-            "--linear-observatory-snapshot",
-            snapshot,
-        ],
-        &paths.root,
-        "patchbay-rejected-ia32-product",
-    )?;
-    let linear = String::from_utf8(output.stdout)
-        .map_err(|error| refusal("patchbay-rejected-ia32-product", error.to_string()))?;
+    let linear = super::product_patchbay::render(snapshot, "patchbay-rejected-ia32-product")?;
     for required in [
         product["host_id"].as_str().unwrap_or_default(),
         product["boot_id"].as_str().unwrap_or_default(),

@@ -75,7 +75,7 @@ fn test_mapping() -> InstrumentMapping {
 fn leaf(kind: &str, value: impl ToString) -> StructuredInfoValue {
     let value = value.to_string();
     let bytes = match kind {
-        "value/count" => conduit_core::encode_count(value.parse().unwrap()).to_vec(),
+        "value/u64" => value.parse::<u64>().unwrap().to_le_bytes().to_vec(),
         "value/bool" => conduit_core::InfoBool::new(value.parse::<bool>().unwrap())
             .encode()
             .to_vec(),
@@ -110,10 +110,10 @@ fn button(index: u64, down: bool, occurrence: u64, time: u64) -> StructuredInfoV
     control(
         "button",
         vec![
-            ("index", leaf("value/count", index)),
+            ("index", leaf("value/u64", index)),
             ("down", leaf("value/bool", down)),
-            ("occurrence", leaf("value/count", occurrence)),
-            ("event_time_micros", leaf("value/count", time)),
+            ("occurrence", leaf("value/u64", occurrence)),
+            ("event_time_micros", leaf("value/u64", time)),
         ],
     )
 }
@@ -122,9 +122,9 @@ fn analog(index: u64, value: u64, time: u64) -> StructuredInfoValue {
     control(
         "analog",
         vec![
-            ("index", leaf("value/count", index)),
-            ("value", leaf("value/count", value)),
-            ("event_time_micros", leaf("value/count", time)),
+            ("index", leaf("value/u64", index)),
+            ("value", leaf("value/u64", value)),
+            ("event_time_micros", leaf("value/u64", time)),
         ],
     )
 }
@@ -250,7 +250,7 @@ fn wrong_profile_and_malformed_canonical_input_fail_closed() {
         mapping: test_mapping(),
         next_order: 0,
     };
-    let wrong = leaf("value/count", 1).canonical_bytes().unwrap();
+    let wrong = leaf("value/u64", 1).canonical_bytes().unwrap();
     let mut io = StepIo::test_frame(
         [Some(value(&wrong)), None],
         [false; 2],

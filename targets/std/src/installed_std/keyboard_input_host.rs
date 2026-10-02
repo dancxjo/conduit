@@ -7,6 +7,7 @@ use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 pub(super) struct KeyboardInputHost<'a> {
     adapter: Option<&'a mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
     keyboard_source: bool,
+    button_source: bool,
     pending_keyboard: Option<HostCallRequest>,
     pending_button: Option<HostCallRequest>,
     button_encoder: conduit_semantic_catalog::PreparedButtonTransitionEncoder,
@@ -21,13 +22,22 @@ pub(super) enum InputRequestKind {
 }
 
 impl<'a> KeyboardInputHost<'a> {
-    pub(super) fn new(
+    pub(super) fn new<'b>(
         adapter: Option<&'a mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
-        keyboard_source: bool,
+        contracts: impl IntoIterator<Item = &'b conduit_core::HostCallContractId>,
     ) -> Self {
+        let mut keyboard_source = false;
+        let mut button_source = false;
+        for contract in contracts {
+            keyboard_source |=
+                contract.as_str() == conduit_std_offers::NEXT_KEY_EVENT_HOST_CALL_CONTRACT;
+            button_source |=
+                contract.as_str() == conduit_std_offers::button::NEXT_TRANSITION_HOST_CALL;
+        }
         Self {
             adapter,
             keyboard_source,
+            button_source,
             pending_keyboard: None,
             pending_button: None,
             button_encoder: conduit_semantic_catalog::PreparedButtonTransitionEncoder::new(
@@ -74,7 +84,11 @@ impl<'a> KeyboardInputHost<'a> {
         if !self.is_pending() {
             return Ok(false);
         }
-        if self.keyboard_source && self.pending_keyboard.is_none() {
+        // One physical event fans out to all admitted input realizations. Do
+        // not consume it until each source can retain its own completion.
+        if (self.keyboard_source && self.pending_keyboard.is_none())
+            || (self.button_source && self.pending_button.is_none())
+        {
             return Ok(false);
         }
         let adapter = self

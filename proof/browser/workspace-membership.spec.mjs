@@ -352,15 +352,15 @@ test("a second distinct browser Host explicitly joins through one canonical Body
     if (frame === sharedPage.mainFrame() && frame.url().includes("#body-share=")) shareDeliveryUrl = frame.url();
   });
   await sharedPage.evaluate(value => {
-    const plot = document.createElement("plot");
-    plot.method = "post";
-    plot.action = new URL("share-body-invitation", location.href).href;
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = new URL("share-body-invitation", location.href).href;
     const invitation = document.createElement("input");
     invitation.name = "body-invitation";
     invitation.value = value;
-    plot.append(invitation);
-    document.body.append(plot);
-    plot.submit();
+    form.append(invitation);
+    document.body.append(form);
+    form.submit();
   }, portableCode);
   await expect(sharedPage.getByText("Body invitation", { exact: true })).toBeVisible();
   await expect(sharedPage.getByText("It grants no Plot or effect authority.")).toBeVisible();
@@ -412,22 +412,22 @@ test("the POST share target refuses ambiguous, oversized, and GET delivery", asy
   expect(manifest.share_target).toEqual({
     action: "share-body-invitation",
     method: "POST",
-    enctype: "application/x-www-plot-urlencoded",
+    enctype: "application/x-www-form-urlencoded",
     params: { text: "body-invitation" },
   });
   await page.evaluate(() => navigator.serviceWorker.ready);
   const submit = values => page.evaluate(shared => {
-    const plot = document.createElement("plot");
-    plot.method = "post";
-    plot.action = new URL("share-body-invitation", location.href).href;
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = new URL("share-body-invitation", location.href).href;
     for (const value of shared) {
       const invitation = document.createElement("input");
       invitation.name = "body-invitation";
       invitation.value = value;
-      plot.append(invitation);
+      form.append(invitation);
     }
-    document.body.append(plot);
-    plot.submit();
+    document.body.append(form);
+    form.submit();
   }, values);
 
   await submit(["first", "second"]);
