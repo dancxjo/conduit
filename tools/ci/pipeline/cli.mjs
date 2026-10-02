@@ -6,6 +6,7 @@ import { sealTarget, verifyBundle } from './receipts.mjs';
 import { TARGETS, setupTarget, runTarget } from './targets.mjs';
 import { setupCi, setupUnit } from './setup.mjs';
 import { assertSourceCheckout } from './source.mjs';
+import { emitAcquisitionKey, measureAcquisition } from './acquisition/metrics.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -32,11 +33,16 @@ try {
   switch (command) {
     case 'setup-ci':
       if (args.length) throw new Error('setup-ci accepts no arguments');
-      await setupCi();
+      await measureAcquisition('preflight', setupCi);
       break;
     case 'setup-unit':
       if (args.length) throw new Error('setup-unit accepts no arguments');
-      setupUnit();
+      await measureAcquisition('unit', setupUnit);
+      break;
+    case 'acquisition-key':
+      if (args.length !== 1) throw new Error('usage: acquisition-key <target|preflight|unit>');
+      if (!['preflight', 'unit'].includes(args[0])) target(args[0]);
+      emitAcquisitionKey(args[0]);
       break;
     case 'scan': {
       if (args.length !== 2) throw new Error('usage: scan <base-sha|all> <head-sha>');
@@ -64,7 +70,7 @@ try {
     case 'setup':
       if (args.length !== 1) throw new Error('usage: setup <target>');
       target(args[0]);
-      await setupTarget(args[0]);
+      await measureAcquisition(args[0], () => setupTarget(args[0]));
       break;
     case 'target': {
       if (args.length !== 2) throw new Error('usage: target <target> <sha>');
