@@ -9,14 +9,16 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, CompatibleMetrics,
-    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
-    ContextSelectionRationale, ContextSelectionRefusal, ContextTruncationReason, DataHandling,
-    DrawRelationship, DrawRelationshipCorrelated, DynamicsRefusal, EmbeddingNormalization,
-    EmbodimentStage, EntityBoundary, EvaluationDisposition, EvaluationPolicy,
-    ExactVectorSearchRefusal, FiniteF32, FusionStrategy, FusionStrategyReciprocalRank,
-    GeneratedTextFlowRefusal, GeneratedTextFlowTerminal, GroundedAnswerDisposition,
-    GroundedAnswerRefusal, GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
+    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, ClassificationLabel,
+    ClassificationLabels, CompatibleMetrics, ContextOmissionReason, ContextOrderingPolicy,
+    ContextRedundancyPolicy, ContextSelectionRationale, ContextSelectionRefusal,
+    ContextTruncationReason, DataHandling, DrawRelationship, DrawRelationshipCorrelated,
+    DynamicsRefusal, EmbeddingNormalization, EmbodimentStage, EntityBoundary,
+    EvaluationDisposition, EvaluationPolicy, ExactVectorSearchRefusal, ExtractedField,
+    ExtractionFields, ExtractionKey, ExtractionValue, FiniteClassification, FiniteF32,
+    FusionStrategy, FusionStrategyReciprocalRank, GeneratedTextFlowRefusal,
+    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundedAnswerRefusal,
+    GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
     HumanAssessmentDisposition, HybridRetrievalOfferInvalidity, IntegrationAccuracy,
     IntegrationTerminal, InterpretationDisposition, InterpretationInvalidity,
     InterpretationProvenance, LearnedLifecycleRefusal, LlmDeterminismProfile,
@@ -44,8 +46,9 @@ pub use generated::{
     TemporalContextRefusal, TemporalEvidenceSelectionRefusal, TemporalInterpretationRefusal,
     TemporalSource, TemporalValidity, TemporalWindowRelation, TrainStepFailure,
     TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingRefusal, TransitionDirection,
-    VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal, VectorRefusal,
-    VectorSearchExecutionProofClass, VectorSearchOfferInvalidity, VectorSearchProofClass,
+    ValidatedExtraction, VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
+    VectorRefusal, VectorSearchExecutionProofClass, VectorSearchOfferInvalidity,
+    VectorSearchProofClass,
 };
 
 mod bases;

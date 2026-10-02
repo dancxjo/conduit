@@ -17,20 +17,51 @@ fn main() {
             derive_serde_for_variants: true,
             copy_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
             hash_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
-            serde_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
+            serde_nominal_types: [
+                "ClassificationLabel".into(),
+                "ClassificationLabels".into(),
+                "ExtractionFields".into(),
+                "ExtractionKey".into(),
+                "ExtractionValue".into(),
+                "FiniteF32".into(),
+                "NonnegativeFiniteF32".into(),
+            ]
+            .into(),
             serde_variant_exclusions: ["MissingModalityPolicy".into()].into(),
-            serde_record_types: ["CompatibleMetrics".into()].into(),
+            serde_record_types: [
+                "CompatibleMetrics".into(),
+                "ExtractedField".into(),
+                "FiniteClassification".into(),
+                "ValidatedExtraction".into(),
+            ]
+            .into(),
             copy_record_types: ["CompatibleMetrics".into(), "IntegrationAccuracy".into()].into(),
             copy_record_value_getters: ["IntegrationAccuracy".into()].into(),
-            public_record_fields: ["IntegrationAccuracy".into()].into(),
-            record_constructor_orders: [(
+            public_record_fields: [
+                "ExtractedField".into(),
+                "FiniteClassification".into(),
                 "IntegrationAccuracy".into(),
-                vec![
-                    "absolute-tolerance-millionths".into(),
-                    "relative-tolerance-millionths".into(),
-                    "maximum-estimated-error-millionths".into(),
-                ],
-            )]
+                "ValidatedExtraction".into(),
+            ]
+            .into(),
+            record_constructor_orders: [
+                (
+                    "FiniteClassification".into(),
+                    vec!["label".into(), "allowed_labels".into()],
+                ),
+                (
+                    "IntegrationAccuracy".into(),
+                    vec![
+                        "absolute-tolerance-millionths".into(),
+                        "relative-tolerance-millionths".into(),
+                        "maximum-estimated-error-millionths".into(),
+                    ],
+                ),
+                (
+                    "ValidatedExtraction".into(),
+                    vec!["schema_identity".into(), "fields".into()],
+                ),
+            ]
             .into(),
             serde_variant_orders: [(
                 "SourceExtractionProfile".into(),
