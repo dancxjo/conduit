@@ -1,4 +1,4 @@
-//! Full user journey over the retained product IMAGE; never rebuilds it.
+//! Current Workspace keyboard journey over the retained product IMAGE; never rebuilds it.
 use super::{
     ConduitosArch, ConduitosError, profile::Paths, report::git_head,
     target_build::verify_artifact_digest, workspace_proof,

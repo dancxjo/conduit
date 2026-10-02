@@ -322,6 +322,8 @@ pub(super) fn execute_supplied(
                 "proof_class":"freestanding-emulator", "input":"real-qmp-keyboard",
                 "same_body_from_birth":true, "birth_requires_explicit_wake":true,
                 "result":scenario.input, "application":"tutorial", "actions":completed_actions, "records":records, "views":current_views,
+                "shared_three_host_body_observed":false,
+                "ordinary_mask_interaction_observed":false,
                 "pointer_interaction_observed":false, "screen_free_interaction_observed":false,
                 "human_observation":false
             });
