@@ -1,24 +1,13 @@
 //! Presentation-independent typed threshold and hysteresis decisions.
 
-use conduit_core::{Quantity, TemporalInstant};
-
 use crate::{
-    MeasurementSummary, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
-    MeasurementThresholdState, MeasurementThresholdTransition,
+    MeasurementSummary, MeasurementThresholdDecision, MeasurementThresholdPolicy,
+    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
 };
 
 pub const MEASUREMENT_THRESHOLD_POLICY_INFO_ID: &str = "data/measurement-threshold-policy@1";
 pub const MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID: &str = "data/measurement-hysteresis-profile@1";
 pub const MEASUREMENT_THRESHOLD_DECISION_INFO_ID: &str = "data/measurement-threshold-decision@1";
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MeasurementThresholdDecision {
-    pub state: MeasurementThresholdState,
-    pub transition: Option<MeasurementThresholdTransition>,
-    pub evaluated_value: Quantity,
-    pub first_observed_at: TemporalInstant,
-    pub last_observed_at: TemporalInstant,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MeasurementHysteresis {

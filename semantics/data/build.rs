@@ -1,9 +1,9 @@
 use conduit_form::rust_binding::{
-    generate_rust_bindings_with_codes_and_external_bindings, ExternalNativeRustBinding,
-    RustBindingOptions,
+    ExternalNativeRustBinding, RustBindingOptions,
+    generate_rust_bindings_with_codes_and_external_bindings,
 };
 use conduit_form::{
-    check_syntax_document, generate_ecmascript_codes, parse_syntax_document, StartupCatalog,
+    StartupCatalog, check_syntax_document, generate_ecmascript_codes, parse_syntax_document,
 };
 use std::{env, fs, path::PathBuf};
 
@@ -63,6 +63,8 @@ fn main() {
                 "MeasurementPlotProfile".into(),
                 "MeasurementRange".into(),
                 "MeasurementSample".into(),
+                "MeasurementSummary".into(),
+                "MeasurementThresholdDecision".into(),
             ]
             .into(),
             record_constructor_names: [("DataGenerationNamespace".into(), "from_digest".into())]
