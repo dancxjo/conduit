@@ -33,7 +33,7 @@ pub use validation::PreparedStructuredValueValidator;
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 16;
 pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 1_024;
-pub const MAXIMUM_STRUCTURED_COLLECTION_ITEMS: usize = 256;
+pub const MAXIMUM_STRUCTURED_COLLECTION_ITEMS: usize = 1_024;
 pub const MAXIMUM_STRUCTURED_RECORD_FIELDS: usize = 64;
 pub const MAXIMUM_STRUCTURED_VARIANT_CASES: usize = 64;
 pub const MAXIMUM_STRUCTURED_NAME_BYTES: usize = 128;
