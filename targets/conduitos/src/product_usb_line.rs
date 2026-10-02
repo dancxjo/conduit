@@ -1,4 +1,4 @@
-//! Ordinary product service for one exact pre-admission USB connectivity seam.
+//! Named 260-value connectivity harness; its synthetic identities are not participant admission.
 
 use alloc::{format, vec};
 use conduit_core::{
@@ -8,13 +8,13 @@ use conduit_core::{
 use conduit_wire::{SessionBinding, SessionMessage, SessionRole};
 
 use crate::{
-    arch::{FtdiLineReady, FtdiLineSession, UsbDevice, XhciReady, start_ftdi_line_session},
+    arch::{FtdiLineReady, UsbDevice, XhciReady},
     identity::{self, BootIdentities},
     usb_line_offer::{
         AdmittedUsbLineBasis, UsbLineIdentity, UsbLineObservation, UsbLineRealization,
         UsbLineState, offer_usb_ftdi_line,
     },
-    usb_line_session::{ReceivedSessionMessage, UsbLineSession, UsbLineSessionError},
+    usb_line_session::{ReceivedSessionMessage, UsbLineSessionError},
 };
 
 pub const HARNESS_HOST_ID: &str = "host/qemu-usb-line-peer";
@@ -26,10 +26,7 @@ pub const LINE_LIFETIME_VALUES: u64 = 260;
 pub const LINE_VALUE: &[u8] = b"HELLO USB LINE";
 
 pub struct ProductUsbLine {
-    observation: UsbLineObservation,
-    basis: AdmittedUsbLineBasis,
-    carrier: FtdiLineSession,
-    session: UsbLineSession,
+    line: crate::native_participant::planned_line::UsbCarrier,
 }
 
 pub fn prepare(
@@ -122,11 +119,14 @@ pub fn prepare(
         bind_active_play(&binding.plan_id, &source_host, &source_boot, 0).active_play_id
     );
     Ok(ProductUsbLine {
-        observation,
-        basis,
-        carrier: start_ftdi_line_session(ready),
-        session: UsbLineSession::new(binding, SessionRole::Source)
-            .map_err(|_| "product-usb-line-session-refused")?,
+        line: crate::native_participant::planned_line::UsbCarrier::for_connectivity_harness(
+            binding,
+            basis,
+            observation,
+            SessionRole::Source,
+            ready,
+        )
+        .map_err(|_| "product-usb-line-session-refused")?,
     })
 }
 
@@ -144,19 +144,19 @@ impl ProductUsbLine {
     ) -> Result<(), &'static str> {
         manifest(
             crate::front_door::ConnectivityStatus::Current,
-            self.session.binding().attachment.line_id.as_str(),
+            self.line.binding().attachment.line_id.as_str(),
             None,
         )?;
         emit("usb-line-current", self, body_id, None, "not-requested");
         crate::arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-current\n");
-        let binding = self.session.binding().clone();
+        let binding = self.line.binding().clone();
         self.send(controller, device, binding.hello_frame().message)?;
         self.expect(controller, device, ReceivedSessionMessage::Hello)?;
         self.send(controller, device, SessionMessage::Ready)?;
         self.expect(controller, device, ReceivedSessionMessage::Ready)?;
         manifest(
             crate::front_door::ConnectivityStatus::PeerAttached,
-            self.session.binding().attachment.line_id.as_str(),
+            self.line.binding().attachment.line_id.as_str(),
             None,
         )?;
         emit("peer-attached", self, body_id, None, "admitted-present");
@@ -183,7 +183,7 @@ impl ProductUsbLine {
         }
         manifest(
             crate::front_door::ConnectivityStatus::ValueVisible,
-            self.session.binding().attachment.line_id.as_str(),
+            self.line.binding().attachment.line_id.as_str(),
             Some("HELLO USB LINE"),
         )?;
         emit(
@@ -194,13 +194,7 @@ impl ProductUsbLine {
             "admitted-present",
         );
         crate::arch::early_write(b"CONDUIT_BOOT_STAGE line-value-visible\n");
-        let loss = self.session.receive(
-            &mut self.carrier,
-            controller,
-            device,
-            &self.basis,
-            &self.observation,
-        );
+        let loss = self.line.receive(controller, device);
         if !matches!(
             loss,
             Err(UsbLineSessionError::Carrier(
@@ -209,17 +203,10 @@ impl ProductUsbLine {
         ) {
             return Err("product-usb-line-removal-not-observed");
         }
-        self.observation.state = UsbLineState::Lost;
-        self.observation.state_sign_id = SignId::from("sign/usb-ftdi/lost");
+        self.line.observation.state = UsbLineState::Lost;
+        self.line.observation.state_sign_id = SignId::from("sign/usb-ftdi/lost");
         if !matches!(
-            self.session.send(
-                &mut self.carrier,
-                controller,
-                device,
-                &self.basis,
-                &self.observation,
-                SessionMessage::Ready,
-            ),
+            self.line.send(controller, device, SessionMessage::Ready),
             Err(UsbLineSessionError::Current(
                 crate::usb_line_offer::UsbLineOfferError::Lost
             ))
@@ -228,7 +215,7 @@ impl ProductUsbLine {
         }
         manifest(
             crate::front_door::ConnectivityStatus::Lost,
-            self.session.binding().attachment.line_id.as_str(),
+            self.line.binding().attachment.line_id.as_str(),
             None,
         )?;
         emit("line-lost", self, body_id, None, "admitted-offline");
@@ -242,15 +229,8 @@ impl ProductUsbLine {
         device: &UsbDevice,
         message: SessionMessage<'_>,
     ) -> Result<(), &'static str> {
-        self.session
-            .send(
-                &mut self.carrier,
-                controller,
-                device,
-                &self.basis,
-                &self.observation,
-                message,
-            )
+        self.line
+            .send(controller, device, message)
             .map_err(|_| "product-usb-line-send-refused")
     }
 
@@ -261,14 +241,8 @@ impl ProductUsbLine {
         expected: ReceivedSessionMessage,
     ) -> Result<(), &'static str> {
         let found = self
-            .session
-            .receive(
-                &mut self.carrier,
-                controller,
-                device,
-                &self.basis,
-                &self.observation,
-            )
+            .line
+            .receive(controller, device)
             .map_err(|_| "product-usb-line-receive-refused")?;
         (found == expected)
             .then_some(())
@@ -277,7 +251,7 @@ impl ProductUsbLine {
 }
 
 fn emit(status: &str, line: &ProductUsbLine, body_id: &str, value: Option<&str>, membership: &str) {
-    let binding = line.session.binding();
+    let binding = line.line.binding();
     let value = value.map_or_else(|| "null".into(), |value| format!("\"{value}\""));
     crate::arch::early_write(
         format!(
