@@ -86,7 +86,13 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         HostServiceCommand::Install {
             manifest,
             state_dir,
-        } => install_and_activate(&manifest, &state_dir).map(|installation| {
+            no_start,
+        } => (if no_start {
+            install_without_start(&manifest, &state_dir)
+        } else {
+            install_and_activate(&manifest, &state_dir)
+        })
+        .map(|installation| {
             println!(
                 "installed durable host {} from {}",
                 installation.host_id, installation.release_bundle_sha256
@@ -126,16 +132,12 @@ pub(crate) fn install_and_activate(
     manifest: &Path,
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install(manifest, state_dir)?;
+    let installation = install_without_start(manifest, state_dir)?;
     activate_service(state_dir)?;
-    Ok(InstalledHostIdentity {
-        host_id: installation.host_id,
-        release_bundle_sha256: installation.release_bundle_sha256,
-    })
+    Ok(installation)
 }
 
-#[cfg(test)]
-pub(crate) fn install_for_activation_test(
+pub(crate) fn install_without_start(
     manifest: &Path,
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
@@ -938,6 +940,25 @@ mod tests {
         )
         .unwrap();
         (bundle.join("hosted-linux-x86_64.json"), state)
+    }
+
+    #[test]
+    fn no_start_install_retains_verified_image_without_creating_boot() {
+        let (manifest, state) = fixture();
+        dispatch(HostServiceCommand::Install {
+            manifest: manifest.clone(),
+            state_dir: state.clone(),
+            no_start: true,
+        })
+        .unwrap();
+        let installed = read_installation(&state.join("installation.json")).unwrap();
+        assert!(Path::new(&installed.product_executable).is_file());
+        assert!(installed.body_state.is_none());
+        assert!(!state.join("runtime.json").exists());
+        let again = install_without_start(&manifest, &state).unwrap();
+        assert_eq!(again.host_id, installed.host_id);
+        assert_eq!(again.release_bundle_sha256, installed.release_bundle_sha256);
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
     #[test]

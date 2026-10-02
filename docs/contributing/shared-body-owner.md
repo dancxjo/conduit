@@ -16,16 +16,17 @@ cargo xtask make host release --platform linux --output target/creche-host-relea
 ```
 
 The existing development installation entrance verifies and installs the release
-and activates its user service:
+without activating its user service:
 
 ```sh
 conduit host service install target/creche-host-releases/hosted-linux-x86_64.json \
-  --state-dir /absolute/path/to/host-state
+  --state-dir /absolute/path/to/host-state --no-start
 ```
 
-Stop that installed Host service before entering the foreground owner. The two
-entrances are mutually exclusive owners of the same installation. On Linux the
-service is `conduit-host.service`; use the platform service manager to stop it.
+For a fresh installation, `--no-start` leaves the Host available for foreground
+ownership. Omitting it preserves the normal service activation behavior. It does
+not stop an already running service; use a fresh installation for this sequence.
+The two entrances are mutually exclusive owners of the same installation.
 Read `product_executable` in the installation's `installation.json`, and invoke
 that exact installed executable (shown below as `INSTALLED_CONDUIT`). A different
 binary is refused before a new Boot or Body is created. The owner compares the

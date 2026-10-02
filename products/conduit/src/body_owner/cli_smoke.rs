@@ -1,7 +1,6 @@
 //! Explicit local proof through a real installed executable, without systemd activation.
 use crate::durable_host::{
-    bundle_digest, digest, fresh_identity, install_for_activation_test, read_installation,
-    ReleaseFile, RELEASE_SCHEMA,
+    bundle_digest, digest, fresh_identity, read_installation, ReleaseFile, RELEASE_SCHEMA,
 };
 use std::{
     fs,
@@ -17,7 +16,7 @@ fn installed_cli_runs_and_recovers_same_body_on_new_boot() {
     let root = std::env::temp_dir().join(fresh_identity("owner-cli-smoke", "installed"));
     let bundle = root.join("bundle");
     fs::create_dir_all(&bundle).unwrap();
-    let bytes = fs::read(binary).unwrap();
+    let bytes = fs::read(&binary).unwrap();
     fs::write(bundle.join("conduit-linux-x86_64"), &bytes).unwrap();
     let files = vec![ReleaseFile {
         path: "conduit-linux-x86_64".into(),
@@ -35,7 +34,20 @@ fn installed_cli_runs_and_recovers_same_body_on_new_boot() {
     )
     .unwrap();
     let state = root.join("state");
-    install_for_activation_test(&manifest, &state).unwrap();
+    let installed = Command::new(&binary)
+        .args(["host", "service", "install"])
+        .arg(&manifest)
+        .arg("--state-dir")
+        .arg(&state)
+        .arg("--no-start")
+        .output()
+        .unwrap();
+    assert!(
+        installed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&installed.stderr)
+    );
+    assert!(!state.join("runtime.json").exists());
     let installation = read_installation(&state.join("installation.json")).unwrap();
     let source = root.join("hello.conduit");
     fs::write(
