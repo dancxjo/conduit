@@ -22,7 +22,7 @@ pub(super) fn pcm(bytes: &[u8], maximum: usize) -> Result<&[u8], EspeakFailure> 
     if payload.len() > maximum {
         return Err(EspeakFailure::OutputOverflow);
     }
-    if payload.is_empty() || payload.len() % 2 != 0 {
+    if payload.is_empty() || !payload.len().is_multiple_of(2) {
         return Err(invalid);
     }
     let riff = u32_at(bytes, 4);
