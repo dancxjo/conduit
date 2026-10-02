@@ -1,21 +1,24 @@
 //! One admitted native Body Plan/Play across exact resident Plot partitions.
 use super::{JourneyError, JourneyLossKind, JourneyStatus, ProductJourney};
 use crate::{identity::BootIdentities, native_workset, offer::HostOffer};
-use alloc::{boxed::Box, format, vec};
-use conduit_body::{BodyPlayIdentity, WakeLifecycle};
-use conduit_core::SignId;
+use alloc::{boxed::Box, format};
+use conduit_body::BodyPlayIdentity;
+use conduit_core::{SignId, bind_sign};
 use conduit_human::KeyEvent;
 use conduit_presentation::{ApplicationEvent, ApplicationView};
 
 impl ProductJourney {
     pub fn foreground_input_owner(&self) -> Option<&native_workset::AdmittedPlotInput> {
         (self.status == JourneyStatus::QuiescentAwaitingInput)
-            .then(|| self.kernel.as_ref()?.input_owner(self.foreground))?
+            .then(|| self.kernel.as_ref()?.input_owner(self.foreground_index()))?
     }
 
     pub fn foreground_application_view(&self) -> Option<&ApplicationView> {
-        (self.status == JourneyStatus::QuiescentAwaitingInput)
-            .then(|| self.kernel.as_ref()?.application_view(self.foreground))?
+        (self.status == JourneyStatus::QuiescentAwaitingInput).then(|| {
+            self.kernel
+                .as_ref()?
+                .application_view(self.foreground_index())
+        })?
     }
 
     pub fn take_application_request(&mut self) -> Option<native_workset::NativeApplicationRequest> {
@@ -70,19 +73,23 @@ impl ProductJourney {
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
+        let foreground = self.foreground_index();
+        let play = self
+            .current_play()
+            .cloned()
+            .ok_or(JourneyError::InvalidTransition)?;
         let kernel = self.kernel.as_mut().ok_or(JourneyError::Kernel)?;
         let current = kernel
-            .application_view(self.foreground)
+            .application_view(foreground)
             .ok_or(JourneyError::InputUnavailable)?;
         let encoded = event
             .encode(current)
             .map_err(|_| JourneyError::WrongTarget)?;
-        let _ = kernel.take_application_view(self.foreground);
+        let _ = kernel.take_application_view(foreground);
         kernel
-            .application_event(self.foreground, &encoded)
+            .application_event(foreground, &encoded)
             .map_err(JourneyError::Play)?;
-        let application_request = kernel.take_application_request(self.foreground);
-        let play = self.play.as_ref().ok_or(JourneyError::InvalidTransition)?;
+        let application_request = kernel.take_application_request(foreground);
         self.input_sign_id = Some(SignId::from(format!(
             "conduitos/product/input/{}/{}",
             play.active_play_id.as_str(),
@@ -123,14 +130,16 @@ impl ProductJourney {
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
+        let foreground = self.foreground_index();
+        let play = self
+            .current_play()
+            .cloned()
+            .ok_or(JourneyError::InvalidTransition)?;
         let kernel = self.kernel.as_mut().ok_or(JourneyError::Kernel)?;
-        let accepted = match kernel.input(self.foreground, event) {
+        let accepted = match kernel.input(foreground, event) {
             Ok(accepted) => accepted,
             Err(error) => {
-                kernel.cancel().map_err(JourneyError::Play)?;
-                self.retained_kernel_sign_gap = kernel.sign_retention_gap();
-                self.kernel = None;
-                self.application_request = None;
+                self.retire_realization()?;
                 self.status = JourneyStatus::Stopped;
                 self.advance()?;
                 return Err(JourneyError::Play(error));
@@ -139,7 +148,6 @@ impl ProductJourney {
         if !accepted {
             return Ok(false);
         }
-        let play = self.play.as_ref().ok_or(JourneyError::InvalidTransition)?;
         self.input_sign_id = Some(SignId::from(format!(
             "conduitos/product/input/{}/{}",
             play.active_play_id.as_str(),
@@ -172,14 +180,7 @@ impl ProductJourney {
         ) {
             return Err(JourneyError::InputUnavailable);
         }
-        if let Some(kernel) = self.kernel.as_mut() {
-            kernel.input_lost().map_err(JourneyError::Play)?;
-            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
-        }
-        self.kernel = None;
-        self.application_request = None;
-        self.planned_play = None;
-        self.play = None;
+        self.retire_realization()?;
         self.loss_kind = Some(kind);
         self.loss_sign_id = Some(SignId::from(format!(
             "conduitos/product/loss/{}/{}",
@@ -196,59 +197,45 @@ impl ProductJourney {
         offer: &HostOffer<'_>,
         build_id: &str,
     ) -> Result<(), JourneyError> {
-        let wake = self.wake.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        if !matches!(
-            wake.lifecycle,
-            WakeLifecycle::AwaitingPlan | WakeLifecycle::Unsatisfied
-        ) {
+        if self.status == JourneyStatus::InputUnavailable {
+            self.wake(identities, offer, build_id)?;
+        }
+        if self.status != JourneyStatus::Awake {
             return Err(JourneyError::InvalidTransition);
         }
-        let mut prepared = native_workset::prepare(wake, identities, offer, build_id)
-            .map_err(JourneyError::Workset)?;
-        if prepared.advertisement().host_id != self.host_id
-            || prepared.advertisement().boot_id != self.boot_id
-            || prepared.advertisement().offer_generation != self.offer_generation
-        {
-            return Err(JourneyError::WrongTarget);
+        let current = self
+            .session
+            .as_ref()
+            .and_then(|session| session.realization())
+            .ok_or(JourneyError::BodyAbsent)?;
+        if self.mask_control.is_some() {
+            let selector = crate::mask_control::patchbay_selector(&current.plan)
+                .map_err(|_| JourneyError::Kernel)?;
+            if !current
+                .plan
+                .mask_topologies
+                .iter()
+                .any(|topology| topology.face == selector)
+            {
+                return Err(JourneyError::InvalidTransition);
+            }
         }
-        let mask_control = if self
-            .plots
-            .contains(&Some(native_workset::NativePlot::Patchbay))
-        {
-            let control = crate::mask_control::MaskControl::graphical(
-                self.host_id.clone(),
-                self.boot_id.clone(),
-                self.surface_provider.take(),
-            )
-            .map_err(|_| JourneyError::Kernel)?;
-            let selector = crate::mask_control::patchbay_selector(prepared.plan())
-                .map_err(|_| JourneyError::Kernel)?;
-            let topology = control
-                .topology(selector)
-                .map_err(|_| JourneyError::Kernel)?;
-            prepared = prepared
-                .with_masks(wake, vec![topology])
-                .map_err(JourneyError::Workset)?;
-            Some(control)
-        } else {
-            None
-        };
+        let prepared = native_workset::prepare_exact(
+            &current.wake,
+            &current.plan,
+            identities,
+            offer,
+            build_id,
+        )
+        .map_err(JourneyError::Workset)?;
         let input_owners =
             core::array::from_fn(|index| prepared.input_owners().get(index).cloned());
         let kernel = Box::new(
             native_workset::NativeWorksetPlay::prepare_with_biography(
                 &prepared,
-                self.biography.as_ref().ok_or(JourneyError::BodyAbsent)?,
+                self.biography().ok_or(JourneyError::BodyAbsent)?,
             )
             .map_err(JourneyError::Workset)?,
-        );
-        let plan = prepared.into_plan();
-        self.wake = Some(
-            wake.body_plan_ready(
-                &plan,
-                SignId::from(format!("conduitos/product/planned/{}", self.revision)),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?,
         );
         self.results = core::array::from_fn(|_| super::PlotResult::new());
         self.input_count = 0;
@@ -257,9 +244,6 @@ impl ProductJourney {
         self.loss_sign_id = None;
         self.retained_kernel_sign_gap = None;
         self.application_request = None;
-        self.mask_control = mask_control;
-        self.planned_play = Some(BodyPlayIdentity::bind(&plan, self.revision));
-        self.plan = Some(plan);
         self.input_owners = input_owners;
         self.kernel = Some(kernel);
         self.status = JourneyStatus::Planned;
@@ -267,50 +251,61 @@ impl ProductJourney {
     }
 
     pub(super) fn play(&mut self) -> Result<(), JourneyError> {
-        let wake = self.wake.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        let play = self
-            .planned_play
-            .as_ref()
-            .ok_or(JourneyError::InvalidTransition)?;
-        let plan = self.plan.as_ref().ok_or(JourneyError::InvalidTransition)?;
-        let wake = wake
-            .body_play_started(
-                plan,
-                play,
-                SignId::from(format!("conduitos/product/playing/{}", self.revision)),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        let biography = self.prepare_biography(
-            self.body.as_ref().ok_or(JourneyError::BodyAbsent)?,
-            Some(&wake),
-            self.membership.as_ref().ok_or(JourneyError::Membership)?,
-        )?;
-        self.kernel
-            .as_mut()
-            .ok_or(JourneyError::Kernel)?
-            .refresh_tutorial(&biography)
-            .map_err(JourneyError::Play)?;
-        self.kernel
-            .as_mut()
-            .ok_or(JourneyError::Kernel)?
-            .start()
-            .map_err(JourneyError::Play)?;
-        if let Some(control) = self.mask_control.as_mut() {
-            let topology = control
-                .activate(&wake, plan, play)
-                .map_err(|_| JourneyError::Kernel)?;
-            self.kernel
-                .as_mut()
-                .ok_or(JourneyError::Kernel)?
-                .set_mask_topology(&topology)
-                .map_err(JourneyError::Mask)?;
+        if self.status != JourneyStatus::Planned {
+            return Err(JourneyError::InvalidTransition);
         }
-        self.wake = Some(wake);
-        self.play = Some(play.clone());
-        self.biography = Some(biography);
-        // This plot has no checked completion witness. Its initial structural
-        // drain leaves the admitted play resident and awaiting later input.
+        let mut session = self.session.clone().ok_or(JourneyError::BodyAbsent)?;
+        let current = session
+            .realization()
+            .ok_or(JourneyError::InvalidTransition)?;
+        let plan = current.plan.clone();
+        let play = BodyPlayIdentity::bind(&plan, self.revision);
+        let sign = |sequence| {
+            bind_sign(
+                &self.host_id,
+                &self.boot_id,
+                Some(&play.active_play_id),
+                sequence,
+            )
+            .sign_id
+        };
+        let wake = current
+            .wake
+            .body_plan_ready(&plan, sign(0))
+            .and_then(|wake| wake.body_play_started(&plan, &play, sign(1)))
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        // Record Play only after actual kernel start. Any refusal retires
+        // partial execution before lulling the still-unstarted proposal.
+        if let Err(error) = self.kernel.as_mut().ok_or(JourneyError::Kernel)?.start() {
+            self.retire_realization()?;
+            return Err(JourneyError::Play(error));
+        }
+        if let Err(error) =
+            session.started(&self.host_id, &self.boot_id, play.clone(), wake.clone())
+        {
+            self.retire_realization()?;
+            return Err(JourneyError::Lifecycle(error));
+        }
+        self.session = Some(session);
         self.status = JourneyStatus::QuiescentAwaitingInput;
+        let activation = (|| {
+            self.refresh_tutorial()?;
+            if let Some(control) = self.mask_control.as_mut() {
+                let topology = control
+                    .activate(&wake, &plan, &play)
+                    .map_err(|_| JourneyError::Kernel)?;
+                self.kernel
+                    .as_mut()
+                    .ok_or(JourneyError::Kernel)?
+                    .set_mask_topology(&topology)
+                    .map_err(JourneyError::Mask)?;
+            }
+            Ok(())
+        })();
+        if let Err(error) = activation {
+            self.retire_realization()?;
+            return Err(error);
+        }
         Ok(())
     }
 
@@ -329,82 +324,44 @@ impl ProductJourney {
             _ => return Err(JourneyError::WrongTarget),
         };
         if self.status != JourneyStatus::QuiescentAwaitingInput
-            || self.plan.as_ref().map(|plan| &plan.plan_id) != Some(&basis_plan_id)
+            || self.current_plan().map(|plan| &plan.plan_id) != Some(&basis_plan_id)
         {
             return Err(JourneyError::StalePresentation);
         }
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
-        let current = self.plan.as_ref().ok_or(JourneyError::InvalidTransition)?;
-        let mut wake = self.wake.clone().ok_or(JourneyError::BodyAbsent)?;
-        wake = wake
-            .became_unsatisfied(
-                &current.plan_id,
-                SignId::from(format!("conduitos/mask/{}/unsatisfied", self.revision)),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?;
         let mut control = self
             .mask_control
             .clone()
             .ok_or(JourneyError::InvalidTransition)?;
         control.request(mode).map_err(|_| JourneyError::Kernel)?;
-        let mut prepared = native_workset::prepare(&wake, identities, offer, build_id)
-            .map_err(JourneyError::Workset)?;
-        let selector = crate::mask_control::patchbay_selector(prepared.plan())
-            .map_err(|_| JourneyError::Kernel)?;
-        let topology = control
-            .topology(selector)
-            .map_err(|_| JourneyError::Kernel)?;
-        prepared = prepared
-            .with_masks(&wake, vec![topology])
-            .map_err(JourneyError::Workset)?;
-        let plan = prepared.plan().clone();
-        wake = wake
-            .body_plan_ready(
-                &plan,
-                SignId::from(format!("conduitos/mask/{}/planned", self.revision)),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        let play = BodyPlayIdentity::bind(&plan, self.revision);
-        wake = wake
-            .body_play_started(
-                &plan,
-                &play,
-                SignId::from(format!("conduitos/mask/{}/playing", self.revision)),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        let mut kernel = Box::new(
-            native_workset::NativeWorksetPlay::prepare_with_biography(
-                &prepared,
-                self.biography.as_ref().ok_or(JourneyError::BodyAbsent)?,
-            )
-            .map_err(JourneyError::Workset)?,
-        );
-        kernel.start().map_err(JourneyError::Play)?;
-        let topology = control
-            .activate(&wake, &plan, &play)
-            .map_err(|_| JourneyError::Kernel)?;
-        if let Err(error) = kernel.set_mask_topology(&topology) {
-            let _ = kernel.cancel();
-            return Err(JourneyError::Mask(error));
-        }
-        if let Some(prior) = self.kernel.as_mut() {
-            if let Err(error) = prior.cancel() {
-                let _ = kernel.cancel();
-                return Err(JourneyError::Play(error));
-            }
-            self.retained_kernel_sign_gap = prior.sign_retention_gap();
-        }
-        self.wake = Some(wake);
-        self.plan = Some(plan);
-        self.planned_play = Some(play.clone());
-        self.play = Some(play);
-        self.kernel = Some(kernel);
-        self.mask_control = Some(control);
-        self.application_request = None;
-        self.status = JourneyStatus::QuiescentAwaitingInput;
+        // The sole Play is retired before replacement preparation or start.
+        // Any subsequent refusal leaves an explicit Lulled Body.
+        self.retire_realization()?;
+        self.propose(identities, offer, build_id, Some(control))?;
+        self.plan(identities, offer, build_id)?;
+        self.play()?;
         self.advance()
+    }
+
+    pub(super) fn retire_realization(&mut self) -> Result<(), JourneyError> {
+        let receipt = self.current_play().cloned();
+        if let Some(kernel) = self.kernel.as_mut() {
+            kernel.cancel().map_err(JourneyError::Play)?;
+            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
+        }
+        self.kernel = None;
+        self.application_request = None;
+        if self.current_wake().is_some() {
+            self.session
+                .as_mut()
+                .ok_or(JourneyError::BodyAbsent)?
+                .lull(&self.host_id, &self.boot_id, receipt.as_ref())
+                .map_err(JourneyError::Lifecycle)?;
+        }
+        self.status = JourneyStatus::Lulled;
+        Ok(())
     }
 
     pub(super) fn stop(&mut self) -> Result<(), JourneyError> {
@@ -414,12 +371,7 @@ impl ProductJourney {
         ) {
             return Err(JourneyError::InvalidTransition);
         }
-        if let Some(kernel) = self.kernel.as_mut() {
-            kernel.cancel().map_err(JourneyError::Play)?;
-            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
-        }
-        self.kernel = None;
-        self.application_request = None;
+        self.retire_realization()?;
         self.status = JourneyStatus::Stopped;
         Ok(())
     }
@@ -434,36 +386,6 @@ impl ProductJourney {
         ) {
             return Err(JourneyError::InvalidTransition);
         }
-        let wake = self.wake.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        let lulled = wake
-            .lull(SignId::from(format!(
-                "conduitos/product/lulled/{}",
-                self.revision
-            )))
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        let retained = body
-            .retain_after_lull(
-                &lulled,
-                SignId::from(format!("conduitos/product/body-retained/{}", self.revision)),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        self.prepare_biography(
-            &retained,
-            Some(&lulled),
-            self.membership.as_ref().ok_or(JourneyError::Membership)?,
-        )?;
-        // Prepare the biography transition first; publish it only after the
-        // actual kernel has retired every pending operation and owned value.
-        if let Some(kernel) = self.kernel.as_mut() {
-            kernel.cancel().map_err(JourneyError::Play)?;
-            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
-        }
-        self.kernel = None;
-        self.application_request = None;
-        self.body = Some(retained);
-        self.wake = Some(lulled);
-        self.status = JourneyStatus::Lulled;
-        Ok(())
+        self.retire_realization()
     }
 }

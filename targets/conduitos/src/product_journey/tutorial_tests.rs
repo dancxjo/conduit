@@ -80,7 +80,7 @@ fn native_tutorial_uses_same_body_biography_through_wake_and_lull() {
 }
 
 #[test]
-fn finite_body_history_refuses_lull_before_mutating_the_live_body() {
+fn finite_body_history_reserves_lull_and_refuses_next_wake_without_storage() {
     let (ids, offer, mut journey) = fixture();
     journey
         .birth_from_creche(conduit_birth_plot::BirthSelection {
@@ -89,9 +89,21 @@ fn finite_body_history_refuses_lull_before_mutating_the_live_body() {
             workset: BodyWorkset::one(native_workset::resident(NativePlot::Tour).unwrap()).unwrap(),
         })
         .unwrap();
-    for _ in 0..(conduit_body::MAX_BODY_SIGNS - 1) / 2 {
+    for _ in 0..128 {
+        let before = journey.projection();
+        let evidence = journey.biography().unwrap().clone();
+        match invoke(&mut journey, JourneyAction::Wake, &ids, &offer) {
+            Err(JourneyError::Lifecycle(BodyLifecycleSessionError::ArchivePersistenceRequired)) => {
+                assert_eq!(journey.projection(), before);
+                assert_eq!(journey.biography(), Some(&evidence));
+                assert!(journey.kernel.is_none());
+                assert_eq!(journey.body().unwrap().state, BodyState::Lulled);
+                return;
+            }
+            Ok(()) => {}
+            Err(error) => panic!("unexpected Wake refusal: {error:?}"),
+        }
         for action in [
-            JourneyAction::Wake,
             JourneyAction::Plan,
             JourneyAction::Play,
             JourneyAction::Lull,
@@ -99,21 +111,7 @@ fn finite_body_history_refuses_lull_before_mutating_the_live_body() {
             invoke(&mut journey, action, &ids, &offer).unwrap();
         }
     }
-    for action in [
-        JourneyAction::Wake,
-        JourneyAction::Plan,
-        JourneyAction::Play,
-    ] {
-        invoke(&mut journey, action, &ids, &offer).unwrap();
-    }
-    let before = journey.projection();
-    let evidence = journey.biography().unwrap().clone();
-    assert_eq!(
-        invoke(&mut journey, JourneyAction::Lull, &ids, &offer),
-        Err(JourneyError::InvalidTransition)
-    );
-    assert_eq!(journey.projection(), before);
-    assert_eq!(journey.biography(), Some(&evidence));
+    panic!("native history requires a finite archive persistence boundary");
 }
 
 #[test]

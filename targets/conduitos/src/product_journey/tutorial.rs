@@ -40,7 +40,7 @@ pub enum TutorialSurface {
 
 impl ProductJourney {
     pub fn foreground_is_tutorial(&self) -> bool {
-        self.plots[self.foreground] == Some(NativePlot::Tour)
+        self.plots[self.foreground_index()] == Some(NativePlot::Tour)
     }
 
     pub fn tutorial_view(&self) -> Result<ApplicationView, TutorialRefusal> {
@@ -98,7 +98,7 @@ impl ProductJourney {
                 Err(TutorialRefusal::LifecycleInspectionUnavailable)
             }
             TutorialAction::UseCurrent => {
-                let body = self.body.as_ref().ok_or(TutorialRefusal::InvalidAction)?;
+                let body = self.body().ok_or(TutorialRefusal::InvalidAction)?;
                 let target = self
                     .last_working_plot
                     .as_ref()
@@ -122,7 +122,8 @@ impl ProductJourney {
                 Ok(TutorialSurface::Current)
             }
             TutorialAction::Wake => {
-                self.wake().map_err(TutorialRefusal::Lifecycle)?;
+                self.wake(identities, offer, build_id)
+                    .map_err(TutorialRefusal::Lifecycle)?;
                 self.advance().map_err(TutorialRefusal::Lifecycle)?;
                 self.plan(identities, offer, build_id)
                     .map_err(TutorialRefusal::Lifecycle)?;

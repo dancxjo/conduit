@@ -151,7 +151,13 @@ fn actual_memory_bound_stops_play_and_keeps_the_body_refusal_inspectable() {
     let after = journey.projection();
     assert_eq!(after.status, JourneyStatus::Stopped);
     assert_eq!(after.body_id, before.body_id);
-    assert_eq!(after.active_play_id, before.active_play_id);
+    assert!(after.active_play_id.is_none());
+    let terminal = journey.biography().unwrap().wakes.last().unwrap();
+    assert_eq!(terminal.lifecycle, conduit_body::WakeLifecycle::Lulled);
+    assert_eq!(
+        terminal.plans.last().unwrap().active_play_id,
+        before.active_play_id
+    );
     assert_eq!(after.result.as_ref().unwrap().len(), 256);
     assert!(
         door.presentation()
