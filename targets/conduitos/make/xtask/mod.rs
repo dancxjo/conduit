@@ -38,6 +38,7 @@ mod isolation_proof;
 mod journey_input;
 mod journey_pointer;
 mod journey_proof;
+mod workspace_proof;
 mod journey_records;
 mod journey_resize;
 mod journey_standing;
@@ -147,6 +148,8 @@ enum ConduitosCommand {
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
+    /// Exercise current Workspace birth, explicit Wake, Tutorial and ordinary input.
+    WorkspaceProof,
     /// Prove the default graphical profile through the canonical live ISO and retained gallery.
     GraphicalProfileProof,
     /// Boot one architecture proof appliance and validate its bounded terminal Sign.
@@ -482,6 +485,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
+        ConduitosCommand::WorkspaceProof => workspace_proof::execute(opts),
         ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;

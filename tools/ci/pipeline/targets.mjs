@@ -82,10 +82,10 @@ function conduitos(id, directory) {
     throw new Error(`${id} omitted its exact product boot proof`);
   }
   if (arch === 'x86_64') {
-    for (const name of ['journey-proof.json', 'journey-serial.log', 'journey-qmp.log']) {
+    for (const name of ['workspace-proof.json', 'workspace-serial.log', 'workspace-qmp.log']) {
       copyFile(path.join(evidence, name), path.join(directory, 'evidence', name));
     }
-    cpSync(path.join(evidence, 'journey-frames'), path.join(directory, 'evidence/journey-frames'),
+    cpSync(path.join(evidence, 'workspace-frames'), path.join(directory, 'evidence/workspace-frames'),
       { recursive: true, errorOnExist: true, force: false });
   }
 }

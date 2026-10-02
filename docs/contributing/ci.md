@@ -95,15 +95,15 @@ Build proof for firmware and boards without CI hardware remains **build proof
 only**. Executable smoke, browser execution, and ConduitOS emulator boot are
 separate classes. None is physical or human acceptance. Browser coverage names
 its actual executed specs; cross-device enactment remains separate work.
-The x86_64 lane also runs the full graphical user journey against the same
-verified product IMAGE: birth, workload changes, execution, input, native Masks,
-USB connectivity, loss and lull. `cargo xtask make host verify OUTPUT --journey`
-reuses that artifact, checks its digest before and after, and binds the guest's
-profile/build identities to its manifest. It does not build a second proof
-image. The lane retains the journey records and QMP screenshots with the product.
-LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
-emulators before boot because their large-page translation can corrupt the
-bootloader's module handoff.
+The x86_64 lane also exercises the current Workspace against the same retained
+product IMAGE: zero-Body arrival, naming and plot selection, birth into rest,
+explicit Wake, Memory Lantern input, the shared Tutorial, pagination, lull and
+fulfillment. `cargo xtask make host verify OUTPUT --journey` verifies the image
+digest before and after execution and correlates the guest's source, profile,
+build and image identities. It does not rebuild a demonstration image. The
+lane retains the action records and QMP screenshots with the product. This
+keyboard journey is separate from retained Tour chapter, USB carrier, pointer,
+and screen-free proofs; those claims require their own actual interactions.
 
 ## Publication
 

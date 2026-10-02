@@ -84,6 +84,12 @@ fn enabled_action<'a>(
 }
 
 impl FrontDoor {
+    pub fn application_pages(&self) -> usize {
+        self.application_view
+            .as_ref()
+            .map_or(0, |view| rows(view, |_, _| {}).div_ceil(PAGE_ROWS))
+    }
+
     pub fn application_page(&self) -> usize {
         self.application_viewport.page
     }

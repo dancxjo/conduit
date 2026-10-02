@@ -31,6 +31,8 @@ pub(super) fn emit(
         "body_id": projection.body_id.as_ref().map(|id| id.as_str()),
         "status": projection.status.as_str(),
         "page": door.application_page(),
+        "page_count": door.application_pages(),
+        "plots": journey.workspace_projection().map(|workspace| workspace.plots.iter().map(|plot| serde_json::json!({"title": plot.title, "source_document_id": plot.plot.source_document_id.as_str(), "checked_plot_id": plot.plot.checked_plot_id.as_str()})).collect::<Vec<_>>()),
         "selected_action": door.selected_application_action().map(|action| action.id.as_str()),
         "nodes": view.nodes.iter().map(|node| serde_json::json!({"key": node.key, "text": node.text, "value": node.value})).collect::<Vec<_>>(),
         "actions": view.actions.iter().map(|action| action.id.as_str()).collect::<Vec<_>>(),
