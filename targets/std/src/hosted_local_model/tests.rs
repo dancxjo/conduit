@@ -71,9 +71,7 @@ impl HostedLocalModelAdapter for FakeLocalModel {
                         .map(|evidence| evidence.sign_id.clone())
                         .collect(),
                     unresolved_evidence: Vec::new(),
-                    confidence: Some(
-                        conduit_ai::ProfileReportedConfidence::new(700).unwrap(),
-                    ),
+                    confidence: Some(conduit_ai::ProfileReportedConfidence::new(700).unwrap()),
                     implications: vec!["seek a fresh carrier observation".into()],
                     disposition: conduit_ai::InterpretationDisposition::Interpreted,
                 })
@@ -141,13 +139,7 @@ fn offer(profiles: Vec<LocalModelKindProfile>) -> LocalModelOffer {
             quantization: "exact".into(),
         },
         limits: LocalModelLimits {
-            work: LlmWorkBounds {
-                maximum_input_bytes: 4_096,
-                maximum_context_items: 1,
-                maximum_output_bytes: 4_096,
-                maximum_work_units: 4_096,
-                maximum_history_items: 0,
-            },
+            work: LlmWorkBounds::new(4_096, 1, 4_096, 4_096, 0).unwrap(),
             model_bytes: 1,
             admitted_memory_mib: 1,
             compute: conduit_ai::LocalModelComputeNeed {

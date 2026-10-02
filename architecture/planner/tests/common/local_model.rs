@@ -44,13 +44,7 @@ pub fn local_model_provider(
             quantization: "fixture".into(),
         },
         limits: LocalModelLimits {
-            work: LlmWorkBounds {
-                maximum_input_bytes: 4_096,
-                maximum_context_items: 1,
-                maximum_output_bytes: 1_024,
-                maximum_work_units: 4_096,
-                maximum_history_items: 0,
-            },
+            work: LlmWorkBounds::new(4_096, 1, 1_024, 4_096, 0).unwrap(),
             model_bytes: 1,
             admitted_memory_mib: 8,
             compute: LocalModelComputeNeed {

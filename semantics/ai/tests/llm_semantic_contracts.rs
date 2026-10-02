@@ -2,11 +2,11 @@
 use conduit_ai::install_llm_semantic_catalog;
 use conduit_ai::{
     llm_contract, llm_semantic_catalog, ConfidencePermille, LlmDeterminismProfile,
-    LlmImplementationControl, LlmTerminalOutcome, ModelDerivedResult, ModelFailure, ModelRefusal,
-    ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, ModelWorkAccounting,
-    LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND,
-    LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PRESENT_KIND, LLM_PROPOSE_KIND,
-    LLM_STREAM_GENERATE_KIND,
+    LlmImplementationControl, LlmTerminalOutcome, LlmWorkBounds, ModelDerivedResult, ModelFailure,
+    ModelRefusal, ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance,
+    ModelWorkAccounting, LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND,
+    LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND,
+    LLM_PRESENT_KIND, LLM_PROPOSE_KIND, LLM_STREAM_GENERATE_KIND,
 };
 use conduit_core::PortDirection;
 use conduit_core::PortTemporal;
@@ -62,6 +62,32 @@ fn confidence_and_work_accounting_are_native_values() {
     let source = include_str!("../src/model_result.rs");
     assert!(!source.contains("pub struct ConfidencePermille"));
     assert!(!source.contains("pub struct ModelWorkAccounting"));
+}
+
+#[test]
+fn llm_work_bounds_are_native_and_exactly_bounded() {
+    let minimum = LlmWorkBounds::new(1, 0, 1, 1, 0).unwrap();
+    let maximum = LlmWorkBounds::new(262_144, 128, 65_536, 1_000_000, 64).unwrap();
+    for bounds in [minimum, maximum] {
+        assert!(bounds.valid());
+        assert_eq!(
+            LlmWorkBounds::from_structured(bounds.into_structured().unwrap()).unwrap(),
+            bounds
+        );
+    }
+    for invalid in [
+        LlmWorkBounds::new(0, 0, 1, 1, 0),
+        LlmWorkBounds::new(262_145, 0, 1, 1, 0),
+        LlmWorkBounds::new(1, 129, 1, 1, 0),
+        LlmWorkBounds::new(1, 0, 65_537, 1, 0),
+        LlmWorkBounds::new(1, 0, 1, 1_000_001, 0),
+        LlmWorkBounds::new(1, 0, 1, 1, 65),
+    ] {
+        assert!(invalid.is_err());
+    }
+    assert!(
+        !include_str!("../src/llm_contract.rs").contains(concat!("pub struct ", "LlmWorkBounds"))
+    );
 }
 
 #[test]
@@ -195,7 +221,7 @@ fn malformed_oversized_and_unsupported_results_fail_distinctly() {
     );
 
     let mut result = produced(LLM_EXTRACT_KIND);
-    result.accounting.output_bytes = contract.bounds.maximum_output_bytes + 1;
+    result.accounting.output_bytes = contract.bounds.maximum_output_bytes() + 1;
     assert_eq!(
         result.validate(&contract),
         Err(ModelResultInvalidity::OutputBoundExceeded)

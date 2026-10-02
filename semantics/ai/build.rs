@@ -42,6 +42,7 @@ fn main() {
                 "GeneratedTextChunk".into(),
                 "GeneratedTextFlowEvidence".into(),
                 "HouseModelRequest".into(),
+                "LlmWorkBounds".into(),
                 "WiredHouseContextItem".into(),
                 "ValidatedExtraction".into(),
                 "ModelWorkAccounting".into(),
@@ -53,11 +54,14 @@ fn main() {
                 "CompatibleMetrics".into(),
                 "IntegrationAccuracy".into(),
                 "GeneratedTextFlowEvidence".into(),
+                "LlmWorkBounds".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
             ]
             .into(),
-            copy_record_value_getters: ["IntegrationAccuracy".into()].into(),
+            copy_record_value_getters: ["IntegrationAccuracy".into(), "LlmWorkBounds".into()]
+                .into(),
+            direct_checked_record_constructors: ["LlmWorkBounds".into()].into(),
             public_record_fields: [
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
@@ -124,6 +128,16 @@ fn main() {
                         "addressed_utterance".into(),
                         "context".into(),
                         "maximum_output_bytes".into(),
+                    ],
+                ),
+                (
+                    "LlmWorkBounds".into(),
+                    vec![
+                        "maximum_input_bytes".into(),
+                        "maximum_context_items".into(),
+                        "maximum_output_bytes".into(),
+                        "maximum_work_units".into(),
+                        "maximum_history_items".into(),
                     ],
                 ),
                 (

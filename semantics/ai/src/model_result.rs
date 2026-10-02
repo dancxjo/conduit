@@ -2,9 +2,8 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ConfidencePermille, ModelWorkAccounting,
-    LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome, ModelResultDisposition,
-    ModelResultInvalidity, ModelResultProvenance,
+    ConfidencePermille, LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome,
+    ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, ModelWorkAccounting,
 };
 
 impl ModelResultDisposition {
@@ -45,19 +44,19 @@ impl ModelDerivedResult {
         if self.payload_kind != contract.result_payload_kind.as_str() {
             return Err(ModelResultInvalidity::UnsupportedPayloadKind);
         }
-        if self.accounting.input_bytes > contract.bounds.maximum_input_bytes {
+        if self.accounting.input_bytes > contract.bounds.maximum_input_bytes() {
             return Err(ModelResultInvalidity::InputBoundExceeded);
         }
-        if self.accounting.context_items > contract.bounds.maximum_context_items {
+        if self.accounting.context_items > contract.bounds.maximum_context_items() {
             return Err(ModelResultInvalidity::ContextBoundExceeded);
         }
-        if self.accounting.output_bytes > contract.bounds.maximum_output_bytes {
+        if self.accounting.output_bytes > contract.bounds.maximum_output_bytes() {
             return Err(ModelResultInvalidity::OutputBoundExceeded);
         }
-        if self.accounting.work_units > contract.bounds.maximum_work_units {
+        if self.accounting.work_units > contract.bounds.maximum_work_units() {
             return Err(ModelResultInvalidity::WorkBoundExceeded);
         }
-        if self.accounting.history_items > contract.bounds.maximum_history_items {
+        if self.accounting.history_items > contract.bounds.maximum_history_items() {
             return Err(ModelResultInvalidity::HistoryBoundExceeded);
         }
         if self.accounting.output_bytes != self.payload.len() as u64 {
