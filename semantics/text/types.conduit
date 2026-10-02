@@ -9,6 +9,13 @@ type MorseSegment = {
     units: U8
 }
 
+type MorseSegments = sequence MorseSegment in 1..=320
+
+type MorsePattern = {
+    unit-millis: U16 in 40..=2000
+    segments: MorseSegments
+}
+
 type MorseKeyTransition = {
     clock_basis: Text <= 96B not in [""]
     monotonic_micros: U64

@@ -146,8 +146,8 @@ pub fn merge_three_signal_semantic_contract() -> Kind {
     }
 }
 
-pub(crate) fn extend_control_profile_catalog(catalog: &mut conduit_form::ProfileCatalog) {
-    use conduit_form::KindProjection;
+pub(crate) fn extend_control_profile_catalog(catalog: &mut conduit_plot::ProfileCatalog) {
+    use conduit_plot::KindProjection;
 
     for capability in [
         level_input_capability("catalog/level-input", "catalog/level-input@1", 1),

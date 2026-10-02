@@ -1,6 +1,6 @@
 use conduit_core::{
-    bind_active_play, bind_sign, seal_plan, AuthorityGrantId, BootId, CapabilityId, FormIdentity,
-    KindIdentity, Observation, ObservationKind, Plan, PlanId, SignId, TerminalDisposition,
+    bind_active_play, bind_sign, seal_plan, AuthorityGrantId, BootId, CapabilityId, KindIdentity,
+    Observation, ObservationKind, Plan, PlanId, PlotIdentity, SignId, TerminalDisposition,
 };
 use conduit_observatory::{
     CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
@@ -202,7 +202,7 @@ fn fixture() -> Fixture {
 fn record(fixture: &Fixture) -> SystemRecord {
     SystemRecord::from_snapshot(
         DurableSystemId::from("system/triple-signal"),
-        fixture.exact.plan.checked_form_id.clone(),
+        fixture.exact.plan.checked_plot_id.clone(),
         fixture.members.clone(),
         fixture.requirements.clone(),
         &fixture.exact.plan.plan_id,
@@ -251,10 +251,10 @@ fn replacement(fixture: &Fixture) -> (conduit_core::HostAdvertisement, Plan, Obs
         }
     }
     let plan = seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: fixture.exact.plan.source_document_id.clone(),
-            checked_form_id: fixture.exact.plan.checked_form_id.clone(),
-            expanded_form_id: fixture.exact.plan.expanded_form_id.clone(),
+            checked_plot_id: fixture.exact.plan.checked_plot_id.clone(),
+            expanded_plot_id: fixture.exact.plan.expanded_plot_id.clone(),
         },
         fragments,
     );
@@ -346,7 +346,7 @@ fn reboot_acceptance_termination_replacement_and_replan_remain_distinct() {
     );
     let replacement_record = SystemRecord::from_snapshot(
         DurableSystemId::from("system/triple-signal"),
-        new_plan.checked_form_id.clone(),
+        new_plan.checked_plot_id.clone(),
         members,
         new_requirements,
         &new_plan.plan_id,
@@ -415,7 +415,7 @@ fn membership_availability_and_delegated_authority_fail_independently() {
     assert!(matches!(
         SystemRecord::from_snapshot(
             DurableSystemId::from("system/missing-member"),
-            fixture.exact.plan.checked_form_id.clone(),
+            fixture.exact.plan.checked_plot_id.clone(),
             members,
             fixture.requirements.clone(),
             &fixture.exact.plan.plan_id,
@@ -430,7 +430,7 @@ fn membership_availability_and_delegated_authority_fail_independently() {
     assert!(matches!(
         SystemRecord::from_snapshot(
             DurableSystemId::from("system/unavailable"),
-            fixture.exact.plan.checked_form_id.clone(),
+            fixture.exact.plan.checked_plot_id.clone(),
             fixture.members.clone(),
             fixture.requirements.clone(),
             &fixture.exact.plan.plan_id,

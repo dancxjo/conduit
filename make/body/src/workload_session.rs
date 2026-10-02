@@ -1,7 +1,7 @@
-//! Atomic, bounded changes to a Body's resident Form workset.
+//! Atomic, bounded changes to a Body's resident Plot workset.
 
 use conduit_body::{
-    BodyBiographyError, BodyBiographyEvidence, BodyId, BodyLifecycleError, BodyState, ResidentForm,
+    BodyBiographyError, BodyBiographyEvidence, BodyId, BodyLifecycleError, BodyState, ResidentPlot,
 };
 use conduit_core::SignId;
 
@@ -18,7 +18,7 @@ pub struct BodyWorkloadChange {
     pub body_id: BodyId,
     pub prior_workload_revision: u64,
     pub workload_revision: u64,
-    pub form: ResidentForm,
+    pub plot: ResidentPlot,
     pub sign_id: SignId,
     pub biography_sequence: u64,
     pub kind: BodyWorkloadChangeKind,
@@ -90,32 +90,32 @@ impl BodyWorkloadSession {
         Ok(())
     }
 
-    pub fn admit_form(
+    pub fn admit_plot(
         &mut self,
         expected_workload_revision: u64,
-        form: ResidentForm,
+        plot: ResidentPlot,
         sign_id: SignId,
         biography_sequence: u64,
     ) -> Result<BodyWorkloadChange, BodyWorkloadError> {
         self.change(
             expected_workload_revision,
-            form,
+            plot,
             sign_id,
             biography_sequence,
             BodyWorkloadChangeKind::Admitted,
         )
     }
 
-    pub fn remove_form(
+    pub fn remove_plot(
         &mut self,
         expected_workload_revision: u64,
-        form: ResidentForm,
+        plot: ResidentPlot,
         sign_id: SignId,
         biography_sequence: u64,
     ) -> Result<BodyWorkloadChange, BodyWorkloadError> {
         self.change(
             expected_workload_revision,
-            form,
+            plot,
             sign_id,
             biography_sequence,
             BodyWorkloadChangeKind::Removed,
@@ -125,7 +125,7 @@ impl BodyWorkloadSession {
     fn change(
         &mut self,
         expected_workload_revision: u64,
-        form: ResidentForm,
+        plot: ResidentPlot,
         sign_id: SignId,
         biography_sequence: u64,
         kind: BodyWorkloadChangeKind,
@@ -143,10 +143,10 @@ impl BodyWorkloadSession {
 
         let next_body = match kind {
             BodyWorkloadChangeKind::Admitted => {
-                self.evidence.body.admit_form(form.clone(), sign_id.clone())
+                self.evidence.body.admit_plot(plot.clone(), sign_id.clone())
             }
             BodyWorkloadChangeKind::Removed => {
-                self.evidence.body.remove_form(&form, sign_id.clone())
+                self.evidence.body.remove_plot(&plot, sign_id.clone())
             }
         }
         .map_err(BodyWorkloadError::Lifecycle)?;
@@ -164,7 +164,7 @@ impl BodyWorkloadSession {
             body_id: next_evidence.body_id.clone(),
             prior_workload_revision: current,
             workload_revision: next_evidence.body.workload_revision,
-            form,
+            plot,
             sign_id,
             biography_sequence,
             kind,

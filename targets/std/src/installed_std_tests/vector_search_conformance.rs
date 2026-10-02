@@ -18,13 +18,13 @@ use conduit_core::{
     BaseImplementationId, BootId, HostId, OfferGeneration, ResourceClassId, ResourcePoolId,
     TerminalDisposition,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use std::collections::BTreeMap;
 
-const FORM: &str = "form run {\n source: conduit-test/local-model-request\n search: retrieval/vector-search(4096, 4096, 65536, 2)\n sink: conduit-test/local-model-result\n source.value >> search.query\n search.hits >> sink.value\n}\n";
+const PLOT: &str = "plot run {\n source: conduit-test/local-model-request\n search: retrieval/vector-search(4096, 4096, 65536, 2)\n sink: conduit-test/local-model-result\n source.value >> search.query\n search.hits >> sink.value\n}\n";
 
 fn profile() -> EmbeddingProfile {
     EmbeddingProfile {
@@ -90,10 +90,7 @@ fn candidates() -> Vec<ExactVectorSearchCandidate<String>> {
     .map(|(name, values)| ExactVectorSearchCandidate {
         record: VectorRecord {
             value: format!("value/{name}"),
-            embedding: Embedding {
-                profile: profile(),
-                values: values.into(),
-            },
+            embedding: Embedding::from_values(profile(), values.into_iter().collect()).unwrap(),
             source_identity: format!("source/{name}"),
             resource_identity: format!("resource/{name}"),
             metadata: Vec::new(),
@@ -161,7 +158,7 @@ fn hnsw_adapter(process: &str) -> HnswVectorSearchAdapter {
     HnswVectorSearchAdapter::new(state, query, backend).unwrap()
 }
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_ai::install_vector_search_catalog(&mut startup, &mut profiles).unwrap();
@@ -171,8 +168,8 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
         conduit_ai::SIMILARITY_QUERY_VALUE_KIND,
         conduit_ai::SIMILARITY_HITS_VALUE_KIND,
     );
-    let checked = check_syntax_document(&parse_syntax_document(FORM), &startup).unwrap();
-    expand_canonical_form(&checked, "run", &profiles).unwrap()
+    let checked = check_syntax_document(&parse_syntax_document(PLOT), &startup).unwrap();
+    expand_canonical_plot(&checked, "run", &profiles).unwrap()
 }
 
 fn host(adapter: Box<dyn HostedVectorSearchAdapter>, suffix: &str) -> StdHost {
@@ -220,14 +217,14 @@ fn plan(host: &StdHost) -> conduit_core::Plan {
 }
 
 #[test]
-fn unchanged_form_runs_through_ordinary_play_on_exact_and_hnsw() {
+fn unchanged_plot_runs_through_ordinary_play_on_exact_and_hnsw() {
     let mut exact = host(Box::new(exact_adapter("process/exact-play")), "exact");
     let mut hnsw = host(Box::new(hnsw_adapter("process/hnsw-play")), "hnsw");
     let exact_plan = plan(&exact);
     let hnsw_plan = plan(&hnsw);
     assert_eq!(exact_plan.source_document_id, hnsw_plan.source_document_id);
-    assert_eq!(exact_plan.checked_form_id, hnsw_plan.checked_form_id);
-    assert_eq!(exact_plan.expanded_form_id, hnsw_plan.expanded_form_id);
+    assert_eq!(exact_plan.checked_plot_id, hnsw_plan.checked_plot_id);
+    assert_eq!(exact_plan.expanded_plot_id, hnsw_plan.expanded_plot_id);
 
     for (host, plan) in [(&mut exact, exact_plan), (&mut hnsw, hnsw_plan)] {
         let mut output = Vec::with_capacity(2_048);
@@ -260,14 +257,11 @@ fn adapters_expose_equal_hit_semantics_but_distinct_proof_classes() {
     let exact_plan = plan(&exact_host);
     let hnsw_plan = plan(&hnsw_host);
     let query = serde_json::to_vec(&conduit_ai::SimilarityQuery {
-        embedding: Embedding {
-            profile: profile(),
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(profile(), vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 2,
         threshold: None,
-        filters: Vec::new(),
+        filters: conduit_ai::MetadataFilters::from_values(Vec::new()).unwrap(),
         temporal_intent: None,
     })
     .unwrap();
@@ -329,14 +323,11 @@ fn provider_loss_is_terminal_and_emits_no_retrieval_value() {
         .find(|placement| placement.kind_id.as_str() == conduit_ai::VECTOR_SEARCH_KIND)
         .unwrap();
     let query = serde_json::to_vec(&conduit_ai::SimilarityQuery {
-        embedding: Embedding {
-            profile: profile(),
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(profile(), vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 2,
         threshold: None,
-        filters: Vec::new(),
+        filters: conduit_ai::MetadataFilters::from_values(Vec::new()).unwrap(),
         temporal_intent: None,
     })
     .unwrap();

@@ -72,15 +72,15 @@ fn find<'a>(
         .ok_or(HistoricalConfigurationRefusal::Missing(key))
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn historical_timeline_kind_projection() -> conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn historical_timeline_kind_projection() -> conduit_plot::KindProjection {
     use alloc::{string::ToString, vec};
     use conduit_core::{
         kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType, MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES,
         MAXIMUM_TEMPORAL_IDENTITY_BYTES,
     };
-    use conduit_form::{KindConfigurationField, KindConfigurationRule};
+    use conduit_plot::{KindConfigurationField, KindConfigurationRule};
     let value_kind = |identity| {
         StructuredInfoType::leaf(kind_id(identity))
             .expect("reviewed history value identity")
@@ -89,7 +89,7 @@ pub fn historical_timeline_kind_projection() -> conduit_form::KindProjection {
             .value_kind()
             .clone()
     };
-    conduit_form::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: kind_id(crate::HISTORICAL_TIMELINE_KIND),
         kind_contract_revision: KindIdentity::from(crate::HISTORICAL_TIMELINE_CONTRACT_REVISION),
         inputs: alloc::vec![PortDescriptor {
@@ -173,7 +173,7 @@ pub fn historical_timeline_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn historical_timeline_semantic_contract() -> conduit_core::Kind {
     use conduit_core::{kind_id, CapabilityLimits, FrontStartupParameter};
 

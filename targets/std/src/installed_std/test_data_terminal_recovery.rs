@@ -8,7 +8,6 @@ use conduit_core::{
     NormalCloseTransduction, PlannedGear, PortDescriptor, PortDirection, PortTemporal,
     TerminalTransductionProfile, UNIT_INFO_ID,
 };
-use conduit_form::ProfileCatalog;
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -17,6 +16,7 @@ use conduit_kernel::{
     },
     Failure, FailureCode, PortId, ValueRef, ValueStorage,
 };
+use conduit_plot::ProfileCatalog;
 
 const SAVE_KIND: &str = "conduit-test/data-save-terminal-recovery";
 const LOAD_KIND: &str = "conduit-test/data-load-terminal-recovery";

@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startServer() {
-  const process = spawn("target/debug/patchbay-html", ["--documentary-fixture"], { stdio: ["ignore", "pipe", "pipe"] });
+  const process = spawn("target/debug/conduit-browser-patchbay-workbench", ["--documentary-fixture"], { stdio: ["ignore", "pipe", "pipe"] });
   const errors = [];
   process.stderr.setEncoding("utf8");
   process.stderr.on("data", chunk => errors.push(chunk));
@@ -29,9 +29,9 @@ test("Body truth is contextual Inspect content, not a nested application", async
     if (await page.locator("#body-inspect").isVisible()) await expect(page.locator("#body-workbench-title")).toBeFocused();
     else await expect(page.locator("#inspect-title")).toBeFocused();
     await expect(page.locator("#body-membership-invitation")).toBeAttached();
-    await expect(page.locator("#body-workbench-forms")).toBeAttached();
+    await expect(page.locator("#body-workbench-plots")).toBeAttached();
     await expect(page.locator("#body-workbench-history")).toBeAttached();
-    await expect(page.locator("#body-form-query")).toHaveCount(0);
+    await expect(page.locator("#body-plot-query")).toHaveCount(0);
     await expect(page.locator("#body-workbench-available")).toBeAttached();
   } finally {
     server.lines.close();

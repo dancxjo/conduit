@@ -20,13 +20,13 @@ The Pico W attachment additionally requires an admitted, enabled logic-level
 translation resource between the Create's 5 V transmit signal and the Pico's
 3.3 V receive GPIO. A 5 V signal must never be connected directly to Pico W or
 ESP32 GPIO. Whether 3.3 V is sufficient for the Create receive input is an exact
-attachment fact to prove, not an ambient assumption. Portable forms contain
+attachment fact to prove, not an ambient assumption. Portable plots contain
 none of these electrical facts.
 
 ## Disposition vocabulary
 
 - **keep**: portable meaning or a bounded realization responsibility remains.
-- **compose**: the behavior is an ordinary form over smaller portable kinds.
+- **compose**: the behavior is an ordinary plot over smaller portable kinds.
 - **service**: retain only as a bounded, explicitly authorized maintenance
   action outside the ordinary gear palette.
 - **replace**: ordinary Conduit machinery owns the responsibility.
@@ -54,10 +54,10 @@ and Pico W HIL remain distinct evidence classes.
 | `heartbeat_stop` | replace | authority/control-liveness fence | Control loss independently stops motion without depending on LINE recovery |
 | `clear_motion_queue` | replace | cancellation of admitted finite work | Cancellation identifies affected work and preserves terminal signs |
 | `cmd_vel` | keep | body-forward linear/angular velocity intent | One portable velocity contract lowers through each selected drive realization |
-| `drive_direct`, `drive_arc` | fixture/compose | Create-native lowering or reusable adapter form | Neither wire shape becomes a separate architecture-defining gear kind |
+| `drive_direct`, `drive_arc` | fixture/compose | Create-native lowering or reusable adapter plot | Neither wire shape becomes a separate architecture-defining gear kind |
 | `request_sensors`, `stream_sensors` | delete | typed Current/Flow outputs with finite pressure | Sampling, freshness, capacity, closure, and pressure are explicit |
-| `song_define`, `song_play` | keep | standard music/sound semantics | Existing portable `music/play` form lowers through bounded Create song slots |
-| `define_chirp`, `play_feedback` | compose | ordinary finite sound form | Feedback names are presentation/policy choices, not device primitives |
+| `song_define`, `song_play` | keep | standard music/sound semantics | Existing portable `music/play` plot lowers through bounded Create song slots |
+| `define_chirp`, `play_feedback` | compose | ordinary finite sound plot | Feedback names are presentation/policy choices, not device primitives |
 | `set_silent` | replace | sound policy/authority or absence of a sound plan | No global private Brainstem audio state remains |
 | `set_lights` | keep | portable indicator/presentation output | Bounded light meaning lowers to the Create LED profile |
 | `dock` | keep | portable docking request | Exact authority, refusal, opcode realization, and terminal sign are proven |
@@ -65,10 +65,10 @@ and Pico W HIL remain distinct evidence classes.
 | `restart_create` | service | exact composed Create device lifecycle transaction | `create_restart_service` accepts only the existing requested-stop, separately verified off/on power-service, fresh device/mode observation, and exact mode-service signs; it owns no provider, retry, RPC, or palette surface |
 | `reset_odometry` | service | bounded odometry-frame reset | New frame/provenance generation is explicit |
 | `zero_imu_orientation`, `clear_imu_orientation` | service | bounded calibration operation | Calibration identity, frame, freshness, and invalidation are explicit |
-| `calibrate_turn`, `orientation_probe` | service | attended calibration form/action | Motion authority, duration, safe stop, result, and failure are retained |
+| `calibrate_turn`, `orientation_probe` | service | attended calibration plot/action | Motion authority, duration, safe stop, result, and failure are retained |
 | `set_mode` | service/realization | Create OI device-mode operation | Mode is realization truth; unsupported/unsafe transitions are refused |
 | `bootsel` | service | Pico W firmware-maintenance action | Physical host identity, authority, safe disposition, and terminal loss are explicit |
-| `reset_motherbrain` | service or delete | exact installed GPIO service attachment | Unavailable unless installed and observed; never implied by the common form |
+| `reset_motherbrain` | service or delete | exact installed GPIO service attachment | Unavailable unless installed and observed; never implied by the common plot |
 | `Unsupported` retired verbs | delete/fixture | no production seam | Exact compatibility rejection fixtures remain only while useful |
 
 The old navigation-shaped verbs (`front_bearing`, `track_bearing`,
@@ -113,7 +113,7 @@ distance.
 | differential motion | keep | `robotics/drive-differential` consuming velocity intent | mandatory safety realization -> Create OI codec -> UART base |
 | zero/stop | keep | actuator safe disposition | priority finite OI stop write; local fallback on provider failure |
 | speaker/song | keep | standard music/sound kinds | finite Create song slots/opcodes -> UART base |
-| feedback chirps | compose | bounded sound forms selected by presentation/policy | same speaker realization |
+| feedback chirps | compose | bounded sound plots selected by presentation/policy | same speaker realization |
 | dock | keep | portable docking action | Create dock opcode -> UART base |
 | Create LEDs | keep | indicator/presentation output | finite LED opcode -> UART base |
 | Create power toggle | service | power service action | exact GPIO output and timing base; embedded only unless separately offered |
@@ -124,7 +124,7 @@ distance.
 ## Mandatory local safety invariants
 
 Physical differential-drive offers are invalid unless their selected
-realization includes one admitted local safety envelope. A form cannot route
+realization includes one admitted local safety envelope. A plot cannot route
 around it. The envelope owns finite stop work and safe output disposition.
 
 | Invariant | Required trigger/effect | Required evidence |
@@ -154,21 +154,21 @@ absent watchdog or auxiliary input is never encoded as healthy or clear.
 
 ## bases, device protocol, and host differences
 
-| Responsibility | Pico W realization | std realization | Portable form impact |
+| Responsibility | Pico W realization | std realization | Portable plot impact |
 |---|---|---|---|
 | Create transport | hardware UART, TX/RX pins, 57,600 8N1 | admitted serial/UART provider, exact 57,600 8N1 | none |
 | electrical compatibility | observed/enabled level translator; 5 V Create TX never reaches MCU GPIO directly | exact adapter electrical contract belongs to the physical attachment | none |
 | Create OI session | finite codec, allow-listed packets/opcodes, bounded partial-frame state | same codec/session contract | none |
-| power toggle/translator OE | exact GPIO outputs and timing | unavailable unless separately installed | common form must not require them |
+| power toggle/translator OE | exact GPIO outputs and timing | unavailable unless separately installed | common plot must not require them |
 | charging indicator/E-stop | exact GPIO inputs when installed | unavailable unless separately installed | observations/offers differ honestly |
-| MPU-6050 | attachment over admitted I2C controller/pins | unavailable or separately realized | IMU-dependent forms may not place there |
+| MPU-6050 | attachment over admitted I2C controller/pins | unavailable or separately realized | IMU-dependent plots may not place there |
 | SSD1306 | optional Presenter over admitted I2C | absent or separately realized | no effect on robot semantics/safety |
 | deadlines | monotonic embedded timer | monotonic std provider | same finite TTL meaning |
 | watchdog | independent hardware watchdog | only an honestly offered external watchdog; otherwise unavailable | physical motion offer reflects the difference |
 | upstream connectivity | CYW43 Wi-Fi LINE/provider where used | ordinary std LINE/provider | Create UART remains independent |
 
 The selected plans must expose different host, boot, base, provider,
-implementation, and resource identities while the canonical form remains byte
+implementation, and resource identities while the canonical plot remains byte
 for byte unchanged.
 
 ## Events, status, and transport retirement
@@ -225,7 +225,7 @@ are recorded:
    injection;
 4. Pico W HIL for exact UART/GPIO/I2C/timer/watchdog resources and the same
    portable behavior;
-5. one byte-identical canonical form produces two exact plans and plays through
+5. one byte-identical canonical plot produces two exact plans and plays through
    the production kernel;
 6. obsolete Brainstem production RPC/runtime code and product vocabulary are
    removed, leaving only explicitly named historical fixtures.
@@ -253,7 +253,7 @@ issue remains open; use [STATUS.md](../../STATUS.md) and the
 | MPU-6050 orientation/calibration | allocator-free exact I2C identity/configuration/frame protocol; raw acceleration/gyro retained beside calibrated body-frame `robotics/observe-imu`; exact attachment/offer/plan and production-kernel execution; tilt/impact derivation; host/boot/offer/attachment/generation/authority-bound zero-orientation service | exact Pico I2C integration, carrier #135 physical mounting/threshold qualification, safety-envelope coupling, and HIL |
 | SSD1306 local Presenter | allocator-free exact 128x32 I2C initialization/frame protocol; bounded two-line projection of ordinary portable presentation text; exact renderer offer/plan/Manifestation identities; device delivery failure remains a failed manifestation without changing host or motion-safety truth | exact Pico I2C integration, carrier #135 attachment qualification, and physical display HIL |
 | std speaker | bounded `music/play` plan/kernel/OI lifecycle plus live machine and human audibility receipts | #837 reconnect/cancellation completion |
-| std indicator | unchanged canonical Signal form, exact plan/kernel/OI LED lifecycle, and live machine evidence | optional human visibility receipt only where separately required |
+| std indicator | unchanged canonical Signal plot, exact plan/kernel/OI LED lifecycle, and live machine evidence | optional human visibility receipt only where separately required |
 | std differential motion | exact reduced-safety offer/authority, plan-bound floor acknowledgement, kernel TTL stop, and deterministic provider-loss proof | live bounded motion after explicit physical setup confirmation |
 | Create docking | portable timed `robotics/dock` contract, exact dock-only authority/offer/plan, production-kernel lifecycle, charging completion, timeout/cancel/hazard/provider-loss deterministic proof | live physical dock setup and Pico W realization |
 | legacy Brainstem RPC/runtime | production dependency, fake host/boot/base/line projection, private describe kinds, and product demo removed | remaining semantic/service replacements and Pico W physical cutover |

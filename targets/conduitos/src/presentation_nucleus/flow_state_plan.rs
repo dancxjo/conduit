@@ -1,4 +1,4 @@
-//! Exact ordinary form and Plan preparation for bounded scalar latest/tee.
+//! Exact ordinary plot and Plan preparation for bounded scalar latest/tee.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
@@ -7,8 +7,8 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar,
     kind_id, port_id,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_plot::{ProfileCatalog, StartupCatalog, parse};
 
 use super::flow_state_play::FlowStateError;
 
@@ -41,7 +41,7 @@ pub fn prepare_flow_state(
         sink_offer(RIGHT_SINK_KIND),
     ] {
         catalog
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
@@ -51,14 +51,14 @@ pub fn prepare_flow_state(
             .map_err(|_| FlowStateError::Catalog)?;
     }
     let source = format!(
-        "form flow_state {{\n source: {SOURCE_KIND}\n latest: state/latest\n tee: flow/tee\n left: {LEFT_SINK_KIND}\n right: {RIGHT_SINK_KIND}\n source.value >> latest.in\n latest.out >> tee.in\n tee.left >> left.value\n tee.right >> right.value\n}}\n"
+        "plot flow_state {{\n source: {SOURCE_KIND}\n latest: state/latest\n tee: flow/tee\n left: {LEFT_SINK_KIND}\n right: {RIGHT_SINK_KIND}\n source.value >> latest.in\n latest.out >> tee.in\n tee.left >> left.value\n tee.right >> right.value\n}}\n"
     );
-    let form = parse(&source, &catalog).map_err(|_| FlowStateError::Form)?;
+    let plot = parse(&source, &catalog).map_err(|_| FlowStateError::Plot)?;
     let advertisement = advertisement(host, boot, value);
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts).map_err(|_| FlowStateError::Placement)?;
+    let placements = default_placements(&plot, &hosts).map_err(|_| FlowStateError::Placement)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

@@ -1,4 +1,4 @@
-//! Canonical portable form catalog for image metadata.
+//! Canonical portable plot catalog for image metadata.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{
     flow_coalesce_latest_contract, image_resource_type, install_flow_pressure_kind,
@@ -79,8 +79,8 @@ pub fn vision_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn install_vision_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in vision_registered_types() {
         startup
@@ -110,8 +110,8 @@ pub fn install_vision_catalogs(
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,

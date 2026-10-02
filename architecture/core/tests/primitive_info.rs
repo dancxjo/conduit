@@ -11,6 +11,7 @@ fn primitive_registry_is_exact_and_has_no_boolean_alias() {
         (TEXT_INFO_ID, PrimitiveInfoKind::Text),
         (BYTES_INFO_ID, PrimitiveInfoKind::Bytes),
         (QUANTITY_INFO_ID, PrimitiveInfoKind::Quantity),
+        (QUANTITY_UNIT_INFO_ID, PrimitiveInfoKind::QuantityUnit),
         (DISTANCE_INFO_ID, PrimitiveInfoKind::Distance),
         (FREQUENCY_INFO_ID, PrimitiveInfoKind::Frequency),
         ("value/u8", PrimitiveInfoKind::U8),
@@ -99,6 +100,12 @@ fn every_primitive_has_one_canonical_leaf_contract() {
         ),
         Ok(())
     );
+    assert_eq!(
+        validate_primitive_info(QUANTITY_UNIT_INFO_ID, &QuantityUnit::Millimeter.encode(),),
+        Ok(())
+    );
+    assert!(validate_primitive_info(QUANTITY_UNIT_INFO_ID, &[]).is_err());
+    assert!(validate_primitive_info(QUANTITY_UNIT_INFO_ID, &[u8::MAX]).is_err());
     assert_eq!(
         validate_primitive_info(
             DISTANCE_INFO_ID,

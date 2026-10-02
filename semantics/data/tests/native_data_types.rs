@@ -1,13 +1,17 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
-    ClockRelation, ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal,
-    FullWindowPolicy, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
-    MeasurementSummaryRefusal, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
-    MeasurementThresholdState, MeasurementThresholdTransition, MeasurementWindowRefusal,
-    NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
+    tensor_content_digest, ClockRelation, ClockRelationQuality, DataLoadTextTerminal,
+    DataSaveTextTerminal, DatasetExampleIdentity, DatasetSplitMembership, FullWindowPolicy,
+    MathScalarRefusal, MeasurementHysteresisProfile, MeasurementPlotOverflowPolicy,
+    MeasurementPlotRefusal, MeasurementRange, MeasurementSample, MeasurementSummaryRefusal,
+    MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
+    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignal, SampledSignalRefusal,
+    ScalarComparison, SignalCadence, SignalContinuity, SignalStart, SignalWindow, TensorAxis,
+    TensorAxisRole, TensorBacking, TensorElement, TensorSummary, TensorValue,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 
 fn assert_round_trip<T>(value: T)
 where
@@ -15,6 +19,75 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn measurement_range_and_hysteresis_profile_are_native_records() {
+    let range = MeasurementRange {
+        minimum: Quantity::new(-20, QuantityUnit::Celsius),
+        maximum: Quantity::new(50, QuantityUnit::Celsius),
+    };
+    assert_round_trip(range);
+
+    let policy = MeasurementThresholdPolicy::new(
+        Quantity::new(18, QuantityUnit::Celsius),
+        Quantity::new(24, QuantityUnit::Celsius),
+    )
+    .unwrap();
+    assert_round_trip(MeasurementHysteresisProfile {
+        policy,
+        initial_state: MeasurementThresholdState::Below,
+    });
+}
+
+#[test]
+fn measurement_sample_uses_the_native_temporal_instant() {
+    let sample = MeasurementSample {
+        value: Quantity::new(21, QuantityUnit::Celsius),
+        observed_at: NativeTemporalInstant::new(
+            "sensor-clock".into(),
+            1,
+            NativeTemporalScale::Milliseconds,
+            42,
+            0,
+        )
+        .unwrap(),
+        uncertainty: Some(Quantity::new(1, QuantityUnit::Celsius)),
+    };
+    assert_owned_round_trip(sample);
+}
+
+#[test]
+fn sampled_signal_start_uses_the_native_temporal_instant() {
+    assert_owned_round_trip(SignalStart::at_sample(u64::MAX));
+    let instant = NativeTemporalInstant::new(
+        "signal-clock".into(),
+        1,
+        NativeTemporalScale::Nanoseconds,
+        42,
+        0,
+    )
+    .unwrap();
+    assert_owned_round_trip(SignalStart::instant(instant).unwrap());
+    assert_owned_round_trip(SignalWindow {
+        source_signal: [7; 32],
+        source_offset: 9,
+        sample_count: 3,
+        start: SignalStart::at_sample(9),
+    });
+}
+
+#[test]
+fn dataset_split_membership_uses_native_bounded_identity_pages() {
+    let page = DatasetSplitMembership::page(
+        [[1; 32], [2; 32]].map(|identity| DatasetExampleIdentity::new(identity).unwrap()),
+    )
+    .unwrap();
+    assert_owned_round_trip(DatasetSplitMembership {
+        dataset_identity: [7; 32],
+        split_identity: "train".into(),
+        examples: BoundedSequence::try_from_iter([page]).unwrap(),
+    });
 }
 
 #[test]
@@ -264,6 +337,62 @@ fn tensor_axis_roles_keep_bounded_other_meaning_in_the_native_type() {
         let structured = role.clone().into_structured().unwrap();
         assert_eq!(TensorAxisRole::from_structured(structured).unwrap(), role);
     }
+}
+
+#[test]
+fn tensor_family_round_trips_native_shape_axes_units_and_backing() {
+    let axes = BoundedSequence::try_from_iter([TensorAxis {
+        role: TensorAxisRole::Time,
+        identity: Some("medieval-clock".into()),
+        unit: Some(QuantityUnit::Moment),
+    }])
+    .unwrap();
+    let dimensions = BoundedSequence::try_from_iter([2]).unwrap();
+    let tensor = TensorValue {
+        element: TensorElement::U8,
+        dimensions: dimensions.clone(),
+        axes: axes.clone(),
+        content_digest: [7; 32],
+        backing: TensorBacking::Inline(BoundedBytes::new(&[10, 20]).unwrap()),
+    };
+    assert_owned_round_trip(tensor);
+    assert_owned_round_trip(TensorSummary {
+        element: TensorElement::U8,
+        dimensions,
+        axes,
+        elements: 2,
+        bytes: 2,
+        resource_identity: None,
+    });
+}
+
+#[test]
+fn sampled_signal_family_round_trips_native_cadence_and_tensor_meaning() {
+    let cadence = SignalCadence::regular(Quantity::new(1, QuantityUnit::Moment), 2).unwrap();
+    assert_owned_round_trip(cadence.clone());
+
+    let signal = SampledSignal {
+        clock_identity: "clock/medieval-observatory".into(),
+        start: SignalStart::at_sample(0),
+        cadence,
+        sample_count: 2,
+        continuity: SignalContinuity::Continuous,
+        samples: TensorValue {
+            element: TensorElement::U8,
+            dimensions: BoundedSequence::try_from_iter([2]).unwrap(),
+            axes: BoundedSequence::try_from_iter([TensorAxis {
+                role: TensorAxisRole::Time,
+                identity: Some("moment".into()),
+                unit: Some(QuantityUnit::Moment),
+            }])
+            .unwrap(),
+            content_digest: tensor_content_digest(&[1, 2]),
+            backing: TensorBacking::Inline(BoundedBytes::new(&[1, 2]).unwrap()),
+        },
+    };
+    signal.validate().unwrap();
+    assert_ne!(signal.semantic_digest().unwrap(), [0; 32]);
+    assert_owned_round_trip(signal);
 }
 
 #[test]

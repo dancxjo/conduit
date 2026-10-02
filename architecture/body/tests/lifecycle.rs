@@ -3,7 +3,7 @@ use conduit_body::{
     WakePlanState, MAX_WAKE_SIGNS,
 };
 use conduit_core::{
-    bind_active_play, seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, Plan, PlanId, SignId,
+    bind_active_play, seal_plan, CheckedPlotId, ExpandedPlotId, Plan, PlanId, PlotIdentity, SignId,
     SourceDocumentId,
 };
 
@@ -13,10 +13,10 @@ fn plan(identity: &str) -> Plan {
 
 fn plan_for(source: &str, identity: &str) -> Plan {
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from(source),
-            checked_form_id: CheckedFormId::from("checked-a"),
-            expanded_form_id: ExpandedFormId::from(format!("expanded-{identity}")),
+            checked_plot_id: CheckedPlotId::from("checked-a"),
+            expanded_plot_id: ExpandedPlotId::from(format!("expanded-{identity}")),
         },
         vec![],
     )
@@ -24,7 +24,7 @@ fn plan_for(source: &str, identity: &str) -> Plan {
 fn body() -> Body {
     Body::born(
         SourceDocumentId::from("source-a"),
-        CheckedFormId::from("checked-a"),
+        CheckedPlotId::from("checked-a"),
         4,
         SignId::from("bornd"),
     )

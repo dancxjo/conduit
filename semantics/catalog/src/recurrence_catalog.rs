@@ -11,7 +11,7 @@ use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindSignature, StartupParameterSignature};
+use conduit_plot::{KindSignature, StartupParameterSignature};
 
 pub const RECURRENCE_REQUEST_TYPE: &str = "RecurrenceExpansion";
 pub const RECURRENCE_KIND: &str = "time/expand-recurrence";
@@ -336,8 +336,8 @@ pub fn recurrence_result_type() -> StructuredInfoType {
 }
 
 pub fn install_recurrence_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     let request = recurrence_request_type();
     startup

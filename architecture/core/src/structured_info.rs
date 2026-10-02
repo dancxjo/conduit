@@ -1,6 +1,6 @@
 //! Canonical finite structured Info schemas and values.
 //!
-//! This module owns data shape only. It does not add Form syntax, temporal
+//! This module owns data shape only. It does not add Plot syntax, temporal
 //! semantics, selection, effects, or a provider-specific object model.
 
 use alloc::string::String;
@@ -31,14 +31,24 @@ pub use transport::*;
 pub use tuple::*;
 pub use validation::PreparedStructuredValueValidator;
 
-pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 8;
-pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 1_024;
-pub const MAXIMUM_STRUCTURED_COLLECTION_ITEMS: usize = 256;
+pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 16;
+/// Aggregate-node ceiling for one structured type or value.
+///
+/// A single collection remains capped at 1,024 items. Larger finite semantic
+/// families compose bounded pages, so their total node budget must accommodate
+/// the established 4,096-item AI limits plus nominal and record framing. The
+/// canonical 256 KiB envelope remains the tighter byte bound.
+pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 16_384;
+pub const MAXIMUM_STRUCTURED_COLLECTION_ITEMS: usize = 1_024;
 pub const MAXIMUM_STRUCTURED_RECORD_FIELDS: usize = 64;
 pub const MAXIMUM_STRUCTURED_VARIANT_CASES: usize = 64;
 pub const MAXIMUM_STRUCTURED_NAME_BYTES: usize = 128;
-pub const MAXIMUM_STRUCTURED_LEAF_BYTES: usize = 4_096;
-pub const MAXIMUM_STRUCTURED_CANONICAL_BYTES: usize = 65_536;
+/// Largest authored primitive payload. This matches the portable `Bytes`
+/// ceiling; the canonical envelope remains separately and finitely bounded.
+pub const MAXIMUM_STRUCTURED_LEAF_BYTES: usize = 65_536;
+/// Room for two maximum-sized leaves plus finite aggregate type/value framing.
+/// This lets one bounded structured value carry a paged 128 KiB semantic payload.
+pub const MAXIMUM_STRUCTURED_CANONICAL_BYTES: usize = 262_144;
 
 const TYPE_DIGEST_DOMAIN: &[u8] = b"conduit.structured-info.type.v1";
 const VALUE_DIGEST_DOMAIN: &[u8] = b"conduit.structured-info.value.v1";

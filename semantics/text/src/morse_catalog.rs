@@ -1,4 +1,4 @@
-//! Typed finite verb contracts used by recursive Morse Forms.
+//! Typed finite verb contracts used by recursive Morse Plots.
 
 use alloc::vec;
 use conduit_core::{
@@ -13,7 +13,7 @@ use crate::{
     MORSE_PATTERN_VALUE_KIND, MORSE_SYMBOLS_VALUE_KIND, MORSE_SYMBOL_GROUPS_VALUE_KIND,
     MORSE_UNIT_MILLIS_KEY, TEXT_VALUE_KIND,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use crate::{MAXIMUM_MORSE_UNIT_MILLIS, MINIMUM_MORSE_UNIT_MILLIS};
 
 pub const TEXT_CHARACTERS_KIND: &str = "text/characters";
@@ -159,13 +159,13 @@ fn maximum_bytes(value_kind: &str) -> usize {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub(crate) fn install_morse_composition_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{
+    use conduit_plot::{
         KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
     };
 

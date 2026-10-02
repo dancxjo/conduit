@@ -114,8 +114,8 @@ fn production_scheduler_emits_exact_bounded_start_value_and_completion_observati
         signs,
         execution,
         [
-            DebugNodeBinding { form: 4, host: 8 },
-            DebugNodeBinding { form: 9, host: 8 },
+            DebugNodeBinding { plot: 4, host: 8 },
+            DebugNodeBinding { plot: 9, host: 8 },
         ],
         [[Some(12)], [Some(12)]],
     );
@@ -176,7 +176,7 @@ fn production_scheduler_emits_exact_bounded_start_value_and_completion_observati
                 })
             && record.preview() == b"42"
             && record.type_identity == Some(12)
-            && record.form == 4
+            && record.plot == 4
             && record.host == 8
     }));
     let sent = records
@@ -194,7 +194,7 @@ fn production_scheduler_emits_exact_bounded_start_value_and_completion_observati
         record.kind == DebugEventKind::ValueReceived
             && record.subject == DebugSubject::Cord(CordId(0))
             && record.preview() == b"42"
-            && record.form == 9
+            && record.plot == 9
     }));
     assert_eq!(
         records
@@ -230,7 +230,7 @@ fn pressure_overwrites_only_debug_history_and_exposes_the_exact_gap() {
                 execution,
                 host_sequence: sequence,
                 host: 3,
-                form: 5,
+                plot: 5,
                 subject: DebugSubject::Port {
                     gear: NodeId(1),
                     port: PortId(0),
@@ -271,7 +271,7 @@ fn stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_hist
             execution,
             host_sequence: 4,
             host: 2,
-            form: 1,
+            plot: 1,
             subject: DebugSubject::Gear(NodeId(0)),
             related_subject: None,
             kind: DebugEventKind::GearStarted,
@@ -287,7 +287,7 @@ fn stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_hist
         execution,
         host_sequence,
         host: 2,
-        form: 1,
+        plot: 1,
         subject: DebugSubject::Gear(NodeId(0)),
         related_subject: None,
         kind,
@@ -337,8 +337,8 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
         signs,
         execution,
         [
-            DebugNodeBinding { form: 2, host: 6 },
-            DebugNodeBinding { form: 2, host: 6 },
+            DebugNodeBinding { plot: 2, host: 6 },
+            DebugNodeBinding { plot: 2, host: 6 },
         ],
         [[None], [None]],
     );
@@ -413,8 +413,8 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
         signs,
         execution,
         [
-            DebugNodeBinding { form: 2, host: 6 },
-            DebugNodeBinding { form: 2, host: 6 },
+            DebugNodeBinding { plot: 2, host: 6 },
+            DebugNodeBinding { plot: 2, host: 6 },
         ],
         [[None], [None]],
     );
@@ -519,8 +519,8 @@ fn exact_gear_breakpoint_suspends_real_execution_and_resume_is_one_shot() {
         signs,
         execution,
         [
-            DebugNodeBinding { form: 4, host: 8 },
-            DebugNodeBinding { form: 9, host: 8 },
+            DebugNodeBinding { plot: 4, host: 8 },
+            DebugNodeBinding { plot: 9, host: 8 },
         ],
         [[Some(12)], [Some(12)]],
     );
@@ -593,8 +593,8 @@ fn stale_and_distributed_breakpoints_refuse_before_execution_control() {
         signs,
         execution,
         [
-            DebugNodeBinding { form: 1, host: 2 },
-            DebugNodeBinding { form: 2, host: 3 },
+            DebugNodeBinding { plot: 1, host: 2 },
+            DebugNodeBinding { plot: 2, host: 3 },
         ],
         [[None], [None]],
     );

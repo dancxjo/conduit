@@ -1,0 +1,8 @@
+# Labels and segment boundaries are deliberately absent from this training Plot.
+plot tongues-latent-training {
+    corpus: tongues/paired-observations
+    train: tongues/train-shared-latent
+
+    corpus.acoustic >> train.acoustic
+    corpus.articulation >> train.articulation
+}

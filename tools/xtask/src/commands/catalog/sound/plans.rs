@@ -4,14 +4,14 @@ use conduit_core::{
 };
 use serde::Serialize;
 
-use super::{forms, CatalogError};
+use super::{plots, CatalogError};
 
 #[derive(Debug, Serialize)]
 pub(super) struct PlanComparison {
     invariant: &'static str,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
+    checked_plot_id: String,
+    expanded_plot_id: String,
     plans: Vec<PlanSpecimen>,
 }
 
@@ -28,28 +28,28 @@ struct PlanSpecimen {
 pub(super) fn build() -> Result<PlanComparison, CatalogError> {
     let (_, catalog) = conduit_pete::catalogs()
         .map_err(|error| CatalogError::new("sound-plan-catalog-invalid", error))?;
-    let form = conduit_form::parse(forms::SIMPLE_FORM, &catalog)
-        .map_err(|error| CatalogError::new("sound-plan-form-invalid", error.to_string()))?;
+    let plot = conduit_plot::parse(plots::SIMPLE_FORM, &catalog)
+        .map_err(|error| CatalogError::new("sound-plan-plot-invalid", error.to_string()))?;
     let create = create_plan()?;
-    let opl = opl_plan(&form)?;
-    if create.source_document_id != form.source_document_id
-        || create.checked_form_id != form.checked_form_id
-        || create.expanded_form_id != form.expanded_form_id
-        || opl.source_document_id != form.source_document_id
-        || opl.checked_form_id != form.checked_form_id
-        || opl.expanded_form_id != form.expanded_form_id
+    let opl = opl_plan(&plot)?;
+    if create.source_document_id != plot.source_document_id
+        || create.checked_plot_id != plot.checked_plot_id
+        || create.expanded_plot_id != plot.expanded_plot_id
+        || opl.source_document_id != plot.source_document_id
+        || opl.checked_plot_id != plot.checked_plot_id
+        || opl.expanded_plot_id != plot.expanded_plot_id
         || create.plan_id == opl.plan_id
     {
         return Err(CatalogError::new(
             "sound-plan-identity-invariant-failed",
-            "cross-realization Plans did not preserve one form and distinct Plans",
+            "cross-realization Plans did not preserve one plot and distinct Plans",
         ));
     }
     Ok(PlanComparison {
-        invariant: "same-source-checked-expanded-form-distinct-exact-plans",
-        source_document_id: form.source_document_id.as_str().to_owned(),
-        checked_form_id: form.checked_form_id.as_str().to_owned(),
-        expanded_form_id: form.expanded_form_id.as_str().to_owned(),
+        invariant: "same-source-checked-expanded-plot-distinct-exact-plans",
+        source_document_id: plot.source_document_id.as_str().to_owned(),
+        checked_plot_id: plot.checked_plot_id.as_str().to_owned(),
+        expanded_plot_id: plot.expanded_plot_id.as_str().to_owned(),
         plans: vec![
             specimen("pete-create-oi", &create)?,
             specimen("adlib-opl2", &opl)?,
@@ -73,7 +73,7 @@ fn create_plan() -> Result<conduit_core::Plan, CatalogError> {
         .map_err(|error| CatalogError::new("create-plan-failed", error.to_string()))
 }
 
-fn opl_plan(form: &conduit_form::CheckedForm) -> Result<conduit_core::Plan, CatalogError> {
+fn opl_plan(plot: &conduit_plot::CheckedPlot) -> Result<conduit_core::Plan, CatalogError> {
     let mut host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("conformance-opl2"),
@@ -106,10 +106,10 @@ fn opl_plan(form: &conduit_form::CheckedForm) -> Result<conduit_core::Plan, Cata
         "conformance-build",
     )
     .map_err(|error| CatalogError::new("opl2-offer-invalid", format!("{error:?}")))?;
-    let placements = conduit_planner::default_placements(form, core::slice::from_ref(&host))
+    let placements = conduit_planner::default_placements(plot, core::slice::from_ref(&host))
         .map_err(|error| CatalogError::new("opl2-placement-failed", error.to_string()))?;
     conduit_planner::plan(
-        form,
+        plot,
         core::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -152,7 +152,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn unchanged_form_has_distinct_create_and_opl_plans() {
+    fn unchanged_plot_has_distinct_create_and_opl_plans() {
         let comparison = build().unwrap();
         assert_eq!(comparison.plans.len(), 2);
         assert_ne!(comparison.plans[0].plan_id, comparison.plans[1].plan_id);

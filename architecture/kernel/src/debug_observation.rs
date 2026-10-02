@@ -1,7 +1,7 @@
 //! Finite detachable observation of authoritative kernel execution.
 //!
 //! Observations are a lossy debugger projection beside mandatory Signs. They
-//! never participate in Form meaning, scheduling, admission, or execution
+//! never participate in Plot meaning, scheduling, admission, or execution
 //! success. When the observer cannot retain another record, it overwrites the
 //! oldest record and exposes the exact resulting gap.
 
@@ -30,7 +30,7 @@ pub struct DebugExecutionIdentity {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DebugNodeBinding {
-    pub form: u16,
+    pub plot: u16,
     pub host: u16,
 }
 
@@ -71,7 +71,7 @@ pub struct DebugObservationRecord {
     /// Monotonic sequence at the originating Host before collection.
     pub host_sequence: u64,
     pub host: u16,
-    pub form: u16,
+    pub plot: u16,
     pub subject: DebugSubject,
     pub related_subject: Option<DebugSubject>,
     pub kind: DebugEventKind,
@@ -165,7 +165,7 @@ pub struct DebugObservationInput<'a> {
     pub execution: DebugExecutionIdentity,
     pub host_sequence: u64,
     pub host: u16,
-    pub form: u16,
+    pub plot: u16,
     pub subject: DebugSubject,
     pub related_subject: Option<DebugSubject>,
     pub kind: DebugEventKind,

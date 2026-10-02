@@ -5,6 +5,7 @@ use conduit_core::{
     LocalDate, LocalDateTime, LocalTime, NamedTimeZone, TemporalInstant, TemporalScale,
     ZonedResolution, MAXIMUM_TEMPORAL_IDENTITY_BYTES, UNIX_UTC_CLOCK_BASIS,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 use conduit_time::{MeetingCandidate, MeetingProposalRequest, TemporalBoundary, TemporalWindow};
 use serde::{Deserialize, Serialize};
 
@@ -215,6 +216,10 @@ impl TemporalProposal {
             }
             let start = unique_resolution(resolution, &request.reference_zone)?;
             let end = add_minutes(&start, self.duration_minutes)?;
+            let start = conduit_time::TemporalInstant::try_from(start)
+                .map_err(|_| TemporalInterpretationRefusal::InvalidProposal)?;
+            let end = conduit_time::TemporalInstant::try_from(end)
+                .map_err(|_| TemporalInterpretationRefusal::InvalidProposal)?;
             candidates.push(MeetingCandidate {
                 identity: format!("{}/candidate/{offset}", self.identity),
                 interval: TemporalWindow::new(
@@ -235,9 +240,12 @@ impl TemporalProposal {
         }
         Ok(MeetingProposalRequest {
             identity: self.identity.clone(),
-            reference_at: request.reference_at.clone(),
-            participant_identities: self.participant_refs.clone(),
-            candidates,
+            reference_at: conduit_time::TemporalInstant::try_from(request.reference_at.clone())
+                .map_err(|_| TemporalInterpretationRefusal::InvalidProposal)?,
+            participant_identities: BoundedSequence::try_from_iter(self.participant_refs.clone())
+                .map_err(|_| TemporalInterpretationRefusal::InvalidProposal)?,
+            candidates: BoundedSequence::try_from_iter(candidates)
+                .map_err(|_| TemporalInterpretationRefusal::InvalidProposal)?,
             maximum_results: request.maximum_results,
         })
     }

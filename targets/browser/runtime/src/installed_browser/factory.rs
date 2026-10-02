@@ -138,7 +138,7 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     .selected_make_ids()
 }
 
-/// Exact installed capabilities supported by the local form/Body executor.
+/// Exact installed capabilities supported by the local plot/Body executor.
 /// Membership may additionally advertise implementations for other entrances.
 pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
     let machinery = BrowserMachinery::from_selected(&selected_human_machinery())

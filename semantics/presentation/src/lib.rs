@@ -4,7 +4,7 @@
 //!
 //! [`Presentation`] carries semantic subjects, relationships, facts, wording,
 //! controls, disclosure, time, and exact provenance without choosing a widget,
-//! scene, spoken script, or renderer mechanism. Ordinary Mask Forms interpret
+//! scene, spoken script, or renderer mechanism. Ordinary Mask Plots interpret
 //! this grammar into Shows. [`SemanticApplicationView`] and [`ApplicationView`]
 //! remain finite downstream composition and compatibility vocabularies; they
 //! do not define the Face boundary.
@@ -27,26 +27,37 @@ mod generated {
 }
 pub use generated::{
     AdmittedNavigationDestination, ApplicationAction, ApplicationComponent,
-    ApplicationComponentCode, ApplicationEventKind, ApplicationEventKindCode, ApplicationNodeState,
-    ApplicationNodeStateCode, ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind,
-    CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition, Extent2,
-    FaceContributionRole, FaceContributionRoleCode, FaceUtteranceClauseKind,
+    ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm, ApplicationNodeState,
+    ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind,
+    CompositionItemKindForm, CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2,
+    FaceContributionRole, FaceContributionRoleForm, FaceUtteranceClauseKind,
     FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
     FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceProperty,
     FaceUtteranceProvenanceRelationship, FaceUtteranceProvenanceSubject,
     FaceUtteranceProvenanceText, GeneratedActionAffordance, GeneratedContentRole,
-    GeneratedManifestationDisposition, GenerativeNarratorRole, GenerativeNarratorRoleCode,
-    GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
-    GraphicsPaintRoleCode, GraphicsPoint, GraphicsShapeStyle, GraphicsShapeStyleCode,
-    GraphicsTextRole, GraphicsTextRoleCode, ImageRegion2, LayoutAlignment, LayoutAxis, LayoutError,
-    LayoutFrame, LayoutRect, MaskPlanningDisposition, MaskPlanningDispositionCode,
-    MaskWardrobeError, MaskWardrobeErrorCode, MaskWardrobeLifetime, MaskWardrobeLifetimeCode,
-    NavigationRefusal, NavigationRefusalCode, Path2Four, Point2, Point3, PresentationAspect,
-    PresentationAspectCode, PresentationCompositionKind, PresentationCompositionKindSemantic,
-    PresentationCompositionRelation, PresentationDepth, PresentationDepthCode,
+    GeneratedManifestationDisposition, GenerativeNarratorRole, GenerativeNarratorRoleForm,
+    GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindForm, GraphicsPaintRole,
+    GraphicsPaintRoleForm, GraphicsPoint, GraphicsShapeStyle, GraphicsShapeStyleForm,
+    GraphicsTextRole, GraphicsTextRoleForm, ImageColorProfile, ImageFormat, ImagePixelExtent,
+    ImageRegion2, ImageResource, LayoutAlignment, LayoutAxis, LayoutError, LayoutFrame, LayoutRect,
+    MaskPlanningDisposition, MaskPlanningDispositionForm, MaskWardrobeError, MaskWardrobeErrorForm,
+    MaskWardrobeLifetime, MaskWardrobeLifetimeForm, NavigationRefusal, NavigationRefusalForm,
+    Path2Four, Point2, Point3, PresentationAspect, PresentationAspectForm,
+    PresentationCompositionKind, PresentationCompositionKindSemantic,
+    PresentationCompositionRelation, PresentationDepth, PresentationDepthForm,
     PresentationDisclosureLevel, PresentationMechanismKind, PresentationPlace,
-    PresentationPlaceCode, PresentationTemporalRole, Rect2, RoboticsPose2, StatusKind, ThemeColor,
-    Transform2, Vector2, Vector3,
+    PresentationPlaceForm, PresentationTemporalRole, Rect2, RoboticsPose2, StatusKind, ThemeColor,
+    Transform2, Vector2, Vector3, VisionColorSample, VisionDetection, VisionDetectionSlot,
+    VisionDetectionsFour, VisionEvidenceClass, VisionKeypoint, VisionLandmarkSlot, VisionLandmarks,
+    VisionMotionObservation, VisionMotionsFour, VisionObjectObservation, VisionObjectObservations,
+    VisionObservationEvidenceClass, VisionObservationProvenance, VisionObservationSigns,
+    VisionOptionalPixelRegion, VisionPixelRegion, VisionProvenance, VisionRgbSample,
+    VisionTextsEight, VisionTrackObservation, VisionTracksFour, VisionVisibleTextObservation,
+    VisualExperience, VisualExperienceObservation, VisualExperienceObservationImpression,
+    VisualExperienceObservationMotion, VisualExperienceObservationObject,
+    VisualExperienceObservationTrack, VisualExperienceObservationVisibleText,
+    VisualExperienceObservations, VisualExperienceRelation, VisualExperienceRelations,
+    VisualImpression, VisualImpressionDisposition, VisualSelectedObservationSigns,
 };
 
 mod application_event;
@@ -69,7 +80,7 @@ mod generative_manifestation_tests;
 mod generative_presenter;
 mod generative_presenter_policy;
 mod geometry;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod geometry_catalog;
 mod graphics;
 mod identity;
@@ -80,10 +91,10 @@ mod linear;
 mod linear_navigation;
 mod manifestation;
 mod manifestation_set;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod mask_catalog;
-mod mask_form;
 mod mask_journey;
+mod mask_plot;
 mod mask_routes;
 mod mask_show;
 mod mask_topology;
@@ -124,7 +135,7 @@ pub use generative_manifestation::*;
 pub use generative_presenter::*;
 pub use generative_presenter_policy::*;
 pub use geometry::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use geometry_catalog::*;
 pub use graphics::*;
 pub use interaction::*;
@@ -134,10 +145,10 @@ pub use linear::*;
 pub use linear_navigation::*;
 pub use manifestation::*;
 pub use manifestation_set::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use mask_catalog::*;
-pub use mask_form::*;
 pub use mask_journey::*;
+pub use mask_plot::*;
 pub use mask_routes::*;
 pub use mask_show::*;
 pub use mask_topology::*;

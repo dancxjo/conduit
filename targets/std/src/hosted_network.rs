@@ -1,11 +1,11 @@
 //! Std resolver and socket realization for portable application-network Info.
 
-use conduit_form::rust_binding::BoundedSequence;
 use conduit_net::{
     DnsQuery, DnsRecordKind, DnsResult, DnsTtl, NetworkAddress, NetworkConnectionState,
     NetworkEndpoint, NetworkReason, NetworkTransport, ResolvedNetworkAddress,
     ResolvedNetworkEndpoint, NETWORK_MAXIMUM_CANDIDATES,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 use std::net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
@@ -48,7 +48,7 @@ pub fn resolve_dns(query: &DnsQuery) -> DnsResult {
         // `ToSocketAddrs` does not expose authoritative TTL. Do not invent it.
         DnsTtl::Unavailable,
     )
-    .expect("validated DNS query and bounded candidates form a DNS result")
+    .expect("validated DNS query and bounded candidates plot a DNS result")
 }
 
 pub fn resolve_dns_with_provider(
@@ -183,15 +183,15 @@ fn network_reason(reason: String) -> NetworkReason {
 }
 
 fn dns_refused(reason: String) -> DnsResult {
-    DnsResult::refused(network_reason(reason)).expect("bounded refusal forms a DNS result")
+    DnsResult::refused(network_reason(reason)).expect("bounded refusal plots a DNS result")
 }
 
 fn connection_refused(reason: String) -> NetworkConnectionState {
     NetworkConnectionState::refused(network_reason(reason))
-        .expect("bounded refusal forms a connection observation")
+        .expect("bounded refusal plots a connection observation")
 }
 
 fn connection_lost(reason: String) -> NetworkConnectionState {
     NetworkConnectionState::lost(network_reason(reason))
-        .expect("bounded loss forms a connection observation")
+        .expect("bounded loss plots a connection observation")
 }

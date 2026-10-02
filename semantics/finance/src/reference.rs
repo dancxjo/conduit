@@ -2,7 +2,7 @@
 
 use alloc::string::ToString;
 use conduit_core::{Quantity, QuantityUnit, StructuredInfoValue};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use core::cmp::Ordering;
 
 use crate::finance::*;

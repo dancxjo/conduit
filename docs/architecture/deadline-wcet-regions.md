@@ -1,7 +1,7 @@
 # Deadline and WCET regions
 
 Conduit supports general finite computation and stricter deadline-bounded
-regions in the same form. The boundary is an admission rule, not a second
+regions in the same plot. The boundary is an admission rule, not a second
 language or execution engine.
 
 ## Separate facts
@@ -16,7 +16,7 @@ These facts must remain distinct:
 | WCET basis | the selected realization has an exact worst-case time on this target | required |
 | deadline region | a composition whose transitive timing/resource basis was admitted | result |
 
-A bounded parser over 16 MiB can be ordinary valid form work while remaining
+A bounded parser over 16 MiB can be ordinary valid plot work while remaining
 ineligible for a 50 µs motor step if it has no compatible WCET basis. An open
 semantic range likewise says nothing about storage or timing cost; the selected
 finite representation and admitted work supply those facts.
@@ -28,10 +28,10 @@ its transitive dependency list supplies a non-empty timing basis. It sums the
 individual worst-case durations with checked arithmetic, sums their admitted
 resource units, and refuses overflow, missing basis, resource excess, or a
 total above the region deadline. Capacity and operation facts remain available
-to ordinary finite-form analysis but are never substituted for WCET.
+to ordinary finite-plot analysis but are never substituted for WCET.
 
 This is conservative composition: an unknown child makes the parent unknown.
-An implementation may be valid in a general-purpose form and still be
+An implementation may be valid in a general-purpose plot and still be
 rejected in the region. Continuous finite-state control is eligible when each
 step has the same compatible finite basis; an indefinite lifetime does not
 turn that per-step proof into a whole-lifetime completion claim.

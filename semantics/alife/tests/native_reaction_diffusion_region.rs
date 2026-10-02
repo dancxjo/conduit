@@ -1,5 +1,5 @@
 use conduit_alife::{ReactionDiffusionRegion, ReactionDiffusionRegionId};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn reaction_diffusion_region_round_trips_exact_geometry_extrema() {

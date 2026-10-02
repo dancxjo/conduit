@@ -2,6 +2,7 @@ use crate::process::Step;
 
 macro_rules! package_test_shard {
     ($packages:ident, $step:ident, $id:literal, $description:literal, [$($package:literal),+ $(,)?], [$($trailing:literal),* $(,)?]) => {
+        #[cfg(test)]
         const $packages: &[&str] = &[$($package),+];
         const $step: Step = Step::new(
             $id,
@@ -46,7 +47,7 @@ package_test_shard!(
         "conduit-kernel",
         "conduit-language",
         "conduit-plan-lowering",
-        "conduit-form",
+        "conduit-plot",
         "conduit-host-make",
         "conduit-planner",
         "conduit-signal",
@@ -58,9 +59,11 @@ package_test_shard!(
         "conduit-midi",
         "conduit-presentation",
         "conduit-protected-line",
+        "conduit-process",
+        "conduit-purpose",
         "conduit-robotics",
         "conduit-body",
-        "conduit-birth-form",
+        "conduit-birth-plot",
         "conduit-body-make",
         "conduit-net",
         "conduit-rp2040-network-realization",
@@ -73,6 +76,7 @@ package_test_shard!(
         "patchbay-control",
         "patchbay-graph",
         "patchbay-application",
+        "patchbay-svg-mask",
     ],
     []
 );
@@ -90,10 +94,9 @@ package_test_shard!(
         "conduit-little-seismograph-fixture",
         "conduitos",
         "patchbay-hosted",
-        "patchbay-model",
+        "conduit-patchbay-workbench",
         "patchbay-workbench-host-contract",
-        "patchbay-html",
-        "patchbay-native",
+        "conduit-browser-patchbay-workbench",
     ],
     []
 );
@@ -112,11 +115,11 @@ package_test_shard!(
         "conduit-pete-workload-conformance",
         "conduit-tongues",
         "conduit-home-model",
-        "conduit-body-invitation-form",
+        "conduit-body-invitation-plot",
         "conduit-body-lifecycle-conformance",
         "conduit-tour-model",
-        "conduit-tutorial-form",
-        "conduit-form-library",
+        "conduit-tutorial-plot",
+        "conduit-plot-library",
         "conduit",
         "conduit-xtask-dispatch",
         "xtask",
@@ -135,6 +138,7 @@ pub enum WorkspaceShard {
 }
 
 impl WorkspaceShard {
+    #[cfg(test)]
     pub const ALL: [Self; 6] = [
         Self::Lint,
         Self::TestFoundation,
@@ -143,26 +147,6 @@ impl WorkspaceShard {
         Self::Portable,
         Self::Pico,
     ];
-
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Lint => "lint",
-            Self::TestFoundation => "test-foundation",
-            Self::TestHosts => "test-hosts",
-            Self::TestProducts => "test-products",
-            Self::Portable => "portable",
-            Self::Pico => "pico",
-        }
-    }
-
-    pub const fn test_packages(self) -> &'static [&'static str] {
-        match self {
-            Self::TestFoundation => FOUNDATION_TEST_PACKAGES,
-            Self::TestHosts => HOST_TEST_PACKAGES,
-            Self::TestProducts => PRODUCT_TEST_PACKAGES,
-            _ => &[],
-        }
-    }
 
     pub fn package_test_step(self) -> Option<&'static Step> {
         match self {

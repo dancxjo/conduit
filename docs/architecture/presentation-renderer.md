@@ -16,8 +16,8 @@ framebuffer, terminal, window, browser, or operating-system facts.
 
 A `presentation` is an immutable semantic content revision. It binds:
 
-- the exact source and checked form identities;
-- optional expanded form, plan, and active play identities as one coherent
+- the exact source and checked plot identities;
+- optional expanded plot, plan, and active play identities as one coherent
   chain;
 - a canonical finite sign identity set;
 - finite semantic subjects, roles, relationships, labels, accessibility names,
@@ -80,7 +80,7 @@ A headless host is complete without advertising this optional capability. It
 cannot invent a renderer merely because it can observe or transport a
 presentation.
 
-Renderer backs may themselves be forms when projection, layout, or rendering
+Renderer backs may themselves be plots when projection, layout, or rendering
 steps add reusable semantic value. Decomposition ends at admitted presentation
 Host Calls and resources. Wayland buffer commits, DOM mutation,
 framebuffer writes, and terminal escapes remain base mechanisms rather

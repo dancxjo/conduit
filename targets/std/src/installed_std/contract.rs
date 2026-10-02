@@ -56,8 +56,8 @@ pub(super) fn parse_tick_configuration(
 }
 
 #[cfg(test)]
-pub(super) fn test_tick_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::ProfileCatalog;
+pub(super) fn test_tick_catalog() -> conduit_plot::ProfileCatalog {
+    use conduit_plot::ProfileCatalog;
 
     let mut catalog = ProfileCatalog::new();
     catalog

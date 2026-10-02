@@ -1,9 +1,16 @@
-//! Portable finite human-interaction semantics.
+//! Native human-interaction meaning with bounded construction and state machinery.
 //!
-//! These contracts describe semantic state and proposals. Presentation, renderer-local focus,
-//! manifestation, application acceptance, and resulting state remain separate identities.
+//! Conduitese owns every portable family, value, proposal, availability,
+//! outcome and refusal. The remaining Rust contracts validate relationships,
+//! retain canonical structured views, and advance bounded proposal state
+//! (classes C/M). Presentation, renderer-local focus, manifestation,
+//! application acceptance, and resulting state remain separate identities.
 
-use crate::{BoundKind, InteractionApplicationOutcome, InteractionRefusal, OptionAvailability};
+use crate::{
+    BoundKind, InteractionApplicationOutcome, InteractionCanonicalBytes, InteractionFamily,
+    InteractionProposalPayload, InteractionRefusal, InteractionTypeDigest, InteractionValue,
+    InteractionValueKind, InteractionValues, OptionAvailability,
+};
 use alloc::{collections::VecDeque, string::String, vec::Vec};
 use conduit_core::{KindId, QuantityUnit, StructuredInfoValue};
 
@@ -26,10 +33,75 @@ pub const MAXIMUM_INTERACTION_OPTIONS: usize = 256;
 pub const MAXIMUM_INTERACTION_SELECTIONS: usize = 64;
 pub const MAXIMUM_INTERACTION_QUEUE: usize = 8;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct InteractionValue {
-    pub value_kind: KindId,
-    pub canonical_bytes: Vec<u8>,
+impl InteractionFamily {
+    pub fn choice_one(value_kind: KindId, maximum_options: u16) -> Self {
+        Self::choose_one(
+            maximum_options,
+            InteractionValueKind::new(value_kind.as_str().into())
+                .expect("Kind identities are nonempty bounded text"),
+        )
+        .expect("Kind identities satisfy the native interaction contract")
+    }
+
+    pub fn choice_many(
+        value_kind: KindId,
+        maximum_options: u16,
+        minimum_selections: u16,
+        maximum_selections: u16,
+    ) -> Self {
+        Self::choose_many(
+            maximum_options,
+            maximum_selections,
+            minimum_selections,
+            InteractionValueKind::new(value_kind.as_str().into())
+                .expect("Kind identities are nonempty bounded text"),
+        )
+        .expect("Kind identities satisfy the native interaction contract")
+    }
+
+    pub fn scalar_range(
+        unit: QuantityUnit,
+        minimum: i64,
+        minimum_bound: BoundKind,
+        maximum: i64,
+        maximum_bound: BoundKind,
+        granularity: i64,
+    ) -> Self {
+        Self::scalar(
+            granularity,
+            maximum,
+            maximum_bound,
+            minimum,
+            minimum_bound,
+            unit,
+        )
+        .expect("primitive scalar fields always have native representations")
+    }
+
+    pub fn relative_range(
+        unit: QuantityUnit,
+        minimum_delta: i64,
+        maximum_delta: i64,
+        granularity: i64,
+    ) -> Self {
+        Self::relative_adjustment(granularity, maximum_delta, minimum_delta, unit)
+            .expect("primitive relative fields always have native representations")
+    }
+
+    pub fn text_value(maximum_bytes: u32, allow_empty: bool) -> Self {
+        Self::text(allow_empty, maximum_bytes)
+            .expect("primitive text policy fields always have native representations")
+    }
+
+    pub fn structured_value(value_kind: KindId, type_digest: [u8; 32], maximum_bytes: u32) -> Self {
+        Self::structured(
+            maximum_bytes,
+            InteractionTypeDigest::new(type_digest).expect("digest length is exact"),
+            InteractionValueKind::new(value_kind.as_str().into())
+                .expect("Kind identities are nonempty bounded text"),
+        )
+        .expect("structured interaction fields satisfy the native contract")
+    }
 }
 
 impl InteractionValue {
@@ -38,10 +110,24 @@ impl InteractionValue {
         if canonical_bytes.len() > MAXIMUM_INTERACTION_VALUE_BYTES {
             return Err(InteractionRefusal::ValueBoundExceeded);
         }
-        Ok(Self {
-            value_kind,
-            canonical_bytes,
-        })
+        Self::new_native(
+            InteractionCanonicalBytes::new(
+                conduit_plot::rust_binding::BoundedBytes::new(&canonical_bytes)
+                    .ok_or(InteractionRefusal::ValueBoundExceeded)?,
+            )
+            .map_err(|_| InteractionRefusal::ValueBoundExceeded)?,
+            InteractionValueKind::new(value_kind.as_str().into())
+                .map_err(|_| InteractionRefusal::MalformedValue)?,
+        )
+        .map_err(|_| InteractionRefusal::MalformedValue)
+    }
+
+    pub fn kind(&self) -> &str {
+        self.value_kind().get().as_str()
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        self.canonical_bytes().get().as_slice()
     }
 
     pub fn structured(value: &StructuredInfoValue) -> Result<Self, InteractionRefusal> {
@@ -58,43 +144,16 @@ impl InteractionValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum InteractionFamily {
-    Activate,
-    Boolean,
-    ChooseOne {
-        value_kind: KindId,
-        maximum_options: u16,
-    },
-    ChooseMany {
-        value_kind: KindId,
-        maximum_options: u16,
-        minimum_selections: u16,
-        maximum_selections: u16,
-    },
-    Scalar {
-        unit: QuantityUnit,
-        minimum: i64,
-        minimum_bound: BoundKind,
-        maximum: i64,
-        maximum_bound: BoundKind,
-        granularity: i64,
-    },
-    RelativeAdjustment {
-        unit: QuantityUnit,
-        minimum_delta: i64,
-        maximum_delta: i64,
-        granularity: i64,
-    },
-    Text {
-        maximum_bytes: u32,
-        allow_empty: bool,
-    },
-    Structured {
-        value_kind: KindId,
-        type_digest: [u8; 32],
-        maximum_bytes: u32,
-    },
+impl PartialOrd for InteractionValue {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for InteractionValue {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        (self.kind(), self.bytes()).cmp(&(other.kind(), other.bytes()))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -159,7 +218,7 @@ impl InteractionCurrentState {
         mut current: Vec<InteractionValue>,
     ) -> Result<Self, InteractionRefusal> {
         validate_state(contract, domain.as_ref(), &current)?;
-        if matches!(contract.family, InteractionFamily::ChooseMany { .. }) {
+        if matches!(&contract.family, InteractionFamily::ChooseMany(_)) {
             current.sort();
         }
         let mut value = Self {
@@ -189,11 +248,21 @@ impl InteractionCurrentState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum InteractionProposalPayload {
-    Activate,
-    Values(Vec<InteractionValue>),
-    Relative(InteractionValue),
+impl InteractionProposalPayload {
+    pub fn selected(values: Vec<InteractionValue>) -> Result<Self, InteractionRefusal> {
+        Self::values(
+            InteractionValues::new(
+                conduit_plot::rust_binding::BoundedSequence::try_from_iter(values)
+                    .map_err(|_| InteractionRefusal::InvalidCardinality)?,
+            )
+            .map_err(|_| InteractionRefusal::InvalidCardinality)?,
+        )
+        .map_err(|_| InteractionRefusal::InvalidCardinality)
+    }
+
+    pub fn relative_value(value: InteractionValue) -> Result<Self, InteractionRefusal> {
+        Self::relative(value).map_err(|_| InteractionRefusal::MalformedValue)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -214,9 +283,11 @@ impl HumanInteractionProposal {
         mut payload: InteractionProposalPayload,
     ) -> Result<Self, InteractionRefusal> {
         validate_proposal(contract, state, &payload)?;
-        if matches!(contract.family, InteractionFamily::ChooseMany { .. }) {
-            if let InteractionProposalPayload::Values(items) = &mut payload {
-                items.sort();
+        if matches!(&contract.family, InteractionFamily::ChooseMany(_)) {
+            if let InteractionProposalPayload::Values(items) = &payload {
+                let mut sorted = items.get().as_slice().to_vec();
+                sorted.sort();
+                payload = InteractionProposalPayload::selected(sorted)?;
             }
         }
         let mut value = Self {
@@ -259,11 +330,11 @@ impl HumanInteractionProposal {
             InteractionProposalPayload::Activate => output.push(0),
             InteractionProposalPayload::Values(items) => {
                 output.push(1);
-                values(&mut output, items);
+                values(&mut output, items.get().as_slice());
             }
             InteractionProposalPayload::Relative(value) => {
                 output.push(2);
-                encode_value(&mut output, value);
+                encode_value(&mut output, value.value());
             }
         }
         output

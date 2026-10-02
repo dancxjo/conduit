@@ -1,4 +1,4 @@
-//! One ordinary bounded Form covering portable count, toggle, and key-event fan-out.
+//! One ordinary bounded Plot covering portable count, toggle, and key-event fan-out.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
@@ -7,9 +7,9 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, kind_id,
     port_id,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_human::KeyEvent;
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_plot::{ProfileCatalog, StartupCatalog, parse};
 
 use super::portable_state_input_play::PortableStateInputError;
 
@@ -52,7 +52,7 @@ pub fn prepare_portable_state_input(
     let fixtures = fixture_offers();
     for offer in &fixtures {
         catalog
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: offer.kind_id.clone(),
                 kind_contract_revision: offer.kind_contract_revision.clone(),
                 inputs: offer.inputs.clone(),
@@ -62,16 +62,16 @@ pub fn prepare_portable_state_input(
             .map_err(|_| PortableStateInputError::Catalog)?;
     }
     let source = format!(
-        "form portable_state_input {{\n count_tick: {TICK_SOURCE_KIND}\n count: state/count(start = {count_start})\n count_sink: {COUNT_SINK_KIND}\n toggle_tick: {TICK_SOURCE_KIND}\n toggle: state/toggle(initial = {toggle_initial})\n bool_sink: {BOOL_SINK_KIND}\n key_source: {KEY_SOURCE_KIND}\n split: input/key-tee\n text_sink: {TEXT_KEY_SINK_KIND}\n chord_sink: {CHORD_KEY_SINK_KIND}\n count_tick.tick >> count.bump\n count.value >> count_sink.value\n toggle_tick.tick >> toggle.toggle\n toggle.value >> bool_sink.value\n key_source.key >> split.key\n split.text-keys >> text_sink.key\n split.chord-keys >> chord_sink.key\n}}\n"
+        "plot portable_state_input {{\n count_tick: {TICK_SOURCE_KIND}\n count: state/count(start = {count_start})\n count_sink: {COUNT_SINK_KIND}\n toggle_tick: {TICK_SOURCE_KIND}\n toggle: state/toggle(initial = {toggle_initial})\n bool_sink: {BOOL_SINK_KIND}\n key_source: {KEY_SOURCE_KIND}\n split: input/key-tee\n text_sink: {TEXT_KEY_SINK_KIND}\n chord_sink: {CHORD_KEY_SINK_KIND}\n count_tick.tick >> count.bump\n count.value >> count_sink.value\n toggle_tick.tick >> toggle.toggle\n toggle.value >> bool_sink.value\n key_source.key >> split.key\n split.text-keys >> text_sink.key\n split.chord-keys >> chord_sink.key\n}}\n"
     );
-    let form = parse(&source, &catalog).map_err(|_| PortableStateInputError::Form)?;
+    let plot = parse(&source, &catalog).map_err(|_| PortableStateInputError::Plot)?;
     let tick_sequence = 1;
     let advertisement = advertisement(host, boot, fixtures);
     let hosts = [advertisement.clone()];
     let placements =
-        default_placements(&form, &hosts).map_err(|_| PortableStateInputError::Placement)?;
+        default_placements(&plot, &hosts).map_err(|_| PortableStateInputError::Placement)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

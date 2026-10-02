@@ -19,7 +19,7 @@ pub(super) fn action_for(
         if journey.status() == JourneyStatus::QuiescentAwaitingInput
             && journey.projection().workload_capacity_available
         {
-            return Some(JourneyAction::AdmitForm);
+            return Some(JourneyAction::AdmitPlot);
         }
         if journey.status() == JourneyStatus::Lulled {
             return Some(JourneyAction::Fulfill);
@@ -43,7 +43,7 @@ pub(super) fn action_for(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ProductControl {
     Escape,
-    SelectNextForm,
+    SelectNextPlot,
     SuggestOrDetails,
     Lifecycle,
     Tour,
@@ -77,8 +77,8 @@ pub(super) fn admitted_product_action(usage: u8) -> Option<AdmittedProductAction
             ProductActionScope::Surface,
         ),
         43 => action(
-            "product.form.select-next",
-            ProductControl::SelectNextForm,
+            "product.plot.select-next",
+            ProductControl::SelectNextPlot,
             ProductActionScope::Focus,
         ),
         59 => action(
@@ -217,10 +217,10 @@ mod tests {
     }
 
     #[test]
-    fn resident_patchbay_keys_select_semantic_actions_after_form_actions() {
+    fn resident_patchbay_keys_select_semantic_actions_after_plot_actions() {
         let actions = vec![
             ApplicationAction {
-                id: "patchbay.form.0".to_string(),
+                id: "patchbay.plot.0".to_string(),
                 event: ApplicationEventKind::Activate,
             },
             ApplicationAction {

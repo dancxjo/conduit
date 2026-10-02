@@ -21,7 +21,7 @@ use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 
-pub const TEXT_LAB_SPLIT_SOURCE: &str = include_str!("../../../forms/text-lab/main.conduit");
+pub const TEXT_LAB_SPLIT_SOURCE: &str = include_str!("../../../plots/text-lab/main.conduit");
 pub const TEXT_LAB_NATIVE_HOST: &str = "text-lab/native";
 pub const TEXT_LAB_NATIVE_BOOT: &str = "text-lab/native/boot-1";
 pub const TEXT_LAB_BROWSER_HOST: &str = "text-lab/browser";
@@ -42,12 +42,12 @@ pub struct TextLabLineLossReceipt {
     pub line_id: String,
     pub plan_id: String,
     pub source_document_id: String,
-    pub checked_form_id: String,
+    pub checked_plot_id: String,
     pub active_play_id: String,
     pub sign_id: String,
     pub old_plan_disposition: String,
     pub fresh_planning: String,
-    pub form_unchanged: bool,
+    pub plot_unchanged: bool,
     pub refusal: String,
     pub transport_failure: String,
 }
@@ -62,7 +62,7 @@ pub struct TextLabSplitPlan {
 
 pub struct TextLabLineLossOutcome {
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
     pub immutable_plan_id: conduit_core::PlanId,
     pub unavailable_line_id: conduit_core::LineId,
     pub refusal: String,
@@ -101,7 +101,7 @@ pub fn exact_text_lab_line_loss_outcome(
     }
     Ok(TextLabLineLossOutcome {
         source_document_id: accepted.plan.source_document_id,
-        checked_form_id: accepted.plan.checked_form_id,
+        checked_plot_id: accepted.plan.checked_plot_id,
         immutable_plan_id,
         unavailable_line_id: conduit_core::LineId::from(unavailable_line),
         refusal,
@@ -113,17 +113,17 @@ fn exact_text_lab_split_plan_with_loss(
     browser_text_upper: &conduit_core::CapabilityOffer,
     unavailable_line: Option<&str>,
 ) -> Result<TextLabSplitPlan, String> {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_keyboard_catalogs(&mut startup, &mut profile)?;
     install_input_semantic_catalogs(&mut startup, &mut profile)?;
     install_text_pipeline_catalogs(&mut startup, &mut profile)?;
-    let checked = conduit_form::check_syntax_document(
-        &conduit_form::parse_syntax_document(TEXT_LAB_SPLIT_SOURCE),
+    let checked = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(TEXT_LAB_SPLIT_SOURCE),
         &startup,
     )
     .map_err(|error| format!("check canonical Text Lab: {error:?}"))?;
-    let expanded = conduit_form::expand_canonical_form(&checked, "text-lab", &profile)
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "text-lab", &profile)
         .map_err(|error| format!("expand canonical Text Lab: {error:?}"))?;
     let mut native = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -377,7 +377,10 @@ fn text_upper_fixture_offer(
         Vec::new(),
         Vec::new(),
     );
-    offer.shorthand = Some((conduit_core::port_id("text"), conduit_core::port_id("text")));
+    offer.shorthand = Some((
+        conduit_core::port_id("source"),
+        conduit_core::port_id("text"),
+    ));
     offer
 }
 
@@ -425,7 +428,7 @@ mod tests {
         for line in [TEXT_LAB_FORWARD_LINE, TEXT_LAB_RETURN_LINE] {
             let loss = exact_text_lab_line_loss_outcome(base, &browser_upper, line).unwrap();
             assert_eq!(loss.source_document_id, accepted.plan.source_document_id);
-            assert_eq!(loss.checked_form_id, accepted.plan.checked_form_id);
+            assert_eq!(loss.checked_plot_id, accepted.plan.checked_plot_id);
             assert_eq!(loss.immutable_plan_id, accepted.plan.plan_id);
             assert_eq!(loss.unavailable_line_id.as_str(), line);
             assert!(loss.refusal.contains("unavailable"));

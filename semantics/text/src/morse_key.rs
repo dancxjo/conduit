@@ -118,13 +118,14 @@ impl MorseKeyInterpreter {
         if self.next_phase != MorseKeyPhase::Pressed || self.segments.is_empty() {
             return Err(MorseKeyRefusal::Incomplete);
         }
-        let pattern = MorsePattern {
-            unit_millis: self.unit_millis,
-            segments: self.segments,
-        };
+        let pattern =
+            MorsePattern::from_segments(self.unit_millis, self.segments).map_err(|error| {
+                MorseKeyRefusal::invalid_pattern(error)
+                    .expect("a checked Morse error always plots a key refusal")
+            })?;
         pattern.to_text().map_err(|error| {
             MorseKeyRefusal::invalid_pattern(error)
-                .expect("a checked Morse error always forms a key refusal")
+                .expect("a checked Morse error always plots a key refusal")
         })?;
         Ok(pattern)
     }
@@ -283,9 +284,9 @@ mod tests {
 
     #[test]
     fn structurally_canonical_but_unknown_symbol_is_not_accepted() {
-        let pattern = MorsePattern {
-            unit_millis: 200,
-            segments: vec![
+        let pattern = MorsePattern::from_segments(
+            200,
+            vec![
                 crate::morse::morse_segment(true, 1),
                 crate::morse::morse_segment(false, 1),
                 crate::morse::morse_segment(true, 1),
@@ -294,7 +295,8 @@ mod tests {
                 crate::morse::morse_segment(false, 1),
                 crate::morse::morse_segment(true, 3),
             ],
-        };
+        )
+        .unwrap();
         let values = transitions(&pattern);
         let mut interpreter = MorseKeyInterpreter::new(BASIS, 200, 16).unwrap();
         for value in values {

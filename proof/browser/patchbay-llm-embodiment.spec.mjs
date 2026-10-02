@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startStage(stage) {
-  const binary=process.env.CONDUIT_PATCHBAY_HTML_BIN||"target/debug/patchbay-html";
+  const binary=process.env.CONDUIT_PATCHBAY_HTML_BIN||"target/debug/conduit-browser-patchbay-workbench";
   const processHandle=spawn(binary,["--llm-embodiment-fixture",String(stage)],{stdio:["ignore","pipe","pipe"]});
   const errors=[];
   processHandle.stderr.setEncoding("utf8");
@@ -20,7 +20,7 @@ function subjects(snapshot,role) {
   return snapshot.presentation.subjects.filter(subject=>subject.role===role);
 }
 
-test("the same model gains expression and protected power only through exact form Cords",async({page})=>{
+test("the same model gains expression and protected power only through exact plot Cords",async({page})=>{
   const snapshots=[];
   for (const stage of [0,1,2]) {
     const server=startStage(stage);
@@ -44,7 +44,7 @@ test("the same model gains expression and protected power only through exact for
     .find(property=>property.name==="implementation-id")?.value.Identity);
   expect(new Set(implementations).size).toBe(1);
   expect(implementations[0]).toBe("ollama/gpt-oss:20b/exact-digest");
-  expect(snapshots.map(snapshot=>subjects(snapshot,"Form").length)).toEqual([1,1,1]);
+  expect(snapshots.map(snapshot=>subjects(snapshot,"Plot").length)).toEqual([1,1,1]);
   expect(snapshots.map(snapshot=>subjects(snapshot,"Cord").length)).toEqual([2,3,4]);
   expect(snapshots.map(snapshot=>subjects(snapshot,"Sign").length)).toEqual([0,0,1]);
   const decisions=snapshots.map(snapshot=>snapshot.presentation.properties

@@ -1,4 +1,4 @@
-//! Exact x86_64 product-image boot and reboot verification.
+//! Exact x86_64 product-image boot and reboot into the zero-Body Crèche.
 
 use super::{
     hid_qmp,
@@ -100,26 +100,11 @@ fn boot_once(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
-    let (mut qmp, mut reader) = hid_qmp::connect(&socket, &mut child)?;
     hid_qmp::wait_for_stage(
         &serial_path,
         &mut child,
-        "CONDUIT_BOOT_STAGE hid-awaiting-qemu-key",
-        "profile-built-hid-ready-timeout",
-    )?;
-    hid_qmp::send_named_keys(
-        &mut qmp,
-        &mut reader,
-        &["ret"],
-        true,
-        "profile-built-front-door-open",
-    )?;
-    hid_qmp::send_named_keys(
-        &mut qmp,
-        &mut reader,
-        &["ret"],
-        false,
-        "profile-built-front-door-open",
+        "CONDUIT_CRECHE_CHECKPOINT ready",
+        "profile-built-creche-ready-timeout",
     )?;
     let deadline = Instant::now() + Duration::from_secs(20);
     let (journey_json, boot_json) = loop {
@@ -198,25 +183,83 @@ fn validate(
     build: &str,
     image: &str,
 ) -> Result<(), ConduitosError> {
-    if boot.schema != "conduit.conduitos.boot-sign/v1"
-        || boot.status != "accepted"
-        || boot.arch != "x86_64"
-        || boot.profile_id != profile
-        || boot.build_id != build
-        || boot.image_binding != image
-        || boot.offer_generation != 1
-        || journey["status"] != "form-opened"
-        || journey["profile_id"] != profile
-        || journey["build_id"] != build
-        || journey["image_id"] != image
-        || journey["host_id"] != boot.host_id
-        || journey["boot_id"] != boot.boot_id
-        || journey["presenter_implementation_id"] != "presenter/native-graphical@1"
-    {
-        return Err(ConduitosError::refusal(
-            "profile-built-make-mismatch",
-            format!("boot={boot:?}; journey={journey}"),
-        ));
+    let boot_value = serde_json::to_value(boot).map_err(|error| {
+        ConduitosError::refusal("malformed-profile-built-boot-sign", error.to_string())
+    })?;
+    for (record, value, field, expected) in [
+        (
+            "boot",
+            &boot_value,
+            "schema",
+            serde_json::json!("conduit.conduitos.boot-sign/v1"),
+        ),
+        ("boot", &boot_value, "status", serde_json::json!("accepted")),
+        ("boot", &boot_value, "arch", serde_json::json!("x86_64")),
+        (
+            "boot",
+            &boot_value,
+            "profile_id",
+            serde_json::json!(profile),
+        ),
+        ("boot", &boot_value, "build_id", serde_json::json!(build)),
+        (
+            "boot",
+            &boot_value,
+            "image_binding",
+            serde_json::json!(image),
+        ),
+        (
+            "boot",
+            &boot_value,
+            "offer_generation",
+            serde_json::json!(1),
+        ),
+        ("journey", journey, "status", serde_json::json!("world")),
+        ("journey", journey, "profile_id", serde_json::json!(profile)),
+        ("journey", journey, "build_id", serde_json::json!(build)),
+        ("journey", journey, "image_id", serde_json::json!(image)),
+        (
+            "journey",
+            journey,
+            "host_id",
+            serde_json::json!(boot.host_id),
+        ),
+        (
+            "journey",
+            journey,
+            "boot_id",
+            serde_json::json!(boot.boot_id),
+        ),
+        (
+            "journey",
+            journey,
+            "presenter_implementation_id",
+            serde_json::json!("presenter/native-graphical@1"),
+        ),
+        ("journey", journey, "body_id", serde_json::Value::Null),
+        ("journey", journey, "plan_id", serde_json::Value::Null),
+        (
+            "journey",
+            journey,
+            "active_play_id",
+            serde_json::Value::Null,
+        ),
+    ] {
+        if value.get(field) != Some(&expected) {
+            return Err(ConduitosError::refusal(
+                "profile-built-make-mismatch",
+                format!(
+                    "{record}.{field}: expected {expected}, observed {}",
+                    value
+                        .get(field)
+                        .map_or_else(|| "<missing>".into(), ToString::to_string)
+                ),
+            ));
+        }
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "x86_64_product_boot_tests.rs"]
+mod tests;

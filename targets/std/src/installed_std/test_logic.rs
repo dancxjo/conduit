@@ -4,11 +4,11 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
-use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId, ValueRef, ValueStorage,
 };
+use conduit_plot::{KindProjection, ProfileCatalog};
 
 const KIND: &str = "conduit-test/logic-script";
 const REVISION: &str = "conduit-test/logic-script@1";

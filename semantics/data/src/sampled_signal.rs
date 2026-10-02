@@ -1,68 +1,31 @@
 //! Finite observations of a process on an explicit source clock.
 
-use alloc::{boxed::Box, string::String, vec::Vec};
-use conduit_core::{semantic_digest, Quantity, QuantityUnit, TemporalInstant, TemporalScale};
+use alloc::vec::Vec;
+use conduit_core::{semantic_digest, QuantityDimension, QuantityUnit, TemporalScale};
+use conduit_plot::rust_binding::BoundedSequence;
 
-use crate::{SampledSignalRefusal, SignalContinuity, TensorAxisRole, TensorValue};
+use crate::{
+    ConcatenatedSignal, SampledSignal, SampledSignalRefusal, SignalCadence, SignalContinuity,
+    SignalIdentity, SignalStart, SignalSummary, SignalWindow, TensorAxisRole,
+};
 
 pub const SAMPLED_SIGNAL_INFO_ID: &str = "data/sampled-signal@1";
 pub const MAXIMUM_SIGNAL_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_SIGNAL_PARTS: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SignalStart {
-    SampleIndex(u64),
-    Instant(TemporalInstant),
-}
+impl SignalStart {
+    pub fn at_sample(index: u64) -> Self {
+        Self::sample_index(index).expect("every U64 sample index is valid")
+    }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SignalCadence {
-    /// `samples` observations occur during one exact positive time quantity.
-    Regular { samples: u64, per: Quantity },
-    /// Exact source-clock coordinates. This tensor must be one-dimensional.
-    Irregular { coordinates: Box<TensorValue> },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SampledSignal {
-    pub clock_identity: String,
-    pub start: SignalStart,
-    pub cadence: SignalCadence,
-    pub sample_count: u64,
-    pub continuity: SignalContinuity,
-    /// Shape is `sample × channel...`; backing may be inline or referenced.
-    pub samples: TensorValue,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignalWindow {
-    pub source_signal: [u8; 32],
-    pub source_offset: u64,
-    pub sample_count: u64,
-    pub start: SignalStart,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConcatenatedSignal {
-    pub clock_identity: String,
-    pub start: SignalStart,
-    pub cadence: SignalCadence,
-    pub sample_count: u64,
-    pub element: crate::TensorElement,
-    pub sample_shape: Vec<u64>,
-    pub axes: Vec<crate::TensorAxis>,
-    pub source_parts: Vec<[u8; 32]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignalSummary {
-    pub clock_identity: String,
-    pub start: SignalStart,
-    pub sample_count: u64,
-    pub continuity: SignalContinuity,
-    pub shape: Vec<u64>,
-    pub bytes: u64,
-    pub content_digest: [u8; 32],
+    pub fn at_instant(
+        instant: conduit_core::TemporalInstant,
+    ) -> Result<Self, SampledSignalRefusal> {
+        let instant = instant
+            .try_into()
+            .map_err(|_| SampledSignalRefusal::InvalidStart)?;
+        Self::instant(instant).map_err(|_| SampledSignalRefusal::InvalidStart)
+    }
 }
 
 impl SampledSignal {
@@ -74,29 +37,25 @@ impl SampledSignal {
         match &self.start {
             SignalStart::SampleIndex(_) => {}
             SignalStart::Instant(instant) => instant
+                .value()
                 .validate()
                 .map_err(|_| SampledSignalRefusal::InvalidStart)?,
         }
         match &self.cadence {
-            SignalCadence::Regular { samples, per } => {
-                if *samples == 0
-                    || per.value() <= 0
-                    || !matches!(
-                        per.unit(),
-                        QuantityUnit::Second
-                            | QuantityUnit::Millisecond
-                            | QuantityUnit::Microsecond
-                            | QuantityUnit::Nanosecond
-                    )
+            SignalCadence::Regular(regular) => {
+                if *regular.samples() == 0
+                    || regular.per().value() <= 0
+                    || regular.per().dimension() != QuantityDimension::Time
                 {
                     return Err(SampledSignalRefusal::InvalidCadence);
                 }
             }
-            SignalCadence::Irregular { coordinates } => {
+            SignalCadence::Irregular(irregular) => {
+                let coordinates = irregular.coordinates();
                 coordinates
                     .validate()
                     .map_err(|_| SampledSignalRefusal::InvalidCadence)?;
-                if coordinates.dimensions != [self.sample_count]
+                if coordinates.dimensions.as_slice() != [self.sample_count]
                     || coordinates.axes[0].role != TensorAxisRole::Time
                 {
                     return Err(SampledSignalRefusal::InvalidCadence);
@@ -134,26 +93,35 @@ impl SampledSignal {
             return Err(SampledSignalRefusal::WindowOutOfBounds);
         }
         let start = match &self.start {
-            SignalStart::SampleIndex(index) => SignalStart::SampleIndex(
+            SignalStart::SampleIndex(index) => SignalStart::at_sample(
                 index
+                    .index()
                     .checked_add(offset)
                     .ok_or(SampledSignalRefusal::TemporalOverflow)?,
             ),
             SignalStart::Instant(instant) => match &self.cadence {
-                SignalCadence::Regular { samples, per }
-                    if *samples == 1 && per.unit() == instant.scale.quantity_unit() =>
+                SignalCadence::Regular(regular)
+                    if *regular.samples() == 1
+                        && regular.per().unit()
+                            == conduit_core::TemporalScale::from(*instant.value().scale())
+                                .quantity_unit() =>
                 {
-                    let delta = u64::try_from(per.value())
+                    let delta = u64::try_from(regular.per().value())
                         .map_err(|_| SampledSignalRefusal::TemporalOverflow)?
                         .checked_mul(offset)
                         .ok_or(SampledSignalRefusal::TemporalOverflow)?;
-                    SignalStart::Instant(TemporalInstant {
-                        ticks: instant
+                    let core: conduit_core::TemporalInstant = instant
+                        .value()
+                        .clone()
+                        .try_into()
+                        .map_err(|_| SampledSignalRefusal::InvalidStart)?;
+                    SignalStart::at_instant(conduit_core::TemporalInstant {
+                        ticks: core
                             .ticks
                             .checked_add(delta)
                             .ok_or(SampledSignalRefusal::TemporalOverflow)?,
-                        ..instant.clone()
-                    })
+                        ..core
+                    })?
                 }
                 _ => return Err(SampledSignalRefusal::InvalidCadence),
             },
@@ -173,7 +141,8 @@ impl SampledSignal {
             start: self.start.clone(),
             sample_count: self.sample_count,
             continuity: self.continuity.clone(),
-            shape: self.samples.dimensions.clone(),
+            shape: BoundedSequence::try_from_iter(self.samples.dimensions.iter().copied())
+                .map_err(|_| SampledSignalRefusal::TensorInvalid)?,
             bytes: self
                 .samples
                 .byte_count()
@@ -189,9 +158,14 @@ impl SampledSignal {
         match &self.start {
             SignalStart::SampleIndex(index) => {
                 bytes.push(0);
-                bytes.extend_from_slice(&index.to_le_bytes());
+                bytes.extend_from_slice(&index.index().to_le_bytes());
             }
             SignalStart::Instant(instant) => {
+                let instant: conduit_core::TemporalInstant = instant
+                    .value()
+                    .clone()
+                    .try_into()
+                    .map_err(|_| SampledSignalRefusal::InvalidStart)?;
                 bytes.push(1);
                 bytes.extend_from_slice(&instant.ticks.to_le_bytes());
                 bytes.push(scale_tag(instant.scale));
@@ -201,16 +175,17 @@ impl SampledSignal {
             }
         }
         match &self.cadence {
-            SignalCadence::Regular { samples, per } => {
+            SignalCadence::Regular(regular) => {
                 bytes.push(0);
-                bytes.extend_from_slice(&samples.to_le_bytes());
-                bytes.extend_from_slice(&per.value().to_le_bytes());
-                bytes.push(quantity_unit_tag(per.unit()));
+                bytes.extend_from_slice(&regular.samples().to_le_bytes());
+                bytes.extend_from_slice(&regular.per().value().to_le_bytes());
+                bytes.push(quantity_unit_tag(regular.per().unit()));
             }
-            SignalCadence::Irregular { coordinates } => {
+            SignalCadence::Irregular(irregular) => {
                 bytes.push(1);
                 bytes.extend_from_slice(
-                    &coordinates
+                    &irregular
+                        .coordinates()
                         .semantic_digest()
                         .map_err(|_| SampledSignalRefusal::InvalidCadence)?,
                 );
@@ -249,8 +224,8 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
     if !matches!(first.start, SignalStart::SampleIndex(_)) {
         return Err(SampledSignalRefusal::IncompatibleSignals);
     }
-    let mut next = match first.start {
-        SignalStart::SampleIndex(index) => index,
+    let mut next = match &first.start {
+        SignalStart::SampleIndex(index) => *index.index(),
         _ => unreachable!(),
     };
     let mut count = 0_u64;
@@ -260,15 +235,15 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
             || part.cadence != first.cadence
             || part.samples.element != first.samples.element
             || part.samples.axes != first.samples.axes
-            || part.samples.dimensions[1..] != first.samples.dimensions[1..]
+            || part.samples.dimensions.as_slice()[1..] != first.samples.dimensions.as_slice()[1..]
             || !matches!(part.continuity, SignalContinuity::Continuous)
         {
             return Err(SampledSignalRefusal::IncompatibleSignals);
         }
-        let SignalStart::SampleIndex(start) = part.start else {
+        let SignalStart::SampleIndex(start) = &part.start else {
             return Err(SampledSignalRefusal::IncompatibleSignals);
         };
-        if start != next {
+        if *start.index() != next {
             return Err(SampledSignalRefusal::NoncontiguousSignals);
         }
         next = next
@@ -277,7 +252,10 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
         count = count
             .checked_add(part.sample_count)
             .ok_or(SampledSignalRefusal::TemporalOverflow)?;
-        digests.push(part.semantic_digest()?);
+        digests.push(
+            SignalIdentity::new(part.semantic_digest()?)
+                .expect("a semantic digest is exactly 32 bytes"),
+        );
     }
     Ok(ConcatenatedSignal {
         clock_identity: first.clock_identity.clone(),
@@ -285,9 +263,13 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
         cadence: first.cadence.clone(),
         sample_count: count,
         element: first.samples.element,
-        sample_shape: first.samples.dimensions[1..].to_vec(),
+        sample_shape: BoundedSequence::try_from_iter(
+            first.samples.dimensions.as_slice()[1..].iter().copied(),
+        )
+        .expect("a tensor has at most seven non-sample dimensions"),
         axes: first.samples.axes.clone(),
-        source_parts: digests,
+        source_parts: BoundedSequence::try_from_iter(digests)
+            .expect("concatenation admits at most 64 source parts"),
     })
 }
 
@@ -306,6 +288,15 @@ fn quantity_unit_tag(unit: QuantityUnit) -> u8 {
         QuantityUnit::Microsecond => 1,
         QuantityUnit::Millisecond => 2,
         QuantityUnit::Second => 3,
+        QuantityUnit::Picosecond => 4,
+        QuantityUnit::Shake => 5,
+        QuantityUnit::Minute => 6,
+        QuantityUnit::Moment => 7,
+        QuantityUnit::Hour => 8,
+        QuantityUnit::Day => 9,
+        QuantityUnit::Week => 10,
+        QuantityUnit::Fortnight => 11,
+        QuantityUnit::JulianYear => 12,
         _ => unreachable!("validated cadence only accepts time units"),
     }
 }

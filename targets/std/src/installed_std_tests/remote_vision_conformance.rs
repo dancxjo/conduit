@@ -6,12 +6,12 @@ use conduit_core::{
     ProtectedResourceAccess, ProtectedResourceCommitPolicy, ProtectedResourceGrant,
     ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
-use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use std::collections::BTreeMap;
 
 #[test]
@@ -70,11 +70,11 @@ fn image_crosses_an_exact_line_into_the_production_vision_back() {
         crate::kernel_preparation::KernelResourceLedger::new(&vision_host.advertisement).unwrap();
 
     let source = format!(
-        "form remote-vision {{\n source: conduit-test/vision-remote-source(value = \"{}\")\n motion: vision/local-motion\n sink: conduit-test/local-model-result\n source.image >> motion.image\n motion.motions >> sink.value\n}}\n",
+        "plot remote-vision {{\n source: conduit-test/vision-remote-source(value = \"{}\")\n motion: vision/local-motion\n sink: conduit-test/local-model-result\n source.image >> motion.image\n motion.motions >> sink.value\n}}\n",
         hex(&encoded)
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "remote-vision", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "remote-vision", &profile).unwrap();
     let source_advertisement = source_host.advertisement().clone();
     let vision_advertisement = vision_host.advertisement().clone();
     let motion_offer = vision_advertisement

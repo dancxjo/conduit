@@ -1,6 +1,6 @@
-//! Exact bounded retained progression through a reviewed two-input combine Form.
+//! Exact bounded retained progression through a reviewed two-input combine Plot.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -13,7 +13,7 @@ use conduit_core::{
 
 pub const FLOW_SCAN_KIND: &str = "flow/scan";
 pub const FLOW_SCAN_CONTRACT_REVISION: &str = "conduit.flow/scan@1";
-// These are the coordinator's exact internal Fore names. The enclosing Form
+// These are the coordinator's exact internal Fore names. The enclosing Plot
 // may export differently named public Flow ports.
 pub const FLOW_SCAN_INPUT_PORT: &str = "item";
 pub const FLOW_SCAN_OUTPUT_PORT: &str = "combined";
@@ -132,17 +132,17 @@ fn require_finite(value: &CheckedValueContract, role: &'static str) -> Result<()
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_scan_kind(
     item: &CheckedValueContract,
     accumulator: &CheckedValueContract,
     initial_accumulator: &[u8],
     abnormal: Option<&CheckedValueContract>,
     maximum_items: u16,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: FLOW_SCAN_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;

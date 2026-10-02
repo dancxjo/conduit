@@ -3,6 +3,25 @@ use conduit_core::{
     ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::*;
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+
+fn example_pages<const N: usize>(
+    identities: [[u8; 32]; N],
+) -> BoundedSequence<DatasetExamplePage, 128> {
+    DatasetSplitMembership::pages(
+        identities.map(|identity| DatasetExampleIdentity::new(identity).unwrap()),
+    )
+    .unwrap()
+}
+
+fn maximum_example_pages() -> BoundedSequence<DatasetExamplePage, 128> {
+    DatasetSplitMembership::pages((0_u32..4096).map(|index| {
+        let mut identity = [0_u8; 32];
+        identity[..4].copy_from_slice(&(index + 1).to_le_bytes());
+        DatasetExampleIdentity::new(identity).unwrap()
+    }))
+    .unwrap()
+}
 
 fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     BoundedResourceRef {
@@ -17,6 +36,36 @@ fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     }
 }
 
+#[test]
+fn scientific_provenance_round_trips_through_native_payloads() {
+    let measured = ObservationProvenance::measured(
+        "scientific/instrument-capture@1".into(),
+        resource(1, "data/observation-block@1", 128),
+    )
+    .unwrap();
+    let structured = measured.clone().into_structured().unwrap();
+    assert_eq!(
+        ObservationProvenance::from_structured(structured).unwrap(),
+        measured
+    );
+
+    let derived = ObservationProvenance::derived(
+        "scientific/windowed-linear-resample@1".into(),
+        BoundedSequence::try_from_iter([
+            ScientificObservationIdentity::new([2; 32]).unwrap(),
+            ScientificObservationIdentity::new([3; 32]).unwrap(),
+        ])
+        .unwrap(),
+        "calibration/head-correction-1".into(),
+    )
+    .unwrap();
+    let structured = derived.clone().into_structured().unwrap();
+    assert_eq!(
+        ObservationProvenance::from_structured(structured).unwrap(),
+        derived
+    );
+}
+
 fn f32_tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) -> TensorValue {
     let bytes = values
         .iter()
@@ -24,28 +73,23 @@ fn f32_tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) 
         .collect::<Vec<_>>();
     TensorValue {
         element: TensorElement::F32,
-        dimensions,
-        axes: roles
-            .into_iter()
-            .map(|role| TensorAxis {
-                role,
-                identity: None,
-                unit: Some(QuantityUnit::Millimeter),
-            })
-            .collect(),
+        dimensions: BoundedSequence::try_from_iter(dimensions).unwrap(),
+        axes: BoundedSequence::try_from_iter(roles.into_iter().map(|role| TensorAxis {
+            role,
+            identity: None,
+            unit: Some(QuantityUnit::Millimeter),
+        }))
+        .unwrap(),
         content_digest: tensor_content_digest(&bytes),
-        backing: TensorBacking::Inline(bytes),
+        backing: TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap()),
     }
 }
 
 fn signal(clock: &str, channels: u64, value: f32) -> SampledSignal {
     SampledSignal {
         clock_identity: clock.into(),
-        start: SignalStart::SampleIndex(0),
-        cadence: SignalCadence::Regular {
-            samples: 100,
-            per: Quantity::new(1, QuantityUnit::Second),
-        },
+        start: SignalStart::at_sample(0),
+        cadence: SignalCadence::regular(Quantity::new(1, QuantityUnit::Second), 100).unwrap(),
         sample_count: 2,
         continuity: SignalContinuity::Continuous,
         samples: f32_tensor(
@@ -68,11 +112,12 @@ fn measured(
         semantic_kind: kind.into(),
         clock_identity: Some(clock.into()),
         coordinate_frame: frame.map(Into::into),
-        value: ObservationValue::SampledSignal(Box::new(signal(clock, channels, identity as f32))),
-        provenance: ObservationProvenance::Measured {
-            source: resource(identity, "data/observation-block@1", 128),
-            measurement_profile: "scientific/instrument-capture@1".into(),
-        },
+        value: ObservationValue::sampled_signal(signal(clock, channels, identity as f32)).unwrap(),
+        provenance: ObservationProvenance::measured(
+            "scientific/instrument-capture@1".into(),
+            resource(identity, "data/observation-block@1", 128),
+        )
+        .unwrap(),
     }
 }
 
@@ -90,13 +135,13 @@ fn observation_set() -> ObservationSet {
         identity: semantic_digest("test/example@1", b"paired-example"),
         session_identity: "session/synthetic-1".into(),
         subject_identity: Some("subject/pseudonymous-1".into()),
-        observations: vec![audio, ema],
-        missing_data: vec![MissingDataMask {
+        observations: BoundedSequence::try_from_iter([audio, ema]).unwrap(),
+        missing_data: BoundedSequence::try_from_iter([MissingDataMask {
             observation_identity: [2; 32],
             mask: TensorValue {
                 element: TensorElement::U8,
-                dimensions: vec![2, 2],
-                axes: vec![
+                dimensions: BoundedSequence::try_from_iter([2, 2]).unwrap(),
+                axes: BoundedSequence::try_from_iter([
                     TensorAxis {
                         role: TensorAxisRole::Time,
                         identity: None,
@@ -107,11 +152,13 @@ fn observation_set() -> ObservationSet {
                         identity: None,
                         unit: None,
                     },
-                ],
+                ])
+                .unwrap(),
                 content_digest: tensor_content_digest(&mask_bytes),
-                backing: TensorBacking::Inline(mask_bytes),
+                backing: TensorBacking::Inline(BoundedBytes::new(&mask_bytes).unwrap()),
             },
-        }],
+        }])
+        .unwrap(),
     }
 }
 
@@ -119,12 +166,20 @@ fn frames() -> (CoordinateFrame, CoordinateFrame) {
     (
         CoordinateFrame {
             identity: "frame/ema-head".into(),
-            axes: vec!["anterior-posterior".into(), "inferior-superior".into()],
+            axes: BoundedSequence::try_from_iter([
+                CoordinateAxisName::new("anterior-posterior".into()).unwrap(),
+                CoordinateAxisName::new("inferior-superior".into()).unwrap(),
+            ])
+            .unwrap(),
             unit: QuantityUnit::Millimeter,
         },
         CoordinateFrame {
             identity: "frame/head-normalized".into(),
-            axes: vec!["x".into(), "y".into()],
+            axes: BoundedSequence::try_from_iter([
+                CoordinateAxisName::new("x".into()).unwrap(),
+                CoordinateAxisName::new("y".into()).unwrap(),
+            ])
+            .unwrap(),
             unit: QuantityUnit::Millimeter,
         },
     )
@@ -148,7 +203,11 @@ fn calibration() -> CalibrationTransform {
             vec![2],
             vec![TensorAxisRole::SpatialCoordinate],
         ),
-        calibration_sources: vec![[9; 32]],
+        calibration_sources: BoundedSequence::try_from_iter([ScientificObservationIdentity::new(
+            [9; 32],
+        )
+        .unwrap()])
+        .unwrap(),
         method_profile: "science/rigid-head-correction@1".into(),
     }
 }
@@ -157,6 +216,8 @@ fn calibration() -> CalibrationTransform {
 fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view() {
     let set = observation_set();
     set.validate().unwrap();
+    let structured = set.clone().into_structured().unwrap();
+    assert_eq!(ObservationSet::from_structured(structured).unwrap(), set);
     assert_ne!(set.semantic_digest().unwrap(), [0; 32]);
     let relation = ClockRelation::new(
         "clock-relation/ema-to-audio@1".into(),
@@ -194,6 +255,15 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     let (source_frame, target_frame) = frames();
     let calibration = calibration();
     calibration.validate(&source_frame, &target_frame).unwrap();
+    for frame in [source_frame.clone(), target_frame.clone()] {
+        let structured = frame.clone().into_structured().unwrap();
+        assert_eq!(CoordinateFrame::from_structured(structured).unwrap(), frame);
+    }
+    let structured = calibration.clone().into_structured().unwrap();
+    assert_eq!(
+        CalibrationTransform::from_structured(structured).unwrap(),
+        calibration
+    );
     let aligned = AlignedTrainingView::derive(AlignmentDerivation {
         set: &set,
         source_observation_identity: [2; 32],
@@ -201,10 +271,15 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
         calibration: Some((&calibration, &source_frame, &target_frame)),
         target_clock: "clock/audio",
         derived_identity: [7; 32],
-        derived_value: ObservationValue::SampledSignal(Box::new(signal("clock/audio", 2, 7.0))),
+        derived_value: ObservationValue::sampled_signal(signal("clock/audio", 2, 7.0)).unwrap(),
         resampling_profile: "science/windowed-linear-resample@1",
     })
     .unwrap();
+    let structured = aligned.clone().into_structured().unwrap();
+    assert_eq!(
+        AlignedTrainingView::from_structured(structured).unwrap(),
+        aligned
+    );
     assert_eq!(
         set.observations[0].clock_identity.as_deref(),
         Some("clock/audio")
@@ -220,7 +295,7 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     );
     assert!(matches!(
         aligned.derived_observation.provenance,
-        ObservationProvenance::Derived { .. }
+        ObservationProvenance::Derived(_)
     ));
     assert_ne!(aligned.semantic_digest().unwrap(), [0; 32]);
 }
@@ -234,7 +309,7 @@ fn clock_calibration_and_missingness_mismatches_refuse() {
         Err(ScientificObservationRefusal::ClockMismatch)
     );
     set = observation_set();
-    set.missing_data[0].mask.dimensions = vec![4];
+    set.missing_data[0].mask.dimensions = BoundedSequence::try_from_iter([4]).unwrap();
     set.missing_data[0].mask.axes.truncate(1);
     assert_eq!(
         set.validate(),
@@ -268,10 +343,16 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
         license_profile: Some("license/research-example@1".into()),
         example_count: 3,
         manifest: resource(12, CORPUS_MANIFEST_PROFILE, 512),
-        shards: vec![resource(13, "data/corpus-shard@1", 4096)],
-        split_identities: vec!["train".into(), "test".into()],
+        shards: BoundedSequence::try_from_iter([resource(13, "data/corpus-shard@1", 4096)])
+            .unwrap(),
+        split_identities: BoundedSequence::try_from_iter(["train".into(), "test".into()]).unwrap(),
     };
     dataset.validate().unwrap();
+    let structured = dataset.clone().into_structured().unwrap();
+    assert_eq!(
+        DatasetDescriptor::from_structured(structured).unwrap(),
+        dataset
+    );
     assert_ne!(dataset.semantic_digest().unwrap(), [0; 32]);
     assert_eq!(
         dataset.require_resources(&[[12; 32]]),
@@ -281,12 +362,12 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
     let train = DatasetSplitMembership {
         dataset_identity: dataset.identity,
         split_identity: "train".into(),
-        examples: vec![[21; 32], [22; 32]],
+        examples: example_pages([[21; 32], [22; 32]]),
     };
     let mut test = DatasetSplitMembership {
         dataset_identity: dataset.identity,
         split_identity: "test".into(),
-        examples: vec![[23; 32]],
+        examples: example_pages([[23; 32]]),
     };
     dataset.validate_membership(&train).unwrap();
     dataset.validate_membership(&test).unwrap();
@@ -295,7 +376,7 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
         test.semantic_digest().unwrap()
     );
     prove_splits_disjoint(&train, &test).unwrap();
-    test.examples.push([22; 32]);
+    test.examples = example_pages([[23; 32], [22; 32]]);
     assert_eq!(
         prove_splits_disjoint(&train, &test),
         Err(ScientificCorpusRefusal::SplitLeakage)
@@ -306,5 +387,23 @@ fn corpus_resources_and_stable_splits_detect_missing_content_and_leakage() {
     assert_eq!(
         malformed.validate(),
         Err(ScientificCorpusRefusal::InvalidManifest)
+    );
+}
+
+#[test]
+fn dataset_split_membership_preserves_the_full_4096_example_bound() {
+    let membership = DatasetSplitMembership {
+        dataset_identity: [11; 32],
+        split_identity: "maximum".into(),
+        examples: maximum_example_pages(),
+    };
+
+    assert_eq!(membership.identities().count(), 4096);
+    membership.validate().unwrap();
+
+    let structured = membership.clone().into_structured().unwrap();
+    assert_eq!(
+        DatasetSplitMembership::from_structured(structured).unwrap(),
+        membership
     );
 }

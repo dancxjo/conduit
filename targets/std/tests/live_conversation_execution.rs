@@ -1,11 +1,11 @@
-//! Deterministic fake-provider execution of the checked canonical live Form.
+//! Deterministic fake-provider execution of the checked canonical live Plot.
 
 use conduit_ai::{
     project_generated_chunk_text, BoundedGeneratedTextFlow, GeneratedTextChunk,
     GeneratedTextFlowTerminal,
 };
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 use conduit_tongues::{
     committed_user_message, project_committed_turn_text, SegmentId, StreamEvent,
     StreamingSpeechCommitter, TextRole,
@@ -14,7 +14,7 @@ use conduit_tongues::{
 fn context() -> BodyConversationContext {
     let body = Body::born(
         SourceDocumentId::from("source/live-conversation-execution"),
-        CheckedFormId::from("checked/live-conversation-execution"),
+        CheckedPlotId::from("checked/live-conversation-execution"),
         1,
         SignId::from("sign/live-conversation-execution/born"),
     )
@@ -35,7 +35,7 @@ fn context() -> BodyConversationContext {
             revision: 3,
         },
         hosts: vec![],
-        active_forms: vec!["form/live-conversation".into()],
+        active_plots: vec!["plot/live-conversation".into()],
         current_plan_id: None,
         active_play_id: None,
         lines: vec![],
@@ -46,13 +46,10 @@ fn context() -> BodyConversationContext {
 #[test]
 fn committed_external_barge_in_cancels_generation_and_pending_speech_exactly() {
     let mut generation = BoundedGeneratedTextFlow::new(256).unwrap();
-    let first = GeneratedTextChunk {
-        sequence: 0,
-        text: "Already audible. unfinished".into(),
-    };
+    let first = GeneratedTextChunk::new(0, "Already audible. unfinished".into()).unwrap();
     generation.admit(&first).unwrap();
     let mut speech = StreamingSpeechCommitter::new("answer/barge-in").unwrap();
-    let committed_segments = speech.push(&first.text).unwrap();
+    let committed_segments = speech.push(first.text()).unwrap();
     assert_eq!(committed_segments.len(), 1);
     let committed_pcm = fake_tts(&committed_segments[0].text);
     assert!(!committed_pcm.is_empty());
@@ -86,10 +83,10 @@ fn committed_external_barge_in_cancels_generation_and_pending_speech_exactly() {
     speech.cancel();
     let speech_evidence = speech.evidence(Some(1), None, committed_pcm.len() as u64);
     assert_eq!(
-        generation_evidence.terminal,
+        *generation_evidence.terminal(),
         GeneratedTextFlowTerminal::Cancelled
     );
-    assert_eq!(generation_evidence.chunks, 1);
+    assert_eq!(*generation_evidence.chunks(), 1);
     assert!(speech.pending_text().is_empty());
     assert!(speech_evidence.cancelled);
     assert_eq!(speech_evidence.segment_count, 1);
@@ -109,10 +106,10 @@ fn fake_tts(segment: &str) -> Vec<u8> {
 }
 
 #[test]
-fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
-    let source = include_str!("../../../forms/live-conversation/main.conduit");
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn checked_live_plot_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
+    let source = include_str!("../../../plots/live-conversation/main.conduit");
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     startup
         .insert_value_kind_alias(
             "PcmFrames",
@@ -130,10 +127,10 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     )
     .unwrap();
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
     let authored =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "live-conversation", &profile)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "live-conversation", &profile)
             .unwrap();
     let expanded = authored.expanded;
     let mut exact_kinds = expanded
@@ -190,14 +187,8 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
         .any(|window| window == user_text.as_bytes()));
 
     let chunks = [
-        GeneratedTextChunk {
-            sequence: 0,
-            text: "The body is awake. ".into(),
-        },
-        GeneratedTextChunk {
-            sequence: 1,
-            text: "Its current context is bounded.".into(),
-        },
+        GeneratedTextChunk::new(0, "The body is awake. ".into()).unwrap(),
+        GeneratedTextChunk::new(1, "Its current context is bounded.".into()).unwrap(),
     ];
     let mut generation = BoundedGeneratedTextFlow::new(256).unwrap();
     let mut speech = StreamingSpeechCommitter::new("answer/fake-one").unwrap();
@@ -222,14 +213,17 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     let generation_evidence = generation.finish(GeneratedTextFlowTerminal::Completed);
     let expected = chunks
         .iter()
-        .map(|chunk| chunk.text.as_str())
+        .map(|chunk| chunk.text().as_str())
         .collect::<String>();
     assert_eq!(submitted_text, expected);
     assert!(first_audio_before_generation_closed);
     assert!(!pcm_flow.is_empty());
     assert!(pcm_flow.iter().all(|block| !block.is_empty()));
-    assert_eq!(generation_evidence.chunks, 2);
-    assert_eq!(generation_evidence.generated_bytes, expected.len() as u64);
+    assert_eq!(*generation_evidence.chunks(), 2);
+    assert_eq!(
+        *generation_evidence.generated_bytes(),
+        expected.len() as u64
+    );
     let speech_evidence = speech.evidence(
         Some(1),
         Some(1),

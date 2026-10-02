@@ -2,7 +2,7 @@ use conduit_body::{
     Body, BodyId, FulfillmentReadiness, PurposeCompletionPolicy, PurposeObligation,
     PurposeObligationState, PurposeState,
 };
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 use conduit_presentation::{
     orifina_completion_presenter_policy, project_orifina_purpose_presentation, Face, FaceContext,
     FaceFocus, GeneratedContentRole, GeneratedContentSegment, GeneratedManifestationCandidate,
@@ -13,7 +13,7 @@ use conduit_presentation::{
 fn body_id() -> BodyId {
     Body::born(
         SourceDocumentId::from("source/orifina"),
-        CheckedFormId::from("checked/orifina"),
+        CheckedPlotId::from("checked/orifina"),
         1,
         SignId::from("sign/born"),
     )

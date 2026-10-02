@@ -1,4 +1,4 @@
-use conduit_core::{CheckedFormId, HostId, SignId};
+use conduit_core::{CheckedPlotId, HostId, SignId};
 use conduit_planner::{
     select_performance_candidate, ObservationProvenance, PerformanceCandidate,
     PerformanceCandidateDisposition, PerformanceIntent, PerformancePolicy,
@@ -95,25 +95,25 @@ fn fixtures() -> Vec<PerformanceCandidate> {
 }
 
 #[test]
-fn one_form_identity_gets_distinct_rational_plans_from_explicit_policy() {
-    let form_id = CheckedFormId::from("same-semantic-form");
+fn one_plot_identity_gets_distinct_rational_plans_from_explicit_policy() {
+    let plot_id = CheckedPlotId::from("same-semantic-plot");
     let interactive = select_performance_candidate(
-        form_id.clone(),
+        plot_id.clone(),
         &fixtures(),
         &policy(PerformanceIntent::Interactive),
         1_000,
     )
     .expect("interactive policy selects current evidence");
     let batch = select_performance_candidate(
-        form_id.clone(),
+        plot_id.clone(),
         &fixtures(),
         &policy(PerformanceIntent::ThroughputBatch),
         1_000,
     )
     .expect("batch policy selects current evidence");
 
-    assert_eq!(interactive.checked_form_id, form_id);
-    assert_eq!(batch.checked_form_id, interactive.checked_form_id);
+    assert_eq!(interactive.checked_plot_id, plot_id);
+    assert_eq!(batch.checked_plot_id, interactive.checked_plot_id);
     assert_eq!(interactive.selected_candidate_id, "local-cpu");
     assert_eq!(batch.selected_candidate_id, "laptop-shards");
     assert_eq!(
@@ -131,7 +131,7 @@ fn one_form_identity_gets_distinct_rational_plans_from_explicit_policy() {
 #[test]
 fn interactive_prefers_latency_over_remote_peak_compute() {
     let selection = select_performance_candidate(
-        CheckedFormId::from("interactive-form"),
+        CheckedPlotId::from("interactive-plot"),
         &fixtures(),
         &policy(PerformanceIntent::Interactive),
         1_000,
@@ -145,7 +145,7 @@ fn interactive_prefers_latency_over_remote_peak_compute() {
 #[test]
 fn batch_can_prefer_aggregate_throughput_across_old_hosts() {
     let selection = select_performance_candidate(
-        CheckedFormId::from("batch-form"),
+        CheckedPlotId::from("batch-plot"),
         &fixtures(),
         &policy(PerformanceIntent::ThroughputBatch),
         1_000,
@@ -161,7 +161,7 @@ fn exact_bounded_response_requirement_refuses_unproven_fast_hosts() {
     control.maximum_bounded_response_us = Some(100);
     control.maximum_jitter_us = Some(5);
     let selection = select_performance_candidate(
-        CheckedFormId::from("control-form"),
+        CheckedPlotId::from("control-plot"),
         &fixtures(),
         &control,
         1_000,
@@ -185,7 +185,7 @@ fn exact_bounded_response_requirement_refuses_unproven_fast_hosts() {
         .filter(|item| item.candidate_id != "local-control")
         .collect::<Vec<_>>();
     assert!(select_performance_candidate(
-        CheckedFormId::from("control-form"),
+        CheckedPlotId::from("control-plot"),
         &no_control,
         &control,
         1_000,
@@ -199,7 +199,7 @@ fn hard_frontts_gate_before_work_class_ranking() {
     batch.maximum_startup_us = Some(100);
     batch.minimum_throughput_items_per_second = Some(90);
     let selection = select_performance_candidate(
-        CheckedFormId::from("bounded-batch"),
+        CheckedPlotId::from("bounded-batch"),
         &fixtures(),
         &batch,
         1_000,
@@ -239,14 +239,14 @@ fn performance_class_is_never_inferred_from_candidate_or_host_names() {
         ),
     ];
     let interactive = select_performance_candidate(
-        CheckedFormId::from("name-neutral"),
+        CheckedPlotId::from("name-neutral"),
         &renamed,
         &policy(PerformanceIntent::Interactive),
         1_000,
     )
     .expect("numeric reviewed profiles, not names, decide");
     let batch = select_performance_candidate(
-        CheckedFormId::from("name-neutral"),
+        CheckedPlotId::from("name-neutral"),
         &renamed,
         &policy(PerformanceIntent::ThroughputBatch),
         1_000,
@@ -259,7 +259,7 @@ fn performance_class_is_never_inferred_from_candidate_or_host_names() {
 #[test]
 fn stale_duplicate_or_unbounded_profiles_fail_closed() {
     assert!(select_performance_candidate(
-        CheckedFormId::from("stale"),
+        CheckedPlotId::from("stale"),
         &fixtures(),
         &policy(PerformanceIntent::Background),
         1_101,
@@ -268,7 +268,7 @@ fn stale_duplicate_or_unbounded_profiles_fail_closed() {
 
     let duplicate = vec![fixtures()[0].clone(), fixtures()[0].clone()];
     assert!(select_performance_candidate(
-        CheckedFormId::from("duplicate"),
+        CheckedPlotId::from("duplicate"),
         &duplicate,
         &policy(PerformanceIntent::Background),
         1_000,
@@ -291,7 +291,7 @@ fn stale_duplicate_or_unbounded_profiles_fail_closed() {
         })
         .collect::<Vec<_>>();
     assert!(select_performance_candidate(
-        CheckedFormId::from("bounded"),
+        CheckedPlotId::from("bounded"),
         &candidates,
         &policy(PerformanceIntent::Background),
         1_000,

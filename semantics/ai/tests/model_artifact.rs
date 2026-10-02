@@ -19,40 +19,58 @@ fn reference(digest: [u8; 32], profile: &str, bytes: u64) -> BoundedResourceRef 
 }
 
 fn tensor() -> ModelTensorConstraint {
-    ModelTensorConstraint {
-        elements: vec![TensorElement::F32],
-        axes: vec![
+    tensor_with(
+        TensorAxisRole::Time,
+        ModelDimensionConstraint::bounded(256, 1).unwrap(),
+    )
+}
+
+fn tensor_with(
+    first_role: TensorAxisRole,
+    first_dimension: ModelDimensionConstraint,
+) -> ModelTensorConstraint {
+    ModelTensorConstraint::from_parts(
+        vec![TensorElement::F32],
+        vec![
             ModelAxisConstraint {
-                role: TensorAxisRole::Time,
-                dimension: ModelDimensionConstraint::bounded(256, 1).unwrap(),
+                role: first_role,
+                dimension: first_dimension,
             },
             ModelAxisConstraint {
                 role: TensorAxisRole::Feature,
                 dimension: ModelDimensionConstraint::fixed(12).unwrap(),
             },
         ],
-        maximum_bytes: 12_288,
-    }
+        12_288,
+    )
+    .unwrap()
 }
 
 fn signature_fixture() -> ModelSignature {
-    ModelSignature {
-        identity: "tongues/articulatory-encoder@1".into(),
-        compatibility_version: 1,
-        operations: vec![ModelOperation::Encode, ModelOperation::Evaluate],
-        inputs: vec![ModelPortConstraint {
-            identity: "trajectory".into(),
-            semantic_kind: "data/sampled-signal@1".into(),
-            presence: ModelPortPresence::Required,
-            value: ModelValueConstraint::SampledSignal(tensor()),
-        }],
-        outputs: vec![ModelPortConstraint {
-            identity: "latent".into(),
-            semantic_kind: "data/tensor@1".into(),
-            presence: ModelPortPresence::Required,
-            value: ModelValueConstraint::Tensor(tensor()),
-        }],
-    }
+    signature_with(tensor())
+}
+
+fn signature_with(input: ModelTensorConstraint) -> ModelSignature {
+    ModelSignature::from_parts(
+        "tongues/articulatory-encoder@1".into(),
+        1,
+        vec![ModelOperation::Encode, ModelOperation::Evaluate],
+        vec![ModelPortConstraint::from_parts(
+            "trajectory".into(),
+            "data/sampled-signal@1".into(),
+            ModelPortPresence::Required,
+            ModelValueConstraint::sampled_signal(input).unwrap(),
+        )
+        .unwrap()],
+        vec![ModelPortConstraint::from_parts(
+            "latent".into(),
+            "data/tensor@1".into(),
+            ModelPortPresence::Required,
+            ModelValueConstraint::tensor(tensor()).unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap()
 }
 
 fn artifact_fixture(signature: &ModelSignature) -> ModelArtifact {
@@ -123,21 +141,19 @@ fn mismatched_signature_checkpoint_runtime_and_signal_shape_refuse_exactly() {
         Err(ModelCompatibilityRefusal::SignatureMismatch)
     );
 
-    let mut bad_signal = signature_fixture();
-    let ModelValueConstraint::SampledSignal(input) = &mut bad_signal.inputs[0].value else {
-        unreachable!()
-    };
-    input.axes[0].role = TensorAxisRole::Feature;
+    let bad_signal = signature_with(tensor_with(
+        TensorAxisRole::Feature,
+        ModelDimensionConstraint::bounded(256, 1).unwrap(),
+    ));
     assert_eq!(
         bad_signal.validate(),
         Err(ModelSignatureRefusal::InvalidSignalConstraint)
     );
 
-    let mut reversed = signature_fixture();
-    let ModelValueConstraint::SampledSignal(input) = &mut reversed.inputs[0].value else {
-        unreachable!()
-    };
-    input.axes[0].dimension = ModelDimensionConstraint::bounded(1, 2).unwrap();
+    let reversed = signature_with(tensor_with(
+        TensorAxisRole::Time,
+        ModelDimensionConstraint::bounded(1, 2).unwrap(),
+    ));
     assert_eq!(
         reversed.validate(),
         Err(ModelSignatureRefusal::InvalidTensorConstraint)

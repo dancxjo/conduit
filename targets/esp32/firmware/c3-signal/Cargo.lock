@@ -174,7 +174,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-data",
- "conduit-form",
+ "conduit-plot",
  "conduit-time",
  "conduit-web",
  "libm",
@@ -188,7 +188,7 @@ name = "conduit-alife"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-time",
  "sha2",
@@ -200,8 +200,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-core",
- "conduit-form",
  "conduit-planner",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -217,7 +217,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-data",
- "conduit-form",
+ "conduit-plot",
  "libm",
  "serde",
 ]
@@ -249,8 +249,8 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-net",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-text",
  "serde",
@@ -274,7 +274,8 @@ name = "conduit-data"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
+ "conduit-time",
 ]
 
 [[package]]
@@ -283,7 +284,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -303,12 +304,12 @@ dependencies = [
  "conduit-bluetooth",
  "conduit-core",
  "conduit-embedded-build",
- "conduit-form",
  "conduit-host-esp32-make",
  "conduit-host-make",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-text",
@@ -333,15 +334,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-form"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "serde",
- "sha2",
-]
-
-[[package]]
 name = "conduit-host-esp32-make"
 version = "0.1.0"
 dependencies = [
@@ -356,7 +348,7 @@ name = "conduit-host-make"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "serde",
@@ -370,7 +362,7 @@ name = "conduit-human"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "serde",
  "sha2",
 ]
@@ -395,7 +387,7 @@ name = "conduit-net"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "serde",
 ]
 
@@ -412,7 +404,16 @@ name = "conduit-planner"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
+ "serde",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
  "serde",
  "sha2",
 ]
@@ -423,10 +424,27 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
- "conduit-form",
+ "conduit-human",
+ "conduit-plot",
  "conduit-time",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-process"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-purpose"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -434,7 +452,7 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
 ]
 
@@ -447,11 +465,13 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-education",
- "conduit-form",
  "conduit-human",
  "conduit-midi",
  "conduit-net",
+ "conduit-plot",
  "conduit-presentation",
+ "conduit-process",
+ "conduit-purpose",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",
@@ -464,7 +484,7 @@ name = "conduit-signal"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-time",
 ]
@@ -475,8 +495,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-bluetooth",
  "conduit-core",
- "conduit-form",
  "conduit-planner",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-std-offers",
@@ -493,10 +513,10 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-data",
- "conduit-form",
  "conduit-human",
  "conduit-midi",
  "conduit-net",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-robotics",
  "conduit-semantic-catalog",
@@ -511,7 +531,7 @@ name = "conduit-text"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "serde",
  "serde_json",
 ]
@@ -521,7 +541,7 @@ name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "serde",
 ]
 
@@ -530,7 +550,7 @@ name = "conduit-web"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "serde",
 ]
 
@@ -539,7 +559,7 @@ name = "conduit-wire"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -1110,7 +1130,7 @@ dependencies = [
  "cfg-if",
  "document-features",
  "esp-config",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "esp-println",
  "heapless 0.9.3",
  "riscv",
@@ -1128,7 +1148,7 @@ dependencies = [
  "embedded-storage",
  "esp-config",
  "esp-hal-procmacros",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "esp-rom-sys",
  "jiff",
  "strum",
@@ -1141,7 +1161,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d9b92fd9cfb0b4f8f1b6219b9763269a335571e307b014903b8201619374b80"
 dependencies = [
  "document-features",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "serde",
  "serde_yaml",
  "somni-expr",
@@ -1174,13 +1194,13 @@ dependencies = [
  "enumset",
  "esp-config",
  "esp-hal-procmacros",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "esp-riscv-rt",
  "esp-rom-sys",
  "esp-sync",
  "esp32",
  "esp32c2",
- "esp32c3 0.32.2",
+ "esp32c3",
  "esp32c6",
  "esp32h2",
  "esp32s2",
@@ -1222,12 +1242,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42c2ee95b945a4780796e4359e72c033aed3b45073880e8029458f538532db8a"
 
 [[package]]
-name = "esp-metadata-generated"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "911aadae41ec99104efa865bd0b6e486b4b735999f9b571963748a46d16495ab"
-
-[[package]]
 name = "esp-phy"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1238,10 +1252,10 @@ dependencies = [
  "embassy-sync 0.8.0",
  "esp-config",
  "esp-hal",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "esp-sync",
  "esp-wifi-sys-esp32c3",
- "esp32c3 0.32.2",
+ "esp32c3",
  "log",
 ]
 
@@ -1252,7 +1266,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42dee1e9ac7c3539bf6464db1707b0edd7557168f98278cf3c84fe70e63c6ce6"
 dependencies = [
  "document-features",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "esp-sync",
  "log",
  "portable-atomic",
@@ -1278,7 +1292,7 @@ dependencies = [
  "esp-config",
  "esp-hal",
  "esp-hal-procmacros",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "esp-phy",
  "esp-radio-rtos-driver",
  "esp-sync",
@@ -1289,7 +1303,7 @@ dependencies = [
  "esp-wifi-sys-esp32h2",
  "esp-wifi-sys-esp32s2",
  "esp-wifi-sys-esp32s3",
- "esp32c3 0.32.2",
+ "esp32c3",
  "heapless 0.9.3",
  "instability",
  "log",
@@ -1323,13 +1337,14 @@ dependencies = [
 
 [[package]]
 name = "esp-rom-sys"
-version = "0.1.5"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e933ff78374b763b65998b64ad671b4890ed4ba13a80deff9f53afe95ede289d"
+checksum = "eae852ccb08971155023d1371c96d5490cbc26860f06aee2d629ef73f1a890c3"
 dependencies = [
+ "cfg-if",
  "document-features",
- "esp-metadata-generated 0.5.3",
- "esp32c3 0.33.0",
+ "esp-metadata-generated",
+ "esp32c3",
 ]
 
 [[package]]
@@ -1348,7 +1363,7 @@ dependencies = [
  "esp-config",
  "esp-hal",
  "esp-hal-procmacros",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "esp-radio-rtos-driver",
  "esp-rom-sys",
  "esp-sync",
@@ -1369,7 +1384,7 @@ dependencies = [
  "embassy-sync 0.6.2",
  "embassy-sync 0.7.2",
  "embassy-sync 0.8.0",
- "esp-metadata-generated 0.4.0",
+ "esp-metadata-generated",
  "riscv",
  "xtensa-lx",
 ]
@@ -1460,15 +1475,6 @@ name = "esp32c3"
 version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21e89ed62cf6c043a6d29c520b02a13b359ec8a75d67b65d4330ed717d15fe97"
-dependencies = [
- "vcell",
-]
-
-[[package]]
-name = "esp32c3"
-version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb892f670ff857033c1624f99ecba1a3f3cafa05c45d734bc129388276715cf"
 dependencies = [
  "vcell",
 ]

@@ -9,11 +9,11 @@ pub struct DemoArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum DemoCommand {
-    /// Birth a body and arrive in its listening Forms through the browser Host.
+    /// Birth a body and arrive in its listening Plots through the browser Host.
     Workspace(crate::commands::workspace::WorkspaceArgs),
-    /// Run the native Signal Form through the production kernel.
+    /// Run the native Signal Plot through the production kernel.
     Std,
-    /// Run the three-sink Form entirely on the native Host.
+    /// Run the three-sink Plot entirely on the native Host.
     Triple,
     /// Build and launch the native Patchbay from this checkout.
     Patchbay(PatchbayDemoArgs),
@@ -21,7 +21,7 @@ pub enum DemoCommand {
     BodyMembership,
     /// Open the authored physical-environment Patchbay demonstration.
     Environment,
-    /// Rehearse a canonical Form against the authored environment before Wake.
+    /// Rehearse a canonical Plot against the authored environment before Wake.
     Prewake,
     /// Open the golden native Text Lab in effect-free PREWAKE, ready for the ordinary lifecycle.
     TextLab,
@@ -29,7 +29,7 @@ pub enum DemoCommand {
     Toggle,
     /// Run the attached C3-button/Pico synchronized physical light switch.
     LightSwitch(LightSwitchDemoArgs),
-    /// Run the canonical button Form with scripted input and an acquired Pico LED.
+    /// Run the canonical button Plot with scripted input and an acquired Pico LED.
     ButtonIndicator(crate::commands::button_indicator::ButtonIndicatorArgs),
     /// Run the Conduit-driven project homepage interactively.
     Site,

@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_form::{KindSignature, StartupCatalog, StartupParameterSignature};
+use conduit_plot::{KindSignature, StartupCatalog, StartupParameterSignature};
 
 pub fn signal_startup_catalog() -> StartupCatalog {
     let mut catalog = primary_signal_startup_catalog();

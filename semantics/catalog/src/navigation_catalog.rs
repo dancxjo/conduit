@@ -1,4 +1,4 @@
-//! Form catalog for the finite portable navigation waist.
+//! Plot catalog for the finite portable navigation waist.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{
     navigation_control_type, navigation_goal_type, navigation_pose_type,
@@ -102,8 +102,8 @@ pub fn navigation_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn install_navigation_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in navigation_registered_types() {
         startup

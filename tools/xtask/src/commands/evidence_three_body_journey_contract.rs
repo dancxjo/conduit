@@ -52,7 +52,7 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
         JourneyActionKind::UsefulWork => (
             "journey.useful-work", "The Body exercised already admitted semantic work.",
             "An exact Plan and Play performed useful work; embodiment-specific inspection or revision may remain in detailed receipts.",
-            &["Body", "Form", "Plan", "Play"][..], &["standing-form-used"][..],
+            &["Body", "Plot", "Plan", "Play"][..], &["standing-plot-used"][..],
         ),
         JourneyActionKind::MaskInspectInitialShow => mask_action(
             "mask.inspect-initial-show",
@@ -61,7 +61,7 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
         ),
         JourneyActionKind::MaskWearAlternate => mask_action(
             "mask.wear-alternate",
-            "The Body made a second ordinary Mask Form eligible in its revisioned wardrobe.",
+            "The Body made a second ordinary Mask Plot eligible in its revisioned wardrobe.",
             "Eligibility changed without mutating the immutable body-wide Plan.",
         ),
         JourneyActionKind::MaskPreferAlternate => mask_action(

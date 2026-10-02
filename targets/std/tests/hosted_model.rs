@@ -110,33 +110,44 @@ fn std_host_runs_an_exact_selected_checkpoint_and_records_it() {
 }
 
 fn signature() -> ModelSignature {
-    let value = || {
-        ModelValueConstraint::Tensor(ModelTensorConstraint {
-            elements: vec![TensorElement::F32],
-            axes: vec![ModelAxisConstraint {
-                role: TensorAxisRole::Feature,
-                dimension: ModelDimensionConstraint::fixed(1).unwrap(),
-            }],
-            maximum_bytes: 4,
-        })
+    use conduit_plot::rust_binding::BoundedSequence;
+    let port = |identity: &str| {
+        ModelPortConstraint::new(
+            ModelPortIdentity::new(identity.into()).unwrap(),
+            ModelPortPresence::Required,
+            ModelSemanticKind::new("data/tensor@1".into()).unwrap(),
+            ModelValueConstraint::tensor(
+                ModelTensorConstraint::new(
+                    ModelTensorAxes::new(
+                        BoundedSequence::try_from_iter([ModelAxisConstraint::new(
+                            ModelDimensionConstraint::fixed(1).unwrap(),
+                            TensorAxisRole::Feature,
+                        )
+                        .unwrap()])
+                        .unwrap(),
+                    )
+                    .unwrap(),
+                    ModelTensorElements::new(
+                        BoundedSequence::try_from_iter([TensorElement::F32]).unwrap(),
+                    )
+                    .unwrap(),
+                    4,
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
     };
-    ModelSignature {
-        identity: "scientific/scalar-transform@1".into(),
-        compatibility_version: 1,
-        operations: vec![ModelOperation::Infer],
-        inputs: vec![ModelPortConstraint {
-            identity: "x".into(),
-            semantic_kind: "data/tensor@1".into(),
-            presence: ModelPortPresence::Required,
-            value: value(),
-        }],
-        outputs: vec![ModelPortConstraint {
-            identity: "y".into(),
-            semantic_kind: "data/tensor@1".into(),
-            presence: ModelPortPresence::Required,
-            value: value(),
-        }],
-    }
+    ModelSignature::new(
+        1,
+        "scientific/scalar-transform@1".into(),
+        ModelPorts::new(BoundedSequence::try_from_iter([port("x")]).unwrap()).unwrap(),
+        ModelOperations::new(BoundedSequence::try_from_iter([ModelOperation::Infer]).unwrap())
+            .unwrap(),
+        ModelPorts::new(BoundedSequence::try_from_iter([port("y")]).unwrap()).unwrap(),
+    )
+    .unwrap()
 }
 
 fn resource(identity: [u8; 32]) -> BoundedResourceRef {

@@ -1,10 +1,10 @@
-use super::{form, host};
+use super::{host, plot};
 use crate::{
     default_placements, plan_with_options, PlacementChoices, PlannerError, PlanningOptions,
 };
 use conduit_core::{
     seal_plan_with_realization_backs_and_completion, verify_plan, BaseImplementationId,
-    FormIdentity, HostAdvertisement, HostId, ProtectedResourceAccess,
+    HostAdvertisement, HostId, PlotIdentity, ProtectedResourceAccess,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceHandleId,
 };
 use std::collections::BTreeMap;
@@ -25,14 +25,14 @@ fn protected_grant(handle: &str) -> ProtectedResourceGrant {
 }
 
 fn plan_with_protected_test_grants(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     grants: &[ProtectedResourceGrant],
 ) -> Result<conduit_core::Plan, PlannerError> {
     let base_overrides = BTreeMap::new();
     plan_with_options(
-        form,
+        plot,
         hosts,
         placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -50,28 +50,28 @@ fn plan_with_protected_test_grants(
 
 #[test]
 fn choices_are_exact_boot_scoped_plan_bindings() {
-    let form = form();
+    let plot = plot();
     let mut target = host();
     target.capabilities[0].resource_requirements[0].protected_role =
         Some(ResourceBindingRoleId::from("source"));
     let hosts = vec![target];
-    let placements = default_placements(&form, &hosts).expect("placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("placements resolve");
 
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &hosts, &placements, &[]),
+        plan_with_protected_test_grants(&plot, &hosts, &placements, &[]),
         Err(PlannerError::ProtectedResourceGrantMissing(_))
     ));
 
     let mut stale = protected_grant("handle/source");
     stale.boot_id = conduit_core::BootId::from("stale-boot");
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &hosts, &placements, &[stale]),
+        plan_with_protected_test_grants(&plot, &hosts, &placements, &[stale]),
         Err(PlannerError::ProtectedResourceGrantMissing(_))
     ));
 
     let grant = protected_grant("handle/source");
     let plan =
-        plan_with_protected_test_grants(&form, &hosts, &placements, core::slice::from_ref(&grant))
+        plan_with_protected_test_grants(&plot, &hosts, &placements, core::slice::from_ref(&grant))
             .expect("exact protected grant plans");
     assert!(verify_plan(&plan));
     let binding = plan.fragments[0].placements[0].resources[0]
@@ -85,7 +85,7 @@ fn choices_are_exact_boot_scoped_plan_bindings() {
 
     let different_handle = protected_grant("handle/other-source");
     let changed = plan_with_protected_test_grants(
-        &form,
+        &plot,
         &hosts,
         &placements,
         core::slice::from_ref(&different_handle),
@@ -102,10 +102,10 @@ fn choices_are_exact_boot_scoped_plan_bindings() {
         ));
     assert!(!verify_plan(&changed_contract));
     let resealed_contract = seal_plan_with_realization_backs_and_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: plan.source_document_id.clone(),
-            checked_form_id: plan.checked_form_id.clone(),
-            expanded_form_id: plan.expanded_form_id.clone(),
+            checked_plot_id: plan.checked_plot_id.clone(),
+            expanded_plot_id: plan.expanded_plot_id.clone(),
         },
         plan.completion_policy,
         plan.realization_backs.clone(),
@@ -125,17 +125,17 @@ fn choices_are_exact_boot_scoped_plan_bindings() {
 
 #[test]
 fn grants_reject_incoherent_policy_and_handle_reuse() {
-    let form = form();
+    let plot = plot();
     let mut target = host();
     target.capabilities[0].resource_requirements[0].protected_role =
         Some(ResourceBindingRoleId::from("source"));
     let hosts = vec![target];
-    let placements = default_placements(&form, &hosts).expect("placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("placements resolve");
 
     let mut incoherent = protected_grant("handle/source");
     incoherent.commit_policy = ProtectedResourceCommitPolicy::ReplaceExisting;
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &hosts, &placements, &[incoherent]),
+        plan_with_protected_test_grants(&plot, &hosts, &placements, &[incoherent]),
         Err(PlannerError::InvalidProtectedResourceGrant(_))
     ));
 
@@ -143,7 +143,7 @@ fn grants_reject_incoherent_policy_and_handle_reuse() {
     let mut second = first.clone();
     second.role_id = ResourceBindingRoleId::from("destination");
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &hosts, &placements, &[first, second]),
+        plan_with_protected_test_grants(&plot, &hosts, &placements, &[first, second]),
         Err(PlannerError::InvalidProtectedResourceGrant(_))
     ));
 }

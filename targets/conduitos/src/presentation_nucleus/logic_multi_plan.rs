@@ -1,4 +1,4 @@
-//! Exact ordinary form and Plan preparation for bounded multi-input logic.
+//! Exact ordinary plot and Plan preparation for bounded multi-input logic.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
@@ -7,8 +7,8 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar,
     kind_id, port_id,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_plot::{ProfileCatalog, StartupCatalog, parse};
 
 use super::logic_multi_play::LogicMultiError;
 
@@ -54,7 +54,7 @@ pub fn prepare_logic_multi(
     for (kind, value) in sources {
         let offer = source_offer(kind, value);
         catalog
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
                 inputs: Vec::new(),
@@ -64,7 +64,7 @@ pub fn prepare_logic_multi(
             .map_err(|_| LogicMultiError::Catalog)?;
     }
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(SINK_KIND),
             kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
@@ -81,14 +81,14 @@ pub fn prepare_logic_multi(
         conduit_semantic_catalog::ScalarComparison::Greater => "gt",
     };
     let source = format!(
-        "form logic_multi {{\n left: {LEFT_KIND}\n right: {RIGHT_KIND}\n compare: logic/compare(operator = \"{operator}\")\n when_false: {FALSE_KIND}\n when_true: {TRUE_KIND}\n select: logic/select\n sink: {SINK_KIND}\n left.value >> compare.left\n right.value >> compare.right\n compare.out >> select.selector\n when_false.value >> select.when-false\n when_true.value >> select.when-true\n select.out >> sink.value\n}}\n"
+        "plot logic_multi {{\n left: {LEFT_KIND}\n right: {RIGHT_KIND}\n compare: logic/compare(operator = \"{operator}\")\n when_false: {FALSE_KIND}\n when_true: {TRUE_KIND}\n select: logic/select\n sink: {SINK_KIND}\n left.value >> compare.left\n right.value >> compare.right\n compare.out >> select.selector\n when_false.value >> select.when-false\n when_true.value >> select.when-true\n select.out >> sink.value\n}}\n"
     );
-    let form = parse(&source, &catalog).map_err(|_| LogicMultiError::Form)?;
+    let plot = parse(&source, &catalog).map_err(|_| LogicMultiError::Plot)?;
     let advertisement = advertisement(host, boot, sources);
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts).map_err(|_| LogicMultiError::Placement)?;
+    let placements = default_placements(&plot, &hosts).map_err(|_| LogicMultiError::Placement)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

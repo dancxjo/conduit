@@ -72,18 +72,22 @@ pub(crate) fn run(
 
 fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
-        Command::new("cargo").args([
-            "build",
-            "--locked",
-            "--release",
-            "-p",
-            "conduit-browser-runtime",
-            "--no-default-features",
-            "--features",
-            "form-runner,creche-surface",
-            "--target",
-            "wasm32-unknown-unknown",
-        ]),
+        Command::new("cargo")
+            .args([
+                "build",
+                "--locked",
+                "--release",
+                "-p",
+                "conduit-browser-runtime",
+                "--no-default-features",
+                "--features",
+                "plot-runner,creche-surface",
+                "--target",
+                "wasm32-unknown-unknown",
+            ])
+            // Keep the retained browser product compact across its dependency graph.
+            .env("CARGO_PROFILE_RELEASE_OPT_LEVEL", "z")
+            .env("CARGO_PROFILE_RELEASE_LTO", "thin"),
         "compile browser Host release",
     )?;
     fs::create_dir_all(output)?;

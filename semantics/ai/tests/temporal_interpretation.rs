@@ -10,6 +10,7 @@ use conduit_core::{
     KindId, LocalDate, LocalDateTime, LocalTime, NamedTimeZone, PlanId, TemporalInstant,
     TemporalScale, ZonedResolution, UNIX_UTC_CLOCK_BASIS,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 use conduit_time::{
     AvailabilityBasis, AvailabilityInterval, AvailabilityState, MeetingProposalRefusal,
     ParticipantAvailability, TemporalBoundary, TemporalWindow,
@@ -22,7 +23,14 @@ fn model_proposal_resolves_bounded_next_week_candidates_before_fresh_availabilit
     let proposal = interpret_temporal_proposal(&request, &result, proposal_for(&result)).unwrap();
 
     let resolved = proposal.resolve(&request, &truth()).unwrap();
-    assert_eq!(resolved.participant_identities, ["person/alex"]);
+    assert_eq!(
+        resolved
+            .participant_identities
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["person/alex"]
+    );
     assert_eq!(resolved.candidates.len(), 4);
     assert!(resolved
         .candidates
@@ -33,7 +41,14 @@ fn model_proposal_resolves_bounded_next_week_candidates_before_fresh_availabilit
     let availability = fresh_availability(&request, &resolved);
     let meeting = resolved.propose(&availability).unwrap();
     assert_eq!(meeting.candidates.len(), 3);
-    assert_eq!(meeting.availability_basis_identities, ["free-busy/alex/42"]);
+    assert_eq!(
+        meeting
+            .availability_basis_identities
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["free-busy/alex/42"]
+    );
 }
 
 #[test]
@@ -255,27 +270,36 @@ fn fresh_availability(
 ) -> Vec<ParticipantAvailability> {
     vec![ParticipantAvailability {
         participant_identity: "person/alex".into(),
-        zone: zone(),
+        zone: zone().try_into().unwrap(),
         basis: AvailabilityBasis {
             identity: "free-busy/alex/42".into(),
-            observed_at: wall(request.reference_at.ticks - 10),
-            usable_until: wall(request.reference_at.ticks + 1_000_000),
+            observed_at: conduit_time::TemporalInstant::try_from(wall(
+                request.reference_at.ticks - 10,
+            ))
+            .unwrap(),
+            usable_until: conduit_time::TemporalInstant::try_from(wall(
+                request.reference_at.ticks + 1_000_000,
+            ))
+            .unwrap(),
         },
-        intervals: resolved
-            .candidates
-            .iter()
-            .map(|candidate| AvailabilityInterval {
-                participant_identity: "person/alex".into(),
-                interval: TemporalWindow::new(
-                    candidate.interval.start().clone(),
-                    TemporalBoundary::Inclusive,
-                    candidate.interval.end().clone(),
-                    TemporalBoundary::Inclusive,
-                )
-                .unwrap(),
-                state: AvailabilityState::Free,
-            })
-            .collect(),
+        intervals: BoundedSequence::try_from_iter(
+            resolved
+                .candidates
+                .iter()
+                .map(|candidate| AvailabilityInterval {
+                    participant_identity: "person/alex".into(),
+                    interval: TemporalWindow::new(
+                        candidate.interval.start().clone(),
+                        TemporalBoundary::Inclusive,
+                        candidate.interval.end().clone(),
+                        TemporalBoundary::Inclusive,
+                    )
+                    .unwrap(),
+                    state: AvailabilityState::Free,
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap(),
     }]
 }
 
@@ -288,7 +312,7 @@ fn model_result(implementation: &str) -> ModelDerivedResult {
         implementation_identity: implementation.into(),
         request_identity: "request/temporal/1".into(),
         run_identity: "run/temporal/1".into(),
-        confidence: Some(ConfidencePermille(800)),
+        confidence: Some(ConfidencePermille::new(800).unwrap()),
         disposition: ModelResultDisposition::Produced,
         determinism: LlmDeterminismProfile::ProviderNondeterministic,
         accounting: ModelWorkAccounting {

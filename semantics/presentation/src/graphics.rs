@@ -1,9 +1,9 @@
 //! Fixed-capacity graphical leaf obligations below semantic presentation.
 
 use crate::{
-    GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
-    GraphicsPaintRoleCode, GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole,
-    GraphicsTextRoleCode, LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT,
+    GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindForm, GraphicsPaintRole,
+    GraphicsPaintRoleForm, GraphicsShapeStyle, GraphicsShapeStyleForm, GraphicsTextRole,
+    GraphicsTextRoleForm, LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT,
 };
 mod path;
 pub use path::{GraphicsPath, MAX_GRAPHICS_PATH_POINTS};
@@ -248,13 +248,13 @@ impl GraphicsScene {
         output[1] = self.count;
         let mut offset = 2;
         for command in self.commands() {
-            output[offset] = GraphicsCommandKindCode::encode(command.kind)[0];
-            output[offset + 1] = GraphicsPaintRoleCode::encode(command.paint)[0];
-            output[offset + 2] = GraphicsShapeStyleCode::encode(command.style)[0];
+            output[offset] = GraphicsCommandKindForm::encode(command.kind)[0];
+            output[offset + 1] = GraphicsPaintRoleForm::encode(command.paint)[0];
+            output[offset + 2] = GraphicsShapeStyleForm::encode(command.style)[0];
             write_rect(&mut output[offset + 3..offset + 11], command.bounds);
             write_rect(&mut output[offset + 11..offset + 19], command.clip);
             output[offset + 19] = command.payload_len;
-            output[offset + 20] = GraphicsTextRoleCode::encode(command.text_role)[0];
+            output[offset + 20] = GraphicsTextRoleForm::encode(command.text_role)[0];
             let len = usize::from(command.payload_len);
             output[offset + 21..offset + 21 + len].copy_from_slice(&command.payload[..len]);
             offset += 21 + len;
@@ -290,7 +290,7 @@ impl GraphicsScene {
             let bounds = read_rect(&input[offset + 3..offset + 11]);
             let clip = read_rect(&input[offset + 11..offset + 19]);
             let len = usize::from(input[offset + 19]);
-            let text_role = GraphicsTextRoleCode::decode(&[input[offset + 20]])
+            let text_role = GraphicsTextRoleForm::decode(&[input[offset + 20]])
                 .map_err(|_| GraphicsError::MalformedEncoding)?;
             if kind != GraphicsCommandKind::Text && text_role != GraphicsTextRole::Body {
                 return Err(GraphicsError::NonCanonicalEncoding);
@@ -366,15 +366,15 @@ fn read_rect(input: &[u8]) -> LayoutRect {
 }
 
 fn decode_kind(value: u8) -> Result<GraphicsCommandKind, GraphicsError> {
-    GraphicsCommandKindCode::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
+    GraphicsCommandKindForm::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
 }
 
 fn decode_paint(value: u8) -> Result<GraphicsPaintRole, GraphicsError> {
-    GraphicsPaintRoleCode::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
+    GraphicsPaintRoleForm::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
 }
 
 fn decode_style(value: u8) -> Result<GraphicsShapeStyle, GraphicsError> {
-    GraphicsShapeStyleCode::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
+    GraphicsShapeStyleForm::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
 }
 
 #[cfg(test)]

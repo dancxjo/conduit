@@ -1,4 +1,4 @@
-import { BrowserHostEffectRefusal } from "./browser-form-effects.mjs";
+import { BrowserHostEffectRefusal } from "./browser-plot-effects.mjs";
 
 export const AUDIO_CUE_RESOURCE = "conduit.resource/browser-audio-cue-slot@1";
 export const AUDIO_CUE_POOL = "browser/audio-cue";

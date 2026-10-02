@@ -69,7 +69,7 @@ type LeniaRegionChunkKind =
     work
     | result
 
-code alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
+form alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
 
 type ReactionDiffusionBoundaryEdge =
     north
@@ -77,7 +77,7 @@ type ReactionDiffusionBoundaryEdge =
     | west
     | east
 
-code alife/reaction-diffusion-boundary-edge = ReactionDiffusionBoundaryEdge as u8
+form alife/reaction-diffusion-boundary-edge = ReactionDiffusionBoundaryEdge as u8
 
 type ReactionDiffusionRegionId = U16
 

@@ -1,11 +1,20 @@
-//! Bounded typed visual observations over an exact image resource generation.
+//! Validated construction views over an exact image resource generation.
+//!
+//! Portable visual meaning is owned by the native Types in
+//! `semantics/presentation/types.conduit`. This module keeps the Human-facing
+//! assembly view over core execution identities; the Catalog bridge converts
+//! it losslessly into that native family. It is construction machinery (C),
+//! not a second portable schema.
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BaseInstanceId, KindId, SignId, TemporalInstant,
 };
 
-use crate::{ImageObservationReference, ImageObservationRefusal, ImageRegion, VisualEvidenceClass};
+use crate::{
+    ImageObservationReference, ImageObservationRefusal, ImageRegion, VisualEvidenceClass,
+    VisualObservationRefusal,
+};
 
 pub const MAXIMUM_VISUAL_LABEL_BYTES: usize = 128;
 pub const MAXIMUM_VISIBLE_TEXT_BYTES: usize = 512;
@@ -19,7 +28,7 @@ impl ImageRegion {
         y: u16,
         width: u16,
         height: u16,
-    ) -> Result<Self, conduit_form::rust_binding::NativeBindingRefusal> {
+    ) -> Result<Self, conduit_plot::rust_binding::NativeBindingRefusal> {
         Self::new(height, width, x, y)
     }
 
@@ -173,24 +182,6 @@ impl TrackObservation {
         }
         self.provenance.validate()
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VisualObservationRefusal {
-    InvalidImage,
-    WrongImageProfile,
-    InvalidImageDimensions,
-    ImageTooLarge,
-    InvalidRegion,
-    EmptyText,
-    TextBound,
-    ConfidenceBound,
-    EmptyIdentity,
-    IdentityBound,
-    InvalidObservationTime,
-    WrongEvidenceClass,
-    ObservationRefBound,
-    DuplicateObservationRef,
 }
 
 fn validate_image(

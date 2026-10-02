@@ -3,12 +3,11 @@ use super::{
     StreamingChunkDisposition,
 };
 use conduit_ai::{
-    ExtractedField, FiniteClassification, FiniteEmbedding, InterpretationDisposition,
-    InterpretationProvenance, InterpretationRequest, LlmDeterminismProfile, LlmWorkBounds,
-    LocalModelCachePolicy, LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState,
-    LocalModelLimits, LocalModelOffer, ModelDerivedResult, ModelInterpretation,
-    ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting, ProfileReportedConfidence,
-    ValidatedExtraction,
+    FiniteClassification, FiniteEmbedding, InterpretationDisposition, InterpretationProvenance,
+    InterpretationRequest, LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy,
+    LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits,
+    LocalModelOffer, ModelDerivedResult, ModelInterpretation, ModelResultDisposition,
+    ModelResultProvenance, ModelWorkAccounting, ProfileReportedConfidence, ValidatedExtraction,
 };
 use conduit_core::PlannedGear;
 use conduit_presentation::GenerativePresenterInput;
@@ -209,13 +208,14 @@ impl OllamaDiscovery {
         let maximum_input_bytes = self
             .context_length
             .clamp(4_096, conduit_ai::MAXIMUM_LLM_INPUT_BYTES);
-        let work = LlmWorkBounds {
+        let work = LlmWorkBounds::new(
             maximum_input_bytes,
-            maximum_context_items: 1,
-            maximum_output_bytes: 4_096,
-            maximum_work_units: self.context_length.min(conduit_ai::MAXIMUM_LLM_WORK_UNITS),
-            maximum_history_items: 0,
-        };
+            1,
+            4_096,
+            self.context_length.min(conduit_ai::MAXIMUM_LLM_WORK_UNITS),
+            0,
+        )
+        .expect("discovered local-model bounds are clamped to native limits");
         let offer = LocalModelOffer {
             identity: LocalModelIdentity {
                 runtime_name: "ollama".into(),
@@ -239,7 +239,8 @@ impl OllamaDiscovery {
                 },
                 maximum_in_flight: 1,
                 maximum_queue_items: 1,
-                maximum_queue_bytes: (work.maximum_input_bytes + work.maximum_output_bytes) as u32,
+                maximum_queue_bytes: (work.maximum_input_bytes() + work.maximum_output_bytes())
+                    as u32,
                 cancellation_supported: false,
                 cache_policy: LocalModelCachePolicy::OneLoadedModelUntilShutdown,
             },
@@ -391,7 +392,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             return LocalModelAdapterTerminal::Failed;
         };
         let maximum_output_bytes = configuration_count(placement, "maximum-output-bytes")
-            .unwrap_or(self.offer.limits.work.maximum_output_bytes);
+            .unwrap_or(self.offer.limits.work.maximum_output_bytes());
         // The portable result slot carries payload plus exact provenance/accounting.
         // Reserve bounded envelope headroom instead of asking the provider to fill it.
         let token_ceiling = if matches!(
@@ -432,13 +433,13 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     Ok(wire) => wire,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                let result = FiniteClassification {
-                    label: wire.label,
-                    allowed_labels: vec!["conduit".into(), "other".into()],
+                let result = match FiniteClassification::from_strings(
+                    wire.label,
+                    vec!["conduit".into(), "other".into()],
+                ) {
+                    Ok(result) => result,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                if result.validate().is_err() {
-                    return LocalModelAdapterTerminal::InvalidStructuredResult;
-                }
                 let payload = match serde_json::to_vec(&result) {
                     Ok(payload) => payload,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
@@ -463,16 +464,13 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     Ok(wire) => wire,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                let result = ValidatedExtraction {
-                    schema_identity: "conduit-proof/subject@1".into(),
-                    fields: vec![ExtractedField {
-                        key: "subject".into(),
-                        value: wire.subject,
-                    }],
+                let result = match ValidatedExtraction::from_strings(
+                    "conduit-proof/subject@1".into(),
+                    vec![("subject".into(), wire.subject)],
+                ) {
+                    Ok(result) => result,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                if result.validate().is_err() {
-                    return LocalModelAdapterTerminal::InvalidStructuredResult;
-                }
                 let payload = match serde_json::to_vec(&result) {
                     Ok(payload) => payload,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
@@ -493,13 +491,15 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                 let Some(values) = embedded.embeddings.into_iter().next() else {
                     return LocalModelAdapterTerminal::InvalidStructuredResult;
                 };
-                let result = FiniteEmbedding {
-                    profile_identity: format!(
+                let result = match FiniteEmbedding::from_values(
+                    format!(
                         "{}/{}",
                         self.offer.identity.model_name, self.offer.identity.model_content_identity
                     ),
-                    dimensions: values.len() as u32,
                     values,
+                ) {
+                    Ok(result) => result,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
                 if result.validate().is_err() {
                     return LocalModelAdapterTerminal::InvalidStructuredResult;
@@ -549,14 +549,19 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     "contradictory" => InterpretationDisposition::ContradictoryEvidence,
                     _ => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
+                let confidence = match wire.confidence_permille {
+                    Some(score_permille) => match ProfileReportedConfidence::new(score_permille) {
+                        Ok(confidence) => Some(confidence),
+                        Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                    },
+                    None => None,
+                };
                 let result = ModelInterpretation {
                     provenance: InterpretationProvenance::ModelDerived,
                     hypothesis: wire.hypothesis,
                     referenced_evidence,
                     unresolved_evidence,
-                    confidence: wire
-                        .confidence_permille
-                        .map(|score_permille| ProfileReportedConfidence { score_permille }),
+                    confidence,
                     implications: wire.implications,
                     disposition,
                 };
@@ -692,8 +697,8 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             );
         };
         let maximum_output_bytes = configuration_count(placement, "maximum-output-bytes")
-            .unwrap_or(self.offer.limits.work.maximum_output_bytes)
-            .min(self.offer.limits.work.maximum_output_bytes);
+            .unwrap_or(self.offer.limits.work.maximum_output_bytes())
+            .min(self.offer.limits.work.maximum_output_bytes());
         let maximum_tokens = maximum_output_bytes
             .checked_div(8)
             .unwrap_or(1)
@@ -726,8 +731,8 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                 ));
             };
             let maximum_output_bytes = configuration_count(placement, "maximum-output-bytes")
-                .unwrap_or(self.offer.limits.work.maximum_output_bytes)
-                .min(self.offer.limits.work.maximum_output_bytes);
+                .unwrap_or(self.offer.limits.work.maximum_output_bytes())
+                .min(self.offer.limits.work.maximum_output_bytes());
             let maximum_tokens = maximum_output_bytes
                 .checked_div(8)
                 .unwrap_or(1)

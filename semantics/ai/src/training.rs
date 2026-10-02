@@ -3,11 +3,13 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{PlannedStateBoundary, StateContinuation};
 use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 use crate::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, MissingModalityPolicy, ModelArtifact,
-    MutableModelState, ObjectiveParticipation, RandomnessProfile, TrainStepFailure,
-    TrainingRefusal,
+    MutableModelState, ObjectiveParticipation, TrainStepFailure, TrainingBatch,
+    TrainingExampleIdentityPage, TrainingExampleIdentityPages, TrainingMetric, TrainingModalities,
+    TrainingModality, TrainingObjective, TrainingObjectives, TrainingRefusal, TrainingSession,
 };
 
 #[path = "training_request.rs"]
@@ -32,71 +34,12 @@ pub const MAXIMUM_BATCH_MODALITIES: usize = 32;
 pub const MAXIMUM_METRICS: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrainingObjective {
-    pub role: String,
-    /// Fixed-point weight in millionths. Observe-only metrics may use zero.
-    pub weight_millionths: u64,
-    pub configuration_identity: String,
-    pub output_identity: String,
-    pub participation: ObjectiveParticipation,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrainingBatch {
-    pub identity: [u8; 32],
-    pub dataset_identity: [u8; 32],
-    pub split_identity: String,
-    pub example_identities: Vec<[u8; 32]>,
-    pub present_modalities: Vec<String>,
-    pub encoded_bytes: u64,
-    pub order: BatchOrder,
-    pub stochastic_seed: Option<u64>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct TrainingResourceEnvelope {
-    pub model_bytes: u64,
-    pub working_memory_bytes: u64,
-    pub compute_lanes: u32,
-    pub maximum_batch_items: u32,
-    pub maximum_batch_bytes: u64,
-    pub maximum_steps: u64,
-    pub maximum_work_units: u64,
-    pub maximum_checkpoint_bytes: u64,
-    pub maximum_in_flight_steps: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrainingSession {
-    pub identity: [u8; 32],
-    pub base_artifact_identity: [u8; 32],
-    pub base_checkpoint_identity: Option<[u8; 32]>,
-    pub dataset_manifest_identity: [u8; 32],
-    pub split_membership_identity: [u8; 32],
-    pub objective_profile: String,
-    pub objectives: Vec<TrainingObjective>,
-    pub randomness: RandomnessProfile,
-    pub precision_profile: String,
-    pub model_modalities: Vec<String>,
-    pub missing_modality_policy: MissingModalityPolicy,
-    pub resources: TrainingResourceEnvelope,
-    pub checkpoint_policy: CheckpointPolicy,
-    pub evaluation_policy: EvaluationPolicy,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingState {
     pub session_identity: [u8; 32],
     pub model: MutableModelState,
     pub initial_generation: u64,
     pub completed_steps: u64,
     pub consumed_work_units: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrainingMetric {
-    pub output_identity: String,
-    pub value_millionths: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,14 +52,6 @@ pub struct HostTrainingRealization {
     pub format_profile: String,
     pub precision_profile: String,
     pub deterministic_profile: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrainStepRequest {
-    pub step: u64,
-    pub expected_generation: u64,
-    pub batch: TrainingBatch,
-    pub admitted_work_units: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -134,6 +69,91 @@ pub enum HostStepTerminal {
     NoCommit(TrainStepFailure),
 }
 
+impl TrainingExampleIdentityPages {
+    pub fn from_values(values: Vec<[u8; 32]>) -> Result<Self, TrainingRefusal> {
+        if values.is_empty() || values.len() > MAXIMUM_BATCH_EXAMPLES {
+            return Err(TrainingRefusal::BatchBoundExceeded);
+        }
+        let pages = values
+            .chunks(1_024)
+            .map(|values| {
+                let bytes = values
+                    .iter()
+                    .flat_map(|value| value.iter().copied())
+                    .collect::<Vec<_>>();
+                TrainingExampleIdentityPage::new(
+                    BoundedBytes::new(&bytes).ok_or(TrainingRefusal::BatchBoundExceeded)?,
+                )
+                .map_err(|_| TrainingRefusal::BatchBoundExceeded)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Self::new(
+            BoundedSequence::try_from_iter(pages)
+                .map_err(|_| TrainingRefusal::BatchBoundExceeded)?,
+        )
+        .map_err(|_| TrainingRefusal::BatchBoundExceeded)
+    }
+}
+
+impl TrainingModalities {
+    pub fn from_strings(values: Vec<String>) -> Result<Self, TrainingRefusal> {
+        let values = values
+            .into_iter()
+            .map(|value| TrainingModality::new(value).map_err(|_| TrainingRefusal::InvalidIdentity))
+            .collect::<Result<Vec<_>, _>>()?;
+        Self::new(
+            BoundedSequence::try_from_iter(values)
+                .map_err(|_| TrainingRefusal::BatchBoundExceeded)?,
+        )
+        .map_err(|_| TrainingRefusal::BatchBoundExceeded)
+    }
+}
+
+impl TrainingObjectives {
+    pub fn from_values(values: Vec<TrainingObjective>) -> Result<Self, TrainingRefusal> {
+        Self::new(
+            BoundedSequence::try_from_iter(values)
+                .map_err(|_| TrainingRefusal::TooManyObjectives)?,
+        )
+        .map_err(|_| TrainingRefusal::InvalidObjective)
+    }
+}
+
+impl TrainingBatch {
+    pub fn example_identities_iter(&self) -> impl Iterator<Item = &[u8; 32]> {
+        self.example_identities
+            .get()
+            .iter()
+            .flat_map(|page| page.get().as_slice().as_chunks::<32>().0.iter())
+    }
+
+    pub fn present_modality_strings(&self) -> impl Iterator<Item = &str> {
+        self.present_modalities
+            .get()
+            .iter()
+            .map(|modality| modality.get().as_str())
+    }
+}
+
+impl TrainingSession {
+    pub fn objectives_slice(&self) -> &[TrainingObjective] {
+        self.objectives.get().as_slice()
+    }
+
+    pub fn model_modality_strings(&self) -> impl Iterator<Item = &str> {
+        self.model_modalities
+            .get()
+            .iter()
+            .map(|modality| modality.get().as_str())
+    }
+
+    pub fn base_checkpoint_digest(&self) -> Option<[u8; 32]> {
+        self.base_checkpoint_identity
+            .as_ref()
+            .map(|identity| *identity.get())
+    }
+}
+
 impl TrainingSession {
     pub fn validate(
         &self,
@@ -148,8 +168,8 @@ impl TrainingSession {
         text(&self.precision_profile)?;
         if self.base_artifact_identity != artifact.content_identity()
             || self.precision_profile != artifact.precision_profile
-            || self.base_checkpoint_identity == Some([0; 32])
-            || self.base_checkpoint_identity == Some(artifact.content_identity())
+            || self.base_checkpoint_digest() == Some([0; 32])
+            || self.base_checkpoint_digest() == Some(artifact.content_identity())
         {
             return Err(TrainingRefusal::InvalidArtifact);
         }
@@ -174,22 +194,21 @@ impl TrainingSession {
         {
             return Err(TrainingRefusal::InvalidSplit);
         }
-        validate_objectives(&self.objectives)?;
-        self.resources.validate()?;
-        if self.resources.model_bytes < artifact.content.extent.bytes
-            || self.model_modalities.is_empty()
-            || self.model_modalities.len() > MAXIMUM_BATCH_MODALITIES
+        validate_objectives(self.objectives_slice())?;
+        let model_modalities = self.model_modality_strings().collect::<Vec<_>>();
+        if self.resources.model_bytes() < artifact.content.extent.bytes
+            || model_modalities.is_empty()
+            || model_modalities.len() > MAXIMUM_BATCH_MODALITIES
         {
             return Err(TrainingRefusal::InvalidResourceEnvelope);
         }
-        for modality in &self.model_modalities {
+        for modality in &model_modalities {
             text(modality)?;
         }
-        if self
-            .model_modalities
+        if model_modalities
             .iter()
             .enumerate()
-            .any(|(index, value)| self.model_modalities[index + 1..].contains(value))
+            .any(|(index, value)| model_modalities[index + 1..].contains(value))
         {
             return Err(TrainingRefusal::InvalidSession);
         }
@@ -215,10 +234,9 @@ impl TrainingSession {
                 }
                 for modality in optional_modalities.iter() {
                     text(modality.get())?;
-                    if !self
-                        .model_modalities
+                    if !model_modalities
                         .iter()
-                        .any(|candidate| candidate == modality.get())
+                        .any(|candidate| *candidate == modality.get())
                     {
                         return Err(TrainingRefusal::InvalidSession);
                     }
@@ -250,7 +268,7 @@ impl TrainingSession {
             lifetime: conduit_core::StateLifetime::Play,
             retained: None,
             maximum_value_bytes: maximum_state_bytes,
-            continuation: StateContinuation::MaximumTransitions(self.resources.maximum_steps),
+            continuation: StateContinuation::MaximumTransitions(self.resources.maximum_steps()),
         })
     }
 
@@ -299,7 +317,7 @@ impl TrainingSession {
             .consumed_work_units
             .checked_add(candidate.consumed_work_units)
             .ok_or(TrainingRefusal::WorkBoundExceeded)?;
-        if consumed_work_units > self.resources.maximum_work_units {
+        if consumed_work_units > self.resources.maximum_work_units() {
             return Err(TrainingRefusal::WorkBoundExceeded);
         }
         let next = TrainingState {
@@ -345,8 +363,8 @@ impl TrainingSession {
         state.validate_for(self, artifact)?;
         realization.validate_for(self, artifact)?;
         batch.validate_for(self, split)?;
-        validate_metrics(&metrics, &self.objectives)?;
-        if consumed_work_units == 0 || consumed_work_units > self.resources.maximum_work_units {
+        validate_metrics(&metrics, self.objectives_slice())?;
+        if consumed_work_units == 0 || consumed_work_units > self.resources.maximum_work_units() {
             return Err(TrainingRefusal::WorkBoundExceeded);
         }
         let scheduled = match self.evaluation_policy {
@@ -354,7 +372,9 @@ impl TrainingSession {
             EvaluationPolicy::EverySteps(interval) => {
                 state.completed_steps.is_multiple_of(interval)
             }
-            EvaluationPolicy::AtCompletion => state.completed_steps == self.resources.maximum_steps,
+            EvaluationPolicy::AtCompletion => {
+                state.completed_steps == self.resources.maximum_steps()
+            }
         };
         if !scheduled {
             return Err(TrainingRefusal::EvaluationNotScheduled);
@@ -392,16 +412,18 @@ impl TrainingSession {
         if checkpoint.generation != state.model.generation {
             return Err(TrainingRefusal::StaleState);
         }
-        if checkpoint.content.extent.bytes > self.resources.maximum_checkpoint_bytes {
+        if checkpoint.content.extent.bytes > self.resources.maximum_checkpoint_bytes() {
             return Err(TrainingRefusal::CheckpointBoundExceeded);
         }
-        validate_metrics(&metric_summaries, &self.objectives)?;
+        validate_metrics(&metric_summaries, self.objectives_slice())?;
         let scheduled = match self.checkpoint_policy {
             CheckpointPolicy::None => false,
             CheckpointPolicy::EverySteps(interval) => {
                 state.completed_steps.is_multiple_of(interval)
             }
-            CheckpointPolicy::AtCompletion => state.completed_steps == self.resources.maximum_steps,
+            CheckpointPolicy::AtCompletion => {
+                state.completed_steps == self.resources.maximum_steps()
+            }
         };
         if !scheduled {
             return Err(TrainingRefusal::CheckpointNotScheduled);

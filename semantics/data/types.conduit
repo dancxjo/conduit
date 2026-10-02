@@ -4,7 +4,7 @@ type FullWindowPolicy =
     reject
     | drop_oldest
 
-code data/full-window-policy = FullWindowPolicy as u8
+form data/full-window-policy = FullWindowPolicy as u8
 
 type MeasurementPlotOverflowPolicy =
     reject
@@ -69,9 +69,50 @@ type MeasurementThresholdPolicy = {
     upper: Quantity
 }
 
+type MeasurementRange = {
+    minimum: Quantity
+    maximum: Quantity
+}
+
+type MeasurementSample = {
+    value: Quantity
+    observed-at: TemporalInstant
+    uncertainty: Quantity?
+}
+
+type MeasurementWindowProfile = {
+    capacity: U8 in 1..=64
+    range: MeasurementRange
+    clock-basis: Text <= 128B not in [""]
+    full-policy: FullWindowPolicy
+}
+
+type MeasurementHysteresisProfile = {
+    policy: MeasurementThresholdPolicy
+    initial-state: MeasurementThresholdState
+}
+
+type MeasurementSummary = {
+    sample-count: U64 in 1..=18446744073709551615
+    first-observed-at: TemporalInstant
+    last-observed-at: TemporalInstant
+    minimum: Quantity
+    maximum: Quantity
+    range: Quantity
+    mean: Quantity
+}
+
 type MeasurementThresholdTransition =
     rose_above
     | fell_below
+
+type MeasurementThresholdDecision = {
+    state: MeasurementThresholdState
+    transition: MeasurementThresholdTransition?
+    evaluated-value: Quantity
+    first-observed-at: TemporalInstant
+    last-observed-at: TemporalInstant
+}
 
 type TensorElement =
     i8
@@ -97,6 +138,35 @@ type TensorAxisRole =
     | other {
         identity: Text <= 64B not in [""]
     }
+
+type TensorAxis = {
+    role: TensorAxisRole
+    identity: Text <= 64B not in [""]?
+    unit: QuantityUnit?
+}
+
+type TensorBacking =
+    inline Bytes <= 65536B
+    | resource ResourceRef
+
+type TensorValue = {
+    element: TensorElement
+    dimensions: sequence U64 in 1..=8
+    axes: sequence TensorAxis in 1..=8
+    content-digest: collection U8 = 32
+    backing: TensorBacking
+}
+
+type TensorResourceIdentity = collection U8 = 32
+
+type TensorSummary = {
+    element: TensorElement
+    dimensions: sequence U64 in 1..=8
+    axes: sequence TensorAxis in 1..=8
+    elements: U64 in 1..=18446744073709551615
+    bytes: U64 in 1..=1125899906842624
+    resource-identity: TensorResourceIdentity?
+}
 
 type ClockRelationQuality =
     exact
@@ -138,6 +208,119 @@ type SignalContinuity =
     | clock-reset {
         prior-clock: Text <= 128B not in [""]
     }
+
+type SignalStart =
+    sample-index {
+        index: U64
+    }
+    | instant {
+        value: TemporalInstant
+    }
+
+type SignalWindow = {
+    source-signal: collection U8 = 32
+    source-offset: U64
+    sample-count: U64 in 1..=18446744073709551615
+    start: SignalStart
+}
+
+type SignalSummary = {
+    clock-identity: Text <= 128B not in [""]
+    start: SignalStart
+    sample-count: U64 in 1..=18446744073709551615
+    continuity: SignalContinuity
+    shape: sequence U64 in 1..=8
+    bytes: U64 in 1..=1125899906842624
+    content-digest: collection U8 = 32
+}
+
+type SignalCadence =
+    regular {
+        samples: U64 in 1..=18446744073709551615
+        per: Quantity
+    }
+    | irregular {
+        coordinates: TensorValue
+    }
+
+type SampledSignal = {
+    clock-identity: Text <= 128B not in [""]
+    start: SignalStart
+    cadence: SignalCadence
+    sample-count: U64 in 1..=18446744073709551615
+    continuity: SignalContinuity
+    samples: TensorValue
+}
+
+type SignalIdentity = collection U8 = 32
+
+type ConcatenatedSignal = {
+    clock-identity: Text <= 128B not in [""]
+    start: SignalStart
+    cadence: SignalCadence
+    sample-count: U64 in 1..=18446744073709551615
+    element: TensorElement
+    sample-shape: sequence U64 <= 7
+    axes: sequence TensorAxis in 1..=8
+    source-parts: sequence SignalIdentity in 1..=64
+}
+
+type ObservationValue =
+    tensor {
+        value: TensorValue
+    }
+    | sampled-signal {
+        value: SampledSignal
+    }
+
+type ScientificObservation = {
+    identity: collection U8 = 32
+    semantic-kind: Text <= 128B not in [""]
+    clock-identity: Text <= 128B not in [""]?
+    coordinate-frame: Text <= 128B not in [""]?
+    value: ObservationValue
+    provenance: ObservationProvenance
+}
+
+type MissingDataMask = {
+    observation-identity: collection U8 = 32
+    mask: TensorValue
+}
+
+type ObservationSet = {
+    identity: collection U8 = 32
+    session-identity: Text <= 128B not in [""]
+    subject-identity: Text <= 128B not in [""]?
+    observations: sequence ScientificObservation in 1..=64
+    missing-data: sequence MissingDataMask <= 64
+}
+
+type CoordinateAxisName = Text <= 128B not in [""]
+
+type CoordinateFrame = {
+    identity: Text <= 128B not in [""]
+    axes: sequence CoordinateAxisName in 1..=4
+    unit: QuantityUnit
+}
+
+type CalibrationTransform = {
+    identity: Text <= 128B not in [""]
+    source-frame: Text <= 128B not in [""]
+    target-frame: Text <= 128B not in [""]
+    linear: TensorValue
+    translation: TensorValue
+    calibration-sources: sequence ScientificObservationIdentity in 1..=16
+    method-profile: Text <= 128B not in [""]
+}
+
+type AlignedTrainingView = {
+    source-set-identity: collection U8 = 32
+    source-observation-identity: collection U8 = 32
+    clock-relation-identity: Text <= 128B not in [""]
+    calibration-identity: Text <= 128B not in [""]?
+    target-clock: Text <= 128B not in [""]
+    derived-observation: ScientificObservation
+}
 
 type RangePolicy =
     refuse
@@ -219,6 +402,55 @@ type ScientificObservationRefusal =
     | unknown_masked_observation
     | duplicate_mask
 
+type ScientificCorpusRefusal =
+    observation {
+        refusal: ScientificObservationRefusal
+    }
+    | invalid_manifest
+    | missing_manifest
+    | empty_corpus
+    | too_many_shards
+    | duplicate_shard
+    | invalid_split
+    | too_many_splits
+    | duplicate_split
+    | empty_membership
+    | invalid_membership_page
+    | too_many_members
+    | duplicate_member
+    | dataset_mismatch
+    | unknown_split
+    | split_leakage
+    | missing_resource
+
+type ScientificAlignmentRefusal =
+    observation {
+        refusal: ScientificObservationRefusal
+    }
+    | invalid_relation
+    | incompatible_clock_relation
+    | unknown_source_observation
+    | invalid_coordinate_frame
+    | invalid_calibration
+    | calibration_frame_mismatch
+    | calibration_shape_mismatch
+    | missing_calibration_source
+    | derived_clock_mismatch
+    | derived_provenance_mismatch
+
+type ScientificObservationIdentity = collection U8 = 32
+
+type ObservationProvenance =
+    measured {
+        source: ResourceRef
+        measurement-profile: Text <= 128B not in [""]
+    }
+    | derived {
+        source-observations: sequence ScientificObservationIdentity in 1..=16
+        transform-identity: Text <= 128B not in [""]
+        realization-profile: Text <= 128B not in [""]
+    }
+
 type DataReferenceRefusal =
     malformed
     | wrong_reference_kind
@@ -226,6 +458,17 @@ type DataReferenceRefusal =
     | wrong_access_class
     | expiring_generation
     | item_extent
+
+type DataGenerationRefusal =
+    invalid_bounds
+    | wrong_content_kind
+    | value_too_large
+    | generation_capacity_exhausted
+    | byte_capacity_exhausted
+    | reference_output_capacity
+    | reference DataReferenceRefusal
+    | generation_not_retained
+    | extent_mismatch
 
 type DataGenerationNamespaceRefusal =
     empty
@@ -243,6 +486,27 @@ type DataGenerationValue<T> = {
 }
 
 type DataGenerationTextValue = DataGenerationValue<Text <= 4096B>
+
+type DatasetDescriptor = {
+    identity: collection U8 = 32
+    schema-profile: Text <= 128B not in [""]
+    citation-identity: Text <= 128B not in [""]?
+    license-profile: Text <= 128B not in [""]?
+    example-count: U64 in 1..=18446744073709551615
+    manifest: ResourceRef
+    shards: sequence ResourceRef in 1..=64
+    split-identities: sequence Text in 1..=16
+}
+
+type DatasetExampleIdentity = collection U8 = 32
+
+type DatasetExamplePage = Bytes <= 1024B
+
+type DatasetSplitMembership = {
+    dataset-identity: collection U8 = 32
+    split-identity: Text <= 128B not in [""]
+    examples: sequence DatasetExamplePage in 1..=128
+}
 
 type TabularColumnType =
     boolean
@@ -301,8 +565,22 @@ type TabularQueryOutcomeFour =
     inline TabularQueryResultFour
     | materialized ResourceRef
 
-code data/save-text-terminal = DataSaveTextTerminal as u8
+type FileCopyOutcome =
+    cancelled Quantity
+    | cleanup_failed Quantity
+    | denied
+    | destination_exists
+    | oversized Quantity
+    | partial Quantity
+    | stale
+    | success Quantity
 
-code data/load-text-terminal = DataLoadTextTerminal as u8
+type FileCopyResult = {
+    outcome: FileCopyOutcome
+}
 
-code data/measurement-threshold-state = MeasurementThresholdState as u8
+form data/save-text-terminal = DataSaveTextTerminal as u8
+
+form data/load-text-terminal = DataLoadTextTerminal as u8
+
+form data/measurement-threshold-state = MeasurementThresholdState as u8

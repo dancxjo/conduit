@@ -1,22 +1,22 @@
 use super::*;
-use crate::creche::initial_forms;
+use crate::creche::initial_plots;
 use crate::source_interaction::admit_source;
 use conduit_body::{BodyId, SpawnInvitationClaim, SpawnInvitationId};
 use conduit_core::{BootId, HostId};
 
-const SEED: &str = r#"form hello_across {
+const SEED: &str = r#"plot hello_across {
     message: text/literal("hello")
     show: presentation/text
     message >> show
 }"#;
 
 fn initial_selection() -> String {
-    let inventory = initial_forms::reviewed_inventory(SEED).unwrap();
-    let form = &inventory.forms[0];
-    serde_json::to_string(&[initial_forms::InitialFormSelection {
-        name: form.name.clone(),
-        source_document_id: form.source_document_id.clone(),
-        checked_form_id: form.checked_form_id.clone(),
+    let inventory = initial_plots::reviewed_inventory(SEED).unwrap();
+    let plot = &inventory.plots[0];
+    serde_json::to_string(&[initial_plots::InitialPlotSelection {
+        name: plot.name.clone(),
+        source_document_id: plot.source_document_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
     }])
     .unwrap()
 }

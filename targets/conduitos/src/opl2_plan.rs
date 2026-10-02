@@ -29,7 +29,7 @@ const NOTE_SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/note-source@1";
 const EMPTY_CONTROL_SOURCE_KIND: &str = "conduitos-fixture/empty-control-source";
 const EMPTY_CONTROL_SOURCE_REVISION: &str = "conduitos.fixture/empty-control-source@1";
 pub const NOTE_SOURCE_HOST_CALL: &str = "conduitos.fixture/note-sequence-step@1";
-pub const OPL2_FORM_SOURCE: &str = "form conduitos-opl2-music {\n source: conduitos-fixture/note-source\n controls: conduitos-fixture/empty-control-source\n output: music/play\n source.notes >> output.notes\n controls.controls >> output.controls\n}\n";
+pub const OPL2_PLOT_SOURCE: &str = "plot conduitos-opl2-music {\n source: conduitos-fixture/note-source\n controls: conduitos-fixture/empty-control-source\n output: music/play\n source.notes >> output.notes\n controls.controls >> output.controls\n}\n";
 pub const FIXTURE_EVENT_COUNT: u16 = 24;
 
 pub struct PreparedOpl2Play {
@@ -55,7 +55,7 @@ pub fn prepare(
         .map_err(|_| PreparationError::OfferMismatch)?;
     host.capabilities.push(note_source_offer(build_id));
     host.capabilities.push(empty_control_source_offer(build_id));
-    let form = checked_form()?;
+    let plot = checked_plot()?;
     let realization = realization_advertisement(&host, opl2)?;
     let requirements = fixture_requirements();
     let observations = host
@@ -76,7 +76,7 @@ pub fn prepare(
         .collect::<Vec<_>>();
     let hosts = [host.clone()];
     let plan = plan_selected_realizations_with_characteristics_and_authority(
-        &form,
+        &plot,
         SelectedRealizationPlanning {
             hosts: &hosts,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],
@@ -186,34 +186,34 @@ pub fn validate(
     Ok(())
 }
 
-fn checked_form() -> Result<conduit_form::CheckedForm, PreparationError> {
-    checked(OPL2_FORM_SOURCE)
+fn checked_plot() -> Result<conduit_plot::CheckedPlot, PreparationError> {
+    checked(OPL2_PLOT_SOURCE)
 }
 
-fn checked(source: &str) -> Result<conduit_form::CheckedForm, PreparationError> {
-    let mut catalog = conduit_form::ProfileCatalog::new();
-    let mut startup = conduit_form::StartupCatalog::new();
+fn checked(source: &str) -> Result<conduit_plot::CheckedPlot, PreparationError> {
+    let mut catalog = conduit_plot::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut catalog)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(NOTE_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(NOTE_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: note_source_offer("catalog").outputs,
             configuration: Default::default(),
         })
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(EMPTY_CONTROL_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(EMPTY_CONTROL_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: empty_control_source_offer("catalog").outputs,
             configuration: Default::default(),
         })
-        .map_err(|_| PreparationError::FormRejected)?;
-    conduit_form::parse(source, &catalog).map_err(|_| PreparationError::FormRejected)
+        .map_err(|_| PreparationError::PlotRejected)?;
+    conduit_plot::parse(source, &catalog).map_err(|_| PreparationError::PlotRejected)
 }
 
 fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {

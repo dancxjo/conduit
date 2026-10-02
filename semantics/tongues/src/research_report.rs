@@ -80,7 +80,7 @@ pub enum ResearchError {
     Data(ResearchDataError),
     Model(ResearchModelError),
     InvalidSignature,
-    InvalidForm,
+    InvalidPlot,
     MissingHeldOutData,
 }
 
@@ -97,7 +97,7 @@ impl From<ResearchModelError> for ResearchError {
 }
 
 pub fn run_research() -> Result<ResearchReport, ResearchError> {
-    crate::check_research_forms().map_err(|_| ResearchError::InvalidForm)?;
+    crate::check_research_plots().map_err(|_| ResearchError::InvalidPlot)?;
     let corpus = Pb2007Slice::load()?;
     let training_utterances = corpus.training_utterances();
     let (checkpoint, training) = train_shared_latent(&training_utterances, RESEARCH_SEED)?;
@@ -164,23 +164,24 @@ pub fn run_research_json() -> Result<String, ResearchError> {
 }
 
 pub fn shared_latent_signature() -> ModelSignature {
-    ModelSignature {
-        identity: "conduit.tongues/shared-paired-latent@1".into(),
-        compatibility_version: 1,
-        operations: vec![
+    ModelSignature::from_parts(
+        "conduit.tongues/shared-paired-latent@1".into(),
+        1,
+        vec![
             ModelOperation::Encode,
             ModelOperation::Decode,
             ModelOperation::Sample,
             ModelOperation::Evaluate,
             ModelOperation::Train,
         ],
-        inputs: vec![port("acoustic", 4, false), port("articulation", 6, false)],
-        outputs: vec![
+        vec![port("acoustic", 4, false), port("articulation", 6, false)],
+        vec![
             port("latent", 2, true),
             port("generated-acoustic", 4, false),
             probabilistic_port("inferred-articulation", 6),
         ],
-    }
+    )
+    .expect("the research model signature is intrinsically bounded")
 }
 
 pub fn shared_relation_signature(signature: &ModelSignature) -> ModelRelationSignature {
@@ -190,25 +191,28 @@ pub fn shared_relation_signature(signature: &ModelSignature) -> ModelRelationSig
         ("latent", 2, false),
     ]
     .into_iter()
-    .map(|(identity, dimensions, probabilistic)| RelationVariable {
-        identity: identity.into(),
-        semantic_role: format!("tongues/{identity}@1"),
-        value: if probabilistic {
-            ModelValueConstraint::ProbabilisticTensor(tensor(dimensions))
-        } else {
-            ModelValueConstraint::Tensor(tensor(dimensions))
-        },
+    .map(|(identity, dimensions, probabilistic)| {
+        RelationVariable::from_parts(
+            identity.into(),
+            format!("tongues/{identity}@1"),
+            if probabilistic {
+                ModelValueConstraint::probabilistic_tensor(tensor(dimensions)).unwrap()
+            } else {
+                ModelValueConstraint::tensor(tensor(dimensions)).unwrap()
+            },
+        )
+        .unwrap()
     })
     .collect();
     let deterministic = RelationResultProfile::Deterministic;
     let probabilistic = RelationResultProfile::probabilistic(2)
         .expect("the shared paired relation has a positive sample bound");
-    ModelRelationSignature {
-        identity: "conduit.tongues/shared-paired-relation@1".into(),
-        compatibility_version: 1,
-        callable_signature_identity: signature.semantic_digest().expect("known-valid signature"),
+    ModelRelationSignature::from_parts(
+        "conduit.tongues/shared-paired-relation@1".into(),
+        1,
+        signature.semantic_digest().expect("known-valid signature"),
         variables,
-        supported_queries: vec![
+        vec![
             query(
                 "acoustic",
                 "latent",
@@ -246,7 +250,8 @@ pub fn shared_relation_signature(signature: &ModelSignature) -> ModelRelationSig
                 probabilistic,
             ),
         ],
-    }
+    )
+    .expect("the research relation signature is intrinsically bounded")
 }
 
 fn query(
@@ -255,48 +260,52 @@ fn query(
     mode: RelationQueryMode,
     result_profile: RelationResultProfile,
 ) -> SupportedRelationQuery {
-    SupportedRelationQuery {
-        evidence_variables: vec![evidence.into()],
-        target_variables: vec![target.into()],
+    SupportedRelationQuery::from_parts(
+        vec![evidence.into()],
+        vec![target.into()],
         mode,
         result_profile,
-        maximum_work_units: 4_096,
-        maximum_output_bytes: 4_096,
-    }
+        4_096,
+        4_096,
+    )
+    .expect("the research relation query is intrinsically bounded")
 }
 
 fn port(identity: &str, dimensions: u64, optional: bool) -> ModelPortConstraint {
-    ModelPortConstraint {
-        identity: identity.into(),
-        semantic_kind: format!("tongues/{identity}@1"),
-        presence: if optional {
+    ModelPortConstraint::from_parts(
+        identity.into(),
+        format!("tongues/{identity}@1"),
+        if optional {
             ModelPortPresence::Optional
         } else {
             ModelPortPresence::Required
         },
-        value: ModelValueConstraint::Tensor(tensor(dimensions)),
-    }
+        ModelValueConstraint::tensor(tensor(dimensions)).unwrap(),
+    )
+    .unwrap()
 }
 
 fn probabilistic_port(identity: &str, dimensions: u64) -> ModelPortConstraint {
-    ModelPortConstraint {
-        identity: identity.into(),
-        semantic_kind: format!("tongues/{identity}@1"),
-        presence: ModelPortPresence::Optional,
-        value: ModelValueConstraint::ProbabilisticTensor(tensor(dimensions)),
-    }
+    ModelPortConstraint::from_parts(
+        identity.into(),
+        format!("tongues/{identity}@1"),
+        ModelPortPresence::Optional,
+        ModelValueConstraint::probabilistic_tensor(tensor(dimensions)).unwrap(),
+    )
+    .unwrap()
 }
 
 fn tensor(dimensions: u64) -> ModelTensorConstraint {
-    ModelTensorConstraint {
-        elements: vec![TensorElement::F64],
-        axes: vec![ModelAxisConstraint {
+    ModelTensorConstraint::from_parts(
+        vec![TensorElement::F64],
+        vec![ModelAxisConstraint {
             role: TensorAxisRole::Feature,
             dimension: ModelDimensionConstraint::fixed(dimensions)
                 .expect("research embedding dimensions are positive"),
         }],
-        maximum_bytes: dimensions * 8,
-    }
+        dimensions * 8,
+    )
+    .unwrap()
 }
 
 fn corpus_evidence(corpus: &Pb2007Slice) -> CorpusEvidence {

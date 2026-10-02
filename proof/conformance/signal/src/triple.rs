@@ -234,8 +234,8 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
     );
     browser_line.contract = remote_contract(LineTrafficShape::Message);
     pico_line.contract = remote_contract(LineTrafficShape::ByteStream);
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/triple-signal.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../fixtures/plots/triple-signal.conduit"),
         &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -273,7 +273,7 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         ]),
     };
     let plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[
             source_advertisement.clone(),
             browser_advertisement.clone(),
@@ -317,7 +317,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn unchanged_form_plans_one_local_and_two_exact_bounded_remote_branches() {
+    fn unchanged_plot_plans_one_local_and_two_exact_bounded_remote_branches() {
         let exact = exact_plan().expect("triple plan resolves");
         assert_eq!(exact.plan.fragments.len(), 3);
         let source = exact
@@ -347,8 +347,8 @@ mod tests {
     #[test]
     fn missing_capability_and_stale_link_fail_closed() {
         let exact = exact_plan().expect("triple plan resolves");
-        let form = conduit_form::parse_with_startup(
-            include_str!("../../../fixtures/forms/triple-signal.conduit"),
+        let plot = conduit_plot::parse_with_startup(
+            include_str!("../../../fixtures/plots/triple-signal.conduit"),
             &crate::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
@@ -358,7 +358,7 @@ mod tests {
             .capabilities
             .retain(|offer| offer.capability_id.as_str() == PULSE_CAPABILITY_ID);
         assert!(
-            conduit_planner::default_placements(&form, core::slice::from_ref(&missing_show))
+            conduit_planner::default_placements(&plot, core::slice::from_ref(&missing_show))
                 .is_err()
         );
 
@@ -397,7 +397,7 @@ mod tests {
             ]),
         };
         assert!(plan_with_line_offers(
-            &form,
+            &plot,
             &[
                 exact.source_advertisement,
                 exact.browser_advertisement,

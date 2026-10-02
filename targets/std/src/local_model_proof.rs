@@ -1,4 +1,4 @@
-//! Repository-only live local-model proof through ordinary form, Plan, and Play.
+//! Repository-only live local-model proof through ordinary plot, Plan, and Play.
 
 use crate::hosted_local_model::{
     HostedLocalModelAdapter, LocalModelAdapterTerminal, OllamaLocalModelAdapter,
@@ -6,7 +6,7 @@ use crate::hosted_local_model::{
 use crate::{StdHost, StdHostComposition, StdHostConfig, TimerAdapter};
 use conduit_ai::LocalModelKindProfile;
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
-use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
+use conduit_plot::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 use conduit_presentation::{GeneratedManifestationCandidate, GenerativePresenterRequest};
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -275,9 +275,9 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
         &mut profiles,
     );
     let source = format!(
-        "{}\n{}\nform house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> recognized.result\n recognized.text >> addressed.recognized\n addresses.value >> addressed.addresses\n addressed.detection >> house.detection\n context.value >> house.context\n house.response >> sink.value\n}}\n",
-        include_str!("../../../forms/addressed-utterance/main.conduit"),
-        include_str!("../../../forms/house-conversation/main.conduit"),
+        "{}\n{}\nplot house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> recognized.result\n recognized.text >> addressed.recognized\n addresses.value >> addressed.addresses\n addressed.detection >> house.detection\n context.value >> house.context\n house.response >> sink.value\n}}\n",
+        include_str!("../../../plots/addressed-utterance/main.conduit"),
+        include_str!("../../../plots/house-conversation/main.conduit"),
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_ADDRESSES_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
@@ -286,11 +286,11 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
             format!(
-                "House live proof Form check: {} {}",
+                "House live proof Plot check: {} {}",
                 error.code, error.message
             )
         })?;
-    let expanded = conduit_form::expand_canonical_form(&checked, "house-live-proof", &profiles)
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "house-live-proof", &profiles)
         .map_err(|error| {
             format!(
                 "House live proof expansion: {} {}",
@@ -330,27 +330,27 @@ fn run_profile(
         .ok_or("local-model proof Back has no Host Call bound")?;
     let maximum_input_bytes = contract
         .bounds
-        .maximum_input_bytes
+        .maximum_input_bytes()
         .min(PROOF_MAXIMUM_INPUT_BYTES)
         .min(u64::from(provider_call.maximum_input_bytes));
     let maximum_output_bytes = contract
         .bounds
-        .maximum_output_bytes
+        .maximum_output_bytes()
         .min(u64::from(provider_call.maximum_output_bytes));
-    let maximum_work_units = contract.bounds.maximum_work_units;
+    let maximum_work_units = contract.bounds.maximum_work_units();
     let source = format!(
-        "form run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
+        "plot run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
         profile.kind(), maximum_input_bytes, maximum_output_bytes, maximum_work_units,
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
             format!(
-                "local-model proof Form check: {} {}",
+                "local-model proof Plot check: {} {}",
                 error.code, error.message
             )
         })?;
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "run", &profiles).map_err(|error| {
+        conduit_plot::expand_canonical_plot(&checked, "run", &profiles).map_err(|error| {
             format!(
                 "local-model proof expansion: {} {}",
                 error.code, error.message
@@ -362,7 +362,7 @@ fn run_profile(
 
 fn run_expanded(
     host: &mut StdHost,
-    expanded: conduit_form::ExpandedCanonicalForm,
+    expanded: conduit_plot::ExpandedCanonicalPlot,
     proof_name: &str,
     connection_byte_capacity: u32,
 ) -> Result<(String, bool), Box<dyn std::error::Error>> {

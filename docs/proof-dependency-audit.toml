@@ -1,30 +1,23 @@
 schema = "conduit.proof-dependency-audit/v1"
-maximum_edges = 19
+maximum_edges = 18
 
 # This inventory contains every non-dev Cargo dependency from outside proof/
 # whose path enters proof/. `cargo test -p xtask --test proof_dependency_boundary`
 # rejects additions, removals, and dependency-kind changes.
 
 [[edges]]
-manifest = "products/patchbay/model/Cargo.toml"
+manifest = "plots/patchbay/workbench/model/Cargo.toml"
 dependency = "conduit-patchbay-workbench-conformance"
 kind = "dependencies"
 classification = "product-demo-fixture"
 resolution = "Remove when the remaining Patchbay product shell is retired; the extracted proof owns the fixed workbench realization meanwhile."
 
 [[edges]]
-manifest = "products/patchbay/model/Cargo.toml"
+manifest = "plots/patchbay/workbench/model/Cargo.toml"
 dependency = "conduit-signal-conformance"
 kind = "dependencies"
 classification = "product-demo-fixture"
 resolution = "Move fixed route/topology demonstrations behind proof ownership; retain only reusable model contracts."
-
-[[edges]]
-manifest = "products/patchbay/native/Cargo.toml"
-dependency = "conduit-r1-network-conformance"
-kind = "dependencies"
-classification = "product-demo-fixture"
-resolution = "Move the R1 capstone scenario to a repository proof entrance or rebuild it from target-owned offers."
 
 [[edges]]
 manifest = "targets/std/Cargo.toml"

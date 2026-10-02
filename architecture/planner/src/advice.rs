@@ -4,10 +4,10 @@ use crate::prelude::*;
 use crate::{PlacementChoice, PlacementChoices, PlannerError};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    BootId, CapabilityId, CheckedFormId, GearId, HostAdvertisement, HostId, LineAvailability,
+    BootId, CapabilityId, CheckedPlotId, GearId, HostAdvertisement, HostId, LineAvailability,
     LineId, LineOffer, OfferGeneration,
 };
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 
 pub const MAXIMUM_ADVICE_PLACEMENTS: usize = 64;
 pub const MAXIMUM_ADVICE_LINES: usize = 64;
@@ -36,7 +36,7 @@ pub struct PlanningAdvice {
     pub proposal_id: String,
     pub request_identity: String,
     pub run_identity: String,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub placements: Vec<SuggestedPlacement>,
     pub lines: Vec<SuggestedLine>,
 }
@@ -46,7 +46,7 @@ pub struct PlanningAdviceEvidence {
     pub proposal_id: String,
     pub request_identity: String,
     pub run_identity: String,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub proposed_placements: u16,
     pub used_placements: u16,
     pub proposed_lines: u16,
@@ -67,7 +67,7 @@ pub enum PlanningAdviceRefusal {
     IdentityTooLong,
     PlacementCapacityExceeded,
     LineCapacityExceeded,
-    WrongForm,
+    WrongPlot,
     UnknownGear,
     DuplicateGear,
     UnknownHost,
@@ -87,7 +87,7 @@ pub enum PlanningAdviceRefusal {
 /// remains authoritative for semantic compatibility, resources, authority,
 /// queue bounds, Lines, and immutable Plan identity.
 pub fn seed_planning_from_advice(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     line_offers: &[LineOffer],
     advice: &PlanningAdvice,
@@ -101,8 +101,8 @@ pub fn seed_planning_from_advice(
     if advice.lines.len() > MAXIMUM_ADVICE_LINES {
         return Err(PlanningAdviceRefusal::LineCapacityExceeded);
     }
-    if advice.checked_form_id != form.checked_form_id {
-        return Err(PlanningAdviceRefusal::WrongForm);
+    if advice.checked_plot_id != plot.checked_plot_id {
+        return Err(PlanningAdviceRefusal::WrongPlot);
     }
 
     let mut placements = PlacementChoices {
@@ -110,7 +110,7 @@ pub fn seed_planning_from_advice(
     };
     let mut proposed_gears = BTreeSet::new();
     for suggestion in &advice.placements {
-        if !form
+        if !plot
             .gears
             .iter()
             .any(|gear| gear.gear_id == suggestion.gear_id)
@@ -136,7 +136,7 @@ pub fn seed_planning_from_advice(
             },
         );
     }
-    for gear in &form.gears {
+    for gear in &plot.gears {
         if placements.by_gear.contains_key(&gear.gear_id) {
             continue;
         }
@@ -150,7 +150,7 @@ pub fn seed_planning_from_advice(
 
     let mut line_candidates = BTreeMap::new();
     for suggestion in &advice.lines {
-        let connection = form
+        let connection = plot
             .connections
             .iter()
             .find(|connection| {
@@ -191,7 +191,7 @@ pub fn seed_planning_from_advice(
             proposal_id: advice.proposal_id.clone(),
             request_identity: advice.request_identity.clone(),
             run_identity: advice.run_identity.clone(),
-            checked_form_id: advice.checked_form_id.clone(),
+            checked_plot_id: advice.checked_plot_id.clone(),
             proposed_placements: advice.placements.len() as u16,
             used_placements: advice.placements.len() as u16,
             proposed_lines: advice.lines.len() as u16,

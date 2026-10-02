@@ -13,7 +13,7 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
     let boot_id = BootId::from("boot/roseau-browser");
     let body = Body::born(
         SourceDocumentId::from("source/roseau-morse-network"),
-        CheckedFormId::from("checked/roseau-morse-network"),
+        CheckedPlotId::from("checked/roseau-morse-network"),
         1,
         bind_sign(&host_id, &boot_id, None, 1).sign_id,
     )
@@ -92,7 +92,7 @@ fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
 
     assert_eq!(frame.friendly_name, "Roseau");
     assert_eq!(frame.workload_revision, 0);
-    assert_eq!(frame.active_forms.len(), 1);
+    assert_eq!(frame.active_plots.len(), 1);
     assert_eq!(frame.lifecycle, CurrentBodyLifecycle::Lulled);
     assert_eq!(frame.salient_action, CurrentBodyLifecycleAction::Wake);
     assert_eq!(frame.admitted_parts, 1);

@@ -12,7 +12,7 @@ use conduit_core::{
     CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement,
     ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
@@ -165,7 +165,7 @@ pub fn provider_http_request(
         .map_err(|_| ProviderFailure::ProviderProtocol)?,
         headers: conduit_web::http_headers([HttpHeader::new(
             "content-type".into(),
-            conduit_form::rust_binding::BoundedBytes::new(b"application/json")
+            conduit_plot::rust_binding::BoundedBytes::new(b"application/json")
                 .ok_or(ProviderFailure::ProviderProtocol)?,
         )
         .map_err(|_| ProviderFailure::ProviderProtocol)?])
@@ -225,7 +225,7 @@ pub fn install_provider_back(
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), String> {
     let source = format!(
-        "form {LLM_GENERATE_KIND} (\n maximum-input-bytes: Count = 262144\n maximum-context-items: Count = 128\n maximum-output-bytes: Count = 65536\n maximum-work-units: Count = 1000000\n maximum-history-items: Count = 64\n >> request: {GENERATION_REQUEST_VALUE_KIND}\n result: {GENERATED_RESULT_VALUE_KIND} >>\n) {{\n request_adapter: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result_adapter: {PROVIDER_RESULT_KIND}\n request >> request_adapter.request\n request_adapter.value >> encode.value\n encode.value >> envelope.json\n envelope.request >> http.request\n http.response >> response.response\n response.json >> decode.value\n decode.value >> result_adapter.value\n result_adapter.result >> result\n}}\n",
+        "plot {LLM_GENERATE_KIND} (\n maximum-input-bytes: Count = 262144\n maximum-context-items: Count = 128\n maximum-output-bytes: Count = 65536\n maximum-work-units: Count = 1000000\n maximum-history-items: Count = 64\n >> request: {GENERATION_REQUEST_VALUE_KIND}\n result: {GENERATED_RESULT_VALUE_KIND} >>\n) {{\n request_adapter: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result_adapter: {PROVIDER_RESULT_KIND}\n request >> request_adapter.request\n request_adapter.value >> encode.source\n encode.value >> envelope.json\n envelope.request >> http.request\n http.response >> response.response\n response.json >> decode.source\n decode.value >> result_adapter.value\n result_adapter.result >> result\n}}\n",
         conduit_web::JSON_ENCODE_KIND,
         conduit_web::HTTP_CLIENT_KIND,
         conduit_web::JSON_DECODE_KIND,

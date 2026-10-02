@@ -16,7 +16,7 @@ use conduit_body::{
     BodyMembership, CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
     HostPresenceClockScale, HostPresenceTable,
 };
-use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, LinkBindingId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BrowserAdmissionSocketError, BROWSER_ADMISSION_PROTOCOL,
@@ -61,7 +61,7 @@ fn main() -> Result<(), String> {
     } else {
         let body = Body::born(
             SourceDocumentId::from("source/browser-admission-probe"),
-            CheckedFormId::from("checked/browser-admission-probe"),
+            CheckedPlotId::from("checked/browser-admission-probe"),
             1,
             SignId::from("sign/browser-admission-probe/body-born"),
         )

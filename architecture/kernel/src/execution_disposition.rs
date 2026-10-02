@@ -8,7 +8,7 @@ use crate::{Failure, FailureCode};
 
 /// Checked semantic policy for classifying a structurally drained scheduler.
 ///
-/// Draining is not itself a terminal fact. Forms remain live by default; the
+/// Draining is not itself a terminal fact. Plots remain live by default; the
 /// exceptional policy is admitted only when checked semantics provide an exact
 /// completion witness.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

@@ -167,7 +167,7 @@ pub fn route_grid4(
                         grid.sample_sequence,
                     ))
                     .map_err(|_| NavigationRefusal::InvalidRoute)?;
-                let bounded = conduit_form::rust_binding::BoundedSequence::try_from_iter(waypoints)
+                let bounded = conduit_plot::rust_binding::BoundedSequence::try_from_iter(waypoints)
                     .map_err(|_| NavigationRefusal::InvalidRoute)?;
                 let waypoints = conduit_robotics::NavigationWaypoints::new(bounded)
                     .map_err(|_| NavigationRefusal::InvalidRoute)?;
@@ -378,7 +378,7 @@ fn time_parameterize_view(
     if segments.is_empty() || segments.len() > NAVIGATION_MAXIMUM_SEGMENTS {
         return Err(NavigationRefusal::InvalidTrajectory);
     }
-    let segments = conduit_form::rust_binding::BoundedSequence::try_from_iter(segments)
+    let segments = conduit_plot::rust_binding::BoundedSequence::try_from_iter(segments)
         .map_err(|_| NavigationRefusal::InvalidTrajectory)?;
     let segments = conduit_robotics::NavigationTrajectorySegments::new(segments)
         .map_err(|_| NavigationRefusal::InvalidTrajectory)?;

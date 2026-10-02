@@ -123,12 +123,12 @@ fn limits(bytes: u32) -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_value_primitive_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     for contract in [
         scalar_literal_contract(),
         bool_literal_contract(),

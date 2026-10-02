@@ -74,9 +74,9 @@ fn configured_preview_comes_from_checked_source_and_remains_bounded() {
         "hello",
         "a longer configured literal than fits a card preview",
     );
-    let form =
-        crate::ordinary_form::checked_expanded_text_form_named(&source, "meet-one-gear").unwrap();
-    let graph = patchbay_graph::PatchbayGraph::from_expanded(&form).unwrap();
+    let plot =
+        crate::ordinary_plot::checked_expanded_text_plot_named(&source, "meet-one-gear").unwrap();
+    let graph = patchbay_graph::PatchbayGraph::from_expanded(&plot).unwrap();
     let scene = render(&graph);
     let body = scene
         .commands()

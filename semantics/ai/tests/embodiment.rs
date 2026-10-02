@@ -2,15 +2,15 @@ use conduit_ai::{
     EmbodiedModelReceipt, EmbodiedModelView, EmbodimentReceiptError, EmbodimentStage,
     ProposalDecisionOutcome, ProposalRefusal,
 };
-use conduit_core::{kind_id, ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SignId};
+use conduit_core::{kind_id, ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SignId};
 
 fn view(stage: EmbodimentStage, index: usize) -> EmbodiedModelView {
     let expressive = !matches!(stage, EmbodimentStage::PerceptionOnly);
     let authorized = matches!(stage, EmbodimentStage::AuthorizedEffect);
     EmbodiedModelView {
         stage,
-        checked_form_id: CheckedFormId::from(format!("checked/embodied/{index}")),
-        expanded_form_id: ExpandedFormId::from(format!("expanded/embodied/{index}")),
+        checked_plot_id: CheckedPlotId::from(format!("checked/embodied/{index}")),
+        expanded_plot_id: ExpandedPlotId::from(format!("expanded/embodied/{index}")),
         plan_id: PlanId::from(format!("plan/embodied/{index}")),
         active_play_id: ActivePlayId::from(format!("play/embodied/{index}")),
         model_gear_identity: "gear/model".into(),

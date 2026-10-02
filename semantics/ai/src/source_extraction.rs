@@ -4,24 +4,16 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{
     ResourceDereferenceRequirement, ResourceReferenceAccessRefusal, ResourceReferenceBinding,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
-    Chunk, ExtractionLineage, SourceExtractionProfile, SourceRef, SourceSpan, SourceSpanUnit,
+    Chunk, ExtractionLineage, RagIdentity, SourceExtractionLimits, SourceExtractionProfile,
+    SourceRef, SourceSpan, SourceSpanUnit, TransformProfiles,
 };
 
 pub const TEXT_UTF8_EXTRACTION_PROFILE: &str = "extract/text-utf8@1";
 pub const STRUCTURED_ITEMS_EXTRACTION_PROFILE: &str = "extract/structured-items@1";
 pub const RESOURCE_METADATA_EXTRACTION_PROFILE: &str = "extract/resource-metadata@1";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SourceExtractionLimits {
-    pub maximum_source_bytes: u32,
-    pub maximum_source_items: u32,
-    pub maximum_chunk_bytes: u32,
-    pub maximum_chunks: u32,
-    pub maximum_output_bytes: u32,
-    pub maximum_work_units: u32,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceMetadataEntry {
@@ -56,7 +48,6 @@ pub struct SourceExtractionReceipt {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceExtractionRefusal {
     ResourceAccess(ResourceReferenceAccessRefusal),
-    ZeroLimit,
     EmptySource,
     SourceBoundExceeded,
     SourceItemBoundExceeded,
@@ -82,7 +73,6 @@ pub fn extract_source(
     limits: SourceExtractionLimits,
     payload: &SourcePayload,
 ) -> Result<SourceExtractionReceipt, SourceExtractionRefusal> {
-    validate_limits(limits)?;
     dereference
         .admit(&source.resource, binding)
         .map_err(SourceExtractionRefusal::ResourceAccess)?;
@@ -93,7 +83,7 @@ pub fn extract_source(
     if u64::from(source_bytes) != source.resource.extent.bytes {
         return Err(SourceExtractionRefusal::SourceByteExtentMismatch);
     }
-    if source_bytes > limits.maximum_source_bytes {
+    if source_bytes > limits.maximum_source_bytes() {
         return Err(SourceExtractionRefusal::SourceBoundExceeded);
     }
     match (source.resource.extent.items, source_items) {
@@ -103,7 +93,7 @@ pub fn extract_source(
             return Err(SourceExtractionRefusal::SourceItemExtentMismatch)
         }
     }
-    if source_items.is_some_and(|items| items > limits.maximum_source_items) {
+    if source_items.is_some_and(|items| items > limits.maximum_source_items()) {
         return Err(SourceExtractionRefusal::SourceItemBoundExceeded);
     }
 
@@ -115,7 +105,7 @@ pub fn extract_source(
         work_units: source_bytes,
         proof_class: "deterministic-source-extraction",
     };
-    if receipt.work_units > limits.maximum_work_units {
+    if receipt.work_units > limits.maximum_work_units() {
         return Err(SourceExtractionRefusal::WorkBoundExceeded);
     }
     match (profile, payload) {
@@ -155,19 +145,6 @@ pub fn extract_source(
     Ok(receipt)
 }
 
-fn validate_limits(limits: SourceExtractionLimits) -> Result<(), SourceExtractionRefusal> {
-    if limits.maximum_source_bytes == 0
-        || limits.maximum_source_items == 0
-        || limits.maximum_chunk_bytes == 0
-        || limits.maximum_chunks == 0
-        || limits.maximum_output_bytes == 0
-        || limits.maximum_work_units == 0
-    {
-        return Err(SourceExtractionRefusal::ZeroLimit);
-    }
-    Ok(())
-}
-
 fn payload_extent(payload: &SourcePayload) -> Result<(u32, Option<u32>), SourceExtractionRefusal> {
     match payload {
         SourcePayload::Text(bytes) => Ok((u32_len(bytes.len())?, None)),
@@ -194,10 +171,10 @@ fn extract_text(
     receipt: &mut SourceExtractionReceipt,
 ) -> Result<(), SourceExtractionRefusal> {
     let text = core::str::from_utf8(bytes).map_err(|_| SourceExtractionRefusal::InvalidUtf8)?;
-    if overlap_bytes >= limits.maximum_chunk_bytes {
+    if overlap_bytes >= limits.maximum_chunk_bytes() {
         return Err(SourceExtractionRefusal::InvalidOverlap);
     }
-    let maximum = limits.maximum_chunk_bytes as usize;
+    let maximum = limits.maximum_chunk_bytes() as usize;
     let overlap = overlap_bytes as usize;
     let mut start = 0;
     while start < bytes.len() {
@@ -252,13 +229,13 @@ where
         let mut bytes = 0_u32;
         while end < items.len() {
             let item_bytes = items[end].encoded_length()?;
-            if item_bytes > limits.maximum_chunk_bytes {
+            if item_bytes > limits.maximum_chunk_bytes() {
                 return Err(SourceExtractionRefusal::ItemExceedsChunkBound);
             }
             let proposed = bytes
                 .checked_add(item_bytes)
                 .ok_or(SourceExtractionRefusal::ArithmeticOverflow)?;
-            if proposed > limits.maximum_chunk_bytes {
+            if proposed > limits.maximum_chunk_bytes() {
                 break;
             }
             bytes = proposed;
@@ -319,32 +296,31 @@ fn push_chunk(
     limits: SourceExtractionLimits,
     receipt: &mut SourceExtractionReceipt,
 ) -> Result<(), SourceExtractionRefusal> {
-    if receipt.chunks.len() >= limits.maximum_chunks as usize {
+    if receipt.chunks.len() >= limits.maximum_chunks() as usize {
         return Err(SourceExtractionRefusal::ChunkCountExceeded);
     }
     receipt.output_bytes = receipt
         .output_bytes
         .checked_add(output_bytes)
         .ok_or(SourceExtractionRefusal::ArithmeticOverflow)?;
-    if receipt.output_bytes > limits.maximum_output_bytes {
+    if receipt.output_bytes > limits.maximum_output_bytes() {
         return Err(SourceExtractionRefusal::OutputBoundExceeded);
     }
     receipt.work_units = receipt
         .work_units
         .checked_add(output_bytes)
         .ok_or(SourceExtractionRefusal::ArithmeticOverflow)?;
-    if receipt.work_units > limits.maximum_work_units {
+    if receipt.work_units > limits.maximum_work_units() {
         return Err(SourceExtractionRefusal::WorkBoundExceeded);
     }
     let lineage = ExtractionLineage {
         source: source.clone(),
-        span: SourceSpan {
-            unit,
-            start: start as u64,
-            end: end as u64,
-        },
-        extraction_profile: extraction_profile.into(),
-        transform_profiles: Vec::new(),
+        span: SourceSpan::new(unit, start as u64, end as u64)
+            .expect("source extraction emits only nonempty chunks"),
+        extraction_profile: RagIdentity::new(extraction_profile.into())
+            .expect("source extraction profiles are fixed valid identities"),
+        transform_profiles: TransformProfiles::new(BoundedSequence::new())
+            .expect("an empty transform lineage is valid"),
         parent_chunk: None,
     };
     receipt

@@ -1,23 +1,23 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 use conduit_core::{
     bind_active_play, ActivePlayId, BootId, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PlanId, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{check_syntax_document, parse_syntax_document, KindSignature, StartupCatalog};
 use conduit_planner::{default_placements, PlannerError};
+use conduit_plot::{check_syntax_document, parse_syntax_document, KindSignature, StartupCatalog};
 use conduit_presentation::{
     Manifestation, ManifestationError, ManifestationFailure, ManifestationLifecycle, Presentation,
     PresentationError, PresentationText, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 mod common;
-use common::{checked_renderer_form, host, plan_for, presentation, DOM_RESOURCE, WAYLAND_RESOURCE};
+use common::{checked_renderer_plot, host, plan_for, presentation, DOM_RESOURCE, WAYLAND_RESOURCE};
 
 #[test]
 fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
-    let form = checked_renderer_form();
+    let plot = checked_renderer_plot();
     let wayland = plan_for(
-        &form,
+        &plot,
         host(
             "linux-host",
             "linux-boot",
@@ -29,7 +29,7 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
         ),
     );
     let html = plan_for(
-        &form,
+        &plot,
         host(
             "browser-host",
             "browser-boot",
@@ -42,8 +42,8 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
     );
 
     assert_eq!(wayland.source_document_id, html.source_document_id);
-    assert_eq!(wayland.checked_form_id, html.checked_form_id);
-    assert_eq!(wayland.expanded_form_id, html.expanded_form_id);
+    assert_eq!(wayland.checked_plot_id, html.checked_plot_id);
+    assert_eq!(wayland.expanded_plot_id, html.expanded_plot_id);
     assert_ne!(wayland.plan_id, html.plan_id);
     let native = &wayland.fragments[0].placements[0];
     let browser = &html.fragments[0].placements[0];
@@ -64,7 +64,7 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
 
 #[test]
 fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
-    let form = checked_renderer_form();
+    let plot = checked_renderer_plot();
     let headless = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("headless"),
@@ -77,13 +77,13 @@ fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
         planner_capabilities: vec![],
     };
     assert!(matches!(
-        default_placements(&form, &[headless]),
+        default_placements(&plot, &[headless]),
         Err(PlannerError::UnknownCapability(_))
     ));
 }
 
 #[test]
-fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
+fn renderer_front_can_be_composed_as_an_ordinary_plot_back() {
     let mut startup = StartupCatalog::new();
     startup
         .insert_value_kind_alias(
@@ -101,20 +101,20 @@ fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
         })
         .unwrap();
     let syntax = parse_syntax_document(
-        "form patchbay-show (\n    >> presentation: Presentation\n    manifestation: Manifestation >>\n) {\n    renderer: presentation/renderer\n    presentation >> renderer.presentation\n    renderer.manifestation >> manifestation\n}\n",
+        "plot patchbay-show (\n    >> presentation: Presentation\n    manifestation: Manifestation >>\n) {\n    renderer: presentation/renderer\n    presentation >> renderer.presentation\n    renderer.manifestation >> manifestation\n}\n",
     );
     let checked = check_syntax_document(&syntax, &startup).expect("portable renderer Back checks");
-    let form = &checked.forms[0];
-    assert_eq!(form.runtime_ports.len(), 2);
-    assert_eq!(form.gears[0].kind, "presentation/renderer");
-    assert_eq!(form.cords.len(), 2);
+    let plot = &checked.plots[0];
+    assert_eq!(plot.runtime_ports.len(), 2);
+    assert_eq!(plot.gears[0].kind, "presentation/renderer");
+    assert_eq!(plot.cords.len(), 2);
 }
 
 #[test]
 fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
-    let form = checked_renderer_form();
+    let plot = checked_renderer_plot();
     let plan = plan_for(
-        &form,
+        &plot,
         host(
             "linux-host",
             "linux-boot",
@@ -125,7 +125,7 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
             WAYLAND_RESOURCE,
         ),
     );
-    let presentation = presentation(&form, &plan);
+    let presentation = presentation(&plot, &plan);
     let placement = plan.fragments[0].placements[0].placement_id.clone();
     let active = bind_active_play(
         &plan.plan_id,
@@ -138,7 +138,7 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
         &plan,
         active,
         placement,
-        "patchbay/form".into(),
+        "patchbay/plot".into(),
         "linux-host/display-0".into(),
         SignId::from("manifestation/prepared"),
     )
@@ -189,7 +189,7 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
     ));
 
     let other_plan = plan_for(
-        &form,
+        &plot,
         host(
             "browser-host",
             "browser-boot",
@@ -208,9 +208,9 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
 
 #[test]
 fn presentation_rejects_unbounded_and_drifting_semantic_content() {
-    let form = checked_renderer_form();
+    let plot = checked_renderer_plot();
     let plan = plan_for(
-        &form,
+        &plot,
         host(
             "browser-host",
             "browser-boot",
@@ -221,7 +221,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
             DOM_RESOURCE,
         ),
     );
-    let valid = presentation(&form, &plan);
+    let valid = presentation(&plot, &plan);
     assert!(valid.validate().is_ok());
 
     let mut drifting = valid.clone();
@@ -294,8 +294,8 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
     let mut disembodied_wake = valid.basis.clone();
     disembodied_wake.body_id = None;
     disembodied_wake.source_document_id = None;
-    disembodied_wake.checked_form_id = None;
-    disembodied_wake.expanded_form_id = None;
+    disembodied_wake.checked_plot_id = None;
+    disembodied_wake.expanded_plot_id = None;
     disembodied_wake.plan_id = None;
     disembodied_wake.active_play_id = None;
     assert_eq!(
@@ -312,7 +312,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
 
     let oversized_text = (0..513)
         .map(|_| PresentationText {
-            subject: "patchbay/form".into(),
+            subject: "patchbay/plot".into(),
             text: "x".repeat(1_024),
         })
         .collect();

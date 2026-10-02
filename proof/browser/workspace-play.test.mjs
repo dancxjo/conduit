@@ -1,14 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { openWorkspacePlay } from "../../products/workspace/browser/workspace-play.mjs";
+import { openWorkspacePlay } from "../../targets/browser/workspace/workspace-play.mjs";
 
 const terminal = disposition => ({ schema: "conduit.tour/manifestation-receipt@3",
   disposition, active_play_id: "body-play", terminal_sign_id: `sign/${disposition}` });
 
-test("ordinary body wake and lull own one exact externally managed voice Form", async () => {
+test("ordinary body wake and lull own one exact externally managed voice Plot", async () => {
   const events = [], states = [];
   const proposal = { schema: "conduit.body/execution-proposal@1",
-    plan: { forms: [{ plan: { plan_id: "plan/local", fragments: [{}] } },
+    plan: { plots: [{ plan: { plan_id: "plan/local", fragments: [{}] } },
       { plan: { plan_id: "plan/voice", fragments: [{}, {}] } }] } };
   const session = {
     propose: async () => proposal,
@@ -25,7 +25,7 @@ test("ordinary body wake and lull own one exact externally managed voice Form", 
       disposition: "quiescent_awaiting_input", active_play_id: "body-play", pending_effects: 0 }),
     close: () => { events.push("body-close"); return { receipt: terminal("cancelled") }; }, evidence: () => null };
   const play = openWorkspacePlay({ host: { runtime: {}, hostId: "host/browser", bootId: "boot/browser" },
-    session, source: "catalog", planningLines: () => [], inputTarget: {}, outputRoot: {}, foregroundForm: () => "checked/local",
+    session, source: "catalog", planningLines: () => [], inputTarget: {}, outputRoot: {}, foregroundPlot: () => "checked/local",
     prepareExternal: async supplied => { assert.equal(supplied, proposal); events.push("voice-prepare"); return external; },
     acquireBody: options => { assert.deepEqual(options.externallyManagedPlanIds, ["plan/voice"]); events.push("body-acquire"); return adapter; },
     onState: state => states.push(state.state) });
@@ -43,7 +43,7 @@ test("finishing retires a play first and publishes one irreversible terminal sta
   const events = [], states = [];
   let state = "AWAKE";
   const session = {
-    propose: async () => ({ plan: { forms: [] } }),
+    propose: async () => ({ plan: { plots: [] } }),
     started: async () => events.push("started"),
     lull: async () => { events.push("lull"); state = "LULLED"; },
     fulfill: async () => { assert.equal(state, "LULLED"); events.push("fulfill"); state = "FULFILLED"; },
@@ -56,7 +56,7 @@ test("finishing retires a play first and publishes one irreversible terminal sta
     close: () => ({ receipt: terminal("cancelled") }), evidence: () => null,
   };
   const play = openWorkspacePlay({ host: { runtime: {}, hostId: "host/browser", bootId: "boot/browser" },
-    session, source: "catalog", planningLines: () => [], inputTarget: {}, outputRoot: {}, foregroundForm: () => null,
+    session, source: "catalog", planningLines: () => [], inputTarget: {}, outputRoot: {}, foregroundPlot: () => null,
     acquireBody: () => adapter, onState: value => states.push(value.state) });
 
   await play.wake();

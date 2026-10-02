@@ -178,7 +178,11 @@ pub const BROWSER_HUMAN_PRESENTATION_REALIZATIONS: &[BrowserRealizationDescripto
         "browser/dom-pointer-source@1",
         "conduit-browser-runtime/pointer-source@1",
         "browser.host/pointer-source@1",
-        limits(1, 1, 65_536),
+        limits(
+            1,
+            1,
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        ),
     ),
 ];
 
@@ -211,7 +215,7 @@ const DEVICE_ACQUISITION: BrowserRuntimePrerequisite = BrowserRuntimePrerequisit
 pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
     descriptor("Presentation", "Optional audible cue", "audio/output", "browser/audio-cue@1",
         16, 1024 * 1024, &[BrowserRuntimePrerequisite {
-            kind: "audio-policy", detail: "playback requires available output and permitted audio; denial is retained without blocking other Forms",
+            kind: "audio-policy", detail: "playback requires available output and permitted audio; denial is retained without blocking other Plots",
         }]),
     descriptor(
         "Presentation",

@@ -112,18 +112,18 @@ pub fn wired_plan() -> Plan {
     let sign_storage_budget = mandatory_sign_storage_requirement(&expected_sign).unwrap();
 
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source/effect-demo"),
-            checked_form_id: CheckedFormId::from("checked/effect-demo"),
-            expanded_form_id: ExpandedFormId::from("expanded/effect-demo"),
+            checked_plot_id: CheckedPlotId::from("checked/effect-demo"),
+            expanded_plot_id: ExpandedPlotId::from("expanded/effect-demo"),
         },
         vec![PlanFragment {
             completion_policy: conduit_core::PlanCompletionPolicy::Live,
             plan_id: PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from(""),
-            checked_form_id: CheckedFormId::from(""),
-            expanded_form_id: ExpandedFormId::from(""),
+            checked_plot_id: CheckedPlotId::from(""),
+            expanded_plot_id: ExpandedPlotId::from(""),
             realization_backs: vec![],
             host_id: HostId::from("host/a"),
             boot_id: BootId::from("boot/a"),
@@ -197,10 +197,10 @@ pub fn proposal(plan: &Plan) -> ModelEffectProposal {
 #[allow(dead_code)] // The runtime integration shares this fixture without mutation cases.
 pub fn reseal(plan: Plan) -> Plan {
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: plan.source_document_id,
-            checked_form_id: plan.checked_form_id,
-            expanded_form_id: plan.expanded_form_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
         },
         plan.fragments,
     )

@@ -21,38 +21,38 @@ impl TrainingSession {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.identity);
         bytes.extend_from_slice(&self.base_artifact_identity);
-        push_optional_digest(&mut bytes, self.base_checkpoint_identity);
+        push_optional_digest(&mut bytes, self.base_checkpoint_digest());
         bytes.extend_from_slice(&self.dataset_manifest_identity);
         bytes.extend_from_slice(&self.split_membership_identity);
         push_text(&mut bytes, &self.objective_profile);
-        push_len(&mut bytes, self.objectives.len());
-        for objective in &self.objectives {
-            push_text(&mut bytes, &objective.role);
-            bytes.extend_from_slice(&objective.weight_millionths.to_le_bytes());
-            push_text(&mut bytes, &objective.configuration_identity);
-            push_text(&mut bytes, &objective.output_identity);
-            bytes.push(match objective.participation {
+        push_len(&mut bytes, self.objectives_slice().len());
+        for objective in self.objectives_slice() {
+            push_text(&mut bytes, objective.role().get());
+            bytes.extend_from_slice(&objective.weight_millionths().to_le_bytes());
+            push_text(&mut bytes, objective.configuration_identity().get());
+            push_text(&mut bytes, objective.output_identity().get());
+            bytes.push(match objective.participation() {
                 ObjectiveParticipation::Optimize => 0,
                 ObjectiveParticipation::ObserveOnly => 1,
             });
         }
         push_randomness(&mut bytes, &self.randomness);
         push_text(&mut bytes, &self.precision_profile);
-        push_len(&mut bytes, self.model_modalities.len());
-        for modality in &self.model_modalities {
-            push_text(&mut bytes, modality);
+        push_len(&mut bytes, self.model_modalities.get().len());
+        for modality in self.model_modalities.get() {
+            push_text(&mut bytes, modality.get());
         }
         push_missing_modality_policy(&mut bytes, &self.missing_modality_policy);
         let resources = self.resources;
-        bytes.extend_from_slice(&resources.model_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.working_memory_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.compute_lanes.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_batch_items.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_batch_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_steps.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_work_units.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_checkpoint_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_in_flight_steps.to_le_bytes());
+        bytes.extend_from_slice(&resources.model_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.working_memory_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.compute_lanes().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_batch_items().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_batch_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_steps().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_work_units().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_checkpoint_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_in_flight_steps().to_le_bytes());
         push_checkpoint_policy(&mut bytes, self.checkpoint_policy);
         push_evaluation_policy(&mut bytes, self.evaluation_policy);
         Ok(semantic_digest("ai/training-session@1", &bytes))
@@ -83,10 +83,14 @@ impl TrainingBatch {
         bytes.extend_from_slice(&self.identity);
         bytes.extend_from_slice(&self.dataset_identity);
         push_text(&mut bytes, &self.split_identity);
-        push_digests(&mut bytes, &self.example_identities);
-        push_len(&mut bytes, self.present_modalities.len());
-        for modality in &self.present_modalities {
-            push_text(&mut bytes, modality);
+        let example_count = self.example_identities_iter().count();
+        push_len(&mut bytes, example_count);
+        for identity in self.example_identities_iter() {
+            bytes.extend_from_slice(identity);
+        }
+        push_len(&mut bytes, self.present_modalities.get().len());
+        for modality in self.present_modalities.get() {
+            push_text(&mut bytes, modality.get());
         }
         bytes.extend_from_slice(&self.encoded_bytes.to_le_bytes());
         bytes.push(match self.order {
@@ -163,8 +167,8 @@ impl TrainingCheckpointReceipt {
 fn push_metrics(output: &mut Vec<u8>, values: &[crate::TrainingMetric]) {
     push_len(output, values.len());
     for value in values {
-        push_text(output, &value.output_identity);
-        output.extend_from_slice(&value.value_millionths.to_le_bytes());
+        push_text(output, value.output_identity().get());
+        output.extend_from_slice(&value.value_millionths().to_le_bytes());
     }
 }
 
@@ -215,13 +219,6 @@ fn push_optional_digest(output: &mut Vec<u8>, value: Option<[u8; 32]>) {
     }
 }
 
-fn push_digests(output: &mut Vec<u8>, values: &[[u8; 32]]) {
-    push_len(output, values.len());
-    for value in values {
-        output.extend_from_slice(value);
-    }
-}
-
 fn push_len(output: &mut Vec<u8>, value: usize) {
     output.extend_from_slice(&(value as u16).to_le_bytes());
 }
@@ -235,7 +232,7 @@ fn push_text(output: &mut Vec<u8>, value: &str) {
 mod tests {
     use super::*;
     use crate::MissingModality;
-    use conduit_form::rust_binding::BoundedSequence;
+    use conduit_plot::rust_binding::BoundedSequence;
 
     #[test]
     fn missing_modality_policy_retains_the_v1_manual_digest_bytes() {

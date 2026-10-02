@@ -1,0 +1,9 @@
+[package]
+name = "patchbay-workbench-host-contract"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../../architecture/core" }
+conduit-plot = { path = "../../../../architecture/plot" }
+conduit-kernel = { path = "../../../../architecture/kernel", features = ["alloc"] }

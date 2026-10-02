@@ -11,14 +11,10 @@ struct HistoryManifest {
 #[derive(Deserialize)]
 struct HistoryProgram {
     fixture: String,
-    entry: String,
-    source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
 }
 
 #[test]
-fn conduit_inspect_reports_locked_v1_identities() {
+fn conduit_inspect_refuses_archived_executable_form_syntax() {
     let manifest: HistoryManifest = serde_json::from_str(MANIFEST).unwrap();
     let fixture_root =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/v1-history");
@@ -30,28 +26,10 @@ fn conduit_inspect_reports_locked_v1_identities() {
             .output()
             .unwrap();
         assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
+            !output.status.success(),
+            "archived syntax must not become a compatibility alias"
         );
-        let rendered = String::from_utf8(output.stdout).unwrap();
-        let fields = rendered
-            .lines()
-            .filter_map(|line| line.split_once(' '))
-            .collect::<std::collections::BTreeMap<_, _>>();
-
-        assert_eq!(fields.get("Form"), Some(&expected.entry.as_str()));
-        assert_eq!(
-            fields.get("source"),
-            Some(&expected.source_document_id.as_str())
-        );
-        assert_eq!(
-            fields.get("checked"),
-            Some(&expected.checked_form_id.as_str())
-        );
-        assert_eq!(
-            fields.get("expanded"),
-            Some(&expected.expanded_form_id.as_str())
-        );
+        let diagnostic = String::from_utf8(output.stderr).unwrap();
+        assert!(diagnostic.contains("CND-FRM-019"), "{diagnostic}");
     }
 }

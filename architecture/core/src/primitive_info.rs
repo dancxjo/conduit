@@ -4,8 +4,8 @@
 //! Domain-owned leaves remain the responsibility of their semantic owners.
 
 use crate::{
-    InfoBool, InfoDecodeError, Quantity, QuantityDecodeRefusal, QuantityDimension, Scalar,
-    TerminalInfo, TerminalInfoDecodeRefusal,
+    InfoBool, InfoDecodeError, Quantity, QuantityDecodeRefusal, QuantityDimension, QuantityUnit,
+    Scalar, TerminalInfo, TerminalInfoDecodeRefusal,
 };
 
 pub const UNIT_INFO_ID: &str = "value/unit";
@@ -28,6 +28,7 @@ pub enum PrimitiveInfoKind {
     Text,
     Bytes,
     Quantity,
+    QuantityUnit,
     Distance,
     Frequency,
     Duration,
@@ -60,6 +61,7 @@ pub enum PrimitiveInfoRefusal {
     Scalar(InfoDecodeError),
     TextUtf8,
     Quantity(QuantityDecodeRefusal),
+    QuantityUnit(QuantityDecodeRefusal),
     Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
         expected: QuantityDimension,
@@ -86,6 +88,7 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/text" => Some(PrimitiveInfoKind::Text),
         b"value/bytes" => Some(PrimitiveInfoKind::Bytes),
         b"value/quantity" => Some(PrimitiveInfoKind::Quantity),
+        b"value/quantity-unit" => Some(PrimitiveInfoKind::QuantityUnit),
         b"value/distance" => Some(PrimitiveInfoKind::Distance),
         b"value/frequency" => Some(PrimitiveInfoKind::Frequency),
         b"value/duration" => Some(PrimitiveInfoKind::Duration),
@@ -145,6 +148,9 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Quantity) => Quantity::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Quantity),
+        Some(PrimitiveInfoKind::QuantityUnit) => QuantityUnit::decode(encoded)
+            .map(|_| ())
+            .map_err(PrimitiveInfoRefusal::QuantityUnit),
         Some(
             PrimitiveInfoKind::Distance
             | PrimitiveInfoKind::Frequency

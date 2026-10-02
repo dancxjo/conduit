@@ -1,24 +1,24 @@
 ---
-page: form-basics
+page: plot-basics
 journey: conduit-tour
 route: one-program-many-computers
-companion: form-laboratory
-stage: canonical-form:meet-one-gear|run
-stage: canonical-form:edit-one-gear|run
-stage: canonical-form:branch-a-cord|run
+companion: plot-laboratory
+stage: canonical-plot:meet-one-gear|run
+stage: canonical-plot:edit-one-gear|run
+stage: canonical-plot:branch-a-cord|run
 ---
 # One Program, Many Computers
 
-Conduit lets you make **one logical computer — a body — from one or many physical or virtual computers**. One body might be a single multicore machine; another might combine a browser, laptop, VM, and microcontroller. The point of this chapter is smaller: build one form you can run and read.
+Conduit lets you make **one logical computer — a body — from one or many physical or virtual computers**. One body might be a single multicore machine; another might combine a browser, laptop, VM, and microcontroller. The point of this chapter is smaller: build one plot you can run and read.
 
-## gear, port, cord, form
+## gear, port, cord, plot
 
-A **form** is a program made from connected **gears**. Each gear has typed directional **ports**, and each **cord** names one exact connection between an output port and an input port.
+A **plot** is a program made from connected **gears**. Each gear has typed directional **ports**, and each **cord** names one exact connection between an output port and an input port.
 
-Start with one tiny form:
+Start with one tiny plot:
 
 ```conduit run
-form meet-one-gear {
+plot meet-one-gear {
     words: text/literal("hello")
     change: text/upper
     result: presentation/text
@@ -27,14 +27,14 @@ form meet-one-gear {
 }.
 ```
 
-Run it, then inspect the graph. The source and the Patchbay show the same form from different views. The Patchbay **projects** checked form truth; it is not the form itself.
+Run it, then inspect the graph. The source and the Patchbay show the same plot from different views. The Patchbay **projects** checked plot truth; it is not the plot itself.
 
 ## Edit one gear without rewriting its neighbors
 
-Because the surrounding cords and ports stay compatible, you can change one gear and keep the rest of the form intact.
+Because the surrounding cords and ports stay compatible, you can change one gear and keep the rest of the plot intact.
 
 ```conduit run
-form edit-one-gear {
+plot edit-one-gear {
     words: text/literal("make this loud")
     change: text/upper
     result: presentation/text
@@ -48,7 +48,7 @@ form edit-one-gear {
 Fan-out is explicit: one output port can feed multiple downstream inputs when each cord is named.
 
 ```conduit run
-form branch-a-cord {
+plot branch-a-cord {
     source: text/literal("sos")
     loud: text/upper
     show: presentation/text
@@ -60,4 +60,4 @@ form branch-a-cord {
 }
 ```
 
-If you try an incompatible connection, the refusal is local and typed: this form fails admission before play, and nearby forms are unaffected.
+If you try an incompatible connection, the refusal is local and typed: this plot fails admission before play, and nearby plots are unaffected.

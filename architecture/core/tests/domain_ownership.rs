@@ -11,7 +11,7 @@ fn core_has_no_upward_domain_or_application_dependencies() {
         "conduit-time",
         "conduit-web",
         "semantics/",
-        "forms/",
+        "plots/",
         "products/",
         "bodies/",
         "targets/",

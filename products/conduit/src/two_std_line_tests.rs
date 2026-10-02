@@ -1,5 +1,5 @@
 use crate::{
-    form_source,
+    plot_source,
     product_execution::{ProductExecutionContext, ProductRuntime},
     std_websocket_line as two_std_line,
 };
@@ -9,9 +9,9 @@ use conduit_std_host::{StdHost, StdHostConfig};
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 use std::{collections::BTreeMap, path::PathBuf};
 
-fn form() -> conduit_form::ExpandedCanonicalForm {
-    form_source::load(
-        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../forms/signal-demo/main.conduit"),
+fn plot() -> conduit_plot::ExpandedCanonicalPlot {
+    plot_source::load(
+        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../plots/signal-demo/main.conduit"),
     )
     .unwrap()
     .expand_entry()
@@ -21,7 +21,7 @@ fn form() -> conduit_form::ExpandedCanonicalForm {
 fn planned() -> (ProductExecutionContext, conduit_core::Plan) {
     let context = two_std_line::context().unwrap();
     let plan = context
-        .plan_with_placements(&form(), &two_std_line::placements(&form()).unwrap())
+        .plan_with_placements(&plot(), &two_std_line::placements(&plot()).unwrap())
         .unwrap();
     (context, plan)
 }
@@ -48,7 +48,7 @@ fn binding(plan: &conduit_core::Plan) -> SessionBinding {
 
 #[test]
 fn body_line_executor_runs_two_std_kernels_over_exact_line() {
-    let source = include_str!("../../../forms/signal-demo/main.conduit").to_ascii_lowercase();
+    let source = include_str!("../../../plots/signal-demo/main.conduit").to_ascii_lowercase();
     for forbidden in [
         "host",
         "boot",
@@ -57,7 +57,7 @@ fn body_line_executor_runs_two_std_kernels_over_exact_line() {
         "process",
         "transport",
     ] {
-        assert!(!source.contains(forbidden), "Form contains {forbidden}");
+        assert!(!source.contains(forbidden), "Plot contains {forbidden}");
     }
     let (_, plan) = planned();
     let selected_line = plan.fragments[0].connections[0]
@@ -102,7 +102,7 @@ fn wrong_boot_and_missing_peer_truth_refuse_planning() {
     )
     .unwrap();
     assert!(context
-        .plan_with_placements(&form(), &two_std_line::placements(&form()).unwrap())
+        .plan_with_placements(&plot(), &two_std_line::placements(&plot()).unwrap())
         .is_err());
 
     let source = two_std_line::host(two_std_line::SOURCE_HOST);
@@ -118,7 +118,7 @@ fn wrong_boot_and_missing_peer_truth_refuse_planning() {
     )
     .unwrap();
     assert!(absent
-        .plan_with_placements(&form(), &two_std_line::placements(&form()).unwrap())
+        .plan_with_placements(&plot(), &two_std_line::placements(&plot()).unwrap())
         .is_err());
 }
 
@@ -182,7 +182,7 @@ fn old_plan_refuses_after_current_host_truth_changes() {
 }
 
 #[test]
-fn alternate_legal_placement_preserves_all_form_identities() {
+fn alternate_legal_placement_preserves_all_plot_identities() {
     let (_, remote) = planned();
     let source = two_std_line::host(two_std_line::SOURCE_HOST);
     let sink = two_std_line::host(two_std_line::SINK_HOST);
@@ -218,8 +218,8 @@ fn alternate_legal_placement_preserves_all_form_identities() {
             ),
         ]),
     };
-    let local = context.plan_with_placements(&form(), &local).unwrap();
+    let local = context.plan_with_placements(&plot(), &local).unwrap();
     assert_eq!(remote.source_document_id, local.source_document_id);
-    assert_eq!(remote.checked_form_id, local.checked_form_id);
-    assert_eq!(remote.expanded_form_id, local.expanded_form_id);
+    assert_eq!(remote.checked_plot_id, local.checked_plot_id);
+    assert_eq!(remote.expanded_plot_id, local.expanded_plot_id);
 }

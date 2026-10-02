@@ -186,7 +186,7 @@ fn validate_candidates(
     let subject = &candidates[0].plan;
     if candidates.iter().any(|candidate| {
         candidate.plan.source_document_id != subject.source_document_id
-            || candidate.plan.checked_form_id != subject.checked_form_id
+            || candidate.plan.checked_plot_id != subject.checked_plot_id
             || matches!(
                 &candidate.disposition,
                 SurvivalCandidateDisposition::ReviewedDegraded {

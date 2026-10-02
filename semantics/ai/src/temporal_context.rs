@@ -1,50 +1,11 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, TemporalScale};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    EntityBoundary, TemporalContextRefusal, TemporalSource, TemporalValidity,
-    TemporalWindowRelation, TransitionDirection,
+    ClockBasis, TemporalContextRefusal, TemporalProvenance, TemporalReference,
+    TemporalRetrievalIntent, TemporalSource, TemporalValidity, TemporalWindowRelation,
 };
-
-pub const MAXIMUM_CLOCK_IDENTITY_BYTES: usize = 128;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ClockBasis {
-    UnixEpochMilliseconds,
-    MonotonicMilliseconds { identity: String },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalReference {
-    pub reference_at: u64,
-    pub clock_basis: ClockBasis,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalProvenance {
-    pub event_at: Option<u64>,
-    pub valid_from: Option<u64>,
-    pub valid_until: Option<u64>,
-    pub observed_at: Option<u64>,
-    pub recorded_at: Option<u64>,
-    pub ingested_at: Option<u64>,
-    pub retrieved_at: u64,
-    pub reference_at: u64,
-    pub clock_basis: ClockBasis,
-    pub uncertainty_millis: Option<u64>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalRetrievalIntent {
-    EarliestEvidence,
-    LatestEvidence,
-    StateValidAt { instant: u64 },
-    Transition { direction: TransitionDirection },
-    DurationSince { boundary: EntityBoundary },
-    EventOrdering,
-    EvidenceWithin { start: u64, end: u64 },
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalContext {
@@ -56,7 +17,6 @@ pub struct TemporalContext {
 
 impl TemporalProvenance {
     pub fn validate(&self) -> Result<(), TemporalContextRefusal> {
-        validate_clock_basis(&self.clock_basis)?;
         if self
             .valid_from
             .zip(self.valid_until)
@@ -163,26 +123,14 @@ impl TemporalProvenance {
 
 impl TemporalReference {
     pub fn validate(&self) -> Result<(), TemporalContextRefusal> {
-        validate_clock_basis(&self.clock_basis)
+        Ok(())
     }
-}
-
-fn validate_clock_basis(clock_basis: &ClockBasis) -> Result<(), TemporalContextRefusal> {
-    if let ClockBasis::MonotonicMilliseconds { identity } = clock_basis {
-        if identity.is_empty() {
-            return Err(TemporalContextRefusal::EmptyClockIdentity);
-        }
-        if identity.len() > MAXIMUM_CLOCK_IDENTITY_BYTES {
-            return Err(TemporalContextRefusal::ClockIdentityTooLarge);
-        }
-    }
-    Ok(())
 }
 
 fn canonical_clock_basis(clock_basis: &ClockBasis) -> String {
     match clock_basis {
         ClockBasis::UnixEpochMilliseconds => String::from(conduit_core::UNIX_UTC_CLOCK_BASIS),
-        ClockBasis::MonotonicMilliseconds { identity } => identity.clone(),
+        ClockBasis::MonotonicMilliseconds(value) => value.identity().get().as_str().to_string(),
     }
 }
 
@@ -197,8 +145,8 @@ fn map_relation_error(error: TemporalRelationError) -> TemporalContextRefusal {
 
 impl TemporalRetrievalIntent {
     pub fn validate(&self) -> Result<(), TemporalContextRefusal> {
-        if let Self::EvidenceWithin { start, end } = self {
-            if start > end {
+        if let Self::EvidenceWithin(payload) = self {
+            if payload.window().start() > payload.window().end() {
                 return Err(TemporalContextRefusal::ReversedQueryWindow);
             }
         }

@@ -186,7 +186,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "target/conduitos/x86_64/observatory-snapshot.json",
         ],
         allowed_claims: &[
-            "a reproducible pinned-Limine image boots in QEMU, one ordinary form executes through the production conduit-kernel, and the host exports bounded ordinary Observatory truth consumed by native Patchbay with sealed boot provenance",
+            "a reproducible pinned-Limine image boots in QEMU, one ordinary plot executes through the production conduit-kernel, and the host exports bounded ordinary Observatory truth consumed by native Patchbay with sealed boot provenance",
         ],
     },
     ProofCommandContract {
@@ -225,12 +225,12 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         required_tools_or_targets: &["cargo", "wasm32-unknown-unknown", "playwright", "chromium"],
         named_artifacts: &[
             "target/debug/patchbay-native",
-            "target/debug/patchbay-html",
+            "target/debug/conduit-browser-patchbay-workbench",
             "proof/browser/conduit_browser_runtime.wasm",
             "target/conduit-evidence/patchbay-front-door/manifest.json",
         ],
         allowed_claims: &[
-            "one world-first Patchbay semantic entrance executes Form to Plan to Play, retains a bounded exact-identity Program-to-Body navigation receipt, and observes live browser membership change without mutating an existing Plan",
+            "one world-first Patchbay semantic entrance executes Plot to Plan to Play, retains a bounded exact-identity Program-to-Body navigation receipt, and observes live browser membership change without mutating an existing Plan",
         ],
     },
     ProofCommandContract {
@@ -411,7 +411,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "target/ollama-planning-advice-live.json",
             "target/ollama-embodiment-live.json",
         ],
-        allowed_claims: &["three exact forms give the same local model distinct graph-defined perception, expression, and narrowly authorized effect power; ordinary proposal admission and runtime Signs remain separate from model output"],
+        allowed_claims: &["three exact plots give the same local model distinct graph-defined perception, expression, and narrowly authorized effect power; ordinary proposal admission and runtime Signs remain separate from model output"],
     },
     ProofCommandContract {
         id: "llm.planning-advice-live",

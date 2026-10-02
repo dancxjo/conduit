@@ -26,7 +26,7 @@ pub enum ReplayOperationRefusal {
 }
 
 /// A reusable semantic operation over the exact value contracts named by the
-/// replay-control Form. All storage remains caller-owned and bounded.
+/// replay-control Plot. All storage remains caller-owned and bounded.
 pub struct BoundedReplayOperation {
     policy: ReplayPolicy,
     maximum_duration_seconds: u64,

@@ -1,5 +1,5 @@
 use conduit_core::InfoDecodeError;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{
     OdometryObservation, MAXIMUM_ODOMETRY_MM, PI_MICRORADIANS, ROBOTICS_ODOMETRY_ENCODED_LEN,
 };

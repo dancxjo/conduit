@@ -9,14 +9,14 @@ depends on semantic, application, target, or proof packages.
 
 | Module | Classification | Core responsibility |
 |---|---|---|
-| `lib.rs` | universal architecture | Exact identity types and the generic form/host/boot/plan/play/line/sign records shared by the architecture. It is the crate facade, not a domain attic. |
+| `lib.rs` | universal architecture | Exact identity types and the generic plot/host/boot/plan/play/line/sign records shared by the architecture. It is the crate facade, not a domain attic. |
 | `base_registry.rs` | universal architecture | Bounded thin-host truth for exact base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private base capability possession, exact per-play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
 | `capability_offer.rs` | universal architecture | Generic bounded host capability offers, realization limits, and exact implementation, operation, resource, and authority requirements. |
 | `consequential_effect.rs` | universal architecture | Generic attended last-mile gating for bounded consequential physical effects, including exact resource generation, safety readiness, one-shot authority, uncertain outcomes, and safe disposition. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, base, and observation characteristics. |
-| `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked form meaning into plan and fragment identity. |
-| `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked forms and plans. |
+| `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked plot meaning into plan and fragment identity. |
+| `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked plots and plans. |
 | `control_loop.rs` | universal architecture | Generic plan satisfaction, recovery, and replan decisions over current truth. |
 | `execution.rs` | universal architecture | Generic execution-region and admitted execution-profile records. |
 | `execution_fusion.rs` | universal architecture | Exact optional fusion of ordinary planned placements without a second executor. |
@@ -25,7 +25,7 @@ depends on semantic, application, target, or proof packages.
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `activation_contract.rs` | universal architecture | Exact bounded each, select, and fold coordinator contracts, including finite total item bounds and terminal laws. |
 | `plan_fingerprint.rs` | universal architecture | Canonical fragment and plan commitment encoding; preserves immutable realization identity. |
-| `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded form and plan. |
+| `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |
 | `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, effect multiplicity, terminal and cancellation laws, and per-activation Sign storage. |
 | `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |
 | `port.rs` | universal architecture | Typed port direction and temporal shape. |
@@ -80,7 +80,7 @@ in this crate.
 | Human interaction, permission-gated media, keyboard events, chords, and keymaps | `semantics/human` |
 | JSON value and canonical codec semantics | `semantics/web` |
 | Robotics observations and hazard/input values | `semantics/robotics` |
-| Patchbay actions and control requests | `products/patchbay/control` |
+| Patchbay actions and control requests | `plots/patchbay` |
 
 These moves preserve their existing IDs and encodings. There are deliberately
 no compatibility re-exports from `conduit-core`; callers import the owner that

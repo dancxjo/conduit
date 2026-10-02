@@ -1,7 +1,7 @@
 //! Finite host-neutral linguistic Info.
 
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
-use conduit_form::rust_binding::record_field_type;
+use conduit_plot::rust_binding::record_field_type;
 
 pub const TEXT_SPAN_TYPE: &str = "TextSpan";
 pub const LINGUISTIC_TOKEN_TYPE: &str = "LinguisticToken";
@@ -23,7 +23,7 @@ pub enum LinguisticRefusal {
     WrongTokenCount { expected: u16, actual: usize },
     MalformedInfo,
     Structured(StructuredInfoRefusal),
-    NativeBinding(conduit_form::rust_binding::NativeBindingRefusal),
+    NativeBinding(conduit_plot::rust_binding::NativeBindingRefusal),
 }
 
 impl From<StructuredInfoRefusal> for LinguisticRefusal {
@@ -32,8 +32,8 @@ impl From<StructuredInfoRefusal> for LinguisticRefusal {
     }
 }
 
-impl From<conduit_form::rust_binding::NativeBindingRefusal> for LinguisticRefusal {
-    fn from(value: conduit_form::rust_binding::NativeBindingRefusal) -> Self {
+impl From<conduit_plot::rust_binding::NativeBindingRefusal> for LinguisticRefusal {
+    fn from(value: conduit_plot::rust_binding::NativeBindingRefusal) -> Self {
         Self::NativeBinding(value)
     }
 }

@@ -1,14 +1,13 @@
 use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 use conduit_data::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 
 fn profile(policy: FullWindowPolicy) -> MeasurementWindowProfile {
     MeasurementWindowProfile {
         capacity: 3,
-        unit: QuantityUnit::Millivolt,
         range: MeasurementRange {
             minimum: Quantity::new(-2_000, QuantityUnit::Millivolt),
             maximum: Quantity::new(2_000, QuantityUnit::Millivolt),
@@ -27,7 +26,9 @@ fn sample(value: i64, ticks: u64) -> MeasurementSample {
             clock_basis: "sensor-clock".into(),
             resolution_ticks: 1,
             uncertainty_ticks: 0,
-        },
+        }
+        .try_into()
+        .unwrap(),
         uncertainty: Some(Quantity::new(2, QuantityUnit::Millivolt)),
     }
 }
@@ -111,7 +112,7 @@ fn unit_range_clock_and_timestamp_refusals_stay_distinct() {
 }
 
 #[test]
-fn reusable_window_has_an_exact_checked_form_contract() {
+fn reusable_window_has_an_exact_checked_plot_contract() {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
     install_measurement_window_catalog(&mut startup, &mut catalog).unwrap();
@@ -123,10 +124,10 @@ fn reusable_window_has_an_exact_checked_form_contract() {
         &mut catalog,
     )
     .unwrap();
-    let source = include_str!("../../../forms/little-seismograph/main.conduit");
+    let source = include_str!("../../../plots/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "measurement-window", &catalog).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "measurement-window", &catalog).unwrap();
     let gear = &authored.expanded.gears[0];
     assert_eq!(gear.kind_id.as_str(), MEASUREMENT_COUNT_WINDOW_KIND);
     assert_eq!(
@@ -164,7 +165,7 @@ fn reusable_window_has_an_exact_checked_form_contract() {
 #[test]
 fn capacity_and_profile_ranges_refuse_before_storage_exists() {
     let mut invalid = profile(FullWindowPolicy::Reject);
-    invalid.capacity = MAXIMUM_MEASUREMENT_WINDOW_SAMPLES + 1;
+    invalid.capacity = u8::try_from(MAXIMUM_MEASUREMENT_WINDOW_SAMPLES + 1).unwrap();
     assert_eq!(
         BoundedMeasurementWindow::new(invalid),
         Err(MeasurementWindowRefusal::CapacityOutOfBounds)

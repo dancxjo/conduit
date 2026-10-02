@@ -1,15 +1,15 @@
 use super::*;
 use crate::{RunControl, RunControlRequestId};
 
-const CLEAR_FORM: &str = "form prewake_drive {\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n intent.linear >> drive.linear\n intent.angular >> drive.angular\n}\n";
+const CLEAR_FORM: &str = "plot prewake_drive {\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n intent.linear >> drive.linear\n intent.angular >> drive.angular\n}\n";
 
 fn plan(source: &str, id: &str) -> (StdHost, conduit_core::PlanFragment) {
     let host = host(id);
-    let form = parse(source, &installed_std::test_catalog()).expect("robot safety Form checks");
+    let plot = parse(source, &installed_std::test_catalog()).expect("robot safety Plot checks");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("robot placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("robot placements resolve");
     let fragment = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -23,7 +23,7 @@ fn plan(source: &str, id: &str) -> (StdHost, conduit_core::PlanFragment) {
             line_offers: &[],
         },
     )
-    .expect("robot safety Form plans with capacity-one Cords")
+    .expect("robot safety Plot plans with capacity-one Cords")
     .fragments
     .remove(0);
     (host, fragment)
@@ -37,7 +37,7 @@ fn run(source: &str, id: &str) -> (crate::StdRunReport, String, conduit_core::Pl
     };
     let report = host
         .run_fragment_to(fragment.clone(), &mut output, &mut timer)
-        .expect("robot safety Form executes through the production kernel");
+        .expect("robot safety Plot executes through the production kernel");
     assert!(timer.waits.is_empty());
     (
         report,
@@ -88,8 +88,8 @@ fn portable_drive_meaning_has_one_effect_free_prewake_projection() {
 
 #[test]
 fn every_robotics_observation_contract_plans_with_distinct_exact_info() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
     let infos = conduit_semantic_catalog::supported_nucleus_contracts()
         .into_iter()
@@ -111,12 +111,12 @@ fn every_robotics_observation_contract_plans_with_distinct_exact_info() {
 #[test]
 fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     let missing_source = CLEAR_FORM.replace(
-        "form prewake_drive {",
-        "form prewake_drive {\n bump: robotics/observe-bump(availability = \"missing\")",
+        "plot prewake_drive {",
+        "plot prewake_drive {\n bump: robotics/observe-bump(availability = \"missing\")",
     );
     let stale_source = CLEAR_FORM.replace(
-        "form prewake_drive {",
-        "form prewake_drive {\n bump: robotics/observe-bump(availability = \"stale\")",
+        "plot prewake_drive {",
+        "plot prewake_drive {\n bump: robotics/observe-bump(availability = \"stale\")",
     );
     let missing = run_failure(&missing_source, "robot-missing");
     let stale = run_failure(&stale_source, "robot-stale");
@@ -125,11 +125,11 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     assert!(stale.contains("BackFailed(Failure { code: InvalidInput, detail: 41 })"));
 
     for source in [
-        "form invalid {\n range: robotics/observe-range(distance = 1000001mm)\n}\n",
-        "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
-        "form invalid {\n odometry: robotics/observe-odometry(yaw-microradians = 3141594)\n}\n",
-        "form invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",
-        "form invalid {\n drive: robotics/drive-differential(ttl-ms = 9)\n}\n",
+        "plot invalid {\n range: robotics/observe-range(distance = 1000001mm)\n}\n",
+        "plot invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
+        "plot invalid {\n odometry: robotics/observe-odometry(yaw-microradians = 3141594)\n}\n",
+        "plot invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",
+        "plot invalid {\n drive: robotics/drive-differential(ttl-ms = 9)\n}\n",
     ] {
         assert!(parse(source, &installed_std::test_catalog()).is_err());
     }
@@ -177,11 +177,11 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     );
 
     let baseline = host("robot-pressure");
-    let form = parse(CLEAR_FORM, &installed_std::test_catalog()).unwrap();
+    let plot = parse(CLEAR_FORM, &installed_std::test_catalog()).unwrap();
     let hosts = [baseline.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).unwrap();
+    let placements = default_placements(&plot, &hosts).unwrap();
     assert!(plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

@@ -45,7 +45,7 @@ Run `cargo xtask check confined-gear`. The suite executes the production
 engine/import provider with pure and effectful modules and hostile fixtures for
 forbidden and undeclared imports, wrong digest, growable memory, fuel
 exhaustion, host-call flooding, forged slots, sibling resources, revoked
-capabilities, and malformed guest ranges. forms remain semantic documents and
+capabilities, and malformed guest ranges. plots remain semantic documents and
 contain no WebAssembly, runtime, ABI, import, digest, or capability-slot facts.
 
 There is no WASI preopen, general host adapter, base registry access, network or

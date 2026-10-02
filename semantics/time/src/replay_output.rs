@@ -2,13 +2,13 @@
 
 use alloc::string::String;
 use conduit_core::{
-    BoundedResourceRef, TemporalInstant, TemporalScale, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES,
-    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    BoundedResourceRef, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 use crate::{
-    HistoricalEntryOrigin, HistoricalEntryOriginCode, ReplayEmission, ReplayState,
-    MAXIMUM_REPLAY_ENTRIES, MAXIMUM_REPLAY_IDENTITY_BYTES,
+    HistoricalEntryOrigin, HistoricalEntryOriginForm, OwnedReplayEvent, ReplayEmission,
+    ReplayState, TemporalInstant, TemporalScale, MAXIMUM_REPLAY_ENTRIES,
+    MAXIMUM_REPLAY_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_REPLAY_EVENT_BYTES: usize = 55
@@ -20,17 +20,6 @@ pub const MAXIMUM_REPLAY_STATE_BYTES: usize = 8;
 const EVENT_MAGIC: [u8; 4] = *b"REVT";
 const STATE_MAGIC: [u8; 4] = *b"RSTA";
 const VERSION: u8 = 1;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OwnedReplayEvent {
-    pub ordinal: usize,
-    pub historical_sequence: u64,
-    pub historical_identity: String,
-    pub historical_event_time: TemporalInstant,
-    pub historical_origin: HistoricalEntryOrigin,
-    pub value: BoundedResourceRef,
-    pub playback_ticks: u64,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ReplayOutputCodecRefusal {
@@ -169,7 +158,7 @@ pub fn decode_replay_event(encoded: &[u8]) -> Result<OwnedReplayEvent, ReplayOut
         .validate()
         .map_err(|_| ReplayOutputCodecRefusal::InvalidHistoricalTime)?;
     Ok(OwnedReplayEvent {
-        ordinal,
+        ordinal: ordinal as u16,
         historical_sequence,
         historical_identity: String::from(historical_identity),
         historical_event_time,
@@ -311,11 +300,11 @@ fn encode_scale(scale: TemporalScale) -> u8 {
 }
 
 fn encode_origin(origin: HistoricalEntryOrigin) -> u8 {
-    HistoricalEntryOriginCode::encode(origin)[0]
+    HistoricalEntryOriginForm::encode(origin)[0]
 }
 
 fn decode_origin(value: u8) -> Result<HistoricalEntryOrigin, ReplayOutputCodecRefusal> {
-    HistoricalEntryOriginCode::decode(&[value]).map_err(|_| ReplayOutputCodecRefusal::UnknownOrigin)
+    HistoricalEntryOriginForm::decode(&[value]).map_err(|_| ReplayOutputCodecRefusal::UnknownOrigin)
 }
 
 fn decode_scale(value: u8) -> Result<TemporalScale, ReplayOutputCodecRefusal> {

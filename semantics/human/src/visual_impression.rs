@@ -1,11 +1,15 @@
-//! A bounded model-derived interpretation of an exact image generation.
+//! A validated construction view of a model-derived image interpretation.
+//!
+//! The portable `VisualImpression` is owned by Presentation Conduitese. This
+//! Human view retains core execution identities while an observation is being
+//! assembled and is converted exactly by the Catalog bridge (class C).
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{KindId, SignId};
 
 use crate::{
     ImageObservationReference, VisualEvidenceClass, VisualImpressionDisposition,
-    VisualObservationProvenance, VisualObservationRefusal, MAXIMUM_VISUAL_IDENTITY_BYTES,
+    VisualImpressionRefusal, VisualObservationProvenance, MAXIMUM_VISUAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_VISUAL_IMPRESSION_BYTES: usize = 1_024;
@@ -56,20 +60,6 @@ impl VisualImpression {
             .validate()
             .map_err(VisualImpressionRefusal::InvalidProvenance)
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VisualImpressionRefusal {
-    InvalidSourceImage,
-    EmptyText,
-    TextBound,
-    EmptyIdentity,
-    IdentityBound,
-    ObservationRefBound,
-    DuplicateObservationRef,
-    InvalidTruncation,
-    WrongEvidenceClass,
-    InvalidProvenance(VisualObservationRefusal),
 }
 
 fn validate_text(value: &str) -> Result<(), VisualImpressionRefusal> {

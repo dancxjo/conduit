@@ -34,23 +34,23 @@ fn position() -> StructuredSelector {
 }
 fn x() -> StructuredSelector {
     StructuredSelector::field(position().output_type().clone(), "x")
-        .expect("existing Point2 x field")
+        .expect("existing InputSurfacePoint x field")
 }
 fn y() -> StructuredSelector {
     StructuredSelector::field(position().output_type().clone(), "y")
-        .expect("existing Point2 y field")
+        .expect("existing InputSurfacePoint y field")
 }
 
 pub(super) fn install_types(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
-        .insert_structured_type("Point2", position().output_type().clone())
+        .insert_structured_type("Point2", conduit_presentation::point2_type())
         .map_err(debug)?;
     for selector in [position(), x(), y()] {
         profile
-            .insert(conduit_form::structured_selector_definition(
+            .insert(conduit_plot::structured_selector_definition(
                 &selector,
                 PortTemporal::Value,
             ))

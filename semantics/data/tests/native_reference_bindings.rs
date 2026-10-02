@@ -1,11 +1,11 @@
-use conduit_form::rust_binding::{generate_rust_bindings, RustBindingOptions};
+use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
 use std::fs;
 use std::process::Command;
 
 #[test]
 fn generated_reference_bindings_enforce_exact_leaf_contracts() {
     let source = "type Image = Bytes\ntype References = {\n    text: &Text\n    image: &Image\n    resource: ResourceRef\n}\n";
-    let mut catalog = conduit_form::StartupCatalog::new();
+    let mut catalog = conduit_plot::StartupCatalog::new();
     catalog
         .insert_value_kind_alias(
             "ResourceRef",
@@ -13,7 +13,7 @@ fn generated_reference_bindings_enforce_exact_leaf_contracts() {
         )
         .unwrap();
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &catalog)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &catalog)
             .unwrap();
     let generated =
         generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
@@ -64,8 +64,8 @@ fn generated_reference_bindings_enforce_exact_leaf_contracts() {
     fs::write(
         directory.join("Cargo.toml"),
         format!(
-            "[package]\nname = \"generated-reference-proof\"\nversion = \"0.0.0\"\nedition = \"2021\"\n\n[dependencies]\nconduit-form = {{ path = {:?} }}\nconduit-data = {{ path = {:?} }}\n",
-            repository.join("architecture/form"),
+            "[package]\nname = \"generated-reference-proof\"\nversion = \"0.0.0\"\nedition = \"2021\"\n\n[dependencies]\nconduit-plot = {{ path = {:?} }}\nconduit-data = {{ path = {:?} }}\n",
+            repository.join("architecture/plot"),
             repository.join("semantics/data")
         ),
     )

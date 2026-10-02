@@ -1,4 +1,4 @@
-//! Canonical Form catalog for portable messaging semantics.
+//! Canonical Plot catalog for portable messaging semantics.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{
     delivery_request_type, delivery_update_type, messaging_registered_types,
@@ -21,8 +21,8 @@ pub const MESSAGING_DELIVERY_KIND: &str = "messaging/deliver";
 pub const MESSAGING_REVISION: &str = "conduit.std/messaging-delivery@2";
 
 pub fn install_messaging_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in messaging_registered_types() {
         startup
@@ -36,8 +36,8 @@ pub fn install_messaging_catalogs(
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: Kind,
 ) -> Result<(), String> {
     startup

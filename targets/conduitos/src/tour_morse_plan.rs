@@ -1,4 +1,4 @@
-//! Exact preparation of the shared five-Gear fan-out Tour Form.
+//! Exact preparation of the shared five-Gear fan-out Tour Plot.
 
 use alloc::collections::BTreeMap;
 use conduit_core::{ActivePlayIdentity, BaseImplementationId, Plan, PlanId, bind_active_play};
@@ -15,7 +15,7 @@ use crate::{
     tour_morse_kernel::TourMorseKernel,
 };
 
-const FORM_NAME: &str = "branch-a-cord";
+const PLOT_NAME: &str = "branch-a-cord";
 const LITERAL: &str = "sos";
 const CORD_ITEMS: u16 = 1;
 const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
@@ -25,8 +25,8 @@ pub struct PreparedTourMorsePlay {
     pub scratch: crate::tour_morse_play::MorseScratch,
     pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
     pub plan_id: PlanId,
     pub active_play: ActivePlayIdentity,
 }
@@ -37,14 +37,14 @@ pub fn prepare(
     build_id: &str,
 ) -> Result<PreparedTourMorsePlay, PreparationError> {
     let source =
-        conduit_tour_model::tour_stage_source(0, 2).map_err(|_| PreparationError::FormRejected)?;
-    let form = crate::ordinary_form::checked_expanded_text_form_named(&source, FORM_NAME)?;
+        conduit_tour_model::tour_stage_source(0, 2).map_err(|_| PreparationError::PlotRejected)?;
+    let plot = crate::ordinary_plot::checked_expanded_text_plot_named(&source, PLOT_NAME)?;
     let advertisement = crate::ordinary_plan::advertisement(identities, offer, build_id)?;
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(&form, &hosts)
+    let placements = default_expanded_placements(&plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -81,8 +81,8 @@ pub fn prepare(
         kernel,
         scratch,
         source_document_id: plan.source_document_id.clone(),
-        checked_form_id: plan.checked_form_id.clone(),
-        expanded_form_id: plan.expanded_form_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
         plan_id: plan.plan_id.clone(),
         active_play,
         plan,
@@ -95,7 +95,7 @@ mod tests {
     use crate::offer::CpuFeatures;
 
     #[test]
-    fn fanout_form_prepares_exact_native_morse_plan_and_kernel() {
+    fn fanout_plot_prepares_exact_native_morse_plan_and_kernel() {
         let identities = BootIdentities {
             host: [1; 32],
             boot: [2; 32],

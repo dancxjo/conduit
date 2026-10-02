@@ -7,7 +7,7 @@ use conduit_data::{
     materialized_query_outcome, TabularColumnType, TabularPersonRowSlot, TabularQueryOutcomeFour,
     TabularQueryResultFour, TabularQueryStatus,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn finite_person_query_is_owned_by_the_native_tabular_type() {

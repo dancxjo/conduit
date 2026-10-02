@@ -1,43 +1,43 @@
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use conduit_core::semantic_digest;
 
 use super::*;
-use crate::{ModelOperation, ModelPortConstraint, ModelPortPresence, ModelSignature};
+use crate::ModelSignature;
 
 impl ModelRelationSignature {
     pub fn semantic_digest(&self) -> Result<[u8; 32], RelationRefusal> {
         self.validate()?;
-        let variable_signature = ModelSignature {
-            identity: self.identity.clone(),
-            compatibility_version: self.compatibility_version,
-            operations: alloc::vec![ModelOperation::Infer],
-            inputs: self
-                .variables
+        let variable_signature = ModelSignature::inference_only(
+            self.identity.clone(),
+            self.compatibility_version,
+            self.variables
+                .get()
                 .iter()
-                .map(|variable| ModelPortConstraint {
-                    identity: variable.identity.clone(),
-                    semantic_kind: variable.semantic_role.clone(),
-                    presence: ModelPortPresence::Optional,
-                    value: variable.value.clone(),
+                .map(|variable| {
+                    (
+                        variable.identity.get().clone(),
+                        variable.semantic_role.get().clone(),
+                        variable.value.clone(),
+                    )
                 })
                 .collect(),
-            outputs: Vec::new(),
-        };
+        )
+        .map_err(|_| RelationRefusal::InvalidSignature)?;
         let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.callable_signature_identity);
+        bytes.extend_from_slice(self.callable_signature_identity.get());
         bytes.extend_from_slice(
             &variable_signature
                 .semantic_digest()
                 .map_err(|_| RelationRefusal::InvalidSignature)?,
         );
-        bytes.extend_from_slice(&(self.supported_queries.len() as u64).to_le_bytes());
-        for pattern in &self.supported_queries {
-            push_sorted_text(&mut bytes, &pattern.evidence_variables);
-            push_sorted_text(&mut bytes, &pattern.target_variables);
-            bytes.push(mode_tag(pattern.mode));
-            push_profile(&mut bytes, &pattern.result_profile);
-            bytes.extend_from_slice(&pattern.maximum_work_units.to_le_bytes());
-            bytes.extend_from_slice(&pattern.maximum_output_bytes.to_le_bytes());
+        bytes.extend_from_slice(&(self.supported_queries.get().len() as u64).to_le_bytes());
+        for pattern in self.supported_queries.get() {
+            push_sorted_native_text(&mut bytes, pattern.evidence_variables());
+            push_sorted_native_text(&mut bytes, pattern.target_variables());
+            bytes.push(mode_tag(*pattern.mode()));
+            push_profile(&mut bytes, pattern.result_profile());
+            bytes.extend_from_slice(&pattern.maximum_work_units().to_le_bytes());
+            bytes.extend_from_slice(&pattern.maximum_output_bytes().to_le_bytes());
         }
         Ok(semantic_digest("ai/model-relation-signature@1", &bytes))
     }
@@ -46,23 +46,23 @@ impl ModelRelationSignature {
 impl RelationQuery {
     pub fn semantic_digest(&self) -> Result<[u8; 32], RelationRefusal> {
         let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.identity);
-        bytes.extend_from_slice(&self.artifact_identity);
-        match self.checkpoint_identity {
+        bytes.extend_from_slice(self.identity.get());
+        bytes.extend_from_slice(self.artifact_identity.get());
+        match self.checkpoint_identity.as_ref() {
             Some(identity) => {
                 bytes.push(1);
-                bytes.extend_from_slice(&identity);
+                bytes.extend_from_slice(identity.get());
             }
             None => bytes.push(0),
         }
-        bytes.extend_from_slice(&self.relation_signature_identity);
-        let mut evidence = self.evidence.iter().collect::<Vec<_>>();
-        evidence.sort_by(|left, right| left.variable.cmp(&right.variable));
+        bytes.extend_from_slice(self.relation_signature_identity.get());
+        let mut evidence = self.evidence.get().iter().collect::<Vec<_>>();
+        evidence.sort_by(|left, right| left.variable.get().cmp(right.variable.get()));
         for value in evidence {
-            push_text(&mut bytes, &value.variable);
+            push_text(&mut bytes, value.variable.get());
             bytes.extend_from_slice(&value.value.semantic_digest()?);
         }
-        push_sorted_text(&mut bytes, &self.targets);
+        push_sorted_native_text(&mut bytes, &self.targets);
         bytes.push(mode_tag(self.mode));
         push_profile(&mut bytes, &self.requested_result);
         match &self.randomness {
@@ -83,8 +83,12 @@ impl RelationQuery {
     }
 }
 
-fn push_sorted_text(output: &mut Vec<u8>, values: &[String]) {
-    let mut values = values.iter().collect::<Vec<_>>();
+fn push_sorted_native_text(output: &mut Vec<u8>, values: &RelationVariableIdentities) {
+    let mut values = values
+        .get()
+        .iter()
+        .map(RelationVariableIdentity::get)
+        .collect::<Vec<_>>();
     values.sort();
     output.extend_from_slice(&(values.len() as u64).to_le_bytes());
     for value in values {

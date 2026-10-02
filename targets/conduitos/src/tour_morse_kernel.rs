@@ -1,4 +1,4 @@
-//! Fixed-storage kernel installation for the shared explicit fan-out Tour Form.
+//! Fixed-storage kernel installation for the shared explicit fan-out Tour Plot.
 
 use crate::{
     text_kernel_backs::{LiteralBack, LiteralState, PresentationBack, UpperBack},

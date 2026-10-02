@@ -5,12 +5,12 @@ import {
   connectRendezvousHost,
   decodeRendezvousCode,
   openRemoteRendezvousCandidates,
-} from "../../products/workspace/browser/creche-rendezvous.mjs";
-import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/workspace/browser/rendezvous-cbor.mjs";
+} from "../../targets/browser/workspace/creche-rendezvous.mjs";
+import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../targets/browser/workspace/rendezvous-cbor.mjs";
 import {
   adaptBrowserDataChannelLine,
   adaptProtectedRelayLine,
-} from "../../products/workspace/browser/rendezvous-candidate-schedule.mjs";
+} from "../../targets/browser/workspace/rendezvous-candidate-schedule.mjs";
 
 test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();
@@ -380,7 +380,7 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
     wake_sequence: 1,
     basis: { body_id: "body/retained", wake_id: "wake/retained/1", wake_sequence: 1, revision: 4 },
     hosts: [{ host_id: "host/test", present: true }],
-    active_forms: ["source/live-conversation"],
+    active_plots: ["source/live-conversation"],
     current_plan_id: "plan/retained",
     active_play_id: null,
     lines: [],

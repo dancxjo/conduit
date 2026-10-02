@@ -6,9 +6,9 @@ use crate::{
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use std::collections::VecDeque;
 
-const FORM: &str = "form contact_sample {\n contact: robotics/observe-contact\n}\n";
-const BEACON_FORM: &str = "form beacon_sample {\n beacon: robotics/observe-beacon\n}\n";
-const ODOMETRY_FORM: &str = "form odometry_sample {\n odometry: robotics/observe-odometry\n}\n";
+const PLOT: &str = "plot contact_sample {\n contact: robotics/observe-contact\n}\n";
+const BEACON_FORM: &str = "plot beacon_sample {\n beacon: robotics/observe-beacon\n}\n";
+const ODOMETRY_FORM: &str = "plot odometry_sample {\n odometry: robotics/observe-odometry\n}\n";
 
 struct Provider {
     available: bool,
@@ -48,11 +48,11 @@ fn evidence() -> CreateObservationEvidence {
     }
 }
 
-fn plan_for(source: &str, form_name: &str) -> Plan {
+fn plan_for(source: &str, plot_name: &str) -> Plan {
     let (startup, profile) = crate::catalogs().unwrap();
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, form_name, &profile).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, plot_name, &profile).unwrap();
     let host = live_create_observation_advertisement(&evidence(), 100).unwrap();
     let placements =
         conduit_planner::default_expanded_placements(&expanded, std::slice::from_ref(&host))
@@ -67,7 +67,7 @@ fn plan_for(source: &str, form_name: &str) -> Plan {
 }
 
 fn plan() -> Plan {
-    plan_for(FORM, "contact_sample")
+    plan_for(PLOT, "contact_sample")
 }
 
 fn frame(contact: u8, include_virtual_wall: bool) -> Vec<u8> {

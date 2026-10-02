@@ -5,7 +5,7 @@ use super::SpokenMaskExecution;
 pub struct SpokenMaskRouteSet {
     pub wake: conduit_body::Wake,
     pub body_plan: conduit_body::BodyPlan,
-    pub routes: conduit_presentation::AdmittedMaskFormRoutes,
+    pub routes: conduit_presentation::AdmittedMaskPlotRoutes,
 }
 
 pub fn admit_spoken_mask_routes(
@@ -43,30 +43,30 @@ fn admit_spoken_mask_routes_for_wake(
     existing_wake: Option<&conduit_body::Wake>,
 ) -> Result<SpokenMaskRouteSet, String> {
     use conduit_body::{
-        Body, BodyFaceSelector, BodyFormPlan, BodyMaskChainPlan, BodyMaskTopology, BodyWorkset,
-        ResidentForm,
+        Body, BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlotPlan, BodyWorkset,
+        ResidentPlot,
     };
     let planned = executions
         .iter()
         .map(|execution| {
-            conduit_presentation::PlannedMaskForm::admit(&execution.mask, &execution.plan)
+            conduit_presentation::PlannedMaskPlot::admit(&execution.mask, &execution.plan)
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("admit planned spoken Mask: {error:?}"))?;
     let residents = planned
         .iter()
         .map(|item| {
-            ResidentForm::new(
-                item.mask.form_identity.source_document_id.clone(),
-                item.mask.form_identity.checked_form_id.clone(),
+            ResidentPlot::new(
+                item.mask.plot_identity.source_document_id.clone(),
+                item.mask.plot_identity.checked_plot_id.clone(),
             )
         })
         .collect::<Vec<_>>();
     let wake = if let Some(wake) = existing_wake {
         wake.clone()
     } else {
-        let body = Body::born_with_forms(
-            BodyWorkset::from_forms(residents.clone())
+        let body = Body::born_with_plots(
+            BodyWorkset::from_plots(residents.clone())
                 .map_err(|error| format!("spoken Mask workset: {error:?}"))?,
             1,
             conduit_core::SignId::from(format!("sign/{evidence_id}/born")),
@@ -79,11 +79,11 @@ fn admit_spoken_mask_routes_for_wake(
         .map_err(|error| format!("spoken Mask Wake: {error:?}"))?
         .1
     };
-    let forms = residents
+    let plots = residents
         .into_iter()
         .zip(&planned)
-        .map(|(form, item)| BodyFormPlan {
-            form,
+        .map(|(plot, item)| BodyPlotPlan {
+            plot,
             plan: item.plan.clone(),
         })
         .collect();
@@ -101,9 +101,9 @@ fn admit_spoken_mask_routes_for_wake(
                 .clone();
             BodyMaskTopology {
                 face: BodyFaceSelector {
-                    form: Some(ResidentForm::new(
-                        item.mask.form_identity.source_document_id.clone(),
-                        item.mask.form_identity.checked_form_id.clone(),
+                    plot: Some(ResidentPlot::new(
+                        item.mask.plot_identity.source_document_id.clone(),
+                        item.mask.plot_identity.checked_plot_id.clone(),
                     )),
                     source_placement_id: first.clone(),
                 },
@@ -114,7 +114,7 @@ fn admit_spoken_mask_routes_for_wake(
             }
         })
         .collect();
-    let body_plan = conduit_body::BodyPlan::seal_with_masks(&wake, forms, topologies)
+    let body_plan = conduit_body::BodyPlan::seal_with_masks(&wake, plots, topologies)
         .map_err(|error| format!("seal spoken Mask Body Plan: {error:?}"))?;
     if availability.len() != planned.len() {
         return Err("spoken Mask route availability count does not match executions".into());
@@ -124,9 +124,9 @@ fn admit_spoken_mask_routes_for_wake(
         .enumerate()
         .zip(availability)
         .map(
-            |((index, item), currently_available)| conduit_presentation::SealedMaskFormRoute {
+            |((index, item), currently_available)| conduit_presentation::SealedMaskPlotRoute {
                 route_id: format!("route/{evidence_id}/{index}"),
-                mask_form: item.mask.form_identity.clone(),
+                mask_plot: item.mask.plot_identity.clone(),
                 plan_id: body_plan.plan_id.clone(),
                 placement_ids: item
                     .plan
@@ -139,7 +139,7 @@ fn admit_spoken_mask_routes_for_wake(
             },
         )
         .collect();
-    let routes = conduit_presentation::AdmittedMaskFormRoutes::new(&body_plan, &planned, routes)
+    let routes = conduit_presentation::AdmittedMaskPlotRoutes::new(&body_plan, &planned, routes)
         .map_err(|error| format!("admit spoken Mask routes: {error:?}"))?;
     Ok(SpokenMaskRouteSet {
         wake,

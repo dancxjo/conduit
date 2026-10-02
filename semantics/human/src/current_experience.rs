@@ -1,4 +1,10 @@
-//! Portable, bounded semantic relation of a body's current experience.
+//! Bounded current-experience state machinery.
+//!
+//! Portable Fore inputs and projections are the native `Experience*Input`,
+//! `ExperienceSourceStatus`, and `CurrentExperienceProjection` Types. The
+//! records here retain admitted core identities, encoded values, indexes and
+//! relationship state while that projection evolves; they never define a
+//! separate Fore payload or wire contract (class M).
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{
@@ -8,8 +14,7 @@ use conduit_core::{
 
 use crate::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
-    ExperienceTemporalRole,
+    ExperienceRefusal, ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRole,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,34 +86,6 @@ pub struct CurrentExperience {
     items: Vec<ExperienceItem>,
     relationships: Vec<ExperienceRelation>,
     encoded_bytes: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceRefusal {
-    InvalidLimits,
-    EmptyIdentity,
-    DuplicateIdentity,
-    ItemCapacity,
-    TemporalRoleCapacity,
-    DomainCapacity,
-    ModelDerivedCapacity,
-    SelectedMemoryCapacity,
-    ItemBytes,
-    EncodedBytes,
-    SourceCapacity,
-    DuplicateSource,
-    RelationshipCapacity,
-    UnknownRelationshipEndpoint,
-    DuplicateRelationship,
-    ConflictAlternativeCapacity,
-    InvalidEpistemicCombination,
-    IdentityBytes,
-    InvalidSource,
-    InvalidTime,
-    InvalidTemporalContext,
-    TemporalClassification(ExperienceTemporalRefusal),
-    TemporalRoleMismatch,
-    ArithmeticOverflow,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

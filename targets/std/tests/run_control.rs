@@ -1,6 +1,6 @@
 use conduit_core::{CancellationReason, ObservationKind, TerminalDisposition};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{
@@ -24,14 +24,14 @@ impl TimerAdapter for StopOnFirstWait {
 
 #[test]
 fn exact_stop_request_uses_scheduler_cancellation_and_returns_terminal_sign() {
-    let source = include_str!("../../../forms/clock/main.conduit");
+    let source = include_str!("../../../plots/clock/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&expanded).unwrap();
     let control = RunControl::default();

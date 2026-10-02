@@ -5,29 +5,30 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 
-pub const MEASUREMENT_PLOT_FORM_KIND: &str = "data/bounded-measurement-plot";
-pub const MEASUREMENT_PLOT_FORM_CONTRACT_REVISION: &str = "conduit.data/bounded-measurement-plot@1";
+pub const MEASUREMENT_PLOT_SOURCE_KIND: &str = "data/bounded-measurement-plot";
+pub const MEASUREMENT_PLOT_SOURCE_CONTRACT_REVISION: &str =
+    "conduit.data/bounded-measurement-plot@1";
 
-pub fn install_measurement_plot_form_catalog(
+pub fn install_measurement_plot_source_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     startup.insert(KindSignature {
-        kind: MEASUREMENT_PLOT_FORM_KIND.to_string(),
+        kind: MEASUREMENT_PLOT_SOURCE_KIND.to_string(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert_kind(measurement_plot_form_semantic_contract())
+        .insert_kind(measurement_plot_source_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_plot_form_semantic_contract() -> Kind {
-    let definition = measurement_plot_form_definition();
+pub fn measurement_plot_source_semantic_contract() -> Kind {
+    let definition = measurement_plot_source_definition();
     Kind {
         startup_parameters: vec![],
         shorthand: Some((
@@ -48,10 +49,10 @@ pub fn measurement_plot_form_semantic_contract() -> Kind {
     }
 }
 
-pub fn measurement_plot_form_definition() -> KindProjection {
+pub fn measurement_plot_source_definition() -> KindProjection {
     KindProjection {
-        kind_id: kind_id(MEASUREMENT_PLOT_FORM_KIND),
-        kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_FORM_CONTRACT_REVISION),
+        kind_id: kind_id(MEASUREMENT_PLOT_SOURCE_KIND),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_SOURCE_CONTRACT_REVISION),
         inputs: vec![port(
             "window",
             crate::measurement_window_type()
@@ -74,16 +75,16 @@ pub fn measurement_plot_form_definition() -> KindProjection {
     }
 }
 
-pub fn install_measurement_plot_form_back(
+pub fn install_measurement_plot_source_back(
     startup: &StartupCatalog,
     profile: &ProfileCatalog,
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), alloc::string::String> {
-    let source = include_str!("../../../forms/little-seismograph/main.conduit");
+    let source = include_str!("../../../plots/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), startup)
         .map_err(|error| format!("check bounded measurement plot Back: {error:?}"))?;
     let definition = profile
-        .canonical_kind(&kind_id(MEASUREMENT_PLOT_FORM_KIND))
+        .canonical_kind(&kind_id(MEASUREMENT_PLOT_SOURCE_KIND))
         .ok_or_else(|| "missing bounded measurement plot definition".to_string())?;
     backs
         .insert(definition, &checked, "measurement-plot")

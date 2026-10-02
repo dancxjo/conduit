@@ -52,7 +52,7 @@ The salvage pass added semantic law that was present in closed design tickets bu
 | Cord fan-out pressure/delivery law | **canonical semantic law** | **IMPLEMENTED CORE:** exact delivery policy, planner sealing and atomic external-Fore fan-out are covered by conformance tests |
 | Realization invariance | **canonical planner/checker law** | **IMPLEMENTED CORE:** offers and Plans retain exact semantic contracts and Host admission fails closed (#4159, #4189); each living vertical still owns proof that its concrete substitution family is genuinely invariant |
 | Pack identity/resolution/distribution laws | **canonical semantic/ecosystem law + frozen authored surface** | **IMPLEMENTED:** `with`, `sans glyphs`, `pack.conduit`, `ship`, `need` and generated exact `conduit.lock` truth are checked finitely; legacy spellings refuse; #4055 is complete |
-| ordinary Mask Form role + wear/doff/preference | role Fore + semantic law + authored wardrobe **canonical** | **IMPLEMENTED:** Body source checks `wear` / `else` / `want`; core runtime control owns revisioned `wear` / `doff` / preference and immutable-Plan reconciliation |
+| ordinary Mask Form role + wear/doff/preference | role Fore + semantic law + authored wardrobe **canonical** | **IMPLEMENTED:** Body source checks unordered comma-delimited `wear` and optional ordered `want`; core runtime control owns revisioned `wear` / `doff` / preference and immutable-Plan reconciliation |
 | `host` / `body` / `pack` Conduit document roles | **canonical** | existing host/body source plus frozen minimal Host grammar and pack source; convergence under #4117/#4055 |
 | Low-level resource/capability port surface | semantic authority law + `resource T` spelling **canonical** | core resource identity/checking/Plan lowering exists; source converges under #4065/#4117 |
 | Natural-duration hard-loss proof | **canonical meaning** | living proof owner #4116 |
@@ -195,7 +195,7 @@ Required semantic direction:
 
 Do not invent production `mask` grammar. Admit the role from an ordinary Form's exact Fore, keep application Forms distinct from Mask Forms by role/ownership, and keep all internal stages as ordinary typed Gears and Cords.
 
-The ordinary Mask Form role is incorporated into this canon and the current implementation gate. Body wardrobe source uses canonical `wear`, `else` and `want`; runtime wardrobe control uses `wear` and `doff`. Explicit `else` admits fallback into the Plan; absent `else`, replacement requires ordinary replanning. See #4115.
+The ordinary Mask Form role is incorporated into this canon and the current implementation gate. Body wardrobe source uses an unordered comma-delimited `wear` set and optional ordered `want`; runtime wardrobe control uses `wear` and `doff`. The former ordered `wear A else B` spelling is retained here only as history and now refuses rather than silently losing fallback intent. Same-Plan selection remains limited to eligible exact routes already sealed by that Plan; other routes require ordinary replacement planning. See #4115.
 
 ---
 
@@ -254,7 +254,7 @@ The formerly-unfrozen authored surfaces are now settled by the 2026-09-28 amendm
 - `with`, `pack.conduit` and `conduit.lock`: #4055;
 - checked `~ /.../flags` and `!~ /.../flags` refinements: #4199;
 - `resource T`: #4065;
-- Body `wear` / `else` / `want` and runtime `doff`: #4115;
+- Body unordered `wear`, optional `want`, and runtime `doff`: #4115;
 - minimal Host construction grammar: #4117;
 - explicit Current sampling for publication: #4064 #4116.
 

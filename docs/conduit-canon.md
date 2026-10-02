@@ -13,14 +13,14 @@ The archive, the August reboot, and the current implementation are parts of one 
 ## Writing the vocabulary
 
 Ontology terms are common nouns unless they are independently proper names.
-Write “a body has a face,” “a host offers an implementation,” and “a form is
+Write “a body has a face,” “a host offers an implementation,” and “a plot is
 realized by a plan and play.” Preserve capitalization for actual names such as
 Conduit, ConduitOS, Patchbay, Tour, and Crèche, and for literal code identifiers
-such as `BodyId`, `CheckedFront`, and `Form`.
+such as `BodyId`, `CheckedFront`, and `Plot`.
 
 ## The center
 
-> **forms describe meaning. hosts offer implementations. plans make realization exact.**
+> **plots describe meaning. hosts offer implementations. plans make realization exact.**
 
 The canonical execution vocabulary keeps one noun at each altitude:
 
@@ -35,12 +35,12 @@ a step may cross into host machinery with a host call
 A `Kind` is the exact semantic contract: `KindId`, `KindIdentity`, callable
 Fore, finite configuration contract, limits, and machine-readable semantic
 laws. An identity is not merely a human version label. `KindProjection` is the
-strictly smaller checker view used while checking authored Forms; it cannot be
+strictly smaller checker view used while checking authored Plots; it cannot be
 offered by a Host and is not a second Kind identity.
 
 A `Back` is realization truth, not another semantic contract. Host backs carry
 implementation, artifact, resource, authority, and host-boundary requirements.
-Form backs carry the exact source and checked form selected during expansion.
+Plot backs carry the exact source and checked plot selected during expansion.
 They share the law “same Kind and same Fore,” but remain distinct
 representations because their provenance and admission facts differ.
 
@@ -52,7 +52,7 @@ Conduit is a portable execution substrate for finite, typed flows of work.
 
 An author should be able to describe what must happen without deciding which operating system, browser, microcontroller, process, transport, device, or service will realize it. hosts report what they can currently do. A planner combines the authored meaning with exact current offers, resources, authority, and links. The resulting plan is immutable and complete enough to execute without ambient guesses.
 
-The same form may therefore run:
+The same plot may therefore run:
 
 - inside one portable Rust process;
 - in an actual browser runtime;
@@ -91,17 +91,18 @@ The project succeeds by refusing to collapse concepts that are convenient to con
 
 ```text
 TYPE   reusable semantic meaning for one finite family of info values
+FORM   one concrete portable representation of a type
 INFO   one finite, shaped value of a type, carried through cords
 
 KIND   reusable semantic behavior such as text/upper
-FORM   authored composition of semantic work; the program Conduit runs
-GEAR   one configured occurrence of a kind in a form
+PLOT   authored composition of semantic work; the program Conduit runs
+GEAR   one configured occurrence of a kind in a plot
 PORT   typed directional point through which info enters or leaves
 CORD   typed semantic connection between compatible ports on gears
 RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
 SIGNAL one particular info semantic or mechanism where explicitly named
-FORE    stable callable shape of a kind or form, including startup parameters and ports
-BACK    one Host- or Form-backed realization of a kind
+FORE    stable callable shape of a kind or plot, including startup parameters and ports
+BACK    one Host- or Plot-backed realization of a kind
 FACE   the body's human-facing semantic encounter and control grammar, distinct from a callable fore
 
 IMPL   platform-specific realization of a kind
@@ -118,14 +119,15 @@ that kind. This is the language's semantic symmetry:
 type : info :: kind : gear
 ```
 
-A source `form` may define a reusable kind; no redundant `kind` keyword is
-required. A type owns meaning, while a subordinate `code` may state one exact
-portable encoding for carrying or storing its values. The code does not become
-part of what the type means.
+A source `plot` may define a reusable kind; no redundant `kind` keyword is
+required. A type owns meaning, while a subordinate `form` states one exact
+portable representation for carrying or storing its values. The form does not
+become part of what the type means. A type may have multiple forms without
+changing its semantic identity.
 
 A record Type may finish its fields with one or more pure Boolean `where` laws.
 Each law speaks about the complete value through ordinary field projection; it
-is checked with the same finite expression semantics used by Forms, contributes
+is checked with the same finite expression semantics used by Plots, contributes
 to Type identity, and must hold at every generated construction boundary. It is
 not an assertion, target hook, handwritten validator, or escape from bounded
 evaluation.
@@ -194,8 +196,8 @@ These identities remain distinct even when a small example makes them appear int
 
 ```text
 source document
-checked form
-expanded form
+checked plot
+expanded plot
 plan
 plan fragment
 active play
@@ -323,15 +325,15 @@ projection/navigation. It says
 what is humanly relevant about the current semantic world and what a human may
 currently do. It is not a universal widget set or scene graph.
 
-Ordinary forms may contribute finite fragments of this grammar. Face
+Ordinary plots may contribute finite fragments of this grammar. Face
 composition preserves their exact source provenance and combines them with
 authoritative body, plan, play, host, and sign truth. A contribution may not
 forge or overwrite that authoritative truth.
 
-A Mask is an ordinary planned form that consumes one exact Face revision and
+A Mask is an ordinary planned plot that consumes one exact Face revision and
 produces one finite Show. Graphical, deterministic-linear, spoken, generative,
 tactile, and future masks all receive the same semantic grammar. A mask may
-project disclosure, navigation, wording, layout, or medium-specific form, but
+project disclosure, navigation, wording, layout, or medium-specific plot, but
 it may not redefine the Face's facts or authority.
 
 Projection chooses which truth matters now. Semantic composition says how
@@ -353,10 +355,10 @@ geometry, DOM order, and spoken order do not silently become semantic order.
 Typed content is exact finite semantic data, never a DOM node, filesystem path,
 provider URL, framebuffer, or mask-owned cache.
 
-A semantic Type states meaning independently of any target. A named **code**
+A semantic Type states meaning independently of any target. A named **form**
 states one portable way to carry or store that Type; its exact compatibility
 identity is derived mechanically from checked meaning rather than maintained
-by authors. A code does not alter Type identity. Rust types, CBOR schemas,
+by authors. A form does not alter Type identity. Rust types, CBOR schemas,
 browser values, and documentation are peer lowerings from the checked semantic
 graph. Generated bindings are machinery, while handwritten adapters are reserved
 for named external protocols and mechanisms. No target declaration or codec may
@@ -407,12 +409,13 @@ pixel format, or toolkit object: the selected implementation, admitted host
 operation, finite Face-realization resource, and exact display base remain plan
 and host truth. Transform kinds do not acquire hidden Show side effects.
 
-Mask is a Form role, not a new authored keyword or a second graph language.
-The role is admitted from an ordinary Form's exact Fore. Body construction
-uses `wear MASK [else FALLBACK]` for finite eligibility/fallback structure and
-`want MASK over MASK ...` for ordered soft preference. These are planning
+Mask is a Plot role, not a new authored keyword or a second graph language.
+The role is admitted from an ordinary Plot's exact Fore. Body construction
+uses `wear MASK, MASK ...` for a finite unordered eligibility set and
+optional `want MASK over MASK ...` for ordered soft preference. These are planning
 inputs: they do not mutate an immutable Plan, grant deployment authority, or
-put realization policy inside a Mask.
+put realization policy inside a Mask. Comma order confers no preference;
+same-Plan recovery remains limited to exact routes already sealed by that Plan.
 
 ### Make and runtime
 
@@ -510,7 +513,7 @@ Abnormal terminal truth is part of the exact checked Fore, not a generic error
 side channel. A port separately declares its ordinary value kind, temporal
 modality, and—when promised—the exact bounded info kind carried by its `!`
 track. An abnormal Cord is therefore typed like any other Cord. Unhandled
-abnormal truth propagates to the containing Form's exact boundary; observation
+abnormal truth propagates to the containing Plot's exact boundary; observation
 alone is not recovery, and several unresolved abnormal origins may not be
 collapsed into an implicit error bus.
 
@@ -536,7 +539,7 @@ Temporary compatibility façades may help migrate old tests or composite fixture
 ## General-purpose finite computation
 
 Conduit targets general-purpose computation under explicit finite bounds.
-Every checked executable form has exact finite semantic/resource capacities
+Every checked executable plot has exact finite semantic/resource capacities
 after specialization. Reusable algorithms may parameterize those capacities;
 a different semantic bound may produce a different checked identity. Large
 finite state spaces remain finite but may be impractical to enumerate.
@@ -552,21 +555,21 @@ introduction, rather than an opt-out flag added for convenience. The
 records the revised #2682 direction and its analysis, lifecycle, timing,
 continuity and confinement obligations.
 
-## form and composition direction
+## plot and composition direction
 
-A form is semantic source, not platform installation configuration.
+A plot is semantic source, not platform installation configuration.
 
-A form may contain:
+A plot may contain:
 
 - configured gears and their kinds;
 - typed cords;
 - semantic configuration;
 - explicit finite work bounds;
-- nested forms;
+- nested plots;
 - named input and output fores;
 - semantic requirements that truly belong to the work.
 
-A form does not contain:
+A plot does not contain:
 
 - exact hosts or boots;
 - implementation IDs;
@@ -579,9 +582,9 @@ A form does not contain:
 - resource handles;
 - authority grants.
 
-All forms are conceptually composite. A form with one opaque implementation is simply the smallest composition. A nested form becomes substitutable through its checked fores while its hidden expansion remains bound into expanded and plan identity.
+All plots are conceptually composite. A plot with one opaque implementation is simply the smallest composition. A nested plot becomes substitutable through its checked fores while its hidden expansion remains bound into expanded and plan identity.
 
-A BODY may later appear through a FORE inside another form without becoming a copy of that body.
+A BODY may later appear through a FORE inside another plot without becoming a copy of that body.
 
 ## body identity and lifecycle
 
@@ -594,36 +597,36 @@ HOST  a running or recoverable software environment
 BOOT  one exact current incarnation of a host
 PART  one durable membership relationship inside a body
 CAPABILITY  truthful finite current realization offer from a host boot
-ROLE  semantic requirement declared by a form
+ROLE  semantic requirement declared by a plot
 CAST  exact binding of roles to capabilities
 LINK  communication path between parts
-BODY  durable logical computer with a bounded workset of forms
+BODY  durable logical computer with a bounded workset of plots
 SOUL  durable continuity and recoverable identity of a body
 ```
 
 A body is not a host, transport, address, coordinator process, or UI document. A part is not a host or boot: it records an explicitly admitted durable relationship. Current authenticated host/boot presence may attach to that relationship and later disappear without deleting membership or retaining a fake current boot. Current offers remain host-advertisement truth rather than durable part properties. Admission and revocation carry exact bounded event and sign provenance; membership alone grants no authority, placement, line, or execution.
 
 A body is one logical computer. It may contain one machine or many, and it may
-run many forms. One body scheduler plans all of that work together; one play is
+run many plots. One body scheduler plans all of that work together; one play is
 the body's current running realization. The same body/plan/play model covers a
 single host, multiple cores, and multiple hosts; distribution does not create a
 second scheduler or execution ontology.
 
 A body is a **continuant**. An explicit attributable human/operator action
 **BIRTHs** it with a bounded initial workset of zero, one, or many exact checked
-forms and records distinct birth event/sign evidence. No initial form is
-privileged after birth. In Conduit vocabulary a program is a form; there is no
+plots and records distinct birth event/sign evidence. No initial plot is
+privileged after birth. In Conduit vocabulary a program is a plot; there is no
 separate Program identity. The newborn body is LULLED; BIRTH creates no implicit
 wake, plan, or play. Thereafter changes in parts, hosts and boots, lines, the
-bounded current form workset, wake/lull episodes, plans, plays, and Shows are
+bounded current plot workset, wake/lull episodes, plans, plays, and Shows are
 events in the history of the same body rather than
 replacement body identities.
 
-The form workset may contain zero, one, or many exact checked forms. Adding or
-removing a form advances bounded workload truth without replacing the body.
+The plot workset may contain zero, one, or many exact checked plots. Adding or
+removing a plot advances bounded workload truth without replacing the body.
 During one wake, one body-wide immutable plan covers the complete current
 workset, globally admits its resources, and may have at most one active play.
-forms inside that play may progress concurrently under the one kernel. A
+plots inside that play may progress concurrently under the one kernel. A
 workset change retires the current plan and play and requires a replacement
 body-wide plan before execution resumes; it never starts a second scheduler.
 Legacy seed-era body evidence remains explicitly versioned historical evidence;
@@ -663,7 +666,7 @@ terminated exact evidence across exact sessions. Temporal adjacency is not
 causality, missing evidence remains unknown, and Face never owns the
 causal history.
 
-A form contains configured gears and may require Roles. A Cast binds Roles to exact capabilities. A body-wide plan binds every form's gears to exact implementation, part, host, boot, base, authority, resource, route, and bound facts. A play starts that complete plan. A later Soul policy may prove continuity across restarts without pretending a restarted boot is the same execution session or changing what part membership means.
+A plot contains configured gears and may require Roles. A Cast binds Roles to exact capabilities. A body-wide plan binds every plot's gears to exact implementation, part, host, boot, base, authority, resource, route, and bound facts. A play starts that complete plan. A later Soul policy may prove continuity across restarts without pretending a restarted boot is the same execution session or changing what part membership means.
 
 ConduitOS is a native host substrate for this same admitted plan and kernel. It
 does not supply an alternate scheduler or kernel semantics. Current ConduitOS
@@ -720,19 +723,19 @@ Ideas are classified so that deferral does not feel like erasure and preservatio
 
 These ideas are current, load-bearing direction and have executable implementations and bounded proof surfaces in the repository:
 
-- semantic forms, host capability offers, and exact plans;
+- semantic plots, host capability offers, and exact plans;
 - source, checked, expanded, plan, play, sign, Face revision, and Show identity separation;
 - typed named ports and explicit fan-out;
 - bounded port-aware `conduit-kernel` execution;
 - generic Host Calls;
 - exact resource, authority, and observed-link planning contracts;
 - lossless source retention and located diagnostics;
-- inline nested forms and named composite fores;
+- inline nested plots and named composite fores;
 - hosted and browser execution through the kernel, with separately proved lines;
 - the portable semantic catalog and host-owned realization offers;
 - body membership, workload and continuity contracts;
 - read-only Observatory and portable Face/Show contracts;
-- CLI, ordinary Forms and Masks, Patchbay, and ConduitOS product surfaces;
+- CLI, ordinary Plots and Masks, Patchbay, and ConduitOS product surfaces;
 - ConduitOS freestanding emulator execution and retained visual evidence;
 - honest proof-class boundaries.
 
@@ -810,7 +813,7 @@ Conduit should become useful from the outside inward:
 
 - first prove that meaning survives different hosts;
 - then prove that one exact plan crosses real links;
-- then provide a small trustworthy vocabulary for building useful forms;
+- then provide a small trustworthy vocabulary for building useful plots;
 - then let operators see reality through Observatory;
 - then let an unfamiliar person complete one useful task;
 - only then grow the freeform Workbench and larger domains.
@@ -831,7 +834,7 @@ such as keys, pointer activation, numbered serial choices, or touch to those
 actions; the gesture does not become the meaning or a second mutation path.
 
 The ordinary surface prioritizes the meaningful object, current state, current
-action, effect, and refusal. Exact source, form, body, plan, placement, host,
+action, effect, and refusal. Exact source, plot, body, plan, placement, host,
 implementation, base, play, and sign truth remains reachable through explicit
 explanation rather than occupying the lobby. Geometry, focus, clipping,
 scrolling, and responsive layout remain Mask-local.
@@ -870,7 +873,7 @@ repository-development entrance, recognize the intended object, perform the
 intended ordinary action, see its correlated effect or refusal, and descend to
 the exact proof when curious.
 
-Product demonstrations are ordinary checked forms travelling through
+Product demonstrations are ordinary checked plots travelling through
 the real checker, planner, kernel, Face, and Mask. A bespoke demo
 appliance may diagnose a lower boundary, but it does not define the product
 experience. The product priority is to make the enactment loop understandable before

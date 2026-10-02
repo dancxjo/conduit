@@ -12,7 +12,7 @@ fn checked_planned_play_completes_the_exact_specimen() {
     assert_eq!(record.attempts.len(), 1);
     assert_eq!(record.attempts[0].verdict, ObligationVerdict::Completed);
     assert!(record.attempts[0].receipt.as_ref().unwrap().succeeded);
-    assert!(!record.form_id.is_empty());
+    assert!(!record.plot_id.is_empty());
     assert!(!record.plan_id.is_empty());
     assert!(!record.attempts[0].play_id.is_empty());
     assert!(record.attempts[0]

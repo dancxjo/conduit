@@ -7,7 +7,6 @@ use conduit_core::{
     PortDirection, PortTemporal, Quantity, QuantityUnit, TerminalTransductionProfile,
     FREQUENCY_INFO_ID, UNIT_INFO_ID,
 };
-use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -16,6 +15,7 @@ use conduit_kernel::{
     },
     Failure, FailureCode, PortId, ValueRef, ValueStorage,
 };
+use conduit_plot::{KindProjection, ProfileCatalog};
 
 const SOURCE_KIND: &str = "conduit-test/frequency-source";
 const SOURCE_REVISION: &str = "conduit-test/frequency-source@1";

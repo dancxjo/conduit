@@ -2,14 +2,14 @@
 
 **[See the current ConduitOS visual journey →](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
 
-The narrated gallery shows the actual QEMU graphical product: Tour, forms,
+The narrated gallery shows the actual QEMU graphical product: Tour, plots,
 Patchbay inspection, pointer interaction, and USB line delivery and loss. Its
 checkpoints link to their provenance. This is freestanding emulator
 evidence; physical laptop acceptance is separate.
 
 ConduitOS is Conduit's freestanding host. The x86_64 PC image is a graphical
 `no_std`, `no_main` live system. IA-32 PC and AArch64, RISC-V64, and LoongArch64
-virt images offer long-lived serial experiences. Each realizes ordinary forms
+virt images offer long-lived serial experiences. Each realizes ordinary plots
 through the production `conduit-kernel`, with a checked PROFILE and finite
 host resources.
 
@@ -31,20 +31,20 @@ for exploration; the proof commands below validate specific behaviors.
 ## First arrival on x86_64
 
 The graphical image opens the Crèche before a body exists. Edit the suggested
-name, choose a naming tradition, and select the initial forms. Enter births the
+name, choose a naming tradition, and select the initial plots. Enter births the
 named body and requests wake, exact planning, and play in order. Each successful
 stage has its own lifecycle evidence; a refusal remains visible at the stage
 that could not finish. F2 suggests another name in the Crèche and opens exact
 details after birth. F9 visits the existing Tour.
 
 This development slice offers **Keyboard canvas** and the canonical **Memory
-Lantern**. Their exact form partitions share one body plan and play. Keyboard
+Lantern**. Their exact plot partitions share one body plan and play. Keyboard
 canvas shows recent uppercase output; Memory Lantern retains up to 256 bytes
 of editable text within that play. F7 lulls the body by cancelling its actual
-play and retaining both included forms. F8 remains available for Stop alone.
+play and retaining both included plots. F8 remains available for Stop alone.
 The screen reports when older canvas output or kernel evidence leaves its
 bounded history.
-Resident Tour and Patchbay forms and durable body restoration across a new
+Resident Tour and Patchbay plots and durable body restoration across a new
 boot remain open work. The startup sound and reusable first-wake behavior are
 tracked in [#3152](https://github.com/dancxjo/conduit/issues/3152).
 
@@ -70,7 +70,7 @@ host. See [Raspberry Pi](../raspberry-pi/make/README.md) and
 
 | Command | What it checks |
 | --- | --- |
-| `cargo xtask make conduitos journey-proof` | Birth two resident forms, type and switch within one play, inspect body/wake/plan evidence, then exercise pointer actions and USB line state with correlated screenshots |
+| `cargo xtask make conduitos journey-proof` | Birth two resident plots, type and switch within one play, inspect body/wake/plan evidence, then exercise pointer actions and USB line state with correlated screenshots |
 | `cargo xtask make conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
 | `cargo xtask make conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
 | `cargo xtask make conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |
@@ -83,9 +83,9 @@ explains publication and how images correlate with semantic assertions.
 
 The initial Crèche offers Keyboard canvas and Memory Lantern through the same
 shared naming and selection model as the browser. Birth wakes the selected
-workset; Tab foregrounds another resident form and F7 lulls the body. The
-ordinary journey types into both forms, clears and edits Memory again, and
-checks that a held-key release still reaches its original form after switching.
+workset; Tab foregrounds another resident plot and F7 lulls the body. The
+ordinary journey types into both plots, clears and edits Memory again, and
+checks that a held-key release still reaches its original plot after switching.
 This is emulator evidence; it does not establish physical input or persistence
 across a machine reboot.
 USB line attachment and delivery in that journey do not imply body membership;
@@ -128,7 +128,7 @@ the same image twice in QEMU and checks exact provenance, fresh identities,
 zero allocation, and the expected unsupported disposition. The retained
 `headless-proof.json`, two serial logs, and ELF symbol inventory live in the
 supplied output directory. Passing this proof establishes that refusal contract,
-not working headless form execution or physical hardware acceptance. The
+not working headless plot execution or physical hardware acceptance. The
 ordinary graphical journey remains `cargo xtask make conduitos journey-proof`.
 
 ## Where to contribute

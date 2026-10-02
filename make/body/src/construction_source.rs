@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use conduit_form::{
+use conduit_plot::{
     parse_syntax_document, ConstructionDirectiveSyntax, ConstructionRole, ExpressionSyntax,
     StructuredExpressionField,
 };
@@ -9,7 +9,7 @@ use serde_json::{Map, Number, Value};
 
 use crate::{
     BodyBindingTarget, BodyDescription, BodyDescriptionDiagnostic, BodyHostDescription,
-    BodyMaskImportDescription, BodyMaskRouteDescription, BodyWardrobeDescription,
+    BodyMaskImportDescription, BodyWardrobeDescription,
 };
 
 pub fn parse_body_description_conduit(
@@ -24,9 +24,9 @@ pub fn parse_body_description_conduit(
             ),
         });
     }
-    if !document.forms.is_empty() {
+    if !document.plots.is_empty() {
         return Err(decode_error(
-            "construction source must not contain Form definitions",
+            "construction source must not contain Plot definitions",
         ));
     }
     if document.constructions.len() != 1 {
@@ -66,11 +66,10 @@ pub fn parse_body_description_conduit(
     let mut wardrobe = BodyWardrobeDescription::default();
     for directive in construction.directives {
         match directive {
-            ConstructionDirectiveSyntax::BodyWear { mask, fallback, .. } => {
-                wardrobe.worn.push(BodyMaskRouteDescription {
-                    mask: mask.text,
-                    fallback: fallback.map(|mask| mask.text),
-                });
+            ConstructionDirectiveSyntax::BodyWear { masks, .. } => {
+                wardrobe
+                    .worn
+                    .extend(masks.into_iter().map(|mask| mask.text));
             }
             ConstructionDirectiveSyntax::BodyWant { masks, .. } => {
                 if !wardrobe.preference.is_empty() {

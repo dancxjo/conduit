@@ -1,17 +1,17 @@
 use super::*;
 
-const FORM: &str = "form json_round_trip {\n source: conduit-test/json-text-source\n decode: json/decode\n encode: json/encode\n sink: conduit-test/json-text-sink\n source.value >> decode.value\n decode.value >> encode.value\n encode.value >> sink.value\n}\n";
+const PLOT: &str = "plot json_round_trip {\n source: conduit-test/json-text-source\n decode: json/decode\n encode: json/encode\n sink: conduit-test/json-text-sink\n source.value >> decode.source\n decode.value >> encode.source\n encode.value >> sink.value\n}\n";
 
 #[test]
-fn ordinary_form_runs_shared_bounded_json_through_the_production_kernel() {
-    let form = parse(FORM, &installed_std::test_catalog()).expect("JSON codec Form parses");
+fn ordinary_plot_runs_shared_bounded_json_through_the_production_kernel() {
+    let plot = parse(PLOT, &installed_std::test_catalog()).expect("JSON codec Plot parses");
     let config = StdHostConfig {
         host_id: HostId::from("json-host"),
         boot_id: BootId::from("json-boot"),
         offer_generation: OfferGeneration(1),
     };
     let mut host = StdHost::new_with_composition(config, crate::StdHostComposition::reference());
-    let plan = host.plan_local(&form, None).expect("JSON codec Form plans");
+    let plan = host.plan_local(&plot, None).expect("JSON codec Plot plans");
     let fragment = plan.fragments[0].clone();
     for kind in [conduit_web::JSON_DECODE_KIND, conduit_web::JSON_ENCODE_KIND] {
         let placement = fragment
@@ -35,7 +35,7 @@ fn ordinary_form_runs_shared_bounded_json_through_the_production_kernel() {
             &mut output,
             &mut RecordingTimer { waits: Vec::new() },
         )
-        .expect("JSON codec Form runs through the production kernel");
+        .expect("JSON codec Plot runs through the production kernel");
     assert!(String::from_utf8(output)
         .unwrap()
         .lines()

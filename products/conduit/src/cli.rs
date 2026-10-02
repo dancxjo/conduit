@@ -5,8 +5,8 @@ use std::path::PathBuf;
 #[derive(Debug, Parser)]
 #[command(
     name = "conduit",
-    about = "Enter Conduit, run Forms, and inspect exact truth",
-    long_about = "Enter Conduit, run Forms, and inspect exact truth.\n\nWith no command, Conduit enters the current Body named by CONDUIT_STATE_DIR. If that Host does not yet belong to a Body, Conduit enters the birth encounter instead."
+    about = "Enter Conduit, run Plots, and inspect exact truth",
+    long_about = "Enter Conduit, run Plots, and inspect exact truth.\n\nWith no command, Conduit enters the current Body named by CONDUIT_STATE_DIR. If that Host does not yet belong to a Body, Conduit enters the birth encounter instead."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -15,10 +15,10 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
-    /// Check, plan, admit, and execute a form on available local hosts.
+    /// Check, plan, admit, and execute a plot on available local hosts.
     Run {
-        /// Authored form to execute.
-        form: PathBuf,
+        /// Authored plot to execute.
+        plot: PathBuf,
         /// Optional exact placement constraints.
         #[arg(long)]
         placements: Option<PathBuf>,
@@ -45,23 +45,23 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: Option<BodyCommand>,
     },
-    /// Check a form and render owned diagnostics without executing it.
+    /// Check a plot and render owned diagnostics without executing it.
     Check {
-        form: PathBuf,
+        plot: PathBuf,
         #[arg(long)]
         json: bool,
     },
     /// Explain concise source as the ordinary checked semantics it names.
     Expand {
-        form: PathBuf,
+        plot: PathBuf,
         /// Emit the structured source-correlation model for editor tooling.
         #[arg(long)]
         json: bool,
     },
-    /// Render a checked form's gears, ports, and exact cords.
+    /// Render a checked plot's gears, ports, and exact cords.
     Diagram {
-        /// Authored form to visualize. The last public form is rendered.
-        form: PathBuf,
+        /// Authored plot to visualize. The last public plot is rendered.
+        plot: PathBuf,
         /// Diagram representation to emit.
         #[arg(long, value_enum, default_value_t = DiagramFormat::Svg)]
         format: DiagramFormat,
@@ -457,7 +457,7 @@ mod public_surface_tests {
             Cli::try_parse_from(["conduit", "expand", "example.conduit"])
                 .expect("human source expansion parses")
                 .command,
-            Some(Command::Expand { form, json: false }) if form == std::path::Path::new("example.conduit")
+            Some(Command::Expand { plot, json: false }) if plot == std::path::Path::new("example.conduit")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "expand", "example.conduit", "--json"])
@@ -468,7 +468,7 @@ mod public_surface_tests {
     }
 
     #[test]
-    fn form_diagram_defaults_to_svg_and_accepts_mermaid() {
+    fn plot_diagram_defaults_to_svg_and_accepts_mermaid() {
         assert!(matches!(
             Cli::try_parse_from(["conduit", "diagram", "example.conduit"])
                 .expect("diagram parses")

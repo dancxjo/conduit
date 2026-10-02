@@ -32,7 +32,7 @@ pub enum FinanceRefusal {
     Overflow,
     MalformedInfo,
     Structured(StructuredInfoRefusal),
-    NativeBinding(conduit_form::rust_binding::NativeBindingRefusal),
+    NativeBinding(conduit_plot::rust_binding::NativeBindingRefusal),
 }
 
 impl From<StructuredInfoRefusal> for FinanceRefusal {
@@ -41,8 +41,8 @@ impl From<StructuredInfoRefusal> for FinanceRefusal {
     }
 }
 
-impl From<conduit_form::rust_binding::NativeBindingRefusal> for FinanceRefusal {
-    fn from(value: conduit_form::rust_binding::NativeBindingRefusal) -> Self {
+impl From<conduit_plot::rust_binding::NativeBindingRefusal> for FinanceRefusal {
+    fn from(value: conduit_plot::rust_binding::NativeBindingRefusal) -> Self {
         Self::NativeBinding(value)
     }
 }

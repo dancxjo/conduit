@@ -263,7 +263,7 @@ impl BodyBiographyEvidence {
         if body_events.iter().any(|event| {
             !matches!(
                 event,
-                BodyLifecycleEvent::FormAdmitted { .. } | BodyLifecycleEvent::FormRemoved { .. }
+                BodyLifecycleEvent::PlotAdmitted { .. } | BodyLifecycleEvent::PlotRemoved { .. }
             )
         }) {
             return Ok(None);

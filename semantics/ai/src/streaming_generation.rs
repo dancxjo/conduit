@@ -1,8 +1,10 @@
 //! Portable bounded accounting for monotonic generated-text deltas.
 
-use crate::{GeneratedTextFlowRefusal, GeneratedTextFlowTerminal};
+use crate::{
+    GeneratedTextChunk, GeneratedTextFlowEvidence, GeneratedTextFlowRefusal,
+    GeneratedTextFlowTerminal,
+};
 use alloc::string::String;
-use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_GENERATED_TEXT_CHUNK_BYTES: usize = 4 * 1024;
 const GENERATED_TEXT_CHUNK_MAGIC: &[u8; 8] = b"CDTGTC01";
@@ -13,30 +15,15 @@ pub const MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES: usize =
 pub const MAXIMUM_GENERATED_TEXT_CHUNKS: u64 = 4_096;
 pub const MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS: u16 = 8;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GeneratedTextChunk {
-    pub sequence: u64,
-    pub text: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GeneratedTextFlowEvidence {
-    pub chunks: u64,
-    pub generated_bytes: u64,
-    pub terminal: GeneratedTextFlowTerminal,
-    pub retained_private_text: bool,
-}
-
 pub fn encode_generated_text_chunk(
     chunk: &GeneratedTextChunk,
 ) -> Result<alloc::vec::Vec<u8>, GeneratedTextFlowRefusal> {
-    validate_chunk(chunk)?;
     let mut encoded =
-        alloc::vec::Vec::with_capacity(GENERATED_TEXT_CHUNK_HEADER_BYTES + chunk.text.len());
+        alloc::vec::Vec::with_capacity(GENERATED_TEXT_CHUNK_HEADER_BYTES + chunk.text().len());
     encoded.extend_from_slice(GENERATED_TEXT_CHUNK_MAGIC);
-    encoded.extend_from_slice(&chunk.sequence.to_le_bytes());
-    encoded.extend_from_slice(&(chunk.text.len() as u32).to_le_bytes());
-    encoded.extend_from_slice(chunk.text.as_bytes());
+    encoded.extend_from_slice(&chunk.sequence().to_le_bytes());
+    encoded.extend_from_slice(&(chunk.text().len() as u32).to_le_bytes());
+    encoded.extend_from_slice(chunk.text().as_bytes());
     Ok(encoded)
 }
 
@@ -66,25 +53,20 @@ pub fn decode_generated_text_chunk(
     {
         return Err(GeneratedTextFlowRefusal::ChunkOverflow);
     }
-    let text = core::str::from_utf8(&encoded[GENERATED_TEXT_CHUNK_HEADER_BYTES..])
-        .map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?
-        .into();
-    let chunk = GeneratedTextChunk { sequence, text };
-    validate_chunk(&chunk)?;
-    Ok(chunk)
-}
-
-fn validate_chunk(chunk: &GeneratedTextChunk) -> Result<(), GeneratedTextFlowRefusal> {
-    if chunk.sequence >= MAXIMUM_GENERATED_TEXT_CHUNKS {
+    let text = String::from(
+        core::str::from_utf8(&encoded[GENERATED_TEXT_CHUNK_HEADER_BYTES..])
+            .map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?,
+    );
+    if sequence >= MAXIMUM_GENERATED_TEXT_CHUNKS {
         return Err(GeneratedTextFlowRefusal::ChunkCountOverflow);
     }
-    if chunk.text.is_empty() {
+    if text.is_empty() {
         return Err(GeneratedTextFlowRefusal::EmptyChunk);
     }
-    if chunk.text.len() > MAXIMUM_GENERATED_TEXT_CHUNK_BYTES {
+    if text.len() > MAXIMUM_GENERATED_TEXT_CHUNK_BYTES {
         return Err(GeneratedTextFlowRefusal::ChunkOverflow);
     }
-    Ok(())
+    GeneratedTextChunk::new(sequence, text).map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)
 }
 
 pub struct BoundedGeneratedTextFlow {
@@ -109,19 +91,13 @@ impl BoundedGeneratedTextFlow {
         if self.terminal.is_some() {
             return Err(GeneratedTextFlowRefusal::AlreadyTerminal);
         }
-        if chunk.sequence != self.next_sequence {
+        if *chunk.sequence() != self.next_sequence {
             return Err(GeneratedTextFlowRefusal::WrongSequence);
         }
         if self.next_sequence >= MAXIMUM_GENERATED_TEXT_CHUNKS {
             return Err(GeneratedTextFlowRefusal::ChunkCountOverflow);
         }
-        let bytes = chunk.text.len();
-        if bytes == 0 {
-            return Err(GeneratedTextFlowRefusal::EmptyChunk);
-        }
-        if bytes > MAXIMUM_GENERATED_TEXT_CHUNK_BYTES {
-            return Err(GeneratedTextFlowRefusal::ChunkOverflow);
-        }
+        let bytes = chunk.text().len();
         let next = self.generated_bytes.saturating_add(bytes as u64);
         if next > self.maximum_output_bytes {
             return Err(GeneratedTextFlowRefusal::OutputOverflow);
@@ -137,48 +113,112 @@ impl BoundedGeneratedTextFlow {
 
     pub fn finish(&mut self, terminal: GeneratedTextFlowTerminal) -> GeneratedTextFlowEvidence {
         self.terminal.get_or_insert(terminal);
-        GeneratedTextFlowEvidence {
-            chunks: self.next_sequence,
-            generated_bytes: self.generated_bytes,
-            terminal: self.terminal.expect("terminal was inserted"),
-            retained_private_text: false,
-        }
+        GeneratedTextFlowEvidence::new(
+            self.next_sequence,
+            self.generated_bytes,
+            self.terminal.expect("terminal was inserted"),
+            false,
+        )
+        .expect("bounded generated-text flow preserves native evidence invariants")
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_plot::rust_binding::NativeRustBinding;
+
+    #[test]
+    fn generated_text_chunks_are_native_bounded_and_keep_the_exact_codec() {
+        for sequence in [0, MAXIMUM_GENERATED_TEXT_CHUNKS - 1] {
+            let chunk = GeneratedTextChunk::new(sequence, "x".into()).unwrap();
+            assert_eq!(
+                GeneratedTextChunk::from_structured(chunk.clone().into_structured().unwrap())
+                    .unwrap(),
+                chunk
+            );
+        }
+        assert!(GeneratedTextChunk::new(MAXIMUM_GENERATED_TEXT_CHUNKS, "x".into()).is_err());
+        assert!(GeneratedTextChunk::new(0, String::new()).is_err());
+        assert!(
+            GeneratedTextChunk::new(0, "x".repeat(MAXIMUM_GENERATED_TEXT_CHUNK_BYTES + 1)).is_err()
+        );
+
+        let chunk = GeneratedTextChunk::new(7, "hi".into()).unwrap();
+        let expected = [
+            b'C', b'D', b'T', b'G', b'T', b'C', b'0', b'1', 7, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0,
+            b'h', b'i',
+        ];
+        assert_eq!(encode_generated_text_chunk(&chunk).unwrap(), expected);
+        assert_eq!(decode_generated_text_chunk(&expected).unwrap(), chunk);
+        assert!(!include_str!("streaming_generation.rs")
+            .contains(concat!("pub struct ", "GeneratedTextChunk")));
+    }
+
+    #[test]
+    fn generated_text_flow_evidence_is_native_bounded_and_coherent() {
+        for evidence in [
+            GeneratedTextFlowEvidence::new(0, 0, GeneratedTextFlowTerminal::ProviderLost, false)
+                .unwrap(),
+            GeneratedTextFlowEvidence::new(
+                MAXIMUM_GENERATED_TEXT_CHUNKS,
+                super::super::MAXIMUM_LLM_OUTPUT_BYTES,
+                GeneratedTextFlowTerminal::Completed,
+                false,
+            )
+            .unwrap(),
+        ] {
+            assert_eq!(
+                GeneratedTextFlowEvidence::from_structured(evidence.into_structured().unwrap(),)
+                    .unwrap(),
+                evidence
+            );
+        }
+        assert!(GeneratedTextFlowEvidence::new(
+            MAXIMUM_GENERATED_TEXT_CHUNKS + 1,
+            1,
+            GeneratedTextFlowTerminal::Completed,
+            false,
+        )
+        .is_err());
+        assert!(GeneratedTextFlowEvidence::new(
+            1,
+            super::super::MAXIMUM_LLM_OUTPUT_BYTES + 1,
+            GeneratedTextFlowTerminal::Completed,
+            false,
+        )
+        .is_err());
+        assert!(
+            GeneratedTextFlowEvidence::new(0, 1, GeneratedTextFlowTerminal::Completed, false,)
+                .is_err()
+        );
+        assert!(
+            GeneratedTextFlowEvidence::new(1, 0, GeneratedTextFlowTerminal::Completed, false,)
+                .is_err()
+        );
+        assert!(!include_str!("streaming_generation.rs")
+            .contains(concat!("pub struct ", "GeneratedTextFlowEvidence")));
+    }
 
     #[test]
     fn ordered_deltas_reconstruct_exactly_without_runtime_retention() {
         let mut flow = BoundedGeneratedTextFlow::new(32).unwrap();
         let chunks = [
-            GeneratedTextChunk {
-                sequence: 0,
-                text: "Hello ".into(),
-            },
-            GeneratedTextChunk {
-                sequence: 1,
-                text: "world.".into(),
-            },
+            GeneratedTextChunk::new(0, "Hello ".into()).unwrap(),
+            GeneratedTextChunk::new(1, "world.".into()).unwrap(),
         ];
         for chunk in &chunks {
             flow.admit(chunk).unwrap();
         }
         let reconstructed = chunks
             .iter()
-            .map(|chunk| chunk.text.as_str())
+            .map(|chunk| chunk.text().as_str())
             .collect::<String>();
         assert_eq!(reconstructed, "Hello world.");
         assert_eq!(
             flow.finish(GeneratedTextFlowTerminal::Completed),
-            GeneratedTextFlowEvidence {
-                chunks: 2,
-                generated_bytes: 12,
-                terminal: GeneratedTextFlowTerminal::Completed,
-                retained_private_text: false,
-            }
+            GeneratedTextFlowEvidence::new(2, 12, GeneratedTextFlowTerminal::Completed, false,)
+                .unwrap()
         );
     }
 
@@ -186,29 +226,14 @@ mod tests {
     fn sequence_chunk_and_total_bounds_refuse_distinctly() {
         let mut flow = BoundedGeneratedTextFlow::new(4).unwrap();
         assert_eq!(
-            flow.admit(&GeneratedTextChunk {
-                sequence: 1,
-                text: "a".into()
-            }),
+            flow.admit(&GeneratedTextChunk::new(1, "a".into()).unwrap()),
             Err(GeneratedTextFlowRefusal::WrongSequence)
         );
+        assert!(GeneratedTextChunk::new(0, String::new()).is_err());
+        flow.admit(&GeneratedTextChunk::new(0, "four".into()).unwrap())
+            .unwrap();
         assert_eq!(
-            flow.admit(&GeneratedTextChunk {
-                sequence: 0,
-                text: String::new()
-            }),
-            Err(GeneratedTextFlowRefusal::EmptyChunk)
-        );
-        flow.admit(&GeneratedTextChunk {
-            sequence: 0,
-            text: "four".into(),
-        })
-        .unwrap();
-        assert_eq!(
-            flow.admit(&GeneratedTextChunk {
-                sequence: 1,
-                text: "!".into()
-            }),
+            flow.admit(&GeneratedTextChunk::new(1, "!".into()).unwrap()),
             Err(GeneratedTextFlowRefusal::OutputOverflow)
         );
     }

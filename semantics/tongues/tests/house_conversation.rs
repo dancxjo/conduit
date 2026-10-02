@@ -1,6 +1,6 @@
-use conduit_ai::{HouseContextProvenanceClass, WiredHouseContextItem};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_ai::{wired_house_context_item, HouseContextProvenanceClass, WiredHouseContextItem};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_text::AddressDetection;
@@ -12,13 +12,14 @@ use conduit_tongues::{
 };
 
 fn context(provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
-    WiredHouseContextItem {
-        item_identity: "context/upstairs-temperature".into(),
-        value_kind: "temperature/summary@1".into(),
-        canonical_value: b"21 degrees Celsius, observed 18 seconds ago".to_vec(),
+    wired_house_context_item(
+        "context/upstairs-temperature",
+        "temperature/summary@1",
+        b"21 degrees Celsius, observed 18 seconds ago",
         provenance,
-        source_identity: "sign/temperature/42".into(),
-    }
+        "sign/temperature/42",
+    )
+    .unwrap()
 }
 
 #[test]
@@ -94,8 +95,8 @@ fn unaddressed_text_never_becomes_model_eligible() {
 }
 
 #[test]
-fn canonical_house_conversation_is_an_ordinary_checked_form() {
-    let source = include_str!("../../../forms/house-conversation/main.conduit");
+fn canonical_house_conversation_is_an_ordinary_checked_plot() {
+    let source = include_str!("../../../plots/house-conversation/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
@@ -104,7 +105,7 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
     install_house_conversation_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "house-conversation", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "house-conversation", &profile).unwrap();
     let expanded = authored.expanded;
     assert_eq!(authored.input_bindings.len(), 2);
     assert_eq!(authored.output_bindings.len(), 1);
@@ -132,8 +133,8 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
 fn canonical_house_spoken_response_composes_text_fallback_and_speech_output() {
     let source = format!(
         "{}\n{}",
-        include_str!("../../../forms/house-conversation/main.conduit"),
-        include_str!("../../../forms/house-spoken-response/main.conduit"),
+        include_str!("../../../plots/house-conversation/main.conduit"),
+        include_str!("../../../plots/house-spoken-response/main.conduit"),
     );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
@@ -145,7 +146,7 @@ fn canonical_house_spoken_response_composes_text_fallback_and_speech_output() {
 
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "house-spoken-response", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "house-spoken-response", &profile).unwrap();
     let expanded = authored.expanded;
 
     assert_eq!(authored.input_bindings.len(), 2);

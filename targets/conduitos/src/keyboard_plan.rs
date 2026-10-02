@@ -20,8 +20,8 @@ use crate::{
     ordinary_plan::{PreparationError, advertisement},
 };
 
-pub const KEYBOARD_FORM_SOURCE: &str =
-    "form conduitos-keyboard {\n    keyboard: input/keyboard\n}\n";
+pub const KEYBOARD_PLOT_SOURCE: &str =
+    "plot conduitos-keyboard {\n    keyboard: input/keyboard\n}\n";
 
 pub struct PreparedKeyboardPlay {
     pub advertisement: HostAdvertisement,
@@ -38,12 +38,12 @@ pub fn prepare(
     if offer.keyboard.is_none() {
         return Err(PreparationError::PlacementRejected);
     }
-    let form = checked_expanded_form()?;
+    let plot = checked_expanded_plot()?;
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(&form, &hosts)
+    let placements = default_expanded_placements(&plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -160,16 +160,16 @@ pub fn validate(
     Ok(())
 }
 
-fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
-    let syntax = conduit_form::parse_syntax_document(KEYBOARD_FORM_SOURCE);
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, PreparationError> {
+    let syntax = conduit_plot::parse_syntax_document(KEYBOARD_PLOT_SOURCE);
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|_| PreparationError::FormRejected)?;
-    conduit_form::expand_canonical_form(&checked, "conduitos-keyboard", &profile)
-        .map_err(|_| PreparationError::FormRejected)
+        .map_err(|_| PreparationError::PlotRejected)?;
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|_| PreparationError::PlotRejected)?;
+    conduit_plot::expand_canonical_plot(&checked, "conduitos-keyboard", &profile)
+        .map_err(|_| PreparationError::PlotRejected)
 }
 
 #[cfg(test)]

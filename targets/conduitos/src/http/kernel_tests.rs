@@ -257,10 +257,10 @@ fn fixture_offer(
     }
 }
 
-fn catalogs() -> (conduit_form::StartupCatalog, conduit_form::ProfileCatalog) {
-    use conduit_form::{KindProjection, KindSignature};
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn catalogs() -> (conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog) {
+    use conduit_plot::{KindProjection, KindSignature};
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_web::install_http_catalogs(&mut startup, &mut profile).unwrap();
     for offer in [
         fixture_offer(
@@ -334,22 +334,22 @@ impl HttpNetworkBase for Endpoint {
 }
 
 #[test]
-fn ordinary_form_plans_and_plays_native_http_through_the_production_kernel() {
+fn ordinary_plot_plans_and_plays_native_http_through_the_production_kernel() {
     std::thread::Builder::new()
         .name("conduitos-http-fixed-kernel".into())
         .stack_size(64 * 1024 * 1024)
-        .spawn(run_ordinary_form)
+        .spawn(run_ordinary_plot)
         .unwrap()
         .join()
         .unwrap();
 }
 
-fn run_ordinary_form() {
+fn run_ordinary_plot() {
     let source = format!(
-        "form http-local {{\n source: {SOURCE_KIND}\n client: http/client\n sink: {SINK_KIND}\n source.value >> client.request\n client.response >> sink.value\n}}\n"
+        "plot http-local {{\n source: {SOURCE_KIND}\n client: http/client\n sink: {SINK_KIND}\n source.value >> client.request\n client.response >> sink.value\n}}\n"
     );
     let (_startup, profile) = catalogs();
-    let checked = conduit_form::parse(&source, &profile).unwrap();
+    let checked = conduit_plot::parse(&source, &profile).unwrap();
     let host = advertisement();
     let hosts = [host.clone()];
     let placements = default_placements(&checked, &hosts).unwrap();

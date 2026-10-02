@@ -6,7 +6,7 @@
 
 use super::{input_button_transition_type, KindTerminalBehavior, StandardKindContract};
 mod prepared;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
@@ -62,7 +62,7 @@ impl PreparedButtonTransitionEncoder {
         self.output.extend_from_slice(&0_u32.to_le_bytes());
         encode_text_into(b"sequence", &mut self.output);
         self.output.push(0);
-        encode_text_into(&conduit_core::encode_count(sequence), &mut self.output);
+        encode_text_into(&sequence.to_le_bytes(), &mut self.output);
         if self.output.len() > BUTTON_TRANSITION_MAXIMUM_BYTES as usize {
             return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
         }
@@ -236,10 +236,7 @@ pub fn button_transition_value(
             StructuredFieldValue::new("phase", phase)?,
             StructuredFieldValue::new(
                 "sequence",
-                leaf(
-                    conduit_core::COUNT_INFO_ID,
-                    conduit_core::encode_count(sequence).to_vec(),
-                )?,
+                leaf("value/u64", sequence.to_le_bytes().to_vec())?,
             )?,
         ],
     )
@@ -268,12 +265,12 @@ fn button_limits() -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_button_indicator_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     for contract in [
         button_source_semantic_contract(),
         button_indicator_state_semantic_contract(),
@@ -284,7 +281,7 @@ pub fn install_button_indicator_catalogs(
             startup_parameters: contract
                 .configuration
                 .iter()
-                .map(|field| conduit_form::StartupParameterSignature {
+                .map(|field| conduit_plot::StartupParameterSignature {
                     name: field.key.clone(),
                     value_type: "Count".into(),
                     default: Some("2".into()),
@@ -332,12 +329,28 @@ mod tests {
 
     #[test]
     fn prepared_encoder_matches_canonical_values_without_lifetime_storage() {
+        use conduit_plot::rust_binding::NativeRustBinding;
         let mut encoder = PreparedButtonTransitionEncoder::new("button/primary").unwrap();
         for (pressed, sequence) in [(true, 0), (false, 1), (true, u64::MAX)] {
             let expected = button_transition_value("button/primary", pressed, sequence)
                 .unwrap()
                 .canonical_bytes()
                 .unwrap();
+            let native = conduit_human::InputButtonTransition::new(
+                "button/primary".into(),
+                if pressed {
+                    conduit_human::InputButtonPhase::Pressed
+                } else {
+                    conduit_human::InputButtonPhase::Released
+                },
+                sequence,
+            )
+            .unwrap()
+            .into_structured()
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+            assert_eq!(expected, native);
             assert_eq!(encoder.encode(pressed, sequence).unwrap(), expected);
         }
     }

@@ -1665,7 +1665,7 @@ mod tests {
     fn context() -> BodyConversationContext {
         let body = Body::born(
             conduit_core::SourceDocumentId::from("source/orifinia"),
-            conduit_core::CheckedFormId::from("checked/orifinia"),
+            conduit_core::CheckedPlotId::from("checked/orifinia"),
             1,
             conduit_core::SignId::from("sign/orifinia/born"),
         )
@@ -1697,11 +1697,11 @@ mod tests {
     }
 
     fn remote_plan() -> Plan {
-        let form = crate::form_source::load(
-            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../forms/hello/main.conduit"),
+        let plot = crate::plot_source::load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../plots/hello/main.conduit"),
         )
         .unwrap();
-        let form = form.expand_entry().unwrap();
+        let plot = plot.expand_entry().unwrap();
         let source = crate::std_websocket_line::host(crate::std_websocket_line::SOURCE_HOST);
         let sink = crate::std_websocket_line::host(crate::std_websocket_line::SINK_HOST);
         let mut offer = process_owned_line_offer_with_limits(
@@ -1722,7 +1722,7 @@ mod tests {
         offer.contract.security = LineSecurity::PlaintextNetwork;
         let advertisements = [source.advertisement().clone(), sink.advertisement().clone()];
         let placements = PlacementChoices {
-            by_gear: form
+            by_gear: plot
                 .gears
                 .iter()
                 .map(|gear| {
@@ -1762,7 +1762,7 @@ mod tests {
             Vec::new(),
         )
         .unwrap()
-        .plan_with_placements(&form, &placements)
+        .plan_with_placements(&plot, &placements)
         .unwrap()
     }
 

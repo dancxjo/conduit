@@ -1,5 +1,5 @@
-use conduit_body_invitation_form::InvitationPresentationRefusal;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_body_invitation_plot::InvitationPresentationRefusal;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn invitation_presentation_refusal_has_native_identity_and_exact_round_trips() {

@@ -5,8 +5,8 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
-use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
+use conduit_plot::{ProfileCatalog, parse};
 use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
     MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, Presentation,
@@ -78,17 +78,17 @@ pub fn fixture(
 ) {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_projection()).unwrap();
-    let form = parse(
-        "form front {\n    renderer: presentation/renderer\n}\n",
+    let plot = parse(
+        "plot front {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
     .unwrap();
     let host = native_host();
-    let placements = default_placements(&form, core::slice::from_ref(&host)).unwrap();
-    let plan = plan(&form, &[host], &placements, &[]).unwrap();
+    let placements = default_placements(&plot, core::slice::from_ref(&host)).unwrap();
+    let plan = plan(&plot, &[host], &placements, &[]).unwrap();
     let body = Body::born(
-        form.source_document_id.clone(),
-        form.checked_form_id.clone(),
+        plot.source_document_id.clone(),
+        plot.checked_plot_id.clone(),
         1,
         SignId::from("body/born"),
     )
@@ -99,16 +99,16 @@ pub fn fixture(
         PresentationBasis {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
-            source_document_id: Some(form.source_document_id),
-            checked_form_id: Some(form.checked_form_id),
-            expanded_form_id: Some(form.expanded_form_id),
+            source_document_id: Some(plot.source_document_id),
+            checked_plot_id: Some(plot.checked_plot_id),
+            expanded_plot_id: Some(plot.expanded_plot_id),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,
             sign_ids: vec![SignId::from("presentation/source")],
         },
         vec![PresentationSubject {
             identity: "front/main".into(),
-            role: PresentationRole::Form,
+            role: PresentationRole::Plot,
             name: "Main front".into(),
         }],
         vec![],

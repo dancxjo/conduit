@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredFieldType, StructuredInfoType, StructuredVariantCase,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };

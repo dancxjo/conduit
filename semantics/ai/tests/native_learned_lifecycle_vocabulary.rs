@@ -1,8 +1,8 @@
 use conduit_ai::{
     EvaluationDisposition, HumanAssessmentDisposition, LearnedLifecycleRefusal, PromotionDecision,
-    PromotionTerminal, RollbackTerminal, ShadowTerminal,
+    PromotionTerminal, RollbackTerminal, ShadowResourceEnvelope, ShadowTerminal,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where
@@ -25,4 +25,9 @@ fn learned_lifecycle_vocabulary_is_native_conduitese() {
     assert_round_trip(PromotionTerminal::CommitUnknown);
     assert_round_trip(RollbackTerminal::RolledBack);
     assert_round_trip(LearnedLifecycleRefusal::InvalidPlanTransition);
+    assert_round_trip(ShadowResourceEnvelope::new(4, 1_024, 1_024, 100).unwrap());
+    assert!(ShadowResourceEnvelope::new(0, 1_024, 1_024, 100).is_err());
+    assert!(ShadowResourceEnvelope::new(4, 0, 1_024, 100).is_err());
+    assert!(!include_str!("../src/learned_lifecycle.rs")
+        .contains(concat!("pub struct ", "ShadowResourceEnvelope")));
 }

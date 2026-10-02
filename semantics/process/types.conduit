@@ -1,0 +1,85 @@
+# Authoritative portable bounded process-job meaning.
+
+type JobText = Text <= 256B
+type JobOutputBytes = Bytes <= 65536B
+type JobExecutable = ResourceRef
+
+type JobOutputProfile =
+    bytes
+    | utf8
+
+type JobEnvironmentEntry = {
+    name: JobText
+    value: JobText
+}
+
+type JobArguments = sequence JobText <= 8
+type JobEnvironment = sequence JobEnvironmentEntry <= 8
+
+type JobRequest = {
+    executable: JobExecutable
+    arguments: JobArguments
+    environment: JobEnvironment
+    stdout_profile: JobOutputProfile
+    stderr_profile: JobOutputProfile
+    maximum_stdout_bytes: U32 in 0..=65536
+    maximum_stderr_bytes: U32 in 0..=65536
+    timeout_millis: U64 in 1..=86400000
+}
+
+type JobRequestRefusal =
+    invalid_executable
+    | too_many_arguments
+    | too_many_environment_entries
+    | empty_environment_name
+    | duplicate_environment_name
+    | text_too_large
+    | output_bound_exceeded
+    | invalid_timeout
+
+type JobStreamPressure =
+    within_limit
+    | truncated {
+        observed_minimum_bytes: U64
+    }
+
+type JobOutput = {
+    profile: JobOutputProfile
+    bytes: JobOutputBytes
+    pressure: JobStreamPressure
+    complete_artifact: ResourceRef?
+}
+
+type JobResourceUsage = {
+    elapsed_millis: U64
+    stdout_observed_bytes: U64
+    stderr_observed_bytes: U64
+}
+
+type JobExitDisposition =
+    exit_code I32
+    | signal
+
+type JobTerminalOutcome =
+    completed {
+        disposition: JobExitDisposition
+    }
+    | failed {
+        disposition: JobExitDisposition
+        message: JobText
+    }
+    | cancelled {
+        message: JobText
+    }
+    | timed_out {
+        timeout_millis: U64
+        message: JobText
+    }
+    | provider_lost {
+        message: JobText
+    }
+
+type JobLifecycleEvent =
+    started
+    | running
+    | terminal JobTerminalOutcome

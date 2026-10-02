@@ -20,7 +20,7 @@ cd conduit
 cargo xtask make host std
 ```
 
-The last command builds the product CLI and runs the checked-in Hello form.
+The last command builds the product CLI and runs the checked-in Hello plot.
 For a browser or native interface, follow [Try Conduit](docs/try-conduit.md).
 Rust needs a working native linker. Browser proof also needs Node.js, npm, and
 the WASM target (`rustup target add wasm32-unknown-unknown`). Browser conformance
@@ -36,8 +36,8 @@ tooling, so allow time and disk space.
 
 | If you want to work on… | Begin with… |
 |---|---|
-| Examples and the programming experience | [reviewed forms](forms/README.md), [Try Conduit](docs/try-conduit.md) |
-| Human encounter and inspection | [universal Face grammar](docs/architecture/presentation-grammar-conformance.md), [Patchbay Form graph](forms/patchbay/graph/README.md) |
+| Examples and the programming experience | [reviewed plots](plots/README.md), [Try Conduit](docs/try-conduit.md) |
+| Human encounter and inspection | [universal Face grammar](docs/architecture/presentation-grammar-conformance.md), [Patchbay Plot graph](plots/patchbay/graph/README.md) |
 | Language, planning, or execution | [Canon](docs/conduit-canon.md), [architecture index](docs/architecture/README.md) |
 | A device, host, or ConduitOS | [Targets](targets/README.md), then that target's README |
 | Setup, documentation, or tests | [Documentation index](docs/README.md), [repository map](docs/repository-layout.md), [CI guide](docs/contributing/ci.md) |
@@ -64,7 +64,7 @@ Use a clean checkout, or preserve unrelated local work before switching.
 Read [AGENTS.md](AGENTS.md) before changing code. It records the shared
 architecture and collaboration rules; the important starting points are:
 
-- forms describe meaning; hosts supply implementations and platform effects.
+- plots describe meaning; hosts supply implementations and platform effects.
 - Use the existing planner, kernel, and authoritative state for product work.
 - Keep resource bounds, failures, and permissions explicit.
 - Test the behavior you changed and describe what the evidence establishes.
@@ -93,7 +93,7 @@ Choose the check that exercises your change. List supported suites with:
 cargo xtask check --help
 ```
 
-For example, `cargo xtask check form-s3` checks the form boundary, while
+For example, `cargo xtask check plot-s3` checks the plot boundary, while
 `cargo xtask check input-semantics` checks portable input behavior. The broader
 local workspace check is:
 
@@ -120,8 +120,9 @@ it. Link the owning issue when there is one. Include a screenshot or retained
 evidence link when it helps review a visible change. GitHub already records
 commits and checks; you do not need to copy their identities into the prose.
 
-PR admission is deliberately small. Automation runs combined development
-integration and the exhaustive release gate, then publishes accepted products.
+PR admission checks portable meaning before the affected target lanes. Automation
+runs all targets once for combined development, then publishes those tested
+products after verifying their identities; release does not rebuild them.
 Contributors do not need to assemble promotion receipts or manage release
 branches. See [CI for contributors](docs/contributing/ci.md) when a real
 failure needs investigation.

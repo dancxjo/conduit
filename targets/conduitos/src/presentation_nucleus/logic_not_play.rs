@@ -7,7 +7,6 @@ use conduit_core::{
     HostProfileId, ImplementationId, InfoBool, KindIdentity, OfferGeneration, PROTOCOL_VERSION,
     Plan, PortDescriptor, PortDirection, PortTemporal, kind_id, port_id,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
@@ -15,6 +14,7 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_plot::{ProfileCatalog, StartupCatalog, parse};
 
 use super::back::PresentationBack;
 const SOURCE_KIND: &str = "conduitos/fixture-not-source";
@@ -24,7 +24,7 @@ const SINK_KIND: &str = "conduitos/fixture-not-sink";
 const SINK_REVISION: &str = "conduitos/fixture-not-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduitos.fixture/not-sink@1";
 const SINK_HOST_CALL: &str = "conduitos.fixture/capture-bool@1";
-const FORM: &str = "form not_play {\n source: conduitos/fixture-not-source\n invert: logic/not\n sink: conduitos/fixture-not-sink\n source >> invert\n invert >> sink\n}\n";
+const PLOT: &str = "plot not_play {\n source: conduitos/fixture-not-source\n invert: logic/not\n sink: conduitos/fixture-not-sink\n source >> invert\n invert >> sink\n}\n";
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 3;
 const CORDS: usize = 2;
@@ -64,7 +64,7 @@ pub struct LogicNotProof {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LogicNotError {
     Catalog,
-    Form,
+    Plot,
     Placement,
     Plan,
     Lowering,
@@ -88,7 +88,7 @@ pub fn prepare_not(
     conduit_semantic_catalog::install_logic_catalogs(&mut StartupCatalog::new(), &mut catalog)
         .map_err(|_| LogicNotError::Catalog)?;
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
@@ -97,7 +97,7 @@ pub fn prepare_not(
         })
         .map_err(|_| LogicNotError::Catalog)?;
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(SINK_KIND),
             kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
@@ -105,12 +105,12 @@ pub fn prepare_not(
             configuration: Default::default(),
         })
         .map_err(|_| LogicNotError::Catalog)?;
-    let form = parse(FORM, &catalog).map_err(|_| LogicNotError::Form)?;
+    let plot = parse(PLOT, &catalog).map_err(|_| LogicNotError::Plot)?;
     let advertisement = advertisement(host, boot, input);
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts).map_err(|_| LogicNotError::Placement)?;
+    let placements = default_placements(&plot, &hosts).map_err(|_| LogicNotError::Placement)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -432,7 +432,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ordinary_not_form_inverts_both_values_through_the_production_kernel() {
+    fn ordinary_not_plot_inverts_both_values_through_the_production_kernel() {
         for input in [InfoBool::FALSE, InfoBool::TRUE] {
             let prepared = prepare_not("not-host", "not-boot", input).unwrap();
             let placement = prepared.plan.fragments[0]

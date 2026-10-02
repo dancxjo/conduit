@@ -1,14 +1,14 @@
 use super::{sign, BodyLifecycleSession, BodyLifecycleSessionError};
-use crate::{BodyState, ResidentForm};
+use crate::{BodyState, ResidentPlot};
 use conduit_core::{BootId, HostId};
 
 impl BodyLifecycleSession {
     /// Add checked meaning while Lulled. Current play replacement is a separate
     /// Host-orchestrated lifecycle; this cannot mutate an admitted plan.
-    pub fn admit_form(
+    pub fn admit_plot(
         &mut self,
         expected_revision: u64,
-        form: ResidentForm,
+        plot: ResidentPlot,
         host: &HostId,
         boot: &BootId,
     ) -> Result<(), BodyLifecycleSessionError> {
@@ -26,7 +26,7 @@ impl BodyLifecycleSession {
         let body = self
             .evidence
             .body
-            .admit_form(form, sign_id.clone())
+            .admit_plot(plot, sign_id.clone())
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
@@ -37,11 +37,11 @@ impl BodyLifecycleSession {
     }
 
     /// Remove checked meaning only after the host has retired its actual Play.
-    /// The body and membership survive even when the last Form is removed.
-    pub fn remove_form(
+    /// The body and membership survive even when the last Plot is removed.
+    pub fn remove_plot(
         &mut self,
         expected_revision: u64,
-        form: &ResidentForm,
+        plot: &ResidentPlot,
         host: &HostId,
         boot: &BootId,
     ) -> Result<(), BodyLifecycleSessionError> {
@@ -59,14 +59,14 @@ impl BodyLifecycleSession {
         let body = self
             .evidence
             .body
-            .remove_form(form, sign_id.clone())
+            .remove_plot(plot, sign_id.clone())
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_body_workload_events(body, &[(sign_id, sequence)])
             .map_err(BodyLifecycleSessionError::Biography)?;
-        if self.foreground.as_ref() == Some(form) {
-            self.foreground = evidence.body.workset.forms().first().cloned();
+        if self.foreground.as_ref() == Some(plot) {
+            self.foreground = evidence.body.workset.plots().first().cloned();
         }
         self.evidence = evidence;
         Ok(())

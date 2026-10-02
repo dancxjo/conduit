@@ -1,6 +1,6 @@
 //! Repository-only orchestration entry point for Conduit development and proof tooling.
 //!
-//! Product-facing form execution remains in the Conduit CLI; this binary owns only
+//! Product-facing plot execution remains in the Conduit CLI; this binary owns only
 //! checked-out repository workflows and local hardware tooling.
 
 mod cli;
@@ -33,8 +33,8 @@ fn main() {
                     match scope {
                         CheckScope::Catalog(args) => commands::catalog::run(args, &opts)
                             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
-                        CheckScope::Forms(args) => {
-                            commands::forms::run(args, &opts).map_err(|error| {
+                        CheckScope::Plots(args) => {
+                            commands::plots::run(args, &opts).map_err(|error| {
                                 Box::new(std::io::Error::other(error)) as Box<dyn std::error::Error>
                             })
                         }
@@ -126,6 +126,8 @@ fn run_make(target: MakeTarget, opts: &GlobalOpts) -> Result<(), Box<dyn std::er
         MakeTarget::PicoLocal(mut args) => run_pico(opts, &mut args, true),
         MakeTarget::Conduitos(args) => commands::conduitos::run(args, opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        MakeTarget::Handbook(args) => commands::handbook::run_handbook(args),
+        MakeTarget::PagesRoot(args) => commands::handbook::run_pages_root(args),
         MakeTarget::UnifontSubset(args) => commands::unifont_subset::run(args),
         MakeTarget::PaletteIcons(args) => commands::palette_icons::run(args),
         MakeTarget::StartupCue(args) => commands::audio::cue::render(opts, &args.output),

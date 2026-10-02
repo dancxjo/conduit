@@ -5,7 +5,7 @@ use conduit_body::{
     RemoteClaimPolicy, RemoteClaimProvenance, RemoteProofClass,
 };
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
+    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedPlotId,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
     KindIdentity, LinkBindingId, OfferGeneration, ResourceClassId, ResourceOffer, ResourcePoolId,
     SignId, SourceDocumentId, PROTOCOL_VERSION,
@@ -193,7 +193,7 @@ fn disclosure_is_deterministic_canonical_and_refuses_early_or_unknown_detail() {
 fn current_membership() -> BodyMembership {
     let body = Body::born(
         SourceDocumentId::from("source/provenance"),
-        CheckedFormId::from("checked/provenance"),
+        CheckedPlotId::from("checked/provenance"),
         1,
         SignId::from("sign/born"),
     )

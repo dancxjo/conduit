@@ -7,10 +7,6 @@ use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
-};
 use conduit_kernel::{
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
@@ -20,6 +16,10 @@ use conduit_kernel::{
     FixedRoutes, HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog,
     HostedValueStore, KernelEvent, KernelEventKind, NodeId, PortId, RequestId, RouteRange,
     RouteTarget, SignQuery, ValueRef, ValueStorage,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
 };
 use conduit_std_host::{evolve_reaction_diffusion_hosted, reaction_diffusion_std_offer};
 
@@ -150,12 +150,12 @@ fn canonical_example_executes_the_hosted_reference_through_the_production_kernel
 }
 
 fn assert_canonical_example_checks_and_plans() {
-    let source = include_str!("../../../proof/fixtures/forms/reaction-diffusion.conduit");
+    let source = include_str!("../../../proof/fixtures/plots/reaction-diffusion.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_reaction_diffusion_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form_for_authoring(&checked, "field-step", &profile).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, "field-step", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/reaction-diffusion-kernel"),

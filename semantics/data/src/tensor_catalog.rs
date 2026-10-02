@@ -1,11 +1,11 @@
-//! Ordinary form-facing tensor port contracts.
+//! Ordinary plot-facing tensor port contracts.
 
 use alloc::{
     string::{String, ToString},
     vec,
 };
 use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::TENSOR_INFO_ID;
 
@@ -38,7 +38,7 @@ pub fn install_tensor_catalogs(
         .insert(KindProjection {
             kind_id: kind_id(TENSOR_IDENTITY_KIND),
             kind_contract_revision: KindIdentity::from(TENSOR_CONTRACT_REVISION),
-            inputs: vec![port("tensor", PortDirection::Input)],
+            inputs: vec![port("source", PortDirection::Input)],
             outputs: vec![port("tensor", PortDirection::Output)],
             configuration: vec![],
         })

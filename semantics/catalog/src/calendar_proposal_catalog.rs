@@ -12,7 +12,7 @@ use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
 };
 
@@ -310,8 +310,8 @@ pub fn calendar_proposal_result_type() -> StructuredInfoType {
 }
 
 pub fn install_calendar_proposal_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     let request = calendar_proposal_request_type();
     startup

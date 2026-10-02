@@ -2,7 +2,7 @@
 use super::{Arrival, Error};
 use crate::display::{PixelTarget, SPACING};
 use alloc::format;
-use conduit_birth_form::BirthPresentation;
+use conduit_birth_plot::BirthPresentation;
 use conduit_presentation::{
     ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
     GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationIconKey, PresentationMechanism,
@@ -137,7 +137,7 @@ impl Arrival {
                         GraphicsTextRole::Action,
                     )?;
                 }
-                ("form-search", PresentationMechanism::FormField(field)) => {
+                ("plot-search", PresentationMechanism::FormField(field)) => {
                     line(
                         232,
                         &format!("{}: {}", field.label, field.value),
@@ -145,7 +145,7 @@ impl Arrival {
                         GraphicsTextRole::Code,
                     )?;
                 }
-                ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
+                ("initial-plots", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
                     line(256, label, false, GraphicsTextRole::Label)?;
                     for (index, choice) in options.iter().enumerate() {
                         line(
@@ -169,14 +169,14 @@ impl Arrival {
                     }
                     choice_count = options.len();
                 }
-                ("initial-forms", PresentationMechanism::Status { title, detail, .. }) => {
+                ("initial-plots", PresentationMechanism::Status { title, detail, .. }) => {
                     line(256, title, false, GraphicsTextRole::Status)?;
                     if !detail.is_empty() {
                         line(280, detail, false, GraphicsTextRole::Muted)?;
                     }
                     choice_count = 0;
                 }
-                ("selected-forms", PresentationMechanism::Status { title, .. }) => {
+                ("selected-plots", PresentationMechanism::Status { title, .. }) => {
                     line(368, title, false, GraphicsTextRole::Status)?;
                 }
                 ("birth-body", PresentationMechanism::Action(action)) => {

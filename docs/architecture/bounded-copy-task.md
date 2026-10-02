@@ -6,11 +6,11 @@ Execution lowers that plan through the ordinary numeric kernel boundary. A one-b
 
 Create-only commit uses a same-directory hard link so a concurrent destination cannot be overwritten. Replacement uses a same-directory rename. Neither policy writes the final destination incrementally. Stop is checked between every admitted chunk; it calls kernel cancellation and removes the temporary file. Partial I/O and cleanup failure remain separate results.
 
-Every run returns a receipt naming the request, active play, plan, source handle, destination handle, structured result, copied byte count where applicable, and kernel sign count. Raw paths remain base-private and are absent from the form, plan, receipt, and kernel protocol.
+Every run returns a receipt naming the request, active play, plan, source handle, destination handle, structured result, copied byte count where applicable, and kernel sign count. Raw paths remain base-private and are absent from the plot, plan, receipt, and kernel protocol.
 
 The current std profile admits at most 16 MiB per run. The former privileged
 `conduit copy SOURCE DESTINATION` entrance has been retired: copying belongs to
-an ordinary `file/copy` Form whose selected Host Back receives separately
+an ordinary `file/copy` Plot whose selected Host Back receives separately
 authorized protected-resource choices. Until the general product entrance can
 bind those choices without placing paths in authored meaning, the checked
 contract and Host implementation remain available but the installed CLI does
@@ -20,7 +20,7 @@ establishes neither a browser copy realization nor a fresh human usability
 observation.
 
 Linux targets may instead explicitly install the `isolated-file-base` feature
-and `conduit-isolated-copy-base` binary. That realization preserves this form,
+and `conduit-isolated-copy-base` binary. That realization preserves this plot,
 kind, planner, kernel, commit, cancellation, result, and presentation contract;
 only the selected implementation and effect boundary differ. Minimal host core
 does not include the provider, and provider failure returns a terminal failure

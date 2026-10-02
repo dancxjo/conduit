@@ -10,7 +10,7 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 use super::FrontDoor;
 
 impl FrontDoor {
-    pub(super) fn semantic_actions(&self, form_subject: &str) -> Vec<PresentationAction> {
+    pub(super) fn semantic_actions(&self, plot_subject: &str) -> Vec<PresentationAction> {
         let status = self
             .journey
             .as_ref()
@@ -20,7 +20,7 @@ impl FrontDoor {
             .as_ref()
             .and_then(|journey| journey.body_id.as_ref())
             .map_or_else(
-                || form_subject.to_owned(),
+                || plot_subject.to_owned(),
                 |body| format!("body/{}", body.as_str()),
             );
         let birth = if !self.lifecycle_authority_admitted {
@@ -28,7 +28,7 @@ impl FrontDoor {
                 "authority/not-admitted",
                 "No admitted authority can create a body from this entrance.",
             )
-        } else if status == JourneyStatus::FormOpened {
+        } else if status == JourneyStatus::PlotOpened {
             PresentationActionAvailability::Available
         } else {
             lifecycle_unavailable("Birth", status)
@@ -37,14 +37,14 @@ impl FrontDoor {
             action(
                 "open-back",
                 "Open",
-                form_subject,
+                plot_subject,
                 availability(
-                    matches!(status, JourneyStatus::World | JourneyStatus::FormOpened),
+                    matches!(status, JourneyStatus::World | JourneyStatus::PlotOpened),
                     "Open",
                     status,
                 ),
             ),
-            action("birth", "Birth", form_subject, birth),
+            action("birth", "Birth", plot_subject, birth),
         ];
         if self
             .journey
@@ -116,8 +116,8 @@ impl FrontDoor {
                     .is_some_and(|journey| journey.workload_capacity_available)
             {
                 rows.push(action(
-                    "admit-form",
-                    "Install Form",
+                    "admit-plot",
+                    "Install Plot",
                     &lifecycle_target,
                     PresentationActionAvailability::Available,
                 ));
@@ -184,8 +184,8 @@ fn unavailable(reason_code: &str, explanation: &str) -> PresentationActionAvaila
 
 pub(super) fn lifecycle_summary(journey: &JourneyProjection) -> &'static str {
     match journey.status {
-        JourneyStatus::World => "Body none; the entrance Form is ready for inert inspection.",
-        JourneyStatus::FormOpened => "Form open; inspection has created no effect.",
+        JourneyStatus::World => "Body none; the entrance Plot is ready for inert inspection.",
+        JourneyStatus::PlotOpened => "Plot open; inspection has created no effect.",
         JourneyStatus::BornLulled => "Body born and retained; Wake is available.",
         JourneyStatus::Awake => "Wake active; an exact plan is required before Play.",
         JourneyStatus::Planned => "Exact immutable Plan ready; Play is available.",

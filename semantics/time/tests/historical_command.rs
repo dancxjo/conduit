@@ -32,12 +32,21 @@ fn value(seed: u8) -> BoundedResourceRef {
 }
 
 fn append(identity: &str, ticks: u64, seed: u8) -> HistoricalTimelineCommand {
-    HistoricalTimelineCommand::Append {
-        identity: identity.into(),
-        event_time: at(ticks),
-        origin: HistoricalEntryOrigin::OperatorAuthored,
-        value: value(seed),
-    }
+    append_value(identity, ticks, value(seed))
+}
+
+fn append_value(
+    identity: &str,
+    ticks: u64,
+    value: BoundedResourceRef,
+) -> HistoricalTimelineCommand {
+    HistoricalTimelineCommand::append(
+        at(ticks).try_into().unwrap(),
+        identity.into(),
+        HistoricalEntryOrigin::OperatorAuthored,
+        value,
+    )
+    .unwrap()
 }
 
 fn timeline() -> BoundedHistoricalTimeline {
@@ -70,8 +79,8 @@ fn reseal(encoded: &mut [u8]) {
 fn append_remove_and_clear_commands_round_trip_and_mutate_explicitly() {
     let commands = [
         append("event/amber", 100, 1),
-        HistoricalTimelineCommand::Remove { sequence: 7 },
-        HistoricalTimelineCommand::Clear,
+        HistoricalTimelineCommand::remove(7).unwrap(),
+        HistoricalTimelineCommand::clear(),
     ];
     for command in &commands {
         assert_eq!(
@@ -83,17 +92,17 @@ fn append_remove_and_clear_commands_round_trip_and_mutate_explicitly() {
     let mut history = timeline();
     assert_eq!(
         history.apply(commands[0].clone()).unwrap(),
-        HistoricalTimelineOutcome::Appended { sequence: 7 }
+        HistoricalTimelineOutcome::appended(7).unwrap()
     );
     let HistoricalTimelineOutcome::Removed(removed) = history.apply(commands[1].clone()).unwrap()
     else {
         panic!("remove must return the exact removed entry");
     };
-    assert_eq!(removed.identity, "event/amber");
+    assert_eq!(removed.identity(), "event/amber");
     history.apply(append("event/blue", 110, 3)).unwrap();
     assert_eq!(
         history.apply(commands[2].clone()).unwrap(),
-        HistoricalTimelineOutcome::Cleared { revision: 1 }
+        HistoricalTimelineOutcome::cleared(1).unwrap()
     );
     assert!(history.is_empty());
 }
@@ -133,11 +142,9 @@ fn decoded_command_still_obeys_the_timeline_type_and_order_contract() {
     let first = decode_historical_timeline_command(&encode(&append("event/one", 100, 1))).unwrap();
     history.apply(first).unwrap();
 
-    let mut wrong = append("event/wrong", 110, 3);
-    let HistoricalTimelineCommand::Append { value, .. } = &mut wrong else {
-        unreachable!();
-    };
+    let mut value = value(3);
     value.content_profile = kind_id("observation/sound@1");
+    let wrong = append_value("event/wrong", 110, value);
     let decoded = decode_historical_timeline_command(&encode(&wrong)).unwrap();
     assert_eq!(
         history.apply(decoded),

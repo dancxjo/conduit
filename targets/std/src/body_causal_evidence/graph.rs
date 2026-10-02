@@ -47,9 +47,9 @@ pub(super) fn record_planned_transfer_edges(
             return Err(BodyCausalEvidenceRefusal::MismatchedIdentityMap);
         };
         let Some(fragment) = plan
-            .forms
+            .plots
             .iter()
-            .flat_map(|form| &form.plan.fragments)
+            .flat_map(|plot| &plot.plan.fragments)
             .find(|fragment| {
                 fragment.plan_id == map.plan_id && fragment.fragment_id == map.fragment_id
             })
@@ -122,9 +122,9 @@ pub(super) fn record_planned_recovery_edges(
             return Err(BodyCausalEvidenceRefusal::MismatchedIdentityMap);
         };
         let Some(fragment) = plan
-            .forms
+            .plots
             .iter()
-            .flat_map(|form| &form.plan.fragments)
+            .flat_map(|plot| &plot.plan.fragments)
             .find(|fragment| {
                 fragment.plan_id == map.plan_id && fragment.fragment_id == map.fragment_id
             })

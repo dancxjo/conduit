@@ -78,7 +78,7 @@ pub(super) fn append(
                 ));
                 let value = observations.and_then(|observed| {
                     match (gear, direction, port.port_id.as_str()) {
-                        ("meet-one-gear/change", "in", "text") => observed.upper_input.text(),
+                        ("meet-one-gear/change", "in", "source") => observed.upper_input.text(),
                         ("meet-one-gear/change", "out", "text") => observed.upper_output.text(),
                         ("meet-one-gear/result", "in", "text") => {
                             observed.presentation_input.text()
@@ -90,7 +90,7 @@ pub(super) fn append(
                 text.push_str(&preview(value));
             }
         }
-        // Configuration describes the checked form, not a value observed from
+        // Configuration describes the checked plot, not a value observed from
         // execution. Keep it after Port rows so anchors retain their meaning.
         if let Some(value) = contract.controls.iter().find_map(|control| {
             match (control.key.as_str(), &control.value) {

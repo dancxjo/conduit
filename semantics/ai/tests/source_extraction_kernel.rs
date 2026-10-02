@@ -313,14 +313,7 @@ fn admitted_source_executes_through_the_production_kernel() {
         },
         &binding(&source, ResourceReferenceAvailability::Available),
         SourceExtractionProfile::text_utf8(2).unwrap(),
-        SourceExtractionLimits {
-            maximum_source_bytes: 4096,
-            maximum_source_items: 32,
-            maximum_chunk_bytes: 512,
-            maximum_chunks: 16,
-            maximum_output_bytes: 8192,
-            maximum_work_units: 16384,
-        },
+        SourceExtractionLimits::new(4096, 32, 512, 16, 8192, 16384).unwrap(),
         &SourcePayload::Text("alpha βeta gamma".as_bytes().to_vec()),
     )
     .unwrap();

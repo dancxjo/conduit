@@ -1,10 +1,10 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, ObservationKind, TerminalDisposition};
-use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
+use conduit_plot::parse;
 use std::collections::BTreeMap;
 
-const SPLIT_FORM: &str = "form portable_input {\n source: conduit-test/key-event-source\n split: input/key-tee\n keymap: input/keymap\n show: presentation/text\n chords: input/chords\n control: conduit-test/chord-sink\n source.key >> split.key\n split.text-keys >> keymap.key\n keymap.text >> show.text\n split.chord-keys >> chords.key\n chords.chord >> control.chord\n}\n";
+const SPLIT_FORM: &str = "plot portable_input {\n source: conduit-test/key-event-source\n split: input/key-tee\n keymap: input/keymap\n show: presentation/text\n chords: input/chords\n control: conduit-test/chord-sink\n source.key >> split.key\n split.text-keys >> keymap.key\n keymap.text >> show.text\n split.chord-keys >> chords.key\n chords.chord >> control.chord\n}\n";
 
 fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
     let host = host("portable-input-host");
@@ -13,13 +13,13 @@ fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
         .capabilities
         .iter()
         .any(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND));
-    let form = parse(source, &installed_std::test_catalog()).expect("portable input Form checks");
+    let plot = parse(source, &installed_std::test_catalog()).expect("portable input Plot checks");
     for kind in [
         conduit_semantic_catalog::KEY_EVENT_TEE_KIND,
         conduit_semantic_catalog::KEYMAP_KIND,
         conduit_semantic_catalog::CHORDS_KIND,
     ] {
-        let Some(gear) = form.gears.iter().find(|gear| gear.kind_id.as_str() == kind) else {
+        let Some(gear) = plot.gears.iter().find(|gear| gear.kind_id.as_str() == kind) else {
             continue;
         };
         let offer = host
@@ -31,9 +31,9 @@ fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
         assert_eq!(offer.checked_front(), gear.checked_front(), "{kind}");
     }
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("portable input placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("portable input placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -47,12 +47,12 @@ fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
             line_offers: &[],
         },
     )
-    .expect("portable input Form plans with capacity-one Cords");
+    .expect("portable input Plot plans with capacity-one Cords");
     (host, plan.fragments[0].clone())
 }
 
 #[test]
-fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
+fn ordinary_plot_splits_text_and_chords_through_the_production_kernel() {
     let (mut host, fragment) = plan(SPLIT_FORM);
     assert!(fragment
         .connections
@@ -83,7 +83,7 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
     };
     let report = host
         .run_fragment_to(fragment, &mut output, &mut timer)
-        .expect("split input Form executes through the installed production scheduler");
+        .expect("split input Plot executes through the installed production scheduler");
     let output = String::from_utf8(output).unwrap();
     assert!(output.contains("\na\n"), "{output}");
     assert!(output.contains("\nb\n"), "{output}");
@@ -109,8 +109,8 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
 
 #[test]
 fn keymap_text_flows_directly_into_text_upper_without_an_adapter() {
-    let form = "form upper_input {\n source: conduit-test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: presentation/text\n source.key >> keymap.key\n keymap.text >> upper.text\n upper.text >> show.text\n}\n";
-    let (mut host, fragment) = plan(form);
+    let plot = "plot upper_input {\n source: conduit-test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: presentation/text\n source.key >> keymap.key\n keymap.text >> upper.source\n upper.text >> show.text\n}\n";
+    let (mut host, fragment) = plan(plot);
     let mut output = Vec::with_capacity(16_384);
     let mut timer = RecordingTimer {
         waits: Vec::with_capacity(8),

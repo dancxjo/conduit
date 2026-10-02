@@ -84,6 +84,32 @@ type TimingFeedback = {
     recovery_state: RhythmRecoveryState
 }
 
+type InstrumentPitchMillihertz = collection U64 = 8
+
+type InstrumentMapping = {
+    expression_control: U64
+    modulation_control: U64
+    pitch_millihertz: InstrumentPitchMillihertz
+    sustain_button: U64
+}
+
+type InstrumentButtonEvent = {
+    down: Boolean
+    event_time_micros: U64
+    index: U64
+    occurrence: U64
+}
+
+type InstrumentAnalogEvent = {
+    event_time_micros: U64
+    index: U64
+    value: U64
+}
+
+type InstrumentControl =
+    analog InstrumentAnalogEvent
+    | button InstrumentButtonEvent
+
 type PcmSampleRepresentation =
     signed16-little-endian
     | signed24-little-endian
@@ -170,14 +196,14 @@ type SoundStreamState =
     | cancelled
     | closed
 
-code audio/tone-terminal = AudioToneTerminal as u8
+form audio/tone-terminal = AudioToneTerminal as u8
 
-code audio/pcm-sample-representation = PcmSampleRepresentation as u8
+form audio/pcm-sample-representation = PcmSampleRepresentation as u8
 
-code audio/pcm-channel-layout = PcmChannelLayout as u8
+form audio/pcm-channel-layout = PcmChannelLayout as u8
 
-code audio/gate = Gate as u8
+form audio/gate = Gate as u8
     off
     on
 
-code audio/modulation-destination = ModulationDestination as u8
+form audio/modulation-destination = ModulationDestination as u8

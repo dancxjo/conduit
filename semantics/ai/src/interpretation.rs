@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     InterpretationDisposition, InterpretationInvalidity, InterpretationProvenance,
-    TemporalReference, TemporalRetrievalIntent,
+    ProfileReportedConfidence, TemporalReference, TemporalRetrievalIntent,
 };
 
 pub const MAXIMUM_INTERPRETATION_EVIDENCE: usize = 16;
@@ -23,12 +23,6 @@ pub struct InterpretationRequest {
     pub context: String,
     pub temporal_reference: TemporalReference,
     pub temporal_intent: Option<TemporalRetrievalIntent>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ProfileReportedConfidence {
-    /// A bounded model/profile score, deliberately not named or treated as probability.
-    pub score_permille: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,12 +97,6 @@ impl ModelInterpretation {
         }
         if self.implications.len() > MAXIMUM_INTERPRETATION_IMPLICATIONS {
             return Err(InterpretationInvalidity::TooManyImplications);
-        }
-        if self
-            .confidence
-            .is_some_and(|value| value.score_permille > 1_000)
-        {
-            return Err(InterpretationInvalidity::InvalidConfidence);
         }
         if self.referenced_evidence.iter().any(|sign_id| {
             !request

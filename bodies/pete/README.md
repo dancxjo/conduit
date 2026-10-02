@@ -24,7 +24,7 @@ describe-only fixture runtime and product-facing demo are intentionally absent.
 Pico W realization and physical safety HIL remain separate proof classes.
 
 The [Pete workstream](https://github.com/dancxjo/conduit/issues/2229) tracks the
-continuous multi-form body. Resident workload, memory, and the full physical
+continuous multi-plot body. Resident workload, memory, and the full physical
 capstone have separate prerequisites; individual observation or drive proofs
 do not establish that whole experience. See [STATUS](../../STATUS.md) for
 recorded evidence before attempting hardware work.

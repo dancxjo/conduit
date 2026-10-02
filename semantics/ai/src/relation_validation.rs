@@ -2,62 +2,44 @@ use alloc::{string::String, vec::Vec};
 use conduit_data::TensorValue;
 
 use super::*;
-use crate::{
-    ModelArtifact, ModelDimensionConstraint, ModelOperation, ModelPortConstraint,
-    ModelPortPresence, ModelSignature, ProbabilisticDisposition,
-};
+use crate::{ModelArtifact, ModelDimensionConstraint, ModelSignature, ProbabilisticDisposition};
 
 impl ModelRelationSignature {
     pub fn validate(&self) -> Result<(), RelationRefusal> {
         text(&self.identity)?;
-        nonzero(self.callable_signature_identity)?;
-        if self.compatibility_version == 0 || self.variables.is_empty() {
-            return Err(RelationRefusal::InvalidSignature);
-        }
-        if self.variables.len() > MAXIMUM_RELATION_VARIABLES {
-            return Err(RelationRefusal::TooManyVariables);
-        }
-        for variable in &self.variables {
-            text(&variable.identity)?;
-            text(&variable.semantic_role)?;
-            validate_constraint(&variable.value)?;
-        }
-        ModelSignature {
-            identity: self.identity.clone(),
-            compatibility_version: self.compatibility_version,
-            operations: alloc::vec![ModelOperation::Infer],
-            inputs: self
-                .variables
+        nonzero(*self.callable_signature_identity.get())?;
+        let variables = self.variables.get().as_slice();
+        let supported_queries = self.supported_queries.get().as_slice();
+        ModelSignature::inference_only(
+            self.identity.clone(),
+            self.compatibility_version,
+            variables
                 .iter()
-                .map(|variable| ModelPortConstraint {
-                    identity: variable.identity.clone(),
-                    semantic_kind: variable.semantic_role.clone(),
-                    presence: ModelPortPresence::Optional,
-                    value: variable.value.clone(),
+                .map(|variable| {
+                    (
+                        variable.identity.get().clone(),
+                        variable.semantic_role.get().clone(),
+                        variable.value.clone(),
+                    )
                 })
                 .collect(),
-            outputs: Vec::new(),
-        }
+        )
+        .map_err(|_| RelationRefusal::InvalidSignature)?
         .validate()
         .map_err(|_| RelationRefusal::InvalidSignature)?;
-        if duplicate(self.variables.iter().map(|value| &value.identity)) {
+        if duplicate(variables.iter().map(|value| value.identity.get())) {
             return Err(RelationRefusal::DuplicateVariable);
         }
-        if self.supported_queries.is_empty() {
-            return Err(RelationRefusal::InvalidPattern);
-        }
-        if self.supported_queries.len() > MAXIMUM_RELATION_PATTERNS {
-            return Err(RelationRefusal::TooManyPatterns);
-        }
-        for pattern in &self.supported_queries {
+        for pattern in supported_queries {
             pattern.validate_for(self)?;
         }
         if self
             .supported_queries
+            .get()
             .iter()
             .enumerate()
             .any(|(index, pattern)| {
-                self.supported_queries[index + 1..]
+                supported_queries[index + 1..]
                     .iter()
                     .any(|other| pattern.same_query(other))
             })
@@ -77,11 +59,12 @@ impl ModelRelationSignature {
         query.validate_for(self, artifact)?;
         let pattern = self
             .supported_queries
+            .get()
             .iter()
             .find(|pattern| pattern.matches(query))
             .ok_or(RelationRefusal::UnsupportedQuery)?;
-        if query.admitted_work_units > pattern.maximum_work_units
-            || query.maximum_output_bytes > pattern.maximum_output_bytes
+        if query.admitted_work_units > *pattern.maximum_work_units()
+            || query.maximum_output_bytes > *pattern.maximum_output_bytes()
         {
             return Err(RelationRefusal::WorkBoundExceeded);
         }
@@ -94,17 +77,28 @@ impl ModelRelationSignature {
         candidate.validate_for(query)?;
         let evidence_identities = query
             .evidence
+            .get()
             .iter()
-            .map(|evidence| Ok((evidence.variable.clone(), evidence.value.semantic_digest()?)))
+            .map(|evidence| {
+                Ok((
+                    evidence.variable.get().clone(),
+                    evidence.value.semantic_digest()?,
+                ))
+            })
             .collect::<Result<Vec<_>, RelationRefusal>>()?;
         Ok(RelationQueryOutcome::Completed(Box::new(RelationReceipt {
-            query_identity: query.identity,
+            query_identity: *query.identity.get(),
             query_descriptor_identity: query.semantic_digest()?,
-            artifact_identity: query.artifact_identity,
-            checkpoint_identity: query.checkpoint_identity,
-            relation_signature_identity: query.relation_signature_identity,
+            artifact_identity: *query.artifact_identity.get(),
+            checkpoint_identity: query.checkpoint_identity.as_ref().map(|value| *value.get()),
+            relation_signature_identity: *query.relation_signature_identity.get(),
             evidence_identities,
-            targets: query.targets.clone(),
+            targets: query
+                .targets
+                .get()
+                .iter()
+                .map(|value| value.get().clone())
+                .collect(),
             mode: query.mode,
             requested_result: query.requested_result.clone(),
             randomness: query.randomness.clone(),
@@ -113,7 +107,12 @@ impl ModelRelationSignature {
             output_identities: candidate
                 .outputs
                 .iter()
-                .map(|output| (output.target_variable.clone(), output.value_identity))
+                .map(|output| {
+                    (
+                        output.target_variable().get().clone(),
+                        *output.value_identity().get(),
+                    )
+                })
                 .collect(),
             realization: candidate.realization,
         })))
@@ -121,36 +120,29 @@ impl ModelRelationSignature {
 
     fn variable(&self, identity: &str) -> Option<&RelationVariable> {
         self.variables
+            .get()
             .iter()
-            .find(|value| value.identity == identity)
+            .find(|value| value.identity.get() == identity)
     }
 }
 
 impl SupportedRelationQuery {
     fn validate_for(&self, signature: &ModelRelationSignature) -> Result<(), RelationRefusal> {
-        if self.evidence_variables.is_empty()
-            || self.target_variables.is_empty()
-            || self.evidence_variables.len() > MAXIMUM_RELATION_VALUES
-            || self.target_variables.len() > MAXIMUM_RELATION_VALUES
-            || self.maximum_work_units == 0
-            || self.maximum_output_bytes == 0
-            || duplicate(self.evidence_variables.iter())
-            || duplicate(self.target_variables.iter())
-            || self
-                .evidence_variables
-                .iter()
-                .any(|value| self.target_variables.contains(value))
+        let evidence = self.evidence_variables().get().as_slice();
+        let targets = self.target_variables().get().as_slice();
+        if duplicate_native(evidence)
+            || duplicate_native(targets)
+            || evidence.iter().any(|value| targets.contains(value))
         {
             return Err(RelationRefusal::InvalidPattern);
         }
-        for identity in self.evidence_variables.iter().chain(&self.target_variables) {
-            text(identity)?;
-            if signature.variable(identity).is_none() {
+        for identity in evidence.iter().chain(targets) {
+            if signature.variable(identity.get()).is_none() {
                 return Err(RelationRefusal::UnknownVariable);
             }
         }
         if matches!(
-            &self.result_profile,
+            self.result_profile(),
             RelationResultProfile::Probabilistic(profile) if *profile.maximum_samples() == 0
         ) {
             return Err(RelationRefusal::InvalidPattern);
@@ -159,23 +151,33 @@ impl SupportedRelationQuery {
     }
 
     fn same_query(&self, other: &Self) -> bool {
-        self.mode == other.mode
-            && same_set(&self.evidence_variables, &other.evidence_variables)
-            && same_set(&self.target_variables, &other.target_variables)
+        self.mode() == other.mode()
+            && same_native_set(
+                self.evidence_variables().get().as_slice(),
+                other.evidence_variables().get().as_slice(),
+            )
+            && same_native_set(
+                self.target_variables().get().as_slice(),
+                other.target_variables().get().as_slice(),
+            )
     }
 
     fn matches(&self, query: &RelationQuery) -> bool {
-        self.mode == query.mode
-            && self.result_profile == query.requested_result
-            && same_set(
-                &self.evidence_variables,
+        self.mode() == &query.mode
+            && self.result_profile() == &query.requested_result
+            && native_matches_strings(
+                self.evidence_variables().get().as_slice(),
                 &query
                     .evidence
+                    .get()
                     .iter()
-                    .map(|value| value.variable.clone())
+                    .map(|value| value.variable.get().clone())
                     .collect::<Vec<_>>(),
             )
-            && same_set(&self.target_variables, &query.targets)
+            && same_native_set(
+                self.target_variables().get().as_slice(),
+                query.targets.get().as_slice(),
+            )
     }
 }
 
@@ -185,31 +187,37 @@ impl RelationQuery {
         signature: &ModelRelationSignature,
         artifact: &ModelArtifact,
     ) -> Result<(), RelationRefusal> {
-        nonzero(self.identity)?;
-        if artifact.signature_identity != signature.callable_signature_identity
-            || self.artifact_identity != artifact.content_identity()
-            || self.relation_signature_identity != signature.semantic_digest()?
-            || self.checkpoint_identity == Some([0; 32])
+        if artifact.signature_identity != *signature.callable_signature_identity.get()
+            || *self.artifact_identity.get() != artifact.content_identity()
+            || *self.relation_signature_identity.get() != signature.semantic_digest()?
+            || self
+                .checkpoint_identity
+                .as_ref()
+                .is_some_and(|value| value.get() == &[0; 32])
         {
             return Err(RelationRefusal::ArtifactMismatch);
         }
-        if self.evidence.is_empty() || self.targets.is_empty() {
-            return Err(RelationRefusal::UnsupportedQuery);
-        }
-        if duplicate(self.evidence.iter().map(|value| &value.variable)) {
+        let evidence_values = self.evidence.get().as_slice();
+        let targets = self.targets.get().as_slice();
+        if duplicate_native(
+            &evidence_values
+                .iter()
+                .map(|value| value.variable.clone())
+                .collect::<Vec<_>>(),
+        ) {
             return Err(RelationRefusal::DuplicateEvidence);
         }
-        if duplicate(self.targets.iter()) {
+        if duplicate_native(targets) {
             return Err(RelationRefusal::DuplicateTarget);
         }
-        for evidence in &self.evidence {
+        for evidence in evidence_values {
             let variable = signature
-                .variable(&evidence.variable)
+                .variable(evidence.variable.get())
                 .ok_or(RelationRefusal::UnknownVariable)?;
             evidence.value.validate_against(&variable.value)?;
         }
-        for target in &self.targets {
-            if signature.variable(target).is_none() {
+        for target in targets {
+            if signature.variable(target.get()).is_none() {
                 return Err(RelationRefusal::UnknownVariable);
             }
         }
@@ -220,36 +228,32 @@ impl RelationQuery {
                     && !matches!(self.randomness, RandomnessProfile::Deterministic) => {}
             _ => return Err(RelationRefusal::DeterminismMismatch),
         }
-        if self.admitted_work_units == 0 || self.maximum_output_bytes == 0 {
-            return Err(RelationRefusal::WorkBoundExceeded);
-        }
         Ok(())
     }
 }
 
 impl RelationCandidate {
     fn validate_for(&self, query: &RelationQuery) -> Result<(), RelationRefusal> {
-        if self.outputs.len() != query.targets.len()
-            || duplicate(self.outputs.iter().map(|value| &value.target_variable))
-            || !same_set(
-                &self
-                    .outputs
-                    .iter()
-                    .map(|value| value.target_variable.clone())
-                    .collect::<Vec<_>>(),
-                &query.targets,
-            )
+        let output_targets = self
+            .outputs
+            .iter()
+            .map(|value| value.target_variable().get().clone())
+            .collect::<Vec<_>>();
+        let targets = query.targets.get().as_slice();
+        if self.outputs.len() != targets.len()
+            || duplicate(output_targets.iter())
+            || !native_matches_strings(targets, &output_targets)
         {
             return Err(RelationRefusal::InvalidResult);
         }
         for output in &self.outputs {
-            nonzero(output.value_identity)?;
-            match (&query.requested_result, &output.disposition) {
+            nonzero(*output.value_identity().get())?;
+            match (&query.requested_result, output.disposition()) {
                 (RelationResultProfile::Deterministic, ProbabilisticDisposition::Exact)
-                    if output.sample_count == 1 => {}
+                    if *output.sample_count() == 1 => {}
                 (RelationResultProfile::Probabilistic(profile), _)
-                    if output.sample_count > 0
-                        && output.sample_count <= *profile.maximum_samples() => {}
+                    if *output.sample_count() > 0
+                        && *output.sample_count() <= *profile.maximum_samples() => {}
                 _ => return Err(RelationRefusal::DeterminismMismatch),
             }
         }
@@ -276,8 +280,9 @@ impl RelationCandidate {
 impl RelationValue {
     pub(super) fn semantic_digest(&self) -> Result<[u8; 32], RelationRefusal> {
         match self {
-            Self::Tensor(value) => Ok(value.content_digest),
+            Self::Tensor(value) => Ok(value.value().content_digest),
             Self::SampledSignal(value) => value
+                .value()
                 .semantic_digest()
                 .map_err(|_| RelationRefusal::InvalidValue),
         }
@@ -286,13 +291,14 @@ impl RelationValue {
     fn validate_against(&self, constraint: &ModelValueConstraint) -> Result<(), RelationRefusal> {
         match (self, constraint) {
             (Self::Tensor(value), ModelValueConstraint::Tensor(constraint)) => {
-                validate_tensor(value, constraint)
+                validate_tensor(value.value(), constraint.constraint())
             }
             (Self::SampledSignal(value), ModelValueConstraint::SampledSignal(constraint)) => {
                 value
+                    .value()
                     .validate()
                     .map_err(|_| RelationRefusal::InvalidValue)?;
-                validate_tensor(&value.samples, constraint)
+                validate_tensor(&value.value().samples, constraint.constraint())
             }
             _ => Err(RelationRefusal::ShapeMismatch),
         }
@@ -306,8 +312,8 @@ fn validate_tensor(
     value
         .validate()
         .map_err(|_| RelationRefusal::InvalidValue)?;
-    if !constraint.elements.contains(&value.element)
-        || value.dimensions.len() != constraint.axes.len()
+    if !constraint.elements.get().contains(&value.element)
+        || value.dimensions.len() != constraint.axes.get().len()
         || value
             .byte_count()
             .map_err(|_| RelationRefusal::InvalidValue)?
@@ -319,7 +325,7 @@ fn validate_tensor(
         .dimensions
         .iter()
         .zip(&value.axes)
-        .zip(&constraint.axes)
+        .zip(constraint.axes.get())
     {
         let valid = match &expected.dimension {
             ModelDimensionConstraint::Fixed(value) => dimension == value.value(),
@@ -334,23 +340,22 @@ fn validate_tensor(
     Ok(())
 }
 
-fn validate_constraint(value: &ModelValueConstraint) -> Result<(), RelationRefusal> {
-    let constraint = match value {
-        ModelValueConstraint::Tensor(value)
-        | ModelValueConstraint::SampledSignal(value)
-        | ModelValueConstraint::ProbabilisticTensor(value)
-        | ModelValueConstraint::ProbabilisticSignal(value) => value,
-    };
-    if constraint.elements.is_empty() || constraint.axes.is_empty() || constraint.maximum_bytes == 0
-    {
-        Err(RelationRefusal::InvalidSignature)
-    } else {
-        Ok(())
-    }
+fn same_native_set(left: &[RelationVariableIdentity], right: &[RelationVariableIdentity]) -> bool {
+    left.len() == right.len() && left.iter().all(|value| right.contains(value))
 }
 
-fn same_set(left: &[String], right: &[String]) -> bool {
-    left.len() == right.len() && left.iter().all(|value| right.contains(value))
+fn native_matches_strings(left: &[RelationVariableIdentity], right: &[String]) -> bool {
+    left.len() == right.len()
+        && left
+            .iter()
+            .all(|value| right.iter().any(|candidate| candidate == value.get()))
+}
+
+fn duplicate_native(values: &[RelationVariableIdentity]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .any(|(index, value)| values[index + 1..].contains(value))
 }
 
 fn duplicate<'a>(values: impl Iterator<Item = &'a String>) -> bool {

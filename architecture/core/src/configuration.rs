@@ -302,9 +302,9 @@ pub enum KindSemanticLaw {
     FlowEach(FlowEachSemanticLaw),
     /// Exact bounded lifting of one Value-to-Boolean predicate over a closing Flow.
     FlowSelect(FlowSelectSemanticLaw),
-    /// Exact bounded left fold of one closing Flow through a reviewed combine Form.
+    /// Exact bounded left fold of one closing Flow through a reviewed combine Plot.
     FlowFold(FlowFoldSemanticLaw),
-    /// Exact bounded retained progression through a reviewed combine Form.
+    /// Exact bounded retained progression through a reviewed combine Plot.
     FlowScan(FlowScanSemanticLaw),
 }
 

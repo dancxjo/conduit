@@ -12,7 +12,9 @@ fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
             clock_basis: "history-clock".into(),
             resolution_ticks: 1,
             uncertainty_ticks: 0,
-        },
+        }
+        .try_into()
+        .unwrap(),
         origin: HistoricalEntryOrigin::MachineObservation,
         value: common::replay_value(1, "bench/record@1"),
     }
@@ -129,7 +131,7 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
         Err(ReplayRefusal::InvalidHistoricalTime)
     ));
     let mut incomparable = vec![entry("a", 1), entry("b", 2)];
-    incomparable[1].event_time.scale = TemporalScale::Seconds;
+    incomparable[1].event_time.scale = TemporalScale::Seconds.into();
     assert!(matches!(
         BoundedReplayController::new(&incomparable, ReplayPolicy::Step),
         Err(ReplayRefusal::IncomparableHistoricalTime)
@@ -259,20 +261,20 @@ fn replay_policy_is_exact_inspectable_configuration() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn replay_control_is_an_ordinary_checked_form() {
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+fn replay_control_is_an_ordinary_checked_plot() {
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
         ProfileCatalog, StartupCatalog,
     };
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_replay_control_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/bounded-replay-control/main.conduit");
+    let source = include_str!("../../../plots/bounded-replay-control/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "bounded-replay-control", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "bounded-replay-control", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 3);
     assert_eq!(authored.output_bindings.len(), 2);
     assert_eq!(

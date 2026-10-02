@@ -1,6 +1,6 @@
 use super::*;
 use crate::offer::CpuFeatures;
-use conduit_core::{ExecutionScheduling, FormIdentity, seal_plan};
+use conduit_core::{ExecutionScheduling, PlotIdentity, seal_plan};
 
 fn fixture() -> (BootIdentities, HostOffer<'static>) {
     let identities = BootIdentities {
@@ -50,23 +50,23 @@ fn ordinary_source_checks_plans_lowers_and_installs() {
     assert_eq!(region.requirements.cord_item_capacity, 2);
     assert_eq!(region.requirements.cord_byte_capacity, CORD_BYTES * 2);
     assert!(!region.preemption_required && !region.isolation_required);
-    assert!(!ORDINARY_FORM_SOURCE.contains("lane"));
-    assert!(!ORDINARY_FORM_SOURCE.contains("preemption"));
+    assert!(!ORDINARY_PLOT_SOURCE.contains("lane"));
+    assert!(!ORDINARY_PLOT_SOURCE.contains("preemption"));
 }
 
 #[test]
 fn shared_fanout_stage_checks_against_native_morse_and_indicator_offers() {
     let (identities, offer) = fixture();
     let source = conduit_tour_model::tour_stage_source(0, 2).unwrap();
-    let form =
-        crate::ordinary_form::checked_expanded_text_form_named(&source, "branch-a-cord").unwrap();
-    assert_eq!(form.gears.len(), 5);
-    assert_eq!(form.connections.len(), 4);
+    let plot =
+        crate::ordinary_plot::checked_expanded_text_plot_named(&source, "branch-a-cord").unwrap();
+    assert_eq!(plot.gears.len(), 5);
+    assert_eq!(plot.connections.len(), 4);
     let advertisement = advertisement(&identities, &offer, "build").unwrap();
     let hosts = [advertisement];
-    let placements = default_expanded_placements(&form, &hosts).unwrap();
+    let placements = default_expanded_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -107,10 +107,10 @@ fn resealed_wrong_lane_requirement_is_rejected_before_play() {
         .unwrap()
         .selected_lanes = 2;
     let plan = seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: prepared.source_document_id,
-            checked_form_id: prepared.checked_form_id,
-            expanded_form_id: prepared.expanded_form_id,
+            checked_plot_id: prepared.checked_plot_id,
+            expanded_plot_id: prepared.expanded_plot_id,
         },
         fragments,
     );
@@ -238,19 +238,19 @@ fn insufficient_memory_timer_and_sign_reserves_fail_before_play() {
 fn undersized_cord_reserve_and_stale_planned_boot_fail_closed() {
     let (identities, offer) = fixture();
     let advertisement = advertisement(&identities, &offer, "build").unwrap();
-    let form = crate::ordinary_form::checked_expanded_text_form_named(
-        ORDINARY_FORM_SOURCE,
+    let plot = crate::ordinary_plot::checked_expanded_text_plot_named(
+        ORDINARY_PLOT_SOURCE,
         "conduitos-text-upper",
     )
     .unwrap();
     let hosts = [advertisement];
-    let placements = default_expanded_placements(&form, &hosts).unwrap();
+    let placements = default_expanded_placements(&plot, &hosts).unwrap();
     assert_eq!(
-        validate_text_capacity(&form, (TEXT_LITERAL.len() - 1) as u32),
+        validate_text_capacity(&plot, (TEXT_LITERAL.len() - 1) as u32),
         Err(PreparationError::PlanRejected)
     );
     let mut plan = conduit_planner::plan_expanded_canonical(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -263,16 +263,16 @@ fn undersized_cord_reserve_and_stale_planned_boot_fail_closed() {
 #[test]
 fn oversized_text_is_refused_during_source_checking() {
     let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let source = format!("form too-large {{\n    \"{oversized}\" >> presentation/text\n}}\n");
-    let syntax = conduit_form::parse_syntax_document(&source);
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let source = format!("plot too-large {{\n    \"{oversized}\" >> presentation/text\n}}\n");
+    let syntax = conduit_plot::parse_syntax_document(&source);
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-    assert!(conduit_form::expand_canonical_form(&checked, "too-large", &profile).is_err());
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+    assert!(conduit_plot::expand_canonical_plot(&checked, "too-large", &profile).is_err());
 
-    let malformed = conduit_form::parse_syntax_document(
-        "form malformed {\n    \"bad\\q\" >> presentation/text\n}\n",
+    let malformed = conduit_plot::parse_syntax_document(
+        "plot malformed {\n    \"bad\\q\" >> presentation/text\n}\n",
     );
-    assert!(conduit_form::check_syntax_document(&malformed, &startup).is_err());
+    assert!(conduit_plot::check_syntax_document(&malformed, &startup).is_err());
 }

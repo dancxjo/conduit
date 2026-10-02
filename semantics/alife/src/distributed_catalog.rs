@@ -3,7 +3,7 @@
 use crate::SCALAR_FIELD2_INFO_ID;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub const LENIA_PARTITION_KIND: &str = "alife/lenia-partition-three";
 pub const LENIA_REGION_STEP_KIND: &str = "alife/lenia-region-step";

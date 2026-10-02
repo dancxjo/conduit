@@ -75,8 +75,8 @@ fn plan_r1_control(
     observed_lines: &[conduit_core::LineOffer; 2],
     route_set: R1SignalRouteSet,
 ) -> Result<Plan, String> {
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/r1-three-peer-control.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../fixtures/plots/r1-three-peer-control.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     )
@@ -130,7 +130,7 @@ fn plan_r1_control(
             .collect(),
     )]);
     let plan = plan_with_options(
-        &form,
+        &plot,
         &[source.clone(), pico.clone()],
         &PlacementChoices { by_gear },
         &allowed_bases,

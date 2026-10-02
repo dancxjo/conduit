@@ -111,3 +111,78 @@ type RecordTranscriptTerminal =
     | failed {
         code: U16
     }
+
+# Portable record-delivery meaning. Borrowed views and finite trackers remain
+# Rust implementation details; these owned values are what may cross Fores.
+type RecordCorrelation = Bytes <= 128B
+type RecordReceipt = Bytes <= 128B
+type TypedRecordFrame = Bytes <= 65536B
+
+type RecordDeliveryEvent =
+    locally-accepted
+    | framed-queued {
+        queue-sequence: U64
+    }
+    | partially-sent {
+        sent-bytes: U32
+    }
+    | remote-accepted RecordReceipt
+    | transport-unavailable {
+        code: U16
+    }
+    | disconnected {
+        code: U16
+    }
+    | timed-out {
+        code: U16
+    }
+    | refused {
+        code: U16
+    }
+    | failed {
+        code: U16
+    }
+
+type RecordDeliveryObservation = {
+    correlation: RecordCorrelation
+    frame-bytes: U32 in 1..=65536
+    event: RecordDeliveryEvent
+}
+
+type RecordDeliveryState =
+    locally-accepted
+    | framed-queued {
+        queue-sequence: U64
+    }
+    | partially-sent {
+        sent-bytes: U32
+        frame-bytes: U32 in 1..=65536
+    }
+    | remote-accepted RecordReceipt
+    | transport-unavailable {
+        code: U16
+    }
+    | disconnected {
+        code: U16
+    }
+    | timed-out {
+        code: U16
+    }
+    | refused {
+        code: U16
+    }
+    | failed {
+        code: U16
+    }
+
+type RecordTranscriptEvent =
+    record {
+        direction: RecordTranscriptDirection
+        frame: TypedRecordFrame
+    }
+    | terminal RecordTranscriptTerminal
+
+type RecordTranscriptEntry = {
+    sequence: U64
+    event: RecordTranscriptEvent
+}

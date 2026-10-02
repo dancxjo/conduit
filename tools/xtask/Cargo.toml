@@ -25,6 +25,7 @@ flate2 = "1"
 embedded-websocket = { version = "0.9.5", default-features = false }
 httparse = "1.10"
 libc = "0.2"
+pulldown-cmark = "0.12"
 resvg = { version = "0.45", default-features = false }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 serde = { version = "1", features = ["derive"] }
@@ -34,13 +35,13 @@ toml = "0.8"
 conduit-body = { path = "../../architecture/body" }
 conduit-body-make = { path = "../../make/body" }
 conduit-browser-runtime = { path = "../../targets/browser/runtime" }
-conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
+conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-ai = { path = "../../semantics/ai" }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-core = { path = "../../architecture/core" }
 conduit-robotics = { path = "../../semantics/robotics" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-host-make = { path = "../../make/host" }
 conduit-embedded-build = { path = "../../make/embedded-build" }
 conduit-workspace-make = { path = "../../make/workspace" }
@@ -51,20 +52,21 @@ conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text" }
 conduitos = { path = "../../targets/conduitos", features = ["hosted-tools"] }
-conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
+conduit-net = { path = "../../semantics/net", features = ["plot-catalog"] }
 conduit-data = { path = "../../semantics/data" }
 conduit-finance = { path = "../../semantics/finance" }
-conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }
+conduit-little-seismograph-fixture = { path = "../../plots/little-seismograph/fixture" }
 conduit-language = { path = "../../semantics/language" }
 conduit-tongues = { path = "../../semantics/tongues" }
-conduit-tutorial-form = { path = "../../semantics/tutorial" }
-conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }
+conduit-tutorial-plot = { path = "../../semantics/tutorial" }
+conduit-web = { path = "../../semantics/web", default-features = false, features = ["plot-catalog"] }
 conduit-pete = { path = "../../bodies/pete" }
 conduit-observatory = { path = "../../architecture/observatory" }
+conduit-patchbay-workbench = { path = "../../plots/patchbay/workbench/model" }
 conduit-signal = { path = "../../semantics/signal" }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 conduit-planner = { path = "../../architecture/planner" }
-conduit-presentation = { path = "../../semantics/presentation", features = ["form-catalog"] }
+conduit-presentation = { path = "../../semantics/presentation", features = ["plot-catalog"] }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-patchbay-workbench-conformance = { path = "../../proof/conformance/patchbay-workbench" }
 conduit-std-host = { path = "../../targets/std", features = ["local-model-proof", "pete-create"] }

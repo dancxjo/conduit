@@ -1,13 +1,8 @@
-//! Private structural helpers for the navigation canonical codec.
+//! Shared error and native codec helpers for navigation values.
 
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
-use conduit_core::{
-    kind_id, Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoRefusal,
-    StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
-};
+use alloc::vec::Vec;
+use conduit_core::StructuredInfoRefusal;
+use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
 use crate::NavigationRefusal;
 
@@ -32,166 +27,17 @@ impl From<NavigationRefusal> for NavigationCodecError {
     }
 }
 
-pub(crate) fn exact(
+pub(crate) fn encode_native<T: NativeRustBinding + Clone>(
+    value: &T,
+) -> Result<Vec<u8>, NavigationCodecError> {
+    value
+        .clone()
+        .encode()
+        .map_err(|_: NativeBindingRefusal| NavigationCodecError::Malformed)
+}
+
+pub(crate) fn decode_native<T: NativeRustBinding>(
     encoded: &[u8],
-    expected: &StructuredInfoType,
-) -> Result<StructuredInfoValue, NavigationCodecError> {
-    let value = StructuredInfoValue::from_canonical_bytes(encoded)?;
-    (value.value_type() == expected)
-        .then_some(value)
-        .ok_or(NavigationCodecError::Malformed)
-}
-
-pub(crate) fn record_field<'a>(
-    value: &'a StructuredInfoValue,
-    name: &str,
-) -> Result<&'a StructuredInfoValue, NavigationCodecError> {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        return Err(NavigationCodecError::Malformed);
-    };
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(StructuredFieldValue::value)
-        .ok_or(NavigationCodecError::Malformed)
-}
-
-pub(crate) fn text(value: &StructuredInfoValue) -> Result<String, NavigationCodecError> {
-    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-        return Err(NavigationCodecError::Malformed);
-    };
-    core::str::from_utf8(bytes)
-        .map(ToString::to_string)
-        .map_err(|_| NavigationCodecError::Malformed)
-}
-
-pub(crate) fn count(value: &StructuredInfoValue) -> Result<u64, NavigationCodecError> {
-    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-        return Err(NavigationCodecError::Malformed);
-    };
-    conduit_core::decode_count(bytes).map_err(|_| NavigationCodecError::Malformed)
-}
-
-pub(crate) fn quantity(
-    value: &StructuredInfoValue,
-    unit: QuantityUnit,
-) -> Result<i64, NavigationCodecError> {
-    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-        return Err(NavigationCodecError::Malformed);
-    };
-    Quantity::decode(bytes)
-        .map_err(|_| NavigationCodecError::Malformed)?
-        .convert(unit)
-        .map(|value| value.value())
-        .map_err(|_| NavigationCodecError::InexactQuantity)
-}
-
-pub(crate) fn u64_quantity(
-    value: &StructuredInfoValue,
-    unit: QuantityUnit,
-) -> Result<u64, NavigationCodecError> {
-    quantity(value, unit)?
-        .try_into()
-        .map_err(|_| NavigationCodecError::InexactQuantity)
-}
-pub(crate) fn u32_quantity(
-    value: &StructuredInfoValue,
-    unit: QuantityUnit,
-) -> Result<u32, NavigationCodecError> {
-    quantity(value, unit)?
-        .try_into()
-        .map_err(|_| NavigationCodecError::InexactQuantity)
-}
-pub(crate) fn i32_quantity(
-    value: &StructuredInfoValue,
-    unit: QuantityUnit,
-) -> Result<i32, NavigationCodecError> {
-    quantity(value, unit)?
-        .try_into()
-        .map_err(|_| NavigationCodecError::InexactQuantity)
-}
-
-pub(crate) fn validity(value: &StructuredInfoValue) -> Result<(String, u64), NavigationCodecError> {
-    Ok((
-        text(record_field(value, "clock_identity")?)?,
-        u64_quantity(
-            record_field(value, "valid_until")?,
-            QuantityUnit::Millisecond,
-        )?,
-    ))
-}
-
-pub(crate) fn text_value(value: &str) -> Result<StructuredInfoValue, NavigationCodecError> {
-    Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text"))?,
-        value.as_bytes().to_vec(),
-    )?)
-}
-
-pub(crate) fn count_value(value: u64) -> Result<StructuredInfoValue, NavigationCodecError> {
-    Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/count"))?,
-        conduit_core::encode_count(value).to_vec(),
-    )?)
-}
-
-pub(crate) fn quantity_value(
-    value: i64,
-    unit: QuantityUnit,
-) -> Result<StructuredInfoValue, NavigationCodecError> {
-    Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID))?,
-        Quantity::new(value, unit).encode().to_vec(),
-    )?)
-}
-
-pub(crate) fn record_value(
-    ty: StructuredInfoType,
-    fields: Vec<(&str, StructuredInfoValue)>,
-) -> Result<StructuredInfoValue, NavigationCodecError> {
-    Ok(StructuredInfoValue::record(
-        ty,
-        fields
-            .into_iter()
-            .map(|(name, value)| StructuredFieldValue::new(name, value))
-            .collect::<Result<_, _>>()?,
-    )?)
-}
-
-pub(crate) fn field_type(
-    ty: &StructuredInfoType,
-    name: &str,
-) -> Result<StructuredInfoType, NavigationCodecError> {
-    let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
-        return Err(NavigationCodecError::Malformed);
-    };
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(|field| field.value_type().clone())
-        .ok_or(NavigationCodecError::Malformed)
-}
-
-pub(crate) fn variant_type(
-    ty: &StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoType, NavigationCodecError> {
-    let StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {
-        return Err(NavigationCodecError::Malformed);
-    };
-    cases
-        .iter()
-        .find(|case| case.tag() == tag)
-        .map(|case| case.payload_type().clone())
-        .ok_or(NavigationCodecError::Malformed)
-}
-
-pub(crate) fn count_tag(count: usize) -> Result<&'static str, NavigationCodecError> {
-    match count {
-        1 => Ok("one"),
-        2 => Ok("two"),
-        3 => Ok("three"),
-        4 => Ok("four"),
-        _ => Err(NavigationCodecError::Malformed),
-    }
+) -> Result<T, NavigationCodecError> {
+    T::decode(encoded).map_err(|_: NativeBindingRefusal| NavigationCodecError::Malformed)
 }

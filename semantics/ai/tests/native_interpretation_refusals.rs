@@ -1,7 +1,7 @@
 use conduit_ai::{
     InterpretationInvalidity, TemporalEvidenceSelectionRefusal, TemporalInterpretationRefusal,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where
@@ -15,7 +15,6 @@ where
 fn interpretation_refusals_round_trip_through_native_types() {
     for value in [
         InterpretationInvalidity::EmptyEvidence,
-        InterpretationInvalidity::InvalidConfidence,
         InterpretationInvalidity::InvalidTemporalContext,
     ] {
         assert_round_trip(value);

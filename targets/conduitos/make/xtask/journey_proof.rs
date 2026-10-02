@@ -35,8 +35,8 @@ struct JourneyProof {
     profile: &'static str,
     boot_id: String,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
+    checked_plot_id: String,
+    expanded_plot_id: String,
     body_id: String,
     born_sign_id: String,
     wake_sign_id: String,
@@ -61,8 +61,8 @@ struct JourneyProof {
     workset: super::journey_workset::WorksetProof,
     tour_specimen_id: String,
     tour_source_document_id: String,
-    tour_checked_form_id: String,
-    tour_expanded_form_id: String,
+    tour_checked_plot_id: String,
+    tour_expanded_plot_id: String,
     tour_plan_id: String,
     tour_active_play_id: String,
     tour_result: String,
@@ -245,30 +245,30 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
             for _ in 0..7 {
-                journey_input::key_pair(&mut qmp, &mut reader, "tab", "creche-select-form")?;
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "creche-select-plot")?;
             }
-            journey_input::key_pair(&mut qmp, &mut reader, "spc", "creche-omit-form")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "spc", "creche-omit-plot")?;
             journey_input::key_pair(&mut qmp, &mut reader, "f3", "creche-birth")?;
             journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
             artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
             for _ in 0..2 {
-                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-forms")?;
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-plots")?;
             }
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
                 "CONDUIT_HOME_STATE launcher 2",
-                "product-journey-home-forms-selection-timeout",
+                "product-journey-home-plots-selection-timeout",
             )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-forms")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-plots")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
-                "CONDUIT_HOME_STATE forms 2",
-                "product-journey-home-forms-timeout",
+                "CONDUIT_HOME_STATE plots 2",
+                "product-journey-home-plots-timeout",
             )?;
-            artifacts.capture(&mut qmp, &mut reader, "home-forms", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-forms")?;
+            artifacts.capture(&mut qmp, &mut reader, "home-plots", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-plots")?;
             for _ in 0..3 {
                 journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-prompt")?;
             }
@@ -287,7 +287,7 @@ fn execute_image(
             .into_iter()
             .enumerate()
             {
-                journey_input::key_pair(&mut qmp, &mut reader, key, "home-type-run-form")?;
+                journey_input::key_pair(&mut qmp, &mut reader, key, "home-type-run-plot")?;
                 hid_qmp::wait_for_stage_count(
                     &serial_path,
                     &mut child,
@@ -296,11 +296,11 @@ fn execute_image(
                     "product-journey-home-command-input-timeout",
                 )?;
             }
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-run-form")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-run-plot")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
-                "CONDUIT_HOME_CHECKPOINT form-run conduitos-keyboard-upper",
+                "CONDUIT_HOME_CHECKPOINT plot-run conduitos-keyboard-upper",
                 "product-journey-home-run-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "home-play-observed", true)?;
@@ -330,20 +330,20 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "home-returned", true)?;
             for _ in 0..2 {
-                journey_input::key_pair(&mut qmp, &mut reader, "right", "home-select-forms-again")?;
+                journey_input::key_pair(&mut qmp, &mut reader, "right", "home-select-plots-again")?;
             }
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-forms-again")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-plots-again")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
-                "CONDUIT_HOME_STATE forms 2",
-                "product-journey-home-forms-return-timeout",
+                "CONDUIT_HOME_STATE plots 2",
+                "product-journey-home-plots-return-timeout",
             )?;
             journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-keyboard")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
-                "CONDUIT_HOME_CHECKPOINT form-opened conduitos-keyboard-upper",
+                "CONDUIT_HOME_CHECKPOINT plot-opened conduitos-keyboard-upper",
                 "product-journey-home-keyboard-timeout",
             )?;
             for label in [
@@ -353,10 +353,10 @@ fn execute_image(
                 "HOST ID",
                 "BOOT ID",
                 "CURRENT OFFERS",
-                "FORM SUBJECT",
+                "PLOT SUBJECT",
                 "SOURCE DOCUMENT ID",
-                "CHECKED FORM ID",
-                "EXPANDED FORM ID",
+                "CHECKED PLOT ID",
+                "EXPANDED PLOT ID",
                 "BODY ID",
                 "WAKE ID",
                 "PLAN ID",
@@ -383,7 +383,7 @@ fn execute_image(
                 0,
             )?;
             artifacts.capture(&mut qmp, &mut reader, "input-continued", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f8", "admit-form")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f8", "admit-plot")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
@@ -409,7 +409,7 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "workload-replanned", true)?;
             // The replacement Plan creates a distinct Play, so establish its
-            // own standing-input baseline before exercising all four Forms.
+            // own standing-input baseline before exercising all four Plots.
             super::journey_standing::type_hello(
                 &mut qmp,
                 &mut reader,
@@ -810,8 +810,8 @@ fn execute_image(
             profile: "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib",
             boot_id: text(opened, "boot_id")?,
             source_document_id: text(born, "source_document_id")?,
-            checked_form_id: text(born, "checked_form_id")?,
-            expanded_form_id: text(born, "expanded_form_id")?,
+            checked_plot_id: text(born, "checked_plot_id")?,
+            expanded_plot_id: text(born, "expanded_plot_id")?,
             body_id: text(born, "body_id")?,
             born_sign_id: text(born, "born_sign_id")?,
             wake_sign_id: text(by_status["awake"], "wake_sign_id")?,
@@ -836,8 +836,8 @@ fn execute_image(
             workset,
             tour_specimen_id: text(tour_opened, "specimen_id")?,
             tour_source_document_id: text(tour_result, "source_document_id")?,
-            tour_checked_form_id: text(tour_result, "checked_form_id")?,
-            tour_expanded_form_id: text(tour_result, "expanded_form_id")?,
+            tour_checked_plot_id: text(tour_result, "checked_plot_id")?,
+            tour_expanded_plot_id: text(tour_result, "expanded_plot_id")?,
             tour_plan_id: text(tour_result, "plan_id")?,
             tour_active_play_id: text(tour_result, "active_play_id")?,
             tour_result: text(tour_result, "result")?,

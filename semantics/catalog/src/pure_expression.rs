@@ -6,10 +6,10 @@ use conduit_core::{
 };
 
 pub fn pure_expression_contract(
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<Kind, conduit_core::StructuredInfoRefusal> {
-    let definition = conduit_form::portable_expression_definition(program, temporal)?;
+    let definition = conduit_plot::portable_expression_definition(program, temporal)?;
     Ok(Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "program".into(),
@@ -25,7 +25,7 @@ pub fn pure_expression_contract(
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: conduit_form::pure_expression_semantic_laws(),
+        semantic_laws: conduit_plot::pure_expression_semantic_laws(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
@@ -35,15 +35,15 @@ pub fn pure_expression_contract(
 }
 
 pub fn pure_filter_contract(
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<Kind, conduit_core::StructuredInfoRefusal> {
-    Ok(contract(conduit_form::portable_filter_definition(
+    Ok(contract(conduit_plot::portable_filter_definition(
         program, temporal,
     )?))
 }
 
-fn contract(definition: conduit_form::KindProjection) -> Kind {
+fn contract(definition: conduit_plot::KindProjection) -> Kind {
     Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "program".into(),
@@ -59,7 +59,7 @@ fn contract(definition: conduit_form::KindProjection) -> Kind {
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: conduit_form::pure_expression_semantic_laws(),
+        semantic_laws: conduit_plot::pure_expression_semantic_laws(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
@@ -72,17 +72,17 @@ fn contract(definition: conduit_form::KindProjection) -> Kind {
 mod tests {
     use super::*;
     use alloc::collections::{BTreeMap, BTreeSet};
-    use conduit_form::{
+    use conduit_plot::{
         check_expression, parse_syntax_document, BackStatement, CheckedExpressionType, CordStage,
         ExpressionTypeContext,
     };
 
     #[test]
-    fn semantic_contract_is_the_exact_form_projection_and_is_derived_pure() {
+    fn semantic_contract_is_the_exact_plot_projection_and_is_derived_pure() {
         let source =
-            "form checked (\n input: U8 >> output: U8\n) {\n input >> (. + 1) >> output\n}\n";
+            "plot checked (\n input: U8 >> output: U8\n) {\n input >> (. + 1) >> output\n}\n";
         let syntax = parse_syntax_document(source);
-        let BackStatement::Cord(cord) = &syntax.forms[0].back[0] else {
+        let BackStatement::Cord(cord) = &syntax.plots[0].back[0] else {
             panic!("cord")
         };
         let CordStage::PureExpression(expression) = &cord.stages[1] else {
@@ -106,8 +106,8 @@ mod tests {
             },
         )
         .unwrap();
-        let program = conduit_form::PortableExpressionProgram::from_checked(&checked).unwrap();
-        let definition = conduit_form::portable_expression_definition(
+        let program = conduit_plot::PortableExpressionProgram::from_checked(&checked).unwrap();
+        let definition = conduit_plot::portable_expression_definition(
             &program,
             conduit_core::PortTemporal::Value,
         )

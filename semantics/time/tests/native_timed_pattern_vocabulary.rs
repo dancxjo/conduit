@@ -1,5 +1,5 @@
 use conduit_core::{Quantity, QuantityUnit};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_time::{
     ScheduleRefusal, TemporalWindowPosition, TimedPatternRefusal, WorkflowLifecycle,
     WorkflowTimingOutcome,

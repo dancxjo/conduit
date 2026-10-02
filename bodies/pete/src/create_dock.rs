@@ -20,7 +20,7 @@ use crate::{
     CREATE_UART_BASE_RESOURCE,
 };
 
-pub const CREATE_DOCK_FORM: &str = r#"form seek_dock {
+pub const CREATE_DOCK_FORM: &str = r#"plot seek_dock {
     request: state/toggle(initial = true)
     dock: robotics/dock(timeout-ms = 30000)
     request.value >> dock.request
@@ -182,8 +182,8 @@ pub fn create_dock_plan(
     authority_granted: bool,
 ) -> Result<conduit_core::Plan, PlannerError> {
     let (_, profile) = crate::catalogs().expect("fixed Pete catalogs are valid");
-    let form = conduit_form::parse(CREATE_DOCK_FORM, &profile)
-        .expect("canonical dock Form checks independently of mechanism facts");
+    let plot = conduit_plot::parse(CREATE_DOCK_FORM, &profile)
+        .expect("canonical dock Plot checks independently of mechanism facts");
     let host = live_create_dock_advertisement(observation, now_tick)
         .expect("caller supplies one fresh usable dock observation");
     let authority_contract = if observation.safety.has_complete_independent_envelope() {
@@ -223,7 +223,7 @@ pub fn create_dock_plan(
         .collect::<Vec<_>>();
     let hosts = [host];
     plan_selected_realizations_with_characteristics_and_authority(
-        &form,
+        &plot,
         SelectedRealizationPlanning {
             hosts: &hosts,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],

@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{
     NavigationIdentity64, NavigationTraversability4x4, NavigationTraversabilityCell,
     NavigationTraversabilityCells, NavigationValidity,
@@ -35,7 +35,7 @@ fn navigation_grid_enforces_signed_origin_unsigned_extent_invariant() {
         i32::MAX - 4,
         1,
         identity("sensor"),
-        validity.clone(),
+        validity,
     )
     .unwrap();
     let structured = grid.clone().into_structured().unwrap();

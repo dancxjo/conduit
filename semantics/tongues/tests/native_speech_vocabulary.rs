@@ -1,9 +1,10 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_tongues::{
-    no_speech_result, recognized_result, RecognitionTextRefusal, SpeechCommitReason,
-    SpeechCommitRefusal, SpeechRecognitionAttempt, SpeechRecognitionAudioDigest,
+    no_speech_result, recognized_result, CommittedUserMessage, RecognitionTextRefusal,
+    SpeakableSegment, SpeechCommitReason, SpeechCommitRefusal, SpeechDigest, SpeechOutcome,
+    SpeechOutputCondition, SpeechRecognitionAttempt, SpeechRecognitionAudioDigest,
     SpeechRecognitionDisposition, SpeechRecognitionRefusal, SpeechRecognitionResult,
-    SpeechRecognitionValueError, StreamingRecognitionRefusal,
+    SpeechRecognitionValueError, SpeechSign, SpeechSignReason, StreamingRecognitionRefusal,
 };
 
 fn round_trip<T>(value: T)
@@ -15,7 +16,44 @@ where
 }
 
 #[test]
+fn speech_output_outcomes_and_signs_are_native_payload_rich_types() {
+    round_trip(SpeechOutputCondition::PrimaryPlayback);
+    round_trip(SpeechOutputCondition::DegradedWavArtifact);
+
+    let pcm = SpeechDigest::new("a".repeat(64)).unwrap();
+    let wav = SpeechDigest::new("b".repeat(64)).unwrap();
+    round_trip(SpeechOutcome::played(pcm.clone()).unwrap());
+    round_trip(SpeechOutcome::wav_artifact(pcm.clone(), 1_260, wav.clone()).unwrap());
+    round_trip(SpeechOutcome::Cancelled);
+    round_trip(SpeechSign::synthesized(1_216, pcm).unwrap());
+    round_trip(SpeechSign::degraded(1_260, wav).unwrap());
+    round_trip(SpeechSign::refused(SpeechSignReason::new("pressure".into()).unwrap()).unwrap());
+    round_trip(SpeechSign::Terminal);
+
+    assert!(SpeechDigest::new("x".repeat(65)).is_err());
+    assert!(SpeechSignReason::new(String::new()).is_err());
+}
+
+#[test]
 fn speech_commit_and_recognition_vocabularies_are_native() {
+    round_trip(
+        SpeakableSegment::new(
+            "stream/1".into(),
+            3,
+            "Hello there.".into(),
+            SpeechCommitReason::TonguesBoundary,
+        )
+        .unwrap(),
+    );
+    round_trip(
+        CommittedUserMessage::new(
+            "tongues/1/turn".into(),
+            "user".into(),
+            "committed-external-speech".into(),
+            "Hello there.".into(),
+        )
+        .unwrap(),
+    );
     for value in [
         SpeechCommitReason::TonguesBoundary,
         SpeechCommitReason::FinalFlush,

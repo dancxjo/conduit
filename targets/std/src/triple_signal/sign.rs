@@ -16,8 +16,8 @@ pub struct PicoSign {
     placement_id: conduit_core::PlacementId,
     firmware_build_id: Option<String>,
     source_document_id: Option<String>,
-    checked_form_id: Option<String>,
-    expanded_form_id: Option<String>,
+    checked_plot_id: Option<String>,
+    expanded_plot_id: Option<String>,
 }
 
 impl PicoSign {
@@ -45,8 +45,8 @@ impl PicoSign {
             placement_id: placement.placement_id.clone(),
             firmware_build_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
         })
     }
 
@@ -167,8 +167,8 @@ impl PicoSign {
     fn capture_build_fields(&mut self, record: &serde_json::Value) -> Result<(), String> {
         self.firmware_build_id = Some(string(record, "firmware_build_id")?.to_owned());
         self.source_document_id = Some(string(record, "source_document_id")?.to_owned());
-        self.checked_form_id = Some(string(record, "checked_form_id")?.to_owned());
-        self.expanded_form_id = Some(string(record, "expanded_form_id")?.to_owned());
+        self.checked_plot_id = Some(string(record, "checked_plot_id")?.to_owned());
+        self.expanded_plot_id = Some(string(record, "expanded_plot_id")?.to_owned());
         Ok(())
     }
 
@@ -176,8 +176,8 @@ impl PicoSign {
         for (name, expected) in [
             ("firmware_build_id", self.firmware_build_id.as_deref()),
             ("source_document_id", self.source_document_id.as_deref()),
-            ("checked_form_id", self.checked_form_id.as_deref()),
-            ("expanded_form_id", self.expanded_form_id.as_deref()),
+            ("checked_plot_id", self.checked_plot_id.as_deref()),
+            ("expanded_plot_id", self.expanded_plot_id.as_deref()),
         ] {
             field(
                 record,

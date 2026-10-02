@@ -1,10 +1,10 @@
 use conduit_core::{
     kind_id, mandatory_sign_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
-    CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId,
+    CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedPlotId,
+    ExecutionProfileId, ExpandedPlotId, ExpectedSign, ExpectedTerminal, FragmentId,
     FrontStartupParameter, GearId, HostId, ImplementationId, KindIdentity, PlacementId,
     PlanFragment, PlanId, PlannedSharedPool, PlanningRequestAuthority, PlayUnsatisfiedReason,
-    PoolDeclarationId, PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope,
+    PlotIdentity, PoolDeclarationId, PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope,
     PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition,
     PoolSelectionEvidence, PoolSelectionEvidenceError, PortDescriptor, PortDirection, PortTemporal,
     SharedPoolId, SignId, SignStorageBudget, SourceDocumentId, TerminalPolicy,
@@ -93,8 +93,8 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: SourceDocumentId::from("source"),
-        checked_form_id: CheckedFormId::from("checked"),
-        expanded_form_id: ExpandedFormId::from("expanded"),
+        checked_plot_id: CheckedPlotId::from("checked"),
+        expanded_plot_id: ExpandedPlotId::from("expanded"),
         realization_backs: Vec::new(),
         host_id: HostId::from("browser-host"),
         boot_id: BootId::from("browser-boot"),
@@ -173,10 +173,10 @@ fn member_compatibility_uses_checked_front_while_envelope_identity_stays_exact()
 
 #[test]
 fn plan_identity_seals_pool_bound_front_envelope_authority_and_consumers() {
-    let identity = FormIdentity {
+    let identity = PlotIdentity {
         source_document_id: SourceDocumentId::from("source"),
-        checked_form_id: CheckedFormId::from("checked"),
-        expanded_form_id: ExpandedFormId::from("expanded"),
+        checked_plot_id: CheckedPlotId::from("checked"),
+        expanded_plot_id: ExpandedPlotId::from("expanded"),
     };
     let baseline = seal_plan(identity.clone(), vec![fragment(pool())]);
     assert!(conduit_core::verify_plan(&baseline));
@@ -213,10 +213,10 @@ fn pool_observation_is_current_only_for_the_exact_sealed_provider_identity() {
 
 #[test]
 fn selection_evidence_names_only_one_realization_from_the_immutable_plan() {
-    let identity = FormIdentity {
+    let identity = PlotIdentity {
         source_document_id: SourceDocumentId::from("source"),
-        checked_form_id: CheckedFormId::from("checked"),
-        expanded_form_id: ExpandedFormId::from("expanded"),
+        checked_plot_id: CheckedPlotId::from("checked"),
+        expanded_plot_id: ExpandedPlotId::from("expanded"),
     };
     let plan = seal_plan(identity, vec![fragment(pool())]);
     let selected = PoolSelectionEvidence {

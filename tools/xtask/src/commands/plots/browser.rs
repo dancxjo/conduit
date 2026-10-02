@@ -1,0 +1,348 @@
+//! Fresh-process execution of inventory-declared browser-safe Plot proofs.
+
+use super::{
+    catalogs, check_one, composition, deterministic::bounded_reason, load_inventory, result,
+    reusable, InventoryPlot, PlotProofResult, Report, REPORT_SCHEMA,
+};
+use crate::cli::GlobalOpts;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::Instant;
+
+#[path = "browser/batch.rs"]
+mod batch;
+use batch::BatchRequest;
+
+pub(super) enum Preparation {
+    Ready(PathBuf),
+    Unavailable(String),
+    Failed(String),
+}
+
+pub(super) fn build_report(root: &Path, opts: &GlobalOpts) -> Result<Report, String> {
+    let inventory = load_inventory(root)?;
+    let catalogs = catalogs()?;
+    let preparation = prepare(root, &inventory.plots, opts);
+    let mut checks = BTreeMap::new();
+    let mut browser_results = BTreeMap::new();
+    let mut pending = Vec::new();
+    for plot in &inventory.plots {
+        let source_path = format!("plots/{}/main.conduit", plot.slug);
+        let started = Instant::now();
+        match check_one(root, &source_path, &plot.entry, &catalogs) {
+            Ok((source_id, checked_id)) => {
+                let identities = Some((source_id.clone(), checked_id.clone()));
+                checks.insert(
+                    plot.slug.clone(),
+                    result(
+                        plot,
+                        &source_path,
+                        started.elapsed().as_millis(),
+                        "passed",
+                        "canonical source parsed and checked through the standard semantic catalog",
+                        identities.clone(),
+                        "check",
+                    ),
+                );
+                if let (Some(oracle), None, Preparation::Ready(_)) = (
+                    &plot.browser_safe,
+                    &plot.browser_safe_not_applicable,
+                    &preparation,
+                ) {
+                    if !opts.dry_run {
+                        pending.push(BatchRequest {
+                            plot,
+                            path: source_path,
+                            identities,
+                            oracle,
+                        });
+                        continue;
+                    }
+                }
+                browser_results.insert(
+                    plot.slug.clone(),
+                    run(root, plot, &source_path, identities, &preparation, opts),
+                );
+            }
+            Err(reason) => {
+                checks.insert(
+                    plot.slug.clone(),
+                    result(
+                        plot,
+                        &source_path,
+                        started.elapsed().as_millis(),
+                        "failed",
+                        &reason,
+                        None,
+                        "check",
+                    ),
+                );
+            }
+        }
+    }
+    let process_starts = usize::from(!pending.is_empty());
+    let process_starts_avoided = pending.len().saturating_sub(process_starts);
+    if let Preparation::Ready(playwright) = &preparation {
+        for proof in batch::execute(root, playwright, pending) {
+            browser_results.insert(proof.slug.clone(), proof);
+        }
+    }
+    let mut results = Vec::with_capacity(inventory.plots.len() * 2);
+    for plot in &inventory.plots {
+        let source_path = format!("plots/{}/main.conduit", plot.slug);
+        if let Some(check) = checks.remove(&plot.slug) {
+            results.push(check);
+        }
+        if let Some(proof) = browser_results.remove(&plot.slug) {
+            results.push(proof);
+        }
+        results.extend(reusable::check_all(root, plot, &source_path, &catalogs));
+        results.extend(composition::check_all(root, plot, &source_path, &catalogs));
+    }
+    Ok(Report {
+        schema: REPORT_SCHEMA,
+        inventory_schema: inventory.schema,
+        proof_process_starts: process_starts,
+        proof_process_starts_avoided: process_starts_avoided,
+        results,
+    })
+}
+
+pub(super) fn prepare(root: &Path, plots: &[InventoryPlot], opts: &GlobalOpts) -> Preparation {
+    if !plots.iter().any(|plot| plot.browser_safe.is_some()) {
+        return Preparation::Ready(batch::local_playwright(root));
+    }
+    if opts.dry_run {
+        return Preparation::Unavailable(
+            "dry run planned: build the browser runtime before isolated Chromium proofs".into(),
+        );
+    }
+    let playwright = batch::local_playwright(root);
+    if !playwright.is_file() {
+        return Preparation::Unavailable(format!(
+            "repository Playwright binary is absent: {}",
+            playwright.display()
+        ));
+    }
+    let mut command = Command::new("cargo");
+    command.current_dir(root).arg("build");
+    if opts.locked {
+        command.arg("--locked");
+    }
+    match command
+        .args([
+            "-p",
+            "conduit-browser-runtime",
+            "--target",
+            "wasm32-unknown-unknown",
+            "--release",
+        ])
+        .output()
+    {
+        Ok(output) if output.status.success() => Preparation::Ready(playwright),
+        Ok(output) => Preparation::Failed(bounded_reason(&format!(
+            "browser runtime preparation failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ))),
+        Err(error) => {
+            Preparation::Unavailable(format!("cannot start browser runtime preparation: {error}"))
+        }
+    }
+}
+
+pub(super) fn run(
+    root: &Path,
+    plot: &InventoryPlot,
+    path: &str,
+    identities: Option<(String, String)>,
+    preparation: &Preparation,
+    opts: &GlobalOpts,
+) -> PlotProofResult {
+    let mut proof = if !matches!(
+        (&plot.browser_safe, &plot.browser_safe_not_applicable),
+        (Some(_), None)
+    ) {
+        availability(plot, path, identities)
+    } else {
+        let oracle = plot
+            .browser_safe
+            .as_ref()
+            .expect("matched browser-safe oracle");
+        match preparation {
+            Preparation::Unavailable(reason) => result(
+                plot,
+                path,
+                0,
+                "unavailable",
+                reason,
+                identities,
+                "browser-safe",
+            ),
+            Preparation::Failed(reason) => {
+                result(plot, path, 0, "failed", reason, identities, "browser-safe")
+            }
+            Preparation::Ready(_) if opts.dry_run => result(
+                plot,
+                path,
+                0,
+                "unavailable",
+                "dry run planned: isolated Playwright Chromium proof",
+                identities,
+                "browser-safe",
+            ),
+            Preparation::Ready(playwright) => batch::execute(
+                root,
+                playwright,
+                vec![BatchRequest {
+                    plot,
+                    path: path.to_owned(),
+                    identities,
+                    oracle,
+                }],
+            )
+            .pop()
+            .expect("one batch request produces one result"),
+        }
+    };
+    proof.environment_profile = "playwright/chromium-1.62.0-worker1-retry0";
+    proof
+}
+
+pub(super) fn availability(
+    plot: &InventoryPlot,
+    path: &str,
+    identities: Option<(String, String)>,
+) -> PlotProofResult {
+    let mut proof = match (&plot.browser_safe, &plot.browser_safe_not_applicable) {
+        (Some(_), None) => result(
+            plot,
+            path,
+            0,
+            "unavailable",
+            "declared browser-safe oracle is available through Playwright Chromium",
+            identities,
+            "browser-safe",
+        ),
+        (None, Some(reason)) => result(
+            plot,
+            path,
+            0,
+            "not_applicable",
+            reason,
+            identities,
+            "browser-safe",
+        ),
+        (None, None) => result(
+            plot,
+            path,
+            0,
+            "unavailable",
+            "no reviewed browser-safe execution oracle is declared",
+            identities,
+            "browser-safe",
+        ),
+        (Some(_), Some(_)) => result(
+            plot,
+            path,
+            0,
+            "refused",
+            "inventory declares both a browser-safe oracle and not-applicable reason",
+            identities,
+            "browser-safe",
+        ),
+    };
+    proof.environment_profile = "playwright/chromium-1.62.0-worker1-retry0";
+    proof
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn plot() -> InventoryPlot {
+        InventoryPlot {
+            slug: "fixture".into(),
+            title: "Fixture".into(),
+            entry: "fixture".into(),
+            reusable_entries: Vec::new(),
+            initial_body_order: None,
+            initial_body_presentation_profile: 0,
+            workspace_catalog: true,
+            deterministic: None,
+            deterministic_not_applicable: None,
+            browser_safe: None,
+            browser_safe_not_applicable: None,
+            graceful_fallback: None,
+        }
+    }
+
+    #[test]
+    fn absence_inapplicability_and_conflicting_declarations_remain_distinct() {
+        let root = Path::new(".");
+        let opts = GlobalOpts::default();
+        let mut item = plot();
+        assert_eq!(
+            run(
+                root,
+                &item,
+                "plots/fixture/main.conduit",
+                None,
+                &Preparation::Ready(PathBuf::from("proof/browser/node_modules/.bin/playwright")),
+                &opts,
+            )
+            .status,
+            "unavailable"
+        );
+        item.browser_safe_not_applicable = Some("permission proof only".into());
+        assert_eq!(
+            run(
+                root,
+                &item,
+                "plots/fixture/main.conduit",
+                None,
+                &Preparation::Ready(PathBuf::from("proof/browser/node_modules/.bin/playwright")),
+                &opts,
+            )
+            .status,
+            "not_applicable"
+        );
+        item.browser_safe = Some(super::super::BrowserOracle {
+            spec: "proof/browser/fixture.spec.mjs".into(),
+            case: "fixture".into(),
+        });
+        assert_eq!(
+            run(
+                root,
+                &item,
+                "plots/fixture/main.conduit",
+                None,
+                &Preparation::Ready(PathBuf::from("proof/browser/node_modules/.bin/playwright")),
+                &opts,
+            )
+            .status,
+            "refused"
+        );
+    }
+
+    #[test]
+    fn missing_repository_playwright_is_unavailable_without_network_fallback() {
+        let mut item = plot();
+        item.browser_safe = Some(super::super::BrowserOracle {
+            spec: "proof/browser/fixture.spec.mjs".into(),
+            case: "fixture".into(),
+        });
+        let preparation = prepare(
+            Path::new("/conduit-fixture-without-node-modules"),
+            &[item],
+            &GlobalOpts::default(),
+        );
+        match preparation {
+            Preparation::Unavailable(reason) => {
+                assert!(reason.contains("repository Playwright binary is absent"));
+                assert!(!reason.contains("npx"));
+            }
+            _ => panic!("missing admitted tooling must be unavailable"),
+        }
+    }
+}

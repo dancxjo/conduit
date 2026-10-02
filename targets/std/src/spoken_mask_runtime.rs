@@ -12,7 +12,7 @@ use conduit_kernel::{
 use conduit_presentation::{
     ArtifactAcknowledgedSpokenShow, GeneratedManifestation, GeneratedManifestationCandidate,
     GeneratedValidationSession, GenerativePresenterRequest, ManifestationLifecycle, MaskShow,
-    PlannedMaskForm, Presentation, SpokenMaskArtifactReceipt,
+    PlannedMaskPlot, Presentation, SpokenMaskArtifactReceipt,
 };
 
 mod validation;
@@ -30,7 +30,7 @@ pub const ACKNOWLEDGE_ARTIFACT_AND_BUILD_SHOW_CALL: HostCallId = HostCallId(1);
 pub struct SpokenMaskSemanticSession {
     request: GenerativePresenterRequest,
     presentation: Presentation,
-    planned_mask: PlannedMaskForm,
+    planned_mask: PlannedMaskPlot,
     active_play: conduit_core::ActivePlayIdentity,
     front_subject: String,
     target_subject: String,
@@ -47,7 +47,7 @@ pub struct SpokenMaskSemanticSession {
 pub struct SpokenMaskPreparation {
     pub request: GenerativePresenterRequest,
     pub presentation: Presentation,
-    pub planned_mask: PlannedMaskForm,
+    pub planned_mask: PlannedMaskPlot,
     pub front_subject: String,
     pub target_subject: String,
     pub prepared_sign: conduit_core::SignId,
@@ -77,7 +77,7 @@ impl SpokenMaskSemanticSession {
     pub fn prepare(
         request: GenerativePresenterRequest,
         presentation: Presentation,
-        planned_mask: PlannedMaskForm,
+        planned_mask: PlannedMaskPlot,
         active_play: conduit_core::ActivePlayIdentity,
         front_subject: String,
         target_subject: String,
@@ -107,8 +107,8 @@ impl SpokenMaskSemanticSession {
             &validator_placement.placement_id,
             planned_mask
                 .mask
-                .form_identity
-                .checked_form_id
+                .plot_identity
+                .checked_plot_id
                 .as_str()
                 .into(),
             conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),

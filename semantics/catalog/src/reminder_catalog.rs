@@ -1,4 +1,4 @@
-//! Canonical Form catalog and exact effect seam for reminder delivery.
+//! Canonical Plot catalog and exact effect seam for reminder delivery.
 
 use alloc::{
     string::{String, ToString},
@@ -7,9 +7,9 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 pub const REMINDER_OCCURRENCE_TYPE: &str = "ReminderOccurrence";
 pub const REMINDER_FIXTURE_KIND: &str = "notification/deterministic-reminder";
@@ -33,25 +33,12 @@ pub fn reminder_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn reminder_occurrence_type() -> StructuredInfoType {
-    let text = StructuredInfoType::leaf(kind_id("value/text")).unwrap();
-    StructuredInfoType::record(
-        kind_id("notification/reminder-occurrence@1"),
-        [
-            "delivery_kind",
-            "event_identity",
-            "identity",
-            "reminder_identity",
-        ]
-        .into_iter()
-        .map(|name| StructuredFieldType::new(name, text.clone()).unwrap())
-        .collect(),
-    )
-    .expect("reviewed reminder occurrence")
+    conduit_time::ReminderOccurrence::semantic_type().expect("checked reminder occurrence Type")
 }
 
 pub fn install_reminder_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(REMINDER_OCCURRENCE_TYPE, reminder_occurrence_type())
@@ -63,8 +50,8 @@ pub fn install_reminder_catalogs(
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: Kind,
 ) -> Result<(), String> {
     startup

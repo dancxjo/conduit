@@ -11,14 +11,14 @@ use conduit_planner::{
 mod common;
 
 fn fixture() -> (
-    conduit_form::CheckedForm,
+    conduit_plot::CheckedPlot,
     Vec<conduit_core::HostAdvertisement>,
     conduit_core::LineOffer,
 ) {
-    let form = conduit_form::parse(
-        "form locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: state/count(0)\n analysis: presentation/count\n source.tick >> reduction.bump\n reduction.value >> analysis.value\n}\n",
+    let plot = conduit_plot::parse(
+        "plot locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: state/count(0)\n analysis: presentation/count\n source.tick >> reduction.bump\n reduction.value >> analysis.value\n}\n",
         &conduit_semantic_catalog::standard_profile_catalog(),
-    ).expect("canonical locality Form checks");
+    ).expect("canonical locality Plot checks");
     let source = common::standard_planning_fixture(
         HostId::from("host/constrained"),
         BootId::from("boot/constrained-1"),
@@ -40,7 +40,7 @@ fn fixture() -> (
     line.binding.limits.maximum_payload_bytes = 2_000;
     line.binding.limits.maximum_frame_bytes = 2_100;
     line.binding.limits.maximum_buffered_bytes = 32_000;
-    (form, vec![source, remote], line)
+    (plot, vec![source, remote], line)
 }
 
 fn provenance(id: &str) -> ObservationProvenance {
@@ -53,13 +53,13 @@ fn provenance(id: &str) -> ObservationProvenance {
 }
 
 fn capability(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[conduit_core::HostAdvertisement],
     gear: &str,
     host: usize,
 ) -> CapabilityId {
     let gear = format!("locality/{gear}");
-    let gear = form
+    let gear = plot
         .gears
         .iter()
         .find(|item| item.gear_id.as_str() == gear)
@@ -74,7 +74,7 @@ fn capability(
 }
 
 fn choice(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[conduit_core::HostAdvertisement],
     gear: &str,
     host: usize,
@@ -83,22 +83,22 @@ fn choice(
         GearId::from(format!("locality/{gear}")),
         PlacementChoice {
             host_id: hosts[host].host_id.clone(),
-            capability_id: capability(form, hosts, gear, host),
+            capability_id: capability(plot, hosts, gear, host),
         },
     )
 }
 
 fn candidate(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[conduit_core::HostAdvertisement],
     id: &str,
     reduction_host: usize,
 ) -> LocalityCandidate {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
-            choice(form, hosts, "source", 0),
-            choice(form, hosts, "reduction", reduction_host),
-            choice(form, hosts, "analysis", 1),
+            choice(plot, hosts, "source", 0),
+            choice(plot, hosts, "reduction", reduction_host),
+            choice(plot, hosts, "analysis", 1),
         ]),
     };
     let crossing = if reduction_host == 0 {
@@ -120,7 +120,7 @@ fn candidate(
 }
 
 fn basis(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[conduit_core::HostAdvertisement],
     local_reduction_work: u64,
 ) -> LocalityPlanningBasis {
@@ -135,7 +135,7 @@ fn basis(
             gear_id: GearId::from(format!("locality/{gear}")),
             host_id: hosts[host].host_id.clone(),
             boot_id: hosts[host].boot_id.clone(),
-            capability_id: capability(form, hosts, gear, host),
+            capability_id: capability(plot, hosts, gear, host),
             work_units: units,
             provenance: provenance(&format!("work/{gear}/{host}")),
         });
@@ -220,16 +220,16 @@ fn basis(
 
 #[test]
 fn high_rate_flow_moves_compatible_reduction_to_the_source() {
-    let (form, hosts, line) = fixture();
+    let (plot, hosts, line) = fixture();
     let candidates = [
-        candidate(&form, &hosts, "reduce-near-source", 0),
-        candidate(&form, &hosts, "ship-raw-then-reduce", 1),
+        candidate(&plot, &hosts, "reduce-near-source", 0),
+        candidate(&plot, &hosts, "ship-raw-then-reduce", 1),
     ];
     let selection = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, 80),
+        &basis(&plot, &hosts, 80),
         std::slice::from_ref(&line),
     )
     .expect("fresh bounded evidence selects");
@@ -238,7 +238,7 @@ fn high_rate_flow_moves_compatible_reduction_to_the_source() {
         "{:#?}",
         selection.considered
     );
-    assert_eq!(selection.checked_form_id, form.checked_form_id);
+    assert_eq!(selection.checked_plot_id, plot.checked_plot_id);
     let local = &selection.considered[0];
     let remote = &selection.considered[1];
     assert_eq!(local.transported_bytes, 100_000);
@@ -270,7 +270,7 @@ fn high_rate_flow_moves_compatible_reduction_to_the_source() {
         .map(|(cord, line)| (cord.clone(), vec![line.clone()]))
         .collect();
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &selection.selected.placements,
         &[
@@ -288,22 +288,22 @@ fn high_rate_flow_moves_compatible_reduction_to_the_source() {
         },
     )
     .expect("winner enters the ordinary immutable Plan path");
-    assert_eq!(plan.checked_form_id, form.checked_form_id);
+    assert_eq!(plan.checked_plot_id, plot.checked_plot_id);
     assert!(conduit_core::verify_plan(&plan));
 }
 
 #[test]
 fn remote_reduction_wins_when_local_work_is_genuinely_too_expensive() {
-    let (form, hosts, line) = fixture();
+    let (plot, hosts, line) = fixture();
     let candidates = [
-        candidate(&form, &hosts, "reduce-near-source", 0),
-        candidate(&form, &hosts, "ship-raw-then-reduce", 1),
+        candidate(&plot, &hosts, "reduce-near-source", 0),
+        candidate(&plot, &hosts, "ship-raw-then-reduce", 1),
     ];
     let selection = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, 10_000),
+        &basis(&plot, &hosts, 10_000),
         &[line],
     )
     .expect("remote total cost can win");
@@ -316,16 +316,16 @@ fn remote_reduction_wins_when_local_work_is_genuinely_too_expensive() {
 
 #[test]
 fn stale_or_inadequate_observations_fail_closed_without_host_name_rules() {
-    let (form, hosts, line) = fixture();
+    let (plot, hosts, line) = fixture();
     let candidates = [
-        candidate(&form, &hosts, "local", 0),
-        candidate(&form, &hosts, "remote", 1),
+        candidate(&plot, &hosts, "local", 0),
+        candidate(&plot, &hosts, "remote", 1),
     ];
-    let mut stale = basis(&form, &hosts, 80);
+    let mut stale = basis(&plot, &hosts, 80);
     stale.transports[0].provenance.valid_until_ms = 999;
     assert!(matches!(
         select_data_locality_candidate(
-            &form,
+            &plot,
             &hosts,
             &candidates,
             &stale,
@@ -333,9 +333,9 @@ fn stale_or_inadequate_observations_fail_closed_without_host_name_rules() {
         ),
         Err(conduit_planner::PlannerError::InvalidPlanningObservation(_))
     ));
-    let mut inadequate = basis(&form, &hosts, 80);
+    let mut inadequate = basis(&plot, &hosts, 80);
     inadequate.transports[0].throughput_bytes_per_second = 50_000;
-    let selected = select_data_locality_candidate(&form, &hosts, &candidates, &inadequate, &[line])
+    let selected = select_data_locality_candidate(&plot, &hosts, &candidates, &inadequate, &[line])
         .expect("local reduced traffic still fits");
     assert_eq!(selected.selected.candidate_id, "local");
     assert!(matches!(
@@ -346,18 +346,18 @@ fn stale_or_inadequate_observations_fail_closed_without_host_name_rules() {
 
 #[test]
 fn absent_local_implementation_and_transport_increase_do_not_force_locality() {
-    let (form, mut hosts, line) = fixture();
+    let (plot, mut hosts, line) = fixture();
     let candidates = [
-        candidate(&form, &hosts, "local", 0),
-        candidate(&form, &hosts, "remote", 1),
+        candidate(&plot, &hosts, "local", 0),
+        candidate(&plot, &hosts, "remote", 1),
     ];
-    let current = basis(&form, &hosts, 80);
-    let local_reduction = capability(&form, &hosts, "reduction", 0);
+    let current = basis(&plot, &hosts, 80);
+    let local_reduction = capability(&plot, &hosts, "reduction", 0);
     hosts[0]
         .capabilities
         .retain(|offer| offer.capability_id != local_reduction);
     let selected = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
         &current,
@@ -370,16 +370,16 @@ fn absent_local_implementation_and_transport_increase_do_not_force_locality() {
         CandidatePlacementDisposition::Rejected(_)
     ));
 
-    let (form, hosts, line) = fixture();
+    let (plot, hosts, line) = fixture();
     let candidates = [
-        candidate(&form, &hosts, "local", 0),
-        candidate(&form, &hosts, "remote", 1),
+        candidate(&plot, &hosts, "local", 0),
+        candidate(&plot, &hosts, "remote", 1),
     ];
-    let mut increasing = basis(&form, &hosts, 80);
+    let mut increasing = basis(&plot, &hosts, 80);
     increasing.reductions[0].output_bytes_numerator = 2;
     increasing.reductions[0].input_bytes_denominator = 1;
     let selected = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
         &increasing,
@@ -390,18 +390,18 @@ fn absent_local_implementation_and_transport_increase_do_not_force_locality() {
 }
 
 #[test]
-fn policy_can_forbid_remote_transport_without_changing_form_meaning() {
-    let (form, hosts, line) = fixture();
+fn policy_can_forbid_remote_transport_without_changing_plot_meaning() {
+    let (plot, hosts, line) = fixture();
     let candidates = [
-        candidate(&form, &hosts, "local-reduction", 0),
-        candidate(&form, &hosts, "remote-reduction", 1),
+        candidate(&plot, &hosts, "local-reduction", 0),
+        candidate(&plot, &hosts, "remote-reduction", 1),
     ];
-    let mut policy = basis(&form, &hosts, 80);
+    let mut policy = basis(&plot, &hosts, 80);
     policy.remote_bytes_per_second_ceiling = Some(0);
-    let checked_form_id = form.checked_form_id.clone();
+    let checked_plot_id = plot.checked_plot_id.clone();
     assert!(matches!(
         select_data_locality_candidate(
-            &form,
+            &plot,
             &hosts,
             &candidates,
             &policy,
@@ -409,18 +409,18 @@ fn policy_can_forbid_remote_transport_without_changing_form_meaning() {
         ),
         Err(conduit_planner::PlannerError::CurrentResourceObservationUnavailable(_))
     ));
-    assert_eq!(form.checked_form_id, checked_form_id);
+    assert_eq!(plot.checked_plot_id, checked_plot_id);
 }
 
 #[test]
 fn insufficient_local_resource_observation_moves_reduction_remote() {
-    let (form, mut hosts, line) = fixture();
+    let (plot, mut hosts, line) = fixture();
     let timer_requirement = hosts[0]
         .capabilities
         .iter()
         .find(|offer| {
             offer.checked_front()
-                == form
+                == plot
                     .gears
                     .iter()
                     .find(|gear| gear.gear_id.as_str() == "locality/source")
@@ -431,7 +431,7 @@ fn insufficient_local_resource_observation_moves_reduction_remote() {
         .resource_requirements[0]
         .clone();
     for host in &mut hosts {
-        let reduction = form
+        let reduction = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id.as_str() == "locality/reduction")
@@ -444,10 +444,10 @@ fn insufficient_local_resource_observation_moves_reduction_remote() {
             .push(timer_requirement.clone());
     }
     let candidates = [
-        candidate(&form, &hosts, "local", 0),
-        candidate(&form, &hosts, "remote", 1),
+        candidate(&plot, &hosts, "local", 0),
+        candidate(&plot, &hosts, "remote", 1),
     ];
-    let mut constrained = basis(&form, &hosts, 80);
+    let mut constrained = basis(&plot, &hosts, 80);
     constrained
         .resources
         .iter_mut()
@@ -458,7 +458,7 @@ fn insufficient_local_resource_observation_moves_reduction_remote() {
         .unwrap()
         .unreserved_units = 1;
     let selection = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
         &constrained,

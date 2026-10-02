@@ -10,8 +10,8 @@ use conduit_net::{
     MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES, MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS,
 };
 
-#[cfg(feature = "form-catalog")]
-const CLIENT_SOURCE: &str = include_str!("../../../forms/socket-client/main.conduit");
+#[cfg(feature = "plot-catalog")]
+const CLIENT_SOURCE: &str = include_str!("../../../plots/socket-client/main.conduit");
 
 fn client() -> conduit_core::CapabilityOffer {
     external_websocket_client_offer(
@@ -136,17 +136,17 @@ fn authored_external_socket_cannot_masquerade_as_a_conduit_session_line() {
     assert!(!client().kind_id.as_str().contains("BaseImplementationId"));
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
 fn canonical_duplex_source_checks_and_expands_to_the_external_client_leaf() {
-    let syntax = conduit_form::parse_syntax_document(CLIENT_SOURCE);
+    let syntax = conduit_plot::parse_syntax_document(CLIENT_SOURCE);
     assert_eq!(syntax.round_trip(), CLIENT_SOURCE);
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile).unwrap();
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "echo-client-demo", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "echo-client-demo", &profile).unwrap();
     assert_eq!(expanded.gears.len(), 1);
     let socket = &expanded.gears[0];
     assert_eq!(socket.kind_id.as_str(), EXTERNAL_WEBSOCKET_CLIENT_KIND);

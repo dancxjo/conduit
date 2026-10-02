@@ -29,7 +29,7 @@ impl From<StructuredInfoRefusal> for TabularRefusal {
 }
 
 fn native(
-    value: Result<StructuredInfoType, conduit_form::rust_binding::NativeBindingRefusal>,
+    value: Result<StructuredInfoType, conduit_plot::rust_binding::NativeBindingRefusal>,
 ) -> StructuredInfoType {
     value.expect("generated tabular semantic type")
 }

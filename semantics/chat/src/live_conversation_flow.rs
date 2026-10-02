@@ -3,82 +3,22 @@
 use alloc::string::String;
 use conduit_ai::GeneratedTextFlowEvidence;
 
-use crate::ConversationRequestEvidence;
+use crate::{
+    ConversationRequestEvidence, LiveConversationFlowProjection, LiveConversationProjectionError,
+    LiveConversationStage, LiveConversationStageKind, LiveConversationStageState,
+    LiveConversationStages, RecognitionEvidenceStatus, RecognitionEvidenceView,
+    SpeechCommitEvidenceView,
+};
 
 pub const LIVE_CONVERSATION_FLOW_SCHEMA: &str = "conduit.chat/live-conversation-flow@1";
 pub const MAXIMUM_PRESENTED_RECOGNITION_EVENTS: usize = 32;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RecognitionEvidenceStatus {
-    Provisional,
-    Revised,
-    Committed,
-    NoSpeech,
-    ProviderLost,
-    Cancelled,
-    Closed,
-}
+impl core::ops::Index<usize> for LiveConversationStages {
+    type Output = LiveConversationStage;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RecognitionEvidenceView {
-    pub stream_id: String,
-    pub status: RecognitionEvidenceStatus,
-    pub audio_extent_bytes: u32,
-    pub turn_identity: Option<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SpeechCommitEvidenceView {
-    pub stream_identity: String,
-    pub segment_count: u16,
-    pub committed_text_bytes: u32,
-    pub pcm_extent_bytes: u64,
-    pub cancelled: bool,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LiveConversationStageKind {
-    RecognitionHypothesis,
-    CommittedTurn,
-    CurrentContextBasis,
-    GeneratedTextFlow,
-    CommittedSpeech,
-    PcmFlow,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LiveConversationStageState {
-    Awaiting,
-    Provisional,
-    Committed,
-    Flowing,
-    Completed,
-    Cancelled,
-    Refused,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LiveConversationStage {
-    pub kind: LiveConversationStageKind,
-    pub state: LiveConversationStageState,
-    pub identity: Option<String>,
-    pub items: u64,
-    pub bytes: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LiveConversationFlowProjection {
-    pub schema: &'static str,
-    pub stages: [LiveConversationStage; 6],
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LiveConversationProjectionError {
-    RecognitionBoundExceeded,
-    RecognitionIdentityMismatch,
-    CommittedTurnMismatch,
-    InvalidContextEvidence,
-    InvalidSpeechEvidence,
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.get()[index]
+    }
 }
 
 pub struct LiveConversationTruth<'a> {
@@ -142,7 +82,7 @@ pub fn project_live_conversation_flow(
         .generation
         .map_or(LiveConversationStageState::Awaiting, |flow| {
             use conduit_ai::GeneratedTextFlowTerminal::*;
-            match flow.terminal {
+            match *flow.terminal() {
                 Completed => LiveConversationStageState::Completed,
                 Cancelled => LiveConversationStageState::Cancelled,
                 OutputBoundExhausted | Backpressured | ProviderLost | NonMonotonic => {
@@ -174,8 +114,8 @@ pub fn project_live_conversation_flow(
         });
 
     Ok(LiveConversationFlowProjection {
-        schema: LIVE_CONVERSATION_FLOW_SCHEMA,
-        stages: [
+        schema: String::from(LIVE_CONVERSATION_FLOW_SCHEMA),
+        stages: LiveConversationStages::new([
             stage(
                 LiveConversationStageKind::RecognitionHypothesis,
                 if provisional > 0 {
@@ -222,8 +162,8 @@ pub fn project_live_conversation_flow(
                 LiveConversationStageKind::GeneratedTextFlow,
                 generation_state,
                 None,
-                truth.generation.map_or(0, |flow| flow.chunks),
-                truth.generation.map_or(0, |flow| flow.generated_bytes),
+                truth.generation.map_or(0, |flow| *flow.chunks()),
+                truth.generation.map_or(0, |flow| *flow.generated_bytes()),
             ),
             stage(
                 LiveConversationStageKind::CommittedSpeech,
@@ -243,7 +183,8 @@ pub fn project_live_conversation_flow(
                 0,
                 truth.speech.map_or(0, |speech| speech.pcm_extent_bytes),
             ),
-        ],
+        ])
+        .expect("the six authored live-conversation stages satisfy their exact collection"),
     })
 }
 
@@ -294,12 +235,9 @@ mod tests {
             false,
         )
         .unwrap();
-        let generation = GeneratedTextFlowEvidence {
-            chunks: 3,
-            generated_bytes: 42,
-            terminal: GeneratedTextFlowTerminal::Completed,
-            retained_private_text: false,
-        };
+        let generation =
+            GeneratedTextFlowEvidence::new(3, 42, GeneratedTextFlowTerminal::Completed, false)
+                .unwrap();
         let speech = SpeechCommitEvidenceView {
             stream_identity: "speech/live-1".into(),
             segment_count: 2,

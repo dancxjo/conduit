@@ -1,7 +1,9 @@
 use conduit_ai::{
-    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy, SelectedContextRationale,
+    ChunkIdentity, ContextOmission, ContextOmissionReason, ContextOmissions, ContextOrderingPolicy,
+    ContextRedundancyPolicy, ContextSelectionDisposition, SelectedContextCost,
+    SelectedContextRationale,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn assert_round_trip<T>(value: T)
 where
@@ -13,6 +15,46 @@ where
 
 #[test]
 fn context_selection_vocabularies_round_trip_through_their_native_types() {
+    assert_round_trip(SelectedContextCost::new(1024, 256, 8).unwrap());
+    assert_round_trip(
+        ContextOmission::new(
+            ChunkIdentity::from_digest([7; 32]),
+            ContextOmissionReason::TokenBudget,
+        )
+        .unwrap(),
+    );
+    assert!(!include_str!("../src/context_selection.rs")
+        .contains(concat!("pub struct ", "SelectedContextCost")));
+    assert!(!include_str!("../src/context_selection.rs")
+        .contains(concat!("pub struct ", "ContextOmission")));
+    assert!(!include_str!("../src/context_selection.rs")
+        .contains(concat!("pub enum ", "ContextSelectionDisposition")));
+
+    let complete = ContextSelectionDisposition::Complete;
+    assert_eq!(
+        ContextSelectionDisposition::from_structured(complete.clone().into_structured().unwrap())
+            .unwrap(),
+        complete
+    );
+    let omitted = ContextSelectionDisposition::omitted(
+        ContextOmissions::new(
+            BoundedSequence::try_from_iter([ContextOmission::new(
+                ChunkIdentity::from_digest([9; 32]),
+                ContextOmissionReason::WorkBudget,
+            )
+            .unwrap()])
+            .unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        ContextSelectionDisposition::from_structured(omitted.clone().into_structured().unwrap())
+            .unwrap(),
+        omitted
+    );
+    assert!(ContextOmissions::new(BoundedSequence::new()).is_err());
+
     for policy in [
         ContextRedundancyPolicy::KeepAll,
         ContextRedundancyPolicy::OnePerReviewedGroup,

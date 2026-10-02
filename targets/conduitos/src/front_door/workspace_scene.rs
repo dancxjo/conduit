@@ -65,9 +65,9 @@ pub(super) fn scene(
         GraphicsTextRole::Heading,
     )?;
     let status = match journey.status {
-        JourneyStatus::BornLulled => "Body born. Its installed forms are not executing yet.",
-        JourneyStatus::Awake => "Body awake. Planning its installed forms...",
-        JourneyStatus::Planned => "Installed forms admitted. Starting their play...",
+        JourneyStatus::BornLulled => "Body born. Its installed plots are not executing yet.",
+        JourneyStatus::Awake => "Body awake. Planning its installed plots...",
+        JourneyStatus::Planned => "Installed plots admitted. Starting their play...",
         JourneyStatus::QuiescentAwaitingInput => "Quiescent. Type to continue this play.",
         JourneyStatus::SemanticCompleted => "Play semantically completed. Your result is below.",
         JourneyStatus::InputUnavailable => journey
@@ -75,7 +75,7 @@ pub(super) fn scene(
             .map(|kind| kind.recovery())
             .unwrap_or("Input unavailable. Inspect details before recovery."),
         JourneyStatus::Stopped => "Play stopped.",
-        JourneyStatus::Lulled => "Body lulled. Its installed forms remain included.",
+        JourneyStatus::Lulled => "Body lulled. Its installed plots remain included.",
         JourneyStatus::Fulfilled => "Body fulfilled. Its closed biography remains inspectable.",
         _ => "Preparing your body...",
     };
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn application_projection_keeps_exact_identity_and_action_on_native_surface() {
-        let exact = "expanded/form/exact";
+        let exact = "expanded/plot/exact";
         let view = ApplicationView {
             revision: 1,
             nodes: vec![
@@ -288,7 +288,7 @@ mod tests {
                     parent: Some(0),
                     component: ApplicationComponent::Definition,
                     key: "subject".into(),
-                    text: "Form".into(),
+                    text: "Plot".into(),
                     value: exact.into(),
                     value_capacity: 64,
                     action: None,

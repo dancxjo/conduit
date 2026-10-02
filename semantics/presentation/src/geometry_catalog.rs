@@ -1,4 +1,4 @@
-//! Form catalog for portable finite geometry semantics.
+//! Plot catalog for portable finite geometry semantics.
 
 use alloc::{
     format,
@@ -11,7 +11,7 @@ use conduit_core::{
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit,
     StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
@@ -51,15 +51,15 @@ pub fn geometry_semantic_contracts() -> Vec<Kind> {
         ),
         geometry_contract(
             APPLY_TRANSFORM2_KIND,
-            vec![geometry_port("point", &point, PortDirection::Input)],
-            vec![geometry_port("point", &point, PortDirection::Output)],
+            vec![geometry_port("source", &point, PortDirection::Input)],
+            vec![geometry_port("transformed", &point, PortDirection::Output)],
             "transform",
             transform_kind.clone(),
         ),
         geometry_contract(
             TRANSFORM_PATH2_FOUR_KIND,
-            vec![geometry_port("path", &path, PortDirection::Input)],
-            vec![geometry_port("path", &path, PortDirection::Output)],
+            vec![geometry_port("source", &path, PortDirection::Input)],
+            vec![geometry_port("transformed", &path, PortDirection::Output)],
             "transform",
             transform_kind,
         ),
@@ -79,8 +79,8 @@ pub fn geometry_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn install_geometry_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in geometry_types() {
         startup
@@ -133,8 +133,8 @@ pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::Kind {
 /// Install only the reviewed four-point path and capture operation into a host
 /// profile that already owns the canonical `Point2` type.
 pub fn install_bounded_stroke_capture_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(
@@ -197,8 +197,8 @@ fn geometry_contract(
 }
 
 fn insert_contract(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: Kind,
 ) -> Result<(), String> {
     startup

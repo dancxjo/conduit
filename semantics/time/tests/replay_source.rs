@@ -64,14 +64,14 @@ fn bench_history_projects_only_retained_entries_and_keeps_the_gap_explicit() {
             HistoricalReplayEntry {
                 sequence: 41,
                 identity: "bench/record/b".into(),
-                event_time: event_time(120),
+                event_time: event_time(120).try_into().unwrap(),
                 origin: HistoricalEntryOrigin::MachineObservation,
                 value: value(3),
             },
             HistoricalReplayEntry {
                 sequence: 42,
                 identity: "bench/record/c".into(),
-                event_time: event_time(150),
+                event_time: event_time(150).try_into().unwrap(),
                 origin: HistoricalEntryOrigin::MachineObservation,
                 value: value(5),
             },
@@ -145,11 +145,11 @@ fn replay_source_output_admission_and_empty_history_refuse_distinctly() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn replay_source_is_an_ordinary_checked_form_between_history_and_control() {
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+fn replay_source_is_an_ordinary_checked_plot_between_history_and_control() {
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
         ProfileCatalog, StartupCatalog,
     };
 
@@ -158,10 +158,10 @@ fn replay_source_is_an_ordinary_checked_form_between_history_and_control() {
     install_historical_timeline_catalog(&mut startup, &mut profile).unwrap();
     install_replay_control_catalog(&mut startup, &mut profile).unwrap();
     install_replay_source_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/bounded-replay-source/main.conduit");
+    let source = include_str!("../../../plots/bounded-replay-source/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "bounded-replay-source", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "bounded-replay-source", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 2);
     assert_eq!(
@@ -173,7 +173,7 @@ fn replay_source_is_an_ordinary_checked_form_between_history_and_control() {
         REPLAY_SOURCE_CONTRACT_REVISION
     );
 
-    let composition = r#"form history-replay-pipeline (
+    let composition = r#"plot history-replay-pipeline (
     >> command: HistoricalTimelineCommand...|
     >> control: ReplayControl...|
     >> clock: PlaybackTick...|
@@ -196,7 +196,7 @@ fn replay_source_is_an_ordinary_checked_form_between_history_and_control() {
 "#;
     let checked = check_syntax_document(&parse_syntax_document(composition), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "history-replay-pipeline", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "history-replay-pipeline", &profile).unwrap();
     assert_eq!(authored.expanded.gears.len(), 3);
     assert_eq!(authored.expanded.connections.len(), 2);
     assert_eq!(authored.input_bindings.len(), 3);

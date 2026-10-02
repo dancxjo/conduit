@@ -127,8 +127,8 @@ pub fn exact_r1_signal_plan(
     let source_advertisement = r1_signal_source_advertisement();
     let pico_advertisement = r1_signal_pico_advertisement(pico_boot_id.clone());
     let observed_lines = crate::r1_line_basis(pico_boot_id);
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../fixtures/plots/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -173,7 +173,7 @@ pub fn exact_r1_signal_plan(
             .collect(),
     )]);
     let plan = plan_with_options(
-        &form,
+        &plot,
         &[source_advertisement.clone(), pico_advertisement.clone()],
         &placements,
         &allowed_bases,
@@ -265,8 +265,8 @@ mod tests {
         .unwrap();
         let mut stale = exact.observed_lines[1].clone();
         stale.binding.sink.boot_id = BootId::from("r1/stale-boot");
-        let form = conduit_form::parse_with_startup(
-            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        let plot = conduit_plot::parse_with_startup(
+            include_str!("../../../fixtures/plots/signal-demo.conduit"),
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
@@ -290,7 +290,7 @@ mod tests {
             ]),
         };
         assert!(plan_with_options(
-            &form,
+            &plot,
             &[exact.source_advertisement, exact.pico_advertisement],
             &placements,
             &[BaseImplementationId::from(

@@ -13,9 +13,9 @@ use common::*;
 
 #[test]
 fn two_hosts_exchange_every_cross_boundary_over_exact_planned_lines() {
-    let (form, plan) = distributed_plan();
+    let (plot, plan) = distributed_plan();
     let plan_snapshot = plan.clone();
-    assert_eq!(form.realization_backs.len(), 1);
+    assert_eq!(plot.realization_backs.len(), 1);
     assert_eq!(plan.fragments.len(), 2);
     assert_eq!(plan.realization_backs.len(), 1);
     let remote = plan

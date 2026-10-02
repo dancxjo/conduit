@@ -5,11 +5,11 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
     TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
+use conduit_plot::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 
 const SOURCE_KIND: &str = "conduit-test/scalar-source";
 const SOURCE_REVISION: &str = "conduit-test/scalar-source@1";

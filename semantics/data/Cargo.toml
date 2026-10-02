@@ -9,11 +9,13 @@ kernel-step = ["dep:conduit-kernel"]
 
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
+conduit-time = { path = "../time", default-features = false }
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc", "step-test-support"] }
 
 [dev-dependencies]
-conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }
+conduit-little-seismograph-fixture = { path = "../../plots/little-seismograph/fixture" }
 
 [build-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
+conduit-time = { path = "../time", default-features = false }

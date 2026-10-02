@@ -2,14 +2,14 @@ use super::{host, installed_std};
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, GearId, LinkLimits,
 };
-use conduit_form::parse;
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
+use conduit_plot::parse;
 use std::collections::BTreeMap;
 
 #[test]
 fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
-    let form = parse(
-        "form remote_typed_flow {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
+    let plot = parse(
+        "plot remote_typed_flow {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
         &installed_std::test_catalog(),
     )
     .unwrap();
@@ -114,7 +114,7 @@ fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
         ),
     ]);
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[

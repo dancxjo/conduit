@@ -1,21 +1,21 @@
 use conduit_body::{
-    Body, BodyBiographyEvidence, BodyBiographyRecordKind, BodyMembership, ResidentForm,
+    Body, BodyBiographyEvidence, BodyBiographyRecordKind, BodyMembership, ResidentPlot,
 };
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 
-fn form(name: &str) -> ResidentForm {
-    ResidentForm::new(
+fn plot(name: &str) -> ResidentPlot {
+    ResidentPlot::new(
         SourceDocumentId::from(format!("source/{name}")),
-        CheckedFormId::from(format!("checked/{name}")),
+        CheckedPlotId::from(format!("checked/{name}")),
     )
 }
 
 #[test]
-fn biography_records_exact_form_admission_and_removal_separately_from_seed_history() {
-    let seed = form("seed");
+fn biography_records_exact_plot_admission_and_removal_separately_from_seed_history() {
+    let seed = plot("seed");
     let born = Body::born(
         seed.source_document_id,
-        seed.checked_form_id,
+        seed.checked_plot_id,
         1,
         SignId::from("sign/born"),
     )
@@ -26,12 +26,12 @@ fn biography_records_exact_form_admission_and_removal_separately_from_seed_histo
         "Roseau".into(),
     )
     .unwrap();
-    let service = form("service");
+    let service = plot("service");
     let admitted = born
-        .admit_form(service.clone(), SignId::from("sign/service-admitted"))
+        .admit_plot(service.clone(), SignId::from("sign/service-admitted"))
         .unwrap();
     let current = admitted
-        .remove_form(&form("seed"), SignId::from("sign/seed-stopped"))
+        .remove_plot(&plot("seed"), SignId::from("sign/seed-stopped"))
         .unwrap();
 
     biography
@@ -46,19 +46,19 @@ fn biography_records_exact_form_admission_and_removal_separately_from_seed_histo
 
     assert_eq!(biography.body.body_id, born.body_id);
     assert_eq!(
-        biography.body.effective_workset().unwrap().forms(),
+        biography.body.effective_workset().unwrap().plots(),
         &[service]
     );
     assert!(matches!(
         biography.records[1].kind,
-        BodyBiographyRecordKind::FormAdmitted {
+        BodyBiographyRecordKind::PlotAdmitted {
             workload_revision: 1,
             ..
         }
     ));
     assert!(matches!(
         biography.records[2].kind,
-        BodyBiographyRecordKind::FormRemoved {
+        BodyBiographyRecordKind::PlotRemoved {
             workload_revision: 2,
             ..
         }

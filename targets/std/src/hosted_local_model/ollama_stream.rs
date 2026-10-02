@@ -175,9 +175,13 @@ impl Session {
                 );
             };
             if !response.response.is_empty() {
-                let chunk = conduit_ai::GeneratedTextChunk {
-                    sequence: self.flow.next_sequence(),
-                    text: response.response,
+                let Ok(chunk) = conduit_ai::GeneratedTextChunk::new(
+                    self.flow.next_sequence(),
+                    response.response,
+                ) else {
+                    return Step::Terminal(
+                        self.finish(conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted),
+                    );
                 };
                 if self.flow.admit(&chunk).is_err() {
                     return Step::Terminal(
@@ -226,12 +230,7 @@ impl Drop for Session {
 pub(super) fn empty(
     terminal: conduit_ai::GeneratedTextFlowTerminal,
 ) -> conduit_ai::GeneratedTextFlowEvidence {
-    conduit_ai::GeneratedTextFlowEvidence {
-        chunks: 0,
-        generated_bytes: 0,
-        terminal,
-        retained_private_text: false,
-    }
+    conduit_ai::GeneratedTextFlowEvidence::new(0, 0, terminal, false).unwrap()
 }
 
 #[cfg(test)]
@@ -255,9 +254,10 @@ fn decode(
             return flow.finish(conduit_ai::GeneratedTextFlowTerminal::ProviderLost);
         };
         if !response.response.is_empty() {
-            let chunk = conduit_ai::GeneratedTextChunk {
-                sequence: flow.next_sequence(),
-                text: response.response,
+            let Ok(chunk) =
+                conduit_ai::GeneratedTextChunk::new(flow.next_sequence(), response.response)
+            else {
+                return flow.finish(conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted);
             };
             if flow.admit(&chunk).is_err() {
                 return flow.finish(conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted);
@@ -305,16 +305,16 @@ mod tests {
         assert_eq!(
             chunks
                 .iter()
-                .map(|chunk| chunk.text.as_str())
+                .map(|chunk| chunk.text().as_str())
                 .collect::<String>(),
             "First sentence. Later text."
         );
         assert_eq!(
-            evidence.terminal,
+            *evidence.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::Completed
         );
-        assert_eq!(evidence.generated_bytes, 27);
-        assert!(!evidence.retained_private_text);
+        assert_eq!(*evidence.generated_bytes(), 27);
+        assert!(!*evidence.retained_private_text());
     }
 
     #[test]
@@ -327,14 +327,14 @@ mod tests {
             StreamingChunkDisposition::Backpressured
         });
         assert_eq!(
-            pressure.terminal,
+            *pressure.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::Backpressured
         );
         let cancelled = decode(Cursor::new(input), 64, &mut |_| {
             StreamingChunkDisposition::Cancel
         });
         assert_eq!(
-            cancelled.terminal,
+            *cancelled.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::Cancelled
         );
         let overflow = decode(
@@ -343,7 +343,7 @@ mod tests {
             &mut |_| StreamingChunkDisposition::Accepted,
         );
         assert_eq!(
-            overflow.terminal,
+            *overflow.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted
         );
         let lost = decode(
@@ -352,7 +352,7 @@ mod tests {
             &mut |_| StreamingChunkDisposition::Accepted,
         );
         assert_eq!(
-            lost.terminal,
+            *lost.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::ProviderLost
         );
     }

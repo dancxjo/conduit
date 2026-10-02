@@ -3,11 +3,10 @@ use crate::{
     body_causal_evidence::BodyRunCausalRecord,
     body_execution::{BodyRunReport, BodyRunRequest},
 };
-use conduit_body::{Body, BodyFormPlan, BodyPlan, ResidentForm};
+use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
 use conduit_core::{
     BaseImplementationId, SignId, TerminalCategory, TerminalDisposition, TerminalInfo,
 };
-use conduit_form::parse;
 use conduit_kernel::{
     causal_evidence::{
         CausalRelationship, EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit,
@@ -20,10 +19,11 @@ use conduit_observatory::{
     CausalExplanationVisibility,
 };
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
+use conduit_plot::parse;
 use std::collections::BTreeMap;
 
-const UNRECOVERED: &str = "form terminal_body {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n cancel.request >> tone~\n}.\n";
-const RECOVERED: &str = "form recovered_body {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n recovery: conduit-test/tone-terminal-recovery\n cancel.request >> tone~\n tone.audio! >> recovery.terminal\n}.\n";
+const UNRECOVERED: &str = "plot terminal_body {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n cancel.request >> tone~\n}.\n";
+const RECOVERED: &str = "plot recovered_body {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n recovery: conduit-test/tone-terminal-recovery\n cancel.request >> tone~\n tone.audio! >> recovery.terminal\n}.\n";
 
 #[test]
 fn real_body_failure_correlates_typed_terminal_with_exact_execution_evidence() {
@@ -96,7 +96,7 @@ fn real_body_failure_correlates_typed_terminal_with_exact_execution_evidence() {
     assert!(facts.iter().any(|fact| matches!(
         fact,
         CausalExplanationMetadataFact::Source { document, .. }
-            if body_plan.forms.iter().any(|form| form.plan.source_document_id.as_str() == document)
+            if body_plan.plots.iter().any(|plot| plot.plan.source_document_id.as_str() == document)
     )));
     assert!(facts.iter().any(|fact| matches!(
         fact,
@@ -186,13 +186,13 @@ fn run_body(source: &str) -> (BodyPlan, BodyRunReport) {
         },
     )
     .unwrap();
-    let resident = ResidentForm::new(
+    let resident = ResidentPlot::new(
         plan.source_document_id.clone(),
-        plan.checked_form_id.clone(),
+        plan.checked_plot_id.clone(),
     );
     let wake = Body::born(
         resident.source_document_id.clone(),
-        resident.checked_form_id.clone(),
+        resident.checked_plot_id.clone(),
         1,
         SignId::from("sign/body-causal-born"),
     )
@@ -202,8 +202,8 @@ fn run_body(source: &str) -> (BodyPlan, BodyRunReport) {
     .1;
     let body_plan = BodyPlan::seal(
         &wake,
-        vec![BodyFormPlan {
-            form: resident,
+        vec![BodyPlotPlan {
+            plot: resident,
             plan,
         }],
     )

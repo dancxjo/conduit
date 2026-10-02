@@ -5,13 +5,14 @@ use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::{
     assess_workflow_timing, recurrence_instant_type, recurrence_occurrence_instant_type,
     recurrence_occurrence_type, schedule_assessment_type, schedule_constraint_type,
     schedule_effect_intent_type, schedule_observation_type, schedule_window_position_type,
-    scheduled_intent_type, workflow_lifecycle_type, workflow_timing_outcome_type, ScheduleRefusal,
-    ScheduleWindowPosition, WorkflowLifecycle, WorkflowTimingOutcome,
+    scheduled_intent_type, workflow_lifecycle_type, ScheduleRefusal, ScheduleWindowPosition,
+    WorkflowLifecycle, WorkflowTimingOutcome,
 };
 
 pub struct ScheduleFixture {
@@ -169,20 +170,9 @@ fn decode_position(
 fn outcome_value(
     outcome: WorkflowTimingOutcome,
 ) -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
-    let value_type = workflow_timing_outcome_type();
-    let (tag, payload) = match outcome {
-        WorkflowTimingOutcome::Awaiting => ("awaiting", unit_value()?),
-        WorkflowTimingOutcome::OnTime => ("on_time", unit_value()?),
-        WorkflowTimingOutcome::Late(late) => ("late", quantity(*late.lateness())?),
-        WorkflowTimingOutcome::MissedWindow => ("missed_window", unit_value()?),
-        WorkflowTimingOutcome::ClockUncertain(uncertain) => {
-            ("clock_uncertain", quantity(*uncertain.uncertainty())?)
-        }
-        WorkflowTimingOutcome::Failed => ("failed", unit_value()?),
-        WorkflowTimingOutcome::Cancelled => ("cancelled", unit_value()?),
-        WorkflowTimingOutcome::Expired => ("expired", unit_value()?),
-    };
-    Ok(StructuredInfoValue::variant(value_type, tag, payload)?)
+    outcome
+        .into_structured()
+        .map_err(|_| ScheduleInfoRefusal::MalformedInfo)
 }
 
 fn wall_occurrence_instant(ticks: u64) -> Result<StructuredInfoValue, ScheduleInfoRefusal> {

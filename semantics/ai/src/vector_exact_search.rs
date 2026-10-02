@@ -2,17 +2,20 @@
 
 use alloc::{collections::BTreeSet, string::String, vec::Vec};
 use conduit_core::ResourceBinding;
+use conduit_plot::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     canonical_hit_order, EntityBoundary, ExactVectorSearchRefusal, MetadataFilter, SimilarityHit,
-    SimilarityQuery, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceSelection,
+    SimilarityQuery, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceCandidates,
+    TemporalEvidenceIdentity, TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal,
     TemporalReference, TemporalSource, TemporalValidity, TransitionDirection, VectorIndexHandle,
     VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState, VectorRecord,
     VectorSearchProofClass, MAXIMUM_VECTOR_INDEX_MEMBERS,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `ExactVectorSearchCandidate<T>` Type family.
 pub struct ExactVectorSearchCandidate<T> {
     pub record: VectorRecord<T>,
     pub temporal_source: TemporalSource,
@@ -22,6 +25,7 @@ pub struct ExactVectorSearchCandidate<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `ExactVectorSearchResult<T>` Type family.
 pub struct ExactVectorSearchResult<T> {
     pub proof_class: VectorSearchProofClass,
     pub index_generation: u64,
@@ -49,7 +53,7 @@ pub fn exact_vector_search<T: Clone>(
     state
         .contract
         .embedding_profile
-        .compatibility(&query.embedding.profile, query.metric)
+        .compatibility(query.embedding.profile(), query.metric)
         .map_err(ExactVectorSearchRefusal::Vector)?;
     state
         .admit_query(handle, admission, binding)
@@ -60,7 +64,7 @@ pub fn exact_vector_search<T: Clone>(
     let candidate_count =
         u32::try_from(candidates.len()).map_err(|_| ExactVectorSearchRefusal::TooManyCandidates)?;
     let required_work = candidate_count
-        .checked_mul(query.embedding.profile.dimensions)
+        .checked_mul(query.embedding.profile().dimensions)
         .ok_or(ExactVectorSearchRefusal::WorkAccountingOverflow)?;
     if required_work > admission.work_units {
         return Err(ExactVectorSearchRefusal::Resource(
@@ -80,8 +84,8 @@ pub fn exact_vector_search<T: Clone>(
             .map_err(ExactVectorSearchRefusal::Vector)?;
         query
             .embedding
-            .profile
-            .compatibility(&candidate.record.embedding.profile, query.metric)
+            .profile()
+            .compatibility(candidate.record.embedding.profile(), query.metric)
             .map_err(ExactVectorSearchRefusal::Vector)?;
     }
     let candidate_sources: BTreeSet<_> = candidates
@@ -102,7 +106,7 @@ pub fn exact_vector_search<T: Clone>(
 
     let mut eligible: Vec<_> = candidates
         .iter()
-        .filter(|candidate| metadata_matches(&candidate.record, &query.filters))
+        .filter(|candidate| metadata_matches(&candidate.record, query.filters.get().as_slice()))
         .collect();
     if let Some(intent) = &query.temporal_intent {
         eligible = temporal_matches(eligible, intent, earliest_history_complete)?;
@@ -146,11 +150,14 @@ pub fn exact_vector_search<T: Clone>(
 
 fn metadata_matches<T>(record: &VectorRecord<T>, filters: &[MetadataFilter]) -> bool {
     filters.iter().all(|filter| match filter {
-        MetadataFilter::Equal { key, value } => record
+        MetadataFilter::Equal(filter) => record
             .metadata
             .iter()
-            .any(|member| member.key == *key && member.value == *value),
-        MetadataFilter::Present { key } => record.metadata.iter().any(|member| member.key == *key),
+            .any(|member| member.key == *filter.key() && member.value == *filter.value()),
+        MetadataFilter::Present(filter) => record
+            .metadata
+            .iter()
+            .any(|member| member.key == *filter.key()),
     })
 }
 
@@ -172,31 +179,51 @@ fn temporal_matches<'a, T>(
             reference_at: first.reference_at,
             clock_basis: first.clock_basis.clone(),
         },
-        candidates: candidates
-            .iter()
-            .map(|candidate| {
-                let provenance = candidate
-                    .record
-                    .temporal_provenance
-                    .clone()
-                    .ok_or(ExactVectorSearchRefusal::TemporalProvenanceRequired)?;
-                Ok(TemporalEvidenceCandidate {
-                    identity: candidate.record.source_identity.clone(),
-                    provenance,
-                    source: candidate.temporal_source,
-                    boundary: candidate.boundary,
-                    transition: candidate.transition,
-                    validity: candidate.validity,
-                })
-            })
-            .collect::<Result<Vec<_>, ExactVectorSearchRefusal>>()?,
+        candidates: TemporalEvidenceCandidates::new(
+            BoundedSequence::try_from_iter(
+                candidates
+                    .iter()
+                    .map(|candidate| {
+                        let provenance = candidate
+                            .record
+                            .temporal_provenance
+                            .clone()
+                            .ok_or(ExactVectorSearchRefusal::TemporalProvenanceRequired)?;
+                        Ok(TemporalEvidenceCandidate {
+                            identity: TemporalEvidenceIdentity::new(
+                                candidate.record.source_identity.clone(),
+                            )
+                            .map_err(|_| ExactVectorSearchRefusal::TemporalProvenanceRequired)?,
+                            provenance,
+                            source: candidate.temporal_source,
+                            boundary: candidate.boundary,
+                            transition: candidate.transition,
+                            validity: candidate.validity,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, ExactVectorSearchRefusal>>()?,
+            )
+            .map_err(|_| {
+                ExactVectorSearchRefusal::Temporal(
+                    TemporalEvidenceSelectionRefusal::TooManyCandidates,
+                )
+            })?,
+        )
+        .map_err(|_| {
+            ExactVectorSearchRefusal::Temporal(TemporalEvidenceSelectionRefusal::EmptyCandidates)
+        })?,
         earliest_history_complete,
     };
     let selected = batch
         .select(intent)
         .map_err(ExactVectorSearchRefusal::Temporal)?;
     let identities: BTreeSet<String> = match selected {
-        TemporalEvidenceSelection::Selected { identities } => identities.into_iter().collect(),
+        TemporalEvidenceSelection::Selected(payload) => payload
+            .identities()
+            .get()
+            .iter()
+            .map(|identity| identity.get().clone())
+            .collect(),
         TemporalEvidenceSelection::NeedEarlierHistory => {
             return Err(ExactVectorSearchRefusal::EarlierHistoryRequired)
         }

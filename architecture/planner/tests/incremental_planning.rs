@@ -21,7 +21,7 @@ fn candidate(
     extra_dependencies: &[(FactDomain, &str)],
 ) -> CandidateStructure {
     let mut dependencies = vec![
-        key(FactDomain::Semantic, "checked-form/text-pipeline@sha256:01"),
+        key(FactDomain::Semantic, "checked-plot/text-pipeline@sha256:01"),
         key(FactDomain::Implementation, "family/text-upper@1"),
         key(FactDomain::Policy, "policy/efficiency@7"),
     ];
@@ -32,7 +32,7 @@ fn candidate(
     );
     CandidateStructure {
         candidate_id: id.to_string(),
-        semantic_contract_id: "checked-form/text-pipeline@sha256:01".to_string(),
+        semantic_contract_id: "checked-plot/text-pipeline@sha256:01".to_string(),
         implementation_family_id: "family/text-upper@1".to_string(),
         placement_id: placement.to_string(),
         dependencies,
@@ -43,7 +43,7 @@ fn base_facts() -> Vec<PlanningFact> {
     vec![
         fact(
             FactDomain::Semantic,
-            "checked-form/text-pipeline@sha256:01",
+            "checked-plot/text-pipeline@sha256:01",
             1,
         ),
         fact(FactDomain::Implementation, "family/text-upper@1", 1),

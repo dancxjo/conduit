@@ -3,7 +3,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindId, KindIdentity,
     PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };

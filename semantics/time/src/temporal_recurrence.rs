@@ -1,116 +1,19 @@
 //! Finite recurrence semantics with no ambient clock or timezone resolver.
 
-use alloc::{format, string::String, vec::Vec};
-use serde::{Deserialize, Serialize};
+use alloc::{format, vec::Vec};
 
 use crate::{
-    CivilResolutionChoice, LocalDate, LocalDateTime, LocalTime, MonotonicDuration,
-    MonotonicInstant, NamedTimeZone, RecurrenceRefusal, TemporalInstant,
-    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    LocalDate, MonotonicDuration, MonotonicInstant, OccurrenceInstant, RecurrenceDefinition,
+    RecurrenceExpansion, RecurrenceOccurrence, RecurrenceRefusal, RecurrenceRule, RecurrenceUntil,
+    RecurrenceWindow, TemporalInstant, WeekdaySet, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_RECURRENCE_OCCURRENCES: u32 = 4_096;
 pub const MAXIMUM_RECURRENCE_EXCEPTIONS: usize = 256;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RecurrenceDefinition {
-    pub identity: String,
-    pub rule: RecurrenceRule,
-    pub maximum_occurrences: u32,
-    pub until: Option<RecurrenceUntil>,
-    pub excluded_ordinals: Vec<u32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RecurrenceUntil {
-    Wall(TemporalInstant),
-    Monotonic(MonotonicInstant),
-    CivilDate(LocalDate),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RecurrenceRule {
-    OneShot {
-        at: TemporalInstant,
-    },
-    FixedElapsed {
-        first: MonotonicInstant,
-        every: MonotonicDuration,
-    },
-    CivilWeekdays {
-        first_date: LocalDate,
-        local_time: LocalTime,
-        zone: NamedTimeZone,
-        weekdays: WeekdaySet,
-        excluded_dates: Vec<LocalDate>,
-    },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WeekdaySet(u8);
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RecurrenceWindow {
-    Wall {
-        start: TemporalInstant,
-        end: TemporalInstant,
-    },
-    Monotonic {
-        start: MonotonicInstant,
-        end: MonotonicInstant,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RecurrenceExpansion {
-    pub maximum_results: u32,
-    pub window: RecurrenceWindow,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RecurrenceOccurrence {
-    pub identity: String,
-    pub recurrence_identity: String,
-    pub ordinal: u32,
-    pub at: OccurrenceInstant,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OccurrenceInstant {
-    Wall(TemporalInstant),
-    Monotonic(MonotonicInstant),
-    Civil {
-        local: LocalDateTime,
-        zone: NamedTimeZone,
-        instant: TemporalInstant,
-        resolution: CivilResolutionChoice,
-    },
-}
-
 impl WeekdaySet {
-    pub const MONDAY: Self = Self(1 << 0);
-    pub const TUESDAY: Self = Self(1 << 1);
-    pub const WEDNESDAY: Self = Self(1 << 2);
-    pub const THURSDAY: Self = Self(1 << 3);
-    pub const FRIDAY: Self = Self(1 << 4);
-    pub const SATURDAY: Self = Self(1 << 5);
-    pub const SUNDAY: Self = Self(1 << 6);
-    pub const WEEKDAYS: Self = Self((1 << 5) - 1);
-
-    pub const fn union(self, other: Self) -> Self {
-        Self(self.0 | other.0)
-    }
-
-    pub const fn contains(self, weekday: Self) -> bool {
-        self.0 & weekday.0 != 0
-    }
-
-    pub const fn bits(self) -> u8 {
-        self.0
-    }
-
     fn validate(self) -> Result<(), RecurrenceRefusal> {
-        if self.0 == 0 || self.0 & !0x7f != 0 {
+        if *self.get() == 0 || *self.get() & !0x7f != 0 {
             Err(RecurrenceRefusal::InvalidRule)
         } else {
             Ok(())
@@ -133,19 +36,22 @@ impl RecurrenceDefinition {
                 .any(|ordinal| *ordinal >= self.maximum_occurrences)
             || self
                 .excluded_ordinals
-                .windows(2)
-                .any(|pair| pair[0] >= pair[1])
+                .iter()
+                .zip(self.excluded_ordinals.iter().skip(1))
+                .any(|(left, right)| left >= right)
         {
             return Err(RecurrenceRefusal::InvalidExceptions);
         }
         match &self.rule {
-            RecurrenceRule::OneShot { at } => {
+            RecurrenceRule::OneShot(rule) => {
+                let at = rule.at();
                 at.validate().map_err(|_| RecurrenceRefusal::InvalidRule)?;
                 if self.maximum_occurrences != 1 {
                     return Err(RecurrenceRefusal::InvalidLimit);
                 }
                 match &self.until {
                     Some(RecurrenceUntil::Wall(until)) => {
+                        let until = until.value();
                         until
                             .validate()
                             .map_err(|_| RecurrenceRefusal::InvalidRule)?;
@@ -155,15 +61,18 @@ impl RecurrenceDefinition {
                     _ => return Err(RecurrenceRefusal::InvalidRule),
                 }
             }
-            RecurrenceRule::FixedElapsed { first, every } => {
+            RecurrenceRule::FixedElapsed(rule) => {
+                let first = rule.first();
+                let every = rule.every();
                 first
                     .validate()
                     .map_err(|_| RecurrenceRefusal::InvalidRule)?;
-                if every.ticks() == 0 || every.scale() != first.clock().scale() {
+                if every.ticks() == 0 || every.scale() != *first.clock().scale() {
                     return Err(RecurrenceRefusal::InvalidRule);
                 }
                 match &self.until {
                     Some(RecurrenceUntil::Monotonic(until)) => {
+                        let until = until.value();
                         until
                             .validate()
                             .map_err(|_| RecurrenceRefusal::InvalidRule)?;
@@ -173,13 +82,12 @@ impl RecurrenceDefinition {
                     _ => return Err(RecurrenceRefusal::InvalidRule),
                 }
             }
-            RecurrenceRule::CivilWeekdays {
-                first_date,
-                local_time,
-                zone,
-                weekdays,
-                excluded_dates,
-            } => {
+            RecurrenceRule::CivilWeekdays(rule) => {
+                let first_date = rule.first_date();
+                let local_time = rule.local_time();
+                let zone = rule.zone();
+                let weekdays = rule.weekdays();
+                let excluded_dates = rule.excluded_dates();
                 first_date
                     .validate()
                     .map_err(|_| RecurrenceRefusal::InvalidRule)?;
@@ -192,8 +100,9 @@ impl RecurrenceDefinition {
                 if excluded_dates.len() > MAXIMUM_RECURRENCE_EXCEPTIONS
                     || excluded_dates.iter().any(|date| date.validate().is_err())
                     || excluded_dates
-                        .windows(2)
-                        .any(|pair| date_key(pair[0]) >= date_key(pair[1]))
+                        .iter()
+                        .zip(excluded_dates.iter().skip(1))
+                        .any(|(left, right)| date_key(*left) >= date_key(*right))
                     || excluded_dates
                         .iter()
                         .any(|date| date_key(*date) < date_key(*first_date))
@@ -205,6 +114,7 @@ impl RecurrenceDefinition {
                 }
                 match &self.until {
                     Some(RecurrenceUntil::CivilDate(until)) => {
+                        let until = until.value();
                         until
                             .validate()
                             .map_err(|_| RecurrenceRefusal::InvalidRule)?;
@@ -227,23 +137,31 @@ impl RecurrenceDefinition {
         self.validate()?;
         request.validate()?;
         match (&self.rule, &request.window) {
-            (RecurrenceRule::OneShot { at }, RecurrenceWindow::Wall { start, end }) => {
+            (RecurrenceRule::OneShot(rule), RecurrenceWindow::Wall(window)) => {
+                let at = rule.at();
+                let start = window.start();
+                let end = window.end();
                 let mut occurrences = Vec::with_capacity(1);
                 if self.excluded_ordinals.binary_search(&0).is_err()
                     && self.until.as_ref().is_none_or(
-                        |until| matches!(until, RecurrenceUntil::Wall(value) if at.ticks <= value.ticks),
+                        |until| matches!(until, RecurrenceUntil::Wall(value) if at.ticks <= value.value().ticks),
                     )
                     && wall_in_window(at, start, end)?
                     && request.maximum_results > 0
                 {
-                    occurrences.push(self.occurrence(0, OccurrenceInstant::Wall(at.clone()))?);
+                    occurrences.push(self.occurrence(
+                        0,
+                        OccurrenceInstant::wall(at.clone())
+                            .map_err(|_| RecurrenceRefusal::InvalidRule)?,
+                    )?);
                 }
                 Ok(occurrences)
             }
-            (
-                RecurrenceRule::FixedElapsed { first, every },
-                RecurrenceWindow::Monotonic { start, end },
-            ) => {
+            (RecurrenceRule::FixedElapsed(rule), RecurrenceWindow::Monotonic(window)) => {
+                let first = rule.first();
+                let every = rule.every();
+                let start = window.start();
+                let end = window.end();
                 ensure_same_monotonic_clock(first, start)?;
                 ensure_same_monotonic_clock(first, end)?;
                 if start.ticks() > end.ticks() {
@@ -255,13 +173,13 @@ impl RecurrenceDefinition {
                         .ticks()
                         .checked_mul(u64::from(ordinal))
                         .ok_or(RecurrenceRefusal::ArithmeticOverflow)?;
+                    let duration = MonotonicDuration::new(offset, every.scale())
+                        .map_err(|_| RecurrenceRefusal::ArithmeticOverflow)?;
                     let at = first
-                        .deadline_after(MonotonicDuration::new(offset, every.scale()))
-                        .map_err(|_| RecurrenceRefusal::ArithmeticOverflow)?
-                        .instant()
-                        .clone();
+                        .after(duration)
+                        .map_err(|_| RecurrenceRefusal::ArithmeticOverflow)?;
                     if self.until.as_ref().is_some_and(|until| {
-                        matches!(until, RecurrenceUntil::Monotonic(value) if at.ticks() > value.ticks())
+                        matches!(until, RecurrenceUntil::Monotonic(value) if at.ticks() > value.value().ticks())
                     }) {
                         break;
                     }
@@ -274,13 +192,18 @@ impl RecurrenceDefinition {
                         if occurrences.len() == request.maximum_results as usize {
                             return Err(RecurrenceRefusal::WorkLimitExceeded);
                         }
-                        occurrences
-                            .push(self.occurrence(ordinal, OccurrenceInstant::Monotonic(at))?);
+                        occurrences.push(
+                            self.occurrence(
+                                ordinal,
+                                OccurrenceInstant::monotonic(at)
+                                    .map_err(|_| RecurrenceRefusal::InvalidRule)?,
+                            )?,
+                        );
                     }
                 }
                 Ok(occurrences)
             }
-            (RecurrenceRule::CivilWeekdays { .. }, _) => {
+            (RecurrenceRule::CivilWeekdays(_), _) => {
                 Err(RecurrenceRefusal::CivilResolutionRequired)
             }
             _ => Err(RecurrenceRefusal::WrongWindowKind),
@@ -318,7 +241,9 @@ impl RecurrenceExpansion {
             return Err(RecurrenceRefusal::InvalidLimit);
         }
         match &self.window {
-            RecurrenceWindow::Wall { start, end } => {
+            RecurrenceWindow::Wall(window) => {
+                let start = window.start();
+                let end = window.end();
                 start
                     .validate()
                     .map_err(|_| RecurrenceRefusal::InvalidWindow)?;
@@ -334,7 +259,9 @@ impl RecurrenceExpansion {
                     return Err(RecurrenceRefusal::InvalidWindow);
                 }
             }
-            RecurrenceWindow::Monotonic { start, end } => {
+            RecurrenceWindow::Monotonic(window) => {
+                let start = window.start();
+                let end = window.end();
                 ensure_same_monotonic_clock(start, end)?;
                 if start.ticks() > end.ticks() {
                     return Err(RecurrenceRefusal::InvalidWindow);
@@ -350,18 +277,18 @@ impl RecurrenceOccurrence {
         validate_identity(&self.identity)?;
         validate_identity(&self.recurrence_identity)?;
         match &self.at {
-            OccurrenceInstant::Wall(instant) => instant
+            OccurrenceInstant::Wall(value) => value
+                .value()
                 .validate()
                 .map_err(|_| RecurrenceRefusal::InvalidRule),
-            OccurrenceInstant::Monotonic(instant) => instant
+            OccurrenceInstant::Monotonic(value) => value
+                .value()
                 .validate()
                 .map_err(|_| RecurrenceRefusal::InvalidRule),
-            OccurrenceInstant::Civil {
-                local,
-                zone,
-                instant,
-                ..
-            } => {
+            OccurrenceInstant::Civil(value) => {
+                let local = value.local();
+                let zone = value.zone();
+                let instant = value.instant();
                 local
                     .validate()
                     .map_err(|_| RecurrenceRefusal::InvalidCivilResolution)?;

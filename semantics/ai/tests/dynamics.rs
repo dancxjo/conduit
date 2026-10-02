@@ -4,6 +4,7 @@ use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn tensor(
     element: TensorElement,
@@ -13,10 +14,10 @@ fn tensor(
 ) -> TensorValue {
     TensorValue {
         element,
-        dimensions,
-        axes,
+        dimensions: BoundedSequence::try_from_iter(dimensions).unwrap(),
+        axes: BoundedSequence::try_from_iter(axes).unwrap(),
         content_digest: tensor_content_digest(&bytes),
-        backing: TensorBacking::Inline(bytes),
+        backing: TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap()),
     }
 }
 
@@ -58,16 +59,8 @@ fn contract() -> IntegrateContract {
             relative_tolerance_millionths: 10,
             maximum_estimated_error_millionths: 1_000,
         },
-        resources: IntegrationResourceEnvelope {
-            maximum_state_bytes: 128,
-            maximum_context_bytes: 128,
-            maximum_output_samples: 8,
-            maximum_output_bytes: 512,
-            maximum_internal_steps: 128,
-            maximum_function_evaluations: 512,
-            maximum_work_units: 2_048,
-            memory_ceiling_bytes: 16_384,
-        },
+        resources: IntegrationResourceEnvelope::new(128, 128, 8, 512, 128, 512, 2_048, 16_384)
+            .unwrap(),
     }
 }
 
@@ -90,19 +83,18 @@ fn candidate(solver: &str, internal_steps: u64) -> IntegrationCandidate {
     IntegrationCandidate {
         trajectory: SampledSignal {
             clock_identity: "experiment/monotonic-ms".into(),
-            start: SignalStart::SampleIndex(0),
-            cadence: SignalCadence::Irregular {
-                coordinates: Box::new(tensor(
-                    TensorElement::I64,
-                    vec![5],
-                    vec![TensorAxis {
-                        role: TensorAxisRole::Time,
-                        identity: Some("requested-output-grid".into()),
-                        unit: Some(QuantityUnit::Millisecond),
-                    }],
-                    coordinates,
-                )),
-            },
+            start: SignalStart::at_sample(0),
+            cadence: SignalCadence::irregular(tensor(
+                TensorElement::I64,
+                vec![5],
+                vec![TensorAxis {
+                    role: TensorAxisRole::Time,
+                    identity: Some("requested-output-grid".into()),
+                    unit: Some(QuantityUnit::Millisecond),
+                }],
+                coordinates,
+            ))
+            .unwrap(),
             sample_count: 5,
             continuity: SignalContinuity::Continuous,
             samples: tensor(
@@ -221,7 +213,7 @@ fn work_exhaustion_cancellation_and_failures_never_commit_state() {
     }
 
     let mut overrun = candidate("adaptive-rk", 20);
-    overrun.function_evaluations = contract.resources.maximum_function_evaluations + 1;
+    overrun.function_evaluations = contract.resources.maximum_function_evaluations() + 1;
     assert_eq!(
         contract.realize(
             &request,
@@ -249,15 +241,17 @@ fn exact_grid_stale_state_resource_bounds_and_unsupported_sde_refuse() {
     request.expected_generation = 7;
 
     let mut wrong_grid = candidate("fixed-step", 40);
-    let SignalCadence::Irregular { coordinates } = &mut wrong_grid.trajectory.cadence else {
+    let SignalCadence::Irregular(irregular) = &wrong_grid.trajectory.cadence else {
         unreachable!()
     };
+    let mut coordinates = irregular.coordinates().clone();
     let wrong = [0_i64, 200, 500, 750, 1_000]
         .into_iter()
         .flat_map(i64::to_le_bytes)
         .collect::<Vec<_>>();
     coordinates.content_digest = tensor_content_digest(&wrong);
-    coordinates.backing = TensorBacking::Inline(wrong);
+    coordinates.backing = TensorBacking::Inline(BoundedBytes::new(&wrong).unwrap());
+    wrong_grid.trajectory.cadence = SignalCadence::irregular(coordinates).unwrap();
     assert_eq!(
         contract.realize(
             &request,
@@ -276,7 +270,5 @@ fn exact_grid_stale_state_resource_bounds_and_unsupported_sde_refuse() {
         Err(DynamicsRefusal::UnsupportedStochasticProfile)
     );
 
-    let mut unbounded = contract;
-    unbounded.resources.maximum_internal_steps = 0;
-    assert_eq!(unbounded.validate(), Err(DynamicsRefusal::InvalidResources));
+    assert!(IntegrationResourceEnvelope::new(128, 128, 8, 512, 0, 512, 2_048, 16_384).is_err());
 }

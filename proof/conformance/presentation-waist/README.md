@@ -33,12 +33,12 @@ to audit. `accounts.json` stays outside the Face records and asks what a human
 would understand and could do in each reconstruction; it does not round-trip
 the fixture graph and call that understanding. Production Mask proof must start
 from a Face derived through an ordinary domain-owned contribution. The browser runtime carries the specimens
-through an ordinary graphical Mask Form into a current Show, but that remains
+through an ordinary graphical Mask Plot into a current Show, but that remains
 Mask-mechanism coverage rather than evidence that a domain derived the Face.
 
 The production Tutorial supplies the constrained-participation pressure case.
-Its Face is derived from current Body truth with an exact application Form and
-Plan basis, then crosses the ordinary browser Mask Form into an available,
+Its Face is derived from current Body truth with an exact application Plot and
+Plan basis, then crosses the ordinary browser Mask Plot into an available,
 correlated Show. Oversized and malformed values refuse before the interaction
 Fore emits anything; one valid value produces the exact Show-bound
 `FaceInteraction`. This proves the inward Face-admission path without turning

@@ -1,7 +1,7 @@
 //! Explicit adapters between native portable time meaning and core clock machinery.
 
 use conduit_core::TemporalRelationError;
-use conduit_form::rust_binding::NativeBindingRefusal;
+use conduit_plot::rust_binding::NativeBindingRefusal;
 
 use crate::generated::{TemporalInstant, TemporalScale};
 
@@ -52,6 +52,37 @@ impl TryFrom<TemporalInstant> for conduit_core::TemporalInstant {
         };
         adapted.validate()?;
         Ok(adapted)
+    }
+}
+
+impl TemporalInstant {
+    pub fn validate(&self) -> Result<(), TemporalRelationError> {
+        conduit_core::TemporalInstant::try_from(self.clone())
+            .map(|_| ())
+            .map_err(|error| match error {
+                TemporalInstantAdapterRefusal::CoreTemporal(error) => error,
+                TemporalInstantAdapterRefusal::NativeBinding(_) => {
+                    TemporalRelationError::InvalidInstant
+                }
+            })
+    }
+
+    pub fn relation_to(
+        &self,
+        reference: &Self,
+    ) -> Result<conduit_core::TemporalRelation, TemporalRelationError> {
+        let source = conduit_core::TemporalInstant::try_from(self.clone())
+            .map_err(adapter_relation_error)?;
+        let reference = conduit_core::TemporalInstant::try_from(reference.clone())
+            .map_err(adapter_relation_error)?;
+        source.relation_to(&reference)
+    }
+}
+
+fn adapter_relation_error(error: TemporalInstantAdapterRefusal) -> TemporalRelationError {
+    match error {
+        TemporalInstantAdapterRefusal::CoreTemporal(error) => error,
+        TemporalInstantAdapterRefusal::NativeBinding(_) => TemporalRelationError::InvalidInstant,
     }
 }
 

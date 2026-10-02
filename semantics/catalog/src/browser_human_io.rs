@@ -1,15 +1,15 @@
 //! Portable human-media contracts.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use crate::human_media_catalog::install_camera_catalogs;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const IMAGE_TEXT_COMPOSE_KIND: &str = "media/compose-image-text";
 pub const IMAGE_TEXT_COMPOSE_REVISION: &str = "conduit.human/image-text-compose@1";
@@ -81,12 +81,12 @@ pub fn image_text_typed_record_semantic_contract() -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_image_text_inspection_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_plot::{KindProjection, KindSignature};
 
     let contract =
         crate::structured_presentation_contract(IMAGE_TEXT_RECORD_TYPE, &image_text_record_type());
@@ -171,12 +171,12 @@ pub fn image_observation_from_value(
         .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_human_media_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_plot::{KindProjection, KindSignature};
 
     install_camera_catalogs(startup, profile)?;
 

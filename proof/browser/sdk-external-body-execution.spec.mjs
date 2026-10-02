@@ -16,10 +16,10 @@ test("a Workspace Body continues through the browser SDK without a Patchbay page
   const journey = await openExternalBody(page, {
     friendlyName: "SDK Workbench",
     titles: ["Button Across the Room", "Clock", "Desk Telegraph"],
-    forms: [
-      ["button-across-room", "forms/button-across-room/main.conduit"],
-      ["clock", "forms/clock/main.conduit"],
-      ["desk_telegraph", "forms/desk-telegraph/main.conduit"],
+    plots: [
+      ["button-across-room", "plots/button-across-room/main.conduit"],
+      ["clock", "plots/clock/main.conduit"],
+      ["desk_telegraph", "plots/desk-telegraph/main.conduit"],
     ],
   });
   try {
@@ -48,7 +48,7 @@ test("a Workspace Body continues through the browser SDK without a Patchbay page
       active_play_id: journey.claim.play.active_play_id,
     });
     expect(receipt.kernel_signs.placements.map(({ placement_id }) => placement_id).sort()).toEqual(
-      journey.proposal.plan.forms.flatMap(({ plan }) => plan.fragments
+      journey.proposal.plan.plots.flatMap(({ plan }) => plan.fragments
         .flatMap(({ placements }) => placements.map(({ placement_id }) => placement_id))).sort(),
     );
   } finally {
@@ -60,9 +60,9 @@ test("Rosehip measurement processing and bounded history continue through the SD
   const journey = await openExternalBody(page, {
     friendlyName: "Rosehip House",
     titles: ["Button Across the Room", "Little Seismograph"],
-    forms: [
-      ["button-across-room", "forms/button-across-room/main.conduit"],
-      ["little-seismograph-display", "forms/little-seismograph/main.conduit"],
+    plots: [
+      ["button-across-room", "plots/button-across-room/main.conduit"],
+      ["little-seismograph-display", "plots/little-seismograph/main.conduit"],
     ],
   });
   try {
@@ -84,7 +84,7 @@ test("Rosehip measurement processing and bounded history continue through the SD
   }
 });
 
-async function openExternalBody(page, { friendlyName, titles, forms }) {
+async function openExternalBody(page, { friendlyName, titles, plots }) {
   const temporary = await mkdtemp(join(tmpdir(), "conduit-sdk-external-body-"));
   const processes = [];
   const cleanup = async () => {
@@ -97,7 +97,7 @@ async function openExternalBody(page, { friendlyName, titles, forms }) {
     );
     const probe = await startPresenceProbe(["--body-evidence", evidencePath]);
     processes.push(probe.process);
-    const coordinator = await startCoordinator(evidencePath, probe.url, forms);
+    const coordinator = await startCoordinator(evidencePath, probe.url, plots);
     processes.push(coordinator.process);
 
     await page.goto(`/proof/browser/sdk-body-participation/?body=${encodeURIComponent(probe.url)}`);
@@ -149,8 +149,8 @@ async function openExternalBody(page, { friendlyName, titles, forms }) {
     });
     expect(inspection.plan).toEqual(proposal.plan);
     await expect(page.locator("#body-plan-inspection")).toContainText(`Selected body Plan ${proposal.plan.plan_id}`);
-    const placementCount = proposal.plan.forms.reduce((count, form) => count
-      + form.plan.fragments.reduce((subtotal, fragment) => subtotal + fragment.placements.length, 0), 0);
+    const placementCount = proposal.plan.plots.reduce((count, plot) => count
+      + plot.plan.fragments.reduce((subtotal, fragment) => subtotal + fragment.placements.length, 0), 0);
     await expect(page.locator("#body-plan-inspection [data-placement-id]")).toHaveCount(placementCount);
     const host = await page.evaluate(() => globalThis.__conduitSdkParticipation.host.current());
     const claimed = await post(page, api("body-execution"), {
@@ -186,12 +186,12 @@ async function finishExternalBody(page, journey) {
   return { receipt, terminal };
 }
 
-async function startCoordinator(evidencePath, invitation, forms) {
-  const process = spawn("target/debug/patchbay-html", [
+async function startCoordinator(evidencePath, invitation, plots) {
+  const process = spawn("target/debug/conduit-browser-patchbay-workbench", [
     "--body-evidence", evidencePath,
     "--external-reader",
     "--body-invitation", invitation,
-    ...forms.flatMap(([name, source]) => ["--form", name, source]),
+    ...plots.flatMap(([name, source]) => ["--plot", name, source]),
   ], { cwd: new URL("../..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
   let output = "";
   const url = await new Promise((resolve, reject) => {

@@ -1,9 +1,9 @@
 use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ArtifactId, ObservationKind, TerminalDisposition, SCALAR_ENCODED_LEN};
-use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
+use conduit_plot::parse;
 
-const FORM: &str = r#"form logic_decision {
+const PLOT: &str = r#"plot logic_decision {
  script: conduit-test/logic-script
  compare: logic/compare(operator = "eq")
  invert: logic/not
@@ -21,11 +21,11 @@ const FORM: &str = r#"form logic_decision {
 
 fn plan() -> (super::StdHost, conduit_core::Plan) {
     let host = host("typed-logic-host");
-    let form = parse(FORM, &installed_std::test_catalog()).expect("typed logic Form parses");
+    let plot = parse(PLOT, &installed_std::test_catalog()).expect("typed logic Plot parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("logic placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("logic placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -39,7 +39,7 @@ fn plan() -> (super::StdHost, conduit_core::Plan) {
             line_offers: &[],
         },
     )
-    .expect("logic Form plans with capacity-one cords");
+    .expect("logic Plot plans with capacity-one cords");
     (host, plan)
 }
 
@@ -78,7 +78,7 @@ fn compare_not_and_select_plan_and_execute_together_through_the_production_kerne
     let mut timer = RecordingTimer { waits: Vec::new() };
     let report = host
         .run_fragment_to(fragment.clone(), &mut output, &mut timer)
-        .expect("combined logic Form executes through the installed production kernel");
+        .expect("combined logic Plot executes through the installed production kernel");
     assert!(timer.waits.is_empty());
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
@@ -95,11 +95,11 @@ fn compare_not_and_select_plan_and_execute_together_through_the_production_kerne
 }
 
 #[test]
-fn unsupported_operator_and_incompatible_select_branch_fail_as_authored_forms() {
-    let invalid_operator = FORM.replace("\"eq\"", "\"contains\"");
+fn unsupported_operator_and_incompatible_select_branch_fail_as_authored_plots() {
+    let invalid_operator = PLOT.replace("\"eq\"", "\"contains\"");
     assert!(parse(&invalid_operator, &installed_std::test_catalog()).is_err());
 
-    let incompatible = r#"form incompatible_select {
+    let incompatible = r#"plot incompatible_select {
  invert: logic/not
  choose: logic/select
  invert.out >> choose.when-true

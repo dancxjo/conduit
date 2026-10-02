@@ -1,12 +1,15 @@
 //! Finite provider-neutral callable model signatures.
 
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use conduit_core::semantic_digest;
-use conduit_data::{TensorAxisRole, TensorElement};
+use conduit_data::TensorAxisRole;
+use conduit_plot::rust_binding::{BoundedSequence, NativeBindingRefusal};
 
 use crate::{
-    ModelDimensionConstraint, ModelOperation, ModelOperationCode, ModelPortPresence,
-    ModelPortPresenceCode, ModelSignatureRefusal,
+    ModelDimensionConstraint, ModelOperation, ModelOperationForm, ModelOperations,
+    ModelPortConstraint, ModelPortIdentity, ModelPortPresence, ModelPortPresenceForm, ModelPorts,
+    ModelSemanticKind, ModelSignature, ModelSignatureRefusal, ModelTensorAxes,
+    ModelTensorConstraint, ModelTensorElements, ModelValueConstraint,
 };
 
 pub const MODEL_SIGNATURE_INFO_ID: &str = "model/signature@1";
@@ -16,78 +19,82 @@ pub const MAXIMUM_MODEL_ELEMENTS: usize = 8;
 pub const MAXIMUM_MODEL_RANK: usize = 8;
 pub const MAXIMUM_MODEL_IDENTITY_BYTES: usize = 128;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModelAxisConstraint {
-    pub role: TensorAxisRole,
-    pub dimension: ModelDimensionConstraint,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModelTensorConstraint {
-    pub elements: Vec<TensorElement>,
-    pub axes: Vec<ModelAxisConstraint>,
-    pub maximum_bytes: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ModelValueConstraint {
-    Tensor(ModelTensorConstraint),
-    SampledSignal(ModelTensorConstraint),
-    ProbabilisticTensor(ModelTensorConstraint),
-    ProbabilisticSignal(ModelTensorConstraint),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModelPortConstraint {
-    pub identity: String,
-    pub semantic_kind: String,
-    pub presence: ModelPortPresence,
-    pub value: ModelValueConstraint,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModelSignature {
-    pub identity: String,
-    pub compatibility_version: u32,
-    pub operations: Vec<ModelOperation>,
-    pub inputs: Vec<ModelPortConstraint>,
-    pub outputs: Vec<ModelPortConstraint>,
-}
-
 impl ModelSignature {
+    pub fn from_parts(
+        identity: alloc::string::String,
+        compatibility_version: u32,
+        operations: Vec<ModelOperation>,
+        inputs: Vec<ModelPortConstraint>,
+        outputs: Vec<ModelPortConstraint>,
+    ) -> Result<Self, NativeBindingRefusal> {
+        Self::new(
+            compatibility_version,
+            identity,
+            ModelPorts::new(
+                BoundedSequence::try_from_iter(inputs).map_err(|_| invalid_native_value())?,
+            )?,
+            ModelOperations::new(
+                BoundedSequence::try_from_iter(operations).map_err(|_| invalid_native_value())?,
+            )?,
+            ModelPorts::new(
+                BoundedSequence::try_from_iter(outputs).map_err(|_| invalid_native_value())?,
+            )?,
+        )
+    }
+
+    pub(crate) fn inference_only(
+        identity: alloc::string::String,
+        compatibility_version: u32,
+        inputs: Vec<(
+            alloc::string::String,
+            alloc::string::String,
+            ModelValueConstraint,
+        )>,
+    ) -> Result<Self, ModelSignatureRefusal> {
+        let operations = bounded([ModelOperation::Infer])?;
+        let operations = ModelOperations::new(operations)
+            .map_err(|_| ModelSignatureRefusal::MissingOperation)?;
+        let inputs = inputs
+            .into_iter()
+            .map(|(identity, semantic_kind, value)| {
+                ModelPortConstraint::new(
+                    ModelPortIdentity::new(identity)
+                        .map_err(|_| ModelSignatureRefusal::InvalidIdentity)?,
+                    ModelPortPresence::Optional,
+                    ModelSemanticKind::new(semantic_kind)
+                        .map_err(|_| ModelSignatureRefusal::InvalidIdentity)?,
+                    value,
+                )
+                .map_err(|_| ModelSignatureRefusal::InvalidTensorConstraint)
+            })
+            .collect::<Result<Vec<_>, ModelSignatureRefusal>>()?;
+        let inputs =
+            ModelPorts::new(bounded(inputs)?).map_err(|_| ModelSignatureRefusal::TooManyPorts)?;
+        let outputs = ModelPorts::new(BoundedSequence::new())
+            .map_err(|_| ModelSignatureRefusal::TooManyPorts)?;
+        Self::new(compatibility_version, identity, inputs, operations, outputs)
+            .map_err(|_| ModelSignatureRefusal::InvalidTensorConstraint)
+    }
+
     pub fn validate(&self) -> Result<(), ModelSignatureRefusal> {
-        validate_identity(&self.identity)?;
-        if self.compatibility_version == 0 {
-            return Err(ModelSignatureRefusal::InvalidCompatibilityVersion);
-        }
-        if self.operations.is_empty() {
-            return Err(ModelSignatureRefusal::MissingOperation);
-        }
-        if self.operations.len() > MAXIMUM_MODEL_OPERATIONS {
-            return Err(ModelSignatureRefusal::TooManyOperations);
-        }
-        if has_duplicate(&self.operations) {
+        let operations = self.operations.get().as_slice();
+        let inputs = self.inputs.get().as_slice();
+        let outputs = self.outputs.get().as_slice();
+        if has_duplicate(operations) {
             return Err(ModelSignatureRefusal::DuplicateOperation);
         }
-        let port_count = self.inputs.len().saturating_add(self.outputs.len());
+        let port_count = inputs.len().saturating_add(outputs.len());
         if port_count == 0 {
             return Err(ModelSignatureRefusal::MissingPort);
         }
         if port_count > MAXIMUM_MODEL_PORTS {
             return Err(ModelSignatureRefusal::TooManyPorts);
         }
-        for port in self.inputs.iter().chain(&self.outputs) {
-            validate_identity(&port.identity)?;
-            validate_identity(&port.semantic_kind)?;
+        for port in inputs.iter().chain(outputs) {
             validate_tensor(port)?;
         }
-        let input_identities = self
-            .inputs
-            .iter()
-            .map(|port| &port.identity)
-            .collect::<Vec<_>>();
-        let output_identities = self
-            .outputs
+        let input_identities = inputs.iter().map(|port| &port.identity).collect::<Vec<_>>();
+        let output_identities = outputs
             .iter()
             .map(|port| &port.identity)
             .collect::<Vec<_>>();
@@ -102,37 +109,79 @@ impl ModelSignature {
         let mut bytes = Vec::new();
         push_text(&mut bytes, &self.identity);
         bytes.extend_from_slice(&self.compatibility_version.to_le_bytes());
-        push_len(&mut bytes, self.operations.len());
-        for operation in &self.operations {
-            bytes.push(ModelOperationCode::encode(*operation)[0]);
+        let operations = self.operations.get().as_slice();
+        push_len(&mut bytes, operations.len());
+        for operation in operations {
+            bytes.push(ModelOperationForm::encode(*operation)[0]);
         }
-        encode_ports(&mut bytes, &self.inputs, 0);
-        encode_ports(&mut bytes, &self.outputs, 1);
+        encode_ports(&mut bytes, self.inputs.get().as_slice(), 0);
+        encode_ports(&mut bytes, self.outputs.get().as_slice(), 1);
         Ok(semantic_digest(MODEL_SIGNATURE_INFO_ID, &bytes))
     }
 }
 
+impl ModelTensorConstraint {
+    pub fn from_parts(
+        elements: Vec<conduit_data::TensorElement>,
+        axes: Vec<crate::ModelAxisConstraint>,
+        maximum_bytes: u64,
+    ) -> Result<Self, NativeBindingRefusal> {
+        Self::new(
+            ModelTensorAxes::new(
+                BoundedSequence::try_from_iter(axes).map_err(|_| invalid_native_value())?,
+            )?,
+            ModelTensorElements::new(
+                BoundedSequence::try_from_iter(elements).map_err(|_| invalid_native_value())?,
+            )?,
+            maximum_bytes,
+        )
+    }
+}
+
+impl ModelPortConstraint {
+    pub fn from_parts(
+        identity: alloc::string::String,
+        semantic_kind: alloc::string::String,
+        presence: ModelPortPresence,
+        value: ModelValueConstraint,
+    ) -> Result<Self, NativeBindingRefusal> {
+        Self::new(
+            ModelPortIdentity::new(identity)?,
+            presence,
+            ModelSemanticKind::new(semantic_kind)?,
+            value,
+        )
+    }
+}
+
+fn invalid_native_value() -> NativeBindingRefusal {
+    NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongCollectionLength)
+}
+
+fn bounded<T, const MAXIMUM: usize>(
+    values: impl IntoIterator<Item = T>,
+) -> Result<BoundedSequence<T, MAXIMUM>, ModelSignatureRefusal> {
+    BoundedSequence::try_from_iter(values).map_err(|_| ModelSignatureRefusal::TooManyPorts)
+}
+
 fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefusal> {
     let (tensor, signal) = match &port.value {
-        ModelValueConstraint::Tensor(tensor) => (tensor, false),
-        ModelValueConstraint::SampledSignal(tensor) => (tensor, true),
-        ModelValueConstraint::ProbabilisticTensor(tensor) => (tensor, false),
-        ModelValueConstraint::ProbabilisticSignal(tensor) => (tensor, true),
+        ModelValueConstraint::Tensor(value) => (value.constraint(), false),
+        ModelValueConstraint::SampledSignal(value) => (value.constraint(), true),
+        ModelValueConstraint::ProbabilisticTensor(value) => (value.constraint(), false),
+        ModelValueConstraint::ProbabilisticSignal(value) => (value.constraint(), true),
     };
-    if tensor.elements.is_empty()
-        || tensor.elements.len() > MAXIMUM_MODEL_ELEMENTS
-        || has_duplicate(&tensor.elements)
-        || tensor.axes.is_empty()
-        || tensor.axes.len() > MAXIMUM_MODEL_RANK
-        || tensor.maximum_bytes == 0
-        || tensor.axes.iter().any(|axis| match &axis.dimension {
+    let elements = tensor.elements.get().as_slice();
+    let axes = tensor.axes.get().as_slice();
+    if has_duplicate(elements)
+        || axes.iter().any(|axis| match &axis.dimension {
             ModelDimensionConstraint::Fixed(value) => *value.value() == 0,
             ModelDimensionConstraint::Bounded(value) => value.minimum() > value.maximum(),
         })
     {
         return Err(ModelSignatureRefusal::InvalidTensorConstraint);
     }
-    let maximum_elements = tensor.axes.iter().try_fold(1_u64, |count, axis| {
+    let maximum_elements = axes.iter().try_fold(1_u64, |count, axis| {
         let dimension = match &axis.dimension {
             ModelDimensionConstraint::Fixed(value) => *value.value(),
             ModelDimensionConstraint::Bounded(value) => *value.maximum(),
@@ -141,6 +190,7 @@ fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefus
     });
     let largest_element = tensor
         .elements
+        .get()
         .iter()
         .map(|element| element.byte_width())
         .max()
@@ -151,7 +201,7 @@ fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefus
     {
         return Err(ModelSignatureRefusal::InvalidTensorConstraint);
     }
-    if signal && tensor.axes.first().map(|axis| &axis.role) != Some(&TensorAxisRole::Time) {
+    if signal && axes.first().map(|axis| &axis.role) != Some(&TensorAxisRole::Time) {
         return Err(ModelSignatureRefusal::InvalidSignalConstraint);
     }
     Ok(())
@@ -161,33 +211,33 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
     output.push(direction);
     push_len(output, ports.len());
     for port in ports {
-        push_text(output, &port.identity);
-        push_text(output, &port.semantic_kind);
-        output.push(ModelPortPresenceCode::encode(port.presence)[0]);
+        push_text(output, port.identity.get());
+        push_text(output, port.semantic_kind.get());
+        output.push(ModelPortPresenceForm::encode(port.presence)[0]);
         let tensor = match &port.value {
             ModelValueConstraint::Tensor(value) => {
                 output.push(0);
-                value
+                value.constraint()
             }
             ModelValueConstraint::SampledSignal(value) => {
                 output.push(1);
-                value
+                value.constraint()
             }
             ModelValueConstraint::ProbabilisticTensor(value) => {
                 output.push(2);
-                value
+                value.constraint()
             }
             ModelValueConstraint::ProbabilisticSignal(value) => {
                 output.push(3);
-                value
+                value.constraint()
             }
         };
-        push_len(output, tensor.elements.len());
-        for element in &tensor.elements {
+        push_len(output, tensor.elements.get().len());
+        for element in tensor.elements.get() {
             push_text(output, element.semantic_id());
         }
-        push_len(output, tensor.axes.len());
-        for axis in &tensor.axes {
+        push_len(output, tensor.axes.get().len());
+        for axis in tensor.axes.get() {
             encode_axis_role(output, &axis.role);
             push_dimension_constraint(output, &axis.dimension);
         }
@@ -222,14 +272,6 @@ fn encode_axis_role(output: &mut Vec<u8>, role: &TensorAxisRole) {
             output.push(7);
             push_text(output, value.identity());
         }
-    }
-}
-
-fn validate_identity(value: &str) -> Result<(), ModelSignatureRefusal> {
-    if value.is_empty() || value.len() > MAXIMUM_MODEL_IDENTITY_BYTES {
-        Err(ModelSignatureRefusal::InvalidIdentity)
-    } else {
-        Ok(())
     }
 }
 

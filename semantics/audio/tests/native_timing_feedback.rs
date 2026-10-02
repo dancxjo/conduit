@@ -1,5 +1,5 @@
 use conduit_audio::{BeatReference, RhythmRecoveryState, TimingClassification, TimingFeedback};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn complete_timing_feedback_family_round_trips_through_native_types() {

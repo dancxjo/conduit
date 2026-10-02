@@ -1,6 +1,7 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_text::{
-    AddressDetection, AddressDetectionRefusal, MorseKeyPhase, MorseKeyTransition, MorseSegment,
+    AddressDetection, AddressDetectionRefusal, MorseKeyPhase, MorseKeyTransition, MorsePattern,
+    MorseSegment,
 };
 
 #[test]
@@ -13,6 +14,13 @@ fn morse_key_phase_round_trips_through_its_exact_native_type() {
         );
         assert_eq!(MorseKeyPhase::from_structured(structured).unwrap(), phase);
     }
+}
+
+#[test]
+fn morse_pattern_is_one_bounded_native_value() {
+    let pattern = MorsePattern::from_text("SOS", 120).unwrap();
+    let structured = pattern.clone().into_structured().unwrap();
+    assert_eq!(MorsePattern::from_structured(structured), Ok(pattern));
 }
 
 #[test]

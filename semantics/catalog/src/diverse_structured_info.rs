@@ -1,4 +1,4 @@
-//! Five independent finite Info specimens for cross-domain Form conformance.
+//! Five independent finite Info specimens for cross-domain Plot conformance.
 //!
 //! These are deliberately separate nominal schemas. Shared structured machinery
 //! supplies only shape and bounds; it does not turn them into one document type.

@@ -1,11 +1,11 @@
-//! Ordinary form contracts for transport-neutral typed-record framing.
+//! Ordinary plot contracts for transport-neutral typed-record framing.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{FRAMED_TYPED_RECORD_INFO_ID, TYPED_RECORD_INFO_ID};
 

@@ -179,7 +179,7 @@ impl KernelResourceLedger {
         advertisement: &HostAdvertisement,
         partitions: &[(&PlanFragment, bool)],
     ) -> Result<Vec<KernelResourceReservation>, String> {
-        if partitions.is_empty() || partitions.len() > conduit_body::MAX_BODY_FORMS {
+        if partitions.is_empty() || partitions.len() > conduit_body::MAX_BODY_PLOTS {
             return Err("local workload partition count exceeds the admitted profile".into());
         }
         for (index, (fragment, _)) in partitions.iter().enumerate() {
@@ -501,10 +501,10 @@ mod tests {
     use super::KernelResourceLedger;
     use crate::kernel_multivalue::{advertisement, plan_local, profile_catalog};
     use conduit_core::{
-        seal_plan, BootId, ExternalEffectBehavior, FormIdentity, HostId, ImplementationId,
-        KindSemanticLaw, OfferGeneration, ResourcePoolId,
+        seal_plan, BootId, ExternalEffectBehavior, HostId, ImplementationId, KindSemanticLaw,
+        OfferGeneration, PlotIdentity, ResourcePoolId,
     };
-    use conduit_form::parse;
+    use conduit_plot::parse;
 
     #[test]
     fn exact_reservation_rejects_overlap_releases_and_does_not_grow() {
@@ -513,12 +513,12 @@ mod tests {
             BootId::from("resource-boot"),
             OfferGeneration(1),
         );
-        let form = parse(
-            include_str!("../../../proof/fixtures/forms/kernel-multivalue.conduit"),
+        let plot = parse(
+            include_str!("../../../proof/fixtures/plots/kernel-multivalue.conduit"),
             &profile_catalog(),
         )
-        .expect("multi-value form parses");
-        let plan = plan_local(&form, &host).expect("multi-value plan resolves");
+        .expect("multi-value plot parses");
+        let plan = plan_local(&plot, &host).expect("multi-value plan resolves");
         let fragment = &plan.fragments[0];
         let mut ledger = KernelResourceLedger::new(&host).expect("ledger installs");
         let capacity = ledger.allocation_capacity();
@@ -542,10 +542,10 @@ mod tests {
         ledger.release(second).expect("second release succeeds");
         assert_eq!(ledger.allocation_capacity(), capacity);
 
-        let identity = FormIdentity {
+        let identity = PlotIdentity {
             source_document_id: fragment.source_document_id.clone(),
-            checked_form_id: fragment.checked_form_id.clone(),
-            expanded_form_id: fragment.expanded_form_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
         };
         let mut wrong_implementation = fragment.clone();
         wrong_implementation.placements[0].implementation_id =
@@ -582,12 +582,12 @@ mod tests {
             BootId::from("pool-resource-boot"),
             OfferGeneration(1),
         );
-        let form = parse(
-            include_str!("../../../proof/fixtures/forms/kernel-multivalue.conduit"),
+        let plot = parse(
+            include_str!("../../../proof/fixtures/plots/kernel-multivalue.conduit"),
             &profile_catalog(),
         )
-        .expect("multi-value form parses");
-        let plan = plan_local(&form, &host).expect("multi-value plan resolves");
+        .expect("multi-value plot parses");
+        let plan = plan_local(&plot, &host).expect("multi-value plan resolves");
         let placement = &plan.fragments[0].placements[0];
         let mut ledger = KernelResourceLedger::new(&host).expect("ledger installs");
 

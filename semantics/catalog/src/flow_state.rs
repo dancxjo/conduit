@@ -3,7 +3,7 @@ use super::{
     ENABLE_PORT, GATE_KIND, IN_PORT, LATEST_KIND, LEFT_PORT, OUT_PORT, RIGHT_PORT,
     STATE_SELECT_KIND, TEE_KIND,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
@@ -222,12 +222,12 @@ fn limits() -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_state_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     for (contract, revision) in [
         (
             state_latest_scalar_contract(),
@@ -321,11 +321,11 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
     fn exact_revisions_install_without_executable_type_wrappers() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         install_flow_state_catalogs(&mut startup, &mut profile).unwrap();
         let latest = profile.get(&kind_id(LATEST_KIND)).unwrap();
         let tee = profile.get(&kind_id(TEE_KIND)).unwrap();

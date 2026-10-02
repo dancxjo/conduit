@@ -2,12 +2,14 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::TemporalRelation;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
-    ChunkIdentity, ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
+    ContextOmission, ContextOmissionReason, ContextOmissions, ContextOrderingPolicy,
+    ContextRedundancyPolicy, ContextSelectionDisposition, ContextSelectionPolicy,
     ContextSelectionRefusal, EntityBoundary, ExtractedSourceValue, RerankedCandidate,
-    RerankingProofClass, RetrievalContribution, SelectedContextRationale, TemporalContext,
-    TemporalProvenance, TemporalSource, TemporalValidity, MAXIMUM_CONTEXT_ITEMS,
+    RerankingProofClass, RetrievalContribution, SelectedContextCost, SelectedContextRationale,
+    TemporalContext, TemporalProvenance, TemporalSource, TemporalValidity,
     MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
@@ -16,6 +18,7 @@ pub const MAXIMUM_CONTEXT_BYTES: u32 = 1_048_576;
 pub const MAXIMUM_CONTEXT_SELECTION_TOKENS: u32 = 262_144;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `ContextTemporalEvidence<TContext>` Type family.
 pub struct ContextTemporalEvidence {
     pub evidence_identity: String,
     pub provenance: TemporalProvenance,
@@ -25,6 +28,7 @@ pub struct ContextTemporalEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `ContextCandidate<T, TContext>` Type family.
 pub struct ContextCandidate {
     pub reranked: RerankedCandidate,
     pub reranking_policy_identity: String,
@@ -36,25 +40,7 @@ pub struct ContextCandidate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContextSelectionPolicy {
-    pub identity: String,
-    pub token_accounting_profile: String,
-    pub redundancy: ContextRedundancyPolicy,
-    pub ordering: ContextOrderingPolicy,
-    pub maximum_items: u16,
-    pub maximum_bytes: u32,
-    pub maximum_tokens: u32,
-    pub maximum_work_units: u32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SelectedContextCost {
-    pub bytes: u32,
-    pub tokens: u32,
-    pub work_units: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `SelectedContextItem<T, TContext>` Type family.
 pub struct SelectedContextItem {
     pub reranked: RerankedCandidate,
     pub reranking_policy_identity: String,
@@ -65,19 +51,8 @@ pub struct SelectedContextItem {
     pub budget: SelectedContextCost,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ContextOmission {
-    pub chunk_identity: ChunkIdentity,
-    pub reason: ContextOmissionReason,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ContextSelectionDisposition {
-    Complete,
-    Omitted { candidates: Vec<ContextOmission> },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's specialization of the authored `StructuredContext<T, TContext>` Type family.
 pub struct StructuredContext {
     pub policy_identity: String,
     pub token_accounting_profile: String,
@@ -95,7 +70,7 @@ impl ContextSelectionPolicy {
     ) -> Result<StructuredContext, ContextSelectionRefusal> {
         self.validate(candidates)?;
         let mut ordered = candidates.to_vec();
-        ordered.sort_by(|left, right| match self.ordering {
+        ordered.sort_by(|left, right| match self.ordering() {
             ContextOrderingPolicy::Reranked => left
                 .reranked
                 .reranked_rank
@@ -118,7 +93,7 @@ impl ContextSelectionPolicy {
         let mut groups: Vec<String> = Vec::new();
         for candidate in ordered {
             let identity = candidate.reranked.candidate.chunk.identity;
-            if self.redundancy == ContextRedundancyPolicy::OnePerReviewedGroup {
+            if *self.redundancy() == ContextRedundancyPolicy::OnePerReviewedGroup {
                 let group = candidate
                     .redundancy_group
                     .as_ref()
@@ -154,7 +129,7 @@ impl ContextSelectionPolicy {
                 reranking_proof_class: candidate.reranking_proof_class,
                 temporal: candidate.temporal,
                 redundancy_group: candidate.redundancy_group,
-                rationale: match self.ordering {
+                rationale: match self.ordering() {
                     ContextOrderingPolicy::Reranked => SelectedContextRationale::Reranked,
                     ContextOrderingPolicy::ChronologicalOldestFirst => {
                         SelectedContextRationale::TemporalChronology
@@ -167,41 +142,33 @@ impl ContextSelectionPolicy {
             return Err(ContextSelectionRefusal::NoSelectedContext);
         }
         Ok(StructuredContext {
-            policy_identity: self.identity.clone(),
-            token_accounting_profile: self.token_accounting_profile.clone(),
-            redundancy: self.redundancy,
-            ordering: self.ordering,
+            policy_identity: self.identity().clone(),
+            token_accounting_profile: self.token_accounting_profile().clone(),
+            redundancy: *self.redundancy(),
+            ordering: *self.ordering(),
             items,
             disposition: if omissions.is_empty() {
                 ContextSelectionDisposition::Complete
             } else {
-                ContextSelectionDisposition::Omitted {
-                    candidates: omissions,
-                }
+                ContextSelectionDisposition::omitted(
+                    ContextOmissions::new(
+                        BoundedSequence::try_from_iter(omissions)
+                            .expect("context policy limits omissions to 1,024 candidates"),
+                    )
+                    .expect("a nonempty bounded omission set is valid"),
+                )
+                .expect("a checked omission set makes a valid disposition")
             },
             used,
         })
     }
 
     fn validate(&self, candidates: &[ContextCandidate]) -> Result<(), ContextSelectionRefusal> {
-        validate_identity(&self.identity)?;
-        validate_identity(&self.token_accounting_profile)?;
         if candidates.is_empty() {
             return Err(ContextSelectionRefusal::EmptyCandidates);
         }
         if candidates.len() > MAXIMUM_HYBRID_OUTPUT_CANDIDATES as usize {
             return Err(ContextSelectionRefusal::CandidateLimitExceeded);
-        }
-        if self.maximum_items == 0
-            || usize::from(self.maximum_items) > MAXIMUM_CONTEXT_ITEMS
-            || self.maximum_bytes == 0
-            || self.maximum_bytes > MAXIMUM_CONTEXT_BYTES
-            || self.maximum_tokens == 0
-            || self.maximum_tokens > MAXIMUM_CONTEXT_SELECTION_TOKENS
-            || self.maximum_work_units == 0
-            || self.maximum_work_units > MAXIMUM_CONTEXT_SELECTION_WORK_UNITS
-        {
-            return Err(ContextSelectionRefusal::InvalidBound);
         }
         for (index, candidate) in candidates.iter().enumerate() {
             validate_identity(&candidate.reranking_policy_identity)?;
@@ -231,7 +198,7 @@ impl ContextSelectionPolicy {
             if let Some(group) = &candidate.redundancy_group {
                 validate_identity(group)?;
             }
-            if self.ordering == ContextOrderingPolicy::ChronologicalOldestFirst
+            if *self.ordering() == ContextOrderingPolicy::ChronologicalOldestFirst
                 && candidate.temporal.is_none()
             {
                 return Err(ContextSelectionRefusal::MissingTemporalEvidence);
@@ -297,23 +264,23 @@ fn budget_refusal(
     cost: &SelectedContextCost,
     selected_items: usize,
 ) -> Result<Option<ContextOmissionReason>, ContextSelectionRefusal> {
-    if selected_items >= usize::from(policy.maximum_items) {
+    if selected_items >= usize::from(*policy.maximum_items()) {
         return Ok(Some(ContextOmissionReason::ItemBudget));
     }
     for (total, maximum, reason) in [
         (
             used.bytes.checked_add(cost.bytes),
-            policy.maximum_bytes,
+            *policy.maximum_bytes(),
             ContextOmissionReason::ByteBudget,
         ),
         (
             used.tokens.checked_add(cost.tokens),
-            policy.maximum_tokens,
+            *policy.maximum_tokens(),
             ContextOmissionReason::TokenBudget,
         ),
         (
             used.work_units.checked_add(cost.work_units),
-            policy.maximum_work_units,
+            *policy.maximum_work_units(),
             ContextOmissionReason::WorkBudget,
         ),
     ] {

@@ -99,6 +99,15 @@ impl Kind {
         }) {
             return Err(KindValidationError::EmptyAbnormalTerminalKind);
         }
+        let mut port_symbols = BTreeSet::new();
+        if self
+            .inputs
+            .iter()
+            .chain(&self.outputs)
+            .any(|port| !port_symbols.insert(port.port_id.as_str()))
+        {
+            return Err(KindValidationError::DuplicatePortSymbol);
+        }
         let mut keys = BTreeSet::new();
         for field in &self.configuration {
             if !keys.insert(field.key.as_str()) {
@@ -546,6 +555,7 @@ pub enum KindValidationError {
     ConfigurationMissingFromFront,
     ConfigurationFrontMismatch,
     EmptyAbnormalTerminalKind,
+    DuplicatePortSymbol,
     DuplicateTerminalTransduction,
     NonCanonicalTerminalTransductionOrder,
     EmptyTerminalEmissionBound,
@@ -816,6 +826,23 @@ mod tests {
         assert_eq!(offer.kind_contract_revision, other.kind_contract_revision);
         assert_eq!(offer.inputs, other.inputs);
         assert_ne!(offer.implementation, other.implementation);
+    }
+
+    #[test]
+    fn kind_fore_rejects_one_symbol_reused_across_directions() {
+        let mut kind = contract();
+        kind.outputs.push(PortDescriptor {
+            port_id: port_id("in"),
+            direction: PortDirection::Output,
+            value_kind: kind_id("value/count"),
+            temporal: PortTemporal::Value,
+            abnormal_kind: None,
+        });
+
+        assert_eq!(
+            kind.validate(),
+            Err(KindValidationError::DuplicatePortSymbol)
+        );
     }
 
     #[test]

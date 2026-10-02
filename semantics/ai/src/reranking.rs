@@ -3,30 +3,14 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankScore, RerankingProofClass,
-    RerankingRefusal, RerankingStrategy, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
-    MAXIMUM_RAG_IDENTITY_BYTES,
+    ExtractedSourceValue, HybridCandidate, RerankObservation, RerankScore, RerankingPolicy,
+    RerankingProofClass, RerankingRefusal, RerankingStrategy, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
 };
 
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RerankingPolicy {
-    pub identity: String,
-    pub strategy: RerankingStrategy,
-    pub maximum_candidates: u16,
-    pub maximum_work_units: u32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RerankObservation {
-    pub chunk_identity: ChunkIdentity,
-    /// Scorer-local ordering value; never evidence confidence.
-    pub score_micros: i64,
-    pub work_units: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's payload-specialized carrier for the authored `RerankedCandidate<T>` Type family.
 pub struct RerankedCandidate {
     pub candidate: HybridCandidate<ExtractedSourceValue>,
     pub original_rank: u16,
@@ -35,6 +19,7 @@ pub struct RerankedCandidate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's payload-specialized carrier for the authored `RerankingReceipt<T>` Type family.
 pub struct RerankingReceipt {
     pub policy_identity: String,
     pub proof_class: RerankingProofClass,
@@ -48,12 +33,8 @@ impl RerankingPolicy {
         candidates: &[HybridCandidate<ExtractedSourceValue>],
         observations: &[RerankObservation],
     ) -> Result<RerankingReceipt, RerankingRefusal> {
-        validate_identity(&self.identity)?;
-        validate_candidates(candidates, self.maximum_candidates)?;
-        if self.maximum_work_units == 0 || self.maximum_work_units > MAXIMUM_RERANKING_WORK_UNITS {
-            return Err(RerankingRefusal::InvalidBound);
-        }
-        let (proof_class, mut work_units) = match &self.strategy {
+        validate_candidates(candidates, *self.maximum_candidates())?;
+        let (proof_class, mut work_units) = match self.strategy() {
             RerankingStrategy::PreserveHybridFusion => {
                 if !observations.is_empty() {
                     return Err(RerankingRefusal::UnexpectedObservation);
@@ -67,7 +48,7 @@ impl RerankingPolicy {
                 validate_observations(candidates, observations)?;
                 let work = observations.iter().try_fold(0_u32, |total, observation| {
                     total
-                        .checked_add(observation.work_units)
+                        .checked_add(observation.work_units())
                         .ok_or(RerankingRefusal::ArithmeticOverflow)
                 })?;
                 (*observed.proof_class(), work)
@@ -79,21 +60,21 @@ impl RerankingPolicy {
                     .map_err(|_| RerankingRefusal::ArithmeticOverflow)?,
             )
             .ok_or(RerankingRefusal::ArithmeticOverflow)?;
-        if work_units > self.maximum_work_units {
+        if work_units > *self.maximum_work_units() {
             return Err(RerankingRefusal::WorkBoundExceeded);
         }
         let mut reranked = Vec::with_capacity(candidates.len());
         for candidate in candidates {
-            let score = match &self.strategy {
+            let score = match self.strategy() {
                 RerankingStrategy::PreserveHybridFusion => {
                     RerankScore::HybridFusion(candidate.fusion_score_micros)
                 }
                 RerankingStrategy::ObservedScores(_) => RerankScore::ModelDerived(
                     observations
                         .iter()
-                        .find(|item| item.chunk_identity == candidate.chunk.identity)
+                        .find(|item| item.chunk_identity() == candidate.chunk.identity)
                         .ok_or(RerankingRefusal::MissingObservation)?
-                        .score_micros,
+                        .score_micros(),
                 ),
             };
             reranked.push(RerankedCandidate {
@@ -109,7 +90,7 @@ impl RerankingPolicy {
                 u16::try_from(index + 1).map_err(|_| RerankingRefusal::ArithmeticOverflow)?;
         }
         Ok(RerankingReceipt {
-            policy_identity: self.identity.clone(),
+            policy_identity: self.identity().clone(),
             proof_class,
             candidates: reranked,
             work_units,
@@ -159,18 +140,15 @@ fn validate_observations(
         return Err(RerankingRefusal::MissingObservation);
     }
     for (index, observation) in observations.iter().enumerate() {
-        if observation.work_units == 0 {
-            return Err(RerankingRefusal::ZeroObservationWork);
-        }
         if observations[index + 1..]
             .iter()
-            .any(|other| other.chunk_identity == observation.chunk_identity)
+            .any(|other| other.chunk_identity() == observation.chunk_identity())
         {
             return Err(RerankingRefusal::DuplicateObservation);
         }
         if !candidates
             .iter()
-            .any(|candidate| candidate.chunk.identity == observation.chunk_identity)
+            .any(|candidate| candidate.chunk.identity == observation.chunk_identity())
         {
             return Err(RerankingRefusal::MissingObservation);
         }
@@ -190,14 +168,4 @@ fn compare_reranked(left: &RerankedCandidate, right: &RerankedCandidate) -> core
             .identity
             .cmp(&right.candidate.chunk.identity)
     })
-}
-
-fn validate_identity(identity: &str) -> Result<(), RerankingRefusal> {
-    if identity.is_empty() {
-        return Err(RerankingRefusal::EmptyIdentity);
-    }
-    if identity.len() > MAXIMUM_RAG_IDENTITY_BYTES {
-        return Err(RerankingRefusal::IdentityTooLarge);
-    }
-    Ok(())
 }

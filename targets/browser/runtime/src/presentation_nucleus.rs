@@ -32,7 +32,7 @@ use operation::NucleusBack;
 mod structured_execution;
 mod text_execution;
 use offers::{advertisement, fixture_catalog, fixture_startup_catalog};
-use text_execution::execute_text_form;
+use text_execution::execute_text_plot;
 pub(crate) use text_execution::uppercase_utf8;
 #[cfg(test)]
 mod text_lab_tests;
@@ -52,7 +52,7 @@ const MAX_VALUE_BYTES: usize = MAX_PRESENTATION_COMPOSITION_BYTES;
 const VALUE_BYTES: usize = VALUE_SLOTS * MAX_VALUE_BYTES;
 const SIGN_ITEMS: usize = 128;
 
-const GRAPHICS_FORM: &str = r#"form browser-graphics-nucleus {
+const GRAPHICS_FORM: &str = r#"plot browser-graphics-nucleus {
  icon: presentation/icon(icon = "presentation", name = "Patchbay")
  frame: presentation/frame(role = "panel", name = "Gear Front")
  rect: graphics/rect(style = "stroke")
@@ -62,7 +62,7 @@ const GRAPHICS_FORM: &str = r#"form browser-graphics-nucleus {
  icon >> frame >> rect >> text >> glyph >> present
 }"#;
 
-const LAYOUT_FORM: &str = r#"form browser-layout-nucleus {
+const LAYOUT_FORM: &str = r#"plot browser-layout-nucleus {
  viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)
  row: layout/row(gap = 4)
  column: layout/column(gap = 3)
@@ -100,9 +100,9 @@ pub struct BrowserNucleusProof {
 }
 
 pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
-    let (graphics_bytes, graphics_plan_id) = execute_form(GRAPHICS_FORM, FIXTURE_GRAPHICS_KIND)?;
-    let (layout_bytes, layout_plan_id) = execute_form(LAYOUT_FORM, FIXTURE_LAYOUT_KIND)?;
-    let (text, text_plan_id) = execute_text_form()?;
+    let (graphics_bytes, graphics_plan_id) = execute_plot(GRAPHICS_FORM, FIXTURE_GRAPHICS_KIND)?;
+    let (layout_bytes, layout_plan_id) = execute_plot(LAYOUT_FORM, FIXTURE_LAYOUT_KIND)?;
+    let (text, text_plan_id) = execute_text_plot()?;
     let (structured_sign, structured_plan_id) = structured_execution::execute()?;
     let structured = conduit_presentation::StructuredSignPresentation::from_sign(
         1,
@@ -183,22 +183,22 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
     .map_err(|error| format!("lower browser semantic application view: {error:?}"))
 }
 
-fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core::PlanId), String> {
+fn execute_plot(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core::PlanId), String> {
     let catalog = fixture_catalog()?;
     let startup = fixture_startup_catalog()?;
-    let form = conduit_form::parse_with_startup(source, &startup, &catalog)
-        .map_err(|error| format!("parse browser presentation Form: {error:?}"))?;
+    let plot = conduit_plot::parse_with_startup(source, &startup, &catalog)
+        .map_err(|error| format!("parse browser presentation Plot: {error:?}"))?;
     let advertisement = advertisement();
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts)
-        .map_err(|error| format!("place browser presentation Form: {error:?}"))?;
+    let placements = default_placements(&plot, &hosts)
+        .map_err(|error| format!("place browser presentation Plot: {error:?}"))?;
     let connection_byte_capacity = if sink_kind == FIXTURE_LAYOUT_KIND {
         MAX_LAYOUT_FRAME_BYTES
     } else {
         MAX_PRESENTATION_COMPOSITION_BYTES
     } as u32;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -212,7 +212,7 @@ fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core:
             line_offers: &[],
         },
     )
-    .map_err(|error| format!("plan browser presentation Form: {error:?}"))?;
+    .map_err(|error| format!("plan browser presentation Plot: {error:?}"))?;
     let fragment = plan
         .fragments
         .first()

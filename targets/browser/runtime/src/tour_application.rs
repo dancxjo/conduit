@@ -162,7 +162,7 @@ mod tests {
         assert_eq!(chapters[6]["stages"].as_array().unwrap().len(), 0);
         assert_eq!(
             chapters[1]["stages"][0]["identity"],
-            "canonical-form:same-morse-caller"
+            "canonical-plot:same-morse-caller"
         );
     }
 }

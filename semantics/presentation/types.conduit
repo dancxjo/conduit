@@ -57,13 +57,191 @@ type ImageRegion2 = {
     region: Rect2
 }
 
+type ImagePixelExtent = {
+    height: U64
+    width: U64
+}
+
+type ImageFormat =
+    gray8
+    | jpeg
+    | png
+    | rgba8
+
+type ImageColorProfile =
+    absent
+    | named Text
+
+type ImageResource = {
+    color_profile: ImageColorProfile
+    content: ResourceRef
+    extent: ImagePixelExtent
+    format: ImageFormat
+    image_frame: Text
+}
+
+type VisionEvidenceClass =
+    heuristic
+    | model_derived
+
+type VisionProvenance = {
+    evidence_class: VisionEvidenceClass
+    profile: Text
+    revision: Text
+    source: Text
+}
+
+type VisionKeypoint = {
+    confidence: Ratio
+    name: Text
+    point: Point2
+}
+
+type VisionLandmarkSlot =
+    keypoint VisionKeypoint
+    | unused
+
+type VisionLandmarks = collection VisionLandmarkSlot = 8
+
+type VisionRgbSample = {
+    blue: U8
+    green: U8
+    point: Point2
+    red: U8
+}
+
+type VisionColorSample =
+    absent
+    | rgb VisionRgbSample
+
+type VisionDetection = {
+    classification: Text
+    color_sample: VisionColorSample
+    confidence: Ratio
+    image_identity: Text
+    landmarks: VisionLandmarks
+    provenance: VisionProvenance
+    region: Rect2
+}
+
+type VisionDetectionSlot =
+    detection VisionDetection
+    | unused
+
+type VisionDetectionsFour = collection VisionDetectionSlot = 4
+
+type VisionPixelRegion = {
+    height: U64
+    width: U64
+    x: U64
+    y: U64
+}
+
+type VisionOptionalPixelRegion =
+    absent
+    | present VisionPixelRegion
+
+type VisionObservationEvidenceClass =
+    deterministic_derived
+    | model_derived
+    | statistical_candidate
+
+type VisionObservationProvenance = {
+    artifact: Text
+    evidence_class: VisionObservationEvidenceClass
+    implementation: Text
+    observation_sign: Text
+    observed_at: TemporalInstant
+    provider_instance: Text
+    run: Text
+}
+
+type VisionObjectObservation = {
+    candidate_label: Text
+    confidence_permille: U64
+    provenance: VisionObservationProvenance
+    region: VisionPixelRegion
+    source_image: ImageObservationReference
+}
+
+type VisionMotionObservation = {
+    change_permille: U64
+    changed_region: VisionPixelRegion
+    provenance: VisionObservationProvenance
+    source_image: ImageObservationReference
+}
+
+type VisionVisibleTextObservation = {
+    confidence_permille: U64
+    provenance: VisionObservationProvenance
+    region: VisionOptionalPixelRegion
+    source_image: ImageObservationReference
+    text: Text
+}
+
+type VisionObservationSigns = sequence Text <= 16
+
+type VisionTrackObservation = {
+    continuity_confidence_permille: U64
+    contributing_observation_signs: VisionObservationSigns
+    current_region: VisionPixelRegion
+    provenance: VisionObservationProvenance
+    source_image: ImageObservationReference
+    track: Text
+    tracking_context: Text
+}
+
+type VisionMotionsFour = sequence VisionMotionObservation <= 4
+type VisionObjectObservations = sequence VisionObjectObservation <= 4
+type VisionTextsEight = sequence VisionVisibleTextObservation <= 8
+type VisionTracksFour = sequence VisionTrackObservation <= 4
+
+type VisualImpressionDisposition =
+    complete
+    | truncated U64
+
+type VisualSelectedObservationSigns = sequence Text <= 24
+
+type VisualImpression = {
+    disposition: VisualImpressionDisposition
+    model: Text
+    prompt_contract_revision: Text
+    provenance: VisionObservationProvenance
+    selected_observation_signs: VisualSelectedObservationSigns
+    source_image: ImageObservationReference
+    text: Text
+}
+
+type VisualExperienceObservation =
+    impression VisualImpression
+    | motion VisionMotionObservation
+    | object VisionObjectObservation
+    | track VisionTrackObservation
+    | visible_text VisionVisibleTextObservation
+
+type VisualExperienceObservations = sequence VisualExperienceObservation <= 24
+
+type VisualExperienceRelation = {
+    kind: Text
+    object_sign: Text
+    subject_sign: Text
+}
+
+type VisualExperienceRelations = sequence VisualExperienceRelation <= 32
+
+type VisualExperience = {
+    observations: VisualExperienceObservations
+    relations: VisualExperienceRelations
+    source_image: ImageObservationReference
+}
+
 type GraphicsCommandKind =
     rect
     | text
     | icon
     | orthogonal_path
 
-code presentation/graphics-command-kind = GraphicsCommandKind as u8 from 1
+form presentation/graphics-command-kind = GraphicsCommandKind as u8 from 1
 
 type GraphicsPaintRole =
     background
@@ -78,7 +256,7 @@ type GraphicsPaintRole =
     | hovered
     | selected
 
-code presentation/graphics-paint-role = GraphicsPaintRole as u8 from 1
+form presentation/graphics-paint-role = GraphicsPaintRole as u8 from 1
 
 type GraphicsShapeStyle =
     fill
@@ -86,7 +264,7 @@ type GraphicsShapeStyle =
     | rounded_fill
     | rounded_stroke
 
-code presentation/graphics-shape-style = GraphicsShapeStyle as u8 from 1
+form presentation/graphics-shape-style = GraphicsShapeStyle as u8 from 1
 
 type GraphicsTextRole =
     body
@@ -99,21 +277,21 @@ type GraphicsTextRole =
     | action
     | muted
 
-code presentation/graphics-text-role = GraphicsTextRole as u8 from 1
+form presentation/graphics-text-role = GraphicsTextRole as u8 from 1
 
 type CompositionItemKind =
     icon
     | frame
     | badge
 
-code presentation/composition-item-kind = CompositionItemKind as u8 from 1
+form presentation/composition-item-kind = CompositionItemKind as u8 from 1
 
 type CompositionRole =
     image
     | group
     | status
 
-code presentation/composition-role = CompositionRole as u8 from 1
+form presentation/composition-role = CompositionRole as u8 from 1
 
 type PresentationMechanismKind =
     shell
@@ -295,7 +473,7 @@ type PresentationPlace =
     | program
     | body
 
-code presentation/place = PresentationPlace as u8
+form presentation/place = PresentationPlace as u8
 
 type PresentationAspect =
     structure
@@ -303,7 +481,7 @@ type PresentationAspect =
     | play
     | signs
 
-code presentation/aspect = PresentationAspect as u8
+form presentation/aspect = PresentationAspect as u8
 
 type PresentationDepth =
     primary
@@ -311,7 +489,7 @@ type PresentationDepth =
     | detail
     | exact
 
-code presentation/depth = PresentationDepth as u8
+form presentation/depth = PresentationDepth as u8
 
 type NavigationRefusal =
     stale_presentation
@@ -323,19 +501,19 @@ type NavigationRefusal =
     | history_full
     | invalid_truth
 
-code presentation/navigation-refusal = NavigationRefusal as u8
+form presentation/navigation-refusal = NavigationRefusal as u8
 
 type MaskWardrobeLifetime =
     wake
     | body
 
-code presentation/mask-wardrobe-lifetime = MaskWardrobeLifetime as u8
+form presentation/mask-wardrobe-lifetime = MaskWardrobeLifetime as u8
 
 type MaskPlanningDisposition =
     not_required
     | replacement_required
 
-code presentation/mask-planning-disposition = MaskPlanningDisposition as u8
+form presentation/mask-planning-disposition = MaskPlanningDisposition as u8
 
 type MaskWardrobeError =
     stale_revision
@@ -348,7 +526,7 @@ type MaskWardrobeError =
     | duplicate_route
     | stale_selection
 
-code presentation/mask-wardrobe-error = MaskWardrobeError as u8
+form presentation/mask-wardrobe-error = MaskWardrobeError as u8
 
 type FaceContributionRole =
     foreground
@@ -356,12 +534,12 @@ type FaceContributionRole =
     | inspection
     | transient
 
-code presentation/face-contribution-role = FaceContributionRole as u8
+form presentation/face-contribution-role = FaceContributionRole as u8
 
 type GenerativeNarratorRole =
     transient_first_person_body_narrator
 
-code presentation/generative-narrator-role = GenerativeNarratorRole as u8
+form presentation/generative-narrator-role = GenerativeNarratorRole as u8
 
 type GeneratedActionAffordance = {
     action_identity: Text <= 128B not in [""]
@@ -417,14 +595,14 @@ type ApplicationComponent =
     | link
     | separator
 
-code presentation/application-component = ApplicationComponent as u8 from 1
+form presentation/application-component = ApplicationComponent as u8 from 1
 
 type ApplicationNodeState =
     ready
     | busy
     | unavailable
 
-code presentation/application-node-state = ApplicationNodeState as u8 from 1
+form presentation/application-node-state = ApplicationNodeState as u8 from 1
 
 type ApplicationEventKind =
     activate
@@ -438,7 +616,7 @@ type ApplicationAction = {
     event: ApplicationEventKind
 }
 
-code presentation/application-event-kind = ApplicationEventKind as u8 from 1
+form presentation/application-event-kind = ApplicationEventKind as u8 from 1
 
 type ApplicationViewRefusal =
     empty

@@ -65,7 +65,7 @@ pub const STEPS: &[Step] = &[
         &[
             "test",
             "-p",
-            "patchbay-model",
+            "conduit-patchbay-workbench",
             "portable_resource_projection",
         ],
         None,

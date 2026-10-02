@@ -1,4 +1,4 @@
-//! Ordinary Observatory export for the completed keyboard-text Form.
+//! Ordinary Observatory export for the completed keyboard-text Plot.
 
 use alloc::{format, string::String, vec, vec::Vec};
 

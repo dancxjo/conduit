@@ -5,7 +5,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
     KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
@@ -78,8 +78,8 @@ pub fn final_normalized_pattern_semantic_contract() -> Kind {
 }
 
 pub fn install_final_normalized_pattern_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {

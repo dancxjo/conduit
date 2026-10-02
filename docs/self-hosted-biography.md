@@ -41,14 +41,14 @@ be realized by different hosts, and its identity survives changes in those hosts
 
 The Crèche birth step must:
 
-- choose a bounded initial workload from the reviewed form inventory;
+- choose a bounded initial workload from the reviewed plot inventory;
 - generate a friendly default name and allow editing before birth;
 - create a durable body identity distinct from that mutable name;
 - birth the body in its initial LULLED state;
 - retain that same body independently of Tour navigation or closure.
 
-The resident Birth Form owns its deterministic persona-name catalog and exact
-derivation contract under `forms/birth`. The browser runtime consumes that owner
+The resident Birth Plot owns its deterministic persona-name catalog and exact
+derivation contract under `plots/birth`. The browser runtime consumes that owner
 directly; generated names are editable labels, never body identity.
 
 ## The biography is stateful
@@ -81,7 +81,7 @@ The decisive transition in the early biography is **graduation**. Once the body 
 
 Place the ordinary Patchbay application using the body's normal planning and hosting machinery. Patchbay becomes the enduring management and explanatory surface, including the body's biography/history projection.
 
-Patchbay is not a privileged control plane and does not become authoritative lifecycle state. It remains what its application contract already says it is: a projection over authoritative form, plan, play, body, host, boot, sign, and Observatory truth.
+Patchbay is not a privileged control plane and does not become authoritative lifecycle state. It remains what its application contract already says it is: a projection over authoritative plot, plan, play, body, host, boot, sign, and Observatory truth.
 
 The Crèche can then be deleted.
 

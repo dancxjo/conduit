@@ -5,9 +5,9 @@
 //! finite scheduled intent and to observed workflow state. It never schedules
 //! or executes an effect.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::{vec, vec::Vec};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_core::{
     kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase, QUANTITY_INFO_ID,
 };
@@ -17,9 +17,9 @@ pub use conduit_time::{
     WorkflowTimingOutcome,
 };
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use crate::recurrence_occurrence_instant_type;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use crate::recurrence_occurrence_type;
 
 pub const SCHEDULED_INTENT_TYPE: &str = "ScheduledIntent";
@@ -84,49 +84,37 @@ fn validate_duration(value: Quantity) -> Result<(), ScheduleRefusal> {
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).expect("reviewed schedule leaf")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
     StructuredFieldType::new(name, value_type).expect("reviewed schedule field")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn case(name: &str, payload_type: StructuredInfoType) -> StructuredVariantCase {
     StructuredVariantCase::new(name, payload_type).expect("reviewed schedule case")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
     StructuredInfoType::record(kind_id(kind), fields).expect("reviewed schedule record")
 }
 
-#[cfg(feature = "form-catalog")]
-fn unit_type() -> StructuredInfoType {
-    leaf("value/unit")
-}
-
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn text_type() -> StructuredInfoType {
     leaf("value/text")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn schedule_effect_intent_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/effect-intent@1"),
-        vec![
-            case("observation", text_type()),
-            case("proposed_effect", text_type()),
-        ],
-    )
-    .expect("reviewed effect proposal")
+    conduit_time::ScheduleEffectIntent::semantic_type().expect("checked schedule effect Type")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn schedule_constraint_type() -> StructuredInfoType {
     let instant = recurrence_occurrence_instant_type();
     let window = record(
@@ -143,7 +131,7 @@ pub fn schedule_constraint_type() -> StructuredInfoType {
     .expect("reviewed schedule constraint")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn scheduled_intent_type() -> StructuredInfoType {
     record(
         "schedule/scheduled-intent@1",
@@ -156,37 +144,19 @@ pub fn scheduled_intent_type() -> StructuredInfoType {
     )
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn workflow_lifecycle_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/workflow-lifecycle@1"),
-        vec![
-            case("cancelled", unit_type()),
-            case("completed", unit_type()),
-            case("expired", unit_type()),
-            case("failed", text_type()),
-            case("pending", unit_type()),
-            case("running", unit_type()),
-        ],
-    )
-    .expect("reviewed workflow lifecycle")
+    conduit_time::ScheduleWorkflowLifecycle::semantic_type()
+        .expect("checked schedule workflow lifecycle Type")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn schedule_window_position_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/window-position@1"),
-        vec![
-            case("after", unit_type()),
-            case("before", unit_type()),
-            case("indeterminate", unit_type()),
-            case("within", unit_type()),
-        ],
-    )
-    .expect("reviewed schedule position")
+    conduit_time::TemporalWindowPosition::semantic_type()
+        .expect("checked schedule window position Type")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn schedule_observation_type() -> StructuredInfoType {
     record(
         "schedule/observation@1",
@@ -199,36 +169,18 @@ pub fn schedule_observation_type() -> StructuredInfoType {
     )
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn workflow_timing_outcome_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/workflow-timing-outcome@1"),
-        vec![
-            case("awaiting", unit_type()),
-            case("cancelled", unit_type()),
-            case("clock_uncertain", leaf(QUANTITY_INFO_ID)),
-            case("expired", unit_type()),
-            case("failed", unit_type()),
-            case("late", leaf(QUANTITY_INFO_ID)),
-            case("missed_window", unit_type()),
-            case("on_time", unit_type()),
-        ],
-    )
-    .expect("reviewed workflow timing outcome")
+    conduit_time::WorkflowTimingOutcome::semantic_type()
+        .expect("checked workflow timing outcome Type")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn schedule_assessment_type() -> StructuredInfoType {
-    record(
-        "schedule/assessment@1",
-        vec![
-            field("intent_identity", text_type()),
-            field("outcome", workflow_timing_outcome_type()),
-        ],
-    )
+    conduit_time::ScheduleAssessment::semantic_type().expect("checked schedule assessment Type")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn schedule_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
         (SCHEDULED_INTENT_TYPE, scheduled_intent_type()),

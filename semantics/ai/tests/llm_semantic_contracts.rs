@@ -1,15 +1,16 @@
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_ai::install_llm_semantic_catalog;
 use conduit_ai::{
     llm_contract, llm_semantic_catalog, ConfidencePermille, LlmDeterminismProfile,
-    LlmImplementationControl, LlmTerminalOutcome, ModelDerivedResult, ModelFailure, ModelRefusal,
-    ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, ModelWorkAccounting,
-    LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND,
-    LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PRESENT_KIND, LLM_PROPOSE_KIND,
-    LLM_STREAM_GENERATE_KIND,
+    LlmImplementationControl, LlmTerminalOutcome, LlmWorkBounds, ModelDerivedResult, ModelFailure,
+    ModelRefusal, ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance,
+    ModelWorkAccounting, LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND,
+    LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND,
+    LLM_PRESENT_KIND, LLM_PROPOSE_KIND, LLM_STREAM_GENERATE_KIND,
 };
 use conduit_core::PortDirection;
 use conduit_core::PortTemporal;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn produced(kind: &str) -> ModelDerivedResult {
     let contract = llm_contract(kind).unwrap();
@@ -28,10 +29,65 @@ fn produced(kind: &str) -> ModelDerivedResult {
         implementation_identity: "fixture/model-implementation@sha256:01".to_string(),
         request_identity: "request/0001@sha256:02".to_string(),
         run_identity: "run/0001@sha256:03".to_string(),
-        confidence: Some(ConfidencePermille(850)),
+        confidence: Some(ConfidencePermille::new(850).unwrap()),
         disposition: ModelResultDisposition::Produced,
         determinism: LlmDeterminismProfile::DeterministicValidationFixture,
     }
+}
+
+#[test]
+fn confidence_and_work_accounting_are_native_values() {
+    for value in [0, 1_000] {
+        let confidence = ConfidencePermille::new(value).unwrap();
+        assert_eq!(*confidence.get(), value);
+        assert_eq!(
+            ConfidencePermille::from_structured(confidence.into_structured().unwrap()).unwrap(),
+            confidence
+        );
+    }
+    assert!(ConfidencePermille::new(1_001).is_err());
+
+    let accounting = ModelWorkAccounting {
+        input_bytes: 1,
+        context_items: 2,
+        output_bytes: 3,
+        work_units: 4,
+        history_items: 5,
+    };
+    assert_eq!(
+        ModelWorkAccounting::from_structured(accounting.into_structured().unwrap()).unwrap(),
+        accounting
+    );
+
+    let source = include_str!("../src/model_result.rs");
+    assert!(!source.contains("pub struct ConfidencePermille"));
+    assert!(!source.contains("pub struct ModelWorkAccounting"));
+}
+
+#[test]
+fn llm_work_bounds_are_native_and_exactly_bounded() {
+    let minimum = LlmWorkBounds::new(1, 0, 1, 1, 0).unwrap();
+    let maximum = LlmWorkBounds::new(262_144, 128, 65_536, 1_000_000, 64).unwrap();
+    for bounds in [minimum, maximum] {
+        assert!(bounds.valid());
+        assert_eq!(
+            LlmWorkBounds::from_structured(bounds.into_structured().unwrap()).unwrap(),
+            bounds
+        );
+    }
+    for invalid in [
+        LlmWorkBounds::new(0, 0, 1, 1, 0),
+        LlmWorkBounds::new(262_145, 0, 1, 1, 0),
+        LlmWorkBounds::new(1, 129, 1, 1, 0),
+        LlmWorkBounds::new(1, 0, 65_537, 1, 0),
+        LlmWorkBounds::new(1, 0, 1, 1_000_001, 0),
+        LlmWorkBounds::new(1, 0, 1, 1, 65),
+    ] {
+        assert!(invalid.is_err());
+    }
+    assert!(
+        !include_str!("../src/llm_contract.rs").contains(concat!("pub struct ", "LlmWorkBounds"))
+    );
 }
 
 #[test]
@@ -125,17 +181,17 @@ fn generative_presentation_is_structured_and_distinct_from_input_interpretation(
 }
 
 #[test]
-#[cfg(feature = "form-catalog")]
-fn all_contracts_install_and_check_as_ordinary_provider_free_forms() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+#[cfg(feature = "plot-catalog")]
+fn all_contracts_install_and_check_as_ordinary_provider_free_plots() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     for contract in llm_semantic_catalog() {
         let name = contract.kind_id.as_str().replace('/', "-");
-        let source = format!("form {name} {{\n gear: {}\n}}\n", contract.kind_id.as_str());
-        let syntax = conduit_form::parse_syntax_document(&source);
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        let expanded = conduit_form::expand_canonical_form(&checked, &name, &profile).unwrap();
+        let source = format!("plot {name} {{\n gear: {}\n}}\n", contract.kind_id.as_str());
+        let syntax = conduit_plot::parse_syntax_document(&source);
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot(&checked, &name, &profile).unwrap();
         assert_eq!(expanded.gears[0].kind_id, contract.kind_id);
     }
 }
@@ -165,14 +221,7 @@ fn malformed_oversized_and_unsupported_results_fail_distinctly() {
     );
 
     let mut result = produced(LLM_EXTRACT_KIND);
-    result.confidence = Some(ConfidencePermille(1_001));
-    assert_eq!(
-        result.validate(&contract),
-        Err(ModelResultInvalidity::InvalidConfidence)
-    );
-
-    let mut result = produced(LLM_EXTRACT_KIND);
-    result.accounting.output_bytes = contract.bounds.maximum_output_bytes + 1;
+    result.accounting.output_bytes = contract.bounds.maximum_output_bytes() + 1;
     assert_eq!(
         result.validate(&contract),
         Err(ModelResultInvalidity::OutputBoundExceeded)

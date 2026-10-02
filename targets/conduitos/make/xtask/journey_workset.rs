@@ -1,11 +1,11 @@
-//! Exact form switching inside one ordinary native Body Play.
+//! Exact plot switching inside one ordinary native Body Play.
 mod causality;
 mod input;
 pub(super) use causality::validate as validate_causality;
 #[cfg(test)]
 mod tests;
 
-use conduitos::native_workset::{self, NativeForm};
+use conduitos::native_workset::{self, NativePlot};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -14,7 +14,7 @@ pub(super) use input::exercise;
 
 #[derive(Serialize)]
 pub(super) struct WorksetProof {
-    pub forms: Vec<FormProof>,
+    pub plots: Vec<PlotProof>,
     pub switches: usize,
     pub input_count: u64,
     pub held_release_crossed_selection: bool,
@@ -25,66 +25,66 @@ pub(super) struct WorksetProof {
 }
 
 #[derive(Serialize)]
-pub(super) struct FormProof {
+pub(super) struct PlotProof {
     title: &'static str,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
+    checked_plot_id: String,
+    expanded_plot_id: String,
     final_result: String,
 }
 
 #[derive(Clone, Copy)]
 struct Expected {
-    form: NativeForm,
+    plot: NativePlot,
     count: u64,
     result: Option<&'static str>,
 }
 
 fn expected() -> Vec<Expected> {
-    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory, Patchbay, Tour};
+    use NativePlot::{KeyboardCanvas as Canvas, MemoryLantern as Memory, Patchbay, Tour};
     let mut records = (0..=10u64)
         .map(|count| Expected {
-            form: Canvas,
+            plot: Canvas,
             count,
             result: (count != 0).then(|| &"HELLO"[..count.div_ceil(2) as usize]),
         })
         .collect::<Vec<_>>();
-    // Tab changes the foreground without consuming a form input. Each ordinary
+    // Tab changes the foreground without consuming a plot input. Each ordinary
     // press/release is accepted exactly once; the held X release belongs to
     // Canvas even though Memory is foreground by then.
     records.extend([
         Expected {
-            form: Patchbay,
+            plot: Patchbay,
             count: 10,
             result: None,
         },
         Expected {
-            form: Patchbay,
+            plot: Patchbay,
             count: 11,
             result: None,
         },
         Expected {
-            form: Patchbay,
+            plot: Patchbay,
             count: 12,
             result: None,
         },
         Expected {
-            form: Patchbay,
+            plot: Patchbay,
             count: 13,
             result: None,
         },
         Expected {
-            form: Tour,
+            plot: Tour,
             count: 13,
             result: None,
         },
         Expected {
-            form: Tour,
+            plot: Tour,
             count: 14,
             result: None,
         },
     ]);
-    for (form, count, result) in [
+    for (plot, count, result) in [
         (Memory, 10, None),
         (Memory, 11, Some("o")),
         (Memory, 12, Some("o")),
@@ -117,7 +117,7 @@ fn expected() -> Vec<Expected> {
         (Canvas, 30, Some("HELLOXY")),
     ] {
         records.push(Expected {
-            form,
+            plot,
             count: count + 4,
             result,
         });
@@ -125,45 +125,79 @@ fn expected() -> Vec<Expected> {
     records
 }
 
-fn identity(form: NativeForm) -> Result<FormProof, ConduitosError> {
-    let checked = native_workset::checked(form)
+fn identity(plot: NativePlot) -> Result<PlotProof, ConduitosError> {
+    let checked = native_workset::checked(plot)
         .map_err(|error| ConduitosError::refusal("product-workset-catalog", error.as_str()))?;
-    Ok(FormProof {
-        title: form.title(),
+    Ok(PlotProof {
+        title: plot.title(),
         source_document_id: checked.source_document_id.as_str().into(),
-        checked_form_id: checked.checked_form_id.as_str().into(),
-        expanded_form_id: checked.expanded_form_id.as_str().into(),
+        checked_plot_id: checked.checked_plot_id.as_str().into(),
+        expanded_plot_id: checked.expanded_plot_id.as_str().into(),
         final_result: String::new(),
     })
 }
 
-fn matches(record: &Value, expected: Expected, form: &FormProof) -> bool {
+fn matches(record: &Value, expected: Expected, plot: &PlotProof) -> bool {
     record["status"] == "quiescent-awaiting-input"
         && record["input_count"] == expected.count
         && match expected.result {
             Some(result) => record["result"].as_str() == Some(result),
             None => record.get("result") == Some(&Value::Null),
         }
-        && record["source_document_id"] == form.source_document_id
-        && record["checked_form_id"] == form.checked_form_id
-        && record["expanded_form_id"] == form.expanded_form_id
+        && (plot.source_document_id.is_empty()
+            || record["source_document_id"] == plot.source_document_id)
+        && (plot.checked_plot_id.is_empty() || record["checked_plot_id"] == plot.checked_plot_id)
+        && (plot.expanded_plot_id.is_empty() || record["expanded_plot_id"] == plot.expanded_plot_id)
         && record["result_omitted_bytes"] == 0
         && record["kernel_sign_gap"].is_null()
+}
+
+fn observe_identity(plot: &mut PlotProof, record: &Value) -> Result<(), ConduitosError> {
+    let observed = [
+        ("source_document_id", &mut plot.source_document_id),
+        ("checked_plot_id", &mut plot.checked_plot_id),
+        ("expanded_plot_id", &mut plot.expanded_plot_id),
+    ];
+    for (field, retained) in observed {
+        let value = record[field]
+            .as_str()
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| ConduitosError::refusal("product-journey-workset-invalid", field))?;
+        if retained.is_empty() {
+            *retained = value.into();
+        } else if retained != value {
+            return Err(ConduitosError::refusal(
+                "product-journey-workset-invalid",
+                format!("{field} changed within one resident Plot"),
+            ));
+        }
+    }
+    Ok(())
 }
 
 pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), ConduitosError> {
     let refusal = || {
         ConduitosError::refusal(
             "product-journey-workset-invalid",
-            "four exact resident Forms must retain independent state and one body through Presenter replanning, switching, inspection, held release, empty editing, and Lull",
+            "four exact resident Plots must retain independent state and one body through Presenter replanning, switching, inspection, held release, empty editing, and Lull",
         )
     };
-    let mut canvas = identity(NativeForm::KeyboardCanvas)?;
-    let mut memory = identity(NativeForm::MemoryLantern)?;
-    let tour = identity(NativeForm::Tour)?;
-    let patchbay = identity(NativeForm::Patchbay)?;
+    // The reviewed identities classify otherwise identical zero-input
+    // projections; observe_identity below then verifies that the producer
+    // emitted that exact tuple consistently for each resident Plot.
+    let mut canvas = identity(NativePlot::KeyboardCanvas)?;
+    let mut memory = identity(NativePlot::MemoryLantern)?;
+    let mut tour = identity(NativePlot::Tour)?;
+    let mut patchbay = identity(NativePlot::Patchbay)?;
+    // The containing ConduitOS proof may have exercised an earlier wake
+    // before the product journey. The final wake is introduced explicitly by
+    // the journey and owns every checkpoint through its Lull terminal.
+    let journey_records = records
+        .iter()
+        .rposition(|record| record["status"] == "awake")
+        .map_or(records, |index| &records[index..]);
     let mut saw_pre_input_baseline = false;
-    let quiescent = records
+    let quiescent = journey_records
         .iter()
         .filter(|record| record["status"] == "quiescent-awaiting-input")
         .filter(|record| record["workload_revision"] == 1)
@@ -171,7 +205,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             if record["input_count"].as_u64() != Some(0) {
                 return true;
             }
-            // Home may switch among installed forms before the first form input.
+            // Home may switch among installed plots before the first plot input.
             // Keep one lifecycle baseline; those launcher-only projections do
             // not become additional workset execution checkpoints.
             let keep = !saw_pre_input_baseline;
@@ -181,30 +215,53 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
         .collect::<Vec<_>>();
     let expected = expected();
     let mut expected_index = 0;
-    for record in &quiescent {
+    for (record_index, record) in quiescent.iter().enumerate() {
         // Connectivity and inspection can re-project the already completed
-        // terminal foreground state without accepting another Form input.
+        // terminal foreground state without accepting another Plot input.
         if expected_index == expected.len() {
             break;
         }
-        while expected_index < expected.len() {
-            let candidate = expected[expected_index];
-            let form = match candidate.form {
-                NativeForm::KeyboardCanvas => &canvas,
-                NativeForm::MemoryLantern => &memory,
-                NativeForm::Tour => &tour,
-                NativeForm::Patchbay => &patchbay,
-            };
-            if matches(record, candidate, form) {
-                break;
+        let current_plot = expected[expected_index].plot;
+        let plot = match current_plot {
+            NativePlot::KeyboardCanvas => &canvas,
+            NativePlot::MemoryLantern => &memory,
+            NativePlot::Tour => &tour,
+            NativePlot::Patchbay => &patchbay,
+        };
+        let same_plot = record["source_document_id"] == plot.source_document_id
+            && record["checked_plot_id"] == plot.checked_plot_id
+            && record["expanded_plot_id"] == plot.expanded_plot_id;
+        if !same_plot {
+            continue;
+        }
+        let block_end = (expected_index..expected.len())
+            .find(|index| expected[*index].plot != current_plot)
+            .unwrap_or(expected.len());
+        let matched_index = (expected_index..block_end).find(|candidate_index| {
+            let candidate = expected[*candidate_index];
+            matches(record, candidate, plot)
+        });
+        let Some(matched_index) = matched_index else {
+            // Switching can project an older retained state before the next
+            // action. A current-block count with the wrong value, or an exact
+            // duplicate revision, is malformed evidence rather than a switch.
+            let current_count = expected[expected_index..block_end]
+                .iter()
+                .any(|candidate| record["input_count"] == candidate.count);
+            let duplicate_revision =
+                record_index > 0 && record["revision"] == quiescent[record_index - 1]["revision"];
+            if current_count || duplicate_revision {
+                return Err(refusal());
             }
-            expected_index += 1;
+            continue;
+        };
+        expected_index = matched_index + 1;
+        match expected[matched_index].plot {
+            NativePlot::KeyboardCanvas => observe_identity(&mut canvas, record)?,
+            NativePlot::MemoryLantern => observe_identity(&mut memory, record)?,
+            NativePlot::Tour => observe_identity(&mut tour, record)?,
+            NativePlot::Patchbay => observe_identity(&mut patchbay, record)?,
         }
-        if expected_index == expected.len() {
-            return Err(refusal());
-        }
-        let matched_index = expected_index;
-        expected_index += 1;
         for field in ["body_id", "wake_id"] {
             if quiescent[0][field].as_str().is_none_or(str::is_empty)
                 || record[field] != quiescent[0][field]
@@ -244,24 +301,24 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     // critical semantic checkpoints instead of requiring one frame per event.
     for index in [0, 10, 11, 12, 13, 20, 22, 23, 24, 26, 34, 37, 39, 40, 43] {
         let checkpoint = expected[index];
-        let form = match checkpoint.form {
-            NativeForm::KeyboardCanvas => &canvas,
-            NativeForm::MemoryLantern => &memory,
-            NativeForm::Tour => &tour,
-            NativeForm::Patchbay => &patchbay,
+        let plot = match checkpoint.plot {
+            NativePlot::KeyboardCanvas => &canvas,
+            NativePlot::MemoryLantern => &memory,
+            NativePlot::Tour => &tour,
+            NativePlot::Patchbay => &patchbay,
         };
         if !quiescent
             .iter()
-            .any(|record| matches(record, checkpoint, form))
+            .any(|record| matches(record, checkpoint, plot))
         {
             return Err(refusal());
         }
     }
-    // Zero-Body arrival has no lifecycle Form. Once explicit selection births
+    // Zero-Body arrival has no lifecycle Plot. Once explicit selection births
     // the body, every projection must name an exact reviewed identity tuple.
-    for record in records {
+    for record in journey_records {
         if record["status"] == "world" {
-            if ["source_document_id", "checked_form_id", "expanded_form_id"]
+            if ["source_document_id", "checked_plot_id", "expanded_plot_id"]
                 .iter()
                 .any(|field| !record[field].is_null())
             {
@@ -269,17 +326,17 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             }
             continue;
         }
-        let reviewed = [&canvas, &memory, &tour, &patchbay].iter().any(|form| {
-            record["source_document_id"] == form.source_document_id
-                && record["checked_form_id"] == form.checked_form_id
-                && record["expanded_form_id"] == form.expanded_form_id
+        let reviewed = [&canvas, &memory, &tour, &patchbay].iter().any(|plot| {
+            record["source_document_id"] == plot.source_document_id
+                && record["checked_plot_id"] == plot.checked_plot_id
+                && record["expanded_plot_id"] == plot.expanded_plot_id
         });
         if !reviewed {
             return Err(refusal());
         }
     }
     for status in ["stopped", "lulled"] {
-        let record = records
+        let record = journey_records
             .iter()
             .find(|record| record["status"] == status)
             .ok_or_else(refusal)?;
@@ -303,10 +360,10 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             .find(|record| matches(record, expected[10], &canvas))
             .ok_or_else(refusal)?,
         WorksetProof {
-            forms: vec![canvas, memory, tour, patchbay],
+            plots: vec![canvas, memory, tour, patchbay],
             switches: quiescent
                 .windows(2)
-                .filter(|pair| pair[0]["checked_form_id"] != pair[1]["checked_form_id"])
+                .filter(|pair| pair[0]["checked_plot_id"] != pair[1]["checked_plot_id"])
                 .count(),
             input_count: 34,
             held_release_crossed_selection: true,

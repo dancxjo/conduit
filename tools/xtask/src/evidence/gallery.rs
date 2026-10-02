@@ -98,7 +98,7 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
                 root: root.clone(),
                 commit: request.commit.clone(),
                 result: ExpectedEvidenceResult::Complete,
-                proof_id: "journey-one-form-two-fronts".into(),
+                proof_id: "journey-one-plot-two-fronts".into(),
                 suite_id: "journey-gallery".into(),
             })
         })
@@ -171,7 +171,7 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
         write_two_fronts_commit(&site_root, root, evidence)?;
         write_two_fronts_current(&site_root, root, evidence)?;
     } else {
-        let current = site_root.join("current/one-form-two-fronts");
+        let current = site_root.join("current/one-plot-two-fronts");
         if current.exists() {
             fs::remove_dir_all(current)
                 .map_err(|error| format!("cannot clear stale Two Fronts evidence: {error}"))?;
@@ -347,11 +347,11 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             let two_fronts = if root
                 .join("commits")
                 .join(commit)
-                .join("one-form-two-fronts/index.html")
+                .join("one-plot-two-fronts/index.html")
                 .is_file()
             {
                 format!(
-                    " · <a href=\"commits/{commit}/one-form-two-fronts/\">One form, Two Fronts</a>"
+                    " · <a href=\"commits/{commit}/one-plot-two-fronts/\">One plot, Two Fronts</a>"
                 )
             } else {
                 String::new()
@@ -386,10 +386,10 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         ""
     };
     let two_fronts = if root
-        .join("current/one-form-two-fronts/index.html")
+        .join("current/one-plot-two-fronts/index.html")
         .is_file()
     {
-        "\n<p><a href=\"current/one-form-two-fronts/\">Current One form, Two Fronts journey</a></p>"
+        "\n<p><a href=\"current/one-plot-two-fronts/\">Current One plot, Two Fronts journey</a></p>"
     } else {
         ""
     };
@@ -404,10 +404,10 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         ""
     };
     let two_fronts_card = if root
-        .join("current/one-form-two-fronts/index.html")
+        .join("current/one-plot-two-fronts/index.html")
         .is_file()
     {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">Pinned Chromium + native software renderer</p><h2>One meaning, two fronts</h2><img src=\"current/one-form-two-fronts/browser.png\" alt=\"Morse Network manifested in a browser\"><p>The same semantic Presentation crossed two rendering boundaries without changing identity.</p><p class=\"card-boundary\">Boundary: software-rendered native pixels and pinned Chromium; not physical display proof.</p><p><a class=\"primary\" href=\"current/one-form-two-fronts/\">Follow the evidence</a></p></article>"
+        "<article class=\"journey-card\"><p class=\"eyebrow\">Pinned Chromium + native software renderer</p><h2>One meaning, two fronts</h2><img src=\"current/one-plot-two-fronts/browser.png\" alt=\"Morse Network manifested in a browser\"><p>The same semantic Presentation crossed two rendering boundaries without changing identity.</p><p class=\"card-boundary\">Boundary: software-rendered native pixels and pinned Chromium; not physical display proof.</p><p><a class=\"primary\" href=\"current/one-plot-two-fronts/\">Follow the evidence</a></p></article>"
     } else {
         ""
     };
@@ -432,6 +432,13 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         "<header class=\"gallery-hero\"><p class=\"eyebrow\">Conduit's flagship proof</p><h1>One Journey.<br><em>Three Bodies.</em></h1><p class=\"lede\">One portable meaning, lived independently through radically different machinery. Follow a Body from birth to fulfillment—or turn the view sideways and compare the same semantic moment across all three.</p><div class=\"thesis\" aria-label=\"The Conduit thesis\"><span>Meaning stays</span><i aria-hidden=\"true\">→</i><span>machinery changes</span><i aria-hidden=\"true\">→</i><span>truth remains exact</span></div></header><main><p><a class=\"primary\" href=\"verticals/\">Browse every closed and upcoming vertical</a></p><!-- conduit-three-body-flagship@2 --><section class=\"flagship awaiting\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">The shared semantic spine</p><h2 id=\"flagship-title\">Birth to fulfillment, three times honestly</h2><p class=\"lede\">The publication appears here only when three independently verified biographies belong to this exact accepted commit.</p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div>{semantic_spine}<p class=\"boundary\"><strong>Evidence not yet admitted for this commit.</strong> No neighboring proof is promoted to fill an empty track.</p></section><!-- conduit-three-body-flagship:end --><section class=\"evidence-library\" aria-labelledby=\"library-title\"><p class=\"eyebrow\">The evidence library</p><h2 id=\"library-title\">Other true stories</h2><p class=\"section-intro\">Smaller proofs of particular boundaries. Each says exactly what happened—and what did not.</p><section class=\"cards\">{two_fronts_card}{little_life_card}{conduitos_card}</section></section><details class=\"history\"><summary>Provenance, accepted evidence, and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{two_fronts}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details></main>",
         escape_html(&index.current_commit)
     );
+    let body = body
+        .replace(
+            "Browse every closed and upcoming vertical",
+            "Browse the completed vertical journeys",
+        )
+        .replace("Current accepted main:", "Publication source:")
+        .replace("published main commits", "published source commits");
     write_html(&root.join("index.html"), "Conduit evidence gallery", &body)
 }
 

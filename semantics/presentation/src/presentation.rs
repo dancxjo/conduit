@@ -4,7 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_body::{BodyId, WakeId};
 use conduit_core::{
-    ActivePlayId, BaseImplementationId, BoundedResourceRef, CheckedFormId, ExpandedFormId, KindId,
+    ActivePlayId, BaseImplementationId, BoundedResourceRef, CheckedPlotId, ExpandedPlotId, KindId,
     PlanId, SignId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
@@ -36,8 +36,8 @@ pub struct PresentationBasis {
     pub body_id: Option<BodyId>,
     pub wake_id: Option<WakeId>,
     pub source_document_id: Option<SourceDocumentId>,
-    pub checked_form_id: Option<CheckedFormId>,
-    pub expanded_form_id: Option<ExpandedFormId>,
+    pub checked_plot_id: Option<CheckedPlotId>,
+    pub expanded_plot_id: Option<ExpandedPlotId>,
     pub plan_id: Option<PlanId>,
     pub active_play_id: Option<ActivePlayId>,
     pub sign_ids: Vec<SignId>,
@@ -77,7 +77,7 @@ pub enum PresentationRole {
     Body,
     Part,
     Candidate,
-    Form,
+    Plot,
     Gear,
     Port,
     Cord,
@@ -306,11 +306,11 @@ impl Presentation {
                 .as_ref()
                 .map(|value| value.as_str()),
             self.basis
-                .checked_form_id
+                .checked_plot_id
                 .as_ref()
                 .map(|value| value.as_str()),
             self.basis
-                .expanded_form_id
+                .expanded_plot_id
                 .as_ref()
                 .map(|value| value.as_str()),
             self.basis.plan_id.as_ref().map(|value| value.as_str()),
@@ -326,11 +326,11 @@ impl Presentation {
         }
         let embodied = self.basis.body_id.is_some();
         if (self.basis.wake_id.is_some() && !embodied)
-            || self.basis.source_document_id.is_some() != self.basis.checked_form_id.is_some()
-            || (self.basis.plan_id.is_some() && self.basis.expanded_form_id.is_none())
+            || self.basis.source_document_id.is_some() != self.basis.checked_plot_id.is_some()
+            || (self.basis.plan_id.is_some() && self.basis.expanded_plot_id.is_none())
             || (self.basis.active_play_id.is_some() && self.basis.plan_id.is_none())
             || (!embodied
-                && (self.basis.expanded_form_id.is_some()
+                && (self.basis.expanded_plot_id.is_some()
                     || self.basis.plan_id.is_some()
                     || self.basis.active_play_id.is_some()))
         {
@@ -418,12 +418,12 @@ impl Presentation {
             )
             .saturating_add(
                 self.basis
-                    .checked_form_id
+                    .checked_plot_id
                     .as_ref()
                     .map_or(0, |id| id.as_str().len()),
             )
             .saturating_add(optional_len(
-                self.basis.expanded_form_id.as_ref().map(|id| id.as_str()),
+                self.basis.expanded_plot_id.as_ref().map(|id| id.as_str()),
             ))
             .saturating_add(optional_len(
                 self.basis.plan_id.as_ref().map(|id| id.as_str()),

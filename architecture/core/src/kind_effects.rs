@@ -107,7 +107,7 @@ pub enum PureExpressionFact {
 /// Derives expression eligibility from the reviewed semantic contract.
 ///
 /// Absence is not purity. Each independent fact must occur exactly once and
-/// carry the pure law; authored Form source cannot supply or strengthen these
+/// carry the pure law; authored Plot source cannot supply or strengthen these
 /// facts.
 pub fn pure_expression_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpressionRefusal> {
     let facts = semantic_work_facts(kind)?;

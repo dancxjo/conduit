@@ -2,8 +2,8 @@ use conduit_core::{
     kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{compose_image_text, ImageObservationReference, ImageTextMetadata};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn image_text_record_round_trips_through_its_native_owner() {

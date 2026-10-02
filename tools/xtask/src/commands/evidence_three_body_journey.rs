@@ -110,7 +110,7 @@ struct BodyTrack {
     track_id: String,
     embodiment: String,
     body_id: String,
-    mask_form_id: String,
+    mask_plot_id: String,
     construction: Vec<ConstructionTruth>,
     hosts: Vec<HostIdentity>,
     line_ids: Vec<String>,
@@ -177,7 +177,7 @@ struct MaskActionObservation {
     action_id: String,
     concrete_event: String,
     face_id: String,
-    selected_mask_form_id: Option<String>,
+    selected_mask_plot_id: Option<String>,
     plan_id: String,
     selected_route_id: Option<String>,
     show_id: Option<String>,
@@ -249,7 +249,7 @@ struct JourneyBodyCell {
     track_id: String,
     embodiment: String,
     body_id: String,
-    mask_form_id: String,
+    mask_plot_id: String,
     construction: Vec<ConstructionTruth>,
     hosts: Vec<HostIdentity>,
     line_ids: Vec<String>,
@@ -395,7 +395,7 @@ fn assemble_index(
                         track_id: track.track_id.clone(),
                         embodiment: track.embodiment.clone(),
                         body_id: track.body_id.clone(),
-                        mask_form_id: track.mask_form_id.clone(),
+                        mask_plot_id: track.mask_plot_id.clone(),
                         construction: track.construction.clone(),
                         hosts: track.hosts.clone(),
                         line_ids: track.line_ids.clone(),
@@ -488,7 +488,7 @@ fn validate_index(
                 .ok_or("three-Body Journey action omitted a Body cell")?;
             if cell.embodiment != basis.embodiment
                 || cell.body_id != basis.body_id
-                || cell.mask_form_id != basis.mask_form_id
+                || cell.mask_plot_id != basis.mask_plot_id
                 || cell.construction != basis.construction
                 || cell.hosts != basis.hosts
                 || cell.line_ids != basis.line_ids
@@ -507,7 +507,7 @@ fn validate_index(
             track_id: basis.track_id.clone(),
             embodiment: basis.embodiment.clone(),
             body_id: basis.body_id.clone(),
-            mask_form_id: basis.mask_form_id.clone(),
+            mask_plot_id: basis.mask_plot_id.clone(),
             construction: basis.construction.clone(),
             hosts: basis.hosts.clone(),
             line_ids: basis.line_ids.clone(),
@@ -587,7 +587,7 @@ fn validate(
     let mut track_ids = BTreeSet::new();
     let mut body_ids = BTreeSet::new();
     let mut embodiments = BTreeSet::new();
-    let mut mask_form_ids = BTreeSet::new();
+    let mut mask_plot_ids = BTreeSet::new();
     let mut global_host_ids = BTreeSet::new();
     let mut global_boot_ids = BTreeSet::new();
     let mut plans = BTreeMap::new();
@@ -602,11 +602,11 @@ fn validate(
             || !track_ids.insert(track.track_id.as_str())
             || !body_ids.insert(track.body_id.as_str())
             || !embodiments.insert(track.embodiment.as_str())
-            || !mask_form_ids.insert(track.mask_form_id.as_str())
+            || !mask_plot_ids.insert(track.mask_plot_id.as_str())
             || !valid_identity(&track.track_id)
             || !valid_identity(&track.embodiment)
             || !valid_identity(&track.body_id)
-            || !valid_identity(&track.mask_form_id)
+            || !valid_identity(&track.mask_plot_id)
             || track.construction.len() != track.hosts.len()
             || track.construction.iter().any(|truth| !truth.validate())
             || track.hosts.is_empty()
@@ -785,7 +785,7 @@ fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
             || !valid_identity(&observed.face_id)
             || !valid_identity(&observed.plan_id)
             || observed
-                .selected_mask_form_id
+                .selected_mask_plot_id
                 .as_deref()
                 .is_some_and(|identity| !valid_identity(identity))
             || observed
@@ -840,13 +840,13 @@ fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
     let preferred = &track.mask_actions[2];
     if first.show_id.is_none()
         || first.selected_route_id.is_none()
-        || first.selected_mask_form_id.is_none()
+        || first.selected_mask_plot_id.is_none()
         || preferred.plan_id != first.plan_id
         || preferred.show_id.is_none()
         || preferred.selected_route_id.is_none()
         || preferred.selected_route_id == first.selected_route_id
-        || preferred.selected_mask_form_id.is_none()
-        || preferred.selected_mask_form_id == first.selected_mask_form_id
+        || preferred.selected_mask_plot_id.is_none()
+        || preferred.selected_mask_plot_id == first.selected_mask_plot_id
     {
         return Err(format!(
             "{} does not prove sealed same-Plan Mask selection",
@@ -885,7 +885,7 @@ fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
     if restored.plan_id != replacement.plan_id
         || restored.show_id.is_none()
         || restored.selected_route_id.is_none()
-        || restored.selected_mask_form_id != first.selected_mask_form_id
+        || restored.selected_mask_plot_id != first.selected_mask_plot_id
     {
         return Err(format!(
             "{} does not restore its original worn Mask through sealed replacement truth",

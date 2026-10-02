@@ -1,7 +1,7 @@
 use conduit_body::{Body, BodyFulfillment, FulfillmentObligation, Wake};
 use conduit_core::{
-    bind_active_play, kind_id, seal_plan, AuthorityGrantId, CheckedFormId, ExpandedFormId,
-    FormIdentity, SignId, SourceDocumentId,
+    bind_active_play, kind_id, seal_plan, AuthorityGrantId, CheckedPlotId, ExpandedPlotId,
+    PlotIdentity, SignId, SourceDocumentId,
 };
 use conduit_presentation::{
     render_linear_presentation, Face, FaceContext, FaceContribution, FaceContributionRole,
@@ -18,7 +18,7 @@ use conduit_presentation::{
 fn born_body() -> Body {
     Body::born(
         SourceDocumentId::from("source/tutorial"),
-        CheckedFormId::from("checked/tutorial"),
+        CheckedPlotId::from("checked/tutorial"),
         1,
         SignId::from("sign/born"),
     )
@@ -28,10 +28,10 @@ fn born_body() -> Body {
 fn playing() -> (Body, Wake, conduit_core::PlanId, conduit_core::ActivePlayId) {
     let (body, wake) = born_body().wake(2, SignId::from("sign/woke")).unwrap();
     let plan = seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source/tutorial"),
-            checked_form_id: CheckedFormId::from("checked/tutorial"),
-            expanded_form_id: ExpandedFormId::from("expanded/tutorial"),
+            checked_plot_id: CheckedPlotId::from("checked/tutorial"),
+            expanded_plot_id: ExpandedPlotId::from("expanded/tutorial"),
         },
         vec![],
     );
@@ -57,7 +57,7 @@ fn tutorial_fragment(
 ) -> PresentationFragment {
     PresentationFragment {
         basis: PresentationContributionBasis {
-            checked_form_id: CheckedFormId::from("checked/tutorial"),
+            checked_plot_id: CheckedPlotId::from("checked/tutorial"),
             plan_id,
             active_play_id: play_id,
             required_interaction_context: None,
@@ -94,7 +94,7 @@ fn tutorial_fragment(
 }
 
 #[test]
-fn lulled_body_has_an_exact_surface_without_a_running_form() {
+fn lulled_body_has_an_exact_surface_without_a_running_plot() {
     let body = born_body();
     let surface = Face::project(
         &body,
@@ -133,7 +133,7 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
         &body,
         Some(&wake),
         20,
-        FaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
+        FaceContext::Tutorial(CheckedPlotId::from("checked/tutorial")),
         FaceFocus::Contribution {
             role: FaceContributionRole::Tutorial,
             node_key: Some("continue".into()),
@@ -187,7 +187,7 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
         .iter()
         .find(|action| {
             action.kind
-                == FaceOperatorActionKind::OpenInspection(CheckedFormId::from("checked/tutorial"))
+                == FaceOperatorActionKind::OpenInspection(CheckedPlotId::from("checked/tutorial"))
         })
         .unwrap();
     assert_eq!(
@@ -229,7 +229,7 @@ fn presentation_only_navigation_does_not_change_body_or_running_work() {
         &body,
         Some(&wake),
         2,
-        FaceContext::ResidentForm(CheckedFormId::from("checked/tutorial")),
+        FaceContext::ResidentPlot(CheckedPlotId::from("checked/tutorial")),
         FaceFocus::Contribution {
             role: FaceContributionRole::Foreground,
             node_key: None,
@@ -266,7 +266,7 @@ fn composition_is_finite_and_deterministic() {
             &body,
             Some(&wake),
             31,
-            FaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
+            FaceContext::Tutorial(CheckedPlotId::from("checked/tutorial")),
             FaceFocus::Body,
             vec![contribution.clone()],
         )
@@ -296,7 +296,7 @@ fn minimal_fragment(
 ) -> PresentationFragment {
     PresentationFragment {
         basis: PresentationContributionBasis {
-            checked_form_id: CheckedFormId::from("checked/tutorial"),
+            checked_plot_id: CheckedPlotId::from("checked/tutorial"),
             plan_id,
             active_play_id: play_id,
             required_interaction_context: required_context.map(Into::into),
@@ -356,17 +356,17 @@ fn direct_contributions_cannot_replace_face_truth_or_privately_choose_context() 
 }
 
 #[test]
-fn ordinary_form_contributes_universal_truth_without_an_application_view() {
+fn ordinary_plot_contributes_universal_truth_without_an_application_view() {
     let (body, wake, plan_id, play_id) = playing();
     let context_id = "face/context/tutorial/checked/tutorial/focus/contribution/tutorial/node/concept/mitochondrion";
     let contribution = FaceContribution {
         role: FaceContributionRole::Tutorial,
-        checked_form_id: CheckedFormId::from("checked/tutorial"),
+        checked_plot_id: CheckedPlotId::from("checked/tutorial"),
         plan_id: plan_id.clone(),
         active_play_id: play_id.clone(),
         presentation: Box::new(PresentationFragment {
             basis: PresentationContributionBasis {
-                checked_form_id: CheckedFormId::from("checked/tutorial"),
+                checked_plot_id: CheckedPlotId::from("checked/tutorial"),
                 plan_id,
                 active_play_id: play_id,
                 required_interaction_context: Some(context_id.into()),
@@ -419,7 +419,7 @@ fn ordinary_form_contributes_universal_truth_without_an_application_view() {
         &body,
         Some(&wake),
         30,
-        FaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
+        FaceContext::Tutorial(CheckedPlotId::from("checked/tutorial")),
         FaceFocus::Contribution {
             role: FaceContributionRole::Tutorial,
             node_key: Some("concept/mitochondrion".into()),

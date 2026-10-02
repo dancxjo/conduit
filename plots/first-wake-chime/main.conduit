@@ -1,0 +1,5 @@
+plot first_wake_chime {
+    first: body/first-wake
+    chime: sound/startup-chime
+    first.pulse >> chime.pulse
+}

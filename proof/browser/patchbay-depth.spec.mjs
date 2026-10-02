@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startServer() {
-  const process=spawn("target/debug/patchbay-html",["--documentary-fixture"],{stdio:["ignore","pipe","pipe"]});
+  const process=spawn("target/debug/conduit-browser-patchbay-workbench",["--documentary-fixture"],{stdio:["ignore","pipe","pipe"]});
   const errors=[];process.stderr.setEncoding("utf8");process.stderr.on("data",chunk=>errors.push(chunk));
   const lines=createInterface({input:process.stdout});
   const url=new Promise((resolve,reject)=>{lines.once("line",line=>resolve(line.replace("PATCHBAY_HTML_URL=","")));process.once("exit",code=>reject(new Error(`Patchbay HTML exited ${code}: ${errors.join("")}`)));});
@@ -14,7 +14,7 @@ test("Inspect and advanced evidence preserve portable identity and Back",async({
   const server=startServer();
   try {
     const url=await server.url;await page.goto(url);
-    await page.getByRole("button",{name:"Form",exact:true}).focus();await page.keyboard.press("Enter");
+    await page.getByRole("button",{name:"Plot",exact:true}).focus();await page.keyboard.press("Enter");
     const original=await(await fetch(`${url}/api/snapshot`)).json();
     await page.locator("#toggle-inspector").focus();await page.keyboard.press("Enter");
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});

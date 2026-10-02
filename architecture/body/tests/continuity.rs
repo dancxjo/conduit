@@ -3,7 +3,7 @@ use conduit_body::{
     BodyMembership, CandidateInventory, CandidateObservation, DiscoveryProofId, PartReturnProof,
 };
 use conduit_core::{
-    BootId, CheckedFormId, HostAdvertisement, HostId, HostProfileId, LinkBindingId,
+    BootId, CheckedPlotId, HostAdvertisement, HostId, HostProfileId, LinkBindingId,
     OfferGeneration, PlanId, SignId, SourceDocumentId, PROTOCOL_VERSION,
 };
 use ed25519_dalek::{Signer, SigningKey};
@@ -25,7 +25,7 @@ fn advertisement(boot: &str, generation: u64) -> HostAdvertisement {
 fn admitted() -> (AdmissionManager, BodyMembership, SigningKey) {
     let body = Body::born(
         SourceDocumentId::from("source/continuity"),
-        CheckedFormId::from("checked/continuity"),
+        CheckedPlotId::from("checked/continuity"),
         1,
         SignId::from("sign/continuity-born"),
     )

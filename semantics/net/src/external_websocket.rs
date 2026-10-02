@@ -238,12 +238,12 @@ pub fn std_external_websocket_family() -> ExternalWebSocketFamily {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_external_websocket_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("Url", kind_id(URL_VALUE_KIND))?;
     startup.insert_value_kind_alias("NetAddress", kind_id(NET_ADDRESS_VALUE_KIND))?;

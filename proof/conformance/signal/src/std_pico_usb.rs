@@ -145,8 +145,8 @@ pub fn std_pico_usb_line_offer() -> LineOffer {
 pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::String> {
     let source_advertisement = std_pico_usb_source_advertisement();
     let sink_advertisement = std_pico_usb_sink_advertisement();
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../fixtures/plots/signal-demo.conduit"),
         &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -171,7 +171,7 @@ pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::S
     };
     let line_offer = std_pico_usb_line_offer();
     let plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
         &[BaseImplementationId::from("conduit.base/usb-cdc-acm@1")],

@@ -66,12 +66,12 @@ pub fn keyboard_outputs() -> Vec<PortDescriptor> {
     }]
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_keyboard_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
 
     startup.insert(KindSignature {
         kind: KEYBOARD_KIND.to_string(),
@@ -100,11 +100,11 @@ mod tests {
         assert_eq!(contract.limits.max_queue_bytes, 64);
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
     fn keyboard_catalog_has_exact_semantic_front_without_an_implementation_offer() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
         let definition = profile.get(&kind_id(KEYBOARD_KIND)).unwrap();
         assert_eq!(definition.outputs, keyboard_outputs());

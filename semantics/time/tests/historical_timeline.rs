@@ -75,7 +75,10 @@ fn exact_typed_resources_time_origin_and_sequence_are_retained() {
         history.entry(1).unwrap().origin,
         HistoricalEntryOrigin::OperatorAuthored
     );
-    assert_eq!(history.entry(1).unwrap().event_time, time(6));
+    assert_eq!(
+        history.entry(1).unwrap().event_time,
+        time(6).try_into().unwrap()
+    );
 }
 
 #[test]
@@ -160,13 +163,13 @@ fn eviction_reports_the_exact_whole_entry_gap() {
     let replay = history.replay_metadata();
     assert_eq!(replay.len(), 1);
     assert_eq!(replay[0].identity, "c");
-    assert_eq!(replay[0].event_time, time(3));
+    assert_eq!(replay[0].event_time, time(3).try_into().unwrap());
     let mut controller =
         BoundedReplayController::new(&replay, ReplayPolicy::OriginalTiming).unwrap();
     controller.start(100).unwrap();
     let emitted = controller.poll(100).unwrap().unwrap();
     assert_eq!(emitted.historical_identity, "c");
-    assert_eq!(emitted.historical_event_time, &time(3));
+    assert_eq!(emitted.historical_event_time, &time(3).try_into().unwrap());
 }
 
 #[test]
@@ -272,23 +275,59 @@ fn remove_and_clear_are_explicit_without_rewinding_sequence() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn typed_history_is_an_ordinary_checked_form_with_explicit_policy() {
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+fn typed_history_is_an_ordinary_checked_plot_with_explicit_policy() {
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
         ProfileCatalog, StartupCatalog,
     };
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_historical_timeline_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/bounded-typed-history/main.conduit");
+    let source = include_str!("../../../plots/bounded-typed-history/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "bounded-typed-history", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "bounded-typed-history", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 1);
     let history = &authored.expanded.gears[0];
     assert_eq!(history.kind_id.as_str(), HISTORICAL_TIMELINE_KIND);
     assert_eq!(history.configuration.len(), 7);
+}
+
+#[test]
+fn invalid_native_time_cannot_evict_retained_history() {
+    let mut history = timeline(1, 8, HistoricalOverflowPolicy::EvictOldestWithGap);
+    history
+        .append(
+            "retained".into(),
+            time(1),
+            HistoricalEntryOrigin::MachineObservation,
+            value(1, 8, "observation/temperature@1"),
+        )
+        .unwrap();
+    let mut invalid = time(2);
+    invalid.resolution_ticks = 0;
+    assert_eq!(
+        history.append(
+            "invalid".into(),
+            invalid,
+            HistoricalEntryOrigin::MachineObservation,
+            value(2, 8, "observation/temperature@1"),
+        ),
+        Err(HistoricalTimelineRefusal::InvalidEventTime)
+    );
+    assert_eq!(history.entry(0).unwrap().identity, "retained");
+    assert_eq!(history.referenced_bytes(), 8);
+    assert!(history.retention_gap().is_none());
+    assert_eq!(
+        history.append(
+            "next".into(),
+            time(3),
+            HistoricalEntryOrigin::MachineObservation,
+            value(3, 8, "observation/temperature@1"),
+        ),
+        Ok(11)
+    );
 }

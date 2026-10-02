@@ -31,11 +31,10 @@ impl InteractionSelectionRules {
         mut mutually_exclusive: Vec<MutuallyExclusiveValues>,
     ) -> Result<Self, InteractionRefusal> {
         let (value_kind, maximum_options) = match &contract.family {
-            InteractionFamily::ChooseMany {
-                value_kind,
-                maximum_options,
-                ..
-            } => (value_kind, usize::from(*maximum_options)),
+            InteractionFamily::ChooseMany(value) => (
+                value.value_kind().get(),
+                usize::from(*value.maximum_options()),
+            ),
             _ => return Err(InteractionRefusal::InvalidContract),
         };
         if mutually_exclusive.len() > MAXIMUM_INTERACTION_COMBINATION_RULES {
@@ -47,10 +46,7 @@ impl InteractionSelectionRules {
             if rule.values.len() < 2
                 || rule.values.len() > maximum_options
                 || rule.values.len() > MAXIMUM_INTERACTION_SELECTIONS
-                || rule
-                    .values
-                    .iter()
-                    .any(|value| &value.value_kind != value_kind)
+                || rule.values.iter().any(|value| value.kind() != value_kind)
             {
                 return Err(InteractionRefusal::InvalidContract);
             }
@@ -85,7 +81,7 @@ impl InteractionSelectionRules {
         if self.mutually_exclusive.iter().any(|rule| {
             rule.values
                 .iter()
-                .filter(|value| selected.contains(value))
+                .filter(|value| selected.get().as_slice().contains(value))
                 .take(2)
                 .count()
                 > 1
@@ -133,21 +129,14 @@ impl ScalarRealizationMapping {
         quantization: ScalarQuantization,
     ) -> Result<Self, InteractionRefusal> {
         let (unit, minimum, minimum_bound, maximum, maximum_bound, granularity) =
-            match contract.family {
-                InteractionFamily::Scalar {
-                    unit,
-                    minimum,
-                    minimum_bound,
-                    maximum,
-                    maximum_bound,
-                    granularity,
-                } => (
-                    unit,
-                    minimum,
-                    minimum_bound,
-                    maximum,
-                    maximum_bound,
-                    granularity,
+            match &contract.family {
+                InteractionFamily::Scalar(value) => (
+                    *value.unit(),
+                    *value.minimum(),
+                    *value.minimum_bound(),
+                    *value.maximum(),
+                    *value.maximum_bound(),
+                    *value.granularity(),
                 ),
                 _ => return Err(InteractionRefusal::InvalidContract),
             };

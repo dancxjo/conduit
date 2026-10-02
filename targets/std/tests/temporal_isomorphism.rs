@@ -27,18 +27,15 @@ fn meeting_job_and_model_follow_up_share_time_without_sharing_domain_meaning() {
     .unwrap();
     let recurrence = RecurrenceDefinition {
         identity: "recurrence/shared-follow-up".into(),
-        rule: RecurrenceRule::OneShot { at: at.clone() },
+        rule: RecurrenceRule::one_shot(at.clone()).unwrap(),
         maximum_occurrences: 1,
         until: None,
-        excluded_ordinals: vec![],
+        excluded_ordinals: Default::default(),
     };
     let occurrence = recurrence
         .expand(&RecurrenceExpansion {
             maximum_results: 1,
-            window: RecurrenceWindow::Wall {
-                start: at,
-                end: wall(1_100),
-            },
+            window: RecurrenceWindow::wall(wall(1_100), at).unwrap(),
         })
         .unwrap()
         .remove(0);
@@ -48,26 +45,28 @@ fn meeting_job_and_model_follow_up_share_time_without_sharing_domain_meaning() {
         title: "Cross-zone review".into(),
         description: String::new(),
         location: String::new(),
-        time: CalendarEventTime::Timed(TimedCalendarSpan {
+        time: CalendarEventTime::timed(TimedCalendarSpan {
             local_start: local(9, 0),
             local_end: local(9, 30),
             zone: zone.clone(),
             instant: window.clone(),
-        }),
-        participants: vec![],
+        })
+        .unwrap(),
+        participants: Default::default(),
         recurrence: Some(recurrence),
-        reminders: vec![],
+        reminders: Default::default(),
     };
     meeting.validate().unwrap();
 
     let job = ScheduledIntent {
         identity: "scheduled/job/shared-time#0".into(),
         occurrence: occurrence.clone(),
-        trigger: TriggerProfile::Civil(CivilTrigger {
+        trigger: TriggerProfile::civil(CivilTrigger {
             window: window.clone(),
             zone: zone.clone(),
             clock_change: ClockChangeBehavior::ReevaluateWindow,
-        }),
+        })
+        .unwrap(),
         missed: MissedOccurrencePolicy::Expire,
         payload: job_request(),
     };
@@ -79,11 +78,12 @@ fn meeting_job_and_model_follow_up_share_time_without_sharing_domain_meaning() {
         proposed: ScheduledIntent {
             identity: "scheduled/model-follow-up#0".into(),
             occurrence,
-            trigger: TriggerProfile::Civil(CivilTrigger {
+            trigger: TriggerProfile::civil(CivilTrigger {
                 window,
                 zone,
                 clock_change: ClockChangeBehavior::ReevaluateWindow,
-            }),
+            })
+            .unwrap(),
             missed: MissedOccurrencePolicy::Skip,
             payload: ModelEffectProposal {
                 proposal_id: "proposal/model-follow-up-effect".into(),
@@ -105,7 +105,7 @@ fn meeting_job_and_model_follow_up_share_time_without_sharing_domain_meaning() {
         job.occurrence.recurrence_identity,
         follow_up.proposed.occurrence.recurrence_identity
     );
-    assert_eq!(job.payload.timeout_millis, 1_000);
+    assert_eq!(*job.payload.timeout_millis(), 1_000);
     assert_eq!(follow_up.provenance, ModelResultProvenance::ModelDerived);
 }
 
@@ -124,12 +124,15 @@ fn local(hour: u8, minute: u8) -> LocalDateTime {
         LocalDate::new(2026, 8, 20).unwrap(),
         LocalTime::new(hour, minute, 0, 0).unwrap(),
     )
+    .unwrap()
 }
 
 fn job_request() -> JobRequest {
     let digest = [7_u8; 32];
-    JobRequest {
-        executable: BoundedResourceRef {
+    JobRequest::new(
+        conduit_semantic_catalog::JobArguments::new(Default::default()).unwrap(),
+        conduit_semantic_catalog::JobEnvironment::new(Default::default()).unwrap(),
+        conduit_semantic_catalog::JobExecutable::new(BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest(digest),
             content_profile: kind_id(JOB_EXECUTABLE_CONTENT_PROFILE),
             access_class: ResourceClassId::from(JOB_EXECUTABLE_ACCESS_CLASS),
@@ -141,13 +144,13 @@ fn job_request() -> JobRequest {
                 version: ResourceVersionIdentity::from_digest(digest),
                 expires_at: None,
             },
-        },
-        arguments: vec![],
-        environment: vec![],
-        stdout_profile: JobOutputProfile::Utf8,
-        stderr_profile: JobOutputProfile::Utf8,
-        maximum_stdout_bytes: 32,
-        maximum_stderr_bytes: 32,
-        timeout_millis: 1_000,
-    }
+        })
+        .unwrap(),
+        32,
+        32,
+        JobOutputProfile::Utf8,
+        JobOutputProfile::Utf8,
+        1_000,
+    )
+    .unwrap()
 }

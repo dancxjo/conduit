@@ -1,7 +1,9 @@
 use conduit_ai::{
-    DrawRelationship, LogScoreKind, ProbabilisticDisposition, ProbabilityRefusal, RandomnessProfile,
+    DrawRelationship, LogProbability, LogScoreKind, ProbabilisticDisposition,
+    ProbabilityClaimProfile, ProbabilityDigest, ProbabilityRefusal, ProbabilitySummary,
+    RandomnessProfile, StochasticProvenance,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn round_trip<T>(value: T)
 where
@@ -32,6 +34,24 @@ fn probability_vocabulary_has_native_identity_and_exact_round_trips() {
         round_trip(value);
     }
 
+    round_trip(
+        LogProbability::new(
+            -250_000,
+            LogScoreKind::ProbabilityMass,
+            ProbabilityDigest::new([4; 32]).unwrap(),
+            StochasticProvenance::new(
+                ProbabilityDigest::new([1; 32]).unwrap(),
+                None,
+                ProbabilityDigest::new([3; 32]).unwrap(),
+                RandomnessProfile::Deterministic,
+                DrawRelationship::Independent,
+            )
+            .unwrap(),
+            ProbabilisticDisposition::Exact,
+        )
+        .unwrap(),
+    );
+
     for value in [
         ProbabilityRefusal::MissingIdentity,
         ProbabilityRefusal::InvalidDisposition,
@@ -48,6 +68,42 @@ fn probability_vocabulary_has_native_identity_and_exact_round_trips() {
     ] {
         round_trip(value);
     }
+
+    round_trip(
+        StochasticProvenance::new(
+            ProbabilityDigest::new([1; 32]).unwrap(),
+            Some(ProbabilityDigest::new([2; 32]).unwrap()),
+            ProbabilityDigest::new([3; 32]).unwrap(),
+            RandomnessProfile::explicit_seed(42).unwrap(),
+            DrawRelationship::Independent,
+        )
+        .unwrap(),
+    );
+    for profile in [
+        ProbabilityClaimProfile::Samples,
+        ProbabilityClaimProfile::WeightedSamples,
+        ProbabilityClaimProfile::TrajectoryAlternatives,
+    ] {
+        round_trip(profile);
+    }
+    round_trip(
+        ProbabilitySummary::new(
+            ProbabilityClaimProfile::WeightedSamples,
+            2,
+            ProbabilityDigest::new([1; 32]).unwrap(),
+            ProbabilityDigest::new([3; 32]).unwrap(),
+            RandomnessProfile::explicit_seed(42).unwrap(),
+            ProbabilisticDisposition::Exact,
+        )
+        .unwrap(),
+    );
+    assert!(!include_str!("../src/probability.rs")
+        .contains(concat!("pub struct ", "StochasticProvenance")));
+    assert!(!include_str!("../src/probability.rs")
+        .contains(concat!("pub struct ", "ProbabilitySummary")));
+    assert!(
+        !include_str!("../src/probability.rs").contains(concat!("pub struct ", "LogProbability"))
+    );
 }
 
 #[test]

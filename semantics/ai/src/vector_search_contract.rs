@@ -41,6 +41,7 @@ pub struct VectorSearchContract {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `VectorSearchValue<T>` Type family.
 pub struct VectorSearchValue<T> {
     pub proof_class: VectorSearchExecutionProofClass,
     pub index_generation: u64,
@@ -193,13 +194,13 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_vector_search_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
 
     let contract = vector_search_contract();
     let parameters = [
@@ -263,20 +264,20 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
-    fn ordinary_form_checks_and_expands_without_backend_vocabulary() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+    fn ordinary_plot_checks_and_expands_without_backend_vocabulary() {
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         install_vector_search_catalog(&mut startup, &mut profile).expect("catalog installs");
-        let source = "form retrieval {\n search: retrieval/vector-search(4096, 8192, 1024, 8)\n}\n";
-        let checked = conduit_form::check_syntax_document(
-            &conduit_form::parse_syntax_document(source),
+        let source = "plot retrieval {\n search: retrieval/vector-search(4096, 8192, 1024, 8)\n}\n";
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
             &startup,
         )
         .expect("portable syntax checks");
-        let expanded = conduit_form::expand_canonical_form(&checked, "retrieval", &profile)
-            .expect("portable form expands");
+        let expanded = conduit_plot::expand_canonical_plot(&checked, "retrieval", &profile)
+            .expect("portable plot expands");
         assert_eq!(expanded.gears[0].kind_id.as_str(), VECTOR_SEARCH_KIND);
         assert_eq!(expanded.gears[0].configuration.len(), 4);
         for forbidden in [

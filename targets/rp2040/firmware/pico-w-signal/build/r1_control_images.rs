@@ -27,12 +27,12 @@ pub(super) fn emit_rerun_directives() {
 }
 
 pub(super) fn generate(out: &Path, activate: bool) {
-    let form = conduit_form::parse_with_startup(
+    let plot = conduit_plot::parse_with_startup(
         R1_CONTROL_FORM,
         &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     )
-    .expect("R1 three-peer control Form must check");
+    .expect("R1 three-peer control Plot must check");
     for (stem, routes, identity_env) in [
         (
             "r1_control_plan_a_signal",
@@ -64,7 +64,7 @@ pub(super) fn generate(out: &Path, activate: bool) {
         let lowered = lower_plan_fragment(fragment).expect("R1 control Pico fragment must lower");
         let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
             .expect("R1 control Pico fragment must fit reviewed fixed-image bounds");
-        let identity = GeneratedFirmwareIdentity::new(&form, &generated);
+        let identity = GeneratedFirmwareIdentity::new(&plot, &generated);
         let rendered = render_firmware_module(&generated, &identity);
         let sidecar = render_signal_identity_sidecar(&generated, &identity);
         fs::write(out.join(format!("{stem}_image.rs")), &rendered)

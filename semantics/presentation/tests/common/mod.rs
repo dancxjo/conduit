@@ -8,14 +8,14 @@ use conduit_core::{
     ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
     PortTemporal, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse, parse_syntax_document,
+use conduit_planner::{default_placements, plan};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse, parse_syntax_document,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
-use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    install_mask_form_value_aliases, renderer_kind_projection, renderer_offer,
-    ManifestationLifecycle, MaskForm, MaskShow, PlannedMaskForm, Presentation, PresentationBasis,
+    install_mask_plot_value_aliases, renderer_kind_projection, renderer_offer,
+    ManifestationLifecycle, MaskPlot, MaskShow, PlannedMaskPlot, Presentation, PresentationBasis,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     PresentationText, RendererRealizationOffer, FACE_INTERACTION_VALUE_KIND,
     MAX_RENDERER_VALUE_BYTES, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
@@ -24,11 +24,11 @@ use conduit_presentation::{
 pub const WAYLAND_RESOURCE: &str = "conduit.resource/wayland-surface@1";
 pub const DOM_RESOURCE: &str = "conduit.resource/browser-document@1";
 
-pub fn checked_renderer_form() -> conduit_form::CheckedForm {
+pub fn checked_renderer_plot() -> conduit_plot::CheckedPlot {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_projection()).unwrap();
     parse(
-        "form patchbay-show {\n    renderer: presentation/renderer\n}\n",
+        "plot patchbay-show {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
     .expect("one ordinary portable renderer Front checks")
@@ -76,15 +76,15 @@ pub fn host(
     }
 }
 
-pub fn plan_for(form: &conduit_form::CheckedForm, host: HostAdvertisement) -> conduit_core::Plan {
-    let placements = default_placements(form, std::slice::from_ref(&host)).unwrap();
-    plan(form, &[host], &placements, &[]).unwrap()
+pub fn plan_for(plot: &conduit_plot::CheckedPlot, host: HostAdvertisement) -> conduit_core::Plan {
+    let placements = default_placements(plot, std::slice::from_ref(&host)).unwrap();
+    plan(plot, &[host], &placements, &[]).unwrap()
 }
 
-pub fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> Presentation {
+pub fn presentation(plot: &conduit_plot::CheckedPlot, plan: &conduit_core::Plan) -> Presentation {
     let body = Body::born(
-        form.source_document_id.clone(),
-        form.checked_form_id.clone(),
+        plot.source_document_id.clone(),
+        plot.checked_plot_id.clone(),
         1,
         SignId::from("patchbay/sign/bornd"),
     )
@@ -95,18 +95,18 @@ pub fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan)
         PresentationBasis {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
-            source_document_id: Some(form.source_document_id.clone()),
-            checked_form_id: Some(form.checked_form_id.clone()),
-            expanded_form_id: Some(form.expanded_form_id.clone()),
+            source_document_id: Some(plot.source_document_id.clone()),
+            checked_plot_id: Some(plot.checked_plot_id.clone()),
+            expanded_plot_id: Some(plot.expanded_plot_id.clone()),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,
             sign_ids: vec![SignId::from("patchbay/sign/source")],
         },
         vec![
             PresentationSubject {
-                identity: "patchbay/form".into(),
-                role: PresentationRole::Form,
-                name: "Patchbay Form".into(),
+                identity: "patchbay/plot".into(),
+                role: PresentationRole::Plot,
+                name: "Patchbay Plot".into(),
             },
             PresentationSubject {
                 identity: "patchbay/renderer".into(),
@@ -115,7 +115,7 @@ pub fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan)
             },
         ],
         vec![PresentationRelationship {
-            source: "patchbay/form".into(),
+            source: "patchbay/plot".into(),
             target: "patchbay/renderer".into(),
             kind: PresentationRelationshipKind::Contains,
         }],
@@ -161,7 +161,7 @@ fn mask_kind(name: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescripto
     }
 }
 
-/// Plan one ordinary graphical Mask Form and realize an exact available Show.
+/// Plan one ordinary graphical Mask Plot and realize an exact available Show.
 /// Interaction tests use this instead of constructing the retired generic
 /// Manifestation boundary directly.
 pub fn available_mask_show(face: &Presentation) -> MaskShow {
@@ -203,16 +203,16 @@ pub fn available_mask_show(face: &Presentation) -> MaskShow {
             .unwrap();
         profiles.insert_kind(definition).unwrap();
     }
-    install_mask_form_value_aliases(&mut startup).unwrap();
+    install_mask_plot_value_aliases(&mut startup).unwrap();
     let checked = check_syntax_document(
         &parse_syntax_document(
-            "form browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+            "plot browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
         ),
         &startup,
     )
     .unwrap();
-    let authoring = expand_canonical_form_for_authoring(&checked, "browser", &profiles).unwrap();
-    let mask = MaskForm::admit(&authoring).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&checked, "browser", &profiles).unwrap();
+    let mask = MaskPlot::admit(&authoring).unwrap();
     let capabilities = authoring
         .expanded
         .gears
@@ -297,14 +297,14 @@ pub fn available_mask_show(face: &Presentation) -> MaskShow {
         &boundary_limits,
     )
     .unwrap();
-    let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
+    let planned = PlannedMaskPlot::admit(&mask, &plan).unwrap();
     let terminal = planned.show_placement();
     let active = bind_active_play(&plan.plan_id, &terminal.host_id, &terminal.boot_id, 1);
     MaskShow::prepared(
         &planned,
         face,
         active,
-        "patchbay/form".into(),
+        "patchbay/plot".into(),
         "display/interaction-test".into(),
         SignId::from("interaction/show-prepared"),
     )

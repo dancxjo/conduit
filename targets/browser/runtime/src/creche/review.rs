@@ -1,7 +1,7 @@
 //! Deterministic combined review of a proposed Body workload against Host offers.
 pub(super) mod queue_plan;
 
-use super::initial_forms::InitialFormSelection;
+use super::initial_plots::InitialPlotSelection;
 use conduit_core::{
     BaseImplementationId, CapabilityId, HostAdvertisement, HostId, ResourceClassId,
 };
@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(super) struct InitialWorkloadReview {
     pub(super) schema: String,
     pub(super) disposition: String,
-    pub(super) selected_form_count: usize,
+    pub(super) selected_plot_count: usize,
     pub(super) required_kinds: Vec<String>,
     pub(super) proposed_hosts: Vec<ProposedHost>,
     pub(super) reviewed_realization_count: usize,
@@ -57,39 +57,39 @@ pub(super) fn review(
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
 ) -> Result<WorkloadReview, String> {
-    let selected: Vec<InitialFormSelection> = serde_json::from_str(selection_json)
-        .map_err(|_| "initial Form selection is not an exact identity list".to_string())?;
-    if selected.len() > conduit_body::MAX_BODY_FORMS {
-        return Err("initial Form selection exceeds Body capacity".into());
+    let selected: Vec<InitialPlotSelection> = serde_json::from_str(selection_json)
+        .map_err(|_| "initial Plot selection is not an exact identity list".to_string())?;
+    if selected.len() > conduit_body::MAX_BODY_PLOTS {
+        return Err("initial Plot selection exceeds Body capacity".into());
     }
-    let checked_documents = super::initial_forms::check_inventory(source)?;
+    let checked_documents = super::initial_plots::check_inventory(source)?;
     let mut required_kinds = BTreeSet::new();
     let mut resource_totals = BTreeMap::<(HostId, ResourceClassId), u32>::new();
     let mut capability_totals = BTreeMap::<(HostId, CapabilityId), u32>::new();
 
-    for selected_form in &selected {
-        let (checked, form, presentation) = checked_documents
+    for selected_plot in &selected {
+        let (checked, plot, presentation) = checked_documents
             .iter()
             .find_map(|entry| {
                 entry
                     .checked
-                    .forms
+                    .plots
                     .iter()
-                    .find(|form| form.name == selected_form.name)
-                    .map(|form| (&entry.checked, form, entry.presentation))
+                    .find(|plot| plot.name == selected_plot.name)
+                    .map(|plot| (&entry.checked, plot, entry.presentation))
             })
             .ok_or_else(|| {
                 format!(
-                    "selected initial Form {:?} is absent from checked inventory",
-                    selected_form.name
+                    "selected initial Plot {:?} is absent from checked inventory",
+                    selected_plot.name
                 )
             })?;
-        if selected_form.source_document_id != checked.source_document_id.as_str()
-            || selected_form.checked_form_id != form.checked_form_id.as_str()
+        if selected_plot.source_document_id != checked.source_document_id.as_str()
+            || selected_plot.checked_plot_id != plot.checked_plot_id.as_str()
         {
             return Err(format!(
-                "selected initial Form {:?} has a stale or substituted exact identity",
-                selected_form.name
+                "selected initial Plot {:?} has a stale or substituted exact identity",
+                selected_plot.name
             ));
         }
         let (startup, mut profile) =
@@ -100,8 +100,8 @@ pub(super) fn review(
         )?;
         let backs = crate::installed_browser::backs(&startup, &profile)?;
         let expanded =
-            conduit_form::expand_canonical_form_with_backs(checked, &form.name, &profile, &backs)
-                .map_err(|error| format!("expand reviewed form {:?}: {error:?}", form.name))?;
+            conduit_plot::expand_canonical_plot_with_backs(checked, &plot.name, &profile, &backs)
+                .map_err(|error| format!("expand reviewed plot {:?}: {error:?}", plot.name))?;
         required_kinds.extend(
             expanded
                 .gears
@@ -112,7 +112,7 @@ pub(super) fn review(
             conduit_planner::default_expanded_placements(&expanded, hosts).map_err(|error| {
                 format!(
                     "initial workload is unrealizable for {:?}: {error}",
-                    form.name
+                    plot.name
                 )
             })?;
         queue_plan::plan(
@@ -126,7 +126,7 @@ pub(super) fn review(
         .map_err(|error| {
             format!(
                 "initial workload is unrealizable for {:?}: {error}",
-                form.name
+                plot.name
             )
         })?;
         accumulate_requirements(
@@ -143,7 +143,7 @@ pub(super) fn review(
         review: InitialWorkloadReview {
             schema: "conduit.creche/initial-workload-review@1".into(),
             disposition: "realizable".into(),
-            selected_form_count: selected.len(),
+            selected_plot_count: selected.len(),
             required_kinds: required_kinds.into_iter().collect(),
             proposed_hosts: hosts
                 .iter()
@@ -268,28 +268,28 @@ mod tests {
     use conduit_core::{BootId, HostId};
 
     const THREE: &str = concat!(
-        include_str!("../../../../../forms/morse-network/main.conduit"),
+        include_str!("../../../../../plots/morse-network/main.conduit"),
         "\n",
-        include_str!("../../../../../forms/memory-lantern/main.conduit"),
+        include_str!("../../../../../plots/memory-lantern/main.conduit"),
         "\n",
-        include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+        include_str!("../../../../../plots/desk-telegraph/main.conduit"),
     );
 
     fn selection(source: &str, names: &[&str]) -> String {
-        let inventory = crate::creche::initial_forms::reviewed_inventory(source).unwrap();
+        let inventory = crate::creche::initial_plots::reviewed_inventory(source).unwrap();
         serde_json::to_string(
             &names
                 .iter()
                 .map(|name| {
-                    let form = inventory
-                        .forms
+                    let plot = inventory
+                        .plots
                         .iter()
-                        .find(|form| form.name == *name)
+                        .find(|plot| plot.name == *name)
                         .unwrap();
-                    InitialFormSelection {
-                        name: form.name.clone(),
-                        source_document_id: form.source_document_id.clone(),
-                        checked_form_id: form.checked_form_id.clone(),
+                    InitialPlotSelection {
+                        name: plot.name.clone(),
+                        source_document_id: plot.source_document_id.clone(),
+                        checked_plot_id: plot.checked_plot_id.clone(),
                     }
                 })
                 .collect::<Vec<_>>(),
@@ -305,7 +305,7 @@ mod tests {
     }
 
     #[test]
-    fn zero_and_three_forms_have_one_combined_honest_review() {
+    fn zero_and_three_plots_have_one_combined_honest_review() {
         for names in [
             Vec::<&str>::new(),
             vec!["morse_network", "memory_lantern", "desk_telegraph"],
@@ -317,7 +317,7 @@ mod tests {
                 &crate::installed_browser::local_bases(),
             )
             .unwrap();
-            assert_eq!(result.review.selected_form_count, names.len());
+            assert_eq!(result.review.selected_plot_count, names.len());
             assert_eq!(result.review.reviewed_realization_count, names.len());
             assert!(!result.review.body_plan_created);
             assert!(!result.review.play_created);
@@ -337,11 +337,11 @@ mod tests {
     #[test]
     fn reviewed_bundle_resolves_each_selection_against_its_own_checked_document() {
         let source = serde_json::to_string(&serde_json::json!({
-            "schema": "conduit.creche/reviewed-form-bundle@1",
-            "forms": [
-                { "slug": "morse-network", "source": include_str!("../../../../../forms/morse-network/main.conduit") },
-                { "slug": "memory-lantern", "source": include_str!("../../../../../forms/memory-lantern/main.conduit") },
-                { "slug": "desk-telegraph", "source": include_str!("../../../../../forms/desk-telegraph/main.conduit") },
+            "schema": "conduit.creche/reviewed-plot-bundle@2",
+            "plots": [
+                { "slug": "morse-network", "source": include_str!("../../../../../plots/morse-network/main.conduit") },
+                { "slug": "memory-lantern", "source": include_str!("../../../../../plots/memory-lantern/main.conduit") },
+                { "slug": "desk-telegraph", "source": include_str!("../../../../../plots/desk-telegraph/main.conduit") },
             ],
         }))
         .unwrap();
@@ -355,7 +355,7 @@ mod tests {
             &crate::installed_browser::local_bases(),
         )
         .unwrap();
-        assert_eq!(result.review.selected_form_count, 3);
+        assert_eq!(result.review.selected_plot_count, 3);
         assert_eq!(result.review.reviewed_realization_count, 3);
     }
 
@@ -408,10 +408,10 @@ mod tests {
 
     #[test]
     fn one_body_review_can_select_realizations_across_several_hosts() {
-        const DISTRIBUTED: &str = r#"form clock {
+        const DISTRIBUTED: &str = r#"plot clock {
     tick: time/every(1s)
 }
-form note {
+plot note {
     value: text/literal("ready")
 }"#;
         let mut clock_host = browser("host/clock");

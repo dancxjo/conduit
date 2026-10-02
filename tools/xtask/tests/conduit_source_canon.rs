@@ -7,7 +7,7 @@ fn production_conduit_sources_use_the_frozen_surface() {
         .and_then(Path::parent)
         .expect("xtask lives under the repository tools directory");
     let mut sources = Vec::new();
-    for root in ["forms", "bodies", "products", "targets"] {
+    for root in ["plots", "bodies", "products", "targets"] {
         collect_conduit_sources(&repository.join(root), &mut sources);
     }
     sources.sort();
@@ -15,9 +15,14 @@ fn production_conduit_sources_use_the_frozen_surface() {
 
     let mut failures = Vec::new();
     for path in sources {
+        // The migration contract preserves these exact historical bytes. Their
+        // identity and explicit rejection are tested by conduit::v1_history.
+        if path.starts_with(repository.join("products/conduit/tests/fixtures/v1-history")) {
+            continue;
+        }
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
-        let document = conduit_form::parse_syntax_document(&source);
+        let document = conduit_plot::parse_syntax_document(&source);
         for diagnostic in document.diagnostics {
             failures.push(format!(
                 "{}:{}:{} [{}] {}",

@@ -8,15 +8,15 @@ mod text_state;
 
 pub use application_delivery::NativeApplicationRequest;
 pub use catalog::{
-    NATIVE_FORM_CAPACITY, NativeForm, NativeFormProfile, checked, inventory, profile, resident,
+    NATIVE_PLOT_CAPACITY, NativePlot, NativePlotProfile, checked, inventory, profile, resident,
     resolve,
 };
-pub use planning::{AdmittedFormInput, PreparedNativeWorkset, prepare, review};
+pub use planning::{AdmittedPlotInput, PreparedNativeWorkset, prepare, review};
 pub use play::{NativePresentation, NativeWorksetPlay, PlayRefusal};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorksetRefusal {
-    UnknownForm,
+    UnknownPlot,
     WorksetBound,
     Catalog,
     Host,
@@ -30,9 +30,9 @@ pub enum WorksetRefusal {
 impl WorksetRefusal {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::UnknownForm => "native-body-form-unavailable",
-            Self::WorksetBound => "native-body-form-capacity-exceeded",
-            Self::Catalog => "native-body-form-check-refused",
+            Self::UnknownPlot => "native-body-plot-unavailable",
+            Self::WorksetBound => "native-body-plot-capacity-exceeded",
+            Self::Catalog => "native-body-plot-check-refused",
             Self::Host => "native-body-current-host-unavailable",
             Self::Plan => "native-body-plan-refused",
             Self::Resource => "native-body-resource-capacity-exceeded",

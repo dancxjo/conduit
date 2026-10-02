@@ -2,7 +2,7 @@ use conduit_ai::{
     EmbeddingNormalization, ExactVectorSearchRefusal, SimilarityMetric, SimilarityScore,
     TemporalEvidenceSelectionRefusal, VectorIndexResourceRefusal, VectorRefusal,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where

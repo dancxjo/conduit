@@ -4,10 +4,10 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::{
-    DatasetDescriptor, DatasetSplitMembership, TensorAxisRole, TensorElement,
-    CORPUS_MANIFEST_PROFILE,
+    DatasetDescriptor, DatasetExampleIdentity, DatasetSplitMembership, TensorAxisRole,
+    TensorElement, CORPUS_MANIFEST_PROFILE,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 pub fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     BoundedResourceRef {
@@ -23,9 +23,9 @@ pub fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
 }
 
 fn tensor_constraint() -> ModelTensorConstraint {
-    ModelTensorConstraint {
-        elements: vec![TensorElement::F32],
-        axes: vec![
+    ModelTensorConstraint::from_parts(
+        vec![TensorElement::F32],
+        vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
                 dimension: ModelDimensionConstraint::bounded(256, 1).unwrap(),
@@ -35,34 +35,38 @@ fn tensor_constraint() -> ModelTensorConstraint {
                 dimension: ModelDimensionConstraint::fixed(12).unwrap(),
             },
         ],
-        maximum_bytes: 12_288,
-    }
+        12_288,
+    )
+    .unwrap()
 }
 
 pub fn signature() -> ModelSignature {
-    let value = ModelValueConstraint::SampledSignal(tensor_constraint());
-    ModelSignature {
-        identity: "tongues/shared-latent@1".into(),
-        compatibility_version: 1,
-        operations: vec![
+    let value = ModelValueConstraint::sampled_signal(tensor_constraint()).unwrap();
+    ModelSignature::from_parts(
+        "tongues/shared-latent@1".into(),
+        1,
+        vec![
             ModelOperation::Encode,
             ModelOperation::Decode,
             ModelOperation::Evaluate,
             ModelOperation::Train,
         ],
-        inputs: vec![ModelPortConstraint {
-            identity: "observation".into(),
-            semantic_kind: "science/observation-set@1".into(),
-            presence: ModelPortPresence::Required,
-            value: value.clone(),
-        }],
-        outputs: vec![ModelPortConstraint {
-            identity: "prediction".into(),
-            semantic_kind: "science/probability-samples@1".into(),
-            presence: ModelPortPresence::Required,
+        vec![ModelPortConstraint::from_parts(
+            "observation".into(),
+            "science/observation-set@1".into(),
+            ModelPortPresence::Required,
+            value.clone(),
+        )
+        .unwrap()],
+        vec![ModelPortConstraint::from_parts(
+            "prediction".into(),
+            "science/probability-samples@1".into(),
+            ModelPortPresence::Required,
             value,
-        }],
-    }
+        )
+        .unwrap()],
+    )
+    .unwrap()
 }
 
 pub fn artifact(signature: &ModelSignature) -> ModelArtifact {
@@ -84,13 +88,18 @@ pub fn corpus() -> (DatasetDescriptor, DatasetSplitMembership) {
         license_profile: Some("license/research-example@1".into()),
         example_count: 4,
         manifest: resource(3, CORPUS_MANIFEST_PROFILE, 1024),
-        shards: vec![resource(4, "data/corpus-shard@1", 8192)],
-        split_identities: vec!["train".into(), "evaluation".into()],
+        shards: BoundedSequence::try_from_iter([resource(4, "data/corpus-shard@1", 8192)]).unwrap(),
+        split_identities: BoundedSequence::try_from_iter(["train".into(), "evaluation".into()])
+            .unwrap(),
     };
     let split = DatasetSplitMembership {
         dataset_identity: dataset.identity,
         split_identity: "train".into(),
-        examples: vec![[10; 32], [11; 32], [12; 32]],
+        examples: DatasetSplitMembership::pages(
+            [[10; 32], [11; 32], [12; 32]]
+                .map(|identity| DatasetExampleIdentity::new(identity).unwrap()),
+        )
+        .unwrap(),
     };
     (dataset, split)
 }
@@ -118,16 +127,19 @@ fn objectives() -> Vec<TrainingObjective> {
         ("held-out-log-score", 0, "metric/log-score", false),
     ]
     .into_iter()
-    .map(|(role, weight, output, optimize)| TrainingObjective {
-        role: role.into(),
-        weight_millionths: weight,
-        configuration_identity: format!("tongues/{role}@1"),
-        output_identity: output.into(),
-        participation: if optimize {
-            ObjectiveParticipation::Optimize
-        } else {
-            ObjectiveParticipation::ObserveOnly
-        },
+    .map(|(role, weight, output, optimize)| {
+        TrainingObjective::new(
+            TrainingObjectiveIdentity::new(role.into()).unwrap(),
+            weight,
+            TrainingObjectiveIdentity::new(format!("tongues/{role}@1")).unwrap(),
+            TrainingObjectiveIdentity::new(output.into()).unwrap(),
+            if optimize {
+                ObjectiveParticipation::Optimize
+            } else {
+                ObjectiveParticipation::ObserveOnly
+            },
+        )
+        .unwrap()
     })
     .collect()
 }
@@ -151,23 +163,20 @@ pub fn session(
         dataset_manifest_identity: dataset.manifest.identity.digest(),
         split_membership_identity: split.semantic_digest().unwrap(),
         objective_profile: "tongues/shared-latent-objectives@1".into(),
-        objectives: objectives(),
+        objectives: conduit_ai::TrainingObjectives::from_values(objectives()).unwrap(),
         randomness: RandomnessProfile::explicit_seed(42).unwrap(),
         precision_profile: artifact.precision_profile.clone(),
-        model_modalities: vec!["audio".into(), "ema".into()],
+        model_modalities: conduit_ai::TrainingModalities::from_strings(vec![
+            "audio".into(),
+            "ema".into(),
+        ])
+        .unwrap(),
         missing_modality_policy: MissingModalityPolicy::permit_declared(optional_modalities)
             .unwrap(),
-        resources: TrainingResourceEnvelope {
-            model_bytes: 4096,
-            working_memory_bytes: 1_048_576,
-            compute_lanes: 2,
-            maximum_batch_items: 2,
-            maximum_batch_bytes: 65_536,
-            maximum_steps: 3,
-            maximum_work_units: 10_000,
-            maximum_checkpoint_bytes: 16_384,
-            maximum_in_flight_steps: 1,
-        },
+        resources: TrainingResourceEnvelope::new(
+            4096, 1_048_576, 2, 2, 65_536, 3, 10_000, 16_384, 1,
+        )
+        .unwrap(),
         checkpoint_policy: CheckpointPolicy::AtCompletion,
         evaluation_policy: EvaluationPolicy::EverySteps(1),
     }
@@ -191,8 +200,14 @@ pub fn batch(step: u8, modalities: &[&str]) -> TrainingBatch {
         identity: [20 + step; 32],
         dataset_identity: [2; 32],
         split_identity: "train".into(),
-        example_identities: vec![[10 + step; 32]],
-        present_modalities: modalities.iter().map(|value| (*value).into()).collect(),
+        example_identities: conduit_ai::TrainingExampleIdentityPages::from_values(vec![
+            [10 + step; 32],
+        ])
+        .unwrap(),
+        present_modalities: conduit_ai::TrainingModalities::from_strings(
+            modalities.iter().map(|value| (*value).into()).collect(),
+        )
+        .unwrap(),
         encoded_bytes: 4096,
         order: BatchOrder::Shuffled,
         stochastic_seed: Some(100 + u64::from(step)),
@@ -201,13 +216,15 @@ pub fn batch(step: u8, modalities: &[&str]) -> TrainingBatch {
 
 pub fn metrics(step: u8) -> Vec<TrainingMetric> {
     vec![
-        TrainingMetric {
-            output_identity: "loss/acoustic".into(),
-            value_millionths: 1_000_000 - i64::from(step) * 100_000,
-        },
-        TrainingMetric {
-            output_identity: "loss/plausibility".into(),
-            value_millionths: 500_000 - i64::from(step) * 10_000,
-        },
+        TrainingMetric::new(
+            TrainingObjectiveIdentity::new("loss/acoustic".into()).unwrap(),
+            1_000_000 - i64::from(step) * 100_000,
+        )
+        .unwrap(),
+        TrainingMetric::new(
+            TrainingObjectiveIdentity::new("loss/plausibility".into()).unwrap(),
+            500_000 - i64::from(step) * 10_000,
+        )
+        .unwrap(),
     ]
 }

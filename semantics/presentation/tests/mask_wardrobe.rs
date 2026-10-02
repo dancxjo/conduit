@@ -1,39 +1,39 @@
 use conduit_core::{
-    CheckedFormId, ExpandedFormId, FormIdentity, PlacementId, PlanId, SourceDocumentId,
+    CheckedPlotId, ExpandedPlotId, PlacementId, PlanId, PlotIdentity, SourceDocumentId,
 };
 use conduit_presentation::{
     MaskPlanningDisposition, MaskShowDisposition, MaskWardrobe, MaskWardrobeError,
-    MaskWardrobeLifetime, SealedMaskFormRoute, SelectedMaskFormRoute,
+    MaskWardrobeLifetime, SealedMaskPlotRoute, SelectedMaskPlotRoute,
 };
 
-fn mask(name: &str) -> FormIdentity {
-    FormIdentity {
+fn mask(name: &str) -> PlotIdentity {
+    PlotIdentity {
         source_document_id: SourceDocumentId::from(format!("source/{name}")),
-        checked_form_id: CheckedFormId::from(format!("checked/{name}")),
-        expanded_form_id: ExpandedFormId::from(format!("expanded/{name}")),
+        checked_plot_id: CheckedPlotId::from(format!("checked/{name}")),
+        expanded_plot_id: ExpandedPlotId::from(format!("expanded/{name}")),
     }
 }
 
-fn route(mask_form: &FormIdentity, name: &str, available: bool) -> SealedMaskFormRoute {
-    SealedMaskFormRoute {
+fn route(mask_plot: &PlotIdentity, name: &str, available: bool) -> SealedMaskPlotRoute {
+    SealedMaskPlotRoute {
         route_id: format!("route/{name}"),
-        mask_form: mask_form.clone(),
+        mask_plot: mask_plot.clone(),
         plan_id: PlanId::from("plan/current"),
         placement_ids: vec![PlacementId::from(format!("placement/{name}"))],
         currently_available: available,
     }
 }
 
-fn selected(mask_form: &FormIdentity, name: &str) -> SelectedMaskFormRoute {
-    SelectedMaskFormRoute {
+fn selected(mask_plot: &PlotIdentity, name: &str) -> SelectedMaskPlotRoute {
+    SelectedMaskPlotRoute {
         route_id: format!("route/{name}"),
-        mask_form: mask_form.clone(),
+        mask_plot: mask_plot.clone(),
         plan_id: PlanId::from("plan/current"),
     }
 }
 
 #[test]
-fn wear_doff_and_preference_are_revisioned_form_configuration() {
+fn wear_doff_and_preference_are_revisioned_plot_configuration() {
     let graphical = mask("graphical");
     let spoken = mask("spoken");
     let wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![], vec![]).unwrap();
@@ -52,7 +52,7 @@ fn wear_doff_and_preference_are_revisioned_form_configuration() {
 }
 
 #[test]
-fn preference_does_not_disturb_a_valid_selected_mask_form() {
+fn preference_does_not_disturb_a_valid_selected_mask_plot() {
     let graphical = mask("graphical");
     let spoken = mask("spoken");
     let wardrobe = MaskWardrobe::new(
@@ -74,7 +74,7 @@ fn preference_does_not_disturb_a_valid_selected_mask_form() {
 }
 
 #[test]
-fn same_plan_fallback_uses_only_a_sealed_available_mask_form_route() {
+fn same_plan_fallback_uses_only_a_sealed_available_mask_plot_route() {
     let spoken = mask("spoken");
     let wardrobe =
         MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![spoken.clone()], vec![]).unwrap();
@@ -95,7 +95,7 @@ fn same_plan_fallback_uses_only_a_sealed_available_mask_form_route() {
 }
 
 #[test]
-fn worn_but_unrealizable_form_has_no_show_and_requires_replacement_planning() {
+fn worn_but_unrealizable_plot_has_no_show_and_requires_replacement_planning() {
     let spoken = mask("spoken");
     let wardrobe =
         MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![spoken.clone()], vec![]).unwrap();
@@ -124,7 +124,7 @@ fn an_unsealed_or_other_plan_route_cannot_be_selected_as_fallback() {
     assert_eq!(
         wardrobe.reconcile(
             &PlanId::from("plan/current"),
-            &[SealedMaskFormRoute {
+            &[SealedMaskPlotRoute {
                 plan_id: PlanId::from("plan/replacement"),
                 ..route(&spoken, "discovered", true)
             }],
@@ -132,4 +132,71 @@ fn an_unsealed_or_other_plan_route_cannot_be_selected_as_fallback() {
         ),
         Err(MaskWardrobeError::InvalidRoute)
     );
+}
+
+#[test]
+fn unordered_eligibility_is_permutation_invariant_for_every_availability_case() {
+    let graphical = mask("graphical");
+    let spoken = mask("spoken");
+    for (graphical_available, spoken_available, expected) in [
+        (true, true, Some("route/graphical")),
+        (true, false, Some("route/graphical")),
+        (false, true, Some("route/spoken")),
+        (false, false, None),
+    ] {
+        let forward = MaskWardrobe::new(
+            MaskWardrobeLifetime::Body,
+            vec![graphical.clone(), spoken.clone()],
+            vec![],
+        )
+        .unwrap();
+        let reversed = MaskWardrobe::new(
+            MaskWardrobeLifetime::Body,
+            vec![spoken.clone(), graphical.clone()],
+            vec![],
+        )
+        .unwrap();
+        let routes = [
+            route(&spoken, "spoken", spoken_available),
+            route(&graphical, "graphical", graphical_available),
+        ];
+        for wardrobe in [&forward, &reversed] {
+            let result = wardrobe
+                .reconcile(&PlanId::from("plan/current"), &routes, None)
+                .unwrap();
+            let selected = match result.show {
+                MaskShowDisposition::SelectSealed { selected, .. } => Some(selected.route_id),
+                MaskShowDisposition::NoCurrentShow { .. } => None,
+                MaskShowDisposition::Retain(_) => unreachable!("there was no prior selection"),
+            };
+            assert_eq!(selected.as_deref(), expected);
+        }
+    }
+}
+
+#[test]
+fn explicit_preference_orders_only_available_eligible_routes() {
+    let graphical = mask("graphical");
+    let spoken = mask("spoken");
+    let wardrobe = MaskWardrobe::new(
+        MaskWardrobeLifetime::Body,
+        vec![graphical.clone(), spoken.clone()],
+        vec![graphical.clone(), spoken.clone()],
+    )
+    .unwrap();
+    let result = wardrobe
+        .reconcile(
+            &PlanId::from("plan/current"),
+            &[
+                route(&graphical, "graphical", false),
+                route(&spoken, "spoken", true),
+            ],
+            None,
+        )
+        .unwrap();
+    assert!(matches!(
+        result.show,
+        MaskShowDisposition::SelectSealed { selected, .. }
+            if selected.route_id == "route/spoken"
+    ));
 }

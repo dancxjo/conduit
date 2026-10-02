@@ -1,6 +1,6 @@
-//! Separate exact form partitions, one body Plan, and combined resource bounds.
+//! Separate exact plot partitions, one body Plan, and combined resource bounds.
 use alloc::{collections::BTreeMap, vec::Vec};
-use conduit_body::{BodyFormPlan, BodyMaskTopology, BodyPlan, Wake};
+use conduit_body::{BodyMaskTopology, BodyPlan, BodyPlotPlan, Wake};
 use conduit_core::{
     HostAdvertisement, KindId, PlacementId, Plan, PortId, ResourceClassId, ResourcePoolId,
 };
@@ -21,12 +21,12 @@ pub struct PreparedNativeWorkset {
     pub(super) lowered: LoweredFragmentSet,
     /// Exact initialized physical provider behind the logical deliveries.
     pub(super) keyboard: crate::keyboard_offer::KeyboardRealization,
-    pub(super) input_owners: Vec<AdmittedFormInput>,
+    pub(super) input_owners: Vec<AdmittedPlotInput>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AdmittedFormInput {
-    pub form: conduit_body::ResidentForm,
+pub struct AdmittedPlotInput {
+    pub plot: conduit_body::ResidentPlot,
     pub kind_id: KindId,
     pub placement_id: PlacementId,
     pub port_id: PortId,
@@ -43,7 +43,7 @@ impl PreparedNativeWorkset {
     pub fn keyboard(&self) -> crate::keyboard_offer::KeyboardRealization {
         self.keyboard
     }
-    pub fn input_owners(&self) -> &[AdmittedFormInput] {
+    pub fn input_owners(&self) -> &[AdmittedPlotInput] {
         &self.input_owners
     }
     pub fn into_plan(self) -> BodyPlan {
@@ -55,7 +55,7 @@ impl PreparedNativeWorkset {
         wake: &Wake,
         mask_topologies: Vec<BodyMaskTopology>,
     ) -> Result<Self, WorksetRefusal> {
-        self.plan = BodyPlan::seal_with_masks(wake, self.plan.forms.clone(), mask_topologies)
+        self.plan = BodyPlan::seal_with_masks(wake, self.plan.plots.clone(), mask_topologies)
             .map_err(|_| WorksetRefusal::Plan)?;
         Ok(self)
     }
@@ -71,21 +71,21 @@ pub fn prepare(
     if wake.workset.is_empty() || wake.workset.len() > profile.capacity {
         return Err(WorksetRefusal::WorksetBound);
     }
-    for form in wake.workset.forms() {
-        if !profile.contains(form)? {
-            return Err(WorksetRefusal::UnknownForm);
+    for plot in wake.workset.plots() {
+        if !profile.contains(plot)? {
+            return Err(WorksetRefusal::UnknownPlot);
         }
     }
     let (advertisement, keyboard) = host(identities, offer, build_id)?;
-    let forms = plan_forms(wake.workset.forms(), &advertisement)?;
-    let plan = BodyPlan::seal(wake, forms).map_err(|_| WorksetRefusal::Plan)?;
+    let plots = plan_plots(wake.workset.plots(), &advertisement)?;
+    let plan = BodyPlan::seal(wake, plots).map_err(|_| WorksetRefusal::Plan)?;
     let input_owners = plan
-        .forms
+        .plots
         .iter()
-        .map(admitted_form_input)
+        .map(admitted_plot_input)
         .collect::<Result<Vec<_>, _>>()?;
-    validate_combined(&advertisement, plan.forms.iter().map(|form| &form.plan))?;
-    let lowered = lower_forms(&plan.forms)?;
+    validate_combined(&advertisement, plan.plots.iter().map(|plot| &plot.plan))?;
+    let lowered = lower_plots(&plan.plots)?;
     Ok(PreparedNativeWorkset {
         advertisement,
         plan,
@@ -95,8 +95,8 @@ pub fn prepare(
     })
 }
 
-fn admitted_form_input(form: &BodyFormPlan) -> Result<AdmittedFormInput, WorksetRefusal> {
-    let fragment = form.plan.fragments.first().ok_or(WorksetRefusal::Plan)?;
+fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, WorksetRefusal> {
+    let fragment = plot.plan.fragments.first().ok_or(WorksetRefusal::Plan)?;
     let placement = fragment
         .placements
         .iter()
@@ -123,8 +123,8 @@ fn admitted_form_input(form: &BodyFormPlan) -> Result<AdmittedFormInput, Workset
     if !keyboard && !application {
         return Err(WorksetRefusal::Plan);
     }
-    Ok(AdmittedFormInput {
-        form: form.form.clone(),
+    Ok(AdmittedPlotInput {
+        plot: plot.plot.clone(),
         kind_id: placement.kind_id.clone(),
         placement_id: placement.placement_id.clone(),
         port_id: connection.source_port_id.clone(),
@@ -132,18 +132,18 @@ fn admitted_form_input(form: &BodyFormPlan) -> Result<AdmittedFormInput, Workset
     })
 }
 
-/// Review exact form planning and bounds without creating a body or a play.
+/// Review exact plot planning and bounds without creating a body or a play.
 pub fn review(
-    form: super::NativeForm,
+    plot: super::NativePlot,
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
     build_id: &str,
 ) -> Result<(), WorksetRefusal> {
     let (advertisement, _) = host(identities, offer, build_id)?;
-    let form = catalog::resident(form)?;
-    let forms = plan_forms(core::slice::from_ref(&form), &advertisement)?;
-    validate_combined(&advertisement, forms.iter().map(|form| &form.plan))?;
-    lower_forms(&forms)?;
+    let plot = catalog::resident(plot)?;
+    let plots = plan_plots(core::slice::from_ref(&plot), &advertisement)?;
+    validate_combined(&advertisement, plots.iter().map(|plot| &plot.plan))?;
+    lower_plots(&plots)?;
     Ok(())
 }
 
@@ -183,11 +183,11 @@ fn host(
     Ok((advertisement, keyboard))
 }
 
-fn plan_forms(
-    identities: &[conduit_body::ResidentForm],
+fn plan_plots(
+    identities: &[conduit_body::ResidentPlot],
     advertisement: &HostAdvertisement,
-) -> Result<Vec<BodyFormPlan>, WorksetRefusal> {
-    let mut forms = Vec::with_capacity(identities.len());
+) -> Result<Vec<BodyPlotPlan>, WorksetRefusal> {
+    let mut plots = Vec::with_capacity(identities.len());
     for identity in identities {
         let expanded = catalog::checked(catalog::resolve(identity)?)?;
         let hosts = core::slice::from_ref(advertisement);
@@ -238,19 +238,19 @@ fn plan_forms(
             &limits,
         )
         .map_err(|_| WorksetRefusal::Plan)?;
-        forms.push(BodyFormPlan {
-            form: identity.clone(),
+        plots.push(BodyPlotPlan {
+            plot: identity.clone(),
             plan,
         });
     }
-    Ok(forms)
+    Ok(plots)
 }
 
-fn lower_forms(forms: &[BodyFormPlan]) -> Result<LoweredFragmentSet, WorksetRefusal> {
+fn lower_plots(plots: &[BodyPlotPlan]) -> Result<LoweredFragmentSet, WorksetRefusal> {
     lower_local_fragment_set(
-        &forms
+        &plots
             .iter()
-            .map(|form| &form.plan.fragments[0])
+            .map(|plot| &plot.plan.fragments[0])
             .collect::<Vec<_>>(),
         conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
         FragmentSetBounds {

@@ -1,44 +1,17 @@
 //! Explicit clock relations, coordinate frames, and derived alignment views.
 
-use alloc::{string::String, vec::Vec};
-use conduit_core::QuantityUnit;
+use conduit_core::QuantityDimension;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
-    nonzero, text, ClockRelation, ClockRelationQuality, ObservationProvenance, ObservationSet,
-    ObservationValue, ScientificObservation, ScientificObservationRefusal, TensorElement,
-    TensorValue,
+    nonzero, text, AlignedTrainingView, CalibrationTransform, ClockRelation, ClockRelationQuality,
+    CoordinateFrame, ObservationProvenance, ObservationSet, ObservationValue,
+    ScientificAlignmentRefusal, ScientificObservation, ScientificObservationIdentity,
+    ScientificObservationRefusal, TensorElement,
 };
 
 pub const MAXIMUM_COORDINATE_DIMENSIONS: usize = 4;
 pub const MAXIMUM_ALIGNMENT_SOURCES: usize = 16;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CoordinateFrame {
-    pub identity: String,
-    pub axes: Vec<String>,
-    pub unit: QuantityUnit,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CalibrationTransform {
-    pub identity: String,
-    pub source_frame: String,
-    pub target_frame: String,
-    pub linear: TensorValue,
-    pub translation: TensorValue,
-    pub calibration_sources: Vec<[u8; 32]>,
-    pub method_profile: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AlignedTrainingView {
-    pub source_set_identity: [u8; 32],
-    pub source_observation_identity: [u8; 32],
-    pub clock_relation_identity: String,
-    pub calibration_identity: Option<String>,
-    pub target_clock: String,
-    pub derived_observation: ScientificObservation,
-}
 
 pub struct AlignmentDerivation<'a> {
     pub set: &'a ObservationSet,
@@ -55,26 +28,17 @@ pub struct AlignmentDerivation<'a> {
     pub resampling_profile: &'a str,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScientificAlignmentRefusal {
-    Observation(ScientificObservationRefusal),
-    InvalidRelation,
-    IncompatibleClockRelation,
-    UnknownSourceObservation,
-    InvalidCoordinateFrame,
-    InvalidCalibration,
-    CalibrationFrameMismatch,
-    CalibrationShapeMismatch,
-    MissingCalibrationSource,
-    DerivedClockMismatch,
-    DerivedProvenanceMismatch,
+impl From<ScientificObservationRefusal> for ScientificAlignmentRefusal {
+    fn from(refusal: ScientificObservationRefusal) -> Self {
+        Self::observation(refusal).expect("an authored observation refusal is valid")
+    }
 }
 
 impl ClockRelation {
     pub fn validate(&self) -> Result<(), ScientificAlignmentRefusal> {
-        text(self.identity()).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(self.source_clock()).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(self.target_clock()).map_err(ScientificAlignmentRefusal::Observation)?;
+        text(self.identity()).map_err(ScientificAlignmentRefusal::from)?;
+        text(self.source_clock()).map_err(ScientificAlignmentRefusal::from)?;
+        text(self.target_clock()).map_err(ScientificAlignmentRefusal::from)?;
         if self.source_clock() == self.target_clock()
             || *self.source_ticks() == 0
             || *self.target_ticks() == 0
@@ -83,15 +47,7 @@ impl ClockRelation {
         }
         if let ClockRelationQuality::Estimated(estimated) = self.quality() {
             let maximum_error = estimated.maximum_error();
-            if maximum_error.value() <= 0
-                || !matches!(
-                    maximum_error.unit(),
-                    QuantityUnit::Second
-                        | QuantityUnit::Millisecond
-                        | QuantityUnit::Microsecond
-                        | QuantityUnit::Nanosecond
-                )
-            {
+            if maximum_error.value() <= 0 || maximum_error.dimension() != QuantityDimension::Time {
                 return Err(ScientificAlignmentRefusal::InvalidRelation);
             }
         }
@@ -101,25 +57,19 @@ impl ClockRelation {
 
 impl CoordinateFrame {
     pub fn validate(&self) -> Result<(), ScientificAlignmentRefusal> {
-        text(&self.identity).map_err(ScientificAlignmentRefusal::Observation)?;
+        text(&self.identity).map_err(ScientificAlignmentRefusal::from)?;
         if self.axes.is_empty() || self.axes.len() > MAXIMUM_COORDINATE_DIMENSIONS {
             return Err(ScientificAlignmentRefusal::InvalidCoordinateFrame);
         }
         for axis in &self.axes {
-            text(axis).map_err(ScientificAlignmentRefusal::Observation)?;
+            text(axis.get()).map_err(ScientificAlignmentRefusal::from)?;
         }
         if self
             .axes
             .iter()
             .enumerate()
-            .any(|(index, axis)| self.axes[index + 1..].contains(axis))
-            || !matches!(
-                self.unit,
-                QuantityUnit::Micrometer
-                    | QuantityUnit::Millimeter
-                    | QuantityUnit::Centimeter
-                    | QuantityUnit::Meter
-            )
+            .any(|(index, axis)| self.axes.as_slice()[index + 1..].contains(axis))
+            || self.unit.dimension() != QuantityDimension::Length
         {
             return Err(ScientificAlignmentRefusal::InvalidCoordinateFrame);
         }
@@ -135,8 +85,8 @@ impl CalibrationTransform {
     ) -> Result<(), ScientificAlignmentRefusal> {
         source.validate()?;
         target.validate()?;
-        text(&self.identity).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(&self.method_profile).map_err(ScientificAlignmentRefusal::Observation)?;
+        text(&self.identity).map_err(ScientificAlignmentRefusal::from)?;
+        text(&self.method_profile).map_err(ScientificAlignmentRefusal::from)?;
         if self.source_frame != source.identity || self.target_frame != target.identity {
             return Err(ScientificAlignmentRefusal::CalibrationFrameMismatch);
         }
@@ -147,15 +97,19 @@ impl CalibrationTransform {
             .validate()
             .map_err(|_| ScientificAlignmentRefusal::InvalidCalibration)?;
         if !matches!(self.linear.element, TensorElement::F32 | TensorElement::F64)
-            || self.linear.dimensions != [target.axes.len() as u64, source.axes.len() as u64]
+            || self.linear.dimensions.as_slice()
+                != [target.axes.len() as u64, source.axes.len() as u64]
             || self.translation.element != self.linear.element
-            || self.translation.dimensions != [target.axes.len() as u64]
+            || self.translation.dimensions.as_slice() != [target.axes.len() as u64]
         {
             return Err(ScientificAlignmentRefusal::CalibrationShapeMismatch);
         }
         if self.calibration_sources.is_empty()
             || self.calibration_sources.len() > MAXIMUM_ALIGNMENT_SOURCES
-            || self.calibration_sources.contains(&[0; 32])
+            || self
+                .calibration_sources
+                .iter()
+                .any(|identity| identity.get() == &[0; 32])
         {
             return Err(ScientificAlignmentRefusal::MissingCalibrationSource);
         }
@@ -165,17 +119,16 @@ impl CalibrationTransform {
 
 impl AlignedTrainingView {
     pub fn validate(&self) -> Result<(), ScientificAlignmentRefusal> {
-        nonzero(self.source_set_identity).map_err(ScientificAlignmentRefusal::Observation)?;
-        nonzero(self.source_observation_identity)
-            .map_err(ScientificAlignmentRefusal::Observation)?;
-        text(&self.clock_relation_identity).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(&self.target_clock).map_err(ScientificAlignmentRefusal::Observation)?;
+        nonzero(self.source_set_identity).map_err(ScientificAlignmentRefusal::from)?;
+        nonzero(self.source_observation_identity).map_err(ScientificAlignmentRefusal::from)?;
+        text(&self.clock_relation_identity).map_err(ScientificAlignmentRefusal::from)?;
+        text(&self.target_clock).map_err(ScientificAlignmentRefusal::from)?;
         if let Some(identity) = &self.calibration_identity {
-            text(identity).map_err(ScientificAlignmentRefusal::Observation)?;
+            text(identity).map_err(ScientificAlignmentRefusal::from)?;
         }
         self.derived_observation
             .validate()
-            .map_err(ScientificAlignmentRefusal::Observation)?;
+            .map_err(ScientificAlignmentRefusal::from)?;
         if self.derived_observation.clock_identity.as_deref() != Some(&self.target_clock) {
             return Err(ScientificAlignmentRefusal::DerivedClockMismatch);
         }
@@ -184,12 +137,12 @@ impl AlignedTrainingView {
             .as_deref()
             .unwrap_or(&self.clock_relation_identity);
         match &self.derived_observation.provenance {
-            ObservationProvenance::Derived {
-                source_observations,
-                transform_identity,
-                ..
-            } if source_observations.contains(&self.source_observation_identity)
-                && transform_identity == expected_transform => {}
+            ObservationProvenance::Derived(provenance)
+                if provenance
+                    .source_observations()
+                    .iter()
+                    .any(|identity| identity.get() == &self.source_observation_identity)
+                    && provenance.transform_identity() == expected_transform => {}
             _ => return Err(ScientificAlignmentRefusal::DerivedProvenanceMismatch),
         }
         Ok(())
@@ -206,12 +159,11 @@ impl AlignedTrainingView {
             derived_value,
             resampling_profile,
         } = request;
-        set.validate()
-            .map_err(ScientificAlignmentRefusal::Observation)?;
+        set.validate().map_err(ScientificAlignmentRefusal::from)?;
         relation.validate()?;
-        nonzero(derived_identity).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(target_clock).map_err(ScientificAlignmentRefusal::Observation)?;
-        text(resampling_profile).map_err(ScientificAlignmentRefusal::Observation)?;
+        nonzero(derived_identity).map_err(ScientificAlignmentRefusal::from)?;
+        text(target_clock).map_err(ScientificAlignmentRefusal::from)?;
+        text(resampling_profile).map_err(ScientificAlignmentRefusal::from)?;
         let source = set
             .observation(source_observation_identity)
             .ok_or(ScientificAlignmentRefusal::UnknownSourceObservation)?;
@@ -234,17 +186,22 @@ impl AlignedTrainingView {
                 .map(|(value, _, _)| value.target_frame.clone())
                 .or_else(|| source.coordinate_frame.clone()),
             value: derived_value,
-            provenance: ObservationProvenance::Derived {
-                source_observations: alloc::vec![source.identity],
-                transform_identity: calibration
+            provenance: ObservationProvenance::derived(
+                resampling_profile.into(),
+                BoundedSequence::try_from_iter([ScientificObservationIdentity::new(
+                    source.identity,
+                )
+                .expect("a scientific observation identity is exactly 32 bytes")])
+                .expect("one source observation fits"),
+                calibration
                     .map(|(value, _, _)| value.identity.clone())
                     .unwrap_or_else(|| relation.identity().clone()),
-                realization_profile: resampling_profile.into(),
-            },
+            )
+            .map_err(|_| ScientificAlignmentRefusal::DerivedProvenanceMismatch)?,
         };
         derived
             .validate()
-            .map_err(ScientificAlignmentRefusal::Observation)?;
+            .map_err(ScientificAlignmentRefusal::from)?;
         if derived.clock_identity.as_deref() != Some(target_clock) {
             return Err(ScientificAlignmentRefusal::DerivedClockMismatch);
         }

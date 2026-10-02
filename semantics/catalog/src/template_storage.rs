@@ -6,11 +6,10 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
@@ -25,47 +24,18 @@ pub const NAMED_PATTERN_TEMPLATE_TYPE: &str = "NamedPatternTemplate";
 pub const MAXIMUM_TEMPLATE_STORAGE_COMMANDS: u64 = 16;
 
 pub fn named_pattern_template_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("sequence/named-pattern-template@1"),
-        vec![
-            StructuredFieldType::new(
-                "name",
-                StructuredInfoType::leaf(kind_id(crate::TEMPLATE_NAME_INFO_ID)).unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldType::new("pattern", crate::normalized_duration_sequence_type())
-                .unwrap(),
-        ],
-    )
-    .unwrap()
+    conduit_time::NamedPatternTemplate::semantic_type()
+        .expect("checked named pattern template Type")
 }
 
 pub fn template_storage_command_type() -> StructuredInfoType {
-    let name = StructuredInfoType::leaf(kind_id(crate::TEMPLATE_NAME_INFO_ID)).unwrap();
-    StructuredInfoType::variant(
-        kind_id("storage/named-pattern-template-command@1"),
-        vec![
-            StructuredVariantCase::new("delete", name.clone()).unwrap(),
-            StructuredVariantCase::new("get", name).unwrap(),
-            StructuredVariantCase::new("put", named_pattern_template_type()).unwrap(),
-            StructuredVariantCase::new("put-and-get", named_pattern_template_type()).unwrap(),
-        ],
-    )
-    .unwrap()
+    conduit_time::NamedPatternTemplateCommand::semantic_type()
+        .expect("checked named pattern template command Type")
 }
 
 pub fn template_storage_result_type() -> StructuredInfoType {
-    let name = StructuredInfoType::leaf(kind_id(crate::TEMPLATE_NAME_INFO_ID)).unwrap();
-    StructuredInfoType::variant(
-        kind_id("storage/named-pattern-template-result@1"),
-        vec![
-            StructuredVariantCase::new("deleted", name.clone()).unwrap(),
-            StructuredVariantCase::new("found", named_pattern_template_type()).unwrap(),
-            StructuredVariantCase::new("missing", name.clone()).unwrap(),
-            StructuredVariantCase::new("stored", name).unwrap(),
-        ],
-    )
-    .unwrap()
+    conduit_time::NamedPatternTemplateResult::semantic_type()
+        .expect("checked named pattern template result Type")
 }
 
 pub fn named_pattern_template_storage_definition() -> KindProjection {
@@ -175,8 +145,8 @@ pub fn named_pattern_template_initializer_semantic_contract() -> Kind {
 }
 
 pub fn install_template_storage_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(NAMED_PATTERN_TEMPLATE_TYPE, named_pattern_template_type())
@@ -310,7 +280,7 @@ fn name_variant(
 fn name_value(name: &str) -> Result<StructuredInfoValue, crate::TemplateCollectionRefusal> {
     validate_name(name)?;
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id(crate::TEMPLATE_NAME_INFO_ID)).unwrap(),
+        StructuredInfoType::leaf(kind_id(conduit_core::TEXT_INFO_ID)).unwrap(),
         name.as_bytes().to_vec(),
     )
     .map_err(|_| crate::TemplateCollectionRefusal::Malformed)

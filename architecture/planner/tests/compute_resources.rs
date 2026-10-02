@@ -14,11 +14,11 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-fn form(source: &str) -> conduit_form::CheckedForm {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn plot(source: &str) -> conduit_plot::CheckedPlot {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_llm_semantic_catalog(&mut startup, &mut profile).expect("catalog installs");
-    conduit_form::parse(source, &profile).expect("compute fixture form checks")
+    conduit_plot::parse(source, &profile).expect("compute fixture plot checks")
 }
 
 fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObservation> {
@@ -45,7 +45,7 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
 
 #[test]
 fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
-    let checked = form("form answer {\n first: llm/generate\n second: llm/generate\n}\n");
+    let checked = plot("plot answer {\n first: llm/generate\n second: llm/generate\n}\n");
     let mut fixture = llm_generate_base_fixtures()[0].clone();
     fixture.advertisement.capabilities[0]
         .limits
@@ -134,7 +134,7 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
 
 #[test]
 fn topology_service_and_architecture_base_are_exact_plan_facts() {
-    let checked = form("form answer {\n generate: llm/generate\n}\n");
+    let checked = plot("plot answer {\n generate: llm/generate\n}\n");
     let mut fixture = llm_generate_base_fixtures()[0].clone();
     let capability = &mut fixture.advertisement.capabilities[0];
     let requirement = capability
@@ -273,7 +273,7 @@ fn shared_service_or_missing_topology_cannot_satisfy_stronger_requirements() {
 
 #[test]
 fn policy_can_prefer_service_without_conflating_implementation_and_artifact() {
-    let checked = form("form answer {\n generate: llm/generate\n}\n");
+    let checked = plot("plot answer {\n generate: llm/generate\n}\n");
     let fixtures = llm_generate_base_fixtures();
     let mut shared = fixtures[0].advertisement.clone();
     let mut exclusive = fixtures[1].advertisement.clone();

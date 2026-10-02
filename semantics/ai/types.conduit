@@ -130,13 +130,13 @@ type ModelOperation =
     | evaluate
     | train
 
-code ai/model-operation = ModelOperation as u8
+form ai/model-operation = ModelOperation as u8
 
 type ModelPortPresence =
     required
     | optional
 
-code ai/model-port-presence = ModelPortPresence as u8
+form ai/model-port-presence = ModelPortPresence as u8
 
 type ModelDimensionConstraint =
     fixed {
@@ -146,6 +146,55 @@ type ModelDimensionConstraint =
         minimum: U64 in 1..=18446744073709551615
         maximum: U64 in 1..=18446744073709551615
     }
+
+type ModelAxisConstraint = {
+    role: TensorAxisRole
+    dimension: ModelDimensionConstraint
+}
+
+type ModelTensorElements = sequence TensorElement in 1..=8
+type ModelTensorAxes = sequence ModelAxisConstraint in 1..=8
+
+type ModelTensorConstraint = {
+    elements: ModelTensorElements
+    axes: ModelTensorAxes
+    maximum_bytes: U64 in 1..=18446744073709551615
+}
+
+type ModelValueConstraint =
+    tensor {
+        constraint: ModelTensorConstraint
+    }
+    | sampled_signal {
+        constraint: ModelTensorConstraint
+    }
+    | probabilistic_tensor {
+        constraint: ModelTensorConstraint
+    }
+    | probabilistic_signal {
+        constraint: ModelTensorConstraint
+    }
+
+type ModelPortIdentity = Text <= 128B not in [""]
+type ModelSemanticKind = Text <= 128B not in [""]
+
+type ModelPortConstraint = {
+    identity: ModelPortIdentity
+    semantic_kind: ModelSemanticKind
+    presence: ModelPortPresence
+    value: ModelValueConstraint
+}
+
+type ModelOperations = sequence ModelOperation in 1..=8
+type ModelPorts = sequence ModelPortConstraint in 0..=32
+
+type ModelSignature = {
+    identity: Text <= 128B not in [""]
+    compatibility_version: U32 in 1..=4294967295
+    operations: ModelOperations
+    inputs: ModelPorts
+    outputs: ModelPorts
+}
 
 type SimilarityMetric =
     cosine_similarity
@@ -174,6 +223,310 @@ type CompatibleMetrics = {
     squared_euclidean_distance: Boolean
 }
 
+type ClassificationLabel = Text <= 64B not in [""]
+type ClassificationLabels = sequence ClassificationLabel in 1..=32
+
+type FiniteClassification = {
+    label: ClassificationLabel
+    allowed_labels: ClassificationLabels
+}
+
+type EmbeddingProfileIdentity = Text <= 128B not in [""]
+type FiniteEmbeddingValuePage = sequence FiniteF32 in 1..=1024
+type FiniteEmbeddingValuePages = sequence FiniteEmbeddingValuePage in 1..=4
+
+type FiniteEmbedding = {
+    profile_identity: EmbeddingProfileIdentity
+    dimensions: U32 in 1..=4096
+    values: FiniteEmbeddingValuePages
+}
+
+type EmbeddingProfile = {
+    identity: Text <= 256B not in [""]
+    semantic_space_identity: Text <= 256B not in [""]
+    model_identity: Text <= 256B not in [""]
+    provider_identity: Text <= 256B not in [""]
+    dimensions: U32 in 1..=4096
+    normalization: EmbeddingNormalization
+    compatible_metrics: CompatibleMetrics
+}
+
+type Embedding = {
+    profile: EmbeddingProfile
+    values: FiniteEmbedding
+}
+
+type VectorMetadata = {
+    key: Text <= 64B not in [""]
+    value: Text <= 1024B not in [""]
+}
+
+type VectorMetadataEntries = sequence VectorMetadata in 0..=32
+
+type MetadataFilter =
+    equal {
+        key: Text <= 64B not in [""]
+        value: Text <= 1024B not in [""]
+    }
+    | present {
+        key: Text <= 64B not in [""]
+    }
+
+type MetadataFilters = sequence MetadataFilter in 0..=32
+
+type VectorRecord<T> = {
+    value: T
+    embedding: Embedding
+    source_identity: Text <= 256B not in [""]
+    resource_identity: Text <= 256B not in [""]
+    metadata: VectorMetadataEntries
+    temporal_provenance: TemporalProvenance?
+}
+
+type SimilarityQuery = {
+    embedding: Embedding
+    metric: SimilarityMetric
+    top_k: U32 in 1..=1024
+    threshold: SimilarityThreshold?
+    filters: MetadataFilters
+    temporal_intent: TemporalRetrievalIntent?
+}
+
+type SimilarityHit<T> = {
+    value: T
+    score: SimilarityScore
+    rank: U32 in 1..=1024
+    index_generation: U64
+    source_identity: Text <= 256B not in [""]
+    resource_identity: Text <= 256B not in [""]
+    temporal_provenance: TemporalProvenance?
+}
+
+type Chunk<T> = {
+    identity: ChunkIdentity
+    lineage: ExtractionLineage
+    value: T
+}
+
+type Candidate<T> = {
+    chunk: Chunk<T>
+    rank: U16 in 1..=1024
+    score: RetrievalScore?
+    retrieval_basis: Text <= 2048B not in [""]
+}
+
+type ContextItem<T> = {
+    candidate: Candidate<T>
+    rationale: ContextSelectionRationale
+    budget: ContextBudgetCost
+}
+
+type ContextSelection<T> = {
+    items: sequence ContextItem<T> in 0..=64
+    outcome: ContextSelectionOutcome
+}
+
+type StageCandidate<T> = {
+    chunk: Chunk<T>
+    rank: U16 in 1..=1024
+    score: MechanismScore?
+    temporal_evidence_identity: TemporalEvidenceIdentity?
+}
+
+type RetrievalStage<T> = {
+    retriever: RetrieverIdentity
+    candidates: sequence StageCandidate<T> in 1..=1024
+    work_units: U32 in 1..=1048576
+}
+
+type RetrievalContribution = {
+    retriever: RetrieverIdentity
+    stage_rank: U16 in 1..=1024
+    score: MechanismScore?
+    temporal_evidence_identity: Text <= 256B not in [""]?
+}
+
+type HybridCandidate<T> = {
+    chunk: Chunk<T>
+    rank: U16 in 1..=1024
+    fusion_score_micros: U64
+    contributions: sequence RetrievalContribution in 1..=8
+}
+
+type HybridRetrievalOutcome<T> =
+    candidates sequence HybridCandidate<T> in 1..=1024
+    | need_earlier_history
+    | boundary_unavailable
+
+type ExactVectorSearchCandidate<T> = {
+    record: VectorRecord<T>
+    temporal_source: TemporalSource
+    boundary: EntityBoundary?
+    transition: TransitionDirection?
+    validity: TemporalValidity
+}
+
+type ExactVectorSearchResult<T> = {
+    proof_class: VectorSearchProofClass
+    index_generation: U64
+    admitted_work_units: U32 in 1..=1048576
+    candidate_count: U32 in 0..=65536
+    hits: sequence SimilarityHit<T> in 0..=1024
+}
+
+type VectorSearchValue<T> = {
+    proof_class: VectorSearchExecutionProofClass
+    index_generation: U64
+    admitted_work_units: U32 in 1..=1048576
+    candidate_count: U32 in 0..=65536
+    hits: sequence SimilarityHit<T> in 0..=1024
+}
+
+type RerankedCandidate<T> = {
+    candidate: HybridCandidate<T>
+    original_rank: U16 in 1..=1024
+    reranked_rank: U16 in 1..=1024
+    score: RerankScore
+}
+
+type RerankingReceipt<T> = {
+    policy_identity: Text <= 256B not in [""]
+    proof_class: RerankingProofClass
+    candidates: sequence RerankedCandidate<T> in 1..=1024
+    work_units: U32 in 1..=1048576
+}
+
+type ContextTemporalEvidence<TContext> = {
+    evidence_identity: Text <= 256B not in [""]
+    provenance: TemporalProvenance
+    source: TemporalSource
+    boundary: EntityBoundary?
+    context: TContext
+}
+
+type ContextCandidate<T, TContext> = {
+    reranked: RerankedCandidate<T>
+    reranking_policy_identity: Text <= 256B not in [""]
+    reranking_proof_class: RerankingProofClass
+    temporal: ContextTemporalEvidence<TContext>?
+    redundancy_group: Text <= 256B not in [""]?
+    token_count: U32 in 1..=262144
+}
+
+type SelectedContextItem<T, TContext> = {
+    reranked: RerankedCandidate<T>
+    reranking_policy_identity: Text <= 256B not in [""]
+    reranking_proof_class: RerankingProofClass
+    temporal: ContextTemporalEvidence<TContext>?
+    redundancy_group: Text <= 256B not in [""]?
+    rationale: SelectedContextRationale
+    budget: SelectedContextCost
+}
+
+type StructuredContext<T, TContext> = {
+    policy_identity: Text <= 256B not in [""]
+    token_accounting_profile: Text <= 256B not in [""]
+    redundancy: ContextRedundancyPolicy
+    ordering: ContextOrderingPolicy
+    items: sequence SelectedContextItem<T, TContext> in 1..=64
+    disposition: ContextSelectionDisposition
+    used: SelectedContextCost
+}
+
+type GroundedAnswerRequest<T, TContext> = {
+    identity: Text <= 256B not in [""]
+    retrieval_intent: RetrievalIntent
+    context: StructuredContext<T, TContext>
+}
+
+type ProposedClaimSupport<TCitation> =
+    supported {
+        citations: sequence TCitation in 1..=128
+    }
+    | unsupported {
+        rationale: Text <= 2048B not in [""]
+    }
+
+type ProposedGroundedClaim<TCitation> = {
+    answer_span: AnswerSpan
+    support: ProposedClaimSupport<TCitation>
+}
+
+type GroundedAnswer<TAnswer, TCitation> = {
+    provenance: ModelResultProvenance
+    policy_identity: Text <= 256B not in [""]
+    request_identity: Text <= 256B not in [""]
+    context_policy_identity: Text <= 256B not in [""]
+    model_implementation_identity: Text <= 256B not in [""]
+    model_run_identity: Text <= 256B not in [""]
+    answer_kind: Text <= 256B not in [""]
+    answer: TAnswer
+    disposition: GroundedAnswerDisposition
+    claims: sequence AnswerClaimSupport in 0..=64
+    citations: sequence TCitation in 0..=128
+    limitations: sequence GroundingLimitation in 0..=32
+}
+
+type PortableProposedClaimSupport = ProposedClaimSupport<Citation>
+type PortableProposedGroundedClaim = ProposedGroundedClaim<Citation>
+type GroundedAnswerBytePage = Bytes <= 65536B
+type GroundedAnswerBytePages = sequence GroundedAnswerBytePage in 0..=4
+type PortableGroundedAnswer = GroundedAnswer<GroundedAnswerBytePages, Citation>
+
+type ModelDerivedResult<TPayload> = {
+    provenance: ModelResultProvenance
+    payload_kind: Text <= 256B not in [""]
+    payload: TPayload
+    implementation_identity: Text <= 256B not in [""]
+    request_identity: Text <= 256B not in [""]
+    run_identity: Text <= 256B not in [""]
+    confidence: ConfidencePermille?
+    disposition: ModelResultDisposition
+    determinism: LlmDeterminismProfile
+    accounting: ModelWorkAccounting
+}
+
+type ModelResultPayload = Bytes <= 65536B
+type PortableModelDerivedResult = ModelDerivedResult<ModelResultPayload>
+
+type ExtractionKey = Text <= 64B not in [""]
+type ExtractionValue = Text <= 1024B not in [""]
+
+type ExtractedField = {
+    key: ExtractionKey
+    value: ExtractionValue
+}
+
+type ExtractionFields = sequence ExtractedField in 1..=32
+
+type ValidatedExtraction = {
+    schema_identity: Text not in [""]
+    fields: ExtractionFields
+}
+
+type ConfidencePermille = U16 in 0..=1000
+
+type ModelWorkAccounting = {
+    input_bytes: U64
+    context_items: U64
+    output_bytes: U64
+    work_units: U64
+    history_items: U64
+}
+
+type GeneratedTextChunk = {
+    sequence: U64 in 0..=4095
+    text: Text <= 4096B not in [""]
+}
+
+type GeneratedTextFlowEvidence = {
+    chunks: U64 in 0..=4096
+    generated_bytes: U64 in 0..=65536
+    terminal: GeneratedTextFlowTerminal
+    retained_private_text: Boolean
+    where (.chunks == 0) == (.generated_bytes == 0)
+}
+
 type TemporalSource =
     event
     | valid_from
@@ -196,6 +549,49 @@ type TransitionDirection =
     into_state
     | out_of_state
 
+type TemporalRetrievalWindow = {
+    start: U64
+    end: U64
+    where .start <= .end
+}
+
+type TemporalRetrievalIntent =
+    earliest_evidence
+    | latest_evidence
+    | state_valid_at {
+        instant: U64
+    }
+    | transition {
+        direction: TransitionDirection
+    }
+    | duration_since {
+        boundary: EntityBoundary
+    }
+    | event_ordering
+    | evidence_within {
+        window: TemporalRetrievalWindow
+    }
+
+type RetrievalMode =
+    semantic
+    | exact
+    | metadata
+    | temporal {
+        intent: TemporalRetrievalIntent
+    }
+    | boundary {
+        intent: TemporalRetrievalIntent
+    }
+
+type RetrievalModes = sequence RetrievalMode in 1..=8
+type RetrievalIntentIdentity = Text <= 256B not in [""]
+
+type RetrievalIntent = {
+    identity: RetrievalIntentIdentity
+    modes: RetrievalModes
+    maximum_candidates: U16 in 1..=1024
+}
+
 type TemporalValidity =
     current
     | historical
@@ -209,6 +605,59 @@ type TemporalWindowRelation =
     | overlaps
     | unknown
 
+type ClockIdentity = Text <= 128B not in [""]
+
+type ClockBasis =
+    unix_epoch_milliseconds
+    | monotonic_milliseconds {
+        identity: ClockIdentity
+    }
+
+type TemporalProvenance = {
+    event_at: U64?
+    valid_from: U64?
+    valid_until: U64?
+    observed_at: U64?
+    recorded_at: U64?
+    ingested_at: U64?
+    retrieved_at: U64
+    reference_at: U64
+    clock_basis: ClockBasis
+    uncertainty_millis: U64?
+}
+
+type TemporalEvidenceIdentity = Text <= 256B not in [""]
+type TemporalEvidenceIdentities = sequence TemporalEvidenceIdentity in 1..=128
+
+type TemporalEvidenceCandidate = {
+    identity: TemporalEvidenceIdentity
+    provenance: TemporalProvenance
+    source: TemporalSource
+    boundary: EntityBoundary?
+    transition: TransitionDirection?
+    validity: TemporalValidity
+}
+
+type TemporalEvidenceCandidates = sequence TemporalEvidenceCandidate in 1..=128
+
+type TemporalEvidenceBatch = {
+    reference: TemporalReference
+    candidates: TemporalEvidenceCandidates
+    earliest_history_complete: Boolean
+}
+
+type TemporalEvidenceSelection =
+    selected {
+        identities: TemporalEvidenceIdentities
+    }
+    | need_earlier_history
+    | boundary_unavailable
+
+type TemporalReference = {
+    reference_at: U64
+    clock_basis: ClockBasis
+}
+
 type ContextRedundancyPolicy =
     keep_all
     | one_per_reviewed_group
@@ -216,6 +665,17 @@ type ContextRedundancyPolicy =
 type ContextOrderingPolicy =
     reranked
     | chronological_oldest_first
+
+type ContextSelectionPolicy = {
+    identity: Text <= 256B not in [""]
+    token_accounting_profile: Text <= 256B not in [""]
+    redundancy: ContextRedundancyPolicy
+    ordering: ContextOrderingPolicy
+    maximum_items: U16 in 1..=64
+    maximum_bytes: U32 in 1..=1048576
+    maximum_tokens: U32 in 1..=262144
+    maximum_work_units: U32 in 1..=1048576
+}
 
 type SelectedContextRationale =
     reranked
@@ -228,9 +688,89 @@ type ContextOmissionReason =
     | token_budget
     | work_budget
 
+type SelectedContextCost = {
+    bytes: U32
+    tokens: U32
+    work_units: U32
+}
+
+type ContextOmission = {
+    chunk_identity: ChunkIdentity
+    reason: ContextOmissionReason
+}
+
+type ContextOmissions = sequence ContextOmission in 1..=1024
+
+type ContextSelectionDisposition =
+    complete
+    | omitted {
+        candidates: ContextOmissions
+    }
+
 type SourceSpanUnit =
     bytes
     | items
+
+type SourceSpan = {
+    unit: SourceSpanUnit
+    start: U64
+    end: U64
+    where .start < .end
+}
+
+type AnswerSpan = {
+    start: U32
+    end: U32
+    where .start < .end
+}
+
+type CitationIndices = sequence U16 in 1..=128
+
+type GroundedClaim = {
+    answer_span: AnswerSpan
+    citation_indices: CitationIndices
+}
+
+type GroundingLimitation = Text <= 2048B not in [""]
+
+type GroundingInputAssessment =
+    sufficient
+    | insufficient_evidence {
+        limitation: GroundingLimitation
+    }
+    | conflicting_evidence {
+        limitation: GroundingLimitation
+    }
+
+type GroundedClaimSupport =
+    supported {
+        citation_indices: CitationIndices
+    }
+    | unsupported {
+        rationale: GroundingLimitation
+    }
+
+type AnswerClaimSupport = {
+    answer_span: AnswerSpan
+    support: GroundedClaimSupport
+}
+
+type RetrievalScore = {
+    value_micros: I64
+}
+
+type ContextBudgetCost = {
+    bytes: U32
+    tokens: U32
+    where .bytes > 0 || .tokens > 0
+}
+
+type ContextSelectionOutcome =
+    complete
+    | truncated {
+        omitted_candidates: U16 in 1..=1024
+        reason: ContextTruncationReason
+    }
 
 type SourceExtractionProfile =
     text_utf8 {
@@ -243,16 +783,110 @@ type SourceExtractionProfile =
         overlap_items: U32
     }
 
+type SourceExtractionLimits = {
+    maximum_source_bytes: U32 in 1..=4294967295
+    maximum_source_items: U32 in 1..=4294967295
+    maximum_chunk_bytes: U32 in 1..=4294967295
+    maximum_chunks: U32 in 1..=4294967295
+    maximum_output_bytes: U32 in 1..=4294967295
+    maximum_work_units: U32 in 1..=4294967295
+}
+
 type FusionStrategy =
     reciprocal_rank {
         rank_constant: U16 in 1..=65535
     }
+
+type HybridRequiredMechanisms = sequence RetrievalMechanism in 0..=8
+
+type HybridFusionPolicy = {
+    identity: Text <= 256B not in [""]
+    strategy: FusionStrategy
+    required_mechanisms: HybridRequiredMechanisms
+    temporal_hard_filter: TemporalRetrievalIntent?
+    maximum_candidates_per_stage: U16 in 1..=1024
+    maximum_output_candidates: U16 in 1..=1024
+    maximum_total_work_units: U32 in 1..=1048576
+}
 
 type RelationResultProfile =
     deterministic
     | probabilistic {
         maximum_samples: U32 in 1..=4294967295
     }
+
+type RelationVariableIdentity = Text <= 128B not in [""]
+type RelationVariableIdentities = sequence RelationVariableIdentity in 1..=32
+
+type SupportedRelationQuery = {
+    evidence_variables: RelationVariableIdentities
+    target_variables: RelationVariableIdentities
+    mode: RelationQueryMode
+    result_profile: RelationResultProfile
+    maximum_work_units: U64
+    maximum_output_bytes: U64
+    where .maximum_work_units > 0
+    where .maximum_output_bytes > 0
+}
+
+type RelationCandidateOutput = {
+    target_variable: RelationVariableIdentity
+    value_identity: ProbabilityDigest
+    disposition: ProbabilisticDisposition
+    sample_count: U32
+}
+
+type RelationDigest = collection U8 = 32
+type RelationQueryIdentity = collection U8 = 32
+type RelationIdentity = Text <= 128B not in [""]
+type RelationSemanticRole = Text <= 128B not in [""]
+
+type RelationVariable = {
+    identity: RelationIdentity
+    semantic_role: RelationSemanticRole
+    value: ModelValueConstraint
+}
+
+type RelationVariables = sequence RelationVariable in 1..=32
+type SupportedRelationQueries = sequence SupportedRelationQuery in 1..=64
+
+type ModelRelationSignature = {
+    identity: Text <= 128B not in [""]
+    compatibility_version: U32 in 1..=4294967295
+    callable_signature_identity: RelationDigest
+    variables: RelationVariables
+    supported_queries: SupportedRelationQueries
+}
+
+type RelationValue =
+    tensor {
+        value: TensorValue
+    }
+    | sampled_signal {
+        value: SampledSignal
+    }
+
+type RelationEvidence = {
+    variable: RelationVariableIdentity
+    value: RelationValue
+}
+
+type RelationEvidenceValues = sequence RelationEvidence in 1..=32
+
+type RelationQuery = {
+    identity: RelationQueryIdentity
+    artifact_identity: RelationDigest
+    checkpoint_identity: RelationDigest?
+    relation_signature_identity: RelationDigest
+    evidence: RelationEvidenceValues
+    targets: RelationVariableIdentities
+    mode: RelationQueryMode
+    requested_result: RelationResultProfile
+    randomness: RandomnessProfile
+    admitted_work_units: U64 in 1..=18446744073709551615
+    maximum_output_bytes: U64 in 1..=18446744073709551615
+}
+
 
 type ModelCachePolicy =
     no_cache
@@ -293,6 +927,15 @@ type GroundedAnswerDisposition =
     | insufficient_evidence
     | conflicting_evidence
 
+type GroundedAnswerPolicy = {
+    identity: Text <= 256B not in [""]
+    answer_kind: Text <= 256B not in [""]
+    maximum_output_bytes: U32 in 1..=262144
+    maximum_claims: U16 in 1..=64
+    maximum_citations: U16 in 1..=128
+    maximum_work_units: U64 in 1..=1000000
+}
+
 type InterpretationProvenance =
     model_derived
 
@@ -316,10 +959,33 @@ type ModelFailure =
     | resource_exhausted
     | output_bound_exceeded
 
+type LlmWorkBounds = {
+    maximum_input_bytes: U64 in 1..=262144
+    maximum_context_items: U64 in 0..=128
+    maximum_output_bytes: U64 in 1..=65536
+    maximum_work_units: U64 in 1..=1000000
+    maximum_history_items: U64 in 0..=64
+}
+
 type HouseContextProvenanceClass =
     observed_sign
     | declared_configuration
     | model_derived_history
+
+type WiredHouseContextItem = {
+    item_identity: Text <= 256B not in [""]
+    value_kind: Text <= 256B not in [""]
+    canonical_value: Bytes <= 16384B
+    provenance: HouseContextProvenanceClass
+    source_identity: Text <= 256B not in [""]
+}
+
+type HouseModelRequest = {
+    request_identity: Text <= 84B not in [""]
+    addressed_utterance: Text <= 4096B not in [""]
+    context: sequence WiredHouseContextItem <= 16
+    maximum_output_bytes: U64 in 1..=65536
+}
 
 type RetrievalMechanism =
     vector_similarity
@@ -328,7 +994,12 @@ type RetrievalMechanism =
     | temporal
     | domain_exact
 
-code ai/retrieval-mechanism = RetrievalMechanism as u8
+type RetrieverIdentity = {
+    identity: Text <= 256B not in [""]
+    mechanism: RetrievalMechanism
+}
+
+form ai/retrieval-mechanism = RetrievalMechanism as u8
 
 type RerankingProofClass =
     deterministic_conformance
@@ -340,6 +1011,13 @@ type RerankingStrategy =
         proof_class: RerankingProofClass
         scoring_run_identity: Text <= 256B not in [""]
     }
+
+type RerankingPolicy = {
+    identity: Text <= 256B not in [""]
+    strategy: RerankingStrategy
+    maximum_candidates: U16 in 1..=1024
+    maximum_work_units: U32 in 1..=1048576
+}
 
 type RandomnessProfile =
     deterministic
@@ -357,6 +1035,52 @@ type DrawRelationship =
         profile: Text <= 128B not in [""]
     }
 
+type ProbabilityDigest = collection U8 = 32
+type ChunkIdentity = collection U8 = 32
+
+type SourceRef = {
+    resource: ResourceRef
+}
+
+type RagIdentity = Text <= 256B not in [""]
+type TransformProfiles = sequence RagIdentity <= 16
+
+type ExtractionLineage = {
+    source: SourceRef
+    span: SourceSpan
+    extraction_profile: RagIdentity
+    transform_profiles: TransformProfiles
+    parent_chunk: ChunkIdentity?
+}
+
+type Citation = {
+    source: SourceRef
+    span: SourceSpan
+    chunk_identity: ChunkIdentity
+}
+
+type StochasticProvenance = {
+    model_artifact_identity: ProbabilityDigest
+    checkpoint_identity: ProbabilityDigest?
+    query_identity: ProbabilityDigest
+    randomness: RandomnessProfile
+    draws: DrawRelationship
+}
+
+type ProbabilityClaimProfile =
+    samples
+    | weighted_samples
+    | trajectory_alternatives
+
+type ProbabilitySummary = {
+    claim_profile: ProbabilityClaimProfile
+    result_count: U32
+    model_artifact_identity: ProbabilityDigest
+    query_identity: ProbabilityDigest
+    randomness: RandomnessProfile
+    disposition: ProbabilisticDisposition
+}
+
 type ProbabilisticDisposition =
     exact
     | approximate {
@@ -371,6 +1095,54 @@ type LogScoreKind =
     probability_mass
     | density
     | unnormalized_score
+
+type LogProbability = {
+    natural_log_millionths: I64
+    score_kind: LogScoreKind
+    support_identity: ProbabilityDigest
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type ProbabilitySample = {
+    value: TensorValue
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type ProbabilitySampleSet = {
+    alternatives: sequence TensorValue in 1..=64
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type WeightedSamples = {
+    alternatives: sequence TensorValue in 1..=64
+    weights: sequence U64 in 1..=64
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type MeanVariance = {
+    mean: TensorValue
+    variance: TensorValue
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type MeanCovariance = {
+    mean: TensorValue
+    covariance: TensorValue
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type TrajectoryAlternatives = {
+    observation_identity: ProbabilityDigest
+    plausible_alternatives: sequence SampledSignal in 1..=32
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
 
 type ProbabilityRefusal =
     missing_identity
@@ -461,9 +1233,7 @@ type HybridRetrievalOfferInvalidity =
     | process_identity_too_large
 
 type TemporalContextRefusal =
-    empty_clock_identity
-    | clock_identity_too_large
-    | reversed_validity_interval
+    reversed_validity_interval
     | retrieval_after_reference
     | clock_basis_mismatch
     | source_unavailable
@@ -692,10 +1462,13 @@ type InterpretationInvalidity =
     | text_bound_exceeded
     | missing_hypothesis
     | too_many_implications
-    | invalid_confidence
     | fabricated_evidence_reference
     | resolved_evidence_marked_unresolved
     | invalid_temporal_context
+
+type ProfileReportedConfidence = {
+    score_permille: U16 in 0..=1000
+}
 
 type ContextSelectionRefusal =
     empty_identity
@@ -725,7 +1498,6 @@ type RerankingRefusal =
     | missing_observation
     | duplicate_observation
     | unexpected_observation
-    | zero_observation_work
     | work_bound_exceeded
     | arithmetic_overflow
 
@@ -917,6 +1689,117 @@ type IntegrationAccuracy = {
     where .maximum-estimated-error-millionths > 0
 }
 
+type IntegrationResourceEnvelope = {
+    maximum_state_bytes: U64
+    maximum_context_bytes: U64
+    maximum_output_samples: U32
+    maximum_output_bytes: U64
+    maximum_internal_steps: U64
+    maximum_function_evaluations: U64
+    maximum_work_units: U64
+    memory_ceiling_bytes: U64
+    where .maximum_state_bytes > 0
+    where .maximum_context_bytes > 0
+    where .maximum_output_samples >= 2
+    where .maximum_output_samples <= 65536
+    where .maximum_output_bytes > 0
+    where .maximum_internal_steps > 0
+    where .maximum_function_evaluations > 0
+    where .maximum_work_units > 0
+    where .memory_ceiling_bytes > 0
+}
+
+type ShadowResourceEnvelope = {
+    maximum_runs: U32
+    maximum_input_bytes: U64
+    maximum_output_bytes: U64
+    maximum_work_units: U64
+    where .maximum_runs > 0
+    where .maximum_input_bytes > 0
+    where .maximum_output_bytes > 0
+    where .maximum_work_units > 0
+}
+
+type TrainingResourceEnvelope = {
+    model_bytes: U64
+    working_memory_bytes: U64
+    compute_lanes: U32
+    maximum_batch_items: U32
+    maximum_batch_bytes: U64
+    maximum_steps: U64
+    maximum_work_units: U64
+    maximum_checkpoint_bytes: U64
+    maximum_in_flight_steps: U16
+    where .model_bytes > 0
+    where .working_memory_bytes > 0
+    where .compute_lanes > 0
+    where .maximum_batch_items > 0
+    where .maximum_batch_items <= 4096
+    where .maximum_batch_bytes > 0
+    where .maximum_steps > 0
+    where .maximum_work_units > 0
+    where .maximum_checkpoint_bytes > 0
+    where .maximum_in_flight_steps == 1
+}
+
+type TrainingObjectiveIdentity = Text <= 128B not in [""]
+
+type TrainingObjective = {
+    role: TrainingObjectiveIdentity
+    weight_millionths: U64
+    configuration_identity: TrainingObjectiveIdentity
+    output_identity: TrainingObjectiveIdentity
+    participation: ObjectiveParticipation
+    where .participation is observe_only || .weight_millionths > 0
+}
+
+type TrainingMetric = {
+    output_identity: TrainingObjectiveIdentity
+    value_millionths: I64
+}
+
+type TrainingExampleIdentityPage = Bytes <= 32768B
+type TrainingExampleIdentityPages = sequence TrainingExampleIdentityPage in 1..=4
+type TrainingModality = Text <= 128B not in [""]
+type TrainingModalities = sequence TrainingModality in 1..=32
+type TrainingObjectives = sequence TrainingObjective in 1..=32
+type TrainingCheckpointIdentity = collection U8 = 32
+
+type TrainingBatch = {
+    identity: collection U8 = 32
+    dataset_identity: collection U8 = 32
+    split_identity: Text <= 128B not in [""]
+    example_identities: TrainingExampleIdentityPages
+    present_modalities: TrainingModalities
+    encoded_bytes: U64 in 1..=18446744073709551615
+    order: BatchOrder
+    stochastic_seed: U64?
+}
+
+type TrainingSession = {
+    identity: collection U8 = 32
+    base_artifact_identity: collection U8 = 32
+    base_checkpoint_identity: TrainingCheckpointIdentity?
+    dataset_manifest_identity: collection U8 = 32
+    split_membership_identity: collection U8 = 32
+    objective_profile: Text <= 128B not in [""]
+    objectives: TrainingObjectives
+    randomness: RandomnessProfile
+    precision_profile: Text <= 128B not in [""]
+    model_modalities: TrainingModalities
+    missing_modality_policy: MissingModalityPolicy
+    resources: TrainingResourceEnvelope
+    checkpoint_policy: CheckpointPolicy
+    evaluation_policy: EvaluationPolicy
+}
+
+type TrainStepRequest = {
+    step: U64 in 1..=18446744073709551615
+    expected_generation: U64
+    batch: TrainingBatch
+    admitted_work_units: U64 in 1..=18446744073709551615
+}
+
 type EmbodimentStage =
     perception_only
     | expressive
@@ -925,6 +1808,12 @@ type EmbodimentStage =
 type RerankScore =
     hybrid_fusion U64
     | model_derived I64
+
+type RerankObservation = {
+    chunk_identity: ChunkIdentity
+    score_micros: I64
+    work_units: U32 in 1..=1048576
+}
 
 type MechanismScore =
     similarity_micros I64

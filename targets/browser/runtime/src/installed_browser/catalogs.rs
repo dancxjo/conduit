@@ -10,15 +10,15 @@ pub(crate) enum PresentationProfile {
 }
 
 pub(crate) fn catalogs(
-) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
+) -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
     catalogs_for_presentation(PresentationProfile::Annotation)
 }
 
 pub(crate) fn catalogs_for_presentation(
     presentation: PresentationProfile,
-) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+) -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
@@ -34,7 +34,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_data::install_measurement_summary_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_threshold_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_plot_catalog(&mut startup, &mut profile)?;
-    conduit_data::install_measurement_plot_form_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_plot_source_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_observation_catalog(&mut startup, &mut profile)?;
     conduit_little_seismograph_fixture::install_little_seismograph_fixture_catalog(
         &mut startup,
@@ -71,7 +71,7 @@ pub(crate) fn catalogs_for_presentation(
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
     conduit_presentation::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
-    // Reviewed Forms are checked before realization eligibility is known. Keep
+    // Reviewed Plots are checked before realization eligibility is known. Keep
     // the canonical retained-State contract available to the checker even
     // though this browser profile does not currently offer its Back.
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
@@ -108,7 +108,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
-    conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
+    conduit_tongues::install_house_conversation_plot_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_audio_capture_push_to_talk_catalog(
@@ -122,7 +122,7 @@ pub(crate) fn catalogs_for_presentation(
         "PcmFrames",
         conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
     )?;
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
@@ -141,17 +141,17 @@ pub(crate) fn catalogs_for_presentation(
 }
 
 pub(crate) fn install_checked_structured_selectors(
-    checked: &conduit_form::CheckedSyntaxDocument,
-    profile: &mut conduit_form::ProfileCatalog,
+    checked: &conduit_plot::CheckedSyntaxDocument,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<Vec<CapabilityOffer>, String> {
     let mut offers = Vec::new();
     for selector in checked
-        .forms
+        .plots
         .iter()
-        .flat_map(|form| &form.cords)
+        .flat_map(|plot| &plot.cords)
         .flat_map(|cord| &cord.stages)
         .filter_map(|stage| match stage {
-            conduit_form::CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
+            conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
             _ => None,
         })
     {
@@ -160,7 +160,7 @@ pub(crate) fn install_checked_structured_selectors(
             PortTemporal::Flow { closes: true },
             PortTemporal::Flow { closes: false },
         ] {
-            let definition = conduit_form::structured_selector_definition(selector, temporal);
+            let definition = conduit_plot::structured_selector_definition(selector, temporal);
             if profile.get(&definition.kind_id).is_none() {
                 profile
                     .insert(definition)
@@ -179,13 +179,13 @@ pub(crate) fn install_checked_structured_selectors(
 }
 
 pub(crate) fn offers_for_expanded_pure_expressions(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
 ) -> Result<Vec<CapabilityOffer>, String> {
     let mut offers = Vec::new();
     for gear in &expanded.gears {
         if !matches!(
             gear.kind_contract_revision.as_str(),
-            conduit_form::PURE_EXPRESSION_REVISION | conduit_form::PURE_FILTER_REVISION
+            conduit_plot::PURE_EXPRESSION_REVISION | conduit_plot::PURE_FILTER_REVISION
         ) {
             continue;
         }
@@ -195,7 +195,7 @@ pub(crate) fn offers_for_expanded_pure_expressions(
             .first()
             .map(|port| port.temporal)
             .ok_or("expanded pure expression input is absent")?;
-        let offer = if gear.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+        let offer = if gear.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
             super::pure_expression::filter_offer(&program, temporal)?
         } else {
             super::pure_expression::offer(&program, temporal)?
@@ -211,7 +211,7 @@ pub(crate) fn offers_for_expanded_pure_expressions(
 }
 
 pub(crate) fn offers_for_expanded_time_windows(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
 ) -> Result<Vec<CapabilityOffer>, String> {
     expanded
         .gears
@@ -222,7 +222,7 @@ pub(crate) fn offers_for_expanded_time_windows(
 }
 
 pub(crate) fn offers_for_expanded_flow_collects(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
 ) -> Result<Vec<CapabilityOffer>, String> {
     expanded
         .gears
@@ -233,7 +233,7 @@ pub(crate) fn offers_for_expanded_flow_collects(
 }
 
 pub(crate) fn offers_for_expanded_time_samples(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
 ) -> Result<Vec<CapabilityOffer>, String> {
     expanded
         .gears
@@ -244,12 +244,12 @@ pub(crate) fn offers_for_expanded_time_samples(
 }
 
 pub(crate) fn backs(
-    startup: &conduit_form::StartupCatalog,
-    profile: &conduit_form::ProfileCatalog,
-) -> Result<conduit_form::CanonicalBackCatalog, String> {
-    let mut backs = conduit_form::CanonicalBackCatalog::new();
+    startup: &conduit_plot::StartupCatalog,
+    profile: &conduit_plot::ProfileCatalog,
+) -> Result<conduit_plot::CanonicalBackCatalog, String> {
+    let mut backs = conduit_plot::CanonicalBackCatalog::new();
     conduit_text::install_morse_backs(startup, profile, &mut backs)?;
-    conduit_data::install_measurement_plot_form_back(startup, profile, &mut backs)?;
+    conduit_data::install_measurement_plot_source_back(startup, profile, &mut backs)?;
     conduit_semantic_catalog::install_signal_garden_backs(startup, profile, &mut backs)?;
     conduit_tongues::install_single_shot_streaming_recognition_back(startup, profile, &mut backs)?;
     Ok(backs)
@@ -264,19 +264,19 @@ mod conversation_tests {
         let (startup, profile) = catalogs().unwrap();
         for (source, entry) in [
             (
-                include_str!("../../../../../forms/body-chat/main.conduit"),
+                include_str!("../../../../../plots/body-chat/main.conduit"),
                 "body-chat",
             ),
             (
-                include_str!("../../../../../forms/live-conversation/main.conduit"),
+                include_str!("../../../../../plots/live-conversation/main.conduit"),
                 "spoken-live-conversation",
             ),
         ] {
-            let syntax = conduit_form::parse_syntax_document(source);
+            let syntax = conduit_plot::parse_syntax_document(source);
             assert!(syntax.diagnostics.is_empty());
-            let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+            let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
             let expanded =
-                conduit_form::expand_canonical_form_for_authoring(&checked, entry, &profile)
+                conduit_plot::expand_canonical_plot_for_authoring(&checked, entry, &profile)
                     .unwrap()
                     .expanded;
             assert!(!expanded.gears.is_empty());

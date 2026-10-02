@@ -75,7 +75,7 @@ impl ApplicationEvent {
         let mut encoded = Vec::with_capacity(self.encoded_len());
         encoded.push(APPLICATION_VIEW_VERSION);
         encoded.extend_from_slice(&self.revision.to_le_bytes());
-        encoded.push(crate::ApplicationEventKindCode::encode(self.kind)[0]);
+        encoded.push(crate::ApplicationEventKindForm::encode(self.kind)[0]);
         encoded.push(self.action.len() as u8);
         encoded.extend_from_slice(&(self.value.len() as u32).to_le_bytes());
         encoded.extend_from_slice(self.action.as_bytes());

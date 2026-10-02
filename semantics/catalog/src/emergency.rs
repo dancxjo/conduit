@@ -1,28 +1,28 @@
 //! Portable, reusable observation gears for emergency-key recognition.
 //!
 //! These gears expose bounded detector and sequence semantics to ordinary
-//! Forms without granting emergency-control authority. A safety Host may reuse
+//! Plots without granting emergency-control authority. A safety Host may reuse
 //! the same implementations below Play, but an ordinary gear output is inert
 //! until separately admitted by the out-of-band emergency control plane.
 
 use crate::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::format;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_audio::{AUDIO_PCM_INFO_ID, MAXIMUM_PCM_FRAME_BYTES, PCM_FRAME_HEADER_ENCODED_LEN};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_core::KindIdentity;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
     PortTemporal,
 };
-#[cfg(feature = "form-catalog")]
-use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
+#[cfg(feature = "plot-catalog")]
+use conduit_plot::{KindProjection, KindSignature, StartupParameterSignature};
 
 pub const EMERGENCY_KEYWORD_SPOTTER_KIND: &str = "emergency/keyword-spotter";
 pub const EMERGENCY_SEQUENCE_MATCH_KIND: &str = "emergency/sequence-match";
@@ -99,10 +99,10 @@ pub fn emergency_sequence_match_contract() -> StandardKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_emergency_observation_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     for (contract, revision) in [
         (
@@ -152,7 +152,7 @@ pub fn install_emergency_observation_catalogs(
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn configuration_type(field: &KindConfigurationField) -> &'static str {
     match &field.default_value {
         ConfigurationValue::U64(_) => "Count",
@@ -160,7 +160,7 @@ fn configuration_type(field: &KindConfigurationField) -> &'static str {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn configuration_source(field: &KindConfigurationField) -> String {
     match &field.default_value {
         ConfigurationValue::U64(value) => format!("{value}"),
@@ -213,16 +213,16 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
-    fn emergency_observation_gears_expand_as_an_ordinary_form() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+    fn emergency_observation_gears_expand_as_an_ordinary_plot() {
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         install_emergency_observation_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "form emergency_observation (\n >> audio: audio/pcm-frames@1\n trigger: emergency/trigger-observation@1 >>\n) {\n spotter: emergency/keyword-spotter\n sequence: emergency/sequence-match(maximum-word-gap-millis = 2000)\n audio >> spotter.audio\n spotter.observation >> sequence.observation\n sequence.trigger >> trigger\n}\n";
-        let syntax = conduit_form::parse_syntax_document(source);
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        let expanded = conduit_form::expand_canonical_form_for_authoring(
+        let source = "plot emergency_observation (\n >> audio: audio/pcm-frames@1\n trigger: emergency/trigger-observation@1 >>\n) {\n spotter: emergency/keyword-spotter\n sequence: emergency/sequence-match(maximum-word-gap-millis = 2000)\n audio >> spotter.audio\n spotter.observation >> sequence.observation\n sequence.trigger >> trigger\n}\n";
+        let syntax = conduit_plot::parse_syntax_document(source);
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
             &checked,
             "emergency_observation",
             &profile,

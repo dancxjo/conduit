@@ -14,9 +14,9 @@ use super::demo::{STD_STEP, TRIPLE_STEP};
 
 const LANGUAGE_STEP: Step = Step::new(
     "integrate.language",
-    "Parse, check, and lower representative Forms",
+    "Parse, check, and lower representative Plots",
     "cargo",
-    &["test", "-p", "conduit-form", "--test", "structured_values"],
+    &["test", "-p", "conduit-plot", "--test", "structured_values"],
 );
 
 const BODY_STEP: Step = Step::new(
@@ -48,7 +48,7 @@ const PATCHBAY_STEP: Step = Step::new(
     &[
         "test",
         "-p",
-        "patchbay-model",
+        "conduit-patchbay-workbench",
         "--test",
         "body_button_planning",
     ],
@@ -92,10 +92,10 @@ const CHECKS: &[IntegrationCheck] = &[
     IntegrationCheck {
         label: "language",
         step: &LANGUAGE_STEP,
-        reproduce: "cargo test -p conduit-form --test structured_values",
+        reproduce: "cargo test -p conduit-plot --test structured_values",
     },
     IntegrationCheck {
-        label: "planner/kernel, std Host, representative Form",
+        label: "planner/kernel, std Host, representative Plot",
         step: &STD_STEP,
         reproduce: "cargo xtask prove journey std",
     },
@@ -122,7 +122,7 @@ const CHECKS: &[IntegrationCheck] = &[
     IntegrationCheck {
         label: "Patchbay",
         step: &PATCHBAY_STEP,
-        reproduce: "cargo test -p patchbay-model --test body_button_planning",
+        reproduce: "cargo test -p conduit-patchbay-workbench --test body_button_planning",
     },
 ];
 

@@ -10,7 +10,7 @@ use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     BoundedResourceRef, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersonRow<'a> {
@@ -160,7 +160,7 @@ fn person_row_slot(row: &PersonRow<'_>) -> Result<TabularPersonRowSlot, TabularR
     TabularPersonRowSlot::row(row.active, row.id, row.name.to_string(), nickname)
         .map_err(native_error)
 }
-fn native_error(_: conduit_form::rust_binding::NativeBindingRefusal) -> TabularRefusal {
+fn native_error(_: conduit_plot::rust_binding::NativeBindingRefusal) -> TabularRefusal {
     TabularRefusal::MalformedInfo
 }
 

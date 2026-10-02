@@ -381,9 +381,9 @@ fn validate_plan_report(
         return Err(BodyCausalEvidenceRefusal::MismatchedBodyPlan);
     }
     let fragments = plan
-        .forms
+        .plots
         .iter()
-        .flat_map(|form| &form.plan.fragments)
+        .flat_map(|plot| &plot.plan.fragments)
         .collect::<Vec<_>>();
     if fragments.len() != report.partitions.len() {
         return Err(BodyCausalEvidenceRefusal::MismatchedIdentityMap);
@@ -455,9 +455,9 @@ fn resolve_event<'a>(
     }
     let (map, placement_id) = matches[0];
     let fragment = plan
-        .forms
+        .plots
         .iter()
-        .flat_map(|form| &form.plan.fragments)
+        .flat_map(|plot| &plot.plan.fragments)
         .find(|fragment| fragment.plan_id == map.plan_id && fragment.fragment_id == map.fragment_id)
         .ok_or(BodyCausalEvidenceRefusal::MismatchedIdentityMap)?;
     let placement = fragment

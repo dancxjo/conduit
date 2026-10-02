@@ -1,14 +1,16 @@
 use conduit_ai::{
     Chunk, ClockBasis, EntityBoundary, ExtractionLineage, FusionStrategy, HybridFusionPolicy,
-    HybridRetrievalOutcome, HybridRetrievalRefusal, MechanismScore, RetrievalMechanism,
-    RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate,
-    TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalProvenance, TemporalReference,
-    TemporalRetrievalIntent, TemporalSource, TemporalValidity,
+    HybridRequiredMechanisms, HybridRetrievalOutcome, HybridRetrievalRefusal, MechanismScore,
+    RagIdentity, RetrievalMechanism, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan,
+    SourceSpanUnit, StageCandidate, TemporalEvidenceBatch, TemporalEvidenceCandidate,
+    TemporalEvidenceCandidates, TemporalEvidenceIdentity, TemporalProvenance, TemporalReference,
+    TemporalRetrievalIntent, TemporalSource, TemporalValidity, TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn chunk(source_identity: u8, version: u8, start: u64, value: &str) -> Chunk<String> {
     Chunk::new(
@@ -28,13 +30,9 @@ fn chunk(source_identity: u8, version: u8, start: u64, value: &str) -> Chunk<Str
                     },
                 },
             },
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start,
-                end: start + 20,
-            },
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + 20).unwrap(),
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         value.into(),
@@ -62,37 +60,37 @@ fn stage(
     candidates: Vec<StageCandidate<String>>,
 ) -> RetrievalStage<String> {
     RetrievalStage {
-        retriever: RetrieverIdentity {
-            identity: identity.into(),
-            mechanism,
-        },
+        retriever: RetrieverIdentity::new(identity.into(), mechanism).unwrap(),
         work_units: candidates.len() as u32,
         candidates,
     }
 }
 
 fn policy(temporal: bool) -> HybridFusionPolicy {
-    HybridFusionPolicy {
-        identity: if temporal {
+    HybridFusionPolicy::from_parts(
+        if temporal {
             "fusion/rrf-with-hard-origin@1"
         } else {
             "fusion/rrf@1"
         }
         .into(),
-        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
-        required_mechanisms: vec![
+        FusionStrategy::reciprocal_rank(60).unwrap(),
+        vec![
             RetrievalMechanism::VectorSimilarity,
             RetrievalMechanism::Lexical,
             RetrievalMechanism::Metadata,
             RetrievalMechanism::Temporal,
         ],
-        temporal_hard_filter: temporal.then_some(TemporalRetrievalIntent::DurationSince {
-            boundary: EntityBoundary::Created,
-        }),
-        maximum_candidates_per_stage: 8,
-        maximum_output_candidates: 8,
-        maximum_total_work_units: 32,
-    }
+        temporal.then(|| TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap()),
+        8,
+        8,
+        32,
+    )
+    .unwrap()
+}
+
+fn required(values: impl IntoIterator<Item = RetrievalMechanism>) -> HybridRequiredMechanisms {
+    HybridRequiredMechanisms::new(BoundedSequence::try_from_iter(values).unwrap()).unwrap()
 }
 
 fn provenance(event_at: u64) -> TemporalProvenance {
@@ -116,24 +114,28 @@ fn evidence(complete: bool) -> TemporalEvidenceBatch {
             reference_at: 1_000,
             clock_basis: ClockBasis::UnixEpochMilliseconds,
         },
-        candidates: vec![
-            TemporalEvidenceCandidate {
-                identity: "summary/recent".into(),
-                provenance: provenance(900),
-                source: TemporalSource::Event,
-                boundary: None,
-                transition: None,
-                validity: TemporalValidity::Current,
-            },
-            TemporalEvidenceCandidate {
-                identity: "project/created".into(),
-                provenance: provenance(100),
-                source: TemporalSource::Event,
-                boundary: Some(EntityBoundary::Created),
-                transition: None,
-                validity: TemporalValidity::Historical,
-            },
-        ],
+        candidates: TemporalEvidenceCandidates::new(
+            BoundedSequence::try_from_iter([
+                TemporalEvidenceCandidate {
+                    identity: TemporalEvidenceIdentity::new("summary/recent".into()).unwrap(),
+                    provenance: provenance(900),
+                    source: TemporalSource::Event,
+                    boundary: None,
+                    transition: None,
+                    validity: TemporalValidity::Current,
+                },
+                TemporalEvidenceCandidate {
+                    identity: TemporalEvidenceIdentity::new("project/created".into()).unwrap(),
+                    provenance: provenance(100),
+                    source: TemporalSource::Event,
+                    boundary: Some(EntityBoundary::Created),
+                    transition: None,
+                    validity: TemporalValidity::Historical,
+                },
+            ])
+            .unwrap(),
+        )
+        .unwrap(),
         earliest_history_complete: complete,
     }
 }
@@ -214,7 +216,7 @@ fn vector_lexical_metadata_and_temporal_paths_fuse_with_exact_provenance() {
     assert!(candidates[0]
         .contributions
         .iter()
-        .any(|path| path.retriever.mechanism == RetrievalMechanism::VectorSimilarity));
+        .any(|path| *path.retriever.mechanism() == RetrievalMechanism::VectorSimilarity));
     assert!(candidates[0]
         .contributions
         .iter()
@@ -224,9 +226,18 @@ fn vector_lexical_metadata_and_temporal_paths_fuse_with_exact_provenance() {
 #[test]
 fn recent_semantic_page_cannot_masquerade_as_historical_origin() {
     let mut recent_only = evidence(false);
-    recent_only
-        .candidates
-        .retain(|candidate| candidate.identity == "summary/recent");
+    recent_only.candidates = TemporalEvidenceCandidates::new(
+        BoundedSequence::try_from_iter(
+            recent_only
+                .candidates
+                .get()
+                .iter()
+                .filter(|candidate| candidate.identity.get() == "summary/recent")
+                .cloned(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     assert_eq!(
         policy(true).fuse(&combined_stages(), Some(&recent_only)),
         Ok(HybridRetrievalOutcome::NeedEarlierHistory)
@@ -236,10 +247,10 @@ fn recent_semantic_page_cannot_masquerade_as_historical_origin() {
 #[test]
 fn provider_scores_remain_local_and_do_not_define_fusion_order() {
     let mut policy = policy(false);
-    policy.required_mechanisms = vec![
+    policy.required_mechanisms = required([
         RetrievalMechanism::VectorSimilarity,
         RetrievalMechanism::Lexical,
-    ];
+    ]);
     let stages = &combined_stages()[..2];
     let first = policy.fuse(stages, None).unwrap();
     let second = policy.fuse(stages, None).unwrap();
@@ -278,10 +289,10 @@ fn deduplication_preserves_changed_source_versions_as_distinct_truth() {
         ),
     ];
     let mut policy = policy(false);
-    policy.required_mechanisms = vec![
+    policy.required_mechanisms = required([
         RetrievalMechanism::VectorSimilarity,
         RetrievalMechanism::Lexical,
-    ];
+    ]);
     let HybridRetrievalOutcome::Candidates(candidates) = policy.fuse(&stages, None).unwrap() else {
         panic!("fusion must produce candidates");
     };
@@ -296,9 +307,13 @@ fn deduplication_preserves_changed_source_versions_as_distinct_truth() {
 fn required_mechanisms_stage_bounds_and_work_pressure_fail_closed() {
     let stages = combined_stages();
     let mut missing = policy(false);
-    missing
-        .required_mechanisms
-        .push(RetrievalMechanism::DomainExact);
+    missing.required_mechanisms = required([
+        RetrievalMechanism::VectorSimilarity,
+        RetrievalMechanism::Lexical,
+        RetrievalMechanism::Metadata,
+        RetrievalMechanism::Temporal,
+        RetrievalMechanism::DomainExact,
+    ]);
     assert_eq!(
         missing.fuse(&stages, None),
         Err(HybridRetrievalRefusal::MissingRequiredMechanism)
@@ -338,7 +353,7 @@ fn malformed_ranks_duplicate_stage_chunks_and_temporal_identity_leaks_refuse() {
         ],
     )];
     let mut one = policy(false);
-    one.required_mechanisms = vec![RetrievalMechanism::VectorSimilarity];
+    one.required_mechanisms = required([RetrievalMechanism::VectorSimilarity]);
     assert_eq!(
         one.fuse(&duplicate, None),
         Err(HybridRetrievalRefusal::DuplicateChunkInStage)
@@ -353,4 +368,21 @@ fn malformed_ranks_duplicate_stage_chunks_and_temporal_identity_leaks_refuse() {
         one.fuse(&leaked, None),
         Err(HybridRetrievalRefusal::UnexpectedTemporalEvidenceIdentity)
     );
+}
+
+#[test]
+fn retriever_identity_is_native_and_exactly_bounded() {
+    for length in [1, 256] {
+        let retriever =
+            RetrieverIdentity::new("x".repeat(length), RetrievalMechanism::Lexical).unwrap();
+        assert_eq!(retriever.identity().len(), length);
+        assert_eq!(
+            RetrieverIdentity::from_structured(retriever.clone().into_structured().unwrap())
+                .unwrap(),
+            retriever
+        );
+    }
+    assert!(RetrieverIdentity::new(String::new(), RetrievalMechanism::Lexical).is_err());
+    assert!(RetrieverIdentity::new("x".repeat(257), RetrievalMechanism::Lexical).is_err());
+    assert!(!include_str!("../src/hybrid_retrieval.rs").contains("pub struct RetrieverIdentity"));
 }

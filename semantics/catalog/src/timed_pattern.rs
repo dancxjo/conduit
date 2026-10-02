@@ -7,31 +7,24 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PortTemporal, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{rust_binding::NativeRustBinding, KindProjection, KindSignature};
 pub use conduit_time::TimedPatternRefusal;
 
 pub const TIMED_EVENT_SEQUENCE_TYPE: &str = "TimedEventSequence";
 pub const INTERVAL_SEQUENCE_TYPE: &str = "IntervalSequence";
 pub const ORDERED_EVENT_INTERVALS_KIND: &str = "time/ordered-event-intervals";
 pub const ORDERED_EVENT_INTERVALS_REVISION: &str = "conduit.std/ordered-event-intervals@1";
-pub const CLOCK_BASIS_INFO_ID: &str = "time/clock-basis@1";
-pub const EVENT_TIMES_INFO_ID: &str = "time/ordered-microsecond-sequence@1";
-pub const INTERVALS_INFO_ID: &str = "time/microsecond-interval-sequence@1";
 pub const MAXIMUM_TIMED_EVENTS: usize = 16;
 
 pub fn timed_event_sequence_type() -> StructuredInfoType {
-    sequence_record_type(
-        "time/timed-event-sequence@1",
-        "event_times",
-        EVENT_TIMES_INFO_ID,
-    )
+    conduit_time::TimedEventSequence::semantic_type().expect("checked timed event sequence Type")
 }
 
 pub fn interval_sequence_type() -> StructuredInfoType {
-    sequence_record_type("time/interval-sequence@1", "intervals", INTERVALS_INFO_ID)
+    conduit_time::IntervalSequence::semantic_type().expect("checked interval sequence Type")
 }
 
 pub fn ordered_event_intervals_definition() -> KindProjection {
@@ -72,8 +65,8 @@ pub fn ordered_event_intervals_semantic_contract() -> Kind {
 }
 
 pub fn install_timed_pattern_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(TIMED_EVENT_SEQUENCE_TYPE, timed_event_sequence_type())
@@ -100,7 +93,6 @@ pub fn timed_event_sequence_value(
     sequence_value(
         timed_event_sequence_type(),
         "event_times",
-        EVENT_TIMES_INFO_ID,
         clock_basis,
         event_times,
     )
@@ -127,7 +119,6 @@ pub fn derive_intervals(
     sequence_value(
         interval_sequence_type(),
         "intervals",
-        INTERVALS_INFO_ID,
         core::str::from_utf8(clock_basis).map_err(|_| TimedPatternRefusal::Malformed)?,
         &intervals,
     )
@@ -147,25 +138,6 @@ pub fn decode_intervals(
     Ok((basis, intervals))
 }
 
-fn sequence_record_type(schema: &str, field_name: &str, sequence_kind: &str) -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id(schema),
-        vec![
-            StructuredFieldType::new(
-                "clock_basis",
-                StructuredInfoType::leaf(kind_id(CLOCK_BASIS_INFO_ID)).unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldType::new(
-                field_name,
-                StructuredInfoType::leaf(kind_id(sequence_kind)).unwrap(),
-            )
-            .unwrap(),
-        ],
-    )
-    .unwrap()
-}
-
 fn value_port(
     name: &str,
     value_type: &StructuredInfoType,
@@ -183,37 +155,24 @@ fn value_port(
 fn sequence_value(
     value_type: StructuredInfoType,
     sequence_field: &str,
-    sequence_kind: &str,
     clock_basis: &str,
     values: &[u64],
 ) -> Result<StructuredInfoValue, TimedPatternRefusal> {
     if clock_basis.is_empty() {
         return Err(TimedPatternRefusal::Malformed);
     }
-    StructuredInfoValue::record(
-        value_type,
-        vec![
-            StructuredFieldValue::new(
-                "clock_basis",
-                StructuredInfoValue::leaf(
-                    StructuredInfoType::leaf(kind_id(CLOCK_BASIS_INFO_ID)).unwrap(),
-                    clock_basis.as_bytes().to_vec(),
-                )
-                .map_err(|_| TimedPatternRefusal::Malformed)?,
-            )
-            .map_err(|_| TimedPatternRefusal::Malformed)?,
-            StructuredFieldValue::new(
-                sequence_field,
-                StructuredInfoValue::leaf(
-                    StructuredInfoType::leaf(kind_id(sequence_kind)).unwrap(),
-                    encode_sequence(values).into_bytes(),
-                )
-                .map_err(|_| TimedPatternRefusal::Malformed)?,
-            )
-            .map_err(|_| TimedPatternRefusal::Malformed)?,
-        ],
-    )
-    .map_err(|_| TimedPatternRefusal::Malformed)
+    let encoded = encode_sequence(values);
+    let value = match sequence_field {
+        "event_times" => conduit_time::TimedEventSequence::new(clock_basis.into(), encoded)
+            .and_then(NativeRustBinding::into_structured),
+        "intervals" => conduit_time::IntervalSequence::new(clock_basis.into(), encoded)
+            .and_then(NativeRustBinding::into_structured),
+        _ => return Err(TimedPatternRefusal::Malformed),
+    }
+    .map_err(|_| TimedPatternRefusal::Malformed)?;
+    (value.value_type() == &value_type)
+        .then_some(value)
+        .ok_or(TimedPatternRefusal::Malformed)
 }
 
 fn validate_event_times(values: &[u64]) -> Result<(), TimedPatternRefusal> {

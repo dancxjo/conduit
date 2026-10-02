@@ -5,7 +5,7 @@ use alloc::{string::String, vec::Vec};
 use crate::{
     EvaluationDisposition, HumanAssessmentDisposition, LearnedLifecycleRefusal,
     ModelInvocationEvidence, PromotionDecision, PromotionTerminal, RollbackTerminal,
-    ShadowTerminal,
+    ShadowResourceEnvelope, ShadowTerminal,
 };
 
 pub const MAXIMUM_LIFECYCLE_METRICS: usize = 32;
@@ -18,14 +18,6 @@ pub struct LearnedRealizationIdentity {
     pub checkpoint: Option<[u8; 32]>,
     pub signature: [u8; 32],
     pub provider: [u8; 32],
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ShadowResourceEnvelope {
-    pub maximum_runs: u32,
-    pub maximum_input_bytes: u64,
-    pub maximum_output_bytes: u64,
-    pub maximum_work_units: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -171,13 +163,6 @@ impl ShadowContract {
         if self.baseline.signature != self.candidate.signature {
             return Err(LearnedLifecycleRefusal::IncompatibleSignature);
         }
-        if self.resources.maximum_runs == 0
-            || self.resources.maximum_input_bytes == 0
-            || self.resources.maximum_output_bytes == 0
-            || self.resources.maximum_work_units == 0
-        {
-            return Err(LearnedLifecycleRefusal::UnboundedResources);
-        }
         text(&self.candidate_output_route)?;
         if self.protected_effect_routes.len() > 32
             || self
@@ -225,9 +210,9 @@ impl ShadowContract {
             || run.consumed_input_bytes == 0
             || run.consumed_output_bytes == 0
             || run.consumed_work_units == 0
-            || run.consumed_input_bytes > self.resources.maximum_input_bytes
-            || run.consumed_output_bytes > self.resources.maximum_output_bytes
-            || run.consumed_work_units > self.resources.maximum_work_units
+            || run.consumed_input_bytes > self.resources.maximum_input_bytes()
+            || run.consumed_output_bytes > self.resources.maximum_output_bytes()
+            || run.consumed_work_units > self.resources.maximum_work_units()
         {
             return Err(LearnedLifecycleRefusal::ResourceBoundExceeded);
         }
@@ -244,7 +229,7 @@ impl CandidateEvaluation {
             || self.candidate != contract.candidate
             || self.shared_input_set_identity != contract.shared_input_set_identity
             || self.shadow_run_identities.is_empty()
-            || self.shadow_run_identities.len() > contract.resources.maximum_runs as usize
+            || self.shadow_run_identities.len() > contract.resources.maximum_runs() as usize
             || self.shadow_run_identities.contains(&[0; 32])
             || self.metrics.is_empty()
             || self.metrics.len() > MAXIMUM_LIFECYCLE_METRICS

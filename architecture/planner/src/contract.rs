@@ -65,7 +65,7 @@ pub struct PlanningOptions<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlannerError {
-    InvalidFormIdentity(String),
+    InvalidPlotIdentity(String),
     PlannerCapabilityNotAdvertised(String),
     PlannerCapabilityAmbiguous(String),
     PlannerLimitExceeded(String),
@@ -117,7 +117,7 @@ pub enum PlannerError {
 impl core::fmt::Display for PlannerError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::InvalidFormIdentity(value) => write!(f, "invalid form identity: {value}"),
+            Self::InvalidPlotIdentity(value) => write!(f, "invalid plot identity: {value}"),
             Self::PlannerCapabilityNotAdvertised(value) => {
                 write!(f, "planner capability not advertised: {value}")
             }

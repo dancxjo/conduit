@@ -1,7 +1,7 @@
 use super::*;
 use conduit_core::TemporalScale;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
 };
 
 fn instant(ticks: u64) -> TemporalInstant {
@@ -23,7 +23,7 @@ fn observed<T>(value: T, sign: &str, ticks: u64) -> SituationInput<T> {
 }
 
 #[test]
-fn three_typed_families_form_one_finite_situation_with_exact_provenance() {
+fn three_typed_families_plot_one_finite_situation_with_exact_provenance() {
     let situation = select_pete_situation(
         instant(1_100),
         500,
@@ -123,14 +123,14 @@ fn temporal_uncertainty_cannot_be_promoted_to_current() {
 }
 
 #[test]
-fn canonical_pete_situation_is_one_checked_open_form() {
-    let source = include_str!("../../../forms/pete-situation/main.conduit");
+fn canonical_pete_situation_is_one_checked_open_plot() {
+    let source = include_str!("../../../plots/pete-situation/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_pete_situation_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "pete-situation", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "pete-situation", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 3);
     assert_eq!(authored.output_bindings.len(), 1);
     assert_eq!(authored.expanded.gears.len(), 1);

@@ -19,45 +19,44 @@ impl ScientificObservation {
         push_optional_text(&mut bytes, self.clock_identity.as_deref());
         push_optional_text(&mut bytes, self.coordinate_frame.as_deref());
         match &self.value {
-            ObservationValue::Tensor(value) => {
+            ObservationValue::Tensor(payload) => {
                 bytes.push(0);
                 bytes.extend_from_slice(
-                    &value
+                    &payload
+                        .value()
                         .semantic_digest()
                         .map_err(|_| ScientificObservationRefusal::InvalidValue)?,
                 );
             }
-            ObservationValue::SampledSignal(value) => {
+            ObservationValue::SampledSignal(payload) => {
                 bytes.push(1);
                 bytes.extend_from_slice(
-                    &value
+                    &payload
+                        .value()
                         .semantic_digest()
                         .map_err(|_| ScientificObservationRefusal::InvalidValue)?,
                 );
             }
         }
         match &self.provenance {
-            ObservationProvenance::Measured {
-                source,
-                measurement_profile,
-            } => {
+            ObservationProvenance::Measured(provenance) => {
                 bytes.push(0);
                 bytes.extend_from_slice(
-                    &source
+                    &provenance
+                        .source()
                         .semantic_digest()
                         .map_err(|_| ScientificObservationRefusal::MissingSource)?,
                 );
-                push_text(&mut bytes, measurement_profile);
+                push_text(&mut bytes, provenance.measurement_profile());
             }
-            ObservationProvenance::Derived {
-                source_observations,
-                transform_identity,
-                realization_profile,
-            } => {
+            ObservationProvenance::Derived(provenance) => {
                 bytes.push(1);
-                push_digests(&mut bytes, source_observations);
-                push_text(&mut bytes, transform_identity);
-                push_text(&mut bytes, realization_profile);
+                push_len(&mut bytes, provenance.source_observations().len());
+                for identity in provenance.source_observations() {
+                    bytes.extend_from_slice(identity.get());
+                }
+                push_text(&mut bytes, provenance.transform_identity());
+                push_text(&mut bytes, provenance.realization_profile());
             }
         }
         Ok(semantic_digest("science/observation@1", &bytes))
@@ -128,7 +127,7 @@ impl CoordinateFrame {
         push_text(&mut bytes, &self.identity);
         push_len(&mut bytes, self.axes.len());
         for axis in &self.axes {
-            push_text(&mut bytes, axis);
+            push_text(&mut bytes, axis.get());
         }
         push_text(&mut bytes, quantity_unit_name(self.unit));
         Ok(semantic_digest("science/coordinate-frame@1", &bytes))
@@ -158,7 +157,10 @@ impl CalibrationTransform {
                 .semantic_digest()
                 .map_err(|_| ScientificAlignmentRefusal::InvalidCalibration)?,
         );
-        push_digests(&mut bytes, &self.calibration_sources);
+        push_len(&mut bytes, self.calibration_sources.len());
+        for identity in &self.calibration_sources {
+            bytes.extend_from_slice(identity.get());
+        }
         push_text(&mut bytes, &self.method_profile);
         Ok(semantic_digest("science/calibration-transform@1", &bytes))
     }
@@ -177,7 +179,7 @@ impl AlignedTrainingView {
             &self
                 .derived_observation
                 .semantic_digest()
-                .map_err(ScientificAlignmentRefusal::Observation)?,
+                .map_err(ScientificAlignmentRefusal::from)?,
         );
         Ok(semantic_digest("science/aligned-training-view@1", &bytes))
     }
@@ -220,18 +222,14 @@ impl DatasetSplitMembership {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.dataset_identity);
         push_text(&mut bytes, &self.split_identity);
-        push_digests(&mut bytes, &self.examples);
+        push_len(&mut bytes, self.identities().count());
+        for identity in self.identities() {
+            bytes.extend_from_slice(identity.get());
+        }
         Ok(semantic_digest(
             "science/dataset-split-membership@1",
             &bytes,
         ))
-    }
-}
-
-fn push_digests(output: &mut Vec<u8>, values: &[[u8; 32]]) {
-    push_len(output, values.len());
-    for value in values {
-        output.extend_from_slice(value);
     }
 }
 
@@ -260,7 +258,7 @@ fn time_unit_tag(unit: conduit_core::QuantityUnit) -> u8 {
         conduit_core::QuantityUnit::Microsecond => 1,
         conduit_core::QuantityUnit::Millisecond => 2,
         conduit_core::QuantityUnit::Second => 3,
-        _ => unreachable!("validated clock error is a time quantity"),
+        other => other.encode()[0],
     }
 }
 
@@ -270,6 +268,6 @@ fn quantity_unit_name(unit: conduit_core::QuantityUnit) -> &'static str {
         conduit_core::QuantityUnit::Millimeter => "millimeter",
         conduit_core::QuantityUnit::Centimeter => "centimeter",
         conduit_core::QuantityUnit::Meter => "meter",
-        _ => unreachable!("validated coordinate frame is spatial"),
+        other => other.semantic_id(),
     }
 }

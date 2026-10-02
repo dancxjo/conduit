@@ -53,7 +53,7 @@ mod radio;
 mod uart_diagnostic;
 // Compile the exact sealed capstone operations and fixed production-kernel
 // topology from their canonical source.  The firmware must not grow a second,
-// Pico-shaped scheduler or a lookalike copy of the portable form.
+// Pico-shaped scheduler or a lookalike copy of the portable plot.
 #[path = "../../../../../../bodies/pete/src/proof/capstone_kernel.rs"]
 mod capstone_kernel;
 #[path = "../../../../../../bodies/pete/src/proof/capstone_operations.rs"]
@@ -433,7 +433,7 @@ async fn qualification_task(mut class: InertCdc, charging_indicator: Input<'stat
     let mut ready: String<512> = String::new();
     let _ = writeln!(
         ready,
-        "{{\"schema\":\"conduit.pete/capstone-ready@1\",\"bringup_stage\":{},\"stage_complete\":{},\"qualification_complete\":false,\"robot_control_ready\":{},\"create_link_fresh\":{},\"create_packets\":{},\"ready_cue_command_sent\":{},\"form\":\"pete-capstone\",\"kernel\":\"conduit-kernel\",\"oi_exposed\":false}}",
+        "{{\"schema\":\"conduit.pete/capstone-ready@1\",\"bringup_stage\":{},\"stage_complete\":{},\"qualification_complete\":false,\"robot_control_ready\":{},\"create_link_fresh\":{},\"create_packets\":{},\"ready_cue_command_sent\":{},\"plot\":\"pete-capstone\",\"kernel\":\"conduit-kernel\",\"oi_exposed\":false}}",
         BRINGUP_STAGE,
         stage_complete,
         create_ready,

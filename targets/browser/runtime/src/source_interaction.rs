@@ -1,4 +1,4 @@
-//! Typed, bounded authoring interaction for one editable inline Form.
+//! Typed, bounded authoring interaction for one editable inline Plot.
 
 use conduit_core::KindId;
 use conduit_human::{
@@ -36,7 +36,7 @@ pub(super) fn admit_source(
         &contract,
         &current,
         sequence,
-        InteractionProposalPayload::Values(vec![value]),
+        InteractionProposalPayload::selected(vec![value]).map_err(debug_error)?,
     )
     .map_err(debug_error)?;
     let mut flow = TypedInteractionFlow::new(contract.clone(), current.clone(), None, 1, 1)
@@ -65,10 +65,7 @@ pub(super) fn admit_source(
 fn source_contract() -> Result<InteractionContract, String> {
     InteractionContract::new(
         "interaction/executable-tour-source",
-        InteractionFamily::Text {
-            maximum_bytes: SOURCE_INTERACTION_MAXIMUM_BYTES,
-            allow_empty: false,
-        },
+        InteractionFamily::text_value(SOURCE_INTERACTION_MAXIMUM_BYTES, false),
     )
     .map_err(debug_error)
 }
@@ -88,7 +85,7 @@ mod tests {
 
     #[test]
     fn accepted_evidence_retains_bounds_and_identities_but_not_plaintext() {
-        let source = b"form secret { value: text/literal(\"do not retain\") }";
+        let source = b"plot secret { value: text/literal(\"do not retain\") }";
         let evidence = admit_source(source, 7).unwrap();
         assert_eq!(evidence.disposition, "accepted");
         assert_eq!(evidence.sequence, 7);
@@ -115,22 +112,24 @@ mod tests {
             &contract,
             &current,
             1,
-            InteractionProposalPayload::Values(vec![InteractionValue::new(
+            InteractionProposalPayload::selected(vec![InteractionValue::new(
                 KindId::from(conduit_human::TEXT_INFO_ID),
                 b"one".to_vec(),
             )
-            .unwrap()]),
+            .unwrap()])
+            .unwrap(),
         )
         .unwrap();
         let next = HumanInteractionProposal::new(
             &contract,
             &current,
             2,
-            InteractionProposalPayload::Values(vec![InteractionValue::new(
+            InteractionProposalPayload::selected(vec![InteractionValue::new(
                 KindId::from(conduit_human::TEXT_INFO_ID),
                 b"two".to_vec(),
             )
-            .unwrap()]),
+            .unwrap()])
+            .unwrap(),
         )
         .unwrap();
         let mut flow = TypedInteractionFlow::new(contract, current, None, 1, 1).unwrap();

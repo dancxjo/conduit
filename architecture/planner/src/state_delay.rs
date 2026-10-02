@@ -7,11 +7,11 @@ use alloc::vec::Vec;
 use conduit_core::{
     state_resource_budget, GearId, PlannedStateBoundary, StatePlanError, StateResourceBudget,
 };
-use conduit_form::{CheckedConnection, CheckedForm};
+use conduit_plot::{CheckedConnection, CheckedPlot};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedStateGraph {
-    pub form_identity: conduit_core::FormIdentity,
+    pub plot_identity: conduit_core::PlotIdentity,
     pub startup_order: Vec<GearId>,
     pub states: Vec<PlannedStateBoundary>,
     pub resources: StateResourceBudget,
@@ -19,7 +19,7 @@ pub struct AdmittedStateGraph {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StateGraphError {
-    InvalidForm,
+    InvalidPlot,
     InvalidPlan,
     StateAlreadySealed,
     InvalidStatePlan(StatePlanError),
@@ -33,16 +33,16 @@ pub enum StateGraphError {
 
 /// Validates one logical step. Connections entering a declared state are the
 /// candidate-next edge and are cut for cycle checking; all other edges remain
-/// ordinary and must form a DAG.
+/// ordinary and must plot a DAG.
 pub fn admit_state_graph(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     states: Vec<PlannedStateBoundary>,
 ) -> Result<AdmittedStateGraph, StateGraphError> {
-    form.validate_identities()
-        .map_err(|_| StateGraphError::InvalidForm)?;
+    plot.validate_identities()
+        .map_err(|_| StateGraphError::InvalidPlot)?;
     let resources = state_resource_budget(&states).map_err(StateGraphError::InvalidStatePlan)?;
     for state in &states {
-        let gear = form
+        let gear = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id == state.gear_id)
@@ -58,7 +58,7 @@ pub fn admit_state_graph(
         if !current_matches || !next_matches {
             return Err(StateGraphError::KindMismatch);
         }
-        let writers = form
+        let writers = plot
             .connections
             .iter()
             .filter(|connection| connection.sink_gear_id == state.gear_id)
@@ -74,17 +74,17 @@ pub fn admit_state_graph(
         .map(|state| state.gear_id.clone())
         .collect::<BTreeSet<_>>();
     let order = acyclic_order(
-        &form
+        &plot
             .gears
             .iter()
             .map(|gear| gear.gear_id.clone())
             .collect::<Vec<_>>(),
-        &form.connections,
+        &plot.connections,
         &state_gears,
     )
     .ok_or(StateGraphError::OrdinaryCycle)?;
     Ok(AdmittedStateGraph {
-        form_identity: form.identity(),
+        plot_identity: plot.identity(),
         startup_order: order,
         states,
         resources,

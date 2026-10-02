@@ -21,16 +21,16 @@ struct WorkloadClosureReport {
     planning_closure_proven: bool,
     source_identity: String,
     initial_workload_revision: u64,
-    initial_forms: Vec<FormReport>,
-    later_navigation_form: String,
+    initial_plots: Vec<PlotReport>,
+    later_navigation_plot: String,
     hosts: Vec<HostReport>,
 }
 
 #[derive(Serialize)]
-struct FormReport {
+struct PlotReport {
     role: &'static str,
     source_document_id: String,
-    checked_form_id: String,
+    checked_plot_id: String,
     required_kinds: Vec<String>,
     may_request_motion: bool,
 }
@@ -58,7 +58,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would check Pete's reviewed forms and target-owned Host profiles without accessing physical devices"
+                "would check Pete's reviewed plots and target-owned Host profiles without accessing physical devices"
             );
         }
         return Ok(());
@@ -118,14 +118,14 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
             bounds: serde_json::to_value(image.manifest.bounds)?,
         });
     }
-    let initial_forms = workload
-        .resident_forms
+    let initial_plots = workload
+        .resident_plots
         .iter()
-        .filter(|item| workload.initial.contains(&item.form))
-        .map(|item| FormReport {
+        .filter(|item| workload.initial.contains(&item.plot))
+        .map(|item| PlotReport {
             role: workload_role(item.role),
-            source_document_id: item.form.source_document_id.as_str().to_owned(),
-            checked_form_id: item.form.checked_form_id.as_str().to_owned(),
+            source_document_id: item.plot.source_document_id.as_str().to_owned(),
+            checked_plot_id: item.plot.checked_plot_id.as_str().to_owned(),
             required_kinds: item
                 .required_kinds
                 .iter()
@@ -142,16 +142,16 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
         planning_closure_proven: false,
         source_identity,
         initial_workload_revision: 0,
-        initial_forms,
-        later_navigation_form: workload.navigation.checked_form_id.as_str().to_owned(),
+        initial_plots,
+        later_navigation_plot: workload.navigation.checked_plot_id.as_str().to_owned(),
         hosts,
     };
     if opts.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else if !opts.quiet {
         println!(
-            "Pete workload closure checked: {} initial Forms, {} Host roles; no physical access or authority",
-            report.initial_forms.len(),
+            "Pete workload closure checked: {} initial Plots, {} Host roles; no physical access or authority",
+            report.initial_plots.len(),
             report.hosts.len()
         );
     }

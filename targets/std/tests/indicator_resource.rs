@@ -1,7 +1,7 @@
 //! Acquired-provider conformance; no physical hardware claim.
 use conduit_core::{resource_offer, Plan, PlanId, INPUT_RESOURCE_CLASS};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{
@@ -83,7 +83,7 @@ impl HostedIndicatorAdapter for Provider {
 
 fn prepare() -> (StdHost, Plan, Provider) {
     prepare_source(include_str!(
-        "../../../forms/button-across-room/main.conduit"
+        "../../../plots/button-across-room/main.conduit"
     ))
 }
 
@@ -118,10 +118,10 @@ fn prepare_source(source: &str) -> (StdHost, Plan, Provider) {
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let form = expand_canonical_form(&checked, "button_across_room", &profile).unwrap();
+    let plot = expand_canonical_plot(&checked, "button_across_room", &profile).unwrap();
     let hosts = [host.advertisement().clone()];
-    let choices = conduit_planner::default_expanded_placements(&form, &hosts).unwrap();
-    let limits = form
+    let choices = conduit_planner::default_expanded_placements(&plot, &hosts).unwrap();
+    let limits = plot
         .connections
         .iter()
         .map(|c| {
@@ -144,7 +144,7 @@ fn prepare_source(source: &str) -> (StdHost, Plan, Provider) {
         })
         .collect();
     let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
-        &form,
+        &plot,
         &hosts,
         &choices,
         &["conduit.base/local@1".into()],
@@ -172,7 +172,7 @@ fn prepare_source(source: &str) -> (StdHost, Plan, Provider) {
 }
 
 #[test]
-fn canonical_form_completes_only_through_exact_indicator_adapter() {
+fn canonical_plot_completes_only_through_exact_indicator_adapter() {
     let (mut host, plan, mut provider) = prepare();
     let mut output = Vec::new();
     let control = RunControl::default();

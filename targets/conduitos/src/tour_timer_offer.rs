@@ -1,4 +1,4 @@
-//! Exact boot-scoped ConduitOS capabilities for the standing Tour timer Form.
+//! Exact boot-scoped ConduitOS capabilities for the standing Tour timer Plot.
 
 use crate::{
     machine::BaseKind,

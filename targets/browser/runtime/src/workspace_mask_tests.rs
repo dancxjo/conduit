@@ -4,11 +4,11 @@ use conduit_body::{
     BodyPlayIdentity, MembershipProofId, PartId,
 };
 use conduit_core::{
-    bind_sign, encode_count, CheckedFormId, CheckedValueContract, ExpandedFormId, IntervalEndpoint,
+    bind_sign, encode_count, CheckedPlotId, CheckedValueContract, ExpandedPlotId, IntervalEndpoint,
     PlanId, Quantity, QuantityUnit, SourceDocumentId, ValueConstraint, COUNT_ENCODED_LEN,
     COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
-use conduit_form::TextPatternExpression;
+use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
     PresentationAction, PresentationActionAvailability, PresentationBasis,
     PresentationCompositionKind, PresentationCompositionRelation, PresentationContextBasis,
@@ -65,7 +65,7 @@ struct FaceSpecimenAction {
 fn body_id() -> BodyId {
     conduit_body::Body::born(
         SourceDocumentId::from("source/browser-mask-test"),
-        CheckedFormId::from("checked/browser-mask-test"),
+        CheckedPlotId::from("checked/browser-mask-test"),
         1,
         SignId::from("sign/body-born"),
     )
@@ -90,8 +90,8 @@ fn presentation() -> Presentation {
             body_id: Some(body_id()),
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/application")),
-            checked_form_id: Some(CheckedFormId::from("checked/application")),
-            expanded_form_id: Some(ExpandedFormId::from("expanded/application")),
+            checked_plot_id: Some(CheckedPlotId::from("checked/application")),
+            expanded_plot_id: Some(ExpandedPlotId::from("expanded/application")),
             plan_id: Some(PlanId::from("plan/application")),
             active_play_id: None,
             sign_ids: vec![SignId::from("sign/presentation")],
@@ -277,13 +277,13 @@ fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
         "browser-graphical",
     )
     .unwrap();
-    let resident = conduit_body::ResidentForm::new(
-        planned.mask.form_identity.source_document_id.clone(),
-        planned.mask.form_identity.checked_form_id.clone(),
+    let resident = conduit_body::ResidentPlot::new(
+        planned.mask.plot_identity.source_document_id.clone(),
+        planned.mask.plot_identity.checked_plot_id.clone(),
     );
     let born = conduit_body::Body::born(
         resident.source_document_id.clone(),
-        resident.checked_form_id.clone(),
+        resident.checked_plot_id.clone(),
         1,
         SignId::from("sign/body-born-plan-basis"),
     )
@@ -292,8 +292,8 @@ fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
     let (_, wake) = born.wake(1, SignId::from("sign/wake")).unwrap();
     let body_plan = conduit_body::BodyPlan::seal(
         &wake,
-        vec![conduit_body::BodyFormPlan {
-            form: resident,
+        vec![conduit_body::BodyPlotPlan {
+            plot: resident,
             plan: planned.plan,
         }],
     )
@@ -315,13 +315,13 @@ fn production_tutorial_basis() -> (
         "browser-graphical",
     )
     .unwrap();
-    let resident = conduit_body::ResidentForm::new(
-        planned.mask.form_identity.source_document_id.clone(),
-        planned.mask.form_identity.checked_form_id.clone(),
+    let resident = conduit_body::ResidentPlot::new(
+        planned.mask.plot_identity.source_document_id.clone(),
+        planned.mask.plot_identity.checked_plot_id.clone(),
     );
     let body = conduit_body::Body::born(
         resident.source_document_id.clone(),
-        resident.checked_form_id.clone(),
+        resident.checked_plot_id.clone(),
         1,
         SignId::from("sign/production-tutorial-born"),
     )
@@ -361,8 +361,8 @@ fn production_tutorial_basis() -> (
     let mut session = BodyLifecycleSession::open(evidence).unwrap();
     let proposal = session
         .propose(
-            vec![conduit_body::BodyFormPlan {
-                form: resident,
+            vec![conduit_body::BodyPlotPlan {
+                plot: resident,
                 plan: planned.plan,
             }],
             &host_id,
@@ -428,11 +428,11 @@ fn specimen_face(specimen: &FaceSpecimen, body: BodyId, revision: u64) -> Presen
                 "source/face-specimen/{}",
                 specimen.identity
             ))),
-            checked_form_id: Some(CheckedFormId::from(format!(
+            checked_plot_id: Some(CheckedPlotId::from(format!(
                 "checked/face-specimen/{}",
                 specimen.identity
             ))),
-            expanded_form_id: Some(ExpandedFormId::from(format!(
+            expanded_plot_id: Some(ExpandedPlotId::from(format!(
                 "expanded/face-specimen/{}",
                 specimen.identity
             ))),
@@ -535,7 +535,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     );
     assert_eq!(
         runtime.wardrobe_action.resulting_wardrobe.worn,
-        vec![runtime.planned.mask.form_identity.clone()]
+        vec![runtime.planned.mask.plot_identity.clone()]
     );
     let mut stale_interaction = interaction(&effect);
     stale_interaction.presentation_revision += 1;
@@ -659,10 +659,10 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
 #[test]
 fn production_tutorial_face_admits_one_show_bound_browser_interaction() {
     let (body, wake, body_plan) = production_tutorial_basis();
-    let face = conduit_tutorial_form::face_presentation(
+    let face = conduit_tutorial_plot::face_presentation(
         &body,
         13,
-        conduit_tutorial_form::TutorialPlayback::Playing,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
     )
     .unwrap();
     let action = face
@@ -770,7 +770,7 @@ fn ordinary_mask_fore_refuses_same_revision_interaction_from_another_face_contex
 }
 
 #[test]
-fn every_face_specimen_executes_through_the_ordinary_browser_mask_form() {
+fn every_face_specimen_executes_through_the_ordinary_browser_mask_plot() {
     let specimens = face_specimens();
     assert_eq!(specimens.len(), 10);
 
@@ -813,7 +813,7 @@ fn every_face_specimen_executes_through_the_ordinary_browser_mask_form() {
             observation.mask_show.show.lifecycle,
             ManifestationLifecycle::Available
         );
-        assert_eq!(observation.planned_mask.mask.form_name, "browser-graphical");
+        assert_eq!(observation.planned_mask.mask.plot_name, "browser-graphical");
         assert_eq!(observation.execution.fore.len(), 3);
         assert!(observation
             .execution

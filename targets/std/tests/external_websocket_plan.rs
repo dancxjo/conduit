@@ -2,8 +2,8 @@ use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
@@ -14,7 +14,7 @@ use std::sync::mpsc;
 use std::thread;
 use tungstenite::protocol::Message;
 
-const SOURCE: &str = include_str!("../../../forms/webchat/main.conduit");
+const SOURCE: &str = include_str!("../../../plots/webchat/main.conduit");
 
 fn browser() -> HostAdvertisement {
     let family = conduit_net::browser_external_websocket_family();
@@ -35,7 +35,7 @@ fn browser() -> HostAdvertisement {
 }
 
 #[test]
-fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
+fn canonical_transport_plots_plan_to_exact_opt_in_browser_and_std_families() {
     let syntax = parse_syntax_document(SOURCE);
     assert_eq!(syntax.round_trip(), SOURCE);
     let mut startup = StartupCatalog::new();
@@ -43,7 +43,7 @@ fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile).unwrap();
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "webchat-transport-demo", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "webchat-transport-demo", &profile).unwrap();
 
     let std = StdHost::new_with_composition(
         StdHostConfig {
@@ -144,7 +144,7 @@ fn planned_listener_executes_through_kernel_host_calls_for_two_clients() {
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile).unwrap();
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "webchat-server-demo", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "webchat-server-demo", &profile).unwrap();
     let mut host = StdHost::new_with_composition(
         StdHostConfig {
             host_id: HostId::from("std-chat-kernel"),

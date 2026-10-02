@@ -1,5 +1,5 @@
 use conduit_ai::ModelCachePolicy;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_native_round_trip(value: ModelCachePolicy) {
     let structured = value.clone().into_structured().unwrap();

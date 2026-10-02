@@ -1,7 +1,10 @@
 use alloc::vec::Vec;
 use conduit_core::{CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor};
 
-/// Host-neutral, finite execution meaning for one kind revision.
+/// Construction view used to install one host-neutral finite Kind revision.
+///
+/// The resulting checked [`Kind`] owns executable meaning. This temporary
+/// builder is catalog machinery (C), not a portable info value.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortableKindContract {
     pub kind_id: KindId,

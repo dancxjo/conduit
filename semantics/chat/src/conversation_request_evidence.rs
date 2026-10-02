@@ -30,14 +30,14 @@ mod tests {
     use super::*;
     use alloc::vec;
     use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
-    use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
-    use conduit_form::rust_binding::NativeRustBinding;
+    use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
+    use conduit_plot::rust_binding::NativeRustBinding;
 
     #[test]
     fn evidence_names_exact_context_basis_without_retaining_prompt_text() {
         let body = Body::born(
             SourceDocumentId::from("source/evidence"),
-            CheckedFormId::from("checked/evidence"),
+            CheckedPlotId::from("checked/evidence"),
             1,
             SignId::from("sign/evidence/born"),
         )
@@ -58,7 +58,7 @@ mod tests {
                 revision: 9,
             },
             hosts: vec![],
-            active_forms: vec![],
+            active_plots: vec![],
             current_plan_id: None,
             active_play_id: None,
             lines: vec![],

@@ -1,11 +1,11 @@
 //! Portable mapping from a bounded scalar range to an exact unit-bearing quantity.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::format;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_core::QuantityDimension;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
@@ -181,10 +181,10 @@ pub fn quantity_map_semantic_contract() -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_quantity_mapping_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     for (contract, revision) in [
         (quantity_map_contract(), QUANTITY_MAP_REVISION),
@@ -202,14 +202,14 @@ pub fn install_quantity_mapping_catalog(
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn install_mapping_contract(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: StandardKindContract,
     revision: &'static str,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().into(),
         startup_parameters: contract
@@ -232,7 +232,7 @@ fn install_mapping_contract(
                     ConfigurationValue::I64(value) => value.to_string(),
                     ConfigurationValue::Text(value) => format!("\"{value}\""),
                     ConfigurationValue::Quantity(value) => {
-                        format!("{}{}", value.value(), value.unit().form_suffix())
+                        format!("{}{}", value.value(), value.unit().plot_suffix())
                     }
                     _ => unreachable!("quantity mapping startup uses scalar, text, or quantity"),
                 }),

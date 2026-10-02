@@ -64,6 +64,291 @@ type TemporalInstant = {
     uncertainty_ticks: U64
 }
 
+# Portable civil and monotonic time. Calendar meaning depends on these Types;
+# Rust clock objects are adapters/runtime evidence, never their semantic owner.
+
+type LocalDate = {
+    year: I32
+    month: U8 in 1..=12
+    day: U8 in 1..=31
+}
+
+type LocalTime = {
+    hour: U8 in 0..=23
+    minute: U8 in 0..=59
+    second: U8 in 0..=59
+    nanosecond: U32 in 0..=999999999
+}
+
+type LocalDateTime = {
+    date: LocalDate
+    time: LocalTime
+}
+
+type NamedTimeZone = {
+    identity: Text <= 256B not in [""]
+    rule_set: Text <= 256B not in [""]
+}
+
+type MonotonicClockIdentity = {
+    host_identity: Text <= 256B not in [""]
+    boot_identity: Text <= 256B not in [""]
+    basis_identity: Text <= 256B not in [""]
+    scale: TemporalScale
+    resolution_ticks: U64 in 1..=18446744073709551615
+    uncertainty_ticks: U64
+}
+
+type MonotonicInstant = {
+    ticks: U64
+    clock: MonotonicClockIdentity
+}
+
+type MonotonicDuration = {
+    ticks: U64
+    scale: TemporalScale
+}
+
+type TemporalWindow = {
+    start: TemporalInstant
+    start_boundary: TemporalBoundary
+    end: TemporalInstant
+    end_boundary: TemporalBoundary
+}
+
+type WeekdaySet = U8 in 1..=127
+
+type RecurrenceUntil =
+    wall {
+        value: TemporalInstant
+    }
+    | monotonic {
+        value: MonotonicInstant
+    }
+    | civil_date {
+        value: LocalDate
+    }
+
+type RecurrenceRule =
+    one_shot {
+        at: TemporalInstant
+    }
+    | fixed_elapsed {
+        first: MonotonicInstant
+        every: MonotonicDuration
+    }
+    | civil_weekdays {
+        first_date: LocalDate
+        local_time: LocalTime
+        zone: NamedTimeZone
+        weekdays: WeekdaySet
+        excluded_dates: sequence LocalDate <= 256
+    }
+
+type RecurrenceDefinition = {
+    identity: Text <= 256B not in [""]
+    rule: RecurrenceRule
+    maximum_occurrences: U32 in 1..=4096
+    until: RecurrenceUntil?
+    excluded_ordinals: sequence U32 <= 256
+}
+
+type RecurrenceWindow =
+    wall {
+        start: TemporalInstant
+        end: TemporalInstant
+    }
+    | monotonic {
+        start: MonotonicInstant
+        end: MonotonicInstant
+    }
+
+type RecurrenceExpansion = {
+    maximum_results: U32 in 1..=4096
+    window: RecurrenceWindow
+}
+
+type OccurrenceInstant =
+    wall {
+        value: TemporalInstant
+    }
+    | monotonic {
+        value: MonotonicInstant
+    }
+    | civil {
+        local: LocalDateTime
+        zone: NamedTimeZone
+        instant: TemporalInstant
+        resolution: CivilResolutionChoice
+    }
+
+type RecurrenceOccurrence = {
+    identity: Text <= 256B not in [""]
+    recurrence_identity: Text <= 256B not in [""]
+    ordinal: U32
+    at: OccurrenceInstant
+}
+
+type InvitationEvidence =
+    unknown
+    | observed {
+        state: InvitationState
+        observed_at: TemporalInstant
+        source_identity: Text <= 256B not in [""]
+    }
+
+type Participant = {
+    identity: Text <= 256B not in [""]
+    contact_reference: Text <= 256B not in [""] ?
+    role: ParticipantRole
+    invitation: InvitationEvidence
+}
+
+type TimedCalendarSpan = {
+    local_start: LocalDateTime
+    local_end: LocalDateTime
+    zone: NamedTimeZone
+    instant: TemporalWindow
+}
+
+type CalendarEventTime =
+    timed {
+        value: TimedCalendarSpan
+    }
+    | all_day {
+        start: LocalDate
+        end_exclusive: LocalDate
+    }
+
+type ReminderSpecification = {
+    identity: Text <= 256B not in [""]
+    before_start_ticks: U64 in 1..=18446744073709551615
+    scale: TemporalScale
+    delivery_kind: Text <= 256B not in [""]
+}
+
+type CalendarEvent = {
+    identity: Text <= 256B not in [""]
+    title: Text <= 1024B
+    description: Text <= 1024B
+    location: Text <= 1024B
+    time: CalendarEventTime
+    participants: sequence Participant <= 64
+    recurrence: RecurrenceDefinition?
+    reminders: sequence ReminderSpecification <= 16
+}
+
+type AvailabilityInterval = {
+    participant_identity: Text <= 256B not in [""]
+    interval: TemporalWindow
+    state: AvailabilityState
+}
+
+type AvailabilityBasis = {
+    identity: Text <= 256B not in [""]
+    observed_at: TemporalInstant
+    usable_until: TemporalInstant
+}
+
+type ParticipantAvailability = {
+    participant_identity: Text <= 256B not in [""]
+    zone: NamedTimeZone
+    basis: AvailabilityBasis
+    intervals: sequence AvailabilityInterval <= 256
+}
+
+type MeetingCandidate = {
+    identity: Text <= 256B not in [""]
+    interval: TemporalWindow
+    rationale: Text <= 1024B
+}
+
+type MeetingProposalRequest = {
+    identity: Text <= 256B not in [""]
+    reference_at: TemporalInstant
+    participant_identities: sequence Text <= 64
+    candidates: sequence MeetingCandidate <= 64
+    maximum_results: U16 in 1..=64
+}
+
+type ProposedMeetingSlot = {
+    candidate_identity: Text <= 256B not in [""]
+    interval: TemporalWindow
+    rationale: Text <= 1024B
+    tentative_participants: sequence Text <= 64
+}
+
+type RejectedMeetingSlot = {
+    candidate_identity: Text <= 256B not in [""]
+    conflicts: sequence CandidateConflict <= 64
+}
+
+type MeetingProposal = {
+    identity: Text <= 256B not in [""]
+    reference_at: TemporalInstant
+    availability_basis_identities: sequence Text <= 64
+    candidates: sequence ProposedMeetingSlot <= 64
+    rejected: sequence RejectedMeetingSlot <= 64
+}
+
+type ElapsedTrigger = {
+    opens_at: MonotonicInstant
+    expires_at: MonotonicInstant
+    suspend: SuspendBehavior
+}
+
+type CivilTrigger = {
+    window: TemporalWindow
+    zone: NamedTimeZone
+    clock_change: ClockChangeBehavior
+}
+
+type TriggerProfile =
+    elapsed {
+        value: ElapsedTrigger
+    }
+    | civil {
+        value: CivilTrigger
+    }
+
+type MissedOccurrencePolicy =
+    expire
+    | skip
+    | fire_late {
+        maximum_lateness_ticks: U64 in 1..=18446744073709551615
+    }
+
+type ScheduledIntent<T> = {
+    identity: Text <= 256B not in [""]
+    occurrence: RecurrenceOccurrence
+    trigger: TriggerProfile
+    missed: MissedOccurrencePolicy
+    payload: T
+}
+
+type TriggerObservation =
+    elapsed {
+        now: MonotonicInstant
+        suspend_observed: Boolean
+    }
+    | civil {
+        now: TemporalInstant
+        clock_change_observed: Boolean
+    }
+
+type ScheduledOccurrenceDecision =
+    awaiting
+    | ready {
+        lateness_ticks: U64
+    }
+    | missed
+    | expired
+    | cancelled
+    | rebooted
+    | suspended
+    | clock_changed
+    | clock_uncertain
+
 type CandidateConflict = {
     participant-identity: Text <= 128B not in [""]
     state: AvailabilityState
@@ -73,13 +358,50 @@ type HistoricalEntryOrigin =
     machine_observation
     | operator_authored
 
-code time/historical-entry-origin = HistoricalEntryOrigin as u8
+form time/historical-entry-origin = HistoricalEntryOrigin as u8
 
 type HistoricalOverflowPolicy =
     refuse
     | evict_oldest_with_gap
 
-code time/historical-overflow-policy = HistoricalOverflowPolicy as u8
+form time/historical-overflow-policy = HistoricalOverflowPolicy as u8
+
+type HistoricalTimelineEntry = {
+    sequence: U64
+    identity: Text <= 128B not in [""]
+    event-time: TemporalInstant
+    origin: HistoricalEntryOrigin
+    value: ResourceRef
+}
+
+type HistoricalRetentionGap = {
+    first-sequence: U64
+    last-sequence: U64
+    entries: U64 in 1..=64
+    referenced-bytes: U64 in 1..=67108864
+    where .first-sequence <= .last-sequence
+}
+
+type HistoricalTimelineCommand =
+    append {
+        identity: Text <= 128B not in [""]
+        event-time: TemporalInstant
+        origin: HistoricalEntryOrigin
+        value: ResourceRef
+    }
+    | remove {
+        sequence: U64
+    }
+    | clear
+
+type HistoricalTimelineOutcome =
+    appended {
+        sequence: U64
+    }
+    | removed HistoricalTimelineEntry
+    | cleared {
+        revision: U64
+    }
 
 type ReplayPolicy =
     step
@@ -108,6 +430,24 @@ type ReplayState =
     | failed {
         code: U16
     }
+
+type HistoricalReplayEntry = {
+    sequence: U64
+    identity: Text <= 128B not in [""]
+    event-time: TemporalInstant
+    origin: HistoricalEntryOrigin
+    value: ResourceRef
+}
+
+type OwnedReplayEvent = {
+    ordinal: U16 in 0..=63
+    historical-sequence: U64
+    historical-identity: Text <= 128B not in [""]
+    historical-event-time: TemporalInstant
+    historical-origin: HistoricalEntryOrigin
+    value: ResourceRef
+    playback-ticks: U64
+}
 
 type TemporalBoundary =
     inclusive
@@ -205,6 +545,53 @@ type PatternComparisonRefusal =
     | algorithm-mismatch
     | length-mismatch
 
+type PatternComparison = {
+    matched: Boolean
+    metric: Text
+    score_millionths: Count
+    tolerance_millionths: Count
+}
+
+type NormalizedDurationSequence = {
+    algorithm: Text
+    values: Text
+}
+
+type TimedEventSequence = {
+    clock_basis: Text
+    event_times: Text
+}
+
+type IntervalSequence = {
+    clock_basis: Text
+    intervals: Text
+}
+
+type NamedPatternTemplateSlot = {
+    active: Boolean
+    name: Text
+    pattern: NormalizedDurationSequence
+}
+
+type NamedPatternTemplateSlots = collection NamedPatternTemplateSlot = 8
+
+type NamedPatternTemplate = {
+    name: Text
+    pattern: NormalizedDurationSequence
+}
+
+type NamedPatternTemplateCommand =
+    delete Text
+    | get Text
+    | put NamedPatternTemplate
+    | put-and-get NamedPatternTemplate
+
+type NamedPatternTemplateResult =
+    deleted Text
+    | found NamedPatternTemplate
+    | missing Text
+    | stored Text
+
 type TimedPatternRefusal =
     malformed
     | too-few-events
@@ -239,6 +626,23 @@ type WorkflowTimingOutcome =
     | cancelled
     | expired
 
+type ScheduleEffectIntent =
+    observation Text
+    | proposed_effect Text
+
+type ScheduleWorkflowLifecycle =
+    cancelled
+    | completed
+    | expired
+    | failed Text
+    | pending
+    | running
+
+type ScheduleAssessment = {
+    intent_identity: Text
+    outcome: WorkflowTimingOutcome
+}
+
 type TemplateCollectionRefusal =
     malformed
     | name-empty
@@ -247,3 +651,10 @@ type TemplateCollectionRefusal =
     | collection-full
     | not-found
     | corrupt-template
+
+type ReminderOccurrence = {
+    delivery_kind: Text
+    event_identity: Text
+    identity: Text
+    reminder_identity: Text
+}

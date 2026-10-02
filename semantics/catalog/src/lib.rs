@@ -47,13 +47,13 @@ mod flow_pressure;
 pub use flow_pressure::*;
 mod diverse_structured_info;
 pub use diverse_structured_info::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod experience_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use experience_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod purpose_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use purpose_catalog::*;
 mod delivery_classification;
 pub use delivery_classification::*;
@@ -73,26 +73,24 @@ mod vision_local_cv;
 pub use vision_local_cv::*;
 mod vision_continuous_local;
 pub use vision_continuous_local::*;
-mod vision_local_observation;
-pub use vision_local_observation::*;
 mod vision_local_objects;
 pub use vision_local_objects::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod vision_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use vision_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod education;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use education::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod education_realization;
-#[cfg(feature = "form-catalog")]
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use education_realization::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod education_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use education_catalog::*;
 mod generalized_input;
 pub use generalized_input::*;
@@ -100,23 +98,22 @@ mod button_indicator;
 pub use button_indicator::*;
 mod generalized_input_realization;
 pub use generalized_input_realization::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod generalized_input_catalog;
-#[cfg(feature = "form-catalog")]
+pub use conduit_process::*;
+#[cfg(feature = "plot-catalog")]
 pub use generalized_input_catalog::*;
-mod job;
-pub use job::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod job_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use job_catalog::*;
 mod palette_metadata;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod palette_projection;
 mod tick;
 pub use functional_front::startup_front;
 pub use palette_metadata::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use palette_projection::*;
 pub use tick::*;
 mod tick_presentation;
@@ -151,79 +148,79 @@ mod time_every;
 pub use time_every::*;
 mod timing;
 pub use timing::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod button_attempt_codec;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod timed_interval_codec;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use button_attempt_codec::{
     BoundedButtonAttemptCodec, ButtonAttemptObservation, ButtonAttemptRefusal,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use timed_interval_codec::BoundedIntervalCodec;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod sequence_normalization_codec;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use sequence_normalization_codec::BoundedNormalizationCodec;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod timed_pattern;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use timed_pattern::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod timed_button_attempt;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use timed_button_attempt::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod sequence_normalization;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use sequence_normalization::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod final_normalized_pattern;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use final_normalized_pattern::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod pattern_comparison_codec;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use pattern_comparison_codec::{BoundedPatternComparisonCodec, PatternComparisonInput};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod pattern_comparison;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use pattern_comparison::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod template_collection;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use template_collection::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod template_storage;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use template_storage::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod recurrence_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use recurrence_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod calendar_proposal_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use calendar_proposal_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod calendar_provider_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use calendar_provider_catalog::*;
 mod schedule;
 pub use schedule::*;
 mod scheduled_job;
 pub use scheduled_job::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod reminder_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use reminder_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod schedule_realization;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use schedule_realization::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod schedule_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use schedule_catalog::*;
 mod text_presentation;
 pub use text_presentation::*;
@@ -272,9 +269,9 @@ pub use signal_garden::*;
 
 mod signal_garden_observation;
 pub use signal_garden_observation::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod signal_garden_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use signal_garden_catalog::*;
 mod layout;
 pub use layout::*;
@@ -298,17 +295,17 @@ mod navigation_codec_support;
 pub use navigation_codec_support::NavigationCodecError;
 mod navigation_goal_codec;
 pub use navigation_goal_codec::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod robotics_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use robotics_catalog::install_robotics_catalogs;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod robotics_structured_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use robotics_structured_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod navigation_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use navigation_catalog::*;
 mod copy_file;
 pub use copy_file::*;
@@ -324,17 +321,17 @@ mod sound_compatibility;
 pub use sound_compatibility::*;
 mod sound_stream;
 pub use sound_stream::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod sound_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use sound_catalog::{
     install_audio_capture_push_to_talk_catalog, install_audio_continuous_tone_catalog,
     install_audio_gain_catalog, install_audio_tone_catalog, install_sound_catalogs,
 };
-#[cfg(feature = "form-catalog")]
-mod structured_music_form;
-#[cfg(feature = "form-catalog")]
-pub use structured_music_form::*;
+#[cfg(feature = "plot-catalog")]
+mod structured_music_plot;
+#[cfg(feature = "plot-catalog")]
+pub use structured_music_plot::*;
 mod supported_nucleus;
 pub use supported_nucleus::*;
 
@@ -376,9 +373,9 @@ pub fn palette_contracts() -> Vec<StandardKindContract> {
     contracts
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::ProfileCatalog;
+#[cfg(feature = "plot-catalog")]
+pub fn standard_profile_catalog() -> conduit_plot::ProfileCatalog {
+    use conduit_plot::ProfileCatalog;
 
     let mut catalog = ProfileCatalog::new();
     for (contract, revision) in supported_nucleus_contracts_with_revisions() {
@@ -469,7 +466,7 @@ mod supported_nucleus_tests {
         }
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
     fn portable_profile_revisions_are_exact_without_reading_host_offers() {
         let catalog = standard_profile_catalog();
@@ -494,9 +491,9 @@ pub use pattern_comparison_back::PatternComparisonBack;
 mod template_storage_back;
 #[cfg(feature = "kernel-step")]
 pub use template_storage_back::TemplateStorageBack;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod template_store;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
 #[cfg(feature = "kernel-step")]
 mod final_pattern_back;

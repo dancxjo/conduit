@@ -117,7 +117,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
-        "semantics/catalog/src/structured_music_form.rs",
+        "semantics/catalog/src/structured_music_plot.rs",
         0,
         "semantic contract owner",
     ),
@@ -835,7 +835,7 @@ fn checked_and_planned_gears_cannot_bypass_their_construction_boundaries() {
     collect_rust_files(repository, &mut files);
     for (type_name, owner) in [
         ("PlannedGear", "architecture/core/src/planned_gear.rs"),
-        ("CheckedGear", "architecture/form/src/functional_front.rs"),
+        ("CheckedGear", "architecture/plot/src/functional_front.rs"),
     ] {
         let mut raw = Vec::new();
         for path in &files {

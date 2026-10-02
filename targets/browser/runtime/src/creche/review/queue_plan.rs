@@ -3,12 +3,12 @@ use conduit_core::{
     authority_grant, process_owned_line_offer_with_limits, AuthorityGrant, BaseImplementationId,
     HostAdvertisement, LineId, LineOffer, LineScope, LineSecurity, LinkLimits,
 };
-use conduit_form::ExpandedCanonicalForm;
 use conduit_planner::{ConnectionQueueLimits, PlanningOptions};
+use conduit_plot::ExpandedCanonicalPlot;
 use std::collections::BTreeMap;
 
 pub(in crate::creche) fn plan(
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &conduit_planner::PlacementChoices,
     bases: &[BaseImplementationId],
@@ -16,7 +16,7 @@ pub(in crate::creche) fn plan(
     authority: crate::creche::PlanningAuthority,
 ) -> Result<conduit_core::Plan, String> {
     let mut limits = BTreeMap::new();
-    for cord in &form.connections {
+    for cord in &plot.connections {
         let capability = |gear| {
             let choice = placements
                 .by_gear
@@ -56,7 +56,7 @@ pub(in crate::creche) fn plan(
     }
     let authority_grants = authority_grants(hosts, placements, authority)?;
     let (line_offers, line_candidates) =
-        line_offers(form, hosts, placements, &limits, joined_lines)?;
+        line_offers(plot, hosts, placements, &limits, joined_lines)?;
     let mut available_bases = bases.to_vec();
     if !line_offers.is_empty()
         && !available_bases
@@ -68,7 +68,7 @@ pub(in crate::creche) fn plan(
         ));
     }
     conduit_planner::plan_expanded_canonical_with_connection_limits(
-        form,
+        plot,
         hosts,
         placements,
         &available_bases,
@@ -126,7 +126,7 @@ fn authority_grants(
 type LineCandidates = BTreeMap<(conduit_core::GearId, conduit_core::GearId), Vec<LineId>>;
 
 fn line_offers(
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &conduit_planner::PlacementChoices,
     limits: &BTreeMap<
@@ -142,7 +142,7 @@ fn line_offers(
 ) -> Result<(Vec<LineOffer>, LineCandidates), String> {
     let mut offers = Vec::new();
     let mut candidates = BTreeMap::new();
-    for (index, connection) in form.connections.iter().enumerate() {
+    for (index, connection) in plot.connections.iter().enumerate() {
         let source_placement = placements
             .by_gear
             .get(&connection.source_gear_id)
@@ -220,7 +220,7 @@ mod tests {
         PROTOCOL_VERSION,
     };
 
-    fn remote_offer(gear: &conduit_form::CheckedGear) -> CapabilityOffer {
+    fn remote_offer(gear: &conduit_plot::CheckedGear) -> CapabilityOffer {
         let slug = gear.kind_id.as_str().replace('/', "-");
         conduit_core::capability_offer_from_parts! {
             semantic_contract: gear.semantic_contract.clone(),
@@ -249,13 +249,13 @@ mod tests {
 
     #[test]
     fn spoken_conversation_requires_explicit_audio_authority_and_a_joined_line() {
-        let source = include_str!("../../../../../../forms/live-conversation/main.conduit");
+        let source = include_str!("../../../../../../plots/live-conversation/main.conduit");
         let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
             crate::installed_browser::PresentationProfile::Annotation,
         )
         .unwrap();
-        let checked = conduit_form::check_syntax_document(
-            &conduit_form::parse_syntax_document(source),
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
             &startup,
         )
         .unwrap();
@@ -266,7 +266,7 @@ mod tests {
             )
             .unwrap();
         let backs = crate::installed_browser::backs(&startup, &profile).unwrap();
-        let expanded = conduit_form::expand_canonical_form_with_backs(
+        let expanded = conduit_plot::expand_canonical_plot_with_backs(
             &checked,
             "spoken-live-conversation",
             &profile,
@@ -367,13 +367,7 @@ mod tests {
                 quantization: "exact".into(),
             },
             limits: conduit_ai::LocalModelLimits {
-                work: conduit_ai::LlmWorkBounds {
-                    maximum_input_bytes: 4_096,
-                    maximum_context_items: 1,
-                    maximum_output_bytes: 4_096,
-                    maximum_work_units: 4_096,
-                    maximum_history_items: 0,
-                },
+                work: conduit_ai::LlmWorkBounds::new(4_096, 1, 4_096, 4_096, 0).unwrap(),
                 model_bytes: 1,
                 admitted_memory_mib: 1,
                 compute: conduit_ai::LocalModelComputeNeed {
@@ -411,13 +405,13 @@ mod tests {
 
     #[test]
     fn reviewed_fixture_voice_offers_cover_every_expanded_remote_conversation_gear() {
-        let source = include_str!("../../../../../../forms/live-conversation/main.conduit");
+        let source = include_str!("../../../../../../plots/live-conversation/main.conduit");
         let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
             crate::installed_browser::PresentationProfile::Annotation,
         )
         .unwrap();
-        let checked = conduit_form::check_syntax_document(
-            &conduit_form::parse_syntax_document(source),
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
             &startup,
         )
         .unwrap();
@@ -427,7 +421,7 @@ mod tests {
         )
         .unwrap();
         let backs = crate::installed_browser::backs(&startup, &profile).unwrap();
-        let expanded = conduit_form::expand_canonical_form_with_backs(
+        let expanded = conduit_plot::expand_canonical_plot_with_backs(
             &checked,
             "spoken-live-conversation",
             &profile,

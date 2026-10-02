@@ -1,0 +1,70 @@
+use patchbay_graph::{project_recursive_plot_gear, RecursivePlotProjectionError};
+
+#[test]
+fn collapse_and_open_change_visibility_without_rewriting_recursive_truth() {
+    let proof = crate::patchbay_mask_plans().unwrap();
+    let (back, front) = proof
+        .recursive_expanded
+        .realization_backs
+        .iter()
+        .find_map(|back| {
+            proof
+                .direct_host
+                .capabilities
+                .iter()
+                .find(|offer| {
+                    offer.kind_id == back.kind_id
+                        && offer.kind_contract_revision == back.kind_contract_revision
+                })
+                .map(|offer| (back.clone(), offer.checked_front()))
+        })
+        .unwrap();
+    let collapsed = project_recursive_plot_gear(
+        &proof.recursive_expanded,
+        &back.invocation_path,
+        front.clone(),
+        false,
+    )
+    .unwrap();
+    let opened = project_recursive_plot_gear(
+        &proof.recursive_expanded,
+        &back.invocation_path,
+        front,
+        true,
+    )
+    .unwrap();
+
+    assert!(!collapsed.open);
+    assert!(collapsed.visible_gears.is_empty());
+    assert!(opened.open);
+    assert_eq!(
+        opened.visible_gears.len(),
+        usize::from(opened.nested_gear_count)
+    );
+    assert_eq!(collapsed.invocation_path, opened.invocation_path);
+    assert_eq!(collapsed.kind_id, opened.kind_id);
+    assert_eq!(
+        collapsed.kind_contract_revision,
+        opened.kind_contract_revision
+    );
+    assert_eq!(collapsed.source_document_id, opened.source_document_id);
+    assert_eq!(collapsed.checked_plot_id, opened.checked_plot_id);
+    assert_eq!(collapsed.expanded_plot_id, opened.expanded_plot_id);
+    assert_eq!(collapsed.front, opened.front);
+    assert_eq!(collapsed.nested_gear_count, opened.nested_gear_count);
+    assert_eq!(collapsed.boundary_connections, opened.boundary_connections);
+}
+
+#[test]
+fn projection_refuses_an_unselected_or_made_back_path() {
+    let proof = crate::patchbay_mask_plans().unwrap();
+    assert_eq!(
+        project_recursive_plot_gear(
+            &proof.direct_expanded,
+            "patchbay-capstone/canvas",
+            proof.direct_host.capabilities[1].checked_front(),
+            true,
+        ),
+        Err(RecursivePlotProjectionError::MissingRealizationBack)
+    );
+}

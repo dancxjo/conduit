@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 // Real IndexedDB realization proof. Resource admission and task interpretation
-// remain the runtime/Form owners; this layer stores opaque bounded bytes.
+// remain the runtime/Plot owners; this layer stores opaque bounded bytes.
 test("byte publication is atomic, immutable across reopen, and independent of caller buffers", async ({ page }) => {
   await page.goto("/proof/browser/signal-dom-host.test.html");
   const result = await page.evaluate(async () => {

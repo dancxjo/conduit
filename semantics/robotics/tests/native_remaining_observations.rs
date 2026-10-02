@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{
     BeaconKind, BeaconObservation, ChargingObservation, ChargingState, CliffObservation,
     CliffSignal, BODY_SECTOR_FRONT_LEFT, BODY_SECTOR_LEFT, CHARGING_SOURCE_HOME_BASE,

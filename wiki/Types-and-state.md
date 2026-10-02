@@ -39,21 +39,19 @@ unbounded execution resource use    not admitted
 
 Bounds constrain realizable values and resource use. They do not themselves imply retention, persistence, allocation strategy, or authority.
 
-## type, info, and code
+## type, info, and form
 
 A **type** owns semantic meaning; **info** is one finite value of that type.
-A **code** owns a portable encoding contract. A variant case does not mean its
-byte tag, and changing a selected code does not redefine the type.
+A **form** owns a portable representation contract. A variant case does not mean its
+byte tag, and changing a selected form does not redefine the type.
 
-The current compact-code declaration maps a finite variant to `u8` tags, with
+The current compact-form declaration maps a finite variant to `u8` tags, with
 checked mapping, finite extent/work, compatibility identity, and invalid-tag
 refusal. This does not claim arbitrary record layouts, byte orders, or every
 proposed wire/storage representation. See
 [[Current language surface|Current-language-surface]] for the current example.
 
-The executable declaration remains `form`. The reassignment of that word to
-representation, paired with executable `plot`, remains proposed in
-[#4513](https://github.com/dancxjo/conduit/issues/4513).
+Executable declarations use `plot`; portable type representations use `form`.
 
 ## Checked type identity is not source spelling
 
@@ -191,7 +189,7 @@ T     the value itself
 
 keep duration and explicit publication are different promises:
 
-> **If a form says a value must last, planning selects a back that can truthfully make it last or refuses. save is publication, not survival.**
+> **If a plot says a value must last, planning selects a back that can truthfully make it last or refuses. save is publication, not survival.**
 
 Therefore:
 
@@ -269,7 +267,7 @@ An empty sequence is a real zero-item sequence, not a fixed storage vector padde
 
 Encoding/validation must carry exact sequence type/bounds and actual item count, and remain allocation-free-capable for constrained targets.
 
-Exact authored sequence syntax beyond the accepted structural forms remains subject to parser/canon conformance; do not invent a second collection language.
+Exact authored sequence syntax beyond the accepted structural plots remains subject to parser/canon conformance; do not invent a second collection language.
 
 Provenance: #3717, structured-info ancestry #1386/#1387.
 
@@ -340,7 +338,7 @@ Provenance: #4002.
 
 ## Resource/capability-valued ports
 
-Low-level forms may pass admitted runtime resources through typed ports, but **descriptive info cannot forge authority**.
+Low-level plots may pass admitted runtime resources through typed ports, but **descriptive info cannot forge authority**.
 
 ```text
 { address, length }        descriptive info

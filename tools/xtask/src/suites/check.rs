@@ -103,7 +103,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.no-std.extracted-domains",
-        "Extracted domains and resident Patchbay Form no-default-features check",
+        "Extracted domains and resident Patchbay Plot no-default-features check",
         "cargo",
         &[
             "check",
@@ -190,7 +190,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
     ),
     Step::typed(
         "check.thumb.extracted-domains",
-        "Extracted domains and resident Patchbay Form Thumb target check",
+        "Extracted domains and resident Patchbay Plot Thumb target check",
         "cargo",
         &[
             "check",
@@ -508,13 +508,13 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.kernel.unsupported",
-        "test unsupported_production_std_form_fails_closed_without_a_legacy_pump",
+        "test unsupported_production_std_plot_fails_closed_without_a_legacy_pump",
         "cargo",
         &[
             "test",
             "-p",
             "conduit-std-host",
-            "unsupported_production_std_form_fails_closed_without_a_legacy_pump",
+            "unsupported_production_std_plot_fails_closed_without_a_legacy_pump",
         ],
     ),
     Step::new(
@@ -544,7 +544,7 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.kernel.hello-multi-value",
-        "test typed_multi_value_form_runs_through_the_std_kernel",
+        "test typed_multi_value_plot_runs_through_the_std_kernel",
         "cargo",
         &[
             "test",
@@ -552,7 +552,7 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
             "conduit",
             "--test",
             "hello",
-            "typed_multi_value_form_runs_through_the_std_kernel",
+            "typed_multi_value_plot_runs_through_the_std_kernel",
         ],
     ),
     Step::new(
@@ -603,24 +603,24 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
 pub const PLANNING_S2_STEPS: &[Step] = &[
     Step::new(
         "check.planning.identity-binds",
-        "test checked_form_identity_binds_contract_revision_and_ports",
+        "test checked_plot_identity_binds_contract_revision_and_ports",
         "cargo",
         &[
             "test",
             "-p",
-            "conduit-form",
-            "checked_form_identity_binds_contract_revision_and_ports",
+            "conduit-plot",
+            "checked_plot_identity_binds_contract_revision_and_ports",
         ],
     ),
     Step::new(
         "check.planning.source-checked-expanded",
-        "test source_checked_and_expanded_form_identities_stay_distinct",
+        "test source_checked_and_expanded_plot_identities_stay_distinct",
         "cargo",
         &[
             "test",
             "-p",
-            "conduit-form",
-            "source_checked_and_expanded_form_identities_stay_distinct",
+            "conduit-plot",
+            "source_checked_and_expanded_plot_identities_stay_distinct",
         ],
     ),
     Step::new(
@@ -653,26 +653,26 @@ pub const PLANNING_S2_STEPS: &[Step] = &[
     ),
 ];
 
-pub const FORM_S3_STEPS: &[Step] = &[
-    Step::new("check.form.lossless-doc", "test lossless_document_", "cargo", &["test", "-p", "conduit-form", "lossless_document_"]),
-    Step::new("check.form.missing-close", "test missing_close_is_diagnosed_at_eof_without_losing_source", "cargo", &["test", "-p", "conduit-form", "missing_close_is_diagnosed_at_eof_without_losing_source"]),
-    Step::new("check.form.source-checked-expanded", "test source_checked_and_expanded_form_identities_stay_distinct", "cargo", &["test", "-p", "conduit-form", "source_checked_and_expanded_form_identities_stay_distinct"]),
-    Step::new("check.form.checked-export-parent-kind", "test checked_export_is_the_only_source_of_a_parent_kind_boundary", "cargo", &["test", "-p", "conduit-form", "checked_export_is_the_only_source_of_a_parent_kind_boundary"]),
-    Step::new("check.form.duplicate-export-rejected", "test duplicate_export_capabilities_are_rejected", "cargo", &["test", "-p", "conduit-form", "duplicate_export_capabilities_are_rejected"]),
-    Step::new("check.form.multiple-typed-fronts", "test multiple_typed_and_zero_sided_fronts_check_as_ordinary_kinds", "cargo", &["test", "-p", "conduit-form", "multiple_typed_and_zero_sided_fronts_check_as_ordinary_kinds"]),
-    Step::new("check.form.front-mutations-fail-closed", "test checked_front_mutations_fail_closed", "cargo", &["test", "-p", "conduit-form", "checked_front_mutations_fail_closed"]),
-    Step::new("check.form.inline-nested-checked", "test inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form", "cargo", &["test", "-p", "conduit-form", "inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form"]),
-    Step::new("check.form.parent-expanded-identity", "test parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary", "cargo", &["test", "-p", "conduit-form", "parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary"]),
-    Step::new("check.form.nested-expansion-paths", "test nested_expansion_paths_are_canonical_and_substitution_fails_closed", "cargo", &["test", "-p", "conduit-form", "nested_expansion_paths_are_canonical_and_substitution_fails_closed"]),
-    Step::new("check.form.nested-errors-span", "test nested_errors_keep_the_outer_document_and_exact_inner_span", "cargo", &["test", "-p", "conduit-form", "nested_errors_keep_the_outer_document_and_exact_inner_span"]),
-    Step::new("check.form.inline-depth-ceiling", "test inline_nesting_has_a_hard_depth_ceiling", "cargo", &["test", "-p", "conduit-form", "inline_nesting_has_a_hard_depth_ceiling"]),
-    Step::new("check.form.composite-authored-parent", "test authored_parent_consumes_derived_export_through_an_ordinary_planned_cord", "cargo", &["test", "-p", "conduit-composite", "authored_parent_consumes_derived_export_through_an_ordinary_planned_cord"]),
-    Step::new("check.form.composite-multi-kind", "test two_input_two_output_multi_kind_fronts_execute_with_exact_pressure_and_closure", "cargo", &["test", "-p", "conduit-composite", "two_input_two_output_multi_kind_fronts_execute_with_exact_pressure_and_closure"]),
-    Step::new("check.form.composite-input-output-only", "test input_only_and_output_only_exports_plan_as_ordinary_operations", "cargo", &["test", "-p", "conduit-composite", "input_only_and_output_only_exports_plan_as_ordinary_operations"]),
-    Step::new("check.form.composite-front-mapping-mutation", "test composite_definition_rejects_every_front_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_front_mapping_mutation"]),
-    Step::new("check.form.composite-terminal-failure", "test named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
-    Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
-    Step::new("check.form.observatory-current-plan", "test projects exact current plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
+pub const PLOT_S3_STEPS: &[Step] = &[
+    Step::new("check.plot.lossless-doc", "test lossless_document_", "cargo", &["test", "-p", "conduit-plot", "lossless_document_"]),
+    Step::new("check.plot.missing-close", "test missing_close_is_diagnosed_at_eof_without_losing_source", "cargo", &["test", "-p", "conduit-plot", "missing_close_is_diagnosed_at_eof_without_losing_source"]),
+    Step::new("check.plot.source-checked-expanded", "test source_checked_and_expanded_plot_identities_stay_distinct", "cargo", &["test", "-p", "conduit-plot", "source_checked_and_expanded_plot_identities_stay_distinct"]),
+    Step::new("check.plot.checked-export-parent-kind", "test checked_export_is_the_only_source_of_a_parent_kind_boundary", "cargo", &["test", "-p", "conduit-plot", "checked_export_is_the_only_source_of_a_parent_kind_boundary"]),
+    Step::new("check.plot.duplicate-export-rejected", "test duplicate_export_capabilities_are_rejected", "cargo", &["test", "-p", "conduit-plot", "duplicate_export_capabilities_are_rejected"]),
+    Step::new("check.plot.multiple-typed-fronts", "test multiple_typed_and_zero_sided_fronts_check_as_ordinary_kinds", "cargo", &["test", "-p", "conduit-plot", "multiple_typed_and_zero_sided_fronts_check_as_ordinary_kinds"]),
+    Step::new("check.plot.front-mutations-fail-closed", "test checked_front_mutations_fail_closed", "cargo", &["test", "-p", "conduit-plot", "checked_front_mutations_fail_closed"]),
+    Step::new("check.plot.inline-nested-checked", "test inline_nested_plot_uses_the_same_checked_boundary_as_a_standalone_plot", "cargo", &["test", "-p", "conduit-plot", "inline_nested_plot_uses_the_same_checked_boundary_as_a_standalone_plot"]),
+    Step::new("check.plot.parent-expanded-identity", "test parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary", "cargo", &["test", "-p", "conduit-plot", "parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary"]),
+    Step::new("check.plot.nested-expansion-paths", "test nested_expansion_paths_are_canonical_and_substitution_fails_closed", "cargo", &["test", "-p", "conduit-plot", "nested_expansion_paths_are_canonical_and_substitution_fails_closed"]),
+    Step::new("check.plot.nested-errors-span", "test nested_errors_keep_the_outer_document_and_exact_inner_span", "cargo", &["test", "-p", "conduit-plot", "nested_errors_keep_the_outer_document_and_exact_inner_span"]),
+    Step::new("check.plot.inline-depth-ceiling", "test inline_nesting_has_a_hard_depth_ceiling", "cargo", &["test", "-p", "conduit-plot", "inline_nesting_has_a_hard_depth_ceiling"]),
+    Step::new("check.plot.composite-authored-parent", "test authored_parent_consumes_derived_export_through_an_ordinary_planned_cord", "cargo", &["test", "-p", "conduit-composite", "authored_parent_consumes_derived_export_through_an_ordinary_planned_cord"]),
+    Step::new("check.plot.composite-multi-kind", "test two_input_two_output_multi_kind_fronts_execute_with_exact_pressure_and_closure", "cargo", &["test", "-p", "conduit-composite", "two_input_two_output_multi_kind_fronts_execute_with_exact_pressure_and_closure"]),
+    Step::new("check.plot.composite-input-output-only", "test input_only_and_output_only_exports_plan_as_ordinary_operations", "cargo", &["test", "-p", "conduit-composite", "input_only_and_output_only_exports_plan_as_ordinary_operations"]),
+    Step::new("check.plot.composite-front-mapping-mutation", "test composite_definition_rejects_every_front_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_front_mapping_mutation"]),
+    Step::new("check.plot.composite-terminal-failure", "test named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
+    Step::new("check.plot.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
+    Step::new("check.plot.observatory-current-plan", "test projects exact current plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
 ];
 
 pub const OBSERVATORY_READINESS_STEPS: &[Step] = &[
@@ -736,7 +736,7 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.input-semantics.std-host",
-        "test ordinary std Host input Forms and bounded operations",
+        "test ordinary std Host input Plots and bounded operations",
         "cargo",
         &["test", "-p", "conduit-std-host", "input_semantics"],
     ),
@@ -744,7 +744,12 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
         "check.input-semantics.patchbay",
         "test finite Patchbay input controls",
         "cargo",
-        &["test", "-p", "patchbay-model", "input_semantic_controls"],
+        &[
+            "test",
+            "-p",
+            "conduit-patchbay-workbench",
+            "input_semantic_controls",
+        ],
     ),
     Step::new(
         "check.input-semantics.conduitos-peer-vectors",

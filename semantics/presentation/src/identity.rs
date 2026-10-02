@@ -36,13 +36,13 @@ impl Presentation {
         hash_string(
             &mut digest,
             self.basis
-                .checked_form_id
+                .checked_plot_id
                 .as_ref()
                 .map_or("", |id| id.as_str()),
         );
         hash_optional(
             &mut digest,
-            self.basis.expanded_form_id.as_ref().map(|id| id.as_str()),
+            self.basis.expanded_plot_id.as_ref().map(|id| id.as_str()),
         );
         hash_optional(
             &mut digest,
@@ -133,7 +133,7 @@ fn broad_role_tag(role: &PresentationRole) -> u8 {
         PresentationRole::Body => 1,
         PresentationRole::Part => 2,
         PresentationRole::Candidate => 3,
-        PresentationRole::Form => 4,
+        PresentationRole::Plot => 4,
         PresentationRole::Gear => 5,
         PresentationRole::Port => 6,
         PresentationRole::Cord => 7,

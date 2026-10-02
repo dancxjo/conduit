@@ -1,4 +1,4 @@
-use conduit_form::{ProfileCatalog, StartupCatalog};
+use conduit_plot::{ProfileCatalog, StartupCatalog};
 
 pub fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = StartupCatalog::new();

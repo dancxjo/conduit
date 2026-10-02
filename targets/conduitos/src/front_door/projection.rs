@@ -7,7 +7,7 @@ impl FrontDoor {
             return arrival.presentation(self);
         }
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
-        let form = self.form_subject.clone();
+        let plot = self.plot_subject.clone();
         let mut subjects = vec![
             PresentationSubject {
                 identity: host.clone(),
@@ -15,14 +15,14 @@ impl FrontDoor {
                 name: "This host".into(),
             },
             PresentationSubject {
-                identity: form.clone(),
-                role: PresentationRole::Form,
-                name: "ConduitOS entrance Form".into(),
+                identity: plot.clone(),
+                role: PresentationRole::Plot,
+                name: "ConduitOS entrance Plot".into(),
             },
         ];
         let mut relationships = vec![PresentationRelationship {
             source: host.clone(),
-            target: form.clone(),
+            target: plot.clone(),
             kind: PresentationRelationshipKind::Observes,
         }];
         let mut properties = vec![
@@ -44,19 +44,19 @@ impl FrontDoor {
                 PresentationPropertyValue::Count(self.offer_count),
             ),
             property(
-                &form,
+                &plot,
                 "source-document-id",
                 identity(self.source_document_id.as_str()),
             ),
             property(
-                &form,
-                "checked-form-id",
-                identity(self.checked_form_id.as_str()),
+                &plot,
+                "checked-plot-id",
+                identity(self.checked_plot_id.as_str()),
             ),
             property(
-                &form,
+                &plot,
                 "opened",
-                PresentationPropertyValue::Flag(self.form_open),
+                PresentationPropertyValue::Flag(self.plot_open),
             ),
         ];
         if self.exact_details_open {
@@ -101,11 +101,11 @@ impl FrontDoor {
                     properties.push(property(&body, "part-id", identity(part_id.as_str())));
                 }
             }
-            if let Some(expanded_form_id) = &journey.expanded_form_id {
+            if let Some(expanded_plot_id) = &journey.expanded_plot_id {
                 properties.push(property(
-                    &form,
-                    "expanded-form-id",
-                    identity(expanded_form_id.as_str()),
+                    &plot,
+                    "expanded-plot-id",
+                    identity(expanded_plot_id.as_str()),
                 ));
             }
             if let Some(wake_id) = &journey.wake_id {
@@ -223,8 +223,8 @@ impl FrontDoor {
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,
-                checked_form_id: None,
-                expanded_form_id: None,
+                checked_plot_id: None,
+                expanded_plot_id: None,
                 plan_id: None,
                 active_play_id: None,
                 sign_ids: vec![],
@@ -235,8 +235,8 @@ impl FrontDoor {
                         body_id: journey.body_id.clone(),
                         wake_id: journey.wake_id.clone(),
                         source_document_id: journey.source_document_id.clone(),
-                        checked_form_id: journey.checked_form_id.clone(),
-                        expanded_form_id: journey.expanded_form_id.clone(),
+                        checked_plot_id: journey.checked_plot_id.clone(),
+                        expanded_plot_id: journey.expanded_plot_id.clone(),
                         plan_id: journey.plan_id.clone(),
                         active_play_id: journey.active_play_id.clone(),
                         sign_ids: journey
@@ -251,8 +251,8 @@ impl FrontDoor {
                         body_id: None,
                         wake_id: None,
                         source_document_id: None,
-                        checked_form_id: None,
-                        expanded_form_id: None,
+                        checked_plot_id: None,
+                        expanded_plot_id: None,
                         plan_id: None,
                         active_play_id: None,
                         sign_ids: vec![],
@@ -270,13 +270,13 @@ impl FrontDoor {
                 text: host_text,
             },
             PresentationText {
-                subject: form.clone(),
-                text: "IMAGE-embedded checked form; OPEN permits inspection only".into(),
+                subject: plot.clone(),
+                text: "IMAGE-embedded checked plot; OPEN permits inspection only".into(),
             },
         ];
         let mut disclosures = vec![
             PresentationDisclosure {
-                subject: form.clone(),
+                subject: plot.clone(),
                 level: PresentationDisclosureLevel::Primary,
             },
             PresentationDisclosure {
@@ -301,7 +301,7 @@ impl FrontDoor {
             relationships,
             properties,
             texts,
-            self.semantic_actions(&form),
+            self.semantic_actions(&plot),
             disclosures,
         )
         .map_err(|_| Error::Presentation)

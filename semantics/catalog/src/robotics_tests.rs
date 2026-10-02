@@ -36,36 +36,36 @@ fn robotics_observations_use_distinct_exact_info_shapes() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
 fn robotics_catalog_rejects_invalid_observation_and_motion_configuration() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     crate::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
     for source in [
-        "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
-        "form invalid {\n range: robotics/observe-range(distance = 1000001mm)\n}\n",
-        "form invalid {\n drive: robotics/drive-differential(ttl-ms = 9)\n}\n",
-        "form invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",
+        "plot invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
+        "plot invalid {\n range: robotics/observe-range(distance = 1000001mm)\n}\n",
+        "plot invalid {\n drive: robotics/drive-differential(ttl-ms = 9)\n}\n",
+        "plot invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",
     ] {
-        assert!(conduit_form::parse(source, &profile).is_err());
+        assert!(conduit_plot::parse(source, &profile).is_err());
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn ordinary_robotics_form_retains_typed_distance_quantity() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn ordinary_robotics_plot_retains_typed_distance_quantity() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     crate::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
-    let syntax = conduit_form::parse_syntax_document(include_str!(
-        "../../../forms/robotics-range/main.conduit"
+    let syntax = conduit_plot::parse_syntax_document(include_str!(
+        "../../../plots/robotics-range/main.conduit"
     ));
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .expect("ordinary robotics form checks");
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .expect("ordinary robotics plot checks");
     let expanded =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "robotics-range", &profile)
-            .expect("ordinary robotics form expands");
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "robotics-range", &profile)
+            .expect("ordinary robotics plot expands");
     let distance = expanded.expanded.gears[0]
         .configuration
         .iter()

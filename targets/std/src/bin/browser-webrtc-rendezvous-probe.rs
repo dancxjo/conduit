@@ -12,7 +12,7 @@ use conduit_body::{
     AdmissionManager, Body, BodyMembership, CandidateInventory, HostPresenceClock,
     HostPresenceClockScale, HostPresenceTable,
 };
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BrowserAdmissionSocketError, BrowserWebRtcRendezvous, BROWSER_ADMISSION_PROTOCOL,
@@ -29,7 +29,7 @@ const RENEW_AFTER_MILLIS: u64 = 30_000;
 fn main() -> Result<(), String> {
     let body = Body::born(
         SourceDocumentId::from("source/browser-webrtc-rendezvous-probe"),
-        CheckedFormId::from("checked/browser-webrtc-rendezvous-probe"),
+        CheckedPlotId::from("checked/browser-webrtc-rendezvous-probe"),
         1,
         SignId::from("sign/browser-webrtc-rendezvous-probe/body-born"),
     )

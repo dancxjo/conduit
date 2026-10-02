@@ -10,7 +10,7 @@ use conduit_core::{
 use serde::Serialize;
 
 use crate::{
-    BodyPlan, BodyResourceEnvelope, BodyResourceEnvelopeError, BodyResourceEnvelopeId, ResidentForm,
+    BodyPlan, BodyResourceEnvelope, BodyResourceEnvelopeError, BodyResourceEnvelopeId, ResidentPlot,
 };
 
 /// Maximum number of exact plans concurrently retained by one envelope ledger.
@@ -18,8 +18,8 @@ pub const MAX_BODY_RESOURCE_RESERVATIONS: usize = 64;
 pub const MAX_BODY_RESOURCE_BINDINGS: usize = 256;
 
 #[derive(Debug, Clone, Copy)]
-pub struct BodyFormResourceRequests<'a> {
-    pub form: &'a ResidentForm,
+pub struct BodyPlotResourceRequests<'a> {
+    pub plot: &'a ResidentPlot,
     pub requests: &'a [(&'a ResourceRequirement, &'a ResourceBinding)],
 }
 
@@ -188,9 +188,9 @@ impl BodyResourceReservationLedger {
         Ok(())
     }
 
-    /// Atomically admits the combined resource demand of every form partition
-    /// in one sealed body-wide Plan. Every plan Form occurs exactly once,
-    /// including Forms with no requests, before demand is flattened and keyed
+    /// Atomically admits the combined resource demand of every plot partition
+    /// in one sealed body-wide Plan. Every plan Plot occurs exactly once,
+    /// including Plots with no requests, before demand is flattened and keyed
     /// by the body Plan identity.
     pub fn reserve_body_plan(
         &mut self,
@@ -198,22 +198,22 @@ impl BodyResourceReservationLedger {
         envelope: &BodyResourceEnvelope,
         host: &HostAdvertisement,
         observations: &[ResourceObservation],
-        form_requests: &[BodyFormResourceRequests<'_>],
+        plot_requests: &[BodyPlotResourceRequests<'_>],
     ) -> Result<(), BodyResourceReservationError> {
         if plan.body_id != *envelope.body_id() {
             return Err(BodyResourceReservationError::WrongBody);
         }
-        if form_requests.len() != plan.forms.len()
-            || form_requests
+        if plot_requests.len() != plan.plots.len()
+            || plot_requests
                 .iter()
-                .any(|partition| !plan.workset.contains(partition.form))
-            || form_requests
+                .any(|partition| !plan.workset.contains(partition.plot))
+            || plot_requests
                 .windows(2)
-                .any(|pair| pair[0].form >= pair[1].form)
+                .any(|pair| pair[0].plot >= pair[1].plot)
         {
             return Err(BodyResourceReservationError::WorksetMismatch);
         }
-        let request_count = form_requests.iter().try_fold(0usize, |total, partition| {
+        let request_count = plot_requests.iter().try_fold(0usize, |total, partition| {
             total.checked_add(partition.requests.len())
         });
         let Some(request_count) =
@@ -222,7 +222,7 @@ impl BodyResourceReservationLedger {
             return Err(BodyResourceReservationError::CapacityExceeded);
         };
         let mut requests = Vec::with_capacity(request_count);
-        for partition in form_requests {
+        for partition in plot_requests {
             requests.extend_from_slice(partition.requests);
         }
         self.reserve(

@@ -6,16 +6,15 @@
 //! portable contract.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
+use conduit_core::ResourceReferenceRefusal;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    ContextSelectionRationale, ContextTruncationReason, GroundingDisposition,
-    ModelResultProvenance, SourceSpanUnit, TemporalRetrievalIntent,
+    ChunkIdentity, Citation, ContextBudgetCost, ContextSelectionOutcome, ContextSelectionRationale,
+    ExtractionLineage, GroundedClaim, GroundingDisposition, ModelResultProvenance, RetrievalIntent,
+    RetrievalMode, RetrievalScore, SourceRef, SourceSpan, SourceSpanUnit,
 };
 
-pub const MAXIMUM_RETRIEVAL_MODES: usize = 8;
-pub const MAXIMUM_RETRIEVAL_CANDIDATES: u16 = 1_024;
 pub const MAXIMUM_TRANSFORM_LINEAGE: usize = 16;
 pub const MAXIMUM_CONTEXT_ITEMS: usize = 64;
 pub const MAXIMUM_CITATIONS: usize = 128;
@@ -26,54 +25,15 @@ pub const MAXIMUM_RAG_IDENTITY_BYTES: usize = 256;
 pub const MAXIMUM_RAG_TEXT_BYTES: usize = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RetrievalMode {
-    Semantic,
-    Exact,
-    Metadata,
-    Temporal(TemporalRetrievalIntent),
-    Boundary(TemporalRetrievalIntent),
-}
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RetrievalIntent {
-    pub identity: String,
-    pub modes: Vec<RetrievalMode>,
-    pub maximum_candidates: u16,
-}
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SourceRef {
-    pub resource: BoundedResourceRef,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SourceSpan {
-    pub unit: SourceSpanUnit,
-    pub start: u64,
-    pub end: u64,
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ChunkIdentity([u8; 32]);
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExtractionLineage {
-    pub source: SourceRef,
-    pub span: SourceSpan,
-    pub extraction_profile: String,
-    pub transform_profiles: Vec<String>,
-    pub parent_chunk: Option<ChunkIdentity>,
-}
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `Chunk<T>` Type family.
 pub struct Chunk<T> {
     pub identity: ChunkIdentity,
     pub lineage: ExtractionLineage,
     pub value: T,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RetrievalScore {
-    /// Scheme-specific ordering value. It is neither probability nor evidence.
-    pub value_micros: i64,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `Candidate<T>` Type family.
 pub struct Candidate<T> {
     pub chunk: Chunk<T>,
     pub rank: u16,
@@ -81,51 +41,19 @@ pub struct Candidate<T> {
     pub retrieval_basis: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ContextBudgetCost {
-    pub bytes: u32,
-    pub tokens: u32,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `ContextItem<T>` Type family.
 pub struct ContextItem<T> {
     pub candidate: Candidate<T>,
     pub rationale: ContextSelectionRationale,
     pub budget: ContextBudgetCost,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextSelectionOutcome {
-    Complete,
-    Truncated {
-        omitted_candidates: u16,
-        reason: ContextTruncationReason,
-    },
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `ContextSelection<T>` Type family.
 pub struct ContextSelection<T> {
     pub items: Vec<ContextItem<T>>,
     pub outcome: ContextSelectionOutcome,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Citation {
-    pub source: SourceRef,
-    pub span: SourceSpan,
-    pub chunk_identity: ChunkIdentity,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AnswerSpan {
-    pub start: u32,
-    pub end: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GroundedClaim {
-    pub answer_span: AnswerSpan,
-    pub citation_indices: Vec<u16>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -143,14 +71,9 @@ pub struct GroundedResult {
 pub enum RagSemanticRefusal {
     EmptyIdentity,
     IdentityTooLarge,
-    EmptyIntent,
-    TooManyRetrievalModes,
     DuplicateRetrievalMode,
     InvalidTemporalIntent,
-    CandidateLimitZero,
-    CandidateLimitExceeded,
     InvalidResourceReference,
-    EmptySpan,
     SpanOutsideSource,
     MissingItemExtent,
     TooMuchTransformLineage,
@@ -160,15 +83,12 @@ pub enum RagSemanticRefusal {
     RankExceedsIntent,
     EmptyRetrievalBasis,
     ContextItemLimitExceeded,
-    EmptyTruncation,
-    EmptyBudget,
     CitationLimitExceeded,
     CitationNotInContext,
     AnswerTooLarge,
     MissingAnswerKind,
     ClaimLimitExceeded,
     InvalidAnswerSpan,
-    ClaimWithoutCitation,
     CitationIndexOutOfBounds,
     DuplicateCitationIndex,
     MissingSupportedClaim,
@@ -179,28 +99,21 @@ pub enum RagSemanticRefusal {
 
 impl RetrievalIntent {
     pub fn validate(&self) -> Result<(), RagSemanticRefusal> {
-        validate_identity(&self.identity)?;
-        if self.modes.is_empty() {
-            return Err(RagSemanticRefusal::EmptyIntent);
-        }
-        if self.modes.len() > MAXIMUM_RETRIEVAL_MODES {
-            return Err(RagSemanticRefusal::TooManyRetrievalModes);
-        }
-        for (index, mode) in self.modes.iter().enumerate() {
-            if self.modes[index + 1..].contains(mode) {
+        let modes = self.modes().get();
+        for (index, mode) in modes.iter().enumerate() {
+            if modes.as_slice()[index + 1..].contains(mode) {
                 return Err(RagSemanticRefusal::DuplicateRetrievalMode);
             }
-            if let RetrievalMode::Temporal(intent) | RetrievalMode::Boundary(intent) = mode {
+            let temporal_intent = match mode {
+                RetrievalMode::Temporal(payload) => Some(payload.intent()),
+                RetrievalMode::Boundary(payload) => Some(payload.intent()),
+                _ => None,
+            };
+            if let Some(intent) = temporal_intent {
                 intent
                     .validate()
                     .map_err(|_| RagSemanticRefusal::InvalidTemporalIntent)?;
             }
-        }
-        if self.maximum_candidates == 0 {
-            return Err(RagSemanticRefusal::CandidateLimitZero);
-        }
-        if self.maximum_candidates > MAXIMUM_RETRIEVAL_CANDIDATES {
-            return Err(RagSemanticRefusal::CandidateLimitExceeded);
         }
         Ok(())
     }
@@ -222,10 +135,7 @@ impl SourceRef {
 impl SourceSpan {
     pub fn validate_against(&self, source: &SourceRef) -> Result<(), RagSemanticRefusal> {
         source.validate()?;
-        if self.start >= self.end {
-            return Err(RagSemanticRefusal::EmptySpan);
-        }
-        let limit = match self.unit {
+        let limit = match self.unit() {
             SourceSpanUnit::Bytes => source.resource.extent.bytes,
             SourceSpanUnit::Items => source
                 .resource
@@ -233,7 +143,7 @@ impl SourceSpan {
                 .items
                 .ok_or(RagSemanticRefusal::MissingItemExtent)?,
         };
-        if self.end > limit {
+        if self.end() > limit {
             return Err(RagSemanticRefusal::SpanOutsideSource);
         }
         Ok(())
@@ -241,25 +151,38 @@ impl SourceSpan {
 }
 
 impl ChunkIdentity {
-    pub const fn from_digest(digest: [u8; 32]) -> Self {
-        Self(digest)
+    pub fn from_digest(digest: [u8; 32]) -> Self {
+        Self::new(digest).expect("a fixed digest has exactly 32 bytes")
     }
 
     pub const fn digest(self) -> [u8; 32] {
-        self.0
+        *self.get()
+    }
+}
+
+impl PartialOrd for ChunkIdentity {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ChunkIdentity {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.get().cmp(other.get())
     }
 }
 
 impl ExtractionLineage {
     pub fn validate(&self) -> Result<(), RagSemanticRefusal> {
         self.span.validate_against(&self.source)?;
-        validate_identity(&self.extraction_profile)?;
-        if self.transform_profiles.len() > MAXIMUM_TRANSFORM_LINEAGE {
+        validate_identity(self.extraction_profile.get())?;
+        let transform_profiles = self.transform_profiles.get();
+        if transform_profiles.len() > MAXIMUM_TRANSFORM_LINEAGE {
             return Err(RagSemanticRefusal::TooMuchTransformLineage);
         }
-        for (index, transform) in self.transform_profiles.iter().enumerate() {
-            validate_identity(transform)?;
-            if self.transform_profiles[index + 1..].contains(transform) {
+        for (index, transform) in transform_profiles.iter().enumerate() {
+            validate_identity(transform.get())?;
+            if transform_profiles.as_slice()[index + 1..].contains(transform) {
                 return Err(RagSemanticRefusal::DuplicateTransform);
             }
         }
@@ -273,16 +196,16 @@ impl ExtractionLineage {
         let (source, version) = self.source.canonical_identity();
         digest.update(source);
         digest.update(version);
-        digest.update([match self.span.unit {
+        digest.update([match self.span.unit() {
             SourceSpanUnit::Bytes => 0,
             SourceSpanUnit::Items => 1,
         }]);
-        digest.update(self.span.start.to_le_bytes());
-        digest.update(self.span.end.to_le_bytes());
-        update_string(&mut digest, &self.extraction_profile);
-        digest.update((self.transform_profiles.len() as u16).to_le_bytes());
-        for transform in &self.transform_profiles {
-            update_string(&mut digest, transform);
+        digest.update(self.span.start().to_le_bytes());
+        digest.update(self.span.end().to_le_bytes());
+        update_string(&mut digest, self.extraction_profile.get());
+        digest.update((self.transform_profiles.get().len() as u16).to_le_bytes());
+        for transform in self.transform_profiles.get() {
+            update_string(&mut digest, transform.get());
         }
         match self.parent_chunk {
             None => digest.update([0]),
@@ -320,7 +243,7 @@ impl<T> Candidate<T> {
         if self.rank == 0 {
             return Err(RagSemanticRefusal::RankZero);
         }
-        if self.rank > intent.maximum_candidates {
+        if self.rank > *intent.maximum_candidates() {
             return Err(RagSemanticRefusal::RankExceedsIntent);
         }
         if self.retrieval_basis.is_empty() {
@@ -333,9 +256,6 @@ impl<T> Candidate<T> {
 impl<T> ContextItem<T> {
     pub fn validate_against(&self, intent: &RetrievalIntent) -> Result<(), RagSemanticRefusal> {
         self.candidate.validate_against(intent)?;
-        if self.budget.bytes == 0 && self.budget.tokens == 0 {
-            return Err(RagSemanticRefusal::EmptyBudget);
-        }
         Ok(())
     }
 }
@@ -347,15 +267,6 @@ impl<T> ContextSelection<T> {
         }
         for item in &self.items {
             item.validate_against(intent)?;
-        }
-        if matches!(
-            self.outcome,
-            ContextSelectionOutcome::Truncated {
-                omitted_candidates: 0,
-                ..
-            }
-        ) {
-            return Err(RagSemanticRefusal::EmptyTruncation);
         }
         Ok(())
     }
@@ -410,19 +321,15 @@ impl GroundedResult {
             citation.validate_against(context)?;
         }
         for claim in &self.claims {
-            if claim.answer_span.start >= claim.answer_span.end
-                || claim.answer_span.end as usize > self.answer.len()
-            {
+            if claim.answer_span().end() as usize > self.answer.len() {
                 return Err(RagSemanticRefusal::InvalidAnswerSpan);
             }
-            if claim.citation_indices.is_empty() {
-                return Err(RagSemanticRefusal::ClaimWithoutCitation);
-            }
-            for (index, citation) in claim.citation_indices.iter().enumerate() {
+            let citation_indices = claim.citation_indices().get();
+            for (index, citation) in citation_indices.iter().enumerate() {
                 if *citation as usize >= self.citations.len() {
                     return Err(RagSemanticRefusal::CitationIndexOutOfBounds);
                 }
-                if claim.citation_indices[index + 1..].contains(citation) {
+                if citation_indices.as_slice()[index + 1..].contains(citation) {
                     return Err(RagSemanticRefusal::DuplicateCitationIndex);
                 }
             }

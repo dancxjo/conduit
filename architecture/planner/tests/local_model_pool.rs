@@ -6,15 +6,12 @@ use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
     CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
     HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannerCapabilityOffer,
-    PlannerLimits, PlannerProfileId, PlanningRequestAuthority, PlayUnsatisfiedReason,
-    PoolMemberLimits, PoolOperationId, PoolRealizationHealth, PoolRealizationObservation,
-    PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth, ResourceObservation,
-    SharedPoolId, SignId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
-    SHARED_POOL_ADMIT_HOST_CALL_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
-};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
-    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
+    PlannerLimits, PlannerProfileId, PlanningRefusalReason, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId, PoolRealizationHealth,
+    PoolRealizationObservation, PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth,
+    ResourceObservation, SharedPoolId, SignId, PROTOCOL_VERSION,
+    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
+    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_kernel::{
     shared_pool::{
@@ -27,12 +24,16 @@ use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_shared_pools, PlanningOptions,
     SharedPoolPlanningRequirement,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindProjection,
+    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
+};
 use serde::Serialize;
 
 use common::local_model::dual_local_model_providers;
 
 const SOURCE: &str = r#"
-form llm/generate (
+plot llm/generate (
     maximum-input-bytes: Count = 4096
     maximum-context-items: Count = 1
     maximum-output-bytes: Count = 1024
@@ -42,13 +43,13 @@ form llm/generate (
 ) {
 }
 
-form consumer (
+plot consumer (
     workers: Pool
 ) {
     observe: flow/pool-observe(workers)
 }
 
-form model-service {
+plot model-service {
     pool workers: llm/generate(size = 2)
     client: consumer(workers)
 }
@@ -79,10 +80,10 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
-    expand_canonical_form(&checked, "model-service", &profile).unwrap()
+    expand_canonical_plot(&checked, "model-service", &profile).unwrap()
 }
 
 fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
@@ -162,10 +163,10 @@ fn requirement() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
 }
 
 fn build_plan(hosts: &[HostAdvertisement]) -> conduit_core::Plan {
-    let form = expanded();
-    let placements = default_expanded_placements(&form, hosts).unwrap();
+    let plot = expanded();
+    let placements = default_expanded_placements(&plot, hosts).unwrap();
     plan_expanded_canonical_with_shared_pools(
-        &form,
+        &plot,
         hosts,
         &placements,
         &[conduit_core::BaseImplementationId::from(
@@ -189,8 +190,8 @@ fn build_session_plan(
     hosts: &[HostAdvertisement],
     lines: &[conduit_core::LineOffer],
 ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
-    let form = expanded();
-    let placements = default_expanded_placements(&form, hosts).unwrap();
+    let plot = expanded();
+    let placements = default_expanded_placements(&plot, hosts).unwrap();
     let remote_base = conduit_core::BaseImplementationId::from("conduit.base/test-line@1");
     let mut requirements = requirement();
     requirements
@@ -198,7 +199,7 @@ fn build_session_plan(
         .unwrap()
         .member_sessions_required = true;
     plan_expanded_canonical_with_shared_pools(
-        &form,
+        &plot,
         hosts,
         &placements,
         &[
@@ -220,8 +221,8 @@ fn build_session_plan(
 
 #[test]
 fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
-    let form = expanded();
-    let observer = &form.gears[0];
+    let plot = expanded();
+    let observer = &plot.gears[0];
     let consumer = consumer_host(&observer.checked_front());
     let fixtures = dual_local_model_providers();
     let hosts = vec![
@@ -366,8 +367,8 @@ struct DeterministicReceipt<'a> {
     body_id: &'static str,
     wake_id: &'static str,
     source_document_id: &'a str,
-    checked_form_id: &'a str,
-    expanded_form_id: &'a str,
+    checked_plot_id: &'a str,
+    expanded_plot_id: &'a str,
     plan_id: &'a str,
     play_id: &'a str,
     pool_id: &'a str,
@@ -377,6 +378,9 @@ struct DeterministicReceipt<'a> {
     replacement_plan_id: &'a str,
     replacement_play_id: &'a str,
     replacement_preserved_body_and_wake: bool,
+    successful_recovery_semantic_terminal: Option<&'a str>,
+    unrecoverable_terminal_kind: &'a str,
+    unrecoverable_terminal_category: &'a str,
 }
 
 fn retain_receipt(receipt: &DeterministicReceipt<'_>) {
@@ -440,8 +444,8 @@ fn selected_signs(
 
 #[test]
 fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
-    let form = expanded();
-    let observer = &form.gears[0];
+    let plot = expanded();
+    let observer = &plot.gears[0];
     let consumer = consumer_host(&observer.checked_front());
     let fixtures = dual_local_model_providers();
     let hosts = vec![
@@ -450,7 +454,7 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         fixtures[1].advertisement.clone(),
     ];
     assert_eq!(
-        form.shared_pools[0].member_front,
+        plot.shared_pools[0].member_front,
         fixtures[0].advertisement.capabilities[0].checked_front()
     );
     let plan = build_plan(&hosts);
@@ -643,8 +647,8 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     assert_ne!(replacement.plan_id, plan.plan_id);
     assert_ne!(replacement.plan_id, a_only.plan_id);
     assert_eq!(replacement.source_document_id, a_only.source_document_id);
-    assert_eq!(replacement.checked_form_id, a_only.checked_form_id);
-    assert_eq!(replacement.expanded_form_id, a_only.expanded_form_id);
+    assert_eq!(replacement.checked_plot_id, a_only.checked_plot_id);
+    assert_eq!(replacement.expanded_plot_id, a_only.expanded_plot_id);
     let a_only_pool = &a_only.fragments[0].shared_pools[0];
     let b_replacement = &replacement.fragments[0].shared_pools[0].realization_envelope[0];
     assert!(!a_only_pool.permits_realization(b_replacement, &a_only_pool.member_front));
@@ -680,6 +684,39 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     assert!(replacement_events
         .iter()
         .all(|event| event.validate().is_ok()));
+    let request_sign_id = SignId::from("sign/model-pool-replan-request/5");
+    let successful_terminal = exhausted
+        .terminal_after_planning_outcome(
+            &plan,
+            &request_sign_id,
+            &replacement_events[0],
+            &conduit_core::kind_id("llm/generate"),
+            &conduit_core::GearId::from("model-service/workers"),
+            &conduit_core::PortId::from("result"),
+        )
+        .unwrap();
+    assert_eq!(successful_terminal, None);
+    let planning_refused = conduit_core::ControlLoopEvent::PlanningRefused {
+        prior_plan_id: plan.plan_id.clone(),
+        request_sign_id: request_sign_id.clone(),
+        reason: PlanningRefusalReason::NoCompatibleRealization,
+        sign_id: SignId::from("sign/model-pool-replan-refused/5"),
+    };
+    let unrecoverable_terminal = exhausted
+        .terminal_after_planning_outcome(
+            &plan,
+            &request_sign_id,
+            &planning_refused,
+            &conduit_core::kind_id("llm/generate"),
+            &conduit_core::GearId::from("model-service/workers"),
+            &conduit_core::PortId::from("result"),
+        )
+        .unwrap()
+        .expect("final planning refusal must emit typed abnormal truth");
+    assert_eq!(
+        unrecoverable_terminal.category(),
+        conduit_core::TerminalCategory::UnavailableRealization
+    );
     retain_receipt(&DeterministicReceipt {
         schema: "conduit.llm-generate-pool-proof/v1",
         proof_class: "deterministic-hosted-integration",
@@ -687,8 +724,8 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         body_id: "body/local-model-pool-fixture",
         wake_id: "wake/local-model-pool-fixture/1",
         source_document_id: plan.source_document_id.as_str(),
-        checked_form_id: plan.checked_form_id.as_str(),
-        expanded_form_id: plan.expanded_form_id.as_str(),
+        checked_plot_id: plan.checked_plot_id.as_str(),
+        expanded_plot_id: plan.expanded_plot_id.as_str(),
         plan_id: plan.plan_id.as_str(),
         play_id: play.active_play_id.as_str(),
         pool_id: planned.pool_id.as_str(),
@@ -698,7 +735,7 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
                 operation_id: "model-request/1",
                 disposition: "selected",
                 realization: Some(first.member.placement.realization),
-                observation_signs: first_signs,
+                observation_signs: first_signs.clone(),
                 planning_requested: false,
             },
             SelectionReceipt {
@@ -712,7 +749,7 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
                 operation_id: "model-request/1",
                 disposition: "provider-lost-no-replay",
                 realization: Some(first.member.placement.realization),
-                observation_signs: vec![],
+                observation_signs: first_signs,
                 planning_requested: false,
             },
             SelectionReceipt {
@@ -741,5 +778,8 @@ fn two_llm_generate_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         replacement_plan_id: replacement.plan_id.as_str(),
         replacement_play_id: replacement_play.active_play_id.as_str(),
         replacement_preserved_body_and_wake: true,
+        successful_recovery_semantic_terminal: None,
+        unrecoverable_terminal_kind: conduit_core::TERMINAL_INFO_ID,
+        unrecoverable_terminal_category: "UnavailableRealization",
     });
 }

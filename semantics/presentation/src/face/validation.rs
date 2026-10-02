@@ -67,11 +67,11 @@ pub(super) fn validate_contributions(
         validate_contribution(context, focus, contribution)?;
         if !body
             .workset
-            .forms()
+            .plots()
             .iter()
-            .any(|form| form.checked_form_id == contribution.checked_form_id)
+            .any(|plot| plot.checked_plot_id == contribution.checked_plot_id)
         {
-            return Err(FaceRefusal::FormNotResident);
+            return Err(FaceRefusal::PlotNotResident);
         }
         if contributions[index + 1..]
             .iter()
@@ -91,12 +91,12 @@ pub(super) fn validate_contributions(
         }
     }
     validate_contribution_identities(body, contributions)?;
-    if let Some(form) = context_form(context) {
+    if let Some(plot) = context_plot(context) {
         if !body
             .workset
-            .forms()
+            .plots()
             .iter()
-            .any(|resident| &resident.checked_form_id == form)
+            .any(|resident| &resident.checked_plot_id == plot)
         {
             return Err(FaceRefusal::InvalidContext);
         }
@@ -113,7 +113,7 @@ fn validate_contribution(
     fragment
         .validate_bounds()
         .map_err(FaceRefusal::InvalidPresentationFragment)?;
-    if fragment.basis.checked_form_id != contribution.checked_form_id
+    if fragment.basis.checked_plot_id != contribution.checked_plot_id
         || fragment.basis.plan_id != contribution.plan_id
         || fragment.basis.active_play_id != contribution.active_play_id
     {
@@ -163,9 +163,9 @@ fn validate_contribution_identities(
     let mut face_owned = vec![format!("body/{}", body.body_id.as_str())];
     face_owned.extend(
         body.workset
-            .forms()
+            .plots()
             .iter()
-            .map(|form| format!("form/{}", form.checked_form_id.as_str())),
+            .map(|plot| format!("plot/{}", plot.checked_plot_id.as_str())),
     );
     for contribution in contributions {
         let fragment = &contribution.presentation;
@@ -198,8 +198,8 @@ fn validate_contribution_identities(
             if let Some(identity) = collision {
                 return Err(FaceRefusal::ContributionIdentityCollision {
                     identity: identity.clone(),
-                    first: contribution.checked_form_id.clone(),
-                    second: other.checked_form_id.clone(),
+                    first: contribution.checked_plot_id.clone(),
+                    second: other.checked_plot_id.clone(),
                 });
             }
         }
@@ -207,11 +207,11 @@ fn validate_contribution_identities(
     Ok(())
 }
 
-fn context_form(context: &FaceContext) -> Option<&conduit_core::CheckedFormId> {
+fn context_plot(context: &FaceContext) -> Option<&conduit_core::CheckedPlotId> {
     match context {
-        FaceContext::ResidentForm(form)
-        | FaceContext::Tutorial(form)
-        | FaceContext::Inspection(form) => Some(form),
+        FaceContext::ResidentPlot(plot)
+        | FaceContext::Tutorial(plot)
+        | FaceContext::Inspection(plot) => Some(plot),
         FaceContext::Overview | FaceContext::Library => None,
     }
 }

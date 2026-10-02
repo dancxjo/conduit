@@ -1,7 +1,7 @@
 //! Exact initial workset and naming handoff from the shared Crèche.
 use super::*;
-use conduit_birth_form::BirthSelection;
-use conduit_body::{AuthenticatedHostObservation, BodyWorkset, MembershipProofId, ResidentForm};
+use conduit_birth_plot::BirthSelection;
+use conduit_body::{AuthenticatedHostObservation, BodyWorkset, MembershipProofId, ResidentPlot};
 use sha2::{Digest, Sha256};
 
 impl ProductJourney {
@@ -10,7 +10,7 @@ impl ProductJourney {
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
         // Crèche owns the zero-body birth selection. It does not need to open a
-        // candidate Form first: reviewed inventory plus explicit BirthSelection
+        // candidate Plot first: reviewed inventory plus explicit BirthSelection
         // is the authority-bearing handoff from World into a born Body.
         if self.body.is_none() && self.status != JourneyStatus::World {
             return Err(JourneyError::InvalidTransition);
@@ -33,15 +33,15 @@ impl ProductJourney {
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
-        // The legacy direct Form action still means "birth from this opened
-        // Form" and therefore keeps its explicit inspection/open prerequisite.
-        if self.status != JourneyStatus::FormOpened {
-            return Err(JourneyError::FormNotOpened);
+        // The legacy direct Plot action still means "birth from this opened
+        // Plot" and therefore keeps its explicit inspection/open prerequisite.
+        if self.status != JourneyStatus::PlotOpened {
+            return Err(JourneyError::PlotNotOpened);
         }
-        let opened = self.form.as_ref().ok_or(JourneyError::FormNotOpened)?;
-        let workset = BodyWorkset::one(ResidentForm::new(
+        let opened = self.plot.as_ref().ok_or(JourneyError::PlotNotOpened)?;
+        let workset = BodyWorkset::one(ResidentPlot::new(
             opened.source_document_id.clone(),
-            opened.checked_form_id.clone(),
+            opened.checked_plot_id.clone(),
         ))
         .map_err(|_| JourneyError::WrongTarget)?;
         self.birth_workset(workset, "My Body".into(), self.birth_sequence())
@@ -67,8 +67,8 @@ impl ProductJourney {
         if workset.is_empty() || workset.len() > profile.capacity {
             return Err(JourneyError::WrongTarget);
         }
-        let mut forms = [None; native_workset::NATIVE_FORM_CAPACITY];
-        for (slot, resident) in forms.iter_mut().zip(workset.forms()) {
+        let mut plots = [None; native_workset::NATIVE_PLOT_CAPACITY];
+        for (slot, resident) in plots.iter_mut().zip(workset.plots()) {
             if !profile
                 .contains(resident)
                 .map_err(|_| JourneyError::WrongTarget)?
@@ -77,11 +77,11 @@ impl ProductJourney {
             }
             *slot = Some(native_workset::resolve(resident).map_err(|_| JourneyError::WrongTarget)?);
         }
-        let foreground = forms
+        let foreground = plots
             .iter()
-            .position(|form| *form == Some(NativeForm::KeyboardCanvas))
+            .position(|plot| *plot == Some(NativePlot::KeyboardCanvas))
             .unwrap_or(0);
-        let first = native_workset::checked(forms[foreground].ok_or(JourneyError::WrongTarget)?)
+        let first = native_workset::checked(plots[foreground].ok_or(JourneyError::WrongTarget)?)
             .map_err(JourneyError::Workset)?;
         if name.trim().is_empty()
             || name.len() > conduit_body::MAX_BODY_FRIENDLY_NAME_BYTES
@@ -97,7 +97,7 @@ impl ProductJourney {
             self.boot_id.as_str(),
             self.revision
         ));
-        let body = Body::born_with_forms(workset, sequence, born_sign.clone())
+        let body = Body::born_with_plots(workset, sequence, born_sign.clone())
             .map_err(|_| JourneyError::InvalidTransition)?;
         let part = PartId::bind(&body.body_id, self.host_id.as_str(), 0)
             .map_err(|_| JourneyError::Membership)?;
@@ -130,12 +130,12 @@ impl ProductJourney {
             )
             .map_err(|_| JourneyError::Membership)?;
         self.friendly_name = Some(name);
-        self.forms = forms;
+        self.plots = plots;
         self.foreground = foreground;
-        self.form = Some(KeyboardTextFormIdentity {
+        self.plot = Some(KeyboardTextPlotIdentity {
             source_document_id: first.source_document_id,
-            checked_form_id: first.checked_form_id,
-            expanded_form_id: first.expanded_form_id,
+            checked_plot_id: first.checked_plot_id,
+            expanded_plot_id: first.expanded_plot_id,
         });
         self.body = Some(body);
         self.born_sign_id = Some(born_sign);
@@ -157,7 +157,7 @@ mod tests {
             revision: 3,
             friendly_name: "Roseau".into(),
             workset: BodyWorkset::one(
-                native_workset::resident(NativeForm::KeyboardCanvas).unwrap(),
+                native_workset::resident(NativePlot::KeyboardCanvas).unwrap(),
             )
             .unwrap(),
         }
@@ -188,7 +188,7 @@ mod tests {
         let mut journey = journey("boot");
         let before = journey.projection();
         let mut choice = selection();
-        choice.workset = BodyWorkset::one(ResidentForm::new(
+        choice.workset = BodyWorkset::one(ResidentPlot::new(
             "source/other".into(),
             "checked/other".into(),
         ))
@@ -223,11 +223,11 @@ mod tests {
 
         let mut maximum = journey("boot-maximum");
         let mut full = selection();
-        full.workset = BodyWorkset::from_forms(
+        full.workset = BodyWorkset::from_plots(
             native_workset::profile()
                 .installed()
                 .iter()
-                .map(|form| native_workset::resident(*form).unwrap()),
+                .map(|plot| native_workset::resident(*plot).unwrap()),
         )
         .unwrap();
         maximum.birth_from_creche(full).unwrap();
@@ -238,11 +238,11 @@ mod tests {
     }
 
     #[test]
-    fn direct_form_birth_still_requires_an_explicit_open() {
+    fn direct_plot_birth_still_requires_an_explicit_open() {
         let mut journey = journey("boot");
-        assert_eq!(journey.birth(), Err(JourneyError::FormNotOpened));
+        assert_eq!(journey.birth(), Err(JourneyError::PlotNotOpened));
         assert!(journey.body.is_none());
-        journey.open_form().unwrap();
+        journey.open_plot().unwrap();
         journey.birth().unwrap();
         assert_eq!(journey.status(), JourneyStatus::BornLulled);
         assert_eq!(journey.birth(), Err(JourneyError::AlreadyBorn));

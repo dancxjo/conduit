@@ -51,8 +51,8 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     planId: running.identities.planId,
     playId: running.identities.playId,
     topology: {
-      schema: "conduit.patchbay/checked-form-projection@1",
-      form_name: "clock-demo",
+      schema: "conduit.patchbay/checked-plot-projection@1",
+      plot_name: "clock-demo",
     },
   });
   expect(running.patchbay.topology.gears.map(({ kind_id }) => kind_id)).toEqual([
@@ -60,8 +60,8 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     "presentation/tick",
   ]);
   expect(running.patchbay.topology.cords).toHaveLength(1);
-  expect(running.constraintConformance.patchbay.checked_form_id)
-    .toBe(running.constraintConformance.checkedFormId);
+  expect(running.constraintConformance.patchbay.checked_plot_id)
+    .toBe(running.constraintConformance.checkedPlotId);
   expect(running.constraintConformance.patchbay.front_inputs).toHaveLength(1);
   expect(running.constraintConformance.patchbay.front_inputs[0]).toMatchObject({
     port_id: "code",

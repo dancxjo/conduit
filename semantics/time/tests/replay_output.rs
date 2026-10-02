@@ -1,20 +1,24 @@
-use conduit_core::{kind_id, TemporalInstant, TemporalScale};
+use conduit_core::{
+    kind_id, TemporalInstant as CoreTemporalInstant, TemporalScale as CoreTemporalScale,
+};
 use conduit_time::{
     decode_replay_event, decode_replay_state, encode_replay_event_into, encode_replay_state_into,
-    OwnedReplayEvent, ReplayEmission, ReplayOutputCodecRefusal, ReplayState,
+    NativeTemporalInstant, OwnedReplayEvent, ReplayEmission, ReplayOutputCodecRefusal, ReplayState,
     MAXIMUM_REPLAY_ENTRIES, MAXIMUM_REPLAY_EVENT_BYTES, MAXIMUM_REPLAY_IDENTITY_BYTES,
     MAXIMUM_REPLAY_STATE_BYTES,
 };
 mod common;
 
-fn historical_time(ticks: u64) -> TemporalInstant {
-    TemporalInstant {
+fn historical_time(ticks: u64) -> NativeTemporalInstant {
+    CoreTemporalInstant {
         ticks,
-        scale: TemporalScale::Milliseconds,
+        scale: CoreTemporalScale::Milliseconds,
         clock_basis: "memory-lantern/event-clock".into(),
         resolution_ticks: 2,
         uncertainty_ticks: 1,
     }
+    .try_into()
+    .unwrap()
 }
 
 #[test]
@@ -111,12 +115,13 @@ fn event_encoding_refuses_invalid_identity_ordinal_and_capacity() {
 fn malformed_values_remain_machine_readable_refusals() {
     let mut event = [0; MAXIMUM_REPLAY_EVENT_BYTES];
     let value = common::replay_value(1, "bench/record@1");
+    let time = historical_time(1);
     let length = encode_replay_event_into(
         ReplayEmission {
             ordinal: 0,
             historical_sequence: 1,
             historical_identity: "event",
-            historical_event_time: &historical_time(1),
+            historical_event_time: &time,
             historical_origin: conduit_time::HistoricalEntryOrigin::MachineObservation,
             value: &value,
             playback_ticks: 2,

@@ -5,17 +5,10 @@ to release `1.31.0` at upstream commit
 `b7b6ecf1316d0af64c97a6b0392abe5e816a8e30`.
 
 Only the ten SVGs named by the canonical `PaletteIconKey` table are retained
-under `svg/`. The repository-development entrance
-
-```console
-cargo xtask make palette-icons mechanisms/implementations/bounded-lucide/svg products/patchbay/native/src/palette_icon_data.rs
-```
-
-validates that exact bounded set and deterministically rasterizes it into the
-checked-in 16 by 16 monochrome masks consumed by the native Patchbay. The
-bounded licensed source corpus is reusable realization material rather than
-Patchbay product meaning. Other renderers consume the same semantic icon key
-and may use the retained SVG.
+under `svg/`. The retired native Patchbay shell was the only generated
+Rust-table consumer. The bounded licensed source corpus remains reusable
+realization material rather than Patchbay product meaning; current Masks may
+consume the reviewed SVG set through their own target-owned path.
 There is no runtime network or complete-pack dependency.
 
 Lucide is distributed under the ISC license. A small set of Lucide icons is

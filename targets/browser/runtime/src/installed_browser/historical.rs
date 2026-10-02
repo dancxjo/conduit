@@ -233,7 +233,7 @@ mod tests {
     fn clear_command() -> Vec<u8> {
         let mut wire = [0; conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES];
         let length = conduit_time::encode_historical_timeline_command_into(
-            &conduit_time::HistoricalTimelineCommand::Clear,
+            &conduit_time::HistoricalTimelineCommand::clear(),
             &mut wire,
         )
         .unwrap();

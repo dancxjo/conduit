@@ -1,11 +1,11 @@
-//! Portable form catalog for bounded reaction-diffusion evolution.
+//! Portable plot catalog for bounded reaction-diffusion evolution.
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
     REACTION_DIFFUSION_MAXIMUM_STATE_BYTES, REACTION_DIFFUSION_REQUEST_INFO_ID,

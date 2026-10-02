@@ -35,47 +35,13 @@ pub const KEY_EVENT_CONFORMANCE_VECTORS: [KeyEventConformanceVector; 8] = [
     vector("simultaneous-b-second", 0x05, 0, 0),
 ];
 
-use crate::{KeyEvent, KeyModifiers, KeyTransition, KeyTransitionCode};
+use crate::{KeyEvent, KeyModifiers, KeyTransitionForm};
 
 /// One exact keyboard transition with the modifier state *after* the transition.
 ///
 /// Usage numbers use the USB HID Keyboard/Keypad page as a host-neutral
 /// vocabulary. That choice does not imply a USB device or transport.
 impl KeyEvent {
-    pub fn new(
-        usage: u8,
-        transition: KeyTransition,
-        modifiers_after: KeyModifiers,
-    ) -> Result<Self, InfoDecodeError> {
-        if !is_canonical_keyboard_usage(usage) {
-            return Err(InfoDecodeError::ReservedValue {
-                field: "keyboard-usage",
-                actual: usage,
-            });
-        }
-        if is_modifier_usage(usage)
-            && modifiers_after.contains_usage(usage) != matches!(transition, KeyTransition::Pressed)
-        {
-            return Err(InfoDecodeError::InconsistentValue(
-                "modifier-after-transition",
-            ));
-        }
-        let contains = |modifier: KeyModifiers| modifiers_after.bits() & modifier.bits() != 0;
-        Ok(Self::new_native(
-            usage,
-            transition,
-            contains(KeyModifiers::LEFT_CONTROL),
-            contains(KeyModifiers::LEFT_SHIFT),
-            contains(KeyModifiers::LEFT_ALT),
-            contains(KeyModifiers::LEFT_GUI),
-            contains(KeyModifiers::RIGHT_CONTROL),
-            contains(KeyModifiers::RIGHT_SHIFT),
-            contains(KeyModifiers::RIGHT_ALT),
-            contains(KeyModifiers::RIGHT_GUI),
-        )
-        .expect("explicit keyboard checks match generated contract"))
-    }
-
     pub fn modifiers_after(&self) -> KeyModifiers {
         let fields = [
             (self.left_control_after(), KeyModifiers::LEFT_CONTROL),
@@ -95,7 +61,7 @@ impl KeyEvent {
     pub fn encode(self) -> [u8; KEY_EVENT_ENCODED_LEN] {
         [
             self.usage(),
-            KeyTransitionCode::encode(self.transition())[0],
+            KeyTransitionForm::encode(self.transition())[0],
             self.modifiers_after().bits(),
         ]
     }
@@ -107,7 +73,7 @@ impl KeyEvent {
                 actual: encoded.len(),
             });
         }
-        let transition = KeyTransitionCode::decode(&encoded[1..2])
+        let transition = KeyTransitionForm::decode(&encoded[1..2])
             .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[1]))?;
         Self::new(encoded[0], transition, KeyModifiers::from_bits(encoded[2]))
     }

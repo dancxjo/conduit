@@ -1,22 +1,36 @@
 use conduit_ai::{
     ordinary_rag_answer_offer, AnswerSpan, Chunk, Citation, ClockBasis, ContextOmission,
-    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
+    ContextOmissionReason, ContextOmissions, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionDisposition, ExtractedSourceValue, ExtractionLineage,
     GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedAnswerRequest,
-    GroundedClaimSupport, GroundingInputAssessment, HybridCandidate, LlmDeterminismProfile,
-    MechanismScore, ModelDerivedResult, ModelResultDisposition, ModelResultProvenance,
-    ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim, RerankScore,
-    RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
-    RetrievalMechanism, RetrievalMode, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
-    SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
-    TemporalProvenance, TemporalRetrievalIntent, TemporalSource,
+    GroundedClaimSupport, GroundingInputAssessment, GroundingLimitation, HybridCandidate,
+    LlmDeterminismProfile, MechanismScore, ModelDerivedResult, ModelResultDisposition,
+    ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim,
+    RagIdentity, RerankScore, RerankedCandidate, RerankingProofClass, RetrievalContribution,
+    RetrievalIntent, RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes,
+    RetrieverIdentity, SelectedContextCost, SelectedContextItem, SelectedContextRationale,
+    SourceRef, SourceSpan, SourceSpanUnit, StructuredContext, TemporalProvenance,
+    TemporalRetrievalIntent, TemporalRetrievalWindow, TemporalSource, TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalRelation,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 
 const ANSWER: &[u8] = b"Recent summary is unsafe; project origin is April.";
+
+fn retrieval_intent(
+    identity: &str,
+    modes: impl IntoIterator<Item = RetrievalMode>,
+) -> RetrievalIntent {
+    RetrievalIntent::new(
+        RetrievalIntentIdentity::new(identity.into()).unwrap(),
+        RetrievalModes::new(BoundedSequence::try_from_iter(modes).unwrap()).unwrap(),
+        8,
+    )
+    .unwrap()
+}
 
 fn selected(version: u8, rank: u16, text: &str) -> SelectedContextItem {
     let chunk = Chunk::new(
@@ -36,13 +50,14 @@ fn selected(version: u8, rank: u16, text: &str) -> SelectedContextItem {
                     },
                 },
             },
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start: u64::from(rank) * 64,
-                end: u64::from(rank) * 64 + text.len() as u64,
-            },
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            span: SourceSpan::new(
+                SourceSpanUnit::Bytes,
+                u64::from(rank) * 64,
+                u64::from(rank) * 64 + text.len() as u64,
+            )
+            .unwrap(),
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(text.as_bytes().to_vec()),
@@ -55,10 +70,11 @@ fn selected(version: u8, rank: u16, text: &str) -> SelectedContextItem {
                 rank,
                 fusion_score_micros: 100 - u64::from(rank),
                 contributions: vec![RetrievalContribution {
-                    retriever: RetrieverIdentity {
-                        identity: "retriever/vector@1".into(),
-                        mechanism: RetrievalMechanism::VectorSimilarity,
-                    },
+                    retriever: RetrieverIdentity::new(
+                        "retriever/vector@1".into(),
+                        RetrievalMechanism::VectorSimilarity,
+                    )
+                    .unwrap(),
                     stage_rank: rank,
                     score: Some(MechanismScore::SimilarityMicros(999_000)),
                     temporal_evidence_identity: None,
@@ -92,13 +108,10 @@ fn request(disposition: ContextSelectionDisposition) -> GroundedAnswerRequest {
     ];
     GroundedAnswerRequest {
         identity: "request/r5".into(),
-        retrieval_intent: RetrievalIntent {
-            identity: "intent/project-origin".into(),
-            modes: vec![RetrievalMode::Boundary(
-                TemporalRetrievalIntent::EarliestEvidence,
-            )],
-            maximum_candidates: 8,
-        },
+        retrieval_intent: retrieval_intent(
+            "intent/project-origin",
+            [RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap()],
+        ),
         context: StructuredContext {
             policy_identity: "context/reranked-diverse@1".into(),
             token_accounting_profile: "tokens/exact-fixture@1".into(),
@@ -116,14 +129,15 @@ fn request(disposition: ContextSelectionDisposition) -> GroundedAnswerRequest {
 }
 
 fn policy() -> GroundedAnswerPolicy {
-    GroundedAnswerPolicy {
-        identity: "grounding/exact-context-citations@1".into(),
-        answer_kind: "value/text-utf8@1".into(),
-        maximum_output_bytes: 1_024,
-        maximum_claims: 8,
-        maximum_citations: 8,
-        maximum_work_units: 64,
-    }
+    GroundedAnswerPolicy::new(
+        "grounding/exact-context-citations@1".into(),
+        "value/text-utf8@1".into(),
+        1_024,
+        8,
+        8,
+        64,
+    )
+    .unwrap()
 }
 
 fn model(disposition: ModelResultDisposition, context_items: usize) -> ModelDerivedResult {
@@ -205,23 +219,20 @@ fn old_observation_origin_and_valid_at_intents_keep_temporal_truth() {
         Ok(TemporalRelation::Present)
     );
     for intent in [
-        RetrievalIntent {
-            identity: "intent/origin".into(),
-            modes: vec![RetrievalMode::Boundary(
-                TemporalRetrievalIntent::EarliestEvidence,
-            )],
-            maximum_candidates: 8,
-        },
-        RetrievalIntent {
-            identity: "intent/valid-at".into(),
-            modes: vec![RetrievalMode::Temporal(
-                TemporalRetrievalIntent::EvidenceWithin {
-                    start: 200,
-                    end: 300,
-                },
-            )],
-            maximum_candidates: 8,
-        },
+        retrieval_intent(
+            "intent/origin",
+            [RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap()],
+        ),
+        retrieval_intent(
+            "intent/valid-at",
+            [RetrievalMode::temporal(
+                TemporalRetrievalIntent::evidence_within(
+                    TemporalRetrievalWindow::new(200, 300).unwrap(),
+                )
+                .unwrap(),
+            )
+            .unwrap()],
+        ),
     ] {
         assert_eq!(intent.validate(), Ok(()));
     }
@@ -232,20 +243,18 @@ fn injection_and_unsupported_first_rank_cannot_gain_authority_or_support() {
     let request = request(ContextSelectionDisposition::Complete);
     assert_eq!(request.context.items[0].reranked.reranked_rank, 1);
     assert_eq!(
-        request.retrieval_intent.modes,
-        vec![RetrievalMode::Boundary(
-            TemporalRetrievalIntent::EarliestEvidence
-        )]
+        request.retrieval_intent.modes().get().as_slice(),
+        [RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap()]
     );
     let claims = vec![
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 0, end: 24 },
+            answer_span: AnswerSpan::new(0, 24).unwrap(),
             support: ProposedClaimSupport::Unsupported {
                 rationale: "highest-ranked injected source does not support the claim".into(),
             },
         },
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 26, end: 49 },
+            answer_span: AnswerSpan::new(26, 49).unwrap(),
             support: ProposedClaimSupport::Supported {
                 citations: vec![citation(&request, 1)],
             },
@@ -267,8 +276,8 @@ fn injection_and_unsupported_first_rank_cannot_gain_authority_or_support() {
         GroundedAnswerDisposition::PartiallySupported
     );
     assert!(matches!(
-        answer.claims[0].support,
-        GroundedClaimSupport::Unsupported { .. }
+        answer.claims[0].support(),
+        GroundedClaimSupport::Unsupported(_)
     ));
     let offer = ordinary_rag_answer_offer("pid-r5").unwrap();
     assert!(offer.host_calls.is_empty());
@@ -283,16 +292,23 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
         .candidate
         .chunk
         .identity;
-    let mut truncated_request = request(ContextSelectionDisposition::Omitted {
-        candidates: vec![ContextOmission {
-            chunk_identity: omitted,
-            reason: ContextOmissionReason::TokenBudget,
-        }],
-    });
+    let mut truncated_request = request(
+        ContextSelectionDisposition::omitted(
+            ContextOmissions::new(
+                BoundedSequence::try_from_iter([ContextOmission {
+                    chunk_identity: omitted,
+                    reason: ContextOmissionReason::TokenBudget,
+                }])
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    );
     truncated_request.context.items.truncate(1);
     truncated_request.context.used = truncated_request.context.items[0].budget;
     let claims = [ProposedGroundedClaim {
-        answer_span: AnswerSpan { start: 0, end: 24 },
+        answer_span: AnswerSpan::new(0, 24).unwrap(),
         support: ProposedClaimSupport::Unsupported {
             rationale: "crucial origin source was excluded by the token budget".into(),
         },
@@ -300,9 +316,13 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
     let insufficient = policy()
         .assemble(
             &truncated_request,
-            &GroundingInputAssessment::InsufficientEvidence {
-                limitation: "selected context does not establish an origin boundary".into(),
-            },
+            &GroundingInputAssessment::insufficient_evidence(
+                GroundingLimitation::new(
+                    "selected context does not establish an origin boundary".into(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
             &model(
                 ModelResultDisposition::Produced,
                 truncated_request.context.items.len(),
@@ -316,7 +336,7 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
     );
     assert!(matches!(
         truncated_request.context.disposition,
-        ContextSelectionDisposition::Omitted { .. }
+        ContextSelectionDisposition::Omitted(_)
     ));
     let conflict_request = request(ContextSelectionDisposition::Complete);
     assert_ne!(
@@ -342,9 +362,13 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
     let conflicting = policy()
         .assemble(
             &conflict_request,
-            &GroundingInputAssessment::ConflictingEvidence {
-                limitation: "duplicate source versions disagree about the origin".into(),
-            },
+            &GroundingInputAssessment::conflicting_evidence(
+                GroundingLimitation::new(
+                    "duplicate source versions disagree about the origin".into(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
             &model(
                 ModelResultDisposition::Produced,
                 conflict_request.context.items.len(),
@@ -364,7 +388,7 @@ fn invented_citation_and_model_loss_never_become_grounded_success() {
     let mut invented = citation(&request, 1);
     invented.source.resource.lifetime.version = ResourceVersionIdentity::from_digest([99; 32]);
     let claim = [ProposedGroundedClaim {
-        answer_span: AnswerSpan { start: 26, end: 49 },
+        answer_span: AnswerSpan::new(26, 49).unwrap(),
         support: ProposedClaimSupport::Supported {
             citations: vec![invented],
         },

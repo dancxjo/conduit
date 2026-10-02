@@ -38,13 +38,13 @@ pub(super) fn observation() -> CreateDockObservation {
 }
 
 #[test]
-fn canonical_dock_form_is_mechanism_free_and_finitely_timed() {
+fn canonical_dock_plot_is_mechanism_free_and_finitely_timed() {
     for forbidden in ["create", "uart", "serial", "gpio", "pete", "opcode"] {
         assert!(!CREATE_DOCK_FORM.to_ascii_lowercase().contains(forbidden));
     }
     assert!(CREATE_DOCK_FORM.contains("timeout-ms = 30000"));
     let (_, profile) = crate::catalogs().unwrap();
-    conduit_form::parse(CREATE_DOCK_FORM, &profile).unwrap();
+    conduit_plot::parse(CREATE_DOCK_FORM, &profile).unwrap();
 }
 
 #[test]

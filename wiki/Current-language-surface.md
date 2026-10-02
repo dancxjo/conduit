@@ -7,16 +7,15 @@ target tests establish the named execution paths. Published products can lag
 
 ## Declarations and status
 
-- `form` declares executable composition; its parenthesized **fore** is the callable signature
+- `plot` declares executable composition; its parenthesized **fore** is the callable signature
 - `type` declares semantic value meaning
-- `code` declares a portable encoding, separate from type identity
+- `form` declares a portable representation, separate from type identity
 - `host`, `body`, and `pack` declare construction or shipment truth, not live runtime state
 
-`plot` and the reassignment of `form` to representation remain proposed in
-[#4513](https://github.com/dancxjo/conduit/issues/4513). `representation` is
-rejected as an obsolete keyword. See the
-[parser](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/surface_parser.rs)
-and [syntax tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/syntax_check_tests.rs).
+The paired `form` to `plot` and `code` to `form` migration is canonical.
+Both former declaration spellings are rejected rather than retained as aliases. See the
+[parser](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/surface_parser.rs)
+and [syntax tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/syntax_check_tests.rs).
 
 ## Callable composition
 
@@ -27,7 +26,7 @@ placeholder, not runnable body syntax. The complete bounded `flow/each` example
 later on this page shows a checked generic implementation.
 
 ```conduit
-form latest (
+plot latest (
     item: type
 
     >> values: item...
@@ -37,7 +36,7 @@ form latest (
 }
 ```
 
-`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `latest(item = Text)`. This form-parameter surface does not require runtime erasure, implicit `any`, or hidden closures. Owner: #4059.
+`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `latest(item = Text)`. This plot-parameter surface does not require runtime erasure, implicit `any`, or hidden closures. Owner: #4059.
 
 ### Explicit Current sampling
 
@@ -123,7 +122,7 @@ Adjacent refinement relations are conjunctive:
 code: Text <= 8B in ["AB12", "CD34"] ~ /[A-Z]{2}[0-9]{2}/
 ```
 
-`in [a, b, c]` is finite membership. `in a..b` is lower-inclusive / upper-exclusive; `in a..=b` is inclusive at both ends. Missing range ends express semantic openness: `Count in 4..` has no authored upper endpoint, while `Scalar in ..=1.000000` has no authored lower endpoint. This does not reserve infinite storage; each actual value still needs a finite admitted carrier. `in ..` adds no refinement and is rejected. See the [range tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/refinement_tests.rs).
+`in [a, b, c]` is finite membership. `in a..b` is lower-inclusive / upper-exclusive; `in a..=b` is inclusive at both ends. Missing range ends express semantic openness: `Count in 4..` has no authored upper endpoint, while `Scalar in ..=1.000000` has no authored lower endpoint. This does not reserve infinite storage; each actual value still needs a finite admitted carrier. `in ..` adds no refinement and is rejected. See the [range tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/refinement_tests.rs).
 
 `~ /.../flags` is the canonical portable text-pattern relation. Slash literals use Conduit's bounded regular language, not a host-selected regex dialect. The admitted language includes ordinary regular constructs plus non-capturing groups, named groups, and bounded-compilable positive/negative lookahead; it excludes backreferences, recursion, embedded code and any construct whose work cannot be admitted finitely.
 
@@ -131,7 +130,7 @@ code: Text <= 8B in ["AB12", "CD34"] ~ /[A-Z]{2}[0-9]{2}/
 
 The older `where pattern(...)`, `where range(...)` and `where member(...)` spellings are migration targets, not compatibility aliases. Owner: #4199.
 
-## Native types, codes, and record laws
+## Native types, Forms, and record laws
 
 ### Generic native types
 
@@ -146,21 +145,21 @@ type Pair<T> = {
 type TextPair = Pair<Text <= 16B>
 ```
 
-This differs from a form's named `item: type` parameter above. Checking
+This differs from a plot's named `item: type` parameter above. Checking
 substitutes each argument through the complete finite structure and its laws.
 The concrete identity includes the exact generic declaration and arguments;
 play receives no open parameter, runtime closure, or dynamic dispatcher.
 Invalid arity, unused/duplicate parameters, unknown applications, and recursive
 or unbounded instantiation refuse. See the
-[generic type tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/syntax_check_tests.rs)
-and [checker](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/native_type/generic.rs).
+[generic type tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/syntax_check_tests.rs)
+and [checker](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/native_type/generic.rs).
 
 A real current family is
 [`DataGenerationValue<T>`](https://github.com/dancxjo/conduit/blob/dev/semantics/data/types.conduit),
 whose text specialization is bounded to 4096 bytes. This language support does
 not mean all generic domain families have already migrated.
 
-### Compact codes
+### Compact Forms
 
 This [checked-in declaration](https://github.com/dancxjo/conduit/blob/dev/semantics/alife/types.conduit)
 keeps semantic alternatives separate from byte tags:
@@ -170,10 +169,10 @@ type LeniaRegionChunkKind =
     work
     | result
 
-code alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
+form alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
 ```
 
-The compact code assigns consecutive `u8` tags beginning at 1. The checked
+The compact form assigns consecutive `u8` tags beginning at 1. The checked
 mapping owns finite extent/work, compatibility identity, and invalid-tag
 refusal; generated bindings do not independently restate the mapping. This
 example does not claim every proposed record or wire-layout encoding exists.
@@ -195,29 +194,29 @@ construction and decode boundaries. They use the finite checked expression
 language. Real declarations include
 [linguistic spans](https://github.com/dancxjo/conduit/blob/dev/semantics/language/types.conduit)
 and [audio frame laws](https://github.com/dancxjo/conduit/blob/dev/semantics/audio/types.conduit).
-The [generated-binding tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/rust_binding/generate_tests.rs)
+The [generated-binding tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/rust_binding/generate_tests.rs)
 cover refusal and independent bindings.
 
 `variant/tag(value)` returns ordinary `Text`. A comparison such as
 `variant/tag(.direction) == "mono"` is checked as text equality; the compared
 literal is not validated against the variant alternatives. A typo can therefore
 remain well-typed while making a law false. See the
-[semantic call checker](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/expression_semantic_call.rs)
+[semantic call checker](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/expression_semantic_call.rs)
 and the record-law syntax tests.
 
 Construction-time enforcement is implemented by
 [#4638](https://github.com/dancxjo/conduit/pull/4638). General propagation of
-these facts into consuming forms and removal of proven-safe arithmetic checks
+these facts into consuming plots and removal of proven-safe arithmetic checks
 remains open in [#4639](https://github.com/dancxjo/conduit/issues/4639).
 
 ## Bounded each, select, fold, and scan
 
 These are checked activation coordinators around exact selected behavior,
 not general loops or runtime closures. The following wrapper is copied from
-[activation conformance source](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/activation_tests.rs):
+[activation conformance source](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/activation_tests.rs):
 
 ```conduit
-form flow/each (
+plot flow/each (
     item: type
     result: type
     transform: kind (
@@ -234,7 +233,7 @@ form flow/each (
 ```
 
 Here `flow/each` is a **source-defined wrapper**, not an implicit installed
-catalog kind. With an exact checked `text/normalize` form in scope, the fixture
+catalog kind. With an exact checked `text/normalize` plot in scope, the fixture
 specializes it with:
 
 ```conduit
@@ -276,7 +275,7 @@ and [shared collect laws](https://github.com/dancxjo/conduit/blob/dev/semantics/
 Pressure, cancellation, abnormal termination, bounds, and receipt identity stay
 explicit. Browser runtime/WASM proof is not browser interaction/E2E proof.
 Embedded applicability was audited, but current admitted ConduitOS resident
-forms do not exercise these combinators; this is not universal embedded
+plots do not exercise these combinators; this is not universal embedded
 execution evidence.
 
 ## Resources and construction
@@ -305,7 +304,7 @@ There are no resource literals and no parallel `capability T` wrapper. Owner: #4
 Source imports use `with`:
 
 ```conduit
-with audio/forms/tone
+with audio/plots/tone
 with math/geometry/{vector2, matrix2}
 with house/sensors/temperature as room-temperature
 with text/upper as ^^
@@ -328,19 +327,22 @@ pack house/sensors (
 
 ### body wardrobe
 
-mask remains an ordinary form role; there is no `mask` declaration.
+mask remains an ordinary plot role; there is no `mask` declaration.
 
 ```conduit
 with masks/native-graphical as graphical
 with masks/spoken as spoken
 
 body roseau {
-    wear graphical else spoken
+    wear graphical, spoken
     want graphical over spoken
 }
 ```
 
-`wear a else b` admits fallback structure into the plan. Without authored `else`, loss requires ordinary replacement planning. `want` is policy only among eligible alternatives. Runtime `wear` and `doff` are body-control actions requesting wardrobe change and therefore new planning where required; they never mutate an immutable plan in place. Owner: #4115.
+`wear a, b` is an unordered bounded set of permitted masks; comma order carries no preference. `want` is optional ordered policy only among eligible alternatives. Same-plan selection may use only exact routes already sealed by that plan; otherwise loss requires ordinary replacement planning. The legacy `wear a else b` spelling is rejected because its ordered fallback meaning cannot be silently migrated into unordered eligibility. Runtime `wear` and `doff` request planning where required and never mutate an immutable plan in place. Owner: #4115.
+
+Body construction schema 2 owns this wardrobe shape. Schema 1 remains a
+distinct legacy contract and is not reinterpreted as unordered eligibility.
 
 ### host source
 

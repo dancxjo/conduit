@@ -1,4 +1,4 @@
-//! Ordinary planning of one portable form with two independent branches.
+//! Ordinary planning of one portable plot with two independent branches.
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
@@ -19,7 +19,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-pub const FORM_SOURCE: &str = "form conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: presentation/tick\n    upper: text/upper\n    text: presentation/text\n    clock >> ticks\n    \"Hello, ConduitOS\" >> upper >> text\n}\n";
+pub const PLOT_SOURCE: &str = "plot conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: presentation/tick\n    upper: text/upper\n    text: presentation/text\n    clock >> ticks\n    \"Hello, ConduitOS\" >> upper >> text\n}\n";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const PLACEMENT_COUNT: usize = 5;
 const CORD_COUNT: usize = 3;
@@ -30,8 +30,8 @@ pub struct PreparedDualRegionPlay {
     pub advertisement: HostAdvertisement,
     pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
     pub plan_id: PlanId,
     pub fragment_id: conduit_core::FragmentId,
     pub active_play: ActivePlayIdentity,
@@ -46,14 +46,14 @@ pub fn prepare(
 ) -> Result<PreparedDualRegionPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
     stage(b"advertisement");
-    let form = checked_expanded_form()?;
-    stage(b"form");
+    let plot = checked_expanded_plot()?;
+    stage(b"plot");
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(&form, &hosts)
+    let placements = default_expanded_placements(&plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
     stage(b"placements");
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -100,8 +100,8 @@ pub fn prepare(
         kernel,
         advertisement,
         source_document_id: plan.source_document_id.clone(),
-        checked_form_id: plan.checked_form_id.clone(),
-        expanded_form_id: plan.expanded_form_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
         plan_id: plan.plan_id.clone(),
         fragment_id: fragment.fragment_id.clone(),
         active_play,
@@ -131,23 +131,23 @@ fn stage(name: &[u8]) {
 )))]
 fn stage(_name: &[u8]) {}
 
-fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
-    let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
+fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, PreparationError> {
+    let syntax = conduit_plot::parse_syntax_document(PLOT_SOURCE);
     stage(b"syntax");
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     stage(b"catalogs");
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|_| PreparationError::FormRejected)?;
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|_| PreparationError::PlotRejected)?;
     stage(b"checked");
-    let expanded = conduit_form::expand_canonical_form(&checked, "conduitos-two-regions", &profile)
-        .map_err(|_| PreparationError::FormRejected)?;
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "conduitos-two-regions", &profile)
+        .map_err(|_| PreparationError::PlotRejected)?;
     stage(b"expanded");
     Ok(expanded)
 }
@@ -250,7 +250,7 @@ fn bind_native_capability(
 mod tests {
     use super::*;
     use crate::offer::CpuFeatures;
-    use conduit_core::{FormIdentity, HostBaseId, ResourcePoolId, seal_plan};
+    use conduit_core::{HostBaseId, PlotIdentity, ResourcePoolId, seal_plan};
 
     fn fixture() -> (BootIdentities, HostOffer<'static>) {
         let identities = BootIdentities {
@@ -271,7 +271,7 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_form_plans_two_disjoint_exact_regions() {
+    fn unchanged_plot_plans_two_disjoint_exact_regions() {
         let (identities, offer) = fixture();
         let prepared = prepare(&identities, &offer, "build").unwrap();
         let regions = &prepared.plan.fragments[0].execution_regions;
@@ -289,9 +289,9 @@ mod tests {
                 && !region.preemption_required
                 && !region.isolation_required
         }));
-        assert!(!FORM_SOURCE.contains("lane"));
-        assert!(!FORM_SOURCE.contains("thread"));
-        assert!(!FORM_SOURCE.contains("scheduler"));
+        assert!(!PLOT_SOURCE.contains("lane"));
+        assert!(!PLOT_SOURCE.contains("thread"));
+        assert!(!PLOT_SOURCE.contains("scheduler"));
     }
 
     fn reseal(
@@ -299,10 +299,10 @@ mod tests {
         fragments: Vec<conduit_core::PlanFragment>,
     ) -> Plan {
         seal_plan(
-            FormIdentity {
+            PlotIdentity {
                 source_document_id: prepared.source_document_id.clone(),
-                checked_form_id: prepared.checked_form_id.clone(),
-                expanded_form_id: prepared.expanded_form_id.clone(),
+                checked_plot_id: prepared.checked_plot_id.clone(),
+                expanded_plot_id: prepared.expanded_plot_id.clone(),
             },
             fragments,
         )

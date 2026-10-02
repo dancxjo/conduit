@@ -6,11 +6,15 @@ mod generated {
 }
 
 pub use generated::{
-    HouseGenerationRequest, LiveConversationSpeechRequirements, RecognitionTextRefusal,
-    RecognizedSpeechText, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionAttempt,
+    CommittedUserMessage, HouseGenerationRequest, LiveConversationSpeechRequirements,
+    RecognitionTextRefusal, RecognizedSpeechText, SpeakableSegment, SpeechCommitReason,
+    SpeechCommitRefusal, SpeechDigest, SpeechOutcome, SpeechOutcomePlayed,
+    SpeechOutcomeWavArtifact, SpeechOutputCondition, SpeechRecognitionAttempt,
     SpeechRecognitionAudioDigest, SpeechRecognitionDisposition, SpeechRecognitionProviderIdentity,
     SpeechRecognitionRefusal, SpeechRecognitionResult, SpeechRecognitionResultNoSpeech,
-    SpeechRecognitionResultRecognized, SpeechRecognitionValueError, StreamingRecognitionRefusal,
+    SpeechRecognitionResultRecognized, SpeechRecognitionValueError, SpeechSign, SpeechSignDegraded,
+    SpeechSignFailed, SpeechSignPresented, SpeechSignReason, SpeechSignRefused,
+    SpeechSignSynthesized, StreamingRecognitionRefusal,
 };
 
 mod analysis;
@@ -29,9 +33,9 @@ mod realization;
 mod recognition_adapters;
 mod research_compute;
 mod research_data;
-mod research_form;
 mod research_math;
 mod research_model;
+mod research_plot;
 mod research_report;
 #[cfg(feature = "speech")]
 mod signs;
@@ -54,11 +58,9 @@ pub use realization::*;
 pub use recognition_adapters::*;
 pub use research_compute::*;
 pub use research_data::*;
-pub use research_form::*;
 pub use research_model::*;
+pub use research_plot::*;
 pub use research_report::*;
-#[cfg(feature = "speech")]
-pub use signs::*;
 #[cfg(feature = "speech")]
 pub use specimen::*;
 pub use speech_commit::*;

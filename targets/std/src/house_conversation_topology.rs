@@ -1,8 +1,8 @@
 //! Shared checked House conversation topology and exact Cord capacities.
 
 use conduit_core::{GearId, PortId};
-use conduit_form::{
-    check_syntax_document, parse_syntax_document, ExpandedCanonicalForm, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, parse_syntax_document, ExpandedCanonicalPlot, ProfileCatalog,
     StartupCatalog,
 };
 use std::collections::BTreeMap;
@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 pub(crate) type HouseConnectionEndpoints = (GearId, PortId, GearId, PortId);
 
 pub(crate) struct HouseConversationTopology {
-    pub expanded: ExpandedCanonicalForm,
+    pub expanded: ExpandedCanonicalPlot,
     pub connection_limits:
         BTreeMap<HouseConnectionEndpoints, conduit_planner::ConnectionQueueLimits>,
 }
@@ -42,16 +42,16 @@ pub(crate) fn build(
         &mut profiles,
     );
     const SOURCE: &str = concat!(
-        include_str!("../../../forms/addressed-utterance/main.conduit"),
+        include_str!("../../../plots/addressed-utterance/main.conduit"),
         "\n",
-        include_str!("../../../forms/house-conversation/main.conduit"),
+        include_str!("../../../plots/house-conversation/main.conduit"),
         "\n",
         include_str!("../proof/recorded-house/main.conduit"),
     );
     let checked =
         check_syntax_document(&parse_syntax_document(SOURCE), &startup).map_err(|error| {
             format!(
-                "recorded House Form check: {} {} at {}:{}",
+                "recorded House Plot check: {} {} at {}:{}",
                 error.code, error.message, error.span.line, error.span.column
             )
         })?;
@@ -61,7 +61,7 @@ pub(crate) fn build(
         (true, false) => "microphone-house-proof",
         (true, true) => "microphone-house-spoken-proof",
     };
-    let expanded = conduit_form::expand_canonical_form(&checked, entry, &profiles)
+    let expanded = conduit_plot::expand_canonical_plot(&checked, entry, &profiles)
         .map_err(|error| format!("recorded House expansion: {} {}", error.code, error.message))?;
     let mut connection_limits = BTreeMap::new();
     for connection in &expanded.connections {

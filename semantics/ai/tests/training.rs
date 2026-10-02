@@ -1,6 +1,6 @@
 use conduit_ai::*;
 use conduit_core::StateContinuation;
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 #[path = "common/training_fixture.rs"]
 mod fixture;
@@ -40,6 +40,50 @@ fn declared_missing_modalities_retain_relational_validation() {
         candidate.validate(&artifact, &dataset, &split),
         Err(TrainingRefusal::InvalidSession)
     );
+}
+
+#[test]
+fn portable_training_descriptions_are_native_and_keep_the_4096_example_bound() {
+    let signature = signature();
+    let artifact = artifact(&signature);
+    let (dataset, split) = corpus();
+    let session = session(&artifact, &dataset, &split);
+    assert_eq!(
+        TrainingSession::from_structured(session.clone().into_structured().unwrap()).unwrap(),
+        session
+    );
+
+    let batch = batch(0, &["audio", "ema"]);
+    assert_eq!(
+        TrainingBatch::from_structured(batch.clone().into_structured().unwrap()).unwrap(),
+        batch
+    );
+    assert!(TrainingExampleIdentityPages::from_values(vec![[7; 32]; 4_096]).is_ok());
+    assert_eq!(
+        TrainingExampleIdentityPages::from_values(vec![[7; 32]; 4_097]),
+        Err(TrainingRefusal::BatchBoundExceeded)
+    );
+
+    let request = TrainStepRequest {
+        step: 1,
+        expected_generation: 0,
+        batch,
+        admitted_work_units: 1,
+    };
+    assert_eq!(
+        TrainStepRequest::from_structured(request.clone().into_structured().unwrap()).unwrap(),
+        request
+    );
+    assert!(TrainStepRequest::new(0, request.batch.clone(), 0, 1).is_err());
+
+    let source = include_str!("../src/training.rs");
+    for removed in [
+        "pub struct TrainingBatch",
+        "pub struct TrainingSession",
+        "pub struct TrainStepRequest",
+    ] {
+        assert!(!source.contains(removed));
+    }
 }
 
 #[test]
@@ -240,7 +284,7 @@ fn stale_half_steps_bad_splits_and_resource_overruns_refuse() {
     let signature = signature();
     let artifact = artifact(&signature);
     let (dataset, split) = corpus();
-    let mut session = session(&artifact, &dataset, &split);
+    let session = session(&artifact, &dataset, &split);
     let state = TrainingState {
         session_identity: session.identity,
         model: MutableModelState {
@@ -279,7 +323,8 @@ fn stale_half_steps_bad_splits_and_resource_overruns_refuse() {
         Err(TrainingRefusal::StaleState)
     );
     request.expected_generation = 1;
-    request.batch.example_identities = vec![[99; 32]];
+    request.batch.example_identities =
+        conduit_ai::TrainingExampleIdentityPages::from_values(vec![[99; 32]]).unwrap();
     assert_eq!(
         session.commit_step(TrainStepCommit {
             artifact: &artifact,
@@ -347,9 +392,8 @@ fn stale_half_steps_bad_splits_and_resource_overruns_refuse() {
         }),
         Err(TrainingRefusal::CheckpointNotScheduled)
     );
-    session.resources.maximum_in_flight_steps = 2;
-    assert_eq!(
-        session.validate(&artifact, &dataset, &split),
-        Err(TrainingRefusal::InvalidResourceEnvelope)
+    assert!(
+        TrainingResourceEnvelope::new(4096, 1_048_576, 2, 2, 65_536, 3, 10_000, 16_384, 2,)
+            .is_err()
     );
 }

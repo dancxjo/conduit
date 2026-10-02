@@ -28,7 +28,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
             "-p",
             "patchbay-native",
             "-p",
-            "patchbay-html",
+            "conduit-browser-patchbay-workbench",
         ]),
         "build the two renderer entrances",
     )?;
@@ -47,7 +47,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
                 "proof/browser/node_modules/@playwright/test/cli.js",
                 "test",
                 "--config",
-                "proof/browser/one-form-two-fronts.playwright.config.mjs",
+                "proof/browser/one-plot-two-fronts.playwright.config.mjs",
                 "--project",
                 "chromium",
                 "--workers",
@@ -60,7 +60,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 
     finish_manifest(&output, &workspace)?;
     guard.retain();
-    println!("ONE FORM, TWO FRONTS COMPLETE: {}", output.display());
+    println!("ONE PLOT, TWO FRONTS COMPLETE: {}", output.display());
     Ok(())
 }
 
@@ -94,7 +94,7 @@ fn finish_manifest(root: &Path, workspace: &Path) -> Result<(), String> {
     let mut manifest = EvidenceManifest::new(
         root,
         workspace,
-        "journey-one-form-two-fronts",
+        "journey-one-plot-two-fronts",
         "journey-gallery",
     )?;
     for (id, kind, path, receipt, proof_class) in [
@@ -138,7 +138,7 @@ fn finish_manifest(root: &Path, workspace: &Path) -> Result<(), String> {
             },
             required: true,
             provenance: EvidenceProvenance {
-                scenario_id: "one-form-two-fronts.front-door@1".into(),
+                scenario_id: "one-plot-two-fronts.front-door@1".into(),
                 presentation_id: Some(presentation_id.into()),
                 presentation_revision: Some(revision.to_string()),
                 manifestation_id: Some(text(receipt, "manifestation_id")?.into()),

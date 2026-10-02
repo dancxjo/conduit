@@ -1,11 +1,11 @@
-//! Ordinary form contract for finite typed-record transcript retention.
+//! Ordinary plot contract for finite typed-record transcript retention.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };

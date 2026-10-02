@@ -75,8 +75,8 @@ the resulting directory but does not define its meaning.
 The manifest contract originated in #821; the first Patchbay captures were
 added through #822.
 
-The One form, Two fronts sibling uses a separate four-output manifest. Its
-supported entrance is `cargo xtask prove one-form-two-fronts`, which feeds
+The One plot, Two fronts sibling uses a separate four-output manifest. Its
+supported entrance is `cargo xtask prove one-plot-two-fronts`, which feeds
 one deterministic front-door presentation into the native software renderer
 and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
 `native.json`, `browser.png`, and `browser.json`; complete verification requires
@@ -88,7 +88,7 @@ The gallery accepts that sibling only through
 `--two-fronts-evidence-root <directory>` bound to the same accepted commit as
 the other inputs. Its side-by-side page states that neither pixel equality,
 physical-display output, nor human perception is established. Omitting the
-input clears stale `current/one-form-two-fronts/` content.
+input clears stale `current/one-plot-two-fronts/` content.
 
 Little Life uses a separate six-output manifest rather than consuming a
 ConduitOS capture slot. `cargo xtask prove little-life` retains PNGs at
@@ -127,7 +127,7 @@ new exact commit. Each image links to its provenance page. The prose states the
 same essential result because the images document a rendering; they do not
 define semantic success.
 
-The overview correlates the checked form graph with the same authoritative
+The overview correlates the checked plot graph with the same authoritative
 structure exposed by Patchbay.
 
 [![Current accepted Conduit Patchbay overview](https://dancxjo.github.io/conduit/current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)
@@ -155,11 +155,12 @@ its page to expose that commit's provenance before Pages can deploy.
 
 ## Human review, not pixel authority
 
-The Three Bodies documentary foregrounds native and browser screenshots, an
-uncut browser session, and retained real-model words with transcripts. By Step
-compares one semantic moment; body controls follow a single track. Machine
-receipts remain under Evidence. Pre-birth conversational moments are silent
-because no Body exists yet.
+The Three Bodies documentary compares one ordered 15-action contract across
+ConduitOS, pinned Chromium/WASM, and a hosted generative Tongues Mask. Each
+producer emits its own current Body, Host, Boot, Plan, Play, Face/Mask/Show,
+failure, repair, rest, and finish receipts. Optional media stays event-bound;
+it cannot replace the structured producer evidence. Pre-birth conversational
+moments are silent because no Body exists yet.
 
 `cargo xtask make host prove-local-model --orifina-presenter --journey-documentary`
 retains every tutorial-state request and its actual outward model words (supply
@@ -168,19 +169,20 @@ is an explicit documentary run, not a required live-inference release gate.
 The retained words are not voiced by an unrelated documentary binary. Spoken
 evidence must cross the same admitted Tongues contract as any other speech.
 
-Publication uses `cargo xtask prove three-body-journey` with
-`--recorded-generative <recorded-track.json>`. It verifies each current producer
-track, requires graphical media, verifies retained media digests, and refuses
-live-recording reuse when any exact structured Presenter request changes.
-The recorded source commit remains distinct from the current release commit.
-Model repetitions and weak phrasing are preserved rather than rewritten into
-an invented dialogue. See the retained recording's README for its exact limits.
+Assembly uses `cargo xtask prove three-body-journey-contract --commit <sha>`
+followed by `cargo xtask prove three-body-journey --commit <sha> --contract
+<contract.json> --track <conduitos.json> --track <browser.json> --track
+<hosted.json>`. It accepts exactly three fresh producer tracks from that same
+commit, verifies their distinct constructions and common action order, checks
+retained media digests when media is present, and refuses stale or recorded
+substitutes for a current Show. Model repetitions and weak phrasing are
+preserved rather than rewritten into invented dialogue.
 Release promotion does not run this publisher. `journey-publication.yml` runs
 only after the accepted software carrier has deployed. The successful Pages run
 retains one normalized exact base carrier for the downstream workflow regardless
 of whether those bytes were inherited or freshly made. The publisher
 consumes immutable native/browser claim evidence from promotion, creates the
-gallery-only One Form, Two Fronts and Little Life evidence against the accepted
+gallery-only One Plot, Two Fronts and Little Life evidence against the accepted
 source, and refuses to replace Pages if `main` has advanced. Its failure leaves
 both the release and the base software publication intact.
 

@@ -172,18 +172,18 @@ fn instant(value: &TemporalInstant) -> Result<StructuredInfoValue, String> {
     )
 }
 
-fn string_slots(
+fn string_slots<'a>(
     record_type: &StructuredInfoType,
     field: &str,
     tag: &str,
-    values: &[String],
+    values: impl IntoIterator<Item = &'a String>,
 ) -> Result<StructuredInfoValue, String> {
     value_slots(
         record_type,
         field,
         tag,
         values
-            .iter()
+            .into_iter()
             .map(|value| conduit_semantic_catalog::leaf_value("value/text", value))
             .collect::<Result<Vec<_>, _>>()?,
     )

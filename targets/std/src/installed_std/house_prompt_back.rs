@@ -242,13 +242,14 @@ mod tests {
     use conduit_ai::HouseContextProvenanceClass;
 
     fn context() -> Vec<WiredHouseContextItem> {
-        vec![WiredHouseContextItem {
-            item_identity: "context/temperature".into(),
-            value_kind: "temperature/summary@1".into(),
-            canonical_value: b"21 degrees Celsius".to_vec(),
-            provenance: HouseContextProvenanceClass::ObservedSign,
-            source_identity: "sign/temperature/1".into(),
-        }]
+        vec![conduit_ai::wired_house_context_item(
+            "context/temperature",
+            "temperature/summary@1",
+            b"21 degrees Celsius",
+            HouseContextProvenanceClass::ObservedSign,
+            "sign/temperature/1",
+        )
+        .unwrap()]
     }
 
     #[test]

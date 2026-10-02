@@ -4,18 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["form-catalog"]
+default = ["plot-catalog"]
 kernel-step = ["dep:conduit-kernel"]
-form-catalog = []
+plot-catalog = []
 
 [dependencies]
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc", "step-test-support"] }
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [build-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 
 [dev-dependencies]
 serde_json = "1"

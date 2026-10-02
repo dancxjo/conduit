@@ -208,9 +208,9 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
         verify_conduitos_console(&root, &manifest, &request.commit)?;
     }
     if request.result == ExpectedEvidenceResult::Complete
-        && request.proof_id == "journey-one-form-two-fronts"
+        && request.proof_id == "journey-one-plot-two-fronts"
     {
-        verify_one_form_two_fronts(&root, &manifest)?;
+        verify_one_plot_two_fronts(&root, &manifest)?;
     }
     if request.result == ExpectedEvidenceResult::Complete
         && request.proof_id == "journey-little-life"
@@ -245,7 +245,7 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
     })
 }
 
-fn verify_one_form_two_fronts(root: &Path, manifest: &Manifest) -> Result<(), String> {
+fn verify_one_plot_two_fronts(root: &Path, manifest: &Manifest) -> Result<(), String> {
     let expected = [
         (
             "two-fronts.native-frame",
@@ -288,7 +288,7 @@ fn verify_one_form_two_fronts(root: &Path, manifest: &Manifest) -> Result<(), St
                 } else {
                     "application/json"
                 }
-            || output.provenance.scenario_id != "one-form-two-fronts.front-door@1"
+            || output.provenance.scenario_id != "one-plot-two-fronts.front-door@1"
             || output.provenance.proof_class.as_deref()
                 != Some(if native {
                     "native-software-renderer"

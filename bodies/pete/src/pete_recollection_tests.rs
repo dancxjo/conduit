@@ -4,16 +4,20 @@ use conduit_ai::{
     AnswerSpan, Chunk, Citation, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionDisposition, ContextTemporalEvidence, ExtractedSourceValue, ExtractionLineage,
     GroundedAnswerDisposition, LlmDeterminismProfile, MechanismScore, ModelResultDisposition,
-    ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, RerankScore,
+    ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, RagIdentity, RerankScore,
     RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
-    RetrievalMechanism, RetrievalMode, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
-    SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
-    TemporalContext, TemporalProvenance, TemporalSource, TemporalValidity,
+    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrieverIdentity,
+    SelectedContextCost, SelectedContextItem, SelectedContextRationale, SourceRef, SourceSpan,
+    SourceSpanUnit, StructuredContext, TemporalContext, TemporalEvidenceIdentities,
+    TemporalEvidenceIdentity, TemporalEvidenceSelection, TemporalProvenance,
+    TemporalRetrievalIntent, TemporalRetrievalWindow, TemporalSource, TemporalValidity,
+    TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalRelation,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 
 fn retained_memory() -> BoundedAutobiography {
     let mut memory = BoundedAutobiography::new(8).unwrap();
@@ -104,13 +108,9 @@ fn request() -> GroundedAnswerRequest {
     let chunk = Chunk::new(
         ExtractionLineage {
             source: source(1),
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start: 0,
-                end: text.len() as u64,
-            },
-            extraction_profile: "extract/retained-experience@1".into(),
-            transform_profiles: vec![],
+            span: SourceSpan::new(SourceSpanUnit::Bytes, 0, text.len() as u64).unwrap(),
+            extraction_profile: RagIdentity::new("extract/retained-experience@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(text.clone()),
@@ -123,10 +123,11 @@ fn request() -> GroundedAnswerRequest {
                 rank: 1,
                 fusion_score_micros: 100_000,
                 contributions: vec![RetrievalContribution {
-                    retriever: RetrieverIdentity {
-                        identity: "retriever/temporal-exact@1".into(),
-                        mechanism: RetrievalMechanism::Temporal,
-                    },
+                    retriever: RetrieverIdentity::new(
+                        "retriever/temporal-exact@1".into(),
+                        RetrievalMechanism::Temporal,
+                    )
+                    .unwrap(),
                     stage_rank: 1,
                     score: Some(MechanismScore::TemporalBoundary),
                     temporal_evidence_identity: Some("experience/battery/1".into()),
@@ -174,13 +175,19 @@ fn request() -> GroundedAnswerRequest {
     };
     GroundedAnswerRequest {
         identity: "request/recollection/1".into(),
-        retrieval_intent: RetrievalIntent {
-            identity: "intent/recent-battery".into(),
-            modes: vec![RetrievalMode::Temporal(
-                conduit_ai::TemporalRetrievalIntent::LatestEvidence,
-            )],
-            maximum_candidates: 4,
-        },
+        retrieval_intent: RetrievalIntent::new(
+            RetrievalIntentIdentity::new("intent/recent-battery".into()).unwrap(),
+            RetrievalModes::new(
+                BoundedSequence::try_from_iter([RetrievalMode::temporal(
+                    TemporalRetrievalIntent::LatestEvidence,
+                )
+                .unwrap()])
+                .unwrap(),
+            )
+            .unwrap(),
+            4,
+        )
+        .unwrap(),
         context: StructuredContext {
             policy_identity: "context/pete-memory@1".into(),
             token_accounting_profile: "tokens/exact-fixture@1".into(),
@@ -219,14 +226,15 @@ fn model_result() -> ModelDerivedResult {
 }
 
 fn policy() -> GroundedAnswerPolicy {
-    GroundedAnswerPolicy {
-        identity: "grounding/pete-memory@1".into(),
-        answer_kind: "value/text-utf8@1".into(),
-        maximum_output_bytes: 128,
-        maximum_claims: 2,
-        maximum_citations: 2,
-        maximum_work_units: 16,
-    }
+    GroundedAnswerPolicy::new(
+        "grounding/pete-memory@1".into(),
+        "value/text-utf8@1".into(),
+        128,
+        2,
+        2,
+        16,
+    )
+    .unwrap()
 }
 
 fn candidates() -> Vec<PeteRetrievalCandidate> {
@@ -248,7 +256,7 @@ fn candidates() -> Vec<PeteRetrievalCandidate> {
 fn claim(request: &GroundedAnswerRequest) -> ProposedGroundedClaim {
     let chunk = &request.context.items[0].reranked.candidate.chunk;
     ProposedGroundedClaim {
-        answer_span: AnswerSpan { start: 0, end: 27 },
+        answer_span: AnswerSpan::new(0, 27).unwrap(),
         support: ProposedClaimSupport::Supported {
             citations: vec![Citation {
                 source: chunk.lineage.source.clone(),
@@ -259,6 +267,21 @@ fn claim(request: &GroundedAnswerRequest) -> ProposedGroundedClaim {
     }
 }
 
+fn selected(identities: &[&str]) -> TemporalEvidenceSelection {
+    TemporalEvidenceSelection::selected(
+        TemporalEvidenceIdentities::new(
+            BoundedSequence::try_from_iter(
+                identities
+                    .iter()
+                    .map(|identity| TemporalEvidenceIdentity::new((*identity).into()).unwrap()),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
+
 #[test]
 fn selected_historical_experience_yields_one_grounded_model_recollection() {
     let memory = retained_memory();
@@ -266,21 +289,19 @@ fn selected_historical_experience_yields_one_grounded_model_recollection() {
     assert_eq!(
         memory.select_temporal(
             200,
-            &conduit_ai::TemporalRetrievalIntent::EvidenceWithin {
-                start: 100,
-                end: 140,
-            },
+            &TemporalRetrievalIntent::evidence_within(
+                TemporalRetrievalWindow::new(100, 140).unwrap(),
+            )
+            .unwrap(),
             true,
         ),
-        Ok(conduit_ai::TemporalEvidenceSelection::Selected {
-            identities: vec![
-                "experience/battery/1".into(),
-                "experience/human/1".into(),
-                "experience/model/1".into(),
-                "experience/action/1".into(),
-                "experience/effect/1".into(),
-            ]
-        })
+        Ok(selected(&[
+            "experience/battery/1",
+            "experience/human/1",
+            "experience/model/1",
+            "experience/action/1",
+            "experience/effect/1",
+        ]))
     );
     let request = request();
     let candidates = candidates();

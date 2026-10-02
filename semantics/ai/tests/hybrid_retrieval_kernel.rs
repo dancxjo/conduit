@@ -1,12 +1,12 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 #[path = "common/hybrid_plan.rs"]
 mod hybrid_plan;
 
 use conduit_ai::{
     Chunk, ExtractedSourceValue, ExtractionLineage, FusionStrategy, HybridFusionPolicy,
-    HybridRetrievalReceipt, MechanismScore, RetrievalMechanism, RetrievalStage, RetrieverIdentity,
-    SourceRef, SourceSpan, SourceSpanUnit, StageCandidate,
+    HybridRetrievalReceipt, MechanismScore, RagIdentity, RetrievalMechanism, RetrievalStage,
+    RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate, TransformProfiles,
 };
 use conduit_core::{
     bind_active_play, bind_sign, verify_plan, BoundedResourceRef, ConfigurationValue, KindId,
@@ -22,6 +22,7 @@ use conduit_kernel::{
     KernelEvent, KernelEventKind, NodeId, PortId, RouteRange, RouteTarget, SignQuery, ValueRef,
     ValueStorage,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 
 const FUSION_NODE: NodeId = NodeId(4);
 const SINK_NODE: NodeId = NodeId(5);
@@ -89,7 +90,7 @@ impl StepBack<4> for TestOperation {
                         RetrievalMechanism::Metadata,
                         RetrievalMechanism::Temporal,
                     ][index];
-                    if stage.retriever.mechanism != expected_mechanism {
+                    if *stage.retriever.mechanism() != expected_mechanism {
                         return invalid(6);
                     }
                     io.consume(PortId(index as u16)).unwrap();
@@ -169,13 +170,9 @@ fn chunk() -> Chunk<ExtractedSourceValue> {
                     },
                 },
             },
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start: 0,
-                end: 14,
-            },
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            span: SourceSpan::new(SourceSpanUnit::Bytes, 0, 14).unwrap(),
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(b"project origin".to_vec()),
@@ -184,20 +181,21 @@ fn chunk() -> Chunk<ExtractedSourceValue> {
 }
 
 fn policy() -> HybridFusionPolicy {
-    HybridFusionPolicy {
-        identity: POLICY_IDENTITY.into(),
-        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
-        required_mechanisms: vec![
+    HybridFusionPolicy::from_parts(
+        POLICY_IDENTITY.into(),
+        FusionStrategy::reciprocal_rank(60).unwrap(),
+        vec![
             RetrievalMechanism::VectorSimilarity,
             RetrievalMechanism::Lexical,
             RetrievalMechanism::Metadata,
             RetrievalMechanism::Temporal,
         ],
-        temporal_hard_filter: None,
-        maximum_candidates_per_stage: 8,
-        maximum_output_candidates: 8,
-        maximum_total_work_units: 32,
-    }
+        None,
+        8,
+        8,
+        32,
+    )
+    .unwrap()
 }
 
 fn stages() -> Vec<RetrievalStage<ExtractedSourceValue>> {
@@ -211,10 +209,8 @@ fn stages() -> Vec<RetrievalStage<ExtractedSourceValue>> {
         .into_iter()
         .enumerate()
         .map(|(index, mechanism)| RetrievalStage {
-            retriever: RetrieverIdentity {
-                identity: format!("retriever/{mechanism:?}@1"),
-                mechanism,
-            },
+            retriever: RetrieverIdentity::new(format!("retriever/{mechanism:?}@1"), mechanism)
+                .unwrap(),
             candidates: vec![StageCandidate {
                 chunk: chunk(),
                 rank: 1,

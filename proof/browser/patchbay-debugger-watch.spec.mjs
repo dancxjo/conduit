@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 
 function startServer() {
-  const child = spawn("target/debug/patchbay-html", ["--debugger-watch-fixture"], {
+  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--debugger-watch-fixture"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];
@@ -47,8 +47,8 @@ async function openInspector(page) {
   }
 }
 
-async function enterForm(page) {
-  await page.getByRole("button", { name: "Form", exact: true }).click();
+async function enterPlot(page) {
+  await page.getByRole("button", { name: "Plot", exact: true }).click();
 }
 
 async function enterDebug(page) {
@@ -70,7 +70,7 @@ test("the real Patchbay shows one bounded Tongues system across signals, belief,
     expect(initial.watches.watches).toHaveLength(3);
     expect(initial.watches.watches.flatMap(watch => watch.learned_projections)).toHaveLength(15);
     await page.goto(url);
-    await enterForm(page);
+    await enterPlot(page);
     await enterDebug(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await expect(page.locator(".watch-card")).toHaveCount(3);
@@ -112,7 +112,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
 
     await page.goto(url);
-    await enterForm(page);
+    await enterPlot(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     const admitted = await page.evaluate(() => ({
       application: globalThis.__conduitBrowserApplication.manifest.applicationId,
@@ -184,7 +184,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     const port = initial.watches.eligible_subjects.find(([, role]) => role === "port")[0];
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
-    await enterForm(page);
+    await enterPlot(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await enterDebug(page);
     await selectSubject(page, cord);
@@ -231,7 +231,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
-    await enterForm(page);
+    await enterPlot(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await enterDebug(page);
     await selectSubject(page, gear);

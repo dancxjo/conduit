@@ -11,24 +11,24 @@ use conduit_ai::{
 };
 use conduit_body::Body;
 use conduit_core::{
-    BaseImplementationId, BootId, CheckedFormId, ComputeServiceGuarantee, ConnectionTrack,
-    ExpandedFormId, HostId, OfferGeneration, PlanId, PlannedGear, PoolRealizationHealth,
+    BaseImplementationId, BootId, CheckedPlotId, ComputeServiceGuarantee, ConnectionTrack,
+    ExpandedPlotId, HostId, OfferGeneration, PlanId, PlannedGear, PoolRealizationHealth,
     PortDirection, SignId, SourceDocumentId,
-};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
     ForeBoundaryKey, PlanningOptions,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
+};
 use conduit_presentation::{
     ArtifactAcknowledgedSpokenShow, GeneratedContentRole, GeneratedContentSegment,
     GeneratedManifestationCandidate, GeneratedManifestationDisposition,
     GeneratedSemanticCorrelation, GenerativeNarratorRole, GenerativePresenterBounds,
-    GenerativePresenterPolicy, GenerativePresenterRequest, ManifestationLifecycle, MaskForm,
-    PlannedMaskForm, Presentation, PresentationBasis, PresentationDisclosure,
+    GenerativePresenterPolicy, GenerativePresenterRequest, ManifestationLifecycle, MaskPlot,
+    PlannedMaskPlot, Presentation, PresentationBasis, PresentationDisclosure,
     PresentationDisclosureLevel, PresentationRole, PresentationSubject, PresentationText,
 };
 use std::collections::BTreeMap;
@@ -154,7 +154,7 @@ impl TimerAdapter for NoopTimer {
 fn presentation() -> Presentation {
     let body = Body::born(
         SourceDocumentId::from("source/presentation-fixture"),
-        CheckedFormId::from("checked/presentation-fixture"),
+        CheckedPlotId::from("checked/presentation-fixture"),
         1,
         SignId::from("sign/presentation-fixture/born"),
     )
@@ -165,8 +165,8 @@ fn presentation() -> Presentation {
             body_id: Some(body.body_id),
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/presentation-fixture")),
-            checked_form_id: Some(CheckedFormId::from("checked/presentation-fixture")),
-            expanded_form_id: Some(ExpandedFormId::from("expanded/presentation-fixture")),
+            checked_plot_id: Some(CheckedPlotId::from("checked/presentation-fixture")),
+            expanded_plot_id: Some(ExpandedPlotId::from("expanded/presentation-fixture")),
             plan_id: Some(PlanId::from("plan/presentation-fixture")),
             active_play_id: None,
             sign_ids: vec![],
@@ -192,12 +192,12 @@ fn presentation() -> Presentation {
 }
 
 fn execute_spoken_mask(
-    form_name: &str,
+    plot_name: &str,
     host_id: &str,
     boot_id: &str,
     grant_id: &str,
     presentation: Presentation,
-) -> (ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskForm) {
+) -> (ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot) {
     let config = StdHostConfig {
         host_id: HostId::from(host_id),
         boot_id: BootId::from(boot_id),
@@ -230,12 +230,12 @@ fn execute_spoken_mask(
 
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
-    conduit_presentation::install_mask_form_value_aliases(&mut startup).unwrap();
+    conduit_presentation::install_mask_plot_value_aliases(&mut startup).unwrap();
     conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles).unwrap();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles).unwrap();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles).unwrap();
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles).unwrap();
-    let source = r#"form FORM_NAME (
+    let source = r#"plot PLOT_NAME (
  >> face: Presentation
  interaction: FaceInteraction...| >>
  show: Show >>
@@ -268,10 +268,10 @@ fn execute_spoken_mask(
  no-input.interaction >> interaction
 }
 "#
-    .replace("FORM_NAME", form_name);
+    .replace("PLOT_NAME", plot_name);
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let authoring = expand_canonical_form_for_authoring(&checked, form_name, &profiles).unwrap();
-    let mask = MaskForm::admit(&authoring).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles).unwrap();
+    let mask = MaskPlot::admit(&authoring).unwrap();
     let hosts = [host.advertisement().clone()];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let boundary_limits = authoring
@@ -320,7 +320,7 @@ fn execute_spoken_mask(
         &boundary_limits,
     )
     .unwrap();
-    let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
+    let planned = PlannedMaskPlot::admit(&mask, &plan).unwrap();
 
     let request = GenerativePresenterRequest::from_presentation(
         "request/spoken-mask".into(),
@@ -346,7 +346,7 @@ fn execute_spoken_mask(
     let encoded = serde_json::to_vec(&presentation).unwrap();
     let mut collector = Collector::default();
     let report = host
-        .run_spoken_mask_form_to(
+        .run_spoken_mask_plot_to(
             plan.fragments[0].clone(),
             preparation,
             &[ExternalForeInput {
@@ -436,10 +436,10 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
 struct SpokenJourney {
     presentation: Presentation,
     wardrobe: conduit_presentation::MaskWardrobe,
-    alternate_mask: conduit_core::FormIdentity,
-    initial: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskForm)>,
-    replacement: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskForm)>,
-    restoration: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskForm)>,
+    alternate_mask: conduit_core::PlotIdentity,
+    initial: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot)>,
+    replacement: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot)>,
+    restoration: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot)>,
 }
 
 impl SpokenJourney {
@@ -456,8 +456,8 @@ impl SpokenJourney {
             action_id: action.id().into(),
             concrete_event: concrete_event.into(),
             presentation_id: self.presentation.identity.as_str().into(),
-            selected_mask_form_id: selected
-                .map(|show| show.show.mask_form.checked_form_id.as_str().to_string()),
+            selected_mask_plot_id: selected
+                .map(|show| show.show.mask_plot.checked_plot_id.as_str().to_string()),
             plan_id: plan_id.as_str().into(),
             selected_route_id: route.map(str::to_string),
             show_id: selected.map(|show| show.show.show_id.as_str().to_string()),
@@ -644,7 +644,7 @@ fn screen_free_spoken_producer_actualizes_the_shared_ten_action_journey() {
         "grant/spoken-mask-bootstrap",
         presentation.clone(),
     );
-    let initial_identity = initial.2.form_identity.clone();
+    let initial_identity = initial.2.plot_identity.clone();
     let alternate_identity = execute_spoken_mask(
         "spoken-generative",
         "host/spoken-mask-identity",
@@ -653,7 +653,7 @@ fn screen_free_spoken_producer_actualizes_the_shared_ten_action_journey() {
         presentation.clone(),
     )
     .2
-    .form_identity;
+    .plot_identity;
     let mut journey = SpokenJourney {
         presentation,
         wardrobe: conduit_presentation::MaskWardrobe::new(
@@ -690,8 +690,8 @@ fn screen_free_spoken_producer_actualizes_the_shared_ten_action_journey() {
     assert!(evidence.observations[4].show_id.is_none());
     assert!(evidence.observations[7].show_id.is_some());
     assert_ne!(
-        evidence.observations[7].selected_mask_form_id,
-        evidence.observations[9].selected_mask_form_id
+        evidence.observations[7].selected_mask_plot_id,
+        evidence.observations[9].selected_mask_plot_id
     );
     assert_ne!(
         evidence.observations[7].plan_id,

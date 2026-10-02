@@ -1,8 +1,19 @@
-use conduit_ai::{RerankingProofClass, RerankingStrategy};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_ai::{ChunkIdentity, RerankObservation, RerankingProofClass, RerankingStrategy};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn reranking_strategy_payload_is_one_bounded_native_type() {
+    let observation = RerankObservation::new(ChunkIdentity::from_digest([7; 32]), -25, 1).unwrap();
+    let structured = observation.into_structured().unwrap();
+    assert_eq!(
+        RerankObservation::from_structured(structured).unwrap(),
+        observation
+    );
+    assert!(RerankObservation::new(ChunkIdentity::from_digest([7; 32]), 0, 0).is_err());
+    assert!(
+        !include_str!("../src/reranking.rs").contains(concat!("pub struct ", "RerankObservation"))
+    );
+
     let observed = RerankingStrategy::observed_scores(
         RerankingProofClass::ModelDerived,
         "scoring-run/7".into(),

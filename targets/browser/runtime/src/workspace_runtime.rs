@@ -3,7 +3,7 @@ use conduit_body::BodyLifecycleSession;
 use conduit_body::{
     AdmissionManager, BodyBiographyEvidence, BodyConversationContext, BodyConversationContextBasis,
     BodyConversationHost, BodyPlayIdentity, BodyState, CurrentHostOfferError, CurrentHostOffers,
-    ResidentForm, SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+    ResidentPlot, SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
 use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
 use serde::{Deserialize, Serialize};
@@ -97,8 +97,8 @@ enum Request {
     },
     Current,
     ConversationContext,
-    SelectForm {
-        form: ResidentForm,
+    SelectPlot {
+        plot: ResidentPlot,
     },
     LibraryView {
         host_id: HostId,
@@ -110,18 +110,18 @@ enum Request {
     },
     TutorialView {
         revision: u32,
-        playback: conduit_tutorial_form::TutorialPlayback,
+        playback: conduit_tutorial_plot::TutorialPlayback,
     },
     TutorialPresenterInput {
         request_identity: String,
         presentation_revision: u64,
-        playback: conduit_tutorial_form::TutorialPlayback,
+        playback: conduit_tutorial_plot::TutorialPlayback,
     },
     PresentTutorialMask {
         host_id: HostId,
         boot_id: BootId,
         revision: u64,
-        playback: conduit_tutorial_form::TutorialPlayback,
+        playback: conduit_tutorial_plot::TutorialPlayback,
     },
     AcknowledgeTutorialMask {
         acknowledgement: crate::workspace_mask::BrowserMaskAcknowledgement,
@@ -152,7 +152,7 @@ enum Request {
         host_id: HostId,
         boot_id: BootId,
         expected_revision: u64,
-        form: ResidentForm,
+        plot: ResidentPlot,
         source: String,
         edit: WorksetEdit,
     },
@@ -209,7 +209,7 @@ struct Snapshot<'a> {
     schema: &'static str,
     evidence: &'a BodyBiographyEvidence,
     realization: Option<&'a conduit_body::BodyLifecycleRealization>,
-    foreground: Option<&'a ResidentForm>,
+    foreground: Option<&'a ResidentPlot>,
     foreground_flow: String,
     current_host_offers: Vec<HostAdvertisement>,
 }
@@ -219,7 +219,7 @@ struct DurableSnapshot<'a> {
     schema: &'static str,
     evidence: &'a BodyBiographyEvidence,
     admission: &'a AdmissionManager,
-    foreground: Option<&'a ResidentForm>,
+    foreground: Option<&'a ResidentPlot>,
     pending_archives: &'a [conduit_body::BodyBiographyArchiveSegment],
 }
 
@@ -558,13 +558,13 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                         } else {
                             Err(Refusal::new(
                                 "OutputBound",
-                                "Form library exceeds its presentation bound",
+                                "Plot library exceeds its presentation bound",
                             ))
                         }
                     });
             }
             Request::TutorialView { revision, playback } => {
-                let semantic = conduit_tutorial_form::presentation(current, revision, playback)
+                let semantic = conduit_tutorial_plot::presentation(current, revision, playback)
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
                 let view = semantic.lower()
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
@@ -576,7 +576,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 presentation_revision,
                 playback,
             } => {
-                let request = conduit_tutorial_form::generative_request(
+                let request = conduit_tutorial_plot::generative_request(
                     current,
                     request_identity,
                     presentation_revision,
@@ -589,7 +589,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             }
             Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
                 let realization = current.realization().ok_or_else(|| Refusal::new("TutorialMaskPrepare", "Body has no active realization"))?;
-                let presentation = conduit_tutorial_form::face_presentation(
+                let presentation = conduit_tutorial_plot::face_presentation(
                     current, revision, playback,
                 ).map_err(|error| Refusal::new("TutorialMaskPresentation", format!("{error:?}")))?;
                 let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
@@ -701,7 +701,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {
-                let semantic = conduit_body_invitation_form::InvitationPresentation {
+                let semantic = conduit_body_invitation_plot::InvitationPresentation {
                     invitation_id: &invitation_id, body_id: &body_id, body_name: &body_name,
                     expires_at_millis, transfer_uri: &transfer_uri, clipboard_available, share_available,
                 }.view(revision).map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?;
@@ -714,25 +714,25 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 host_id,
                 boot_id,
                 expected_revision,
-                form,
+                plot,
                 source,
                 edit,
             } => {
-                crate::form_runner::workspace::require_empty()?;
+                crate::plot_runner::workspace::require_empty()?;
                 match edit {
                     WorksetEdit::Install => {
-                        crate::creche::require_workspace_form(&source, &form)?;
+                        crate::creche::require_workspace_plot(&source, &plot)?;
                         candidate
-                            .admit_form(expected_revision, form.clone(), &host_id, &boot_id)
+                            .admit_plot(expected_revision, plot.clone(), &host_id, &boot_id)
                             .map_err(debug)?;
-                        candidate.select_form(&form).map_err(debug)?;
+                        candidate.select_plot(&plot).map_err(debug)?;
                     }
                     WorksetEdit::Remove => candidate
-                        .remove_form(expected_revision, &form, &host_id, &boot_id)
+                        .remove_plot(expected_revision, &plot, &host_id, &boot_id)
                         .map_err(debug)?,
                 }
             }
-            Request::SelectForm { form } => candidate.select_form(&form).map_err(debug)?,
+            Request::SelectPlot { plot } => candidate.select_plot(&plot).map_err(debug)?,
             Request::Propose {
                 host_id,
                 boot_id,
@@ -740,7 +740,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 joined_lines,
                 browser_audio_authority,
             } => {
-                let forms = crate::creche::plan_workspace_forms(
+                let plots = crate::creche::plan_workspace_plots(
                     current.evidence(),
                     &source,
                     &HOST_OFFERS.with(|offers| offers.borrow().hosts().to_vec()),
@@ -752,7 +752,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     },
                 )?;
                 let realization = candidate
-                    .propose(forms, &host_id, &boot_id)
+                    .propose(plots, &host_id, &boot_id)
                     .map_err(debug)?;
                 let bytes = encode(&serde_json::json!({
                     "schema": "conduit.body/execution-proposal@1",
@@ -769,13 +769,13 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 play,
                 wake_at_start,
             } => {
-                crate::form_runner::workspace::require_started(&play)?;
+                crate::plot_runner::workspace::require_started(&play)?;
                 candidate
                     .started(&host_id, &boot_id, play, wake_at_start)
                     .map_err(debug)?;
                 let bytes = snapshot(&candidate)?;
                 *slot = Some(candidate);
-                crate::form_runner::workspace::acknowledge_start();
+                crate::plot_runner::workspace::acknowledge_start();
                 return Ok(bytes);
             }
             Request::Lull {
@@ -783,7 +783,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 boot_id,
                 terminated_play,
             } => {
-                crate::form_runner::workspace::require_empty()?;
+                crate::plot_runner::workspace::require_empty()?;
                 candidate
                     .lull(&host_id, &boot_id, terminated_play.as_ref())
                     .map_err(debug)?;
@@ -793,7 +793,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 boot_id,
                 rejections,
             } => {
-                crate::form_runner::workspace::require_empty()?;
+                crate::plot_runner::workspace::require_empty()?;
                 candidate
                     .fail(&host_id, &boot_id, rejections)
                     .map_err(debug)?;
@@ -804,7 +804,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 authority_grant_id,
                 attribution,
             } => {
-                crate::form_runner::workspace::require_empty()?;
+                crate::plot_runner::workspace::require_empty()?;
                 candidate
                     .fulfill(
                         &host_id,
@@ -829,7 +829,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
 
 fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
     if transfer_uri.is_empty()
-        || transfer_uri.len() > conduit_body_invitation_form::MAX_INVITATION_TRANSFER_BYTES
+        || transfer_uri.len() > conduit_body_invitation_plot::MAX_INVITATION_TRANSFER_BYTES
         || !transfer_uri.contains('#')
     {
         return Err(Refusal::new(
@@ -949,12 +949,12 @@ fn conversation_context(body: &BodyLifecycleSession) -> Result<BodyConversationC
             present: true,
         })
         .collect::<Vec<_>>();
-    let active_forms = realization
+    let active_plots = realization
         .wake
         .workset
-        .forms()
+        .plots()
         .iter()
-        .map(|form| form.source_document_id.as_str().into())
+        .map(|plot| plot.source_document_id.as_str().into())
         .collect::<Vec<_>>();
     let mut recent_sign_ids = realization
         .wake
@@ -978,7 +978,7 @@ fn conversation_context(body: &BodyLifecycleSession) -> Result<BodyConversationC
             revision: evidence.last_sequence(),
         },
         hosts,
-        active_forms,
+        active_plots,
         current_plan_id: Some(realization.plan.plan_id.clone()),
         active_play_id: realization
             .play

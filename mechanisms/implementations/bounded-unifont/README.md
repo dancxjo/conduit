@@ -7,7 +7,7 @@ geometric shapes, one double-width CJK demonstration glyph (`U+4E2D`), and
 the explicit replacement glyph (`U+FFFD`). It also includes every printable
 character in the shared Crèche naming catalog and its uppercase output (as
 produced by the native Keyboard canvas), selected directly from
-`forms/birth/names/catalog.mjs`. The resulting 1,000 glyphs remain within the
+`plots/birth/names/catalog.mjs`. The resulting 1,000 glyphs remain within the
 existing 1,024-glyph bound. Glyph coverage alone does not establish combining
 mark placement or general text shaping; those remain renderer obligations.
 The native text renderers overlay the catalog's U+0300 and U+0301 marks on

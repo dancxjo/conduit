@@ -3,8 +3,9 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 
@@ -31,10 +32,10 @@ fn inline() -> TensorValue {
     let content_digest = tensor_content_digest(&payload);
     TensorValue {
         element: TensorElement::F32,
-        dimensions: vec![3, 2],
-        axes: axes(),
+        dimensions: BoundedSequence::try_from_iter([3, 2]).unwrap(),
+        axes: BoundedSequence::try_from_iter(axes()).unwrap(),
         content_digest,
-        backing: TensorBacking::Inline(payload),
+        backing: TensorBacking::Inline(BoundedBytes::new(&payload).unwrap()),
     }
 }
 
@@ -94,23 +95,20 @@ fn resource_backing_preserves_tensor_meaning_without_host_placement() {
 #[test]
 fn malformed_shape_axis_payload_and_reference_cases_refuse_exactly() {
     let mut value = inline();
-    value.dimensions = vec![];
+    value.dimensions = BoundedSequence::new();
     assert_eq!(value.validate(), Err(TensorRefusal::RankOutOfBounds));
     value = inline();
     value.dimensions[0] = 0;
     assert_eq!(value.validate(), Err(TensorRefusal::ZeroDimension));
     value = inline();
-    value.dimensions = vec![u64::MAX, 2];
+    value.dimensions = BoundedSequence::try_from_iter([u64::MAX, 2]).unwrap();
     assert_eq!(value.validate(), Err(TensorRefusal::ShapeOverflow));
     value = inline();
     value.axes.pop();
     assert_eq!(value.validate(), Err(TensorRefusal::AxisCountMismatch));
     value = inline();
-    value.backing = TensorBacking::Inline(vec![0; 23]);
+    value.backing = TensorBacking::Inline(BoundedBytes::new(&[0; 23]).unwrap());
     assert_eq!(value.validate(), Err(TensorRefusal::PayloadLengthMismatch));
-    value = inline();
-    value.backing = TensorBacking::Inline(vec![0; MAXIMUM_INLINE_TENSOR_BYTES + 1]);
-    assert_eq!(value.validate(), Err(TensorRefusal::InlinePayloadTooLarge));
     value = inline();
     value.backing =
         TensorBacking::Resource(reference(24, 6, "tensor/wrong@1", value.content_digest));
@@ -135,13 +133,13 @@ fn malformed_shape_axis_payload_and_reference_cases_refuse_exactly() {
 }
 
 #[test]
-fn tensor_ports_survive_an_ordinary_checked_and_expanded_form() {
+fn tensor_ports_survive_an_ordinary_checked_and_expanded_plot() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_tensor_catalogs(&mut startup, &mut profile).unwrap();
-    let source = "form trajectory {\n  source: data/tensor-fixture\n  identity: data/tensor-identity\n  source >> identity\n}\n";
+    let source = "plot trajectory {\n  source: data/tensor-fixture\n  identity: data/tensor-identity\n  source >> identity\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "trajectory", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "trajectory", &profile).unwrap();
     assert_eq!(expanded.connections.len(), 1);
     assert_eq!(expanded.connections[0].value_kind.as_str(), TENSOR_INFO_ID);
     assert_eq!(

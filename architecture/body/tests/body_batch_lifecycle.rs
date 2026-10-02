@@ -1,10 +1,10 @@
 use conduit_body::*;
-use conduit_core::{BootId, CheckedFormId, PlanId, SignId, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, PlanId, SignId, SourceDocumentId};
 
 fn body_id(name: &str) -> BodyId {
     Body::born(
         SourceDocumentId::new(name),
-        CheckedFormId::new("checked"),
+        CheckedPlotId::new("checked"),
         1,
         SignId::new(format!("born-{name}")),
     )
@@ -131,7 +131,7 @@ fn administration_checks_authority_staleness_and_replay() {
         subject: "body".into(),
         authority: Some("grant".into()),
         expected_revision: 2,
-        intent: BodyAdministrativeIntent::AddForm,
+        intent: BodyAdministrativeIntent::AddPlot,
     };
     assert_eq!(administer(&request, 2, &[]).unwrap().resulting_revision, 3);
     assert_eq!(

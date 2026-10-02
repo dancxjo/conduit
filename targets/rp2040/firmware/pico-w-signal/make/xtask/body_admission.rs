@@ -9,7 +9,7 @@ use conduit_body::{
     AdmissionManager, AdmissionSigns, Body, BodyMembership, CandidateInventory, DiscoveryProofId,
 };
 use conduit_core::{
-    BaseImplementationId, CheckedFormId, HostAdvertisement, LinkBindingId, Plan, SignId,
+    BaseImplementationId, CheckedPlotId, HostAdvertisement, LinkBindingId, Plan, SignId,
     SourceDocumentId,
 };
 use conduit_std_host::pico_admission::PicoAdmissionSocket;
@@ -53,7 +53,7 @@ pub(super) fn run(args: &PicoArgs) -> PicoResult<()> {
 
     let body = Body::born(
         SourceDocumentId::from("source/physical-pico-admission"),
-        CheckedFormId::from("checked/physical-pico-admission"),
+        CheckedPlotId::from("checked/physical-pico-admission"),
         1,
         SignId::from("physical-pico/body-born"),
     )
@@ -183,8 +183,8 @@ fn plan_from_advertisement(advertisement: &HostAdvertisement) -> PicoResult<Plan
         .into());
     }
     let root = workspace_root()?;
-    let source = std::fs::read_to_string(root.join("proof/fixtures/forms/signal-demo.conduit"))?;
-    let checked = conduit_form::parse_with_startup(
+    let source = std::fs::read_to_string(root.join("proof/fixtures/plots/signal-demo.conduit"))?;
+    let checked = conduit_plot::parse_with_startup(
         &source,
         &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),

@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 export function registerFireflyMultiHostTests(openStep) {
   test("canonical Firefly follower runs through two browser production kernels", async ({ page }) => {
     const source = await readFile(
-      new URL("../../forms/firefly-line-follower/main.conduit", import.meta.url),
+      new URL("../../plots/firefly-line-follower/main.conduit", import.meta.url),
       "utf8",
     );
     await openStep(page, 3);

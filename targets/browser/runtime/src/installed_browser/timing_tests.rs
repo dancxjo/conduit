@@ -1,17 +1,17 @@
 //! Prepared browser realization checks; these do not claim live human input.
 use super::*;
 use crate::installed_browser::BROWSER_PORTS_PER_GEAR;
-use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, PortId, RequestId};
+use conduit_plot::{check_syntax_document, expand_canonical_plot, parse_syntax_document};
 use std::collections::BTreeMap;
 
 fn placements() -> Vec<PlannedGear> {
     let (startup, profile) = crate::installed_browser::catalogs().unwrap();
-    let syntax = parse_syntax_document("form timing {\n derive: time/ordered-event-intervals\n normalize: sequence/normalize-relative-duration\n derive.intervals >> normalize.intervals\n}\n");
+    let syntax = parse_syntax_document("plot timing {\n derive: time/ordered-event-intervals\n normalize: sequence/normalize-relative-duration\n derive.intervals >> normalize.intervals\n}\n");
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "timing", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "timing", &profile).unwrap();
     let hosts = [crate::installed_browser::advertisement(
         "timing-browser".into(),
         "timing-boot".into(),

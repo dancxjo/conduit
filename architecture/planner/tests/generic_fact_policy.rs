@@ -17,7 +17,7 @@ use common::{generic_policy_facts as facts, quantity, resource_observations as o
 
 #[test]
 fn one_hard_language_reads_every_reviewed_subject_without_copying_facts() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let cpu = conduit_core::ResourceClassId::from(CPU_EXECUTION_RESOURCE);
     let predicates = vec![
         PlannerPredicate::AtLeast {
@@ -81,7 +81,7 @@ fn one_hard_language_reads_every_reviewed_subject_without_copying_facts() {
         },
     ];
     let selection = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements {
@@ -125,7 +125,7 @@ fn one_hard_language_reads_every_reviewed_subject_without_copying_facts() {
 
 #[test]
 fn generic_soft_policy_is_lexicographic_and_records_the_decisive_clause() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let generic = RealizationPolicy {
         preferences: vec![
             RealizationPreference::Fact(PlannerPreference::PreferOrder {
@@ -145,7 +145,7 @@ fn generic_soft_policy_is_lexicographic_and_records_the_decisive_clause() {
         ],
     };
     let selection = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -173,7 +173,7 @@ fn generic_soft_policy_is_lexicographic_and_records_the_decisive_clause() {
         ],
     };
     let legacy_selection = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -186,12 +186,12 @@ fn generic_soft_policy_is_lexicographic_and_records_the_decisive_clause() {
 
 #[test]
 fn generic_hard_gate_cannot_be_resurrected_by_a_soft_favorite() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let egress = PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
         DATA_EGRESS_CHARACTERISTIC,
     ));
     let selection = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements {
@@ -225,7 +225,7 @@ fn generic_hard_gate_cannot_be_resurrected_by_a_soft_favorite() {
 
 #[test]
 fn missing_soft_fact_is_unknown_and_worse_instead_of_becoming_zero() {
-    let (form, hosts, mut advertisements) = facts();
+    let (plot, hosts, mut advertisements) = facts();
     let small = advertisements
         .iter_mut()
         .find(|item| item.host_id.as_str() == "ai-small-local")
@@ -234,7 +234,7 @@ fn missing_soft_fact_is_unknown_and_worse_instead_of_becoming_zero() {
         item.definition.characteristic_id.as_str() != MAXIMUM_CONTEXT_CHARACTERISTIC
     });
     let selection = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -251,7 +251,7 @@ fn missing_soft_fact_is_unknown_and_worse_instead_of_becoming_zero() {
     assert_eq!(selection.choice.host_id.as_str(), "ai-large-local");
 
     let absent = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements {
@@ -271,7 +271,7 @@ fn missing_soft_fact_is_unknown_and_worse_instead_of_becoming_zero() {
 
 #[test]
 fn invalid_units_types_unknown_ids_and_clause_overflow_refuse() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let observations = observations(&hosts);
     let invalid_requirements = [
         HardRealizationRequirements {
@@ -321,7 +321,7 @@ fn invalid_units_types_unknown_ids_and_clause_overflow_refuse() {
     ];
     for requirements in invalid_requirements {
         let error = select_realization_with_characteristics_and_signs(
-            &form.gears[0],
+            &plot.gears[0],
             &hosts,
             &advertisements,
             &requirements,
@@ -336,7 +336,7 @@ fn invalid_units_types_unknown_ids_and_clause_overflow_refuse() {
     }
 
     let error = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -356,7 +356,7 @@ fn invalid_units_types_unknown_ids_and_clause_overflow_refuse() {
     ));
 
     let error = conduit_planner::select_realization_with_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &HardRealizationRequirements::default(),
         &RealizationPolicy {
@@ -384,7 +384,7 @@ fn invalid_units_types_unknown_ids_and_clause_overflow_refuse() {
         ..HardRealizationRequirements::default()
     };
     let error = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &overflow,

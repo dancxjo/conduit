@@ -10,6 +10,7 @@ use conduit_core::{
     ResourceReferenceAccessRefusal, ResourceReferenceAvailability, ResourceReferenceBinding,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 const ACCESS_CLASS: &str = "resource/read-authorized@1";
 const AUTHORITY: &str = conduit_ai::SOURCE_READ_AUTHORITY;
@@ -55,14 +56,33 @@ fn binding(source: &SourceRef) -> ResourceReferenceBinding {
 }
 
 fn limits(chunk_bytes: u32) -> SourceExtractionLimits {
-    SourceExtractionLimits {
-        maximum_source_bytes: 1_024,
-        maximum_source_items: 32,
-        maximum_chunk_bytes: chunk_bytes,
-        maximum_chunks: 32,
-        maximum_output_bytes: 2_048,
-        maximum_work_units: 3_072,
+    SourceExtractionLimits::new(1_024, 32, chunk_bytes, 32, 2_048, 3_072).unwrap()
+}
+
+#[test]
+fn source_extraction_limits_are_native_positive_bounds() {
+    for limits in [
+        SourceExtractionLimits::new(1, 1, 1, 1, 1, 1).unwrap(),
+        SourceExtractionLimits::new(u32::MAX, u32::MAX, u32::MAX, u32::MAX, u32::MAX, u32::MAX)
+            .unwrap(),
+    ] {
+        assert_eq!(
+            SourceExtractionLimits::from_structured(limits.into_structured().unwrap()).unwrap(),
+            limits
+        );
     }
+    for zero in [
+        SourceExtractionLimits::new(0, 1, 1, 1, 1, 1),
+        SourceExtractionLimits::new(1, 0, 1, 1, 1, 1),
+        SourceExtractionLimits::new(1, 1, 0, 1, 1, 1),
+        SourceExtractionLimits::new(1, 1, 1, 0, 1, 1),
+        SourceExtractionLimits::new(1, 1, 1, 1, 0, 1),
+        SourceExtractionLimits::new(1, 1, 1, 1, 1, 0),
+    ] {
+        assert!(zero.is_err());
+    }
+    assert!(!include_str!("../src/source_extraction.rs")
+        .contains(concat!("pub struct ", "SourceExtractionLimits")));
 }
 
 #[test]
@@ -119,8 +139,11 @@ fn utf8_text_extraction_is_deterministic_bounded_and_lineage_exact() {
     for chunk in &first.chunks {
         chunk.validate().unwrap();
         assert_eq!(chunk.lineage.source, source);
-        assert_eq!(chunk.lineage.extraction_profile, "extract/text-utf8@1");
-        assert!(chunk.lineage.span.end - chunk.lineage.span.start <= 8);
+        assert_eq!(
+            chunk.lineage.extraction_profile.get(),
+            "extract/text-utf8@1"
+        );
+        assert!(chunk.lineage.span.end() - chunk.lineage.span.start() <= 8);
         let ExtractedSourceValue::Text(value) = &chunk.value else {
             panic!("text profile emitted another value family");
         };
@@ -173,10 +196,10 @@ fn structured_and_non_text_metadata_profiles_preserve_item_ranges() {
     )
     .unwrap();
     assert_eq!(structured.chunks.len(), 2);
-    assert_eq!(structured.chunks[0].lineage.span.start, 0);
-    assert_eq!(structured.chunks[0].lineage.span.end, 2);
-    assert_eq!(structured.chunks[1].lineage.span.start, 1);
-    assert_eq!(structured.chunks[1].lineage.span.end, 3);
+    assert_eq!(structured.chunks[0].lineage.span.start(), 0);
+    assert_eq!(structured.chunks[0].lineage.span.end(), 2);
+    assert_eq!(structured.chunks[1].lineage.span.start(), 1);
+    assert_eq!(structured.chunks[1].lineage.span.end(), 3);
 
     let metadata = vec![
         ResourceMetadataEntry {
@@ -200,7 +223,7 @@ fn structured_and_non_text_metadata_profiles_preserve_item_ranges() {
     .unwrap();
     assert_eq!(receipt.chunks.len(), 1);
     assert_eq!(
-        receipt.chunks[0].lineage.extraction_profile,
+        receipt.chunks[0].lineage.extraction_profile.get(),
         "extract/resource-metadata@1"
     );
     assert!(matches!(
@@ -302,8 +325,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
         ),
         Err(SourceExtractionRefusal::PayloadProfileMismatch)
     );
-    let mut too_small = limits(4);
-    too_small.maximum_source_bytes = 3;
+    let too_small = SourceExtractionLimits::new(3, 32, 4, 32, 2_048, 3_072).unwrap();
     assert_eq!(
         run(
             SourceExtractionProfile::text_utf8(0).unwrap(),
@@ -312,8 +334,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
         ),
         Err(SourceExtractionRefusal::SourceBoundExceeded)
     );
-    let mut one_chunk = limits(2);
-    one_chunk.maximum_chunks = 1;
+    let one_chunk = SourceExtractionLimits::new(1_024, 32, 2, 1, 2_048, 3_072).unwrap();
     assert_eq!(
         run(
             SourceExtractionProfile::text_utf8(0).unwrap(),
@@ -322,8 +343,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
         ),
         Err(SourceExtractionRefusal::ChunkCountExceeded)
     );
-    let mut output = limits(3);
-    output.maximum_output_bytes = 3;
+    let output = SourceExtractionLimits::new(1_024, 32, 3, 32, 3, 3_072).unwrap();
     assert_eq!(
         run(
             SourceExtractionProfile::text_utf8(1).unwrap(),
@@ -332,8 +352,7 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
         ),
         Err(SourceExtractionRefusal::OutputBoundExceeded)
     );
-    let mut work = limits(4);
-    work.maximum_work_units = 7;
+    let work = SourceExtractionLimits::new(1_024, 32, 4, 32, 2_048, 7).unwrap();
     assert_eq!(
         run(SourceExtractionProfile::text_utf8(0).unwrap(), work, &data,),
         Err(SourceExtractionRefusal::WorkBoundExceeded)
@@ -361,17 +380,17 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn ordinary_authored_form_checks_and_expands_without_realization_facts() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn ordinary_authored_plot_checks_and_expands_without_realization_facts() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_ai::install_source_extraction_catalog(&mut startup, &mut profile).unwrap();
-    let source = "form chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 32, 8192, 512, 16, 16384)\n}\n";
+    let source = "plot chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 32, 8192, 512, 16, 16384)\n}\n";
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, "chunk", &profile).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "chunk", &profile).unwrap();
     assert_eq!(
         expanded.gears[0].kind_id.as_str(),
         "retrieval/extract-source"

@@ -1,11 +1,11 @@
 //! Real installed-operation preparation; this is not body-wide execution proof.
 use super::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetBounds};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE;
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 
 fn bounds() -> FragmentSetBounds {
     FragmentSetBounds {
@@ -26,10 +26,10 @@ fn plans() -> [conduit_core::Plan; 2] {
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
     let host = crate::StdHost::new();
-    let source = include_str!("../../../../forms/clock/main.conduit");
+    let source = include_str!("../../../../plots/clock/main.conduit");
     [source.to_string(), source.replace("1s", "2s")].map(|source| {
         let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-        let expanded = expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
+        let expanded = expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
         host.plan_expanded_local(&expanded).unwrap()
     })
 }
@@ -88,7 +88,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
         assert!(partition.states.is_empty());
         for node in &partition.nodes {
             // Initialization of ordinary operations does not create independent
-            // per-Form Plays or forge a constituent ActivePlayIdentity.
+            // per-Plot Plays or forge a constituent ActivePlayIdentity.
             let operation =
                 prepare_ordinary_operation(fragment, &node.placement_id, &mut values).unwrap();
             drivers[usize::from(node.node.0)] = operation;

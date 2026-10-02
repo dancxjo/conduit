@@ -7,37 +7,21 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PortTemporal, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{rust_binding::NativeRustBinding, KindProjection, KindSignature};
 pub use conduit_time::SequenceNormalizationRefusal;
 
 pub const NORMALIZED_SEQUENCE_TYPE: &str = "NormalizedDurationSequence";
 pub const NORMALIZE_SEQUENCE_KIND: &str = "sequence/normalize-relative-duration";
 pub const NORMALIZE_SEQUENCE_REVISION: &str = "conduit.std/normalize-relative-duration@1";
 pub const NORMALIZATION_ALGORITHM: &str = "maximum-relative-millionths-half-up@1";
-pub const NORMALIZATION_ALGORITHM_INFO_ID: &str = "sequence/normalization-algorithm@1";
-pub const NORMALIZED_VALUES_INFO_ID: &str = "sequence/relative-millionth-sequence@1";
 pub const NORMALIZED_SCALE: u64 = 1_000_000;
 
 pub fn normalized_duration_sequence_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("sequence/normalized-duration-sequence@1"),
-        vec![
-            StructuredFieldType::new(
-                "algorithm",
-                StructuredInfoType::leaf(kind_id(NORMALIZATION_ALGORITHM_INFO_ID)).unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldType::new(
-                "values",
-                StructuredInfoType::leaf(kind_id(NORMALIZED_VALUES_INFO_ID)).unwrap(),
-            )
-            .unwrap(),
-        ],
-    )
-    .unwrap()
+    conduit_time::NormalizedDurationSequence::semantic_type()
+        .expect("checked normalized duration sequence Type")
 }
 
 pub fn normalize_relative_duration_definition() -> KindProjection {
@@ -78,8 +62,8 @@ pub fn normalize_relative_duration_semantic_contract() -> Kind {
 }
 
 pub fn install_sequence_normalization_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(
@@ -138,32 +122,10 @@ pub fn normalized_value(
         .iter()
         .map(u64::to_string)
         .collect::<Vec<_>>()
-        .join(",")
-        .into_bytes();
-    StructuredInfoValue::record(
-        normalized_duration_sequence_type(),
-        vec![
-            StructuredFieldValue::new(
-                "algorithm",
-                StructuredInfoValue::leaf(
-                    StructuredInfoType::leaf(kind_id(NORMALIZATION_ALGORITHM_INFO_ID)).unwrap(),
-                    NORMALIZATION_ALGORITHM.as_bytes().to_vec(),
-                )
-                .map_err(|_| SequenceNormalizationRefusal::Malformed)?,
-            )
-            .map_err(|_| SequenceNormalizationRefusal::Malformed)?,
-            StructuredFieldValue::new(
-                "values",
-                StructuredInfoValue::leaf(
-                    StructuredInfoType::leaf(kind_id(NORMALIZED_VALUES_INFO_ID)).unwrap(),
-                    encoded,
-                )
-                .map_err(|_| SequenceNormalizationRefusal::Malformed)?,
-            )
-            .map_err(|_| SequenceNormalizationRefusal::Malformed)?,
-        ],
-    )
-    .map_err(|_| SequenceNormalizationRefusal::Malformed)
+        .join(",");
+    conduit_time::NormalizedDurationSequence::new(NORMALIZATION_ALGORITHM.into(), encoded)
+        .and_then(NativeRustBinding::into_structured)
+        .map_err(|_| SequenceNormalizationRefusal::Malformed)
 }
 
 fn parse_values(bytes: &[u8]) -> Result<Vec<u64>, SequenceNormalizationRefusal> {

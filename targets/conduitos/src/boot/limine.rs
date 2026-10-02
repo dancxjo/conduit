@@ -3,6 +3,7 @@
 #[cfg(any(
     target_arch = "aarch64",
     target_arch = "riscv64",
+    target_arch = "loongarch64",
     target_arch = "x86_64"
 ))]
 use limine::request::StackSizeRequest;
@@ -81,6 +82,13 @@ static RISCV64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(
 #[unsafe(link_section = ".requests")]
 #[cfg(target_arch = "x86_64")]
 static X86_64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(1024 * 1024);
+
+// Native product preparation exceeds Limine's default 64 KiB stack before
+// play. Reserve the same finite preparation stack as the other large products.
+#[used]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
+#[cfg(target_arch = "loongarch64")]
+static LOONGARCH64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(1024 * 1024);
 
 pub fn executable_physical_address(virtual_address: u64) -> Option<u64> {
     let response = EXECUTABLE_ADDRESS.get_response()?;

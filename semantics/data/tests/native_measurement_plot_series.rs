@@ -2,7 +2,7 @@ use conduit_data::{
     MeasurementPlotOverflowPolicy, MeasurementPlotPoint, MeasurementPlotProfile,
     MeasurementPlotRefusal, MeasurementPlotSeries,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn measurement_plot_profile_and_series_round_trip_at_exact_bounds() {

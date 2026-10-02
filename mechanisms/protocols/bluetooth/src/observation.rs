@@ -64,7 +64,7 @@ pub enum BluetoothLineState {
 }
 
 /// Current realization evidence. It is deliberately not embedded in an
-/// authored form or semantic Cord and does not derive Host identity from a
+/// authored plot or semantic Cord and does not derive Host identity from a
 /// Bluetooth address or name.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BluetoothLineObservation {

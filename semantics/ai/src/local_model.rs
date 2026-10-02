@@ -153,7 +153,7 @@ impl LocalModelOffer {
                 < self
                     .limits
                     .work
-                    .maximum_input_bytes
+                    .maximum_input_bytes()
                     .saturating_mul(u64::from(self.limits.maximum_queue_items))
         {
             return Err(LocalModelOfferInvalidity::InvalidQueue);
@@ -196,11 +196,11 @@ impl LocalModelOffer {
             contract_id: HostCallContractId::from(LOCAL_MODEL_OPERATION),
             target_kind: Some(contract.kind_id.clone()),
             maximum_in_flight: self.limits.maximum_in_flight,
-            maximum_input_bytes: self.limits.work.maximum_input_bytes as u32,
+            maximum_input_bytes: self.limits.work.maximum_input_bytes() as u32,
             maximum_output_bytes: if profile == LocalModelKindProfile::StreamGenerate {
                 crate::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32
             } else {
-                self.limits.work.maximum_output_bytes as u32
+                self.limits.work.maximum_output_bytes() as u32
             },
         };
         let mut resource_requirements = vec![
@@ -288,18 +288,18 @@ impl LocalModelSession {
             return Err(LocalModelRefusal::UnsupportedKind);
         }
         let bounds = self.offer.limits.work;
-        if request.input_bytes > bounds.maximum_input_bytes {
+        if request.input_bytes > bounds.maximum_input_bytes() {
             return Err(LocalModelRefusal::InputOverflow);
         }
-        if request.context_items > bounds.maximum_context_items
-            || request.history_items > bounds.maximum_history_items
+        if request.context_items > bounds.maximum_context_items()
+            || request.history_items > bounds.maximum_history_items()
         {
             return Err(LocalModelRefusal::ContextOverflow);
         }
-        if request.output_bytes > bounds.maximum_output_bytes {
+        if request.output_bytes > bounds.maximum_output_bytes() {
             return Err(LocalModelRefusal::OutputOverflow);
         }
-        if request.work_units > bounds.maximum_work_units {
+        if request.work_units > bounds.maximum_work_units() {
             return Err(LocalModelRefusal::UnsupportedProfile);
         }
         self.active_kind = Some(profile);

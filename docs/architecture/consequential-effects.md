@@ -7,7 +7,7 @@ attended low-energy physical-HIL profile for issue #3100.
 which can affect people, property, or the physical environment. Consequence is
 a realization profile fact: the same portable meaning may select an ordinary
 indicator, a controlled bench fixture, or an attended hazardous provider
-without changing authored form meaning.
+without changing authored plot meaning.
 
 The gate admits an effect only when all of these independently agree:
 

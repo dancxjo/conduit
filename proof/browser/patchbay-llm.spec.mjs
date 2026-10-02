@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startServer() {
-  const binary=process.env.CONDUIT_PATCHBAY_HTML_BIN||"target/debug/patchbay-html";
+  const binary=process.env.CONDUIT_PATCHBAY_HTML_BIN||"target/debug/conduit-browser-patchbay-workbench";
   const processHandle=spawn(binary,["--llm-documentary-fixture"],{stdio:["ignore","pipe","pipe"]});
   const errors=[];
   processHandle.stderr.setEncoding("utf8");
@@ -40,7 +40,7 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     expect(snapshot.presentation.actions).toEqual([]);
 
     await page.goto(url);
-    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.getByRole("button",{name:"Plot",exact:true}).click();
     await page.locator("#toggle-inspector").click();
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const gearButton=page.locator('#structured-navigator input[type="radio"][data-subject="gear/interpreter"]');
@@ -53,12 +53,12 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
 
     await page.getByRole("button",{name:"Body",exact:true}).click();
     await page.getByRole("button",{name:"Structure",exact:true}).click();
-    const candidate=page.locator('#structured-navigator input[type="radio"][data-subject="candidate-form/bird-dashboard"]');
+    const candidate=page.locator('#structured-navigator input[type="radio"][data-subject="candidate-plot/bird-dashboard"]');
     await candidate.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("OPEN AND EDITABLE");
     await expect(page.locator("#inspector .selected-summary")).toContainText("false");
 
-    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.getByRole("button",{name:"Plot",exact:true}).click();
     const modelInfo=page.locator('#structured-navigator input[type="radio"][data-role="Info"]');
     await modelInfo.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("MODEL-DERIVED INFO");
@@ -79,7 +79,7 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     await decisions.nth(1).click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("REFUSED");
 
-    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.getByRole("button",{name:"Plot",exact:true}).click();
     await page.getByRole("button",{name:"Structure",exact:true}).click();
     await expect.poll(async()=>{const cursor=((await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor);return `${cursor.place}/${cursor.aspect}`;}).toBe("Program/Structure");
     if(await page.locator("body").getAttribute("data-inspector-open")!=="true"){await page.locator("#toggle-inspector").click();await expect.poll(async()=>((await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor.depth)).toBe("Detail");}

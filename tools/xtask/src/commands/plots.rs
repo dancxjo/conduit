@@ -1,0 +1,571 @@
+//! Standing conformance entrance for the explicit reviewed plot inventory.
+
+use crate::cli::GlobalOpts;
+use clap::{Args, Subcommand};
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::time::Instant;
+
+#[path = "plots/browser.rs"]
+mod browser;
+#[path = "plots/combined.rs"]
+mod combined;
+#[path = "plots/composition.rs"]
+mod composition;
+#[path = "plots/deterministic.rs"]
+mod deterministic;
+#[path = "plots/inventory.rs"]
+mod inventory;
+#[path = "plots/report.rs"]
+mod report;
+#[path = "plots/reusable.rs"]
+mod reusable;
+#[cfg(test)]
+#[path = "plots/tests.rs"]
+mod tests;
+
+#[path = "plots/catalogs.rs"]
+mod catalogs;
+use catalogs::catalogs;
+
+use inventory::load_inventory;
+
+const INVENTORY_PATH: &str = "plots/inventory.toml";
+const INVENTORY_SCHEMA: &str = "conduit.reviewed-plot-inventory/v2";
+const REPORT_SCHEMA: &str = "conduit.plot-conformance-report/v6";
+const WORKSPACE_CATALOG_BYTES: usize = 128 * 1024;
+
+#[derive(Args, Debug)]
+pub struct PlotsArgs {
+    #[command(subcommand)]
+    command: PlotsCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum PlotsCommand {
+    /// Check every explicitly reviewed canonical Plot.
+    Check,
+    /// Execute every declared Plot oracle valid for the selected proof mode.
+    Run {
+        /// Run deterministic, non-device conformance oracles.
+        #[arg(long, conflicts_with = "browser")]
+        deterministic: bool,
+        /// Report browser proof availability without acquiring permissions or devices.
+        #[arg(long, conflicts_with = "deterministic")]
+        browser: bool,
+    },
+    /// Emit the current bounded conformance report without running gated proofs.
+    Report {
+        /// Write JSON to this path instead of stdout.
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
+    /// Package the reviewed initial Body workload for Crèche.
+    BundleInitialBody {
+        /// Exact destination for the checked concatenated source document.
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Package the full reviewed plot shelf for Workspace discovery.
+    BundleWorkspaceCatalog {
+        /// Exact destination for the bounded reviewed catalog.
+        #[arg(long)]
+        output: PathBuf,
+    },
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct Inventory {
+    schema: String,
+    maximum_plots: usize,
+    maximum_combined_workloads: usize,
+    pub(super) plots: Vec<InventoryPlot>,
+    pub(super) combined_workloads: Vec<CombinedWorkload>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct CombinedWorkload {
+    pub(super) slug: String,
+    pub(super) title: String,
+    pub(super) workload_revision: u64,
+    pub(super) entries: Vec<CombinedWorkloadEntry>,
+    pub(super) deterministic: DeterministicOracle,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct CombinedWorkloadEntry {
+    pub(super) slug: String,
+    pub(super) entry: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct InventoryPlot {
+    pub(super) slug: String,
+    pub(super) title: String,
+    pub(super) entry: String,
+    #[serde(default)]
+    pub(super) reusable_entries: Vec<ReusablePlot>,
+    #[serde(default)]
+    initial_body_order: Option<u8>,
+    #[serde(default)]
+    initial_body_presentation_profile: u8,
+    #[serde(default = "default_true")]
+    workspace_catalog: bool,
+    pub(super) deterministic: Option<DeterministicOracle>,
+    pub(super) deterministic_not_applicable: Option<String>,
+    pub(super) browser_safe: Option<BrowserOracle>,
+    pub(super) browser_safe_not_applicable: Option<String>,
+    #[serde(default)]
+    pub(super) graceful_fallback: Option<String>,
+}
+
+const fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct ReusablePlot {
+    pub(super) entry: String,
+    pub(super) title: String,
+    pub(super) composition: Option<CompositionOracle>,
+    pub(super) deterministic: Option<DeterministicOracle>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct CompositionOracle {
+    pub(super) parent: String,
+    pub(super) occurrences: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct DeterministicOracle {
+    pub(super) package: String,
+    #[serde(default)]
+    pub(super) features: Vec<String>,
+    pub(super) test: String,
+    pub(super) case: String,
+    #[serde(default)]
+    pub(super) plan_play_evidence: bool,
+    #[serde(default)]
+    pub(super) workload_revision_evidence: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct BrowserOracle {
+    pub(super) spec: String,
+    pub(super) case: String,
+}
+
+#[derive(Debug, Serialize)]
+struct Report {
+    schema: &'static str,
+    inventory_schema: String,
+    proof_process_starts: usize,
+    proof_process_starts_avoided: usize,
+    results: Vec<PlotProofResult>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(super) struct PlotProofResult {
+    slug: String,
+    title: String,
+    source_path: String,
+    plot_entry: String,
+    source_document_id: Option<String>,
+    checked_plot_id: Option<String>,
+    composition_root_entry: Option<String>,
+    composition_root_checked_plot_id: Option<String>,
+    gear_occurrences: Vec<String>,
+    proof_mode: &'static str,
+    environment_profile: &'static str,
+    duration_millis: u128,
+    workload_slug: Option<String>,
+    workload_title: Option<String>,
+    workload_revision: Option<u64>,
+    plan_id: Option<String>,
+    play_id: Option<String>,
+    status: String,
+    reason: String,
+    evidence_artifacts: Vec<String>,
+}
+
+pub fn run(args: PlotsArgs, opts: &GlobalOpts) -> Result<(), String> {
+    let root = crate::workspace::workspace_root()?;
+    match args.command {
+        PlotsCommand::Check => {
+            let report = build_report(&root, false, opts)?;
+            if let Some(json) = check_output_mode(opts) {
+                render(&report, json)?;
+            }
+            if report
+                .results
+                .iter()
+                .any(|result| result.status == "failed")
+            {
+                return Err("one or more reviewed plots failed conformance checking".into());
+            }
+        }
+        PlotsCommand::Run {
+            deterministic,
+            browser,
+        } => {
+            if !deterministic && !browser {
+                return Err(
+                    "select exactly one proof mode with --deterministic or --browser".into(),
+                );
+            }
+            let report = if deterministic {
+                build_report(&root, true, opts)?
+            } else {
+                browser::build_report(&root, opts)?
+            };
+            render(&report, true)?;
+            if report
+                .results
+                .iter()
+                .any(|result| result.status == "failed")
+            {
+                return Err("one or more reviewed plot proofs failed".into());
+            }
+        }
+        PlotsCommand::Report { output } => {
+            let report = report::build(&root)?;
+            let bytes = serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?;
+            if let Some(path) = output {
+                fs::write(path, bytes).map_err(|error| error.to_string())?;
+            } else {
+                println!("{}", String::from_utf8(bytes).expect("JSON is UTF-8"));
+            }
+        }
+        PlotsCommand::BundleInitialBody { output } => bundle_initial_body(&root, &output)?,
+        PlotsCommand::BundleWorkspaceCatalog { output } => {
+            bundle_workspace_catalog(&root, &output)?
+        }
+    }
+    Ok(())
+}
+
+fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
+    #[derive(Serialize)]
+    struct CatalogPlot<'a> {
+        slug: &'a str,
+        title: &'a str,
+        entry: &'a str,
+        source: String,
+        source_document_id: String,
+        checked_plot_id: String,
+        presentation_profile: u8,
+        required_kinds: Vec<String>,
+        unavailable_hint: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        graceful_fallback: Option<CatalogFallback<'a>>,
+    }
+    #[derive(Serialize)]
+    struct CatalogFallback<'a> {
+        slug: &'a str,
+        title: &'a str,
+    }
+    #[derive(Serialize)]
+    struct WorkspaceCatalog<'a> {
+        schema: &'static str,
+        maximum_plots: usize,
+        plots: Vec<CatalogPlot<'a>>,
+    }
+
+    let inventory = load_inventory(root)?;
+    let catalogs = catalogs()?;
+    let mut plots = Vec::with_capacity(inventory.plots.len());
+    for plot in inventory.plots.iter().filter(|plot| plot.workspace_catalog) {
+        let path = format!("plots/{}/main.conduit", plot.slug);
+        let source =
+            fs::read_to_string(root.join(&path)).map_err(|error| format!("{path}: {error}"))?;
+        let syntax = conduit_plot::parse_syntax_document(&source);
+        if let Some(diagnostic) = syntax.diagnostics.first() {
+            return Err(format!(
+                "{path}: {}: {}",
+                diagnostic.code, diagnostic.message
+            ));
+        }
+        let checked = conduit_plot::check_syntax_document(&syntax, &catalogs.0)
+            .map_err(|error| format!("{path}: {}: {}", error.code, error.message))?;
+        let entry = checked
+            .plots
+            .iter()
+            .find(|candidate| candidate.name == plot.entry)
+            .ok_or_else(|| format!("{path}: declared entry '{}' is absent", plot.entry))?;
+        let mut required_kinds: Vec<_> = entry.gears.iter().map(|gear| gear.kind.clone()).collect();
+        required_kinds.sort();
+        required_kinds.dedup();
+        let graceful_fallback = plot
+            .graceful_fallback
+            .as_deref()
+            .map(|slug| {
+                let fallback = inventory
+                    .plots
+                    .iter()
+                    .find(|candidate| candidate.slug == slug)
+                    .ok_or_else(|| {
+                        format!(
+                            "reviewed plot '{}' names missing graceful fallback '{slug}'",
+                            plot.slug
+                        )
+                    })?;
+                if fallback.graceful_fallback.as_deref() == Some(plot.slug.as_str()) {
+                    return Err(format!(
+                        "reviewed plots '{}' and '{slug}' plot a graceful fallback cycle",
+                        plot.slug
+                    ));
+                }
+                Ok(CatalogFallback {
+                    slug: &fallback.slug,
+                    title: &fallback.title,
+                })
+            })
+            .transpose()?;
+        plots.push(CatalogPlot {
+            slug: &plot.slug,
+            title: &plot.title,
+            entry: &plot.entry,
+            source,
+            source_document_id: checked.source_document_id.as_str().into(),
+            checked_plot_id: entry.checked_plot_id.as_str().into(),
+            presentation_profile: plot.initial_body_presentation_profile,
+            required_kinds,
+            unavailable_hint: plot
+                .browser_safe_not_applicable
+                .as_deref()
+                .unwrap_or("The current admitted hosts and Bases cannot realize this plot."),
+            graceful_fallback,
+        });
+    }
+    let catalog = WorkspaceCatalog {
+        schema: "conduit.workspace/reviewed-plot-catalog@3",
+        maximum_plots: inventory.maximum_plots,
+        plots,
+    };
+    let bytes = serde_json::to_vec_pretty(&catalog).map_err(|error| error.to_string())?;
+    if bytes.len() > WORKSPACE_CATALOG_BYTES {
+        return Err(format!(
+            "reviewed Workspace Plot catalog is {} bytes, above its {WORKSPACE_CATALOG_BYTES}-byte bound",
+            bytes.len()
+        ));
+    }
+    fs::write(output, bytes).map_err(|error| error.to_string())
+}
+
+fn check_output_mode(opts: &GlobalOpts) -> Option<bool> {
+    if opts.json {
+        Some(true)
+    } else if opts.quiet {
+        None
+    } else {
+        Some(false)
+    }
+}
+
+fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
+    let inventory = load_inventory(root)?;
+    let mut selected: Vec<_> = inventory
+        .plots
+        .iter()
+        .filter(|plot| plot.initial_body_order.is_some())
+        .collect();
+    selected.sort_by_key(|plot| plot.initial_body_order);
+    if selected.is_empty() || selected.len() > conduit_body::MAX_BODY_PLOTS {
+        return Err("initial Body inventory is empty or exceeds Body capacity".into());
+    }
+    if selected
+        .iter()
+        .enumerate()
+        .any(|(index, plot)| plot.initial_body_order != Some((index + 1) as u8))
+    {
+        return Err("initial Body inventory order must be unique and contiguous from one".into());
+    }
+    #[derive(Serialize)]
+    struct BundledPlot<'a> {
+        slug: &'a str,
+        title: &'a str,
+        entry: &'a str,
+        presentation_profile: u8,
+        source: String,
+    }
+    #[derive(Serialize)]
+    struct InitialBodyBundle<'a> {
+        schema: &'static str,
+        plots: Vec<BundledPlot<'a>>,
+    }
+    let mut plots = Vec::with_capacity(selected.len());
+    for plot in selected {
+        let path = root.join("plots").join(&plot.slug).join("main.conduit");
+        let source =
+            fs::read_to_string(&path).map_err(|error| format!("{}: {error}", path.display()))?;
+        plots.push(BundledPlot {
+            slug: &plot.slug,
+            title: &plot.title,
+            presentation_profile: plot.initial_body_presentation_profile,
+            entry: &plot.entry,
+            source,
+        });
+    }
+    let bundled = serde_json::to_vec_pretty(&InitialBodyBundle {
+        schema: "conduit.creche/reviewed-plot-bundle@2",
+        plots,
+    })
+    .map_err(|error| error.to_string())?;
+    fs::write(output, bundled).map_err(|error| error.to_string())
+}
+
+fn build_report(
+    root: &Path,
+    execute_deterministic: bool,
+    opts: &GlobalOpts,
+) -> Result<Report, String> {
+    let inventory = load_inventory(root)?;
+    let catalogs = catalogs()?;
+    let mut results = Vec::with_capacity(inventory.plots.len() * 2);
+    for plot in &inventory.plots {
+        let source_path = format!("plots/{}/main.conduit", plot.slug);
+        let started = Instant::now();
+        let checked = check_one(root, &source_path, &plot.entry, &catalogs);
+        let elapsed = started.elapsed().as_millis();
+        match checked {
+            Ok((source_id, checked_id)) => {
+                results.push(result(
+                    plot,
+                    &source_path,
+                    elapsed,
+                    "passed",
+                    "canonical source parsed and checked through the standard semantic catalog",
+                    Some((source_id.clone(), checked_id.clone())),
+                    "check",
+                ));
+                results.push(if execute_deterministic {
+                    deterministic::run(
+                        root,
+                        plot,
+                        &source_path,
+                        Some((source_id, checked_id)),
+                        opts,
+                    )
+                } else {
+                    deterministic::availability(plot, &source_path, Some((source_id, checked_id)))
+                });
+            }
+            Err(reason) => results.push(result(
+                plot,
+                &source_path,
+                elapsed,
+                "failed",
+                &reason,
+                None,
+                "check",
+            )),
+        }
+        results.extend(reusable::check_all(root, plot, &source_path, &catalogs));
+        results.extend(composition::check_all(root, plot, &source_path, &catalogs));
+        results.extend(reusable::deterministic_all(
+            root,
+            plot,
+            &source_path,
+            &catalogs,
+            execute_deterministic,
+            opts,
+        ));
+    }
+    results.extend(combined::results(
+        root,
+        &inventory,
+        &catalogs,
+        execute_deterministic,
+        opts,
+    ));
+    Ok(Report {
+        schema: REPORT_SCHEMA,
+        inventory_schema: inventory.schema,
+        proof_process_starts: 0,
+        proof_process_starts_avoided: 0,
+        results,
+    })
+}
+
+fn result(
+    plot: &InventoryPlot,
+    path: &str,
+    duration: u128,
+    status: &str,
+    reason: &str,
+    identities: Option<(String, String)>,
+    mode: &'static str,
+) -> PlotProofResult {
+    PlotProofResult {
+        slug: plot.slug.clone(),
+        title: plot.title.clone(),
+        source_path: path.into(),
+        plot_entry: plot.entry.clone(),
+        source_document_id: identities.as_ref().map(|item| item.0.clone()),
+        checked_plot_id: identities.map(|item| item.1),
+        composition_root_entry: None,
+        composition_root_checked_plot_id: None,
+        gear_occurrences: Vec::new(),
+        proof_mode: mode,
+        environment_profile: "repository/standard-semantic-catalog@1",
+        duration_millis: duration,
+        workload_slug: None,
+        workload_title: None,
+        workload_revision: None,
+        plan_id: None,
+        play_id: None,
+        status: status.into(),
+        reason: reason.into(),
+        evidence_artifacts: vec![INVENTORY_PATH.into(), path.into()],
+    }
+}
+
+fn check_one(
+    root: &Path,
+    path: &str,
+    entry: &str,
+    catalogs: &(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog),
+) -> Result<(String, String), String> {
+    let source = fs::read_to_string(root.join(path)).map_err(|error| format!("{path}: {error}"))?;
+    let syntax = conduit_plot::parse_syntax_document(&source);
+    if let Some(diagnostic) = syntax.diagnostics.first() {
+        return Err(format!(
+            "{path}: {}: {}",
+            diagnostic.code, diagnostic.message
+        ));
+    }
+    let checked = conduit_plot::check_syntax_document(&syntax, &catalogs.0)
+        .map_err(|error| format!("{path}: {}: {}", error.code, error.message))?;
+    let plot = checked
+        .plots
+        .iter()
+        .find(|candidate| candidate.name == entry)
+        .ok_or_else(|| format!("{path}: declared entry '{entry}' is absent"))?;
+    Ok((
+        checked.source_document_id.as_str().into(),
+        plot.checked_plot_id.as_str().into(),
+    ))
+}
+
+fn render(report: &Report, json: bool) -> Result<(), String> {
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(report).map_err(|error| error.to_string())?
+        );
+    } else {
+        for result in report
+            .results
+            .iter()
+            .filter(|result| result.proof_mode == "check")
+        {
+            println!(
+                "{:8} {} ({})",
+                result.status, result.title, result.source_path
+            );
+        }
+    }
+    Ok(())
+}

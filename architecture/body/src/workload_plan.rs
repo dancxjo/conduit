@@ -1,15 +1,15 @@
-//! One immutable body-wide Plan over the current exact form workset.
+//! One immutable body-wide Plan over the current exact plot workset.
 
 use alloc::{format, string::String, vec::Vec};
 use conduit_core::{verify_plan, ActivePlayId, PlacementId, Plan, PlanId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{BodyId, BodyWorkset, ResidentForm, Wake, WakeId, MAX_BODY_FORMS};
+use crate::{BodyId, BodyWorkset, ResidentPlot, Wake, WakeId, MAX_BODY_PLOTS};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BodyFormPlan {
-    pub form: ResidentForm,
+pub struct BodyPlotPlan {
+    pub plot: ResidentPlot,
     pub plan: Plan,
 }
 
@@ -20,8 +20,8 @@ pub struct BodyPlan {
     pub wake_id: WakeId,
     pub workload_revision: u64,
     pub workset: BodyWorkset,
-    pub forms: Vec<BodyFormPlan>,
-    /// Exact Mask Form realizations selected independently of authored forms.
+    pub plots: Vec<BodyPlotPlan>,
+    /// Exact Mask Plot realizations selected independently of authored plots.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mask_topologies: Vec<BodyMaskTopology>,
 }
@@ -32,14 +32,14 @@ pub const MAX_BODY_MASK_STAGES: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BodyFaceSelector {
-    /// The exact resident Form when the Face is form-scoped. `None` selects
-    /// the body-scoped Face without inventing a source Form.
-    pub form: Option<ResidentForm>,
+    /// The exact resident Plot when the Face is plot-scoped. `None` selects
+    /// the body-scoped Face without inventing a source Plot.
+    pub plot: Option<ResidentPlot>,
     pub source_placement_id: PlacementId,
 }
 
 /// One independently admitted linear chain. `plan` is an ordinary immutable
-/// Plan over reviewed realization Forms; `stage_placement_ids` fixes its path.
+/// Plan over reviewed realization Plots; `stage_placement_ids` fixes its path.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyMaskChainPlan {
     pub plan: Plan,
@@ -64,11 +64,11 @@ pub struct BodyPlayIdentity {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BodyPlanError {
     EmptyWorkset,
-    FormCapacityExceeded,
+    PlotCapacityExceeded,
     InvalidPlan,
-    DuplicateForm,
-    MissingForm,
-    UnexpectedForm,
+    DuplicatePlot,
+    MissingPlot,
+    UnexpectedPlot,
     WrongBody,
     WrongWake,
     StaleWorkload,
@@ -80,13 +80,13 @@ pub enum BodyPlanError {
 }
 
 impl BodyPlan {
-    pub fn seal(wake: &Wake, forms: Vec<BodyFormPlan>) -> Result<Self, BodyPlanError> {
-        Self::seal_with_masks(wake, forms, Vec::new())
+    pub fn seal(wake: &Wake, plots: Vec<BodyPlotPlan>) -> Result<Self, BodyPlanError> {
+        Self::seal_with_masks(wake, plots, Vec::new())
     }
 
     pub fn seal_with_masks(
         wake: &Wake,
-        mut forms: Vec<BodyFormPlan>,
+        mut plots: Vec<BodyPlotPlan>,
         mut mask_topologies: Vec<BodyMaskTopology>,
     ) -> Result<Self, BodyPlanError> {
         wake.workset
@@ -95,30 +95,30 @@ impl BodyPlan {
         if wake.workset.is_empty() {
             return Err(BodyPlanError::EmptyWorkset);
         }
-        if forms.len() > MAX_BODY_FORMS {
-            return Err(BodyPlanError::FormCapacityExceeded);
+        if plots.len() > MAX_BODY_PLOTS {
+            return Err(BodyPlanError::PlotCapacityExceeded);
         }
-        forms.sort_by(|left, right| left.form.cmp(&right.form));
-        if forms.windows(2).any(|pair| pair[0].form >= pair[1].form) {
-            return Err(BodyPlanError::DuplicateForm);
+        plots.sort_by(|left, right| left.plot.cmp(&right.plot));
+        if plots.windows(2).any(|pair| pair[0].plot >= pair[1].plot) {
+            return Err(BodyPlanError::DuplicatePlot);
         }
-        for partition in &forms {
-            if !wake.workset.contains(&partition.form) {
-                return Err(BodyPlanError::UnexpectedForm);
+        for partition in &plots {
+            if !wake.workset.contains(&partition.plot) {
+                return Err(BodyPlanError::UnexpectedPlot);
             }
             if !verify_plan(&partition.plan)
-                || partition.plan.source_document_id != partition.form.source_document_id
-                || partition.plan.checked_form_id != partition.form.checked_form_id
+                || partition.plan.source_document_id != partition.plot.source_document_id
+                || partition.plan.checked_plot_id != partition.plot.checked_plot_id
             {
                 return Err(BodyPlanError::InvalidPlan);
             }
         }
-        if wake.workset.forms().iter().any(|form| {
-            forms
-                .binary_search_by(|value| value.form.cmp(form))
+        if wake.workset.plots().iter().any(|plot| {
+            plots
+                .binary_search_by(|value| value.plot.cmp(plot))
                 .is_err()
         }) {
-            return Err(BodyPlanError::MissingForm);
+            return Err(BodyPlanError::MissingPlot);
         }
         validate_mask_topologies(&wake.workset, &mask_topologies)?;
         mask_topologies.sort_by(|left, right| left.face.cmp(&right.face));
@@ -126,7 +126,7 @@ impl BodyPlan {
             &wake.body_id,
             &wake.wake_id,
             wake.workload_revision,
-            &forms,
+            &plots,
             &mask_topologies,
         );
         Ok(Self {
@@ -135,7 +135,7 @@ impl BodyPlan {
             wake_id: wake.wake_id.clone(),
             workload_revision: wake.workload_revision,
             workset: wake.workset.clone(),
-            forms,
+            plots,
             mask_topologies,
         })
     }
@@ -151,7 +151,7 @@ impl BodyPlan {
             return Err(BodyPlanError::StaleWorkload);
         }
         let resealed =
-            Self::seal_with_masks(wake, self.forms.clone(), self.mask_topologies.clone())?;
+            Self::seal_with_masks(wake, self.plots.clone(), self.mask_topologies.clone())?;
         if resealed.plan_id != self.plan_id {
             return Err(BodyPlanError::InvalidIdentity);
         }
@@ -159,7 +159,7 @@ impl BodyPlan {
     }
 
     /// Revalidate the immutable body-wide seal without relying on ambient Wake
-    /// state. Runtime consumers use this before trusting nested Form Plans.
+    /// state. Runtime consumers use this before trusting nested Plot Plans.
     pub fn verify_seal(&self) -> Result<(), BodyPlanError> {
         self.workset
             .validate()
@@ -167,31 +167,31 @@ impl BodyPlan {
         if self.workset.is_empty() {
             return Err(BodyPlanError::EmptyWorkset);
         }
-        if self.forms.len() > MAX_BODY_FORMS {
-            return Err(BodyPlanError::FormCapacityExceeded);
+        if self.plots.len() > MAX_BODY_PLOTS {
+            return Err(BodyPlanError::PlotCapacityExceeded);
         }
         if self
-            .forms
+            .plots
             .windows(2)
-            .any(|pair| pair[0].form >= pair[1].form)
+            .any(|pair| pair[0].plot >= pair[1].plot)
         {
-            return Err(BodyPlanError::DuplicateForm);
+            return Err(BodyPlanError::DuplicatePlot);
         }
-        for partition in &self.forms {
-            if !self.workset.contains(&partition.form)
+        for partition in &self.plots {
+            if !self.workset.contains(&partition.plot)
                 || !verify_plan(&partition.plan)
-                || partition.plan.source_document_id != partition.form.source_document_id
-                || partition.plan.checked_form_id != partition.form.checked_form_id
+                || partition.plan.source_document_id != partition.plot.source_document_id
+                || partition.plan.checked_plot_id != partition.plot.checked_plot_id
             {
                 return Err(BodyPlanError::InvalidPlan);
             }
         }
-        if self.workset.forms().iter().any(|form| {
-            self.forms
-                .binary_search_by(|value| value.form.cmp(form))
+        if self.workset.plots().iter().any(|plot| {
+            self.plots
+                .binary_search_by(|value| value.plot.cmp(plot))
                 .is_err()
         }) {
-            return Err(BodyPlanError::MissingForm);
+            return Err(BodyPlanError::MissingPlot);
         }
         validate_mask_topologies(&self.workset, &self.mask_topologies)?;
         if self
@@ -203,7 +203,7 @@ impl BodyPlan {
                     &self.body_id,
                     &self.wake_id,
                     self.workload_revision,
-                    &self.forms,
+                    &self.plots,
                     &self.mask_topologies,
                 )
         {
@@ -247,7 +247,7 @@ fn bind_body_plan(
     body_id: &BodyId,
     wake_id: &WakeId,
     workload_revision: u64,
-    forms: &[BodyFormPlan],
+    plots: &[BodyPlotPlan],
     mask_topologies: &[BodyMaskTopology],
 ) -> PlanId {
     let mut bytes = Vec::new();
@@ -255,18 +255,18 @@ fn bind_body_plan(
     push(&mut bytes, body_id.as_str());
     push(&mut bytes, wake_id.as_str());
     bytes.extend_from_slice(&workload_revision.to_le_bytes());
-    bytes.extend_from_slice(&(forms.len() as u32).to_le_bytes());
-    for form in forms {
-        push(&mut bytes, form.form.source_document_id.as_str());
-        push(&mut bytes, form.form.checked_form_id.as_str());
-        push(&mut bytes, form.plan.plan_id.as_str());
+    bytes.extend_from_slice(&(plots.len() as u32).to_le_bytes());
+    for plot in plots {
+        push(&mut bytes, plot.plot.source_document_id.as_str());
+        push(&mut bytes, plot.plot.checked_plot_id.as_str());
+        push(&mut bytes, plot.plan.plan_id.as_str());
     }
     bytes.extend_from_slice(&(mask_topologies.len() as u32).to_le_bytes());
     for topology in mask_topologies {
-        if let Some(form) = &topology.face.form {
-            push(&mut bytes, "form");
-            push(&mut bytes, form.source_document_id.as_str());
-            push(&mut bytes, form.checked_form_id.as_str());
+        if let Some(plot) = &topology.face.plot {
+            push(&mut bytes, "plot");
+            push(&mut bytes, plot.source_document_id.as_str());
+            push(&mut bytes, plot.checked_plot_id.as_str());
         } else {
             push(&mut bytes, "body");
         }
@@ -293,9 +293,9 @@ fn validate_mask_topologies(
     for (index, topology) in topologies.iter().enumerate() {
         if topology
             .face
-            .form
+            .plot
             .as_ref()
-            .is_some_and(|form| !workset.contains(form))
+            .is_some_and(|plot| !workset.contains(plot))
             || topology.face.source_placement_id.as_str().is_empty()
             || topology.chains.is_empty()
             || topology.chains.len() > MAX_BODY_MASK_CHAINS

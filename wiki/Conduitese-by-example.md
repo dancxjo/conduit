@@ -2,10 +2,10 @@ This page starts with source that exists in the current `dev` tree, then moves i
 
 ## Hello: a finite pipeline
 
-Current tree: [forms/hello/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/hello/main.conduit)
+Current tree: [plots/hello/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/hello/main.conduit)
 
 ```conduit
-form hello {
+plot hello {
     upper: text/upper
     show: presentation/text
 
@@ -13,27 +13,31 @@ form hello {
 }.
 ```
 
-There is no explicit main function, process, display handle, or stdout. The form composes semantic work. The full stop says drain completes the form.
+![The hello plot as connected gears](assets/sample-diagrams/hello.svg)
 
-## Clock: a standing live form
+There is no explicit main function, process, display handle, or stdout. The plot composes semantic work. The full stop says drain completes the plot.
 
-Current tree: [forms/clock/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/clock/main.conduit)
+## Clock: a standing live plot
+
+Current tree: [plots/clock/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/clock/main.conduit)
 
 ```conduit
-form clock-demo {
+plot clock-demo {
     clock: time/every(1s)
     clock >> presentation/tick
 }
 ```
 
-No trailing full stop. The form remains alive between ticks.
+![The clock demo plot as connected gears](assets/sample-diagrams/clock-demo.svg)
+
+No trailing full stop. The plot remains alive between ticks.
 
 ## Memory Lantern: input, editing, and Current
 
-Current tree: [forms/memory-lantern/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/memory-lantern/main.conduit)
+Current tree: [plots/memory-lantern/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/main.conduit)
 
 ```conduit
-form memory_lantern {
+plot memory_lantern {
     keyboard: input/keyboard
     keymap: input/keymap
     message: text/edit(maximum-bytes = 256)
@@ -45,14 +49,14 @@ form memory_lantern {
 }
 ```
 
-The editor exposes current text. The form does not own a window, DOM node, terminal, or framebuffer.
+The editor exposes current text. The plot does not own a window, DOM node, terminal, or framebuffer.
 
 ## Pocket Theremin: quantities and retained state
 
-Current tree: [forms/pocket-theremin/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/pocket-theremin/main.conduit)
+Current tree: [plots/pocket-theremin/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/pocket-theremin/main.conduit)
 
 ```conduit
-form pocket-theremin (
+plot pocket-theremin (
     >> distance: Distance
     audio: audio/pcm-frames@1...| >>
 ) {
@@ -78,10 +82,10 @@ The `@1` catalog spelling in some current-tree examples is implementation/migrat
 
 ## Button across the room: meaning without transport
 
-Current tree: [forms/button-across-room/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/button-across-room/main.conduit)
+Current tree: [plots/button-across-room/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/button-across-room/main.conduit)
 
 ```conduit
-form button_across_room {
+plot button_across_room {
     button: input/button
     state: input/button-indicator-state
     indicator: presentation/indicator-state
@@ -92,12 +96,12 @@ form button_across_room {
 
 Nothing here says whether button and indicator are on the same host. If planning places them apart, a line may realize the crossing cord.
 
-## Desk Telegraph: reusable forms as gears
+## Desk Telegraph: reusable plots as gears
 
-Current tree: [forms/desk-telegraph/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/desk-telegraph/main.conduit)
+Current tree: [plots/desk-telegraph/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/desk-telegraph/main.conduit)
 
 ```conduit
-form text-record (
+plot text-record (
     text: Text >> record: TypedRecord
 ) {
     wrap: record/text-to-typed
@@ -105,7 +109,7 @@ form text-record (
     wrap.record >> record
 }
 
-form bounded-record-send (
+plot bounded-record-send (
     maximum-items: Count = 4
     maximum-frame-bytes: Count = 4096
     frame: FramedTypedRecord >> queued: FramedTypedRecord
@@ -115,14 +119,14 @@ form bounded-record-send (
 }
 ```
 
-These are two complete declarations excerpted from the larger Desk Telegraph source. A form can itself define reusable semantic work and then be invoked like another kind.
+These are two complete declarations excerpted from the larger Desk Telegraph source. A plot can itself define reusable semantic work and then be invoked like another kind.
 
 ## Firefly Choir: omission is semantic composition
 
-Current tree: [forms/firefly-choir/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/firefly-choir/main.conduit)
+Current tree: [plots/firefly-choir/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/firefly-choir/main.conduit)
 
 ```conduit
-form pulse-manifestation (
+plot pulse-manifestation (
     >> tick: value/tick@1...
 ) {
     observe: time/pulse-observe(period-ms = 240)
@@ -133,12 +137,14 @@ form pulse-manifestation (
 }
 ```
 
+![The light-only pulse manifestation as connected gears](assets/sample-diagrams/pulse-manifestation.svg)
+
 This is light-only because there is no tone gear and no tone cord. Sound is not a runtime flag that a host may quietly toggle.
 
 ## Explicit enrichment
 
 ```conduit
-form pulse-light-tone-manifestation (
+plot pulse-light-tone-manifestation (
     >> tick: value/tick@1...
 ) {
     observe: time/pulse-observe(period-ms = 240)
@@ -151,14 +157,16 @@ form pulse-light-tone-manifestation (
 }
 ```
 
+![The light-and-tone pulse manifestation with explicit fan-out](assets/sample-diagrams/pulse-light-tone-manifestation.svg)
+
 The fan-out is visible.
 
 ## Bounded navigation: portable intent down to motion requests
 
-Current tree: [forms/bounded-navigation/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/bounded-navigation/main.conduit)
+Current tree: [plots/bounded-navigation/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/bounded-navigation/main.conduit)
 
 ```conduit
-form bounded-navigation (
+plot bounded-navigation (
     >> pose: NavigationPose
     >> goal: NavigationGoal
     >> traversability: NavigationTraversability4x4
@@ -186,14 +194,14 @@ form bounded-navigation (
 }
 ```
 
-The form ends at semantic body-motion intent. Robot authority and actuator lowering belong to the plan and host realization.
+The plot ends at semantic body-motion intent. Robot authority and actuator lowering belong to the plan and host realization.
 
 ## body Chat: application meaning, model choice still realization
 
-Current tree: [forms/body-chat/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/body-chat/main.conduit)
+Current tree: [plots/body-chat/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/body-chat/main.conduit)
 
 ```conduit
-form body-chat (
+plot body-chat (
     >> interaction: FaceInteraction...|
     face: Presentation...| >>
 ) {
@@ -206,7 +214,7 @@ form body-chat (
     model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)
     text: llm/result-flow-to-text
 
-    available.value >> availability.value
+    available.value >> availability.source
     availability.value >> ui.live
     ui.presentation >> face
     interaction >> submit.interaction
@@ -220,14 +228,14 @@ form body-chat (
 }
 ```
 
-The semantic model operation is named. Provider protocol, URL, credentials, or Ollama identity do not belong in the form.
+The semantic model operation is named. Provider protocol, URL, credentials, or Ollama identity do not belong in the plot.
 
-## A mask is an ordinary form
+## A mask is an ordinary plot
 
-Current tree: [forms/native-graphical-mask/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/native-graphical-mask/main.conduit)
+Current tree: [plots/native-graphical-mask/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/native-graphical-mask/main.conduit)
 
 ```conduit
-form native-graphical (
+plot native-graphical (
     >> face: Presentation
     interaction: FaceInteraction...| >>
     show: Show >>
@@ -254,7 +262,7 @@ mask is a role, not a special declaration or second UI language.
 Canonical:
 
 ```conduit
-form guarded (
+plot guarded (
     >> name: Text <= 32B not in ["root", "admin"]
     >> count: Count in 1..=100
     >> code: Text <= 64B ~ /[A-Z]{2}[0-9]{2}/
@@ -365,12 +373,13 @@ with masks/native-graphical as graphical
 with masks/spoken as spoken
 
 body roseau {
-    wear graphical else spoken
+    wear graphical, spoken
     want graphical over spoken
 }
 ```
 
-The body asks planning for a graphical mask with a pre-admitted spoken fallback.
+The body permits either mask. The optional `want` line expresses its preference;
+the comma list does not.
 
 ## host construction
 
@@ -405,12 +414,12 @@ This is construction source. A successful parse does not claim the machine boote
 
 ## Bounded collection behavior
 
-A reusable form can take exact checked behavior as a parameter. This is the
+A reusable plot can take exact checked behavior as a parameter. This is the
 `flow/each` wrapper from the
-[activation tests](https://github.com/dancxjo/conduit/blob/dev/architecture/form/src/activation_tests.rs):
+[activation tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/activation_tests.rs):
 
 ```conduit
-form flow/each (
+plot flow/each (
     item: type
     result: type
     transform: kind (
@@ -449,5 +458,5 @@ type Interval = {
 The law belongs to the type and is enforced when generated bindings construct
 or decode a value. See the real
 [TextSpan declaration](https://github.com/dancxjo/conduit/blob/dev/semantics/language/types.conduit).
-This does not yet mean every consuming form can erase an arithmetic check from
+This does not yet mean every consuming plot can erase an arithmetic check from
 that fact; [#4639](https://github.com/dancxjo/conduit/issues/4639) owns that work.

@@ -127,45 +127,45 @@ impl BodyBiographyEvidence {
                         return Err(BodyBiographyError::InvalidEvidence);
                     }
                 }
-                BodyBiographyRecordKind::FormAdmitted {
+                BodyBiographyRecordKind::PlotAdmitted {
                     source_document_id,
-                    checked_form_id,
+                    checked_plot_id,
                     workload_revision,
                 }
-                | BodyBiographyRecordKind::FormRemoved {
+                | BodyBiographyRecordKind::PlotRemoved {
                     source_document_id,
-                    checked_form_id,
+                    checked_plot_id,
                     workload_revision,
                 } => {
                     let event = self.body.events.iter().find(|event| {
                         event.sign_id() == &record.sign_id
                             && match event {
-                                BodyLifecycleEvent::FormAdmitted {
+                                BodyLifecycleEvent::PlotAdmitted {
                                     source_document_id: source,
-                                    checked_form_id: checked,
+                                    checked_plot_id: checked,
                                     workload_revision: revision,
                                     ..
                                 } if matches!(
                                     record.kind,
-                                    BodyBiographyRecordKind::FormAdmitted { .. }
+                                    BodyBiographyRecordKind::PlotAdmitted { .. }
                                 ) =>
                                 {
                                     source == source_document_id
-                                        && checked == checked_form_id
+                                        && checked == checked_plot_id
                                         && revision == workload_revision
                                 }
-                                BodyLifecycleEvent::FormRemoved {
+                                BodyLifecycleEvent::PlotRemoved {
                                     source_document_id: source,
-                                    checked_form_id: checked,
+                                    checked_plot_id: checked,
                                     workload_revision: revision,
                                     ..
                                 } if matches!(
                                     record.kind,
-                                    BodyBiographyRecordKind::FormRemoved { .. }
+                                    BodyBiographyRecordKind::PlotRemoved { .. }
                                 ) =>
                                 {
                                     source == source_document_id
-                                        && checked == checked_form_id
+                                        && checked == checked_plot_id
                                         && revision == workload_revision
                                 }
                                 _ => false,
@@ -249,8 +249,8 @@ impl BodyBiographyEvidence {
             .filter(|record| {
                 matches!(
                     record.kind,
-                    BodyBiographyRecordKind::FormAdmitted { .. }
-                        | BodyBiographyRecordKind::FormRemoved { .. }
+                    BodyBiographyRecordKind::PlotAdmitted { .. }
+                        | BodyBiographyRecordKind::PlotRemoved { .. }
                         | BodyBiographyRecordKind::Fulfilled { .. }
                 )
             })
@@ -262,8 +262,8 @@ impl BodyBiographyEvidence {
             .filter(|event| {
                 matches!(
                     event,
-                    BodyLifecycleEvent::FormAdmitted { .. }
-                        | BodyLifecycleEvent::FormRemoved { .. }
+                    BodyLifecycleEvent::PlotAdmitted { .. }
+                        | BodyLifecycleEvent::PlotRemoved { .. }
                         | BodyLifecycleEvent::Fulfilled { .. }
                 )
             })

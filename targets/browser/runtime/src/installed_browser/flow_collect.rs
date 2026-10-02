@@ -22,7 +22,7 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) fn offer_for_expanded(
-    gear: &conduit_form::CheckedGear,
+    gear: &conduit_plot::CheckedGear,
 ) -> Result<CapabilityOffer, String> {
     let law = gear
         .semantic_contract

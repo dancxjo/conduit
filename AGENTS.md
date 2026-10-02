@@ -39,10 +39,10 @@ to the canon; changing an invariant requires an explicit architecture issue.
 
 ## Preserve the architecture
 
-1. **forms describe meaning. hosts offer implementations. plans make realization exact.**
-2. Authored forms contain no host, boot, implementation, OS, device, transport,
+1. **plots describe meaning. hosts offer implementations. plans make realization exact.**
+2. Authored plots contain no host, boot, implementation, OS, device, transport,
    socket, address, DOM, GPIO, stdout, credential, or resource-binding facts.
-3. Source, checked form, expanded form, plan, fragment, play, sign, and
+3. Source, checked plot, expanded plot, plan, fragment, play, sign, and
    presentation are distinct identities.
 4. kinds, implementations, initialized implementations, capabilities, selected
    capabilities, reservations, and active instances are distinct states.
@@ -66,7 +66,7 @@ to the canon; changing an invariant requires an explicit architecture issue.
 Canonical implementation vocabulary uses one noun at each altitude: a gear
 invokes a kind through its fore; a host offers a back; a plan selects exact
 backs; a play advances in bounded steps; and a step may cross the host boundary
-with a host call. Host backs and Form backs share eligibility laws but retain
+with a host call. Host backs and Plot backs share eligibility laws but retain
 their distinct realization and provenance facts. Reserve capability vocabulary
 for actual possession/authority, especially Base capabilities, rather than as a
 generic synonym for an implementation.
@@ -97,7 +97,7 @@ Promoting a repository demo into `conduit` is an explicit product-boundary chang
   miscellaneous shards. Identify inputs, outputs, invariants, and private
   collaborators first; preserve public paths with narrow re-exports.
 - Prefer extraction-only PRs. Avoid semantic cleanup or redesign in the same
-  move; prove lower layers do not depend on orchestration or form cycles.
+  move; prove lower layers do not depend on orchestration or plot cycles.
 - Module-splitting PRs require formatting, focused tests, workspace Clippy with
   warnings denied, and the full workspace tests, or a precise infrastructure
   blocker. Establish one seam before assigning another split in the same file.
@@ -112,7 +112,8 @@ explicitly changes that contract. A diagnostic retry does not make flaky proof
 acceptable. Report missing tools, devices, credentials, and human proof precisely.
 
 Stable `main` receives only the automated `release/<captured-dev-sha>` train
-after its exact final head passes exhaustive promotion. Never push directly to
+after its exact source passes full integration and the publisher verifies the
+retained artifacts and identical accepted tree. Never push directly to
 `main` or open an ordinary feature/documentation/maintenance PR against it.
 A candidate passing is not stable acceptance. Use the
 [CI guide](docs/contributing/ci.md) for current integration and promotion behavior;

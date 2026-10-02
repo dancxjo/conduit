@@ -53,7 +53,7 @@ pub(crate) fn verify_plan_c_continuation(
     } else {
         let body = conduit_body::Body::born(
             plan.source_document_id.clone(),
-            plan.checked_form_id.clone(),
+            plan.checked_plot_id.clone(),
             0,
             SignId::from("r1/physical/plan-c-body-born"),
         )

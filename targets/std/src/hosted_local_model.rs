@@ -55,12 +55,13 @@ pub trait HostedLocalModelAdapter: Send {
         _input: &[u8],
         _sink: &mut dyn FnMut(&conduit_ai::GeneratedTextChunk) -> StreamingChunkDisposition,
     ) -> conduit_ai::GeneratedTextFlowEvidence {
-        conduit_ai::GeneratedTextFlowEvidence {
-            chunks: 0,
-            generated_bytes: 0,
-            terminal: conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
-            retained_private_text: false,
-        }
+        conduit_ai::GeneratedTextFlowEvidence::new(
+            0,
+            0,
+            conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+            false,
+        )
+        .unwrap()
     }
 
     fn execute_stream_step(
@@ -68,12 +69,15 @@ pub trait HostedLocalModelAdapter: Send {
         _placement: &PlannedGear,
         _input: &[u8],
     ) -> LocalModelStreamStep {
-        LocalModelStreamStep::Terminal(conduit_ai::GeneratedTextFlowEvidence {
-            chunks: 0,
-            generated_bytes: 0,
-            terminal: conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
-            retained_private_text: false,
-        })
+        LocalModelStreamStep::Terminal(
+            conduit_ai::GeneratedTextFlowEvidence::new(
+                0,
+                0,
+                conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+                false,
+            )
+            .unwrap(),
+        )
     }
 
     fn cancel_stream(&mut self) {}

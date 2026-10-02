@@ -6,13 +6,13 @@ use conduit_core::{
     ImplementationOffer, KindIdentity, LineId, LinkBindingId, LinkEndpointId, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_planner::{
     classify_diversity, plan_with_options, prove_diverse_replacement,
     select_surviving_diverse_candidate, DiversityCandidate, DiversityRefusal,
     DiversityRelationship, FactDomain, LinePathHop, MechanismDependency, PlacementChoice,
     PlacementChoices, PlanningFactKey, PlanningOptions, PreviousPlanDisposition,
 };
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 const SOURCE: &str = "test/diversity-source";
 const STAGE: &str = "test/diversity-stage";
@@ -63,11 +63,11 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
-fn checked_form() -> conduit_form::CheckedForm {
+fn checked_plot() -> conduit_plot::CheckedPlot {
     let (startup, profile) = catalogs();
-    conduit_form::parse_with_startup(
+    conduit_plot::parse_with_startup(
         &format!(
-            "form diversity {{\n source: {SOURCE}\n first: {STAGE}\n second: {STAGE}\n sink: {SINK}\n source >> first >> second >> sink\n}}\n"
+            "plot diversity {{\n source: {SOURCE}\n first: {STAGE}\n second: {STAGE}\n sink: {SINK}\n source >> first >> second >> sink\n}}\n"
         ),
         &startup,
         &profile,
@@ -148,7 +148,7 @@ fn line(
 }
 
 struct Fixture {
-    form: conduit_form::CheckedForm,
+    plot: conduit_plot::CheckedPlot,
     hosts: Vec<HostAdvertisement>,
     lines: Vec<conduit_core::LineOffer>,
 }
@@ -186,7 +186,7 @@ impl Fixture {
             ),
         ];
         Self {
-            form: checked_form(),
+            plot: checked_plot(),
             hosts: vec![a, b, c, d],
             lines,
         }
@@ -195,7 +195,7 @@ impl Fixture {
     fn plan(&self, distributed: bool) -> conduit_core::Plan {
         let placements = PlacementChoices {
             by_gear: self
-                .form
+                .plot
                 .gears
                 .iter()
                 .map(|gear| {
@@ -228,7 +228,7 @@ impl Fixture {
                 .collect(),
         };
         plan_with_options(
-            &self.form,
+            &self.plot,
             &self.hosts,
             &placements,
             &[
@@ -370,8 +370,8 @@ fn damage_selects_materially_different_mechanisms_and_three_line_path() {
     assert_eq!(preferred_plan, immutable_preferred);
     assert_ne!(preferred_plan.plan_id, replacement_plan.plan_id);
     assert_eq!(
-        preferred_plan.checked_form_id,
-        replacement_plan.checked_form_id
+        preferred_plan.checked_plot_id,
+        replacement_plan.checked_plot_id
     );
     assert!(conduit_core::verify_plan(&preferred_plan));
     assert!(conduit_core::verify_plan(&replacement_plan));

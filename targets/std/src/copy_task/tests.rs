@@ -58,15 +58,15 @@ fn planned_copy(
         boot_id: BootId::from("copy-boot"),
         offer_generation: OfferGeneration(1),
     });
-    let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_copy_file_catalog(&mut catalog)
         .expect("install copy catalog");
-    let form = conduit_form::parse(
-        "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n",
+    let plot = conduit_plot::parse(
+        "plot copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n",
         &catalog,
     )
-    .expect("copy Form checks without resource paths");
-    let placements = default_placements(&form, std::slice::from_ref(host.advertisement()))
+    .expect("copy Plot checks without resource paths");
+    let placements = default_placements(&plot, std::slice::from_ref(host.advertisement()))
         .expect("copy placement resolves by equal checked front");
     let source_handle = ResourceHandleId::from("handle/source");
     let destination_handle = ResourceHandleId::from("handle/destination");
@@ -103,7 +103,7 @@ fn planned_copy(
         .expect("register destination choice");
     let overrides = BTreeMap::new();
     let plan = plan_with_options(
-        &form,
+        &plot,
         std::slice::from_ref(host.advertisement()),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -118,7 +118,7 @@ fn planned_copy(
         },
     )
     .expect("protected choices seal into copy Plan");
-    assert!(!format!("{form:?}").contains(source.to_string_lossy().as_ref()));
+    assert!(!format!("{plot:?}").contains(source.to_string_lossy().as_ref()));
     assert!(!format!("{plan:?}").contains(source.to_string_lossy().as_ref()));
     PlannedCopy {
         host,

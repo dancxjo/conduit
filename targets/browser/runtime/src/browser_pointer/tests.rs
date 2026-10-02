@@ -89,10 +89,10 @@ fn malformed_normalized_browser_values_refuse_before_play() {
 fn pointer_scheduler_refuses_an_underadmitted_physical_sign_budget_before_play() {
     let value = normalized_pointer_value(sample()).unwrap();
     let (startup, profile) = catalogs(&value).unwrap();
-    let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(PLOT_SOURCE);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "browser-pointer", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "browser-pointer", &profile).unwrap();
     let host = advertisement();
     let hosts = [host];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();

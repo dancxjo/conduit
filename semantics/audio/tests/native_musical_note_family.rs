@@ -1,6 +1,6 @@
 use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, MUSIC_NOTE_INFO_ID};
 use conduit_core::semantic_digest;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn note_occurrence_and_event_have_exact_native_round_trips() {

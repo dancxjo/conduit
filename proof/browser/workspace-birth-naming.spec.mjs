@@ -15,21 +15,21 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
   await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
-  await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveAttribute("data-application-component", "choice-group");
+  await expect(birth.locator('[data-application-key="initial-plots"]')).toHaveAttribute("data-application-component", "choice-group");
   for (const checkbox of await birth.getByRole("checkbox").all()) {
     if (await checkbox.isChecked()) await checkbox.uncheck();
   }
   await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
   await birth.getByRole("checkbox", { name: "Memory Lantern" }).check();
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).toBeChecked();
-  await expect(birth.locator('[data-application-key="selected-forms"]')).toHaveText("Selected: 1");
+  await expect(birth.locator('[data-application-key="selected-plots"]')).toHaveText("Selected: 1");
   await expect(name).toHaveAttribute("aria-describedby", /\S+/);
-  await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /\S+/);
+  await expect(birth.getByLabel("Conduit Plot source")).toHaveAttribute("aria-describedby", /\S+/);
   await birth.getByText("Details and source", { exact: true }).click();
-  const source = birth.getByLabel("Conduit Form source");
+  const source = birth.getByLabel("Conduit Plot source");
   const syntax = birth.locator('[data-application-syntax="conduit"] .syntax-highlight');
   await expect(source).toHaveAttribute("data-syntax-disposition", "accepted");
-  await expect(syntax.locator(".syntax-keyword").first()).toHaveText("form");
+  await expect(syntax.locator(".syntax-keyword").first()).toHaveText("plot");
   const editorGeometry = await birth.locator(".syntax-editor").evaluate((editor) => {
     const textarea = editor.querySelector("textarea").getBoundingClientRect();
     const backdrop = editor.querySelector(".syntax-highlight").getBoundingClientRect();
@@ -81,16 +81,16 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(4);
 
   await tradition.selectOption("tamil");
-  await expect(tradition.locator("option:checked")).toContainText("Tamil patronymic forms");
+  await expect(tradition.locator("option:checked")).toContainText("Tamil patronymic plots");
   await expect(name).toHaveValue(/^(?:[A-Z]\. |[\p{Script=Latin}\p{Mark}]+ )[\p{Script=Latin}\p{Mark}]+$/u);
 
   await tradition.selectOption("indonesian");
-  await expect(tradition.locator("option:checked")).toContainText("Indonesian complete personal-name forms");
+  await expect(tradition.locator("option:checked")).toContainText("Indonesian complete personal-name plots");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(1);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(2);
 
   await tradition.selectOption("welsh");
-  await expect(tradition.locator("option:checked")).toContainText("Welsh modern and patronymic forms");
+  await expect(tradition.locator("option:checked")).toContainText("Welsh modern and patronymic plots");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(2);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(3);
 

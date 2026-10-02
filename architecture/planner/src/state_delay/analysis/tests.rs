@@ -1,5 +1,5 @@
 use super::*;
-use conduit_core::{CheckedFormId, ExpandedFormId, PlannedStateBoundary, SourceDocumentId};
+use conduit_core::{CheckedPlotId, ExpandedPlotId, PlannedStateBoundary, SourceDocumentId};
 
 fn admitted(bytes: u32, continuation: StateContinuation) -> AdmittedStateGraph {
     let states = vec![PlannedStateBoundary {
@@ -13,10 +13,10 @@ fn admitted(bytes: u32, continuation: StateContinuation) -> AdmittedStateGraph {
         continuation,
     }];
     AdmittedStateGraph {
-        form_identity: FormIdentity {
+        plot_identity: PlotIdentity {
             source_document_id: SourceDocumentId::from("fixture-source"),
-            checked_form_id: CheckedFormId::from("fixture-checked"),
-            expanded_form_id: ExpandedFormId::from("fixture-expanded"),
+            checked_plot_id: CheckedPlotId::from("fixture-checked"),
+            expanded_plot_id: ExpandedPlotId::from("fixture-expanded"),
         },
         startup_order: vec![GearId::from("cell")],
         resources: state_resource_budget(&states).unwrap(),
@@ -28,7 +28,7 @@ fn admitted(bytes: u32, continuation: StateContinuation) -> AdmittedStateGraph {
 fn raw_byte_domain_count_includes_empty_and_absent_candidates() {
     let graph = admitted(1, StateContinuation::MaximumTransitions(5));
     let report = graph.analyze_value_storage(66_306).unwrap();
-    assert_eq!(report.form_identity, graph.form_identity);
+    assert_eq!(report.plot_identity, graph.plot_identity);
     assert_eq!(
         report.enumeration,
         RepresentationEnumeration::WithinBudget {
@@ -113,22 +113,22 @@ fn composition_preserves_each_domain_and_multiplies_raw_representations() {
 
 #[test]
 fn analysis_retains_the_identity_validated_by_ordinary_graph_admission() {
-    let mut form = conduit_form::parse_with_startup(
-        "form signal-demo {\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n show: presentation/show\n pulse >> show\n}\n",
+    let mut plot = conduit_plot::parse_with_startup(
+        "plot signal-demo {\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n show: presentation/show\n pulse >> show\n}\n",
         &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     ).unwrap();
-    let graph = crate::state_delay::admit_state_graph(&form, vec![]).unwrap();
+    let graph = crate::state_delay::admit_state_graph(&plot, vec![]).unwrap();
     let report = graph.analyze_value_storage(1).unwrap();
-    assert_eq!(report.form_identity, form.identity());
+    assert_eq!(report.plot_identity, plot.identity());
     assert!(report.domains.is_empty());
     assert_eq!(
         report.enumeration,
         RepresentationEnumeration::WithinBudget { representations: 1 }
     );
-    form.checked_form_id = CheckedFormId::from("forged");
+    plot.checked_plot_id = CheckedPlotId::from("forged");
     assert_eq!(
-        crate::state_delay::admit_state_graph(&form, vec![]),
-        Err(crate::state_delay::StateGraphError::InvalidForm)
+        crate::state_delay::admit_state_graph(&plot, vec![]),
+        Err(crate::state_delay::StateGraphError::InvalidPlot)
     );
 }

@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_time::{ClockChangeBehavior, SuspendBehavior};
 
 fn assert_round_trip<T>(value: T)

@@ -5,12 +5,12 @@ use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
 };
 
 pub fn exact_hybrid_plan(policy_identity: &str, maximum_value_bytes: u32) -> conduit_core::Plan {
@@ -18,10 +18,10 @@ pub fn exact_hybrid_plan(policy_identity: &str, maximum_value_bytes: u32) -> con
     let mut profile = ProfileCatalog::new();
     install_hybrid_retrieval_catalog(&mut startup, &mut profile).unwrap();
     let source = format!(
-        "form hybrid {{\n fusion: retrieval/hybrid-fuse(\"{policy_identity}\", \"reciprocal-rank\", 60, \"none\", 8, 8, 32)\n}}\n"
+        "plot hybrid {{\n fusion: retrieval/hybrid-fuse(\"{policy_identity}\", \"reciprocal-rank\", 60, \"none\", 8, 8, 32)\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "hybrid", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "hybrid", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/hybrid"),

@@ -14,8 +14,8 @@ const boot = {
   offer_generation: 1,
   implementation_registry: [{ id: "browser/pointer-events@1", revision: 1 }],
 };
-const forms = [{
-  form: { checked_form_id: "form/pointer-pressure-proof" },
+const plots = [{
+  plot: { checked_plot_id: "plot/pointer-pressure-proof" },
   plan: { fragments: [{ placements: [{
     placement_id: "placement/pointer-pressure-proof",
     kind_id: "input/pointer-source",
@@ -27,7 +27,7 @@ const input = openBrowserHumanInput({
   boot,
   routeInput: (kind, value) => routing.capture(kind, value),
 });
-routing = createBodyInputRouting({ forms, foreground: () => "form/pointer-pressure-proof", maximumPlacements: 1 });
+routing = createBodyInputRouting({ plots, foreground: () => "plot/pointer-pressure-proof", maximumPlacements: 1 });
 routing.attach(input);
 
 globalThis.__conduitBodyInput = Object.freeze({

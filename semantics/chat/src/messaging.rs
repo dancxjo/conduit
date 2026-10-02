@@ -24,7 +24,7 @@ pub const MAXIMUM_MESSAGE_ATTACHMENTS: u16 = 2;
 pub const MAXIMUM_DELIVERY_ATTEMPTS: u64 = 3;
 
 fn checked(
-    value: Result<StructuredInfoType, conduit_form::rust_binding::NativeBindingRefusal>,
+    value: Result<StructuredInfoType, conduit_plot::rust_binding::NativeBindingRefusal>,
 ) -> StructuredInfoType {
     value.expect("checked native messaging Type is finite")
 }
@@ -51,7 +51,7 @@ pub fn message_recipient_slot_type() -> StructuredInfoType {
 
 pub fn message_recipients_type() -> StructuredInfoType {
     let record = checked(PortableMessage::semantic_type());
-    conduit_form::rust_binding::record_field_type(&record, "recipients")
+    conduit_plot::rust_binding::record_field_type(&record, "recipients")
         .expect("native recipient collection field")
 }
 
@@ -65,7 +65,7 @@ pub fn message_metadata_slot_type() -> StructuredInfoType {
 
 pub fn message_metadata_type() -> StructuredInfoType {
     let record = checked(PortableMessage::semantic_type());
-    conduit_form::rust_binding::record_field_type(&record, "metadata")
+    conduit_plot::rust_binding::record_field_type(&record, "metadata")
         .expect("native metadata collection field")
 }
 
@@ -79,7 +79,7 @@ pub fn message_attachment_slot_type() -> StructuredInfoType {
 
 pub fn message_attachments_type() -> StructuredInfoType {
     let record = checked(PortableMessage::semantic_type());
-    conduit_form::rust_binding::record_field_type(&record, "attachments")
+    conduit_plot::rust_binding::record_field_type(&record, "attachments")
         .expect("native attachment collection field")
 }
 

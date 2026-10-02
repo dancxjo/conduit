@@ -4,27 +4,27 @@ use crate::realization::consume_selected_capacity;
 use crate::PlannerError;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 mod model;
 pub use model::*;
 
 pub fn select_data_locality_candidate(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     candidates: &[LocalityCandidate],
     basis: &LocalityPlanningBasis,
     line_offers: &[LineOffer],
 ) -> Result<LocalitySelection, PlannerError> {
-    form.validate_identities()
-        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
+    plot.validate_identities()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
     validate_resource_observations(hosts, &basis.resources)?;
-    validate_inputs(form, hosts, candidates, basis)?;
+    validate_inputs(plot, hosts, candidates, basis)?;
     if line_offers.len() > MAXIMUM_LOCALITY_LINE_OFFERS {
         return invalid("Line offer count exceeds the locality planning bound");
     }
     let mut considered = candidates
         .iter()
-        .map(|candidate| evaluate(form, hosts, candidate, basis, line_offers))
+        .map(|candidate| evaluate(plot, hosts, candidate, basis, line_offers))
         .collect::<Vec<_>>();
     let selected_index = considered
         .iter()
@@ -40,7 +40,7 @@ pub fn select_data_locality_candidate(
     considered[selected_index].disposition = CandidatePlacementDisposition::Selected;
     let candidate = &candidates[selected_index];
     Ok(LocalitySelection {
-        checked_form_id: form.checked_form_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
         selected: CandidatePlacement {
             candidate_id: candidate.candidate_id.clone(),
             placements: candidate.placements.clone(),
@@ -52,7 +52,7 @@ pub fn select_data_locality_candidate(
 }
 
 fn validate_inputs(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     candidates: &[LocalityCandidate],
     basis: &LocalityPlanningBasis,
@@ -98,7 +98,7 @@ fn validate_inputs(
     {
         return invalid("planning observation Sign identities must be unique");
     }
-    if !form
+    if !plot
         .gears
         .iter()
         .any(|gear| gear.gear_id == basis.data_flow.source_gear_id)
@@ -112,7 +112,7 @@ fn validate_inputs(
             || reduction.input_items_denominator == 0
             || reduction.output_bytes_numerator == 0
             || reduction.input_bytes_denominator == 0
-            || !form
+            || !plot
                 .gears
                 .iter()
                 .any(|gear| gear.gear_id == reduction.gear_id)
@@ -127,7 +127,7 @@ fn validate_inputs(
 }
 
 fn evaluate(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     candidate: &LocalityCandidate,
     basis: &LocalityPlanningBasis,
@@ -166,13 +166,13 @@ fn evaluate(
     while let Some(gear_id) = ready.pop() {
         if ordered
             .iter()
-            .any(|gear: &&conduit_form::CheckedGear| gear.gear_id == gear_id)
+            .any(|gear: &&conduit_plot::CheckedGear| gear.gear_id == gear_id)
         {
             continue;
         }
-        if let Some(gear) = form.gears.iter().find(|gear| gear.gear_id == gear_id) {
+        if let Some(gear) = plot.gears.iter().find(|gear| gear.gear_id == gear_id) {
             ordered.push(gear);
-            for connection in form
+            for connection in plot
                 .connections
                 .iter()
                 .filter(|connection| connection.source_gear_id == gear_id)
@@ -186,7 +186,7 @@ fn evaluate(
         .map(|gear| gear.gear_id.clone())
         .collect::<BTreeSet<_>>();
     ordered.extend(
-        form.gears
+        plot.gears
             .iter()
             .filter(|gear| !ordered_ids.contains(&gear.gear_id)),
     );
@@ -273,7 +273,7 @@ fn evaluate(
                     .push(reduction.provenance.sign_id.clone());
             }
         }
-        for connection in form
+        for connection in plot
             .connections
             .iter()
             .filter(|connection| connection.source_gear_id == gear.gear_id)

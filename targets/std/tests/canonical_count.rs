@@ -1,13 +1,13 @@
 use conduit_core::{ObservationKind, PortTemporal, TerminalDisposition};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
 use std::time::Duration;
 
-const PROGRAM: &str = include_str!("../../../forms/count/main.conduit");
-const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+const PROGRAM: &str = include_str!("../../../plots/count/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
 #[derive(Default)]
 struct RecordingTimer {
@@ -44,7 +44,7 @@ fn canonical_program_reacts_to_open_flow_until_explicit_stop() {
     let syntax = parse_syntax_document(PROGRAM);
     assert_eq!(syntax.round_trip(), PROGRAM);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "count-demo", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "count-demo", &profile).unwrap();
     assert_eq!(expanded.gears.len(), 3);
 
     let mut host = StdHost::new();
@@ -103,20 +103,20 @@ fn reactive_front_range_overflow_and_selected_identity_are_exact() {
     let (startup, profile) = catalogs();
     let single_value = PROGRAM.replace("Tick...", "Tick");
     let checked = check_syntax_document(&parse_syntax_document(&single_value), &startup).unwrap();
-    let reactively_lifted = expand_canonical_form(&checked, "count-demo", &profile).unwrap();
+    let reactively_lifted = expand_canonical_plot(&checked, "count-demo", &profile).unwrap();
     let canonical = check_syntax_document(&parse_syntax_document(PROGRAM), &startup).unwrap();
-    let canonical = expand_canonical_form(&canonical, "count-demo", &profile).unwrap();
+    let canonical = expand_canonical_plot(&canonical, "count-demo", &profile).unwrap();
     assert_eq!(
-        reactively_lifted.expanded_form_id,
-        canonical.expanded_form_id
+        reactively_lifted.expanded_plot_id,
+        canonical.expanded_plot_id
     );
 
     let overflow = PROGRAM.replace("count(2)", "count(18446744073709551616)");
     let checked = check_syntax_document(&parse_syntax_document(&overflow), &startup).unwrap();
-    assert!(expand_canonical_form(&checked, "count-demo", &profile).is_err());
+    assert!(expand_canonical_plot(&checked, "count-demo", &profile).is_err());
 
     let checked = check_syntax_document(&parse_syntax_document(PROGRAM), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "count-demo", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "count-demo", &profile).unwrap();
     let mut host = StdHost::new();
     let mut plan = host.plan_expanded_local(&expanded).unwrap();
     let state = plan.fragments[0]

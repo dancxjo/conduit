@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedMeasurementWindow, FullWindowPolicyCode, MeasurementPlotPoint, MeasurementPlotSeries,
+    BoundedMeasurementWindow, FullWindowPolicyForm, MeasurementPlotPoint, MeasurementPlotSeries,
     MeasurementRange, MeasurementSample, MeasurementSummary, MeasurementWindowProfile,
     MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
@@ -27,10 +27,8 @@ pub fn encode_measurement_window(
     let profile = window.profile();
     let mut bytes = Vec::with_capacity(MAXIMUM_MEASUREMENT_WINDOW_BYTES.min(256));
     bytes.push(1);
-    bytes.push(
-        u8::try_from(profile.capacity).map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
-    );
-    bytes.extend_from_slice(&FullWindowPolicyCode::encode(profile.full_policy));
+    bytes.push(profile.capacity);
+    bytes.extend_from_slice(&FullWindowPolicyForm::encode(profile.full_policy));
     bytes.extend_from_slice(&profile.range.minimum.encode());
     bytes.extend_from_slice(&profile.range.maximum.encode());
     put_text(&mut bytes, &profile.clock_basis)?;
@@ -70,7 +68,7 @@ pub fn decode_measurement_window(
     if capacity == 0 || capacity > MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
-    let full_policy = FullWindowPolicyCode::decode(&[input.u8()?])
+    let full_policy = FullWindowPolicyForm::decode(&[input.u8()?])
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
     let minimum = input.quantity()?;
     let maximum = input.quantity()?;
@@ -80,10 +78,10 @@ pub fn decode_measurement_window(
     if count > capacity {
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
-    let unit = minimum.unit();
     let profile = MeasurementWindowProfile {
-        capacity,
-        unit,
+        capacity: capacity
+            .try_into()
+            .map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
         range: MeasurementRange { minimum, maximum },
         clock_basis,
         full_policy,
@@ -91,7 +89,10 @@ pub fn decode_measurement_window(
     let mut samples = Vec::with_capacity(capacity);
     for _ in 0..count {
         let value = input.quantity()?;
-        let observed_at = input.instant()?;
+        let observed_at = input
+            .instant()?
+            .try_into()
+            .map_err(|_| MeasurementWireRefusal::Malformed)?;
         let uncertainty = match input.u8()? {
             0 => None,
             1 => Some(input.quantity()?),
@@ -166,8 +167,14 @@ pub fn decode_measurement_summary(
         return Err(MeasurementWireRefusal::UnsupportedVersion);
     }
     let sample_count = input.u64()?;
-    let first_observed_at = input.instant()?;
-    let last_observed_at = input.instant()?;
+    let first_observed_at = input
+        .instant()?
+        .try_into()
+        .map_err(|_| MeasurementWireRefusal::Malformed)?;
+    let last_observed_at = input
+        .instant()?
+        .try_into()
+        .map_err(|_| MeasurementWireRefusal::Malformed)?;
     let minimum = input.quantity()?;
     let maximum = input.quantity()?;
     let range = input.quantity()?;
@@ -176,7 +183,6 @@ pub fn decode_measurement_summary(
         return Err(MeasurementWireRefusal::Malformed);
     }
     let summary = MeasurementSummary {
-        unit: minimum.unit(),
         sample_count,
         first_observed_at,
         last_observed_at,
@@ -191,6 +197,7 @@ pub fn decode_measurement_summary(
 
 fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireRefusal> {
     use conduit_core::TemporalRelation;
+    let unit = summary.minimum.unit();
     if summary.sample_count == 0
         || [
             summary.minimum,
@@ -199,7 +206,7 @@ fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireR
             summary.mean,
         ]
         .iter()
-        .any(|quantity| quantity.unit() != summary.unit)
+        .any(|quantity| quantity.unit() != unit)
         || summary.minimum.value() > summary.maximum.value()
         || summary.mean.value() < summary.minimum.value()
         || summary.mean.value() > summary.maximum.value()
@@ -256,18 +263,18 @@ fn put_text(output: &mut Vec<u8>, value: &str) -> Result<(), MeasurementWireRefu
 
 fn put_instant(
     output: &mut Vec<u8>,
-    value: &TemporalInstant,
+    value: &conduit_time::NativeTemporalInstant,
 ) -> Result<(), MeasurementWireRefusal> {
-    output.extend_from_slice(&value.ticks.to_le_bytes());
-    output.push(match value.scale {
-        TemporalScale::Seconds => 0,
-        TemporalScale::Milliseconds => 1,
-        TemporalScale::Microseconds => 2,
-        TemporalScale::Nanoseconds => 3,
+    output.extend_from_slice(&value.ticks().to_le_bytes());
+    output.push(match value.scale() {
+        conduit_time::NativeTemporalScale::Seconds => 0,
+        conduit_time::NativeTemporalScale::Milliseconds => 1,
+        conduit_time::NativeTemporalScale::Microseconds => 2,
+        conduit_time::NativeTemporalScale::Nanoseconds => 3,
     });
-    put_text(output, &value.clock_basis)?;
-    output.extend_from_slice(&value.resolution_ticks.to_le_bytes());
-    output.extend_from_slice(&value.uncertainty_ticks.to_le_bytes());
+    put_text(output, value.clock_basis())?;
+    output.extend_from_slice(&value.resolution_ticks().to_le_bytes());
+    output.extend_from_slice(&value.uncertainty_ticks().to_le_bytes());
     Ok(())
 }
 
@@ -359,7 +366,9 @@ mod tests {
                 clock_basis: "wire-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
+            }
+            .try_into()
+            .unwrap(),
             uncertainty: Some(Quantity::new(1, conduit_core::QuantityUnit::Millivolt)),
         }
     }
@@ -368,7 +377,6 @@ mod tests {
     fn bounded_window_and_plot_payloads_round_trip_exactly() {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 2,
-            unit: conduit_core::QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(-100, conduit_core::QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
@@ -402,7 +410,6 @@ mod tests {
     fn payload_decoder_rejects_truncation_and_trailing_bytes() {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 1,
-            unit: conduit_core::QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, conduit_core::QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
@@ -434,10 +441,9 @@ mod tests {
             uncertainty_ticks: 0,
         };
         let summary = MeasurementSummary {
-            unit: conduit_core::QuantityUnit::Millivolt,
             sample_count: 3,
-            first_observed_at: instant(1),
-            last_observed_at: instant(3),
+            first_observed_at: instant(1).try_into().unwrap(),
+            last_observed_at: instant(3).try_into().unwrap(),
             minimum: Quantity::new(0, conduit_core::QuantityUnit::Millivolt),
             maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
             range: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),

@@ -1,6 +1,6 @@
 //! Finite browser projection of canonical Conduit syntax-highlight spans.
 
-use conduit_form::{highlight_syntax, SyntaxHighlightKind, SyntaxHighlightRefusal};
+use conduit_plot::{highlight_syntax, SyntaxHighlightKind, SyntaxHighlightRefusal};
 use serde::Serialize;
 use std::cell::RefCell;
 
@@ -97,7 +97,7 @@ pub extern "C" fn conduit_syntax_output_len() -> usize {
     OUTPUT_LEN.with(|length| *length.borrow())
 }
 
-/// Projects finite exact UTF-8 byte spans from the canonical Form highlighter.
+/// Projects finite exact UTF-8 byte spans from the canonical Plot highlighter.
 /// Parsing and checking remain separate, so incomplete edits still project.
 #[no_mangle]
 pub extern "C" fn conduit_syntax_project(source_length: usize) -> i32 {
@@ -162,7 +162,7 @@ mod tests {
     use super::*;
     #[test]
     fn incomplete_source_projects_exact_utf8_byte_spans() {
-        let source = "form café { value=text/constant(value=\"still typing\n";
+        let source = "plot café { value=text/constant(value=\"still typing\n";
         let projection = project(source).unwrap();
         assert_eq!(projection.source_bytes, source.len() as u32);
         assert_eq!(projection.spans.last().unwrap().2, SyntaxKind::String as u8);
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn inline_comment_projects_through_the_existing_browser_comment_kind() {
-        let source = "form note { value = \"channel #7\" # visible note\n}\n";
+        let source = "plot note { value = \"channel #7\" # visible note\n}\n";
         let projection = project(source).unwrap();
         assert!(projection
             .spans
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn syntax_projection_accepts_incomplete_source_and_clears_input() {
-        let source = b"form unfinished { value=\"still typing";
+        let source = b"plot unfinished { value=\"still typing";
         INPUT.with(|input| input.borrow_mut()[..source.len()].copy_from_slice(source));
         assert_eq!(conduit_syntax_project(source.len()), STATUS_READY);
         let projection: serde_json::Value = OUTPUT.with(|output| {

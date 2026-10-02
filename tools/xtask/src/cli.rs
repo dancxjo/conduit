@@ -9,6 +9,7 @@ use crate::commands::ci::CiArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::esp32_firmware::Esp32FirmwareArgs;
 use crate::commands::evidence::EvidenceCommand;
+use crate::commands::handbook::{HandbookArgs, PagesRootArgs};
 use crate::commands::host::HostArgs;
 use crate::commands::pete_std_observe::PeteArgs;
 use crate::commands::pico::PicoArgs;
@@ -85,6 +86,10 @@ pub enum MakeTarget {
     PicoLocal(PicoArgs),
     /// Build and prove the freestanding ConduitOS reference Host.
     Conduitos(ConduitosArgs),
+    /// Render the versioned wiki source as the static website handbook.
+    Handbook(HandbookArgs),
+    /// Stage the complete public Pages root, including the handbook.
+    PagesRoot(PagesRootArgs),
     /// Generate the shared bounded GNU Unifont subset.
     UnifontSubset(UnifontSubsetArgs),
     /// Generate the bounded native masks for canonical palette icons.
@@ -283,7 +288,7 @@ pub enum ProveCommand {
     BodyCoordination(BodyCoordinationArgs),
     /// Exercise explicit Pete hardware proof entrances.
     Pete(PeteArgs),
-    /// Exercise one reviewed Form or journey through its exact repository proof path.
+    /// Exercise one reviewed Plot or journey through its exact repository proof path.
     Journey(DemoArgs),
     /// Produce, verify, or publish bounded proof evidence.
     #[command(flatten)]
@@ -390,11 +395,11 @@ mod tests {
             .expect("catalog gap command parses");
         assert!(matches!(gap.command, Command::Check(_)));
 
-        let forms = Cli::try_parse_from(["xtask", "check", "forms", "check"])
-            .expect("reviewed forms check parses beneath check");
-        assert!(matches!(forms.command, Command::Check(_)));
+        let plots = Cli::try_parse_from(["xtask", "check", "plots", "check"])
+            .expect("reviewed plots check parses beneath check");
+        assert!(matches!(plots.command, Command::Check(_)));
         assert!(Cli::try_parse_from(["xtask", "catalog", "matrix"]).is_err());
-        assert!(Cli::try_parse_from(["xtask", "forms", "check"]).is_err());
+        assert!(Cli::try_parse_from(["xtask", "plots", "check"]).is_err());
 
         let doctor = Cli::try_parse_from(["xtask", "--dry-run", "doctor", "pico"])
             .expect("doctor command parses");
@@ -665,14 +670,8 @@ mod tests {
             Cli::try_parse_from(["xtask", "check", "workspace"]).expect("check command parses");
         assert!(matches!(check.command, Command::Check(_)));
 
-        let ci = Cli::try_parse_from([
-            "xtask",
-            "ci",
-            "plan",
-            "0123456789012345678901234567890123456789",
-            "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
-        ])
-        .expect("CI impact plan command parses");
+        let ci = Cli::try_parse_from(["xtask", "ci", "standalone-locks"])
+            .expect("standalone lock check command parses");
         assert!(matches!(ci.command, Command::Ci(_)));
 
         let prove = Cli::try_parse_from(["xtask", "prove", "std-browser-s4"])

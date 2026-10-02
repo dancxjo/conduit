@@ -62,12 +62,12 @@ fn target(journey: &ProductJourney, action: JourneyAction) -> String {
     let projection = journey.projection();
     match action {
         JourneyAction::OpenBack | JourneyAction::Birth => {
-            let checked = projection.checked_form_id.unwrap_or_else(|| {
-                crate::keyboard_text_plan::checked_form_identity()
+            let checked = projection.checked_plot_id.unwrap_or_else(|| {
+                crate::keyboard_text_plan::checked_plot_identity()
                     .unwrap()
-                    .checked_form_id
+                    .checked_plot_id
             });
-            format!("form/{}", checked.as_str())
+            format!("plot/{}", checked.as_str())
         }
         JourneyAction::Wake
         | JourneyAction::Plan
@@ -75,7 +75,7 @@ fn target(journey: &ProductJourney, action: JourneyAction) -> String {
         | JourneyAction::Stop
         | JourneyAction::Lull
         | JourneyAction::Fulfill
-        | JourneyAction::AdmitForm => format!("body/{}", projection.body_id.unwrap().as_str()),
+        | JourneyAction::AdmitPlot => format!("body/{}", projection.body_id.unwrap().as_str()),
         _ => panic!("unsupported journey test action"),
     }
 }

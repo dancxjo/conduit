@@ -72,7 +72,7 @@ fn upper_offer() -> CapabilityOffer {
         "browser/kernel-text-upper@1",
         UPPER_IMPLEMENTATION,
         Vec::new(),
-        Some((port_id("text"), port_id("text"))),
+        Some((port_id("source"), port_id("text"))),
     );
     offer.host_calls.push(operation(
         UPPER_OPERATION,
@@ -95,7 +95,7 @@ fn join_offer() -> CapabilityOffer {
             value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
-        Some((port_id("text"), port_id("text"))),
+        Some((port_id("source"), port_id("text"))),
     );
     offer.host_calls.push(operation(
         JOIN_OPERATION,

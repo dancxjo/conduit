@@ -360,7 +360,6 @@ mod tests {
     fn profile() -> MeasurementWindowProfile {
         MeasurementWindowProfile {
             capacity: 2,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, QuantityUnit::Millivolt),
@@ -386,7 +385,9 @@ mod tests {
                 clock_basis: "browser-window-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
+            }
+            .try_into()
+            .unwrap(),
             uncertainty: None,
         }
     }
@@ -468,13 +469,8 @@ mod tests {
             prepared.execute(OPERATIONS[1], &out_of_range),
             Err(failure(19))
         );
-        let wrong_clock = MeasurementSample {
-            observed_at: TemporalInstant {
-                clock_basis: "other-clock".into(),
-                ..sample(1, 1).observed_at
-            },
-            ..sample(1, 1)
-        };
+        let mut wrong_clock = sample(1, 1);
+        wrong_clock.observed_at.clock_basis = "other-clock".into();
         let wrong_clock = leaf(
             conduit_data::measurement_sample_type(),
             conduit_data::encode_measurement_sample(&wrong_clock).unwrap(),

@@ -95,7 +95,7 @@ impl BodyKernel {
             fragments,
             FIXED_KERNEL_STORAGE_PROFILE,
             FragmentSetBounds {
-                fragments: conduit_body::MAX_BODY_FORMS as u16,
+                fragments: conduit_body::MAX_BODY_PLOTS as u16,
                 nodes: MAX_NODES as u16,
                 cords: MAX_CORDS as u16,
                 queue_slots: MAX_QUEUE_SLOTS as u16,
@@ -216,7 +216,7 @@ impl BodyKernel {
             input,
             self.operations
                 .iter()
-                .any(|operation| keyboard(&operation.contract_id)),
+                .map(|operation| &operation.contract_id),
         );
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let result = (|| -> Result<TerminalDisposition, String> {

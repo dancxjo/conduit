@@ -197,7 +197,6 @@ mod tests {
         assert_eq!(offer.limits, semantic.limits);
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 3,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, QuantityUnit::Millivolt),
@@ -216,7 +215,9 @@ mod tests {
                         clock_basis: "browser-source-clock".into(),
                         resolution_ticks: 1,
                         uncertainty_ticks: 0,
-                    },
+                    }
+                    .try_into()
+                    .unwrap(),
                     uncertainty: None,
                 })
                 .unwrap();

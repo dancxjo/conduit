@@ -2,8 +2,11 @@
 
 #[cfg(test)]
 mod tests {
-    use conduit_ai::{TemporalEvidenceSelection, TemporalRetrievalIntent};
-    use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, BodyWorkset};
+    use conduit_ai::{
+        TemporalEvidenceIdentities, TemporalEvidenceIdentity, TemporalEvidenceSelection,
+        TemporalRetrievalIntent,
+    };
+    use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, BodyWorkset};
     use conduit_composite::{
         KernelCompositeBoundary, KernelCompositeDefinition, KernelCompositeFrontBinding,
         KernelCompositeHost, KernelOperationRegistry,
@@ -14,7 +17,6 @@ mod tests {
         ImplementationId, ImplementationOffer, OfferGeneration, Plan, SignId, TemporalInstant,
         TemporalScale, ValuePayload,
     };
-    use conduit_form::{CompositeFrontTerminal, ExpandedAuthoringForm};
     use conduit_human::{
         body_self_experience, inspect_current_experience_item, BodySelfObservation,
         CurrentExperience, ExperienceCertainty, ExperienceLimits, ExperienceSourceRef,
@@ -29,6 +31,8 @@ mod tests {
         HOMEOSTASIS_IMPLEMENTATION, HOMEOSTASIS_POLICY_REVISION, HOMEOSTATIC_STATE_KIND,
     };
     use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
+    use conduit_plot::rust_binding::BoundedSequence;
+    use conduit_plot::{CompositeFrontTerminal, ExpandedAuthoringPlot};
     use conduit_presentation::{
         Presentation, PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel,
         PresentationRole, PresentationSubject, PresentationText,
@@ -72,7 +76,7 @@ mod tests {
             brainstem.clone(),
             browser,
         ];
-        let body = Body::born_with_forms(
+        let body = Body::born_with_plots(
             workload.initial.clone(),
             21,
             SignId::from("proof/pete-body-born"),
@@ -92,8 +96,8 @@ mod tests {
             )
             .unwrap();
         assert_eq!(first.body_id, body.body_id);
-        assert_eq!(first.forms.len(), 5);
-        assert!(first.forms.iter().all(|form| form
+        assert_eq!(first.plots.len(), 5);
+        assert!(first.plots.iter().all(|plot| plot
             .plan
             .fragments
             .iter()
@@ -127,7 +131,7 @@ mod tests {
             .unwrap();
         assert_eq!(replacement.body_id, first.body_id);
         assert_ne!(replacement.plan_id, first.plan_id);
-        assert_eq!(replacement.forms.len(), 5);
+        assert_eq!(replacement.plots.len(), 5);
         assert_eq!(hosts_in(&replacement).len(), 3);
         assert!(!hosts_in(&replacement).contains("proof/pete-optional-browser"));
         assert!(hosts_in(&replacement).contains("proof/pete-forebrain"));
@@ -138,7 +142,7 @@ mod tests {
     fn second_episode_retrieves_first_and_provider_loss_stays_explicit() {
         let workload = reviewed_pete_workload().unwrap();
         let body =
-            Body::born_with_forms(workload.initial, 21, SignId::from("proof/pete-body-born"))
+            Body::born_with_plots(workload.initial, 21, SignId::from("proof/pete-body-born"))
                 .unwrap();
         let body_identity = body.body_id.as_str().to_owned();
         let mut memory = BoundedAutobiography::new(4).unwrap();
@@ -171,9 +175,17 @@ mod tests {
             .unwrap();
         assert_eq!(
             selected,
-            TemporalEvidenceSelection::Selected {
-                identities: vec!["experience/pete/episode-a/resistor-change".into()]
-            }
+            TemporalEvidenceSelection::selected(
+                TemporalEvidenceIdentities::new(
+                    BoundedSequence::try_from_iter([TemporalEvidenceIdentity::new(
+                        "experience/pete/episode-a/resistor-change".into(),
+                    )
+                    .unwrap(),])
+                    .unwrap(),
+                )
+                .unwrap(),
+            )
+            .unwrap()
         );
         let retained = memory.records(true).unwrap();
         assert_eq!(retained[0].candidate.provenance[0].event_at_millis, 1_000);
@@ -198,7 +210,7 @@ mod tests {
     fn standing_homeostasis_play_revises_experience_and_presenter_without_action() {
         let workload = reviewed_pete_workload().unwrap();
         let resident = workload
-            .resident_forms
+            .resident_plots
             .iter()
             .find(|item| item.role == PeteWorkloadRole::Homeostasis)
             .unwrap();
@@ -223,14 +235,14 @@ mod tests {
             .any(|entry| entry.key == "policy-revision"
                 && entry.value
                     == conduit_core::ConfigurationValue::Text(HOMEOSTASIS_POLICY_REVISION.into())));
-        let workset = BodyWorkset::from_forms([resident.form.clone()]).unwrap();
+        let workset = BodyWorkset::from_plots([resident.plot.clone()]).unwrap();
         let body =
-            Body::born_with_forms(workset, 21, SignId::from("proof/pete-body-born")).unwrap();
+            Body::born_with_plots(workset, 21, SignId::from("proof/pete-body-born")).unwrap();
         let (body, wake) = body.wake(1, SignId::from("proof/pete-wake")).unwrap();
         let body_plan = BodyPlan::seal(
             &wake,
-            vec![BodyFormPlan {
-                form: resident.form.clone(),
+            vec![BodyPlotPlan {
+                plot: resident.plot.clone(),
                 plan: plan.clone(),
             }],
         )
@@ -278,8 +290,8 @@ mod tests {
                     body_id: None,
                     wake_id: None,
                     source_document_id: None,
-                    checked_form_id: None,
-                    expanded_form_id: None,
+                    checked_plot_id: None,
+                    expanded_plot_id: None,
                     plan_id: None,
                     active_play_id: None,
                     sign_ids: basis_signs,
@@ -455,14 +467,14 @@ mod tests {
     }
 
     fn execute_homeostasis(
-        authored: &ExpandedAuthoringForm,
+        authored: &ExpandedAuthoringPlot,
         plan: &Plan,
         inputs: &HomeostaticInputs,
         reduced_at: &TemporalInstant,
     ) -> Vec<u8> {
         let placement = &plan.fragments[0].placements[0];
         let bind =
-            |binding: &conduit_form::AuthoringFrontBinding,
+            |binding: &conduit_plot::AuthoringFrontBinding,
              descriptor: &conduit_core::PortDescriptor| KernelCompositeFrontBinding {
                 external_port: descriptor.clone(),
                 internal_child: placement.host_id.clone(),
@@ -658,9 +670,9 @@ mod tests {
         host.host_id = HostId::from(host_id);
         host.boot_id = BootId::from(boot_id);
         host.capabilities = workload
-            .resident_forms
+            .resident_plots
             .iter()
-            .filter(|item| workload.initial.contains(&item.form) && roles.contains(&item.role))
+            .filter(|item| workload.initial.contains(&item.plot) && roles.contains(&item.role))
             .flat_map(|item| &item.expanded.gears)
             .enumerate()
             .map(|(index, gear)| {
@@ -714,11 +726,11 @@ mod tests {
         workload: &ReviewedPeteWorkload,
         hosts: &[HostAdvertisement],
         use_browser: bool,
-    ) -> Vec<BodyFormPlan> {
+    ) -> Vec<BodyPlotPlan> {
         workload
-            .resident_forms
+            .resident_plots
             .iter()
-            .filter(|item| workload.initial.contains(&item.form))
+            .filter(|item| workload.initial.contains(&item.plot))
             .map(|item| {
                 let selected_host = hosts
                     .iter()
@@ -736,8 +748,8 @@ mod tests {
                     &["conduit.base/local@1".into()],
                 )
                 .unwrap();
-                BodyFormPlan {
-                    form: item.form.clone(),
+                BodyPlotPlan {
+                    plot: item.plot.clone(),
                     plan,
                 }
             })
@@ -759,9 +771,9 @@ mod tests {
     }
 
     fn hosts_in(plan: &BodyPlan) -> std::collections::BTreeSet<&str> {
-        plan.forms
+        plan.plots
             .iter()
-            .flat_map(|form| &form.plan.fragments)
+            .flat_map(|plot| &plot.plan.fragments)
             .flat_map(|fragment| &fragment.placements)
             .map(|placement| placement.host_id.as_str())
             .collect()

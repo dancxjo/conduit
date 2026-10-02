@@ -1,6 +1,6 @@
 //! Exact bounded latest-pair state over two independent Flows.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -133,14 +133,14 @@ pub fn combine_latest_semantic_contract(
     })
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_combine_latest_kind(
     left: &CheckedValueContract,
     right: &CheckedValueContract,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: COMBINE_LATEST_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;

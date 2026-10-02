@@ -12,8 +12,8 @@ use conduit_core::{
     PlanPreparationHost, PreparationHostIdentity, PreparedFragmentReceipt, ResourceBinding,
     ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::hosted_vector_index::{
@@ -21,7 +21,7 @@ use conduit_std_host::hosted_vector_index::{
     HostedHnswProviderIdentity, HostedHnswRecord, HostedHnswRefusal, HostedHnswVectorIndex,
 };
 
-const SOURCE: &str = "form retrieval {\n search: retrieval/vector-search(4096, 8192, 1024, 8)\n}\n";
+const SOURCE: &str = "plot retrieval {\n search: retrieval/vector-search(4096, 8192, 1024, 8)\n}\n";
 const HOST: &str = "host/vector-capstone";
 const BOOT: &str = "boot/vector-capstone/1";
 
@@ -144,10 +144,8 @@ fn records(profile: &EmbeddingProfile) -> Vec<HostedHnswRecord<ProjectResource>>
         |(value, source, resource, family, values, event_at)| HostedHnswRecord {
             record: VectorRecord {
                 value,
-                embedding: Embedding {
-                    profile: profile.clone(),
-                    values: values.into(),
-                },
+                embedding: Embedding::from_values(profile.clone(), values.into_iter().collect())
+                    .unwrap(),
                 source_identity: source.into(),
                 resource_identity: resource.into(),
                 metadata: vec![VectorMetadata {
@@ -196,16 +194,16 @@ fn build(
     .unwrap()
 }
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_vector_search_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
-    expand_canonical_form(&checked, "retrieval", &profile).unwrap()
+    expand_canonical_plot(&checked, "retrieval", &profile).unwrap()
 }
 
 fn plan(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
     state: &VectorIndexState,
     backend: &HostedHnswVectorIndex<ProjectResource>,
 ) -> conduit_core::Plan {
@@ -279,7 +277,7 @@ impl PlanPreparationHost for CurrentHost {
 }
 
 #[test]
-fn heterogeneous_resources_query_as_candidates_through_one_portable_form() {
+fn heterogeneous_resources_query_as_candidates_through_one_portable_plot() {
     let mut state = state();
     let profile = embedding_profile("v1");
     let mut backend = build(&mut state, &profile, "rebuild/v1", "process/v1");
@@ -292,14 +290,11 @@ fn heterogeneous_resources_query_as_candidates_through_one_portable_form() {
     assert!(!SOURCE.contains("hnsw"));
 
     let query = SimilarityQuery {
-        embedding: Embedding {
-            profile,
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(profile, vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 4,
         threshold: None,
-        filters: vec![],
+        filters: conduit_ai::MetadataFilters::from_values(vec![]).unwrap(),
         temporal_intent: None,
     };
     let work = hosted_query_work(4, 3).unwrap();
@@ -373,8 +368,8 @@ fn reembedding_requires_fresh_index_handle_offer_and_plan_truth() {
     assert_eq!(state.contract.embedding_profile, fresh_profile);
     assert_ne!(old_plan.plan_id, fresh_plan.plan_id);
     assert_eq!(old_plan.source_document_id, fresh_plan.source_document_id);
-    assert_eq!(old_plan.checked_form_id, fresh_plan.checked_form_id);
-    assert_eq!(old_plan.expanded_form_id, fresh_plan.expanded_form_id);
+    assert_eq!(old_plan.checked_plot_id, fresh_plan.checked_plot_id);
+    assert_eq!(old_plan.expanded_plot_id, fresh_plan.expanded_plot_id);
     assert_ne!(
         old_plan.fragments[0].offer_generation,
         fresh_plan.fragments[0].offer_generation
@@ -400,14 +395,11 @@ fn reembedding_requires_fresh_index_handle_offer_and_plan_truth() {
     );
 
     let stale_query = SimilarityQuery {
-        embedding: Embedding {
-            profile: embedding_profile("v1"),
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(embedding_profile("v1"), vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 1,
         threshold: None,
-        filters: vec![],
+        filters: conduit_ai::MetadataFilters::from_values(vec![]).unwrap(),
         temporal_intent: None,
     };
     assert_eq!(

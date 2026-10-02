@@ -27,7 +27,7 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
             commit: proof.base_commit.clone(),
             track_id: "native-graphical",
             embodiment: "freestanding-native-body",
-            mask_form_id: "mask/native-graphical@1",
+            mask_plot_id: "mask/native-graphical@1",
             construction: vec![
                 ConstructionTruth {
                     host_id: proof.host_id.clone(),
@@ -57,7 +57,7 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
                 signs: BTreeMap::from([
                     ("body.born", proof.born_sign_id.clone()),
                     ("body.awake", proof.wake_sign_id.clone()),
-                    ("form.used", proof.result_sign_id.clone()),
+                    ("plot.used", proof.result_sign_id.clone()),
                     ("workload.revised", proof.workload_sign_id.clone()),
                     ("host.added", proof.play_sign_id.clone()),
                     ("fault.observed", proof.loss_sign_id.clone()),
@@ -72,7 +72,7 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
             action_events: BTreeMap::from([
                 ("journey.bootstrap", "The exact ConduitOS Host boot displayed Crèche before a Body existed and accepted the bounded bootstrap action.".into()),
                 ("journey.birth", "Crèche created the native Body and its first admitted wake; the next frame showed that Body's home.".into()),
-                ("journey.useful-work", "Keyboard input traversed the standing Form and produced the retained HELLO result.".into()),
+                ("journey.useful-work", "Keyboard input traversed the standing Plot and produced the retained HELLO result.".into()),
                 ("journey.break-recover", "USB Line loss remained lost; a separately invalidated native Show was rebuilt and became usable later in the same run.".into()),
                 ("journey.rest-finish", "The native Body was explicitly lulled, retained, and then irreversibly fulfilled.".into()),
             ]),
@@ -105,19 +105,19 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
                     "The newly born body wakes in the native graphical shell.",
                 ),
                 (
-                    "form.used",
+                    "plot.used",
                     "input-continued",
-                    "Typing hello produces HELLO through the running keyboard form.",
+                    "Typing hello produces HELLO through the running keyboard plot.",
                 ),
                 (
                     "body.inspected",
                     "patchbay-current-canvas",
-                    "The native body's resident Patchbay inspects its current keyboard form.",
+                    "The native body's resident Patchbay inspects its current keyboard plot.",
                 ),
                 (
                     "workload.revised",
                     "workload-revised",
-                    "A form is admitted into the living body's workset.",
+                    "A plot is admitted into the living body's workset.",
                 ),
                 (
                     "host.added",
@@ -137,7 +137,7 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
                 (
                     "body.long-running",
                     "input-continued",
-                    "The running form accepts another input in the same session.",
+                    "The running plot accepts another input in the same session.",
                 ),
                 ("body.lulled", "lulled", "The body is lulled and retained."),
                 (

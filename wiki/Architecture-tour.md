@@ -6,10 +6,10 @@ Nearly every important noun exists to protect one side of that boundary.
 
 ## Begin with the authored happening
 
-The user authors a **form**: a portable description of the intended course of semantic work.
+The user authors a **plot**: a portable description of the intended course of semantic work.
 
 ```conduit
-form hello {
+plot hello {
     upper: text/upper
     show: presentation/text
 
@@ -17,15 +17,17 @@ form hello {
 }.
 ```
 
-A form is not a deployment recipe. It does not have to say which process, operating system, transport, device, library, or machine performs each piece of work.
+![The hello plot as connected gears](assets/sample-diagrams/hello.svg)
+
+A plot is not a deployment recipe. It does not have to say which process, operating system, transport, device, library, or machine performs each piece of work.
 
 It says what work is required and how that work relates.
 
-The declaration is executable `form` source. [[Current language surface|Current-language-surface]] records the supported grammar and separates proposals from implemented behavior.
+The declaration is executable `plot` source. [[Current language surface|Current-language-surface]] records the supported grammar and separates proposals from implemented behavior.
 
 ## Read the semantic graph
 
-Inside the form, each named **gear** is one occurrence of a semantic **kind**.
+Inside the plot, each named **gear** is one occurrence of a semantic **kind**.
 
 ```text
 literal → text/upper → presentation/text
@@ -67,10 +69,10 @@ The planner may then consider:
 
 ## Planning is the meeting point
 
-The form supplies enduring intent; the world supplies current facts.
+The plot supplies enduring intent; the world supplies current facts.
 
 ```text
-form
+plot
   +
 body / hosts / boots / backs / resources / authority / lines
   ↓
@@ -98,10 +100,10 @@ Once sealed, the plan becomes history. A later change produces explicit fallback
 A **play** is one active execution of one exact plan.
 
 ```text
-form ≠ plan ≠ play
+plot ≠ plan ≠ play
 ```
 
-A plan can exist without being played. The same plan may be played more than once. A replacement plan may realize the same form after the world changes.
+A plan can exist without being played. The same plan may be played more than once. A replacement plan may realize the same plot after the world changes.
 
 Execution advances through bounded **steps**. A step may move info, invoke a back, make a bounded host call, observe pressure, quiesce, complete, or terminate abnormally according to the checked meaning and sealed realization.
 
@@ -115,7 +117,7 @@ Conduit names that **quiescence** rather than pretending the computation has end
 active → quiescent → active
 ```
 
-A live play may later continue when new admitted work arrives. Semantic completion is different: the form must explicitly establish that the relevant drain is sufficient evidence that the authored work is finished.
+A live play may later continue when new admitted work arrives. Semantic completion is different: the plot must explicitly establish that the relevant drain is sufficient evidence that the authored work is finished.
 
 This is one reason Conduit can model always-on/reactive systems without turning “the event loop is currently idle” into “the program terminated.”
 
@@ -123,7 +125,7 @@ This is one reason Conduit can model always-on/reactive systems without turning 
 
 A **cord** is semantic composition. A **line** is concrete carriage.
 
-Suppose one form contains:
+Suppose one plot contains:
 
 ```text
 sensor → classify → display
@@ -132,7 +134,7 @@ sensor → classify → display
 Planning may put all three gears on one host, or place the sensor and classifier on different hosts:
 
 ```text
-form:
+plot:
   sensor >> classify >> display
 
 plan:
@@ -157,7 +159,7 @@ body
   ├─ durable parts
   ├─ current hosts
   │    └─ current boots
-  ├─ resident forms
+  ├─ resident plots
   ├─ current plan
   └─ active play
 ```
@@ -234,7 +236,7 @@ AUTHORED MEANING
 
 type → info
 kind → fore
-form containing gears, ports, and cords
+plot containing gears, ports, and cords
         │
         │ meets current truth
         ▼

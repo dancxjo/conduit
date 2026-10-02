@@ -11,13 +11,13 @@ use conduit_core::{
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId, SignId,
     PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
-    parse_syntax_document, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
     PlacementChoice, PlacementChoices, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, expand_canonical_plot_with_backs,
+    parse_syntax_document, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
 };
 
 use super::*;
@@ -37,9 +37,9 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, CanonicalBackCatalog) {
     (startup, profile, backs)
 }
 
-fn checked(startup: &StartupCatalog) -> conduit_form::CheckedSyntaxDocument {
+fn checked(startup: &StartupCatalog) -> conduit_plot::CheckedSyntaxDocument {
     check_syntax_document(
-        &parse_syntax_document("form answer {\n generate: llm/generate\n}\n"),
+        &parse_syntax_document("plot answer {\n generate: llm/generate\n}\n"),
         startup,
     )
     .unwrap()
@@ -167,14 +167,14 @@ fn portable_front_and_provider_protocol_keep_realization_and_failures_distinct()
 }
 
 #[test]
-fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
+fn unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly() {
     let (startup, profile, backs) = catalogs();
     let checked = checked(&startup);
-    let direct = expand_canonical_form(&checked, "answer", &profile).unwrap();
-    let recursive = expand_canonical_form_with_backs(&checked, "answer", &profile, &backs).unwrap();
+    let direct = expand_canonical_plot(&checked, "answer", &profile).unwrap();
+    let recursive = expand_canonical_plot_with_backs(&checked, "answer", &profile, &backs).unwrap();
     assert_eq!(direct.source_document_id, recursive.source_document_id);
-    assert_eq!(direct.checked_form_id, recursive.checked_form_id);
-    assert_ne!(direct.expanded_form_id, recursive.expanded_form_id);
+    assert_eq!(direct.checked_plot_id, recursive.checked_plot_id);
+    assert_ne!(direct.expanded_plot_id, recursive.expanded_plot_id);
     assert_eq!(direct.gears.len(), 1);
     assert_eq!(recursive.gears.len(), 7);
     assert_eq!(recursive.realization_backs.len(), 1);
@@ -429,10 +429,10 @@ fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
         }
     }
     let plan_b = seal_plan_with_realization_backs(
-        conduit_core::FormIdentity {
+        conduit_core::PlotIdentity {
             source_document_id: recursive_plan.source_document_id.clone(),
-            checked_form_id: recursive_plan.checked_form_id.clone(),
-            expanded_form_id: recursive_plan.expanded_form_id.clone(),
+            checked_plot_id: recursive_plan.checked_plot_id.clone(),
+            expanded_plot_id: recursive_plan.expanded_plot_id.clone(),
         },
         recursive_plan.realization_backs.clone(),
         fragments,
@@ -443,8 +443,8 @@ fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
     assert_eq!(recursive_plan, plan_a_snapshot);
     assert_ne!(recursive_plan.plan_id, plan_b.plan_id);
     assert_eq!(recursive_plan.source_document_id, plan_b.source_document_id);
-    assert_eq!(recursive_plan.checked_form_id, plan_b.checked_form_id);
-    assert_eq!(recursive_plan.expanded_form_id, plan_b.expanded_form_id);
+    assert_eq!(recursive_plan.checked_plot_id, plan_b.checked_plot_id);
+    assert_eq!(recursive_plan.expanded_plot_id, plan_b.expanded_plot_id);
     assert_eq!(
         replacement.accept_completion(&recursive_plan.plan_id, &play_a.active_play_id, "request/a"),
         Err(CrossHostLlmError::StaleCompletion)
@@ -486,7 +486,7 @@ fn json_proof_offer(
         Vec::new(),
     );
     offer.shorthand = Some((
-        conduit_core::port_id("value"),
+        conduit_core::port_id("source"),
         conduit_core::port_id("value"),
     ));
     offer

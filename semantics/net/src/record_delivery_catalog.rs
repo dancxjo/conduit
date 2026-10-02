@@ -1,11 +1,11 @@
-//! Ordinary form contract for correlated record-delivery observations.
+//! Ordinary plot contract for correlated record-delivery observations.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub const RECORD_DELIVERY_STATUS_KIND: &str = "record/delivery-status";
 pub const RECORD_DELIVERY_STATUS_CONTRACT_REVISION: &str = "conduit.net/record-delivery-status@1";

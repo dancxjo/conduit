@@ -8,12 +8,13 @@ use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ClockChangeBehavior, MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant,
-    RecurrenceOccurrence, ScheduledIntentRefusal, SuspendBehavior, TemporalInstant,
-    TemporalRelation, TemporalScale, TemporalWindow, TemporalWindowPosition,
-    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    CivilTrigger, ClockChangeBehavior, ElapsedTrigger, MissedOccurrencePolicy, MonotonicDuration,
+    MonotonicInstant, OccurrenceInstant, RecurrenceOccurrence, ScheduledIntentRefusal,
+    ScheduledOccurrenceDecision, SuspendBehavior, TemporalInstant, TemporalRelation, TemporalScale,
+    TemporalWindowPosition, TriggerObservation, TriggerProfile, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
+/// Rust's generic carrier for the authored `ScheduledIntent<T>` Type family.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScheduledIntent<T> {
     pub identity: String,
@@ -21,58 +22,6 @@ pub struct ScheduledIntent<T> {
     pub trigger: TriggerProfile,
     pub missed: MissedOccurrencePolicy,
     pub payload: T,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TriggerProfile {
-    Elapsed(ElapsedTrigger),
-    Civil(CivilTrigger),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ElapsedTrigger {
-    pub opens_at: MonotonicInstant,
-    pub expires_at: MonotonicInstant,
-    pub suspend: SuspendBehavior,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CivilTrigger {
-    pub window: TemporalWindow,
-    pub zone: NamedTimeZone,
-    pub clock_change: ClockChangeBehavior,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MissedOccurrencePolicy {
-    Expire,
-    Skip,
-    FireLate { maximum_lateness_ticks: u64 },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TriggerObservation {
-    Elapsed {
-        now: MonotonicInstant,
-        suspend_observed: bool,
-    },
-    Civil {
-        now: TemporalInstant,
-        clock_change_observed: bool,
-    },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScheduledOccurrenceDecision {
-    Awaiting,
-    Ready { lateness_ticks: u64 },
-    Missed,
-    Expired,
-    Cancelled,
-    Rebooted,
-    Suspended,
-    ClockChanged,
-    ClockUncertain,
 }
 
 impl<T> ScheduledIntent<T> {
@@ -83,28 +32,26 @@ impl<T> ScheduledIntent<T> {
         self.occurrence
             .validate()
             .map_err(|_| ScheduledIntentRefusal::InvalidOccurrence)?;
-        if matches!(
-            self.missed,
-            MissedOccurrencePolicy::FireLate {
-                maximum_lateness_ticks: 0
-            }
-        ) {
-            return Err(ScheduledIntentRefusal::InvalidLatePolicy);
-        }
         match (&self.trigger, &self.occurrence.at) {
             (TriggerProfile::Elapsed(trigger), OccurrenceInstant::Monotonic(at)) => {
+                let trigger = trigger.value();
+                let at = at.value();
                 validate_elapsed(trigger)?;
                 same_monotonic_clock(&trigger.opens_at, at)?;
             }
-            (TriggerProfile::Civil(trigger), OccurrenceInstant::Civil { zone, instant, .. }) => {
+            (TriggerProfile::Civil(trigger), OccurrenceInstant::Civil(at)) => {
+                let trigger = trigger.value();
                 validate_civil(trigger)?;
-                if &trigger.zone != zone || !same_wall_basis(trigger.window.start(), instant) {
+                if &trigger.zone != at.zone()
+                    || !same_wall_basis(trigger.window.start(), at.instant())
+                {
                     return Err(ScheduledIntentRefusal::TriggerOccurrenceMismatch);
                 }
             }
             (TriggerProfile::Civil(trigger), OccurrenceInstant::Wall(at)) => {
+                let trigger = trigger.value();
                 validate_civil(trigger)?;
-                if !same_wall_basis(trigger.window.start(), at) {
+                if !same_wall_basis(trigger.window.start(), at.value()) {
                     return Err(ScheduledIntentRefusal::TriggerOccurrenceMismatch);
                 }
             }
@@ -123,20 +70,22 @@ impl<T> ScheduledIntent<T> {
             return Ok(ScheduledOccurrenceDecision::Cancelled);
         }
         match (&self.trigger, observation) {
-            (
-                TriggerProfile::Elapsed(trigger),
-                TriggerObservation::Elapsed {
-                    now,
-                    suspend_observed,
-                },
-            ) => decide_elapsed(trigger, self.missed, now, *suspend_observed),
-            (
-                TriggerProfile::Civil(trigger),
-                TriggerObservation::Civil {
-                    now,
-                    clock_change_observed,
-                },
-            ) => decide_civil(trigger, self.missed, now, *clock_change_observed),
+            (TriggerProfile::Elapsed(trigger), TriggerObservation::Elapsed(observation)) => {
+                decide_elapsed(
+                    trigger.value(),
+                    self.missed.clone(),
+                    observation.now(),
+                    *observation.suspend_observed(),
+                )
+            }
+            (TriggerProfile::Civil(trigger), TriggerObservation::Civil(observation)) => {
+                decide_civil(
+                    trigger.value(),
+                    self.missed.clone(),
+                    observation.now(),
+                    *observation.clock_change_observed(),
+                )
+            }
             _ => Err(ScheduledIntentRefusal::WrongObservationProfile),
         }
     }
@@ -185,9 +134,8 @@ fn decide_elapsed(
         return Ok(ScheduledOccurrenceDecision::Awaiting);
     }
     if now.ticks() <= trigger.expires_at.ticks() {
-        return Ok(ScheduledOccurrenceDecision::Ready {
-            lateness_ticks: now.ticks() - trigger.opens_at.ticks(),
-        });
+        return ScheduledOccurrenceDecision::ready(now.ticks() - trigger.opens_at.ticks())
+            .map_err(|_| ScheduledIntentRefusal::InvalidWindow);
     }
     finish_missed(now.ticks() - trigger.expires_at.ticks(), missed)
 }
@@ -216,7 +164,8 @@ fn decide_civil(
                 Ok(TemporalRelation::Present) => 0,
                 _ => 0,
             };
-            Ok(ScheduledOccurrenceDecision::Ready { lateness_ticks })
+            ScheduledOccurrenceDecision::ready(lateness_ticks)
+                .map_err(|_| ScheduledIntentRefusal::InvalidWindow)
         }
         TemporalWindowPosition::After => {
             let lateness = now
@@ -236,12 +185,13 @@ fn finish_missed(
     Ok(match policy {
         MissedOccurrencePolicy::Expire => ScheduledOccurrenceDecision::Expired,
         MissedOccurrencePolicy::Skip => ScheduledOccurrenceDecision::Missed,
-        MissedOccurrencePolicy::FireLate {
-            maximum_lateness_ticks,
-        } if lateness_ticks <= maximum_lateness_ticks => {
-            ScheduledOccurrenceDecision::Ready { lateness_ticks }
+        MissedOccurrencePolicy::FireLate(limit)
+            if lateness_ticks <= *limit.maximum_lateness_ticks() =>
+        {
+            return ScheduledOccurrenceDecision::ready(lateness_ticks)
+                .map_err(|_| ScheduledIntentRefusal::InvalidLatePolicy)
         }
-        MissedOccurrencePolicy::FireLate { .. } => ScheduledOccurrenceDecision::Missed,
+        MissedOccurrencePolicy::FireLate(_) => ScheduledOccurrenceDecision::Missed,
     })
 }
 
@@ -266,10 +216,8 @@ pub fn elapsed_trigger_window(
     suspend: SuspendBehavior,
 ) -> Result<ElapsedTrigger, ScheduledIntentRefusal> {
     let expires_at = opens_at
-        .deadline_after(duration)
-        .map_err(|_| ScheduledIntentRefusal::InvalidWindow)?
-        .instant()
-        .clone();
+        .after(duration)
+        .map_err(|_| ScheduledIntentRefusal::InvalidWindow)?;
     let trigger = ElapsedTrigger {
         opens_at,
         expires_at,

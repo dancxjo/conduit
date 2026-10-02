@@ -55,7 +55,7 @@ pub fn structured_value_from_envelope(
         .map_err(StructuredWireRefusal::Structured)
 }
 
-/// Convert runtime-local canonical structured bytes into the exact Line form.
+/// Convert runtime-local canonical structured bytes into the exact Line plot.
 pub fn structured_transport_envelope_from_local(
     mut envelope: ConnectionEnvelope,
     maximum_payload_bytes: u32,

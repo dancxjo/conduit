@@ -1,8 +1,9 @@
 use conduit_ai::{
-    ClockBasis, EntityBoundary, TemporalContextRefusal, TemporalProvenance,
+    ClockBasis, ClockIdentity, EntityBoundary, TemporalContextRefusal, TemporalProvenance,
     TemporalRetrievalIntent, TemporalSource,
 };
 use conduit_core::TemporalRelation;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn provenance() -> TemporalProvenance {
     TemporalProvenance {
@@ -123,9 +124,10 @@ fn retrieval_cannot_claim_knowledge_after_the_decision_instant() {
 fn event_ordering_refuses_different_clock_bases() {
     let left = provenance();
     let mut right = provenance();
-    right.clock_basis = ClockBasis::MonotonicMilliseconds {
-        identity: "boot-7".into(),
-    };
+    right.clock_basis = ClockBasis::monotonic_milliseconds(
+        conduit_ai::ClockIdentity::new("boot-7".into()).unwrap(),
+    )
+    .unwrap();
     assert_eq!(
         left.relation_to(TemporalSource::Event, &right, TemporalSource::Event),
         Err(TemporalContextRefusal::ClockBasisMismatch)
@@ -134,24 +136,57 @@ fn event_ordering_refuses_different_clock_bases() {
 
 #[test]
 fn retrieval_intent_names_boundaries_and_rejects_reversed_windows() {
-    assert!(TemporalRetrievalIntent::DurationSince {
-        boundary: EntityBoundary::Born
-    }
-    .validate()
-    .is_ok());
-    assert_eq!(
-        TemporalRetrievalIntent::EvidenceWithin { start: 20, end: 10 }.validate(),
-        Err(TemporalContextRefusal::ReversedQueryWindow)
+    assert!(
+        TemporalRetrievalIntent::duration_since(EntityBoundary::Born)
+            .unwrap()
+            .validate()
+            .is_ok()
     );
+    assert!(conduit_ai::TemporalRetrievalWindow::new(20, 10).is_err());
 }
 
 #[test]
 fn provenance_round_trip_preserves_distinct_temporal_facts() {
     let fact = provenance();
+    let structured = fact.clone().into_structured().unwrap();
+    assert_eq!(
+        TemporalProvenance::from_structured(structured).unwrap(),
+        fact
+    );
     let encoded = serde_json::to_string(&fact).unwrap();
     let decoded: TemporalProvenance = serde_json::from_str(&encoded).unwrap();
     assert_eq!(decoded, fact);
     assert_ne!(decoded.event_at, decoded.recorded_at);
     assert_ne!(decoded.recorded_at, decoded.ingested_at);
     assert_ne!(decoded.ingested_at, Some(decoded.retrieved_at));
+    assert!(!include_str!("../src/temporal_context.rs")
+        .contains(concat!("pub struct ", "TemporalProvenance")));
+}
+
+#[test]
+fn clock_basis_and_reference_are_native_with_exact_identity_bounds() {
+    for length in [1, ClockIdentity::MAXIMUM_BYTES] {
+        let identity = ClockIdentity::new("x".repeat(length)).unwrap();
+        let basis = ClockBasis::monotonic_milliseconds(identity).unwrap();
+        assert_eq!(
+            ClockBasis::from_structured(basis.clone().into_structured().unwrap()).unwrap(),
+            basis
+        );
+    }
+    assert!(ClockIdentity::new(String::new()).is_err());
+    assert!(ClockIdentity::new("x".repeat(ClockIdentity::MAXIMUM_BYTES + 1)).is_err());
+
+    let reference = conduit_ai::TemporalReference {
+        reference_at: u64::MAX,
+        clock_basis: ClockBasis::UnixEpochMilliseconds,
+    };
+    assert_eq!(
+        conduit_ai::TemporalReference::from_structured(
+            reference.clone().into_structured().unwrap(),
+        )
+        .unwrap(),
+        reference
+    );
+    assert!(!include_str!("../src/temporal_context.rs").contains("pub enum ClockBasis"));
+    assert!(!include_str!("../src/temporal_context.rs").contains("pub struct TemporalReference"));
 }

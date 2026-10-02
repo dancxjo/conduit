@@ -105,12 +105,12 @@ type ImageTextRefusal =
     | duplicate_metadata_key
     | integrity_mismatch
 
-code human/key-transition = KeyTransition as u8
+form human/key-transition = KeyTransition as u8
 
 type ChordPhase =
     triggered
 
-code human/chord-phase = ChordPhase as u8 from 2
+form human/chord-phase = ChordPhase as u8 from 2
 
 type CoreChordId =
     cancel_or_escape
@@ -122,14 +122,14 @@ type CoreChordId =
     | command
     | activate
 
-code human/core-chord-id = CoreChordId as u8 from 1
+form human/core-chord-id = CoreChordId as u8 from 1
 
 type ControlChordModifier =
     left
     | right
     | both
 
-# The eight exact chord meanings. Usage, phase and compact-code fields are
+# The eight exact chord meanings. Usage, phase and compact-form fields are
 # derived compatibility facts rather than redundant authored payload.
 type ChordInfo =
     cancel_or_escape ControlChordModifier
@@ -175,6 +175,45 @@ type ExperienceTemporalRefusal =
     | interval_overflow
     | future_observation
     | indeterminate_age
+
+type ExperienceRefusal =
+    invalid-limits
+    | empty-identity
+    | duplicate-identity
+    | item-capacity
+    | temporal-role-capacity
+    | domain-capacity
+    | model-derived-capacity
+    | selected-memory-capacity
+    | item-bytes
+    | encoded-bytes
+    | source-capacity
+    | duplicate-source
+    | relationship-capacity
+    | unknown-relationship-endpoint
+    | duplicate-relationship
+    | conflict-alternative-capacity
+    | invalid-epistemic-combination
+    | identity-bytes
+    | invalid-source
+    | invalid-time
+    | invalid-temporal-context
+    | temporal-classification ExperienceTemporalRefusal
+    | temporal-role-mismatch
+    | arithmetic-overflow
+
+type ExperienceUpdateRefusal =
+    invalid-limits
+    | pending-update-capacity
+    | stale-revision
+    | future-revision
+    | revision-overflow
+    | no-semantic-change
+    | experience ExperienceRefusal
+
+type CurrentExperienceInspectionError =
+    empty-item-identity
+    | unknown-item
 
 type ExperienceAvailability =
     present
@@ -252,6 +291,114 @@ type VisualExperienceRelationKind =
     | supports
     | contradicts
 
+type InteractionValueKind = Text <= 128B not in [""]
+type InteractionTypeDigest = collection U8 = 32
+type InteractionCanonicalBytes = Bytes <= 65536B
+
+type InteractionValue = {
+    value-kind: InteractionValueKind
+    canonical-bytes: InteractionCanonicalBytes
+}
+
+type InteractionValues = sequence InteractionValue <= 64
+
+type InteractionProposalPayload =
+    activate
+    | values InteractionValues
+    | relative {
+        value: InteractionValue
+    }
+
+type InteractionFamily =
+    activate
+    | boolean
+    | choose-one {
+        value-kind: InteractionValueKind
+        maximum-options: U16
+    }
+    | choose-many {
+        value-kind: InteractionValueKind
+        maximum-options: U16
+        minimum-selections: U16
+        maximum-selections: U16
+    }
+    | scalar {
+        unit: QuantityUnit
+        minimum: I64
+        minimum-bound: InteractionBoundKind
+        maximum: I64
+        maximum-bound: InteractionBoundKind
+        granularity: I64
+    }
+    | relative-adjustment {
+        unit: QuantityUnit
+        minimum-delta: I64
+        maximum-delta: I64
+        granularity: I64
+    }
+    | text {
+        maximum-bytes: U32
+        allow-empty: Boolean
+    }
+    | structured {
+        value-kind: InteractionValueKind
+        type-digest: InteractionTypeDigest
+        maximum-bytes: U32
+    }
+
+type VisualObservationRefusal =
+    invalid-image
+    | wrong-image-profile
+    | invalid-image-dimensions
+    | image-too-large
+    | invalid-region
+    | empty-text
+    | text-bound
+    | confidence-bound
+    | empty-identity
+    | identity-bound
+    | invalid-observation-time
+    | wrong-evidence-class
+    | observation-ref-bound
+    | duplicate-observation-ref
+
+type VisualImpressionRefusal =
+    invalid-source-image
+    | empty-text
+    | text-bound
+    | empty-identity
+    | identity-bound
+    | observation-ref-bound
+    | duplicate-observation-ref
+    | invalid-truncation
+    | wrong-evidence-class
+    | invalid-provenance VisualObservationRefusal
+
+type VisualExperienceRefusal =
+    invalid-limits
+    | invalid-source-image
+    | wrong-source-image
+    | observation-capacity
+    | observation-kind-capacity
+    | text-capacity
+    | duplicate-observation
+    | invalid-observation VisualObservationRefusal
+    | invalid-impression VisualImpressionRefusal
+    | relation-capacity
+    | unknown-relation-endpoint
+    | self-relation
+    | duplicate-relation
+    | arithmetic-overflow
+
+type ExperienceSourceRefusal =
+    invalid-visual-observation VisualObservationRefusal
+    | invalid-visual-impression VisualImpressionRefusal
+    | empty-value
+    | value-bound
+    | invalid-identity
+    | invalid-time
+    | source-bound
+
 type InteractionRefusal =
     invalid_identity
     | invalid_contract
@@ -302,3 +449,107 @@ type RealizationRangePolicy =
 type ScalarQuantization =
     exact
     | nearest
+
+type InputPressurePolicy =
+    coalesce_latest_state
+    | ordered_transitions
+
+type InputPressure = {
+    coalesced: U64
+    dropped: U64
+    policy: InputPressurePolicy
+    queue_capacity: U64 in 1..
+}
+
+type InputButtonPhase =
+    pressed
+    | released
+
+type InputButtonTransition = {
+    button_identity: Text
+    phase: InputButtonPhase
+    sequence: U64
+}
+
+type InputButtonState = {
+    button_identity: Text
+    pressed: Boolean
+}
+
+type InputButtonSlot =
+    button InputButtonState
+    | unused
+type InputButtonSlots = collection InputButtonSlot = 8
+
+type InputAxisState = {
+    axis_identity: Text
+    range_profile: Text
+    value: Ratio
+}
+
+type InputAxisSlot =
+    axis InputAxisState
+    | unused
+type InputAxisSlots = collection InputAxisSlot = 4
+
+type InputSurfacePoint = {
+    frame: Text
+    x: Ratio
+    y: Ratio
+}
+
+type InputSurfaceVector = {
+    frame: Text
+    x: Ratio
+    y: Ratio
+}
+
+type PointerEvent = {
+    buttons: InputButtonSlots
+    delta: InputSurfaceVector
+    position: InputSurfacePoint
+    pressure: InputPressure
+    sequence: U64
+}
+
+type TouchContactPhase =
+    begin
+    | end
+    | moving
+
+type TouchContact = {
+    contact_identity: Text
+    phase: TouchContactPhase
+    position: InputSurfacePoint
+    pressure: Ratio
+}
+
+type TouchContactSlot =
+    contact TouchContact
+    | unused
+type TouchContacts = collection TouchContactSlot = 5
+
+type TouchFrame = {
+    contacts: TouchContacts
+    pressure: InputPressure
+    sequence: U64
+}
+
+type RotaryDirection =
+    clockwise
+    | counterclockwise
+
+type RotaryStep = {
+    control_identity: Text
+    direction: RotaryDirection
+    sequence: U64
+    steps: U64
+}
+
+type GamepadState = {
+    axes: InputAxisSlots
+    buttons: InputButtonSlots
+    pressure: InputPressure
+    sequence: U64
+    source_profile: Text
+}

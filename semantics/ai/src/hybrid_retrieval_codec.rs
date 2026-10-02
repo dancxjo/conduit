@@ -7,7 +7,7 @@ use crate::{
         decode_transport_chunk, encode_transport_chunk, Cursor, SourceExtractionCodecRefusal,
     },
     ExtractedSourceValue, HybridCandidate, HybridRetrievalOutcome, MechanismScore,
-    RetrievalContribution, RetrievalMechanism, RetrievalMechanismCode, RetrievalStage,
+    RetrievalContribution, RetrievalMechanism, RetrievalMechanismForm, RetrievalStage,
     RetrieverIdentity, StageCandidate, MAXIMUM_HYBRID_BATCH_BYTES,
     MAXIMUM_HYBRID_CANDIDATES_PER_STAGE, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
     MAXIMUM_HYBRID_RETRIEVERS, MAXIMUM_HYBRID_WORK_UNITS, MAXIMUM_RAG_IDENTITY_BYTES,
@@ -47,8 +47,8 @@ impl RetrievalStage<ExtractedSourceValue> {
         validate_stage(self)?;
         let mut encoded = Vec::new();
         encoded.push(STAGE_VERSION);
-        push_identity(&mut encoded, &self.retriever.identity)?;
-        encoded.push(mechanism_tag(self.retriever.mechanism));
+        push_identity(&mut encoded, self.retriever.identity())?;
+        encoded.push(mechanism_tag(*self.retriever.mechanism()));
         encoded.extend_from_slice(&self.work_units.to_le_bytes());
         push_u16(&mut encoded, self.candidates.len())?;
         for candidate in &self.candidates {
@@ -64,10 +64,11 @@ impl RetrievalStage<ExtractedSourceValue> {
         if cursor.u8().map_err(map_source)? != STAGE_VERSION {
             return Err(HybridRetrievalCodecRefusal::UnsupportedVersion);
         }
-        let retriever = RetrieverIdentity {
-            identity: read_identity(&mut cursor)?,
-            mechanism: decode_mechanism(cursor.u8().map_err(map_source)?)?,
-        };
+        let retriever = RetrieverIdentity::new(
+            read_identity(&mut cursor)?,
+            decode_mechanism(cursor.u8().map_err(map_source)?)?,
+        )
+        .map_err(|_| HybridRetrievalCodecRefusal::Malformed)?;
         let work_units = cursor.u32().map_err(map_source)?;
         let count = usize::from(cursor.u16().map_err(map_source)?);
         validate_candidate_count(count, MAXIMUM_HYBRID_CANDIDATES_PER_STAGE)?;
@@ -187,8 +188,8 @@ fn encode_hybrid_candidate(
     encoded.extend_from_slice(&candidate.fusion_score_micros.to_le_bytes());
     push_u16(encoded, candidate.contributions.len())?;
     for contribution in &candidate.contributions {
-        push_identity(encoded, &contribution.retriever.identity)?;
-        encoded.push(mechanism_tag(contribution.retriever.mechanism));
+        push_identity(encoded, contribution.retriever.identity())?;
+        encoded.push(mechanism_tag(*contribution.retriever.mechanism()));
         if contribution.stage_rank == 0 {
             return Err(HybridRetrievalCodecRefusal::InvalidRank);
         }
@@ -214,10 +215,11 @@ fn decode_hybrid_candidate(
     }
     let mut contributions = Vec::with_capacity(count);
     for _ in 0..count {
-        let retriever = RetrieverIdentity {
-            identity: read_identity(cursor)?,
-            mechanism: decode_mechanism(cursor.u8().map_err(map_source)?)?,
-        };
+        let retriever = RetrieverIdentity::new(
+            read_identity(cursor)?,
+            decode_mechanism(cursor.u8().map_err(map_source)?)?,
+        )
+        .map_err(|_| HybridRetrievalCodecRefusal::Malformed)?;
         let stage_rank = cursor.u16().map_err(map_source)?;
         if stage_rank == 0 {
             return Err(HybridRetrievalCodecRefusal::InvalidRank);
@@ -277,11 +279,11 @@ fn decode_score(
 }
 
 const fn mechanism_tag(mechanism: RetrievalMechanism) -> u8 {
-    RetrievalMechanismCode::encode(mechanism)[0]
+    RetrievalMechanismForm::encode(mechanism)[0]
 }
 
 fn decode_mechanism(tag: u8) -> Result<RetrievalMechanism, HybridRetrievalCodecRefusal> {
-    RetrievalMechanismCode::decode(&[tag]).map_err(|_| HybridRetrievalCodecRefusal::Malformed)
+    RetrievalMechanismForm::decode(&[tag]).map_err(|_| HybridRetrievalCodecRefusal::Malformed)
 }
 
 fn push_optional_identity(
@@ -366,7 +368,6 @@ fn check_size(encoded: &[u8]) -> Result<(), HybridRetrievalCodecRefusal> {
 fn validate_stage(
     stage: &RetrievalStage<ExtractedSourceValue>,
 ) -> Result<(), HybridRetrievalCodecRefusal> {
-    validate_identity(&stage.retriever.identity)?;
     validate_candidate_count(stage.candidates.len(), MAXIMUM_HYBRID_CANDIDATES_PER_STAGE)?;
     if stage.work_units == 0 || stage.work_units > MAXIMUM_HYBRID_WORK_UNITS {
         return Err(HybridRetrievalCodecRefusal::InvalidWork);
@@ -382,7 +383,7 @@ fn validate_stage(
             return Err(HybridRetrievalCodecRefusal::DuplicateChunk);
         }
         validate_contribution_shape(
-            stage.retriever.mechanism,
+            *stage.retriever.mechanism(),
             candidate.score,
             candidate.temporal_evidence_identity.as_deref(),
         )?;
@@ -411,12 +412,12 @@ fn validate_receipt(receipt: &HybridRetrievalReceipt) -> Result<(), HybridRetrie
         for (path_index, contribution) in candidate.contributions.iter().enumerate() {
             if candidate.contributions[path_index + 1..]
                 .iter()
-                .any(|other| other.retriever.identity == contribution.retriever.identity)
+                .any(|other| other.retriever.identity() == contribution.retriever.identity())
             {
                 return Err(HybridRetrievalCodecRefusal::DuplicateRetriever);
             }
             validate_contribution_shape(
-                contribution.retriever.mechanism,
+                *contribution.retriever.mechanism(),
                 contribution.score,
                 contribution.temporal_evidence_identity.as_deref(),
             )?;

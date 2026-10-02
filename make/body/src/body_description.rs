@@ -8,7 +8,7 @@ use conduit_host_make::{
     MakePackageSet, SporeOutputKind,
 };
 
-pub const BODY_DESCRIPTION_SCHEMA: u32 = 1;
+pub const BODY_DESCRIPTION_SCHEMA: u32 = 2;
 pub const MAXIMUM_BODY_HOSTS: usize = 32;
 pub const MAXIMUM_WORN_MASKS: usize = 16;
 
@@ -35,7 +35,8 @@ pub struct BodyMaskImportDescription {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BodyWardrobeDescription {
-    pub worn: Vec<BodyMaskRouteDescription>,
+    /// Unordered set of Mask aliases permitted for planning.
+    pub worn: Vec<String>,
     pub preference: Vec<String>,
 }
 
@@ -43,14 +44,6 @@ impl BodyWardrobeDescription {
     pub fn is_empty(&self) -> bool {
         self.worn.is_empty() && self.preference.is_empty()
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct BodyMaskRouteDescription {
-    pub mask: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fallback: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -314,6 +307,7 @@ pub fn check_body_description(
     description
         .hosts
         .sort_by(|left, right| left.name.cmp(&right.name));
+    description.wardrobe.worn.sort();
     checked_hosts.sort_by(|left, right| left.description.name.cmp(&right.description.name));
     let canonical = toml::to_string(&description).map_err(|error| {
         vec![BodyDescriptionDiagnostic::Encode {
@@ -353,17 +347,15 @@ fn validate_wardrobe(
         }
     }
     let mut worn = BTreeSet::new();
-    for route in &description.wardrobe.worn {
-        for alias in core::iter::once(&route.mask).chain(route.fallback.iter()) {
-            if !aliases.contains(alias) {
-                diagnostics.push(BodyDescriptionDiagnostic::UnknownMaskAlias {
-                    alias: alias.clone(),
-                });
-            } else if !worn.insert(alias.clone()) {
-                diagnostics.push(BodyDescriptionDiagnostic::DuplicateWornMask {
-                    alias: alias.clone(),
-                });
-            }
+    for alias in &description.wardrobe.worn {
+        if !aliases.contains(alias) {
+            diagnostics.push(BodyDescriptionDiagnostic::UnknownMaskAlias {
+                alias: alias.clone(),
+            });
+        } else if !worn.insert(alias.clone()) {
+            diagnostics.push(BodyDescriptionDiagnostic::DuplicateWornMask {
+                alias: alias.clone(),
+            });
         }
     }
     let mut preference = BTreeSet::new();
@@ -408,23 +400,20 @@ mod wardrobe_tests {
                 },
             ],
             wardrobe: BodyWardrobeDescription {
-                worn: vec![BodyMaskRouteDescription {
-                    mask: "graphical".into(),
-                    fallback: Some("spoken".into()),
-                }],
+                worn: vec!["graphical".into(), "spoken".into()],
                 preference: vec!["graphical".into(), "spoken".into()],
             },
         }
     }
 
     #[test]
-    fn exact_worn_fallback_and_preference_aliases_are_validated() {
+    fn exact_worn_and_preference_aliases_are_validated() {
         let mut diagnostics = Vec::new();
         validate_wardrobe(&description(), &mut diagnostics);
         assert!(diagnostics.is_empty());
 
         let mut invalid = description();
-        invalid.wardrobe.worn[0].fallback = Some("absent".into());
+        invalid.wardrobe.worn.push("absent".into());
         invalid.wardrobe.preference = vec!["graphical".into(), "graphical".into(), "idle".into()];
         let mut diagnostics = Vec::new();
         validate_wardrobe(&invalid, &mut diagnostics);

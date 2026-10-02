@@ -1,10 +1,10 @@
 use conduit_ai::{
     exact_vector_search, ClockBasis, CompatibleMetrics, Embedding, EmbeddingNormalization,
     EmbeddingProfile, EntityBoundary, ExactVectorSearchCandidate, ExactVectorSearchRefusal,
-    MetadataFilter, SimilarityMetric, SimilarityQuery, SimilarityScore, SimilarityThreshold,
-    TemporalProvenance, TemporalRetrievalIntent, TemporalSource, TemporalValidity,
-    TransitionDirection, VectorIndexAuthority, VectorIndexAuthorization, VectorIndexBounds,
-    VectorIndexContract, VectorIndexMutation, VectorIndexQueryAdmission,
+    MetadataFilter, MetadataFilters, SimilarityMetric, SimilarityQuery, SimilarityScore,
+    SimilarityThreshold, TemporalProvenance, TemporalRetrievalIntent, TemporalSource,
+    TemporalValidity, TransitionDirection, VectorIndexAuthority, VectorIndexAuthorization,
+    VectorIndexBounds, VectorIndexContract, VectorIndexMutation, VectorIndexQueryAdmission,
     VectorIndexResourceRefusal, VectorIndexState, VectorMetadata, VectorRecord,
     VectorSearchProofClass, VECTOR_INDEX_RESOURCE_CLASS,
 };
@@ -87,14 +87,11 @@ fn admission(work_units: u32, maximum_results: u32) -> VectorIndexQueryAdmission
 
 fn query(metric: SimilarityMetric, top_k: u32) -> SimilarityQuery {
     SimilarityQuery {
-        embedding: Embedding {
-            profile: profile(),
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(profile(), vec![1.0, 0.0, 0.0]).unwrap(),
         metric,
         top_k,
         threshold: None,
-        filters: vec![],
+        filters: MetadataFilters::from_values(vec![]).unwrap(),
         temporal_intent: None,
     }
 }
@@ -123,10 +120,7 @@ fn candidate(
     ExactVectorSearchCandidate {
         record: VectorRecord {
             value: source,
-            embedding: Embedding {
-                profile: profile(),
-                values: values.into(),
-            },
+            embedding: Embedding::from_values(profile(), values.into_iter().collect()).unwrap(),
             source_identity: source.into(),
             resource_identity: resource.into(),
             metadata: vec![
@@ -204,21 +198,17 @@ fn filters_threshold_top_k_and_equal_score_ties_are_canonical() {
         candidate("source/c", "resource/c", [0.2, 0.0, 0.0], 300),
     ];
     let mut query = query(SimilarityMetric::DotProductSimilarity, 2);
-    query.filters = vec![
-        MetadataFilter::Present {
-            key: "language".into(),
-        },
-        MetadataFilter::Equal {
-            key: "kind".into(),
-            value: "note".into(),
-        },
-    ];
+    query.filters = MetadataFilters::from_values(vec![
+        MetadataFilter::present("language".into()).unwrap(),
+        MetadataFilter::equal("kind".into(), "note".into()).unwrap(),
+    ])
+    .unwrap();
     query.threshold = Some(SimilarityThreshold::minimum(0.5).unwrap());
     let result = search(&query, &candidates).unwrap();
     assert_eq!(result.hits.len(), 1);
     assert_eq!(result.hits[0].source_identity, "source/a");
 
-    query.filters.clear();
+    query.filters = MetadataFilters::from_values(vec![]).unwrap();
     let result = search(&query, &candidates).unwrap();
     assert_eq!(result.hits.len(), 2);
     assert_eq!(result.hits[0].source_identity, "source/a");
@@ -249,26 +239,22 @@ fn temporal_intents_select_exact_portable_evidence_before_scoring() {
             vec!["source/b", "source/c", "source/a"],
         ),
         (
-            TemporalRetrievalIntent::StateValidAt { instant: 225 },
+            TemporalRetrievalIntent::state_valid_at(225).unwrap(),
             vec!["source/b", "source/a"],
         ),
         (
-            TemporalRetrievalIntent::Transition {
-                direction: TransitionDirection::IntoState,
-            },
+            TemporalRetrievalIntent::transition(TransitionDirection::IntoState).unwrap(),
             vec!["source/b"],
         ),
         (
-            TemporalRetrievalIntent::DurationSince {
-                boundary: EntityBoundary::Started,
-            },
+            TemporalRetrievalIntent::duration_since(EntityBoundary::Started).unwrap(),
             vec!["source/a"],
         ),
         (
-            TemporalRetrievalIntent::EvidenceWithin {
-                start: 150,
-                end: 250,
-            },
+            TemporalRetrievalIntent::evidence_within(
+                conduit_ai::TemporalRetrievalWindow::new(150, 250).unwrap(),
+            )
+            .unwrap(),
             vec!["source/b"],
         ),
     ] {
@@ -293,10 +279,12 @@ fn full_scan_work_is_admitted_before_filters_or_scores() {
         candidate("source/b", "resource/b", [0.0, 1.0, 0.0], 200),
     ];
     let mut query = query(SimilarityMetric::DotProductSimilarity, 2);
-    query.filters.push(MetadataFilter::Equal {
-        key: "language".into(),
-        value: "never-matches".into(),
-    });
+    query.filters = MetadataFilters::from_values(vec![MetadataFilter::equal(
+        "language".into(),
+        "never-matches".into(),
+    )
+    .unwrap()])
+    .unwrap();
     let state = state(&["source/a", "source/b"]);
     let handle = state.handle("authority/exact-query").unwrap();
     assert_eq!(

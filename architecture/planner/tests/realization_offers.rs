@@ -1,18 +1,18 @@
 use conduit_core::{ArtifactId, CapabilityId, ImplementationId, ImplementationOffer};
-use conduit_form::parse_with_startup;
 use conduit_planner::{default_placements, plan, PlacementChoice};
+use conduit_plot::parse_with_startup;
 use conduit_signal::{signal_profile_catalog, PULSE_KIND};
 use conduit_signal_conformance::pico_local_advertisement;
 
-fn pulse_form() -> conduit_form::CheckedForm {
+fn pulse_plot() -> conduit_plot::CheckedPlot {
     parse_with_startup(
-        "form realization {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-    .expect("pulse form checks")
+        "plot realization {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+    .expect("pulse plot checks")
 }
 
 #[test]
 fn one_host_offers_and_plans_distinct_implementations_of_the_same_front() {
-    let form = pulse_form();
+    let plot = pulse_plot();
     let mut host = pico_local_advertisement();
     let original = host
         .capabilities
@@ -34,8 +34,8 @@ fn one_host_offers_and_plans_distinct_implementations_of_the_same_front() {
     );
     host.capabilities.push(alternate.clone());
 
-    let gear = &form.gears[0];
-    let mut placements = default_placements(&form, std::slice::from_ref(&host))
+    let gear = &plot.gears[0];
+    let mut placements = default_placements(&plot, std::slice::from_ref(&host))
         .expect("equal-front realizations are candidates");
     placements.by_gear.insert(
         gear.gear_id.clone(),
@@ -45,7 +45,7 @@ fn one_host_offers_and_plans_distinct_implementations_of_the_same_front() {
         },
     );
 
-    let plan = plan(&form, std::slice::from_ref(&host), &placements, &[])
+    let plan = plan(&plot, std::slice::from_ref(&host), &placements, &[])
         .expect("the exact alternate realization plans");
     let planned = &plan.fragments[0].placements[0];
     assert_eq!(planned.capability_id, alternate.capability_id);

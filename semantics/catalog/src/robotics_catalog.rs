@@ -5,11 +5,11 @@ use super::{
 use alloc::format;
 use alloc::string::{String, ToString};
 use conduit_core::ConfigurationValue;
-use conduit_form::{KindSignature, StartupParameterSignature};
+use conduit_plot::{KindSignature, StartupParameterSignature};
 
 pub fn install_robotics_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in robotics_contracts_with_revisions()
         .into_iter()
@@ -51,7 +51,16 @@ fn configuration_type(field: &KindConfigurationField) -> &'static str {
             conduit_core::QuantityDimension::PixelCount => "PixelCount",
             conduit_core::QuantityDimension::Current
             | conduit_core::QuantityDimension::Charge
-            | conduit_core::QuantityDimension::DataSize => "Quantity",
+            | conduit_core::QuantityDimension::DataSize
+            | conduit_core::QuantityDimension::Mass
+            | conduit_core::QuantityDimension::Area
+            | conduit_core::QuantityDimension::Volume
+            | conduit_core::QuantityDimension::Speed
+            | conduit_core::QuantityDimension::Acceleration
+            | conduit_core::QuantityDimension::Force
+            | conduit_core::QuantityDimension::Energy
+            | conduit_core::QuantityDimension::Power
+            | conduit_core::QuantityDimension::Pressure => "Quantity",
         },
         (_, ConfigurationValue::Text(_)) => "Text",
         (_, ConfigurationValue::U64(_)) => "Count",
@@ -67,7 +76,7 @@ fn configuration_source(field: &KindConfigurationField) -> String {
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
         ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().form_suffix())
+            format!("{}{}", value.value(), value.unit().plot_suffix())
         }
         _ => unreachable!("robotics configuration is finite text/integer"),
     }

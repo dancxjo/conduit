@@ -2,8 +2,11 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
-use crate::{tensor::*, TensorAxisRole, TensorElement, TensorRefusal};
+use crate::{
+    tensor::*, TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorRefusal, TensorValue,
+};
 
 impl TensorValue {
     pub fn encode(&self) -> Result<Vec<u8>, TensorRefusal> {
@@ -23,8 +26,8 @@ impl TensorValue {
         match &self.backing {
             TensorBacking::Inline(payload) => {
                 output.push(0);
-                output.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-                output.extend_from_slice(payload);
+                output.extend_from_slice(&(payload.as_slice().len() as u32).to_le_bytes());
+                output.extend_from_slice(payload.as_slice());
             }
             TensorBacking::Resource(reference) => {
                 output.push(1);
@@ -48,15 +51,24 @@ impl TensorValue {
         if rank == 0 || rank > MAXIMUM_TENSOR_RANK {
             return Err(TensorRefusal::RankOutOfBounds);
         }
-        let dimensions = (0..rank)
-            .map(|_| cursor.u64())
-            .collect::<Result<Vec<_>, _>>()?;
-        let axes = (0..rank)
-            .map(|_| decode_axis(&mut cursor))
-            .collect::<Result<Vec<_>, _>>()?;
+        let dimensions = BoundedSequence::try_from_iter(
+            (0..rank)
+                .map(|_| cursor.u64())
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .map_err(|_| TensorRefusal::RankOutOfBounds)?;
+        let axes = BoundedSequence::try_from_iter(
+            (0..rank)
+                .map(|_| decode_axis(&mut cursor))
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .map_err(|_| TensorRefusal::RankOutOfBounds)?;
         let content_digest = cursor.digest()?;
         let backing = match cursor.u8()? {
-            0 => TensorBacking::Inline(cursor.bytes_u32()?.to_vec()),
+            0 => TensorBacking::Inline(
+                BoundedBytes::new(cursor.bytes_u32()?)
+                    .ok_or(TensorRefusal::InlinePayloadTooLarge)?,
+            ),
             1 => TensorBacking::Resource(
                 BoundedResourceRef::decode(cursor.bytes_u16()?)
                     .map_err(|_| TensorRefusal::InvalidResource)?,
@@ -198,93 +210,10 @@ fn push_text(output: &mut Vec<u8>, value: &str) -> Result<(), TensorRefusal> {
 }
 
 fn unit_tag(unit: QuantityUnit) -> u8 {
-    use QuantityUnit::*;
-    match unit {
-        Nanosecond => 0,
-        Microsecond => 1,
-        Millisecond => 2,
-        Second => 3,
-        Millihertz => 4,
-        Hertz => 5,
-        Microvolt => 6,
-        Millivolt => 7,
-        Volt => 8,
-        Micrometer => 9,
-        Millimeter => 10,
-        Centimeter => 11,
-        Meter => 12,
-        Microdegree => 13,
-        Millidegree => 14,
-        Degree => 15,
-        Millionth => 16,
-        Permille => 17,
-        Percent => 18,
-        One => 19,
-        Byte => 20,
-        Kibibyte => 21,
-        Mebibyte => 22,
-        Microampere => 23,
-        Milliampere => 24,
-        Ampere => 25,
-        Millikelvin => 26,
-        Kelvin => 27,
-        MilliCelsius => 28,
-        Celsius => 29,
-        MicroampereHour => 30,
-        MilliampereHour => 31,
-        AmpereHour => 32,
-        Microradian => 33,
-        Milliradian => 34,
-        Radian => 35,
-        Pixel => 36,
-        MilliFahrenheit => 37,
-        Fahrenheit => 38,
-    }
+    unit.encode()[0]
 }
 fn decode_unit(tag: u8) -> Result<QuantityUnit, TensorRefusal> {
-    use QuantityUnit::*;
-    Ok(match tag {
-        0 => Nanosecond,
-        1 => Microsecond,
-        2 => Millisecond,
-        3 => Second,
-        4 => Millihertz,
-        5 => Hertz,
-        6 => Microvolt,
-        7 => Millivolt,
-        8 => Volt,
-        9 => Micrometer,
-        10 => Millimeter,
-        11 => Centimeter,
-        12 => Meter,
-        13 => Microdegree,
-        14 => Millidegree,
-        15 => Degree,
-        16 => Millionth,
-        17 => Permille,
-        18 => Percent,
-        19 => One,
-        20 => Byte,
-        21 => Kibibyte,
-        22 => Mebibyte,
-        23 => Microampere,
-        24 => Milliampere,
-        25 => Ampere,
-        26 => Millikelvin,
-        27 => Kelvin,
-        28 => MilliCelsius,
-        29 => Celsius,
-        30 => MicroampereHour,
-        31 => MilliampereHour,
-        32 => AmpereHour,
-        33 => Microradian,
-        34 => Milliradian,
-        35 => Radian,
-        36 => Pixel,
-        37 => MilliFahrenheit,
-        38 => Fahrenheit,
-        _ => return Err(TensorRefusal::UnsupportedUnit),
-    })
+    QuantityUnit::decode(&[tag]).map_err(|_| TensorRefusal::UnsupportedUnit)
 }
 
 struct Cursor<'a> {

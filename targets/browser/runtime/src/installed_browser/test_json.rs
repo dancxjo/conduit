@@ -68,6 +68,7 @@ fn offer(sink: bool) -> CapabilityOffer {
     };
     let mut contract = conduit_semantic_catalog::json_decode_contract();
     contract.kind_id = kind_id(id);
+    contract.inputs[0].port_id = conduit_core::port_id("value");
     if sink {
         contract.outputs.clear();
     } else {

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{ObservationProvenance, PlannerError, PolicySourceRevision};
 use alloc::collections::BTreeSet;
-use conduit_core::{CheckedFormId, HostId, SignId};
+use conduit_core::{CheckedPlotId, HostId, SignId};
 
 pub const MAXIMUM_PERFORMANCE_CANDIDATES: usize = 32;
 
@@ -71,7 +71,7 @@ pub struct PerformanceCandidateEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PerformancePolicySelection {
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub selected_candidate_id: String,
     pub policy: PerformancePolicy,
     pub considered: Vec<PerformanceCandidateEvidence>,
@@ -100,7 +100,7 @@ impl PerformancePolicySelection {
 }
 
 pub fn select_performance_candidate(
-    checked_form_id: CheckedFormId,
+    checked_plot_id: CheckedPlotId,
     candidates: &[PerformanceCandidate],
     policy: &PerformancePolicy,
     now_ms: u64,
@@ -123,7 +123,7 @@ pub fn select_performance_candidate(
         })?;
     considered[selected].disposition = PerformanceCandidateDisposition::Selected;
     Ok(PerformancePolicySelection {
-        checked_form_id,
+        checked_plot_id,
         selected_candidate_id: considered[selected].candidate_id.clone(),
         policy: policy.clone(),
         considered,

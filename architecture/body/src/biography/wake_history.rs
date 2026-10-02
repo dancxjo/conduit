@@ -231,7 +231,7 @@ impl BodyBiographyEvidence {
         else {
             return Err(BodyBiographyError::InvalidEvidence);
         };
-        let mut body = Body::born_with_forms(
+        let mut body = Body::born_with_plots(
             initial_workset.clone(),
             self.body.birth_sequence,
             sign_id.clone(),
@@ -247,31 +247,31 @@ impl BodyBiographyEvidence {
         let mut begun = 0usize;
         for record in self.records.iter().skip(1) {
             match &record.kind {
-                BodyBiographyRecordKind::FormAdmitted {
+                BodyBiographyRecordKind::PlotAdmitted {
                     source_document_id,
-                    checked_form_id,
+                    checked_plot_id,
                     ..
                 } => {
                     body = body
-                        .admit_form(
-                            crate::ResidentForm::new(
+                        .admit_plot(
+                            crate::ResidentPlot::new(
                                 source_document_id.clone(),
-                                checked_form_id.clone(),
+                                checked_plot_id.clone(),
                             ),
                             record.sign_id.clone(),
                         )
                         .map_err(invalid)?;
                 }
-                BodyBiographyRecordKind::FormRemoved {
+                BodyBiographyRecordKind::PlotRemoved {
                     source_document_id,
-                    checked_form_id,
+                    checked_plot_id,
                     ..
                 } => {
                     body = body
-                        .remove_form(
-                            &crate::ResidentForm::new(
+                        .remove_plot(
+                            &crate::ResidentPlot::new(
                                 source_document_id.clone(),
-                                checked_form_id.clone(),
+                                checked_plot_id.clone(),
                             ),
                             record.sign_id.clone(),
                         )

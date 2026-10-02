@@ -3,7 +3,7 @@
 use alloc::string::ToString;
 use conduit_audio::{TimingClassification, TimingFeedback};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoValue};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::{
     timing_feedback_type, EducationAssessment, EducationAssessmentOutcome, EducationEvidenceClass,
@@ -39,8 +39,8 @@ impl From<StructuredInfoRefusal> for EducationInfoRefusal {
     }
 }
 
-impl From<conduit_form::rust_binding::NativeBindingRefusal> for EducationInfoRefusal {
-    fn from(_: conduit_form::rust_binding::NativeBindingRefusal) -> Self {
+impl From<conduit_plot::rust_binding::NativeBindingRefusal> for EducationInfoRefusal {
+    fn from(_: conduit_plot::rust_binding::NativeBindingRefusal) -> Self {
         Self::MalformedInfo
     }
 }

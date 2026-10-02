@@ -30,7 +30,7 @@ pub(super) fn birth(
     host: &str,
     boot: &str,
     friendly_name: &str,
-    initial_forms_json: &str,
+    initial_plots_json: &str,
     source: &str,
     birth_sequence: u64,
     admitted_interaction: SourceInteractionEvidence,
@@ -50,25 +50,25 @@ pub(super) fn birth(
         return Err("source changed after typed interaction admission".into());
     }
 
-    let (workset, initial_forms) =
-        super::initial_forms::checked_workset(source, initial_forms_json)?;
+    let (workset, initial_plots) =
+        super::initial_plots::checked_workset(source, initial_plots_json)?;
 
     let host_id = HostId::from(host);
     let boot_id = BootId::from(boot);
-    let proposed_hosts = [super::initial_forms::reviewed_browser_host(
+    let proposed_hosts = [super::initial_plots::reviewed_browser_host(
         source,
         host_id.clone(),
         boot_id.clone(),
     )?];
     let initial_review = super::review::review(
         source,
-        initial_forms_json,
+        initial_plots_json,
         &proposed_hosts,
         &crate::installed_browser::local_bases(),
     )?
     .review;
     let birth_sign = bind_sign(&host_id, &boot_id, None, birth_sequence);
-    let body = Body::born_with_forms(workset, birth_sequence, birth_sign.sign_id.clone())
+    let body = Body::born_with_plots(workset, birth_sequence, birth_sign.sign_id.clone())
         .map_err(|error| format!("birth Body: {error:?}"))?;
     body.validate()
         .map_err(|error| format!("validate born Body: {error:?}"))?;
@@ -82,7 +82,7 @@ pub(super) fn birth(
     let receipt = BirthReceipt {
         schema: "conduit.creche/body-birth@2".into(),
         disposition: "born".into(),
-        initial_forms,
+        initial_plots,
         initial_review,
         body_id: body.body_id.as_str().into(),
         friendly_name: friendly_name.into(),

@@ -220,6 +220,11 @@ pub(super) fn boot_until_image(
             ));
         }
         let text = fs::read_to_string(&log).unwrap_or_default();
+        if let Some(reason) = product_refusal(&text) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(refusal("loongarch64-product-refused", reason));
+        }
         if text.contains(terminal_prefix) && text.ends_with('\n') {
             child
                 .kill()
@@ -231,6 +236,7 @@ pub(super) fn boot_until_image(
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
+            let _ = child.wait();
             return Err(refusal(
                 "absent-loongarch64-entry-sign",
                 "emulator timed out",
@@ -238,6 +244,15 @@ pub(super) fn boot_until_image(
         }
         thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn product_refusal(text: &str) -> Option<&str> {
+    text.split_inclusive('\n')
+        .filter_map(|line| line.strip_suffix('\n'))
+        .find_map(|line| {
+            line.trim_end_matches('\r')
+                .strip_prefix("CONDUIT_LOONGARCH64_PRODUCT_REFUSAL ")
+        })
 }
 
 pub(super) fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
@@ -284,8 +299,8 @@ pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError>
         .root
         .join("target/conduitos/toolchain/riscv64-root/usr/bin/qemu-system-loongarch64");
     let qemu = [
-        PathBuf::from("/usr/bin/qemu-system-loongarch64"),
         local_qemu,
+        PathBuf::from("/usr/bin/qemu-system-loongarch64"),
     ]
     .into_iter()
     .find(|path| path.is_file())
@@ -295,8 +310,26 @@ pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError>
             "qemu-system-loongarch64 is required",
         )
     })?;
+    require_supported_qemu(&version(&qemu, paths)?)?;
     let firmware = prepare_firmware(paths)?;
     Ok((qemu, firmware))
+}
+
+fn require_supported_qemu(version: &str) -> Result<(), ConduitosError> {
+    let major = version
+        .strip_prefix("QEMU emulator version ")
+        .and_then(|value| value.split('.').next())
+        .and_then(|value| value.parse::<u32>().ok());
+    if major.is_some_and(|major| major >= 10) {
+        Ok(())
+    } else {
+        Err(refusal(
+            "unsupported-loongarch64-emulator",
+            format!(
+                "QEMU 10 or newer is required for correct large-page translation; found {version}"
+            ),
+        ))
+    }
 }
 
 fn prepare_firmware(paths: &Paths) -> Result<PathBuf, ConduitosError> {
@@ -425,8 +458,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn unsupported_emulator_refuses_before_boot() {
+        assert!(require_supported_qemu("QEMU emulator version 8.2.2 (Ubuntu)").is_err());
+        assert!(require_supported_qemu("").is_err());
+        assert!(require_supported_qemu("QEMU emulator version 10.2.1 (Ubuntu)").is_ok());
+    }
+
+    #[test]
     fn absent_and_duplicate_entry_signs_refuse() {
         assert!(parse("").is_err());
         assert!(parse(&format!("{PREFIX}{{}}\n{PREFIX}{{}}\n")).is_err());
+    }
+    #[test]
+    fn complete_product_refusal_preserves_exact_reason() {
+        assert_eq!(
+            product_refusal(
+                "firmware\nCONDUIT_LOONGARCH64_PRODUCT_REFUSAL spore-boot-module-missing\r\n"
+            ),
+            Some("spore-boot-module-missing")
+        );
+        assert_eq!(
+            product_refusal("CONDUIT_LOONGARCH64_PRODUCT_REFUSAL partial"),
+            None
+        );
+        assert_eq!(
+            product_refusal("CONDUIT_LOONGARCH64_PRODUCT {\"status\":\"ready\"}\n"),
+            None
+        );
     }
 }

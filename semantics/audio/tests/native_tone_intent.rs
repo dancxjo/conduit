@@ -1,6 +1,6 @@
 use conduit_audio::{Gate, MusicalPitch, ToneIntent, SOUND_TONE_INFO_ID};
 use conduit_core::semantic_digest;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn tone_intent_preserves_native_identity_codec_and_digest() {

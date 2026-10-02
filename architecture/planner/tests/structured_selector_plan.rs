@@ -4,15 +4,15 @@ use conduit_core::{
     ImplementationId, KindId, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document,
+use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, KindProjection, KindSignature,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 
 fn checked_and_definitions() -> (
-    conduit_form::CheckedSyntaxDocument,
+    conduit_plot::CheckedSyntaxDocument,
     KindProjection,
     KindProjection,
     KindProjection,
@@ -35,11 +35,11 @@ fn checked_and_definitions() -> (
             })
             .unwrap();
     }
-    let source = "form pipeline {\n source: test/source\n sink: test/sink\n source >> project(Feedback.status) >> sink\n}\n";
+    let source = "plot pipeline {\n source: test/source\n sink: test/sink\n source >> project(Feedback.status) >> sink\n}\n";
     let checked =
-        check_syntax_document(&parse_syntax_document(source), &startup).expect("Form checks");
+        check_syntax_document(&parse_syntax_document(source), &startup).expect("Plot checks");
     let CheckedCordStage::StructuredSelector { selector, .. } =
-        &checked.forms[0].cords[0].stages[1]
+        &checked.plots[0].cords[0].stages[1]
     else {
         unreachable!()
     };
@@ -146,7 +146,7 @@ fn selector_is_an_ordinary_exact_planned_leaf_and_wrong_profile_refuses() {
     for definition in &definitions {
         catalog.insert(definition.clone()).unwrap();
     }
-    let expanded = expand_canonical_form(&checked, "pipeline", &catalog).unwrap();
+    let expanded = expand_canonical_plot(&checked, "pipeline", &catalog).unwrap();
     let exact_host = host(&definitions);
     let placements =
         default_expanded_placements(&expanded, std::slice::from_ref(&exact_host)).unwrap();

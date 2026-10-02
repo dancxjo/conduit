@@ -1,10 +1,10 @@
 use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ObservationKind, TerminalDisposition};
-use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
+use conduit_plot::parse;
 use conduit_presentation::MAX_LAYOUT_FRAME_BYTES;
 
-const FORM: &str = r#"form patchbay_shell {
+const PLOT: &str = r#"plot patchbay_shell {
  viewport: layout/viewport(width = 960, height = 540, children = 3, child-width = 120, child-height = 80)
  inset: layout/inset(inset = 12)
  row: layout/row(gap = 8)
@@ -22,13 +22,13 @@ const FORM: &str = r#"form patchbay_shell {
 "#;
 
 #[test]
-fn representative_shell_and_front_execute_as_one_ordinary_form() {
+fn representative_shell_and_front_execute_as_one_ordinary_plot() {
     let mut host = host("layout-host");
-    let form = parse(FORM, &installed_std::test_catalog()).expect("layout Form parses");
+    let plot = parse(PLOT, &installed_std::test_catalog()).expect("layout Plot parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("layout placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("layout placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -42,19 +42,19 @@ fn representative_shell_and_front_execute_as_one_ordinary_form() {
             line_offers: &[],
         },
     )
-    .expect("layout Form plans");
+    .expect("layout Plot plans");
     let fragment = &plan.fragments[0];
     assert_eq!(fragment.placements.len(), 7);
     assert_eq!(fragment.connections.len(), 6);
-    let identity = (fragment.checked_form_id.clone(), fragment.plan_id.clone());
+    let identity = (fragment.checked_plot_id.clone(), fragment.plan_id.clone());
     let mut output = Vec::new();
     let mut timer = RecordingTimer { waits: Vec::new() };
     let report = host
         .run_fragment_to(fragment.clone(), &mut output, &mut timer)
-        .expect("layout Form executes through production kernel");
+        .expect("layout Plot executes through production kernel");
     assert_eq!(
         identity,
-        (fragment.checked_form_id.clone(), fragment.plan_id.clone()),
+        (fragment.checked_plot_id.clone(), fragment.plan_id.clone()),
         "layout state is not semantic identity"
     );
     assert!(matches!(

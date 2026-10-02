@@ -1,12 +1,12 @@
 use super::{host, installed_std, BTreeMap, BaseImplementationId, RecordingTimer};
 use crate::{ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter};
 use conduit_core::{ConnectionTrack, PortDirection};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
     ForeBoundaryKey, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
 };
 
 #[derive(Default)]
@@ -20,20 +20,20 @@ impl ExternalForeOutputAdapter for Collector {
 }
 
 #[test]
-fn ordinary_open_form_runs_through_sealed_fore_and_observed_terminal() {
+fn ordinary_open_plot_runs_through_sealed_fore_and_observed_terminal() {
     let catalog = installed_std::test_catalog();
     let startup = catalog.startup_catalog().unwrap();
-    let source = r#"form uppercase (
+    let source = r#"plot uppercase (
  >> text: Text
  upper: Text >>
 ) {
  operation: text/upper
- text >> operation.text
+ text >> operation.source
 operation.text >> upper
 }
 "#;
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let authoring = expand_canonical_form_for_authoring(&checked, "uppercase", &catalog).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&checked, "uppercase", &catalog).unwrap();
     let mut host = host("external-fore-host");
     let hosts = [host.advertisement().clone()];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
@@ -86,7 +86,7 @@ operation.text >> upper
     assert_eq!(fragment.fore_ports.len(), 2);
     let mut collector = Collector::default();
     let report = host
-        .run_external_form_to(
+        .run_external_plot_to(
             fragment,
             &[ExternalForeInput {
                 front_port_id: conduit_core::port_id("text"),
@@ -118,22 +118,22 @@ operation.text >> upper
 fn one_external_fore_payload_is_delivered_to_every_sealed_internal_branch() {
     let catalog = installed_std::test_catalog();
     let startup = catalog.startup_catalog().unwrap();
-    let source = r#"form twin-uppercase (
+    let source = r#"plot twin-uppercase (
  >> text: Text
  first: Text >>
  second: Text >>
 ) {
  first-operation: text/upper
  second-operation: text/upper
- text >> first-operation.text
- text >> second-operation.text
+ text >> first-operation.source
+ text >> second-operation.source
  first-operation.text >> first
  second-operation.text >> second
 }
 "#;
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authoring =
-        expand_canonical_form_for_authoring(&checked, "twin-uppercase", &catalog).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "twin-uppercase", &catalog).unwrap();
     assert_eq!(
         authoring
             .input_bindings
@@ -187,7 +187,7 @@ fn one_external_fore_payload_is_delivered_to_every_sealed_internal_branch() {
     let fragment = plan.fragments[0].clone();
     assert_eq!(fragment.fore_ports.len(), 4);
     let mut collector = Collector::default();
-    host.run_external_form_to(
+    host.run_external_plot_to(
         fragment,
         &[ExternalForeInput {
             front_port_id: conduit_core::port_id("text"),

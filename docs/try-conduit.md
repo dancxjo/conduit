@@ -4,7 +4,7 @@ Start with the [body Workspace](https://dancxjo.github.io/conduit/workspace/) or
 [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
 to see the project before building it. The journey shows a bounded sequence of
 checkpoints from a real QEMU session, including body lifecycle, a hot-plugged line, every
-resident tutorial checkpoint, foreground form switching, and Patchbay.
+resident tutorial checkpoint, foreground plot switching, and Patchbay.
 
 The commands below run from a checkout. You do not need an installed `conduit`
 binary or `just`. See [contributor setup](../CONTRIBUTING.md) for prerequisites.
@@ -24,7 +24,7 @@ installed, it also builds the production browser runtime; otherwise it reports
 the exact prerequisite. It does not perform release promotion, generate Journey
 or gallery evidence, run QEMU, or claim physical hardware proof.
 
-## Run a first form
+## Run a first plot
 
 ```bash
 cargo xtask make host std
@@ -33,20 +33,20 @@ cargo xtask make host std
 `cargo xtask doctor` is an optional diagnostic across targets; missing browser
 proof or Pico tools do not block this hosted example.
 
-This command runs [Hello](../forms/hello/main.conduit) through the native host, planner,
+This command runs [Hello](../plots/hello/main.conduit) through the native host, planner,
 and production execution kernel. Its authored meaning is simply:
 
 ```conduit
-form hello {
+plot hello {
     upper: text/upper
     show: presentation/text
     "Hello, world." >> upper >> show
 }.
 ```
 
-Look for `HELLO, WORLD.` and the terminal execution result. The form chooses
+Look for `HELLO, WORLD.` and the terminal execution result. The plot chooses
 text operations; the host supplies their implementations and the plan records
-that selection. Explore more examples in [Try forms](try-forms.md).
+that selection. Explore more examples in [Try plots](try-plots.md).
 
 ## Explore the workbench and Tour
 
@@ -54,8 +54,8 @@ that selection. Explore more examples in [Try forms](try-forms.md).
 cargo xtask prove journey patchbay --on native
 ```
 
-Patchbay opens a native window. Inspect a form, then use the explicit lifecycle
-and execution actions to move from description to running work. Opening a form
+Patchbay opens a native window. Inspect a plot, then use the explicit lifecycle
+and execution actions to move from description to running work. Opening a plot
 alone does not start it. For the browser manifestation, install Node.js and npm,
 then add the WASM target:
 
@@ -68,7 +68,7 @@ This command builds the required browser runtime and serves it locally. Keep
 the terminal process running while using the page. A separate browser host can
 be launched with `cargo xtask make host browser`; each launch has its own
 runtime identity. The [body lifecycle guide](self-hosted-biography.md) explains
-how resident Forms, Crèche compatibility, and Patchbay relate.
+how resident Plots, Crèche compatibility, and Patchbay relate.
 
 ## boot ConduitOS
 
@@ -84,12 +84,12 @@ The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`.
 The second verifies and boots that artifact in visible QEMU. The graphical
 session stays open until QEMU closes. It includes the normal front door,
 compositor, keyboard, and pointer paths. Birth a body from the Crèche, then use
-the resident Tour and Patchbay: they are forms in the same body-wide plan and
+the resident Tour and Patchbay: they are plots in the same body-wide plan and
 play, not special programs outside Conduit.
 
 In the native Tour, `F3`/`F4` move between stages, `F5`/`F6` move between
 chapters, `F10` runs the current exercise, and `F11` opens Patchbay. Patchbay
-shows the active forms on the present body and their exact current identities.
+shows the active plots on the present body and their exact current identities.
 The browser, Linux, Windows, and ConduitOS presentations consume the same
 portable Tour application state and action identities; each host supplies its
 own presentation implementation.
@@ -123,11 +123,11 @@ pinned Chromium DOM/SVG renderer:
 
 ```bash
 npm --prefix proof/browser ci --ignore-scripts --prefer-offline
-cargo xtask prove one-form-two-fronts
+cargo xtask prove one-plot-two-fronts
 ```
 
 The command refuses an existing output directory. On success,
-`target/journeys/one-form-two-fronts/` contains native and browser PNGs, their
+`target/journeys/one-plot-two-fronts/` contains native and browser PNGs, their
 distinct renderer receipts, and one four-output digest-bound manifest. The
 verifier requires a shared presentation identity and revision but deliberately
 does not require pixel equality. The native frame proves the repository's
@@ -194,7 +194,7 @@ before running them. Firmware compilation alone cannot establish their result.
 
 ## Choose the next step
 
-- [Try forms](try-forms.md): inspect the reviewed programs and run conformance.
+- [Try plots](try-plots.md): inspect the reviewed programs and run conformance.
 - [Current status](../STATUS.md): what works and the boundaries of its evidence.
 - [Roadmap](roadmap.md): active work and remaining gaps.
 - [Contributing](../CONTRIBUTING.md): choose and validate a useful change.

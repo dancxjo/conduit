@@ -5,8 +5,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
-    StructuredVariantCase,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const COPY_FILE_KIND: &str = "file/copy";
 pub const COPY_FILE_CONTRACT_REVISION: &str = "conduit.std/file-copy@1";
@@ -17,53 +17,18 @@ pub const COPY_CHUNK_BYTES: u32 = 4_096;
 pub const COPY_RESULT_TYPE: &str = "FileCopyResult";
 
 pub fn copy_result_type() -> StructuredInfoType {
-    let quantity = StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID)).unwrap();
-    let unit = StructuredInfoType::leaf(kind_id("value/unit")).unwrap();
-    let outcome = StructuredInfoType::variant(
-        kind_id("file/copy-outcome@1"),
-        vec![
-            StructuredVariantCase::new("cancelled", quantity.clone()).unwrap(),
-            StructuredVariantCase::new("cleanup_failed", quantity.clone()).unwrap(),
-            StructuredVariantCase::new("denied", unit.clone()).unwrap(),
-            StructuredVariantCase::new("destination_exists", unit.clone()).unwrap(),
-            StructuredVariantCase::new("oversized", quantity.clone()).unwrap(),
-            StructuredVariantCase::new("partial", quantity.clone()).unwrap(),
-            StructuredVariantCase::new("stale", unit).unwrap(),
-            StructuredVariantCase::new("success", quantity).unwrap(),
-        ],
-    )
-    .unwrap();
-    StructuredInfoType::record(
-        kind_id("file/copy-result@1"),
-        vec![conduit_core::StructuredFieldType::new("outcome", outcome).unwrap()],
-    )
-    .unwrap()
+    conduit_data::FileCopyResult::semantic_type().expect("checked file-copy result Type")
 }
 
 pub fn copy_success_value(bytes_copied: u64) -> Result<conduit_core::StructuredInfoValue, String> {
     let bytes_copied = i64::try_from(bytes_copied)
         .map_err(|_| "copied byte count exceeds the quantity profile".to_string())?;
-    let quantity_type = StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID)).unwrap();
-    let quantity = conduit_core::StructuredInfoValue::leaf(
-        quantity_type,
-        conduit_core::Quantity::new(bytes_copied, conduit_core::QuantityUnit::Byte)
-            .encode()
-            .to_vec(),
-    )
-    .unwrap();
-    let outcome_type = match copy_result_type().shape() {
-        conduit_core::StructuredInfoTypeShape::Record { fields, .. } => {
-            fields[0].value_type().clone()
-        }
-        _ => unreachable!(),
-    };
-    let outcome =
-        conduit_core::StructuredInfoValue::variant(outcome_type, "success", quantity).unwrap();
-    conduit_core::StructuredInfoValue::record(
-        copy_result_type(),
-        vec![conduit_core::StructuredFieldValue::new("outcome", outcome).unwrap()],
-    )
-    .map_err(|error| format!("encode file copy result: {error:?}"))
+    let quantity = conduit_core::Quantity::new(bytes_copied, conduit_core::QuantityUnit::Byte);
+    let outcome = conduit_data::FileCopyOutcome::success(quantity)
+        .map_err(|error| format!("construct file copy result: {error:?}"))?;
+    conduit_data::FileCopyResult::new(outcome)
+        .and_then(NativeRustBinding::into_structured)
+        .map_err(|error| format!("encode file copy result: {error:?}"))
 }
 
 fn result_port(direction: PortDirection) -> PortDescriptor {
@@ -102,8 +67,8 @@ pub fn copy_file_contract() -> StandardKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn install_copy_file_catalog(catalog: &mut conduit_form::ProfileCatalog) -> Result<(), String> {
+#[cfg(feature = "plot-catalog")]
+pub fn install_copy_file_catalog(catalog: &mut conduit_plot::ProfileCatalog) -> Result<(), String> {
     for definition in [
         copy_file_contract().into_semantic_contract(COPY_FILE_CONTRACT_REVISION),
         crate::structured_presentation_contract(COPY_RESULT_TYPE, &copy_result_type()).into(),

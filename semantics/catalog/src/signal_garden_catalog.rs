@@ -10,7 +10,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType,
 };
-use conduit_form::{
+use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature,
 };
@@ -29,8 +29,8 @@ pub const GARDEN_STATE_PRESENTATION_KIND: &str = "presentation/garden-state";
 pub const GARDEN_CONTRACT_REVISION: &str = "conduit.std/signal-garden-state@1";
 
 pub fn install_signal_garden_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in garden_registered_types() {
         startup
@@ -124,12 +124,12 @@ pub fn garden_state_presentation_semantic_contract() -> Kind {
 }
 
 pub fn install_signal_garden_backs(
-    startup: &conduit_form::StartupCatalog,
-    profile: &conduit_form::ProfileCatalog,
+    startup: &conduit_plot::StartupCatalog,
+    profile: &conduit_plot::ProfileCatalog,
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), String> {
     let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("../../../forms/signal-garden/main.conduit")),
+        &parse_syntax_document(include_str!("../../../plots/signal-garden/main.conduit")),
         startup,
     )
     .map_err(|error| format!("check Signal Garden Back: {error:?}"))?;
@@ -244,8 +244,8 @@ fn reducer_inputs(enriched: bool) -> Vec<PortDescriptor> {
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,

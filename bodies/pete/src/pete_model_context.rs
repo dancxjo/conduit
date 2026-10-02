@@ -2,7 +2,7 @@
 
 use crate::{CreateObservationChannel, CreateObservationSnapshot};
 use conduit_ai::{
-    ClockBasis, InterpretationEvidence, InterpretationRequest,
+    ClockBasis, ClockIdentity, InterpretationEvidence, InterpretationRequest,
     TemporalReference as AiTemporalReference,
 };
 use conduit_core::{
@@ -92,8 +92,8 @@ pub fn project_pete_create_model_context(
             body_id: None,
             wake_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: vec![sign_id.clone()],
@@ -163,9 +163,11 @@ fn ai_reference(
     let clock_basis = if reference.instant.clock_basis == UNIX_UTC_CLOCK_BASIS {
         ClockBasis::UnixEpochMilliseconds
     } else {
-        ClockBasis::MonotonicMilliseconds {
-            identity: reference.instant.clock_basis.clone(),
-        }
+        ClockBasis::monotonic_milliseconds(
+            ClockIdentity::new(reference.instant.clock_basis.clone())
+                .map_err(|_| PeteCreateModelContextRefusal::UnsupportedModelClock)?,
+        )
+        .map_err(|_| PeteCreateModelContextRefusal::UnsupportedModelClock)?
     };
     let value = AiTemporalReference {
         reference_at: reference.instant.ticks,

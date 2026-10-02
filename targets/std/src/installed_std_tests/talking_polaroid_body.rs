@@ -1,18 +1,18 @@
 use super::{host, installed_std};
 use crate::body_execution::BodyRunRequest;
-use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyWorkset, ResidentForm};
+use conduit_body::{Body, BodyPlan, BodyPlotPlan, BodyWorkset, ResidentPlot};
 use conduit_core::{
     kind_id, BaseImplementationId, BoundedResourceRef, ConfigurationValue, PortDirection,
     PortTemporal, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
     ResourceVersionIdentity, SignId, StructuredInfoValue, TerminalDisposition,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
-    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
-    StartupParameterSignature,
-};
 use conduit_kernel::causal_evidence::{
     EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+    StartupParameterSignature,
 };
 use std::collections::BTreeMap;
 
@@ -105,15 +105,15 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     }
 
     let polaroid_source = format!(
-        "{}\nform talking-polaroid-body {{\n image: conduit-test/body-image-source(value = \"{}\")\n caption: conduit-test/body-caption-source(value = \"{}\")\n compose: image-text-compose\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/body-frame-sink(value = \"{}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
-        include_str!("../../../../forms/image-text-compose/main.conduit"),
+        "{}\nplot talking-polaroid-body {{\n image: conduit-test/body-image-source(value = \"{}\")\n caption: conduit-test/body-caption-source(value = \"{}\")\n compose: image-text-compose\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/body-frame-sink(value = \"{}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
+        include_str!("../../../../plots/image-text-compose/main.conduit"),
         hex(&image_value.canonical_bytes().unwrap()),
         hex(b"Body inspection"),
         hex(&expected_frame.canonical_bytes().unwrap()),
     );
     let status = StructuredInfoValue::leaf(text_type, b"unrelated status".to_vec()).unwrap();
     let unrelated_source = format!(
-        "form unrelated-status {{\n source: conduit-test/body-status-source(value = \"{}\")\n sink: conduit-test/body-status-sink(value = \"{}\")\n source >> sink\n}}\n",
+        "plot unrelated-status {{\n source: conduit-test/body-status-source(value = \"{}\")\n sink: conduit-test/body-status-sink(value = \"{}\")\n source >> sink\n}}\n",
         hex(&status.canonical_bytes().unwrap()),
         hex(&status.canonical_bytes().unwrap()),
     );
@@ -147,14 +147,14 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     let residents: Vec<_> = plans
         .iter()
         .map(|plan| {
-            ResidentForm::new(
+            ResidentPlot::new(
                 plan.source_document_id.clone(),
-                plan.checked_form_id.clone(),
+                plan.checked_plot_id.clone(),
             )
         })
         .collect();
-    let body = Body::born_with_forms(
-        BodyWorkset::from_forms(residents.clone()).unwrap(),
+    let body = Body::born_with_plots(
+        BodyWorkset::from_plots(residents.clone()).unwrap(),
         1,
         SignId::from("sign/talking-polaroid-body-born"),
     )
@@ -168,7 +168,7 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
         residents
             .into_iter()
             .zip(plans)
-            .map(|(form, plan)| BodyFormPlan { form, plan })
+            .map(|(plot, plan)| BodyPlotPlan { plot, plan })
             .collect(),
     )
     .unwrap();
@@ -221,9 +221,9 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
         );
         let (document, start, end, line, column, end_line, end_column) = source.unwrap();
         assert!(body_plan
-            .forms
+            .plots
             .iter()
-            .any(|form| form.plan.source_document_id.as_str() == document));
+            .any(|plot| plot.plan.source_document_id.as_str() == document));
         assert!(start.is_some_and(|value| value < end.unwrap()));
         assert!(line.is_some_and(|value| value <= end_line.unwrap()));
         assert!(column.is_some());
@@ -241,7 +241,7 @@ fn plan(
     let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, startup).unwrap();
-    let expanded = expand_canonical_form(&checked, entry, profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, entry, profile).unwrap();
     let hosts = [host.clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
     let limits = expanded

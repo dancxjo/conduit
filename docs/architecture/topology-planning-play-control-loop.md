@@ -42,7 +42,7 @@ convenience.
 | sign/observation | exact runtime/base facts | bounded machine-readable records that may become fresh planning input | inferred causality or authority not stated by the producer |
 
 plan identity contains facts whose mutation would change the admitted
-realization: checked/expanded form identity, host and boot/generation,
+realization: checked/expanded plot identity, host and boot/generation,
 implementation and artifact, resource and authority bindings, finite limits,
 connection candidate order, and fragment commitments. It does not contain
 current link health, selected-route state, utilization, queue pressure, physical

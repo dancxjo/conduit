@@ -1,11 +1,11 @@
 use conduit_body::{
-    Body, BodyFormPlan, BodyFormResourceRequests, BodyPlan, BodyResourceAllowance,
+    Body, BodyPlan, BodyPlotPlan, BodyPlotResourceRequests, BodyResourceAllowance,
     BodyResourceEnvelope, BodyResourceReservationError, BodyResourceReservationLedger, PartId,
-    ResidentForm, MAX_BODY_RESOURCE_RESERVATIONS,
+    ResidentPlot, MAX_BODY_RESOURCE_RESERVATIONS,
 };
 use conduit_core::{
-    resource_offer, resource_requirement, seal_plan, BootId, CheckedFormId, ExpandedFormId,
-    FormIdentity, HostAdvertisement, HostId, HostProfileId, OfferGeneration, PlanId,
+    resource_offer, resource_requirement, seal_plan, BootId, CheckedPlotId, ExpandedPlotId,
+    HostAdvertisement, HostId, HostProfileId, OfferGeneration, PlanId, PlotIdentity,
     ResourceBinding, ResourceHealth, ResourceObservation, SignId, SourceDocumentId,
     PROTOCOL_VERSION,
 };
@@ -16,7 +16,7 @@ fn fixture(
 ) -> (HostAdvertisement, BodyResourceEnvelope, ResourceObservation) {
     let body = Body::born(
         SourceDocumentId::from("reservation-source"),
-        CheckedFormId::from("reservation-form"),
+        CheckedPlotId::from("reservation-plot"),
         1,
         SignId::from("body-born"),
     )
@@ -74,33 +74,33 @@ fn binding(units: u32) -> ResourceBinding {
 }
 
 #[test]
-fn body_plan_admission_combines_all_form_demand_before_play() {
-    let seed = ResidentForm::new(
+fn body_plan_admission_combines_all_plot_demand_before_play() {
+    let seed = ResidentPlot::new(
         SourceDocumentId::from("reservation-source"),
-        CheckedFormId::from("reservation-form"),
+        CheckedPlotId::from("reservation-plot"),
     );
-    let second = ResidentForm::new(
+    let second = ResidentPlot::new(
         SourceDocumentId::from("second-source"),
-        CheckedFormId::from("second-form"),
+        CheckedPlotId::from("second-plot"),
     );
     let body = Body::born(
         seed.source_document_id.clone(),
-        seed.checked_form_id.clone(),
+        seed.checked_plot_id.clone(),
         1,
         SignId::from("body-born"),
     )
     .unwrap()
-    .admit_form(second.clone(), SignId::from("second-admitted"))
+    .admit_plot(second.clone(), SignId::from("second-admitted"))
     .unwrap();
     let wake = body.wake(1, SignId::from("body-woke")).unwrap().1;
-    let form_plan = |form: &ResidentForm| {
+    let plot_plan = |plot: &ResidentPlot| {
         seal_plan(
-            FormIdentity {
-                source_document_id: form.source_document_id.clone(),
-                checked_form_id: form.checked_form_id.clone(),
-                expanded_form_id: ExpandedFormId::from(format!(
+            PlotIdentity {
+                source_document_id: plot.source_document_id.clone(),
+                checked_plot_id: plot.checked_plot_id.clone(),
+                expanded_plot_id: ExpandedPlotId::from(format!(
                     "expanded/{}",
-                    form.checked_form_id.as_str()
+                    plot.checked_plot_id.as_str()
                 )),
             },
             vec![],
@@ -109,13 +109,13 @@ fn body_plan_admission_combines_all_form_demand_before_play() {
     let plan = BodyPlan::seal(
         &wake,
         vec![
-            BodyFormPlan {
-                form: seed.clone(),
-                plan: form_plan(&seed),
+            BodyPlotPlan {
+                plot: seed.clone(),
+                plan: plot_plan(&seed),
             },
-            BodyFormPlan {
-                form: second.clone(),
-                plan: form_plan(&second),
+            BodyPlotPlan {
+                plot: second.clone(),
+                plan: plot_plan(&second),
             },
         ],
     )
@@ -134,12 +134,12 @@ fn body_plan_admission_combines_all_form_demand_before_play() {
             &host,
             core::slice::from_ref(&observation),
             &[
-                BodyFormResourceRequests {
-                    form: &seed,
+                BodyPlotResourceRequests {
+                    plot: &seed,
                     requests: &[(&requirement, &first)],
                 },
-                BodyFormResourceRequests {
-                    form: &second,
+                BodyPlotResourceRequests {
+                    plot: &second,
                     requests: &[(&requirement, &second_binding)],
                 },
             ],
@@ -155,8 +155,8 @@ fn body_plan_admission_combines_all_form_demand_before_play() {
             &envelope,
             &host,
             core::slice::from_ref(&observation),
-            &[BodyFormResourceRequests {
-                form: &seed,
+            &[BodyPlotResourceRequests {
+                plot: &seed,
                 requests: &[(&requirement, &first)],
             }],
         ),

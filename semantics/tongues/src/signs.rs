@@ -1,41 +1,22 @@
-use crate::{OutputCondition, SpeechOutcome};
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SpeechSign {
-    Synthesized { pcm_bytes: u32, pcm_sha256: String },
-    Presented { condition: OutputCondition },
-    Degraded { wav_bytes: u32, wav_sha256: String },
-    Refused { reason: String },
-    Failed { reason: String },
-    Cancelled,
-    Terminal,
-}
-
+use crate::{OutputCondition, SpeechOutcome, SpeechSign};
 pub(crate) fn outcome_signs(outcome: &SpeechOutcome, pcm_bytes: Option<u32>) -> Vec<SpeechSign> {
     let mut signs = match outcome {
-        SpeechOutcome::Played { pcm_sha256 } => vec![
-            SpeechSign::Synthesized {
-                pcm_bytes: pcm_bytes.expect("played speech has synthesized PCM"),
-                pcm_sha256: pcm_sha256.clone(),
-            },
-            SpeechSign::Presented {
-                condition: OutputCondition::PrimaryPlayback,
-            },
+        SpeechOutcome::Played(payload) => vec![
+            SpeechSign::synthesized(
+                pcm_bytes.expect("played speech has synthesized PCM"),
+                payload.pcm_sha256().clone(),
+            )
+            .expect("valid synthesized sign"),
+            SpeechSign::presented(OutputCondition::PrimaryPlayback).expect("valid presented sign"),
         ],
-        SpeechOutcome::WavArtifact {
-            wav_bytes,
-            wav_sha256,
-            pcm_sha256,
-        } => vec![
-            SpeechSign::Synthesized {
-                pcm_bytes: pcm_bytes.expect("WAV speech has synthesized PCM"),
-                pcm_sha256: pcm_sha256.clone(),
-            },
-            SpeechSign::Degraded {
-                wav_bytes: *wav_bytes,
-                wav_sha256: wav_sha256.clone(),
-            },
+        SpeechOutcome::WavArtifact(payload) => vec![
+            SpeechSign::synthesized(
+                pcm_bytes.expect("WAV speech has synthesized PCM"),
+                payload.pcm_sha256().clone(),
+            )
+            .expect("valid synthesized sign"),
+            SpeechSign::degraded(*payload.wav_bytes(), payload.wav_sha256().clone())
+                .expect("valid degraded sign"),
         ],
         SpeechOutcome::FormatMismatch => refused("format-mismatch"),
         SpeechOutcome::Pressure => refused("buffer-pressure"),
@@ -51,13 +32,15 @@ pub(crate) fn outcome_signs(outcome: &SpeechOutcome, pcm_bytes: Option<u32>) -> 
 }
 
 fn refused(reason: &str) -> Vec<SpeechSign> {
-    vec![SpeechSign::Refused {
-        reason: reason.into(),
-    }]
+    vec![SpeechSign::refused(
+        crate::SpeechSignReason::new(reason.into()).expect("static refusal reason is valid"),
+    )
+    .expect("valid refusal sign")]
 }
 
 fn failed(reason: &str) -> Vec<SpeechSign> {
-    vec![SpeechSign::Failed {
-        reason: reason.into(),
-    }]
+    vec![SpeechSign::failed(
+        crate::SpeechSignReason::new(reason.into()).expect("static failure reason is valid"),
+    )
+    .expect("valid failure sign")]
 }

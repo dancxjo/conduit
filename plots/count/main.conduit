@@ -1,0 +1,15 @@
+plot count (
+    start: Count = 0
+    bump: Tick... >> value: $Count
+) {
+    gear: state/count(start)
+    bump >> gear.bump
+    gear.value >> value
+}
+
+plot count-demo {
+    clock: time/every(1s)
+    count: count(2)
+    show: presentation/count
+    clock >> count >> show
+}

@@ -48,6 +48,7 @@ pub fn present_timed_calendar_event(
     let CalendarEventTime::Timed(span) = &event.time else {
         return Err(CalendarPresentationRefusal::AllDayHasNoInstantProjection);
     };
+    let span = span.value();
     let exact_start = span.instant.start();
     let exact_end = span.instant.end();
     let event_start = select_resolution(event_start, exact_start)?;
@@ -86,38 +87,52 @@ fn select_resolution(
             local,
             zone,
             instant,
-        } if instant == exact => Ok(ResolvedLocalPresentation {
-            local: *local,
-            zone: zone.clone(),
-            resolution: CivilResolutionChoice::Unique,
-        }),
+        } => resolved(local, zone, instant, exact, CivilResolutionChoice::Unique),
         ZonedResolution::Ambiguous {
             local,
             zone,
             earlier,
             later: _,
-        } if earlier == exact => Ok(ResolvedLocalPresentation {
-            local: *local,
-            zone: zone.clone(),
-            resolution: CivilResolutionChoice::FoldEarlier,
-        }),
+        } if conduit_time::TemporalInstant::try_from(earlier.clone()).as_ref() == Ok(exact) => {
+            resolved(
+                local,
+                zone,
+                earlier,
+                exact,
+                CivilResolutionChoice::FoldEarlier,
+            )
+        }
         ZonedResolution::Ambiguous {
             local,
             zone,
             earlier: _,
             later,
-        } if later == exact => Ok(ResolvedLocalPresentation {
-            local: *local,
-            zone: zone.clone(),
-            resolution: CivilResolutionChoice::FoldLater,
-        }),
+        } => resolved(local, zone, later, exact, CivilResolutionChoice::FoldLater),
         ZonedResolution::Nonexistent { .. } => {
             Err(CalendarPresentationRefusal::NonexistentLocalTime)
         }
-        ZonedResolution::Unique { .. } | ZonedResolution::Ambiguous { .. } => {
-            Err(CalendarPresentationRefusal::EventResolutionMismatch)
-        }
     }
+}
+
+fn resolved(
+    local: &conduit_core::LocalDateTime,
+    zone: &conduit_core::NamedTimeZone,
+    instant: &conduit_core::TemporalInstant,
+    exact: &TemporalInstant,
+    resolution: CivilResolutionChoice,
+) -> Result<ResolvedLocalPresentation, CalendarPresentationRefusal> {
+    let instant = TemporalInstant::try_from(instant.clone())
+        .map_err(|_| CalendarPresentationRefusal::InvalidResolution)?;
+    if &instant != exact {
+        return Err(CalendarPresentationRefusal::EventResolutionMismatch);
+    }
+    Ok(ResolvedLocalPresentation {
+        local: LocalDateTime::try_from(*local)
+            .map_err(|_| CalendarPresentationRefusal::InvalidResolution)?,
+        zone: NamedTimeZone::try_from(zone.clone())
+            .map_err(|_| CalendarPresentationRefusal::InvalidResolution)?,
+        resolution,
+    })
 }
 
 fn map_viewer_resolution_refusal(

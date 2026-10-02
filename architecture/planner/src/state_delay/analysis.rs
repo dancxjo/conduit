@@ -1,13 +1,13 @@
 //! Finite retained-value representation analysis for admitted State graphs.
 //!
-//! This is not a whole-Form termination or reachability proof. Kind validity,
+//! This is not a whole-Plot termination or reachability proof. Kind validity,
 //! transition restrictions, external effects, and runtime metadata may change
 //! the reachable state space. The exact representation capacities remain useful
 //! even when a semantic transition-system proof is absent.
 
 use alloc::vec::Vec;
 use conduit_core::{
-    state_resource_budget, FormIdentity, GearId, KindId, StateContinuation, StateId,
+    state_resource_budget, GearId, KindId, PlotIdentity, StateContinuation, StateId,
     StatePlanError, StateResourceBudget,
 };
 
@@ -35,7 +35,7 @@ pub enum RepresentationEnumeration {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateCapacityAnalysis {
-    pub form_identity: FormIdentity,
+    pub plot_identity: PlotIdentity,
     pub domains: Vec<StateValueDomain>,
     pub resources: StateResourceBudget,
     pub enumeration: RepresentationEnumeration,
@@ -63,7 +63,7 @@ impl AdmittedStateGraph {
             .collect::<Vec<_>>();
         let count = representation_count(&domains, maximum_representations);
         Ok(StateCapacityAnalysis {
-            form_identity: self.form_identity.clone(),
+            plot_identity: self.plot_identity.clone(),
             domains,
             resources,
             enumeration: match count {

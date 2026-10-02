@@ -160,12 +160,12 @@ fn comparison_operator_values() -> Vec<String> {
         .collect()
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_logic_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     for (contract, revision) in [
         (
             logic_compare_scalar_contract(),
@@ -182,7 +182,7 @@ pub fn install_logic_catalogs(
             startup_parameters: contract
                 .configuration
                 .iter()
-                .map(|field| conduit_form::StartupParameterSignature {
+                .map(|field| conduit_plot::StartupParameterSignature {
                     name: field.key.clone(),
                     value_type: "Text".to_string(),
                     default: Some(match &field.default_value {

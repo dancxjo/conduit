@@ -4,6 +4,17 @@ The authoritative configurable inventory is [`BROWSER_IMPLEMENTATIONS`](../../ta
 
 Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `conduit.browser/reviewed-distribution@1` / `browser-runtime-superset.wasm`, and carries finite instance and buffered-byte limits. The shared artifact may contain all implementations, but PROFILE admission and current runtime truth remain separate gates.
 
+The `cargo xtask make host release --platform browser` recipe builds the entire
+WASM dependency graph with size optimization
+(`opt-level = z`) and thin LTO. The reviewed superset measured 9,463,432 bytes
+with that recipe; fat LTO with one codegen unit still measured 8,735,379 bytes.
+The native server and browser bootstrap therefore admit runtime artifacts up to
+16 MiB. This download bound is separate from the unchanged 8 MiB page-profile
+heap allowance. Body Play reserves a finite 2,176 KiB value arena before
+execution: the reviewed resident Theremin workload requires 2,150,400 bytes
+under the current native structured contracts. Larger workloads still fail
+ordinary capacity admission.
+
 | Runtime mechanism | Make classification | Runtime prerequisite truth |
 | --- | --- | --- |
 | DOM presentation | selectable structural and portable presentation bases | initialized surface |
@@ -78,8 +89,8 @@ PROFILE or IMAGE.
 
 Offer truth is boot-local and generation-numbered. A lost prerequisite removes
 the current offer and yields an exact invalidation for each dependent
-realization, retaining its form and plan identities while explicitly recording
-that neither the authored form nor IMAGE changed. A reduced-module bundle and
+realization, retaining its plot and plan identities while explicitly recording
+that neither the authored plot nor IMAGE changed. A reduced-module bundle and
 the superset bundle therefore produce the same semantic registry and offers for
 one selected PROFILE; only their artifact layout and size may differ.
 
@@ -102,7 +113,7 @@ products and the pointer vertical. It binds every delivered value to exact
 host, boot, and offer-generation truth, translates keys and normalized pointer
 coordinates into the existing portable value schemas, and keeps unsupported
 input, focus/page loss, finite pressure, cancellation, and stale boot distinct.
-The authored form and portable contract never receive DOM objects, selectors,
+The authored plot and portable contract never receive DOM objects, selectors,
 CSS, or Web API event classes. Touch and gamepad stay absent until a reviewed
 live browser implementation and lifecycle exist; their portable schemas alone
 are not an implementation claim.
@@ -157,13 +168,13 @@ current provider, an endpoint grant, and endpoint authority. WebRTC additionally
 requires the current body-scoped signaling bootstrap and session grant. Browser
 API presence alone sets none of those authority facts. Addresses, signaling
 data, and opaque credentials remain runtime host inputs and never enter the
-authored form; the browser adapter initiates only explicitly granted outbound
+authored plot; the browser adapter initiates only explicitly granted outbound
 sessions and does not treat network reachability as body membership.
 
 Provider loss, endpoint-authority loss, signaling loss, session loss, pressure,
 cancellation, stale boot or negotiation identity, unsupported APIs, and finite
 capacity exhaustion remain distinct refusals. There is no implicit reconnect:
-a later session requires new current authority. The same portable form and line
+a later session requires new current authority. The same portable plot and line
 contract may therefore select this browser realization or a materially different
 non-browser realization without changing authored transport syntax, because no
-such syntax exists in the form.
+such syntax exists in the plot.

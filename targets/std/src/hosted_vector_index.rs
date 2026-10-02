@@ -3,12 +3,13 @@
 use conduit_ai::{
     canonical_hit_order, EmbeddingProfile, EntityBoundary, MetadataFilter, SimilarityHit,
     SimilarityMetric, SimilarityQuery, TemporalEvidenceBatch, TemporalEvidenceCandidate,
-    TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalReference, TemporalSource,
-    TemporalValidity, TransitionDirection, VectorIndexHandle, VectorIndexMaintenanceKind,
-    VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState, VectorRecord,
-    VectorRefusal,
+    TemporalEvidenceCandidates, TemporalEvidenceIdentity, TemporalEvidenceSelection,
+    TemporalEvidenceSelectionRefusal, TemporalReference, TemporalSource, TemporalValidity,
+    TransitionDirection, VectorIndexHandle, VectorIndexMaintenanceKind, VectorIndexQueryAdmission,
+    VectorIndexResourceRefusal, VectorIndexState, VectorRecord, VectorRefusal,
 };
 use conduit_core::ResourceBinding;
+use conduit_plot::rust_binding::BoundedSequence;
 use instant_distance::{Builder, HnswMap, Point, Search};
 use std::collections::BTreeSet;
 
@@ -245,7 +246,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
             .iter()
             .map(|entry| HostedPoint {
                 metric: profile.metric,
-                values: entry.record.embedding.values.clone(),
+                values: entry.record.embedding.values_f32(),
             })
             .collect();
         let values = (0..records.len()).collect();
@@ -348,7 +349,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
         }
         query.validate().map_err(HostedHnswRefusal::Vector)?;
         if self.profile.metric == SimilarityMetric::CosineSimilarity
-            && is_zero_vector(&query.embedding.values)
+            && is_zero_vector(&query.embedding.values_f32())
         {
             return Err(HostedHnswRefusal::Vector(VectorRefusal::ZeroVector));
         }
@@ -366,7 +367,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
         validate_membership(state, &self.records)?;
         let eligible = eligible_sources(
             &self.records,
-            &query.filters,
+            query.filters.get().as_slice(),
             query.temporal_intent.as_ref(),
             self.earliest_history_complete,
         )?;
@@ -378,7 +379,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
 
         let point = HostedPoint {
             metric: self.profile.metric,
-            values: query.embedding.values.clone(),
+            values: query.embedding.values_f32(),
         };
         let mut approximate = self
             .map
@@ -453,32 +454,48 @@ fn eligible_sources<T>(
         .temporal_provenance
         .as_ref()
         .ok_or(HostedHnswRefusal::TemporalProvenanceRequired)?;
+    let candidates = filtered
+        .iter()
+        .map(|entry| {
+            Ok(TemporalEvidenceCandidate {
+                identity: TemporalEvidenceIdentity::new(entry.record.source_identity.clone())
+                    .map_err(|_| {
+                        HostedHnswRefusal::Temporal(
+                            TemporalEvidenceSelectionRefusal::IdentityTooLarge,
+                        )
+                    })?,
+                provenance: entry
+                    .record
+                    .temporal_provenance
+                    .clone()
+                    .ok_or(HostedHnswRefusal::TemporalProvenanceRequired)?,
+                source: entry.temporal_source,
+                boundary: entry.boundary,
+                transition: entry.transition,
+                validity: entry.validity,
+            })
+        })
+        .collect::<Result<Vec<_>, HostedHnswRefusal>>()?;
+    let candidates = BoundedSequence::try_from_iter(candidates).map_err(|_| {
+        HostedHnswRefusal::Temporal(TemporalEvidenceSelectionRefusal::TooManyCandidates)
+    })?;
     let batch = TemporalEvidenceBatch {
         reference: TemporalReference {
             reference_at: first.reference_at,
             clock_basis: first.clock_basis.clone(),
         },
-        candidates: filtered
-            .iter()
-            .map(|entry| {
-                Ok(TemporalEvidenceCandidate {
-                    identity: entry.record.source_identity.clone(),
-                    provenance: entry
-                        .record
-                        .temporal_provenance
-                        .clone()
-                        .ok_or(HostedHnswRefusal::TemporalProvenanceRequired)?,
-                    source: entry.temporal_source,
-                    boundary: entry.boundary,
-                    transition: entry.transition,
-                    validity: entry.validity,
-                })
-            })
-            .collect::<Result<Vec<_>, HostedHnswRefusal>>()?,
+        candidates: TemporalEvidenceCandidates::new(candidates).map_err(|_| {
+            HostedHnswRefusal::Temporal(TemporalEvidenceSelectionRefusal::InvalidProvenance)
+        })?,
         earliest_history_complete,
     };
     match batch.select(intent).map_err(HostedHnswRefusal::Temporal)? {
-        TemporalEvidenceSelection::Selected { identities } => Ok(identities.into_iter().collect()),
+        TemporalEvidenceSelection::Selected(selected) => Ok(selected
+            .identities()
+            .get()
+            .iter()
+            .map(|identity| identity.get().clone())
+            .collect()),
         TemporalEvidenceSelection::NeedEarlierHistory => {
             Err(HostedHnswRefusal::EarlierHistoryRequired)
         }
@@ -490,11 +507,14 @@ fn eligible_sources<T>(
 
 fn metadata_matches<T>(record: &VectorRecord<T>, filters: &[MetadataFilter]) -> bool {
     filters.iter().all(|filter| match filter {
-        MetadataFilter::Equal { key, value } => record
+        MetadataFilter::Equal(filter) => record
             .metadata
             .iter()
-            .any(|member| member.key == *key && member.value == *value),
-        MetadataFilter::Present { key } => record.metadata.iter().any(|member| member.key == *key),
+            .any(|member| member.key == *filter.key() && member.value == *filter.value()),
+        MetadataFilter::Present(filter) => record
+            .metadata
+            .iter()
+            .any(|member| member.key == *filter.key()),
     })
 }
 

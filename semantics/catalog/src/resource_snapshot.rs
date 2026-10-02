@@ -1,6 +1,6 @@
 //! Exact-generation publication and reading of bounded JSON snapshot content.
 use crate::{KindConfigurationField, KindConfigurationRule, StandardKindContract};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use conduit_core::{
     kind_id, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw,
@@ -65,16 +65,16 @@ pub fn resource_snapshot_semantic_contract(publish: bool) -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_resource_snapshot_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     for publish in [true, false] {
         let contract = resource_snapshot_semantic_contract(publish);
-        startup.insert(conduit_form::KindSignature {
+        startup.insert(conduit_plot::KindSignature {
             kind: contract.kind_id.as_str().into(),
-            startup_parameters: alloc::vec![conduit_form::StartupParameterSignature {
+            startup_parameters: alloc::vec![conduit_plot::StartupParameterSignature {
                 name: "reference".into(),
                 value_type: "Text".into(),
                 default: None,

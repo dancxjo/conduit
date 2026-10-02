@@ -4,12 +4,12 @@ mod deployment_carrier;
 mod diagnostics;
 mod durable_host;
 mod durable_host_control;
-mod form_diagram;
-mod form_source;
 mod host_install;
 mod host_rendezvous;
 mod inspection;
 mod native_package_install;
+mod plot_diagram;
+mod plot_source;
 mod product_execution;
 #[cfg(test)]
 mod product_execution_tests;
@@ -101,14 +101,14 @@ fn run_with_placements(
     body_path: Option<&Path>,
     await_terminal: bool,
 ) -> Result<(), String> {
-    let source = form_source::load(Path::new(path))?;
-    let form = source.expand_entry()?;
+    let source = plot_source::load(Path::new(path))?;
+    let plot = source.expand_entry()?;
     let body_product = body_path.map(body_product::prepare).transpose()?;
     let mut context = match body_product {
         Some(product) => product.context,
         None => product_execution::ProductExecutionContext::local_std()?,
     };
-    let plan = context.plan(&form, placements_path)?;
+    let plan = context.plan(&plot, placements_path)?;
     let completion_policy = plan.completion_policy;
     let mut stdout = io::stdout().lock();
     let control = conduit_std_host::RunControl::default();
@@ -168,14 +168,14 @@ fn main() {
     let result = match command {
         None => enter_conduit(),
         Some(cli::Command::Run {
-            form,
+            plot,
             placements,
             report,
             artifacts,
             body,
             await_terminal,
         }) => run_with_placements(
-            &form.to_string_lossy(),
+            &plot.to_string_lossy(),
             placements.as_deref().map(Path::to_string_lossy).as_deref(),
             report.as_deref(),
             artifacts.as_deref(),
@@ -327,19 +327,19 @@ fn main() {
             cli::BodyCommand::Birth => enter_birth(),
             _ => unreachable!("durable Body operations are dispatched above"),
         },
-        Some(cli::Command::Check { form, json }) => match diagnostics::run(&form, json) {
+        Some(cli::Command::Check { plot, json }) => match diagnostics::run(&plot, json) {
             Ok(true) => Ok(()),
             Ok(false) => std::process::exit(1),
             Err(error) => Err(error),
         },
-        Some(cli::Command::Expand { form, json }) => {
-            source_expansion::run(&form, json).map(|rendered| print!("{rendered}"))
+        Some(cli::Command::Expand { plot, json }) => {
+            source_expansion::run(&plot, json).map(|rendered| print!("{rendered}"))
         }
         Some(cli::Command::Diagram {
-            form,
+            plot,
             format,
             output,
-        }) => form_diagram::run(&form, format, output.as_deref()),
+        }) => plot_diagram::run(&plot, format, output.as_deref()),
         Some(cli::Command::Inspect { thing }) => inspection::inspect(&thing).map(|rendered| {
             print!("{rendered}");
         }),

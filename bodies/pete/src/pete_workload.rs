@@ -1,22 +1,22 @@
-//! Reviewed ordinary form worksets for one durable Pete Body.
+//! Reviewed ordinary plot worksets for one durable Pete Body.
 
-use conduit_body::{BodyWorkset, BodyWorksetError, ResidentForm};
+use conduit_body::{BodyWorkset, BodyWorksetError, ResidentPlot};
 use conduit_core::{KindId, PortTemporal};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
 
-pub const PETE_SITUATION_FORM_SOURCE: &str =
-    include_str!("../../../forms/pete-situation/main.conduit");
-pub const PETE_MEMORY_FORM_SOURCE: &str = include_str!("../../../forms/pete-memory/main.conduit");
-pub const BOUNDED_TYPED_HISTORY_FORM_SOURCE: &str =
-    include_str!("../../../forms/bounded-typed-history/main.conduit");
-pub const HOUSE_CONVERSATION_FORM_SOURCE: &str =
-    include_str!("../../../forms/house-conversation/main.conduit");
-pub const BOUNDED_NAVIGATION_FORM_SOURCE: &str =
-    include_str!("../../../forms/bounded-navigation/main.conduit");
-pub const HOMEOSTASIS_FORM_SOURCE: &str = include_str!("../forms/homeostasis.conduit");
+pub const PETE_SITUATION_PLOT_SOURCE: &str =
+    include_str!("../../../plots/pete-situation/main.conduit");
+pub const PETE_MEMORY_PLOT_SOURCE: &str = include_str!("../../../plots/pete-memory/main.conduit");
+pub const BOUNDED_TYPED_HISTORY_PLOT_SOURCE: &str =
+    include_str!("../../../plots/bounded-typed-history/main.conduit");
+pub const HOUSE_CONVERSATION_PLOT_SOURCE: &str =
+    include_str!("../../../plots/house-conversation/main.conduit");
+pub const BOUNDED_NAVIGATION_PLOT_SOURCE: &str =
+    include_str!("../../../plots/bounded-navigation/main.conduit");
+pub const HOMEOSTASIS_PLOT_SOURCE: &str = include_str!("../plots/homeostasis.conduit");
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PeteWorkloadRole {
@@ -29,29 +29,29 @@ pub enum PeteWorkloadRole {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PeteResidentForm {
+pub struct PeteResidentPlot {
     pub role: PeteWorkloadRole,
-    pub form: ResidentForm,
+    pub plot: ResidentPlot,
     pub required_kinds: Vec<KindId>,
     pub may_request_motion: bool,
     /// Exact checked expansion supplied to ordinary planning; not a placement.
-    pub expanded: conduit_form::ExpandedCanonicalForm,
-    pub authoring: conduit_form::ExpandedAuthoringForm,
+    pub expanded: conduit_plot::ExpandedCanonicalPlot,
+    pub authoring: conduit_plot::ExpandedAuthoringPlot,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReviewedPeteWorkload {
     /// Safe non-actuating workload used at birth revision zero.
     pub initial: BodyWorkset,
-    /// The ordinary navigation Form is available for later explicit admission.
-    pub navigation: ResidentForm,
-    pub resident_forms: Vec<PeteResidentForm>,
+    /// The ordinary navigation Plot is available for later explicit admission.
+    pub navigation: ResidentPlot,
+    pub resident_plots: Vec<PeteResidentPlot>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PeteWorkloadRefusal {
     Catalog(String),
-    InvalidForm,
+    InvalidPlot,
     Workset(BodyWorksetError),
     MotionUnavailable,
     AuthorityAbsent,
@@ -80,8 +80,8 @@ impl ReviewedPeteWorkload {
         motion_authorized: bool,
     ) -> Result<BodyWorkset, PeteWorkloadRefusal> {
         match profile {
-            PeteWorkloadProfile::ObservationOnly => BodyWorkset::from_forms(
-                self.resident_forms
+            PeteWorkloadProfile::ObservationOnly => BodyWorkset::from_plots(
+                self.resident_plots
                     .iter()
                     .filter(|item| {
                         matches!(
@@ -92,7 +92,7 @@ impl ReviewedPeteWorkload {
                                 | PeteWorkloadRole::Homeostasis
                         )
                     })
-                    .map(|item| item.form.clone()),
+                    .map(|item| item.plot.clone()),
             )
             .map_err(PeteWorkloadRefusal::Workset),
             PeteWorkloadProfile::Conversational => Ok(self.initial.clone()),
@@ -113,43 +113,43 @@ pub fn reviewed_pete_workload() -> Result<ReviewedPeteWorkload, PeteWorkloadRefu
         (
             PeteWorkloadRole::Situation,
             "pete-situation",
-            PETE_SITUATION_FORM_SOURCE,
+            PETE_SITUATION_PLOT_SOURCE,
             false,
         ),
         (
             PeteWorkloadRole::AutobiographicalMemory,
             "pete-memory",
-            PETE_MEMORY_FORM_SOURCE,
+            PETE_MEMORY_PLOT_SOURCE,
             false,
         ),
         (
             PeteWorkloadRole::HistoricalIndex,
             "bounded-typed-history",
-            BOUNDED_TYPED_HISTORY_FORM_SOURCE,
+            BOUNDED_TYPED_HISTORY_PLOT_SOURCE,
             false,
         ),
         (
             PeteWorkloadRole::Conversation,
             "house-conversation",
-            HOUSE_CONVERSATION_FORM_SOURCE,
+            HOUSE_CONVERSATION_PLOT_SOURCE,
             false,
         ),
         (
             PeteWorkloadRole::Homeostasis,
             "pete-homeostasis",
-            HOMEOSTASIS_FORM_SOURCE,
+            HOMEOSTASIS_PLOT_SOURCE,
             false,
         ),
         (
             PeteWorkloadRole::Navigation,
             "bounded-navigation",
-            BOUNDED_NAVIGATION_FORM_SOURCE,
+            BOUNDED_NAVIGATION_PLOT_SOURCE,
             true,
         ),
     ];
-    let mut resident_forms = Vec::with_capacity(sources.len());
+    let mut resident_plots = Vec::with_capacity(sources.len());
     for (role, name, source, may_request_motion) in sources {
-        resident_forms.push(check_resident(
+        resident_plots.push(check_resident(
             &startup,
             &profile,
             role,
@@ -158,23 +158,23 @@ pub fn reviewed_pete_workload() -> Result<ReviewedPeteWorkload, PeteWorkloadRefu
             may_request_motion,
         )?);
     }
-    let navigation = resident_forms
+    let navigation = resident_plots
         .iter()
         .find(|resident| resident.role == PeteWorkloadRole::Navigation)
-        .ok_or(PeteWorkloadRefusal::InvalidForm)?
-        .form
+        .ok_or(PeteWorkloadRefusal::InvalidPlot)?
+        .plot
         .clone();
-    let initial = BodyWorkset::from_forms(
-        resident_forms
+    let initial = BodyWorkset::from_plots(
+        resident_plots
             .iter()
             .filter(|resident| !resident.may_request_motion)
-            .map(|resident| resident.form.clone()),
+            .map(|resident| resident.plot.clone()),
     )
     .map_err(PeteWorkloadRefusal::Workset)?;
     Ok(ReviewedPeteWorkload {
         initial,
         navigation,
-        resident_forms,
+        resident_plots,
     })
 }
 
@@ -185,22 +185,22 @@ fn check_resident(
     expected_name: &str,
     source: &str,
     may_request_motion: bool,
-) -> Result<PeteResidentForm, PeteWorkloadRefusal> {
+) -> Result<PeteResidentPlot, PeteWorkloadRefusal> {
     let parsed = parse_syntax_document(source);
     let checked = check_syntax_document(&parsed, startup).map_err(|error| {
         PeteWorkloadRefusal::Catalog(format!("check {expected_name}: {error:?}"))
     })?;
-    let [form] = checked.forms.as_slice() else {
-        return Err(PeteWorkloadRefusal::InvalidForm);
+    let [plot] = checked.plots.as_slice() else {
+        return Err(PeteWorkloadRefusal::InvalidPlot);
     };
-    if form.name != expected_name {
-        return Err(PeteWorkloadRefusal::InvalidForm);
+    if plot.name != expected_name {
+        return Err(PeteWorkloadRefusal::InvalidPlot);
     }
     let mut expansion_profile = profile.clone();
     for selector in checked
-        .forms
+        .plots
         .iter()
-        .flat_map(|form| &form.cords)
+        .flat_map(|plot| &plot.cords)
         .flat_map(|cord| &cord.stages)
         .filter_map(|stage| match stage {
             CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
@@ -216,7 +216,7 @@ fn check_resident(
                 PeteWorkloadRefusal::Catalog(format!("install {expected_name} selector: {error:?}"))
             })?;
     }
-    let expanded = expand_canonical_form_for_authoring(&checked, expected_name, &expansion_profile)
+    let expanded = expand_canonical_plot_for_authoring(&checked, expected_name, &expansion_profile)
         .map_err(|error| {
             PeteWorkloadRefusal::Catalog(format!("expand {expected_name}: {error:?}"))
         })?;
@@ -229,13 +229,13 @@ fn check_resident(
     required_kinds.sort();
     required_kinds.dedup();
     if required_kinds.is_empty() {
-        return Err(PeteWorkloadRefusal::InvalidForm);
+        return Err(PeteWorkloadRefusal::InvalidPlot);
     }
-    Ok(PeteResidentForm {
+    Ok(PeteResidentPlot {
         role,
-        form: ResidentForm::new(
+        plot: ResidentPlot::new(
             checked.source_document_id.clone(),
-            form.checked_form_id.clone(),
+            plot.checked_plot_id.clone(),
         ),
         required_kinds,
         may_request_motion,

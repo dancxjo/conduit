@@ -63,7 +63,7 @@ fn mutation_after_sealing_cannot_change_the_observed_situation() {
 }
 
 #[test]
-fn three_sealed_forms_mechanically_add_expression_then_narrow_effect_power() {
+fn three_sealed_plots_mechanically_add_expression_then_narrow_effect_power() {
     let plans = [graph_plan(0), graph_plan(1), graph_plan(2)];
     let views = plans
         .iter()
@@ -206,10 +206,10 @@ fn graph_plan(stage: usize) -> Plan {
             "llm/proposal-result@1",
         ));
     }
-    let identity = FormIdentity {
+    let identity = PlotIdentity {
         source_document_id: SourceDocumentId::from(format!("source/embodied/{stage}")),
-        checked_form_id: CheckedFormId::from(format!("checked/embodied/{stage}")),
-        expanded_form_id: ExpandedFormId::from(format!("expanded/embodied/{stage}")),
+        checked_plot_id: CheckedPlotId::from(format!("checked/embodied/{stage}")),
+        expanded_plot_id: ExpandedPlotId::from(format!("expanded/embodied/{stage}")),
     };
     seal_plan(
         identity,
@@ -218,8 +218,8 @@ fn graph_plan(stage: usize) -> Plan {
             plan_id: PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from(""),
-            checked_form_id: CheckedFormId::from(""),
-            expanded_form_id: ExpandedFormId::from(""),
+            checked_plot_id: CheckedPlotId::from(""),
+            expanded_plot_id: ExpandedPlotId::from(""),
             realization_backs: vec![],
             host_id: HostId::from("host/a"),
             boot_id: BootId::from("boot/a"),

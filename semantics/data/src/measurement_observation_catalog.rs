@@ -6,7 +6,7 @@ use conduit_core::{
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     QUANTITY_INFO_ID,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };

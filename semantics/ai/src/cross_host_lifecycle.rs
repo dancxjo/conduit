@@ -2,8 +2,8 @@
 
 use alloc::{collections::BTreeSet, string::String, vec::Vec};
 use conduit_core::{
-    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, BootId, CheckedFormId,
-    ExpandedFormId, HostId, ImplementationId, OfferGeneration, Plan, PlanId, SourceDocumentId,
+    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, BootId, CheckedPlotId,
+    ExpandedPlotId, HostId, ImplementationId, OfferGeneration, Plan, PlanId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,8 +20,8 @@ pub struct LlmRealizationPart {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CrossHostLlmRun {
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub checked_plot_id: CheckedPlotId,
+    pub expanded_plot_id: ExpandedPlotId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub request_id: String,
@@ -49,7 +49,7 @@ pub enum CrossHostLlmError {
     NotCrossHost,
     InvalidBound,
     InvalidIdentity,
-    FormChanged,
+    PlotChanged,
     PlanReused,
     PlayReused,
     RealizationTruthNotFresh,
@@ -125,8 +125,8 @@ impl CrossHostLlmRun {
         }
         Ok(Self {
             source_document_id: plan.source_document_id.clone(),
-            checked_form_id: plan.checked_form_id.clone(),
-            expanded_form_id: plan.expanded_form_id.clone(),
+            checked_plot_id: plan.checked_plot_id.clone(),
+            expanded_plot_id: plan.expanded_plot_id.clone(),
             plan_id: plan.plan_id.clone(),
             active_play_id: play.active_play_id.clone(),
             request_id,
@@ -149,14 +149,14 @@ impl ReplacementLlmRun {
         let old = &interrupted.run;
         if (
             old.source_document_id.clone(),
-            old.checked_form_id.clone(),
-            old.expanded_form_id.clone(),
+            old.checked_plot_id.clone(),
+            old.expanded_plot_id.clone(),
         ) != (
             current.source_document_id.clone(),
-            current.checked_form_id.clone(),
-            current.expanded_form_id.clone(),
+            current.checked_plot_id.clone(),
+            current.expanded_plot_id.clone(),
         ) {
-            return Err(CrossHostLlmError::FormChanged);
+            return Err(CrossHostLlmError::PlotChanged);
         }
         if old.plan_id == current.plan_id {
             return Err(CrossHostLlmError::PlanReused);

@@ -28,7 +28,7 @@ pub(super) static FILTER_INSTALLATION: BrowserInstallation = BrowserInstallation
 };
 
 pub(crate) struct PreparedExpression {
-    evaluator: conduit_form::PreparedPortableExpressionEvaluator,
+    evaluator: conduit_plot::PreparedPortableExpressionEvaluator,
     filter_output: Option<PreparedFilterOutput>,
 }
 
@@ -48,7 +48,7 @@ impl PreparedExpression {
         let program = program_from_placement(placement)?;
         validate(placement, &program)?;
         let filter_output = if placement.kind_contract_revision.as_str()
-            == conduit_form::PURE_FILTER_REVISION
+            == conduit_plot::PURE_FILTER_REVISION
         {
             Some(match placement.inputs[0].temporal {
                 PortTemporal::Value => PreparedFilterOutput::Value(
@@ -66,7 +66,7 @@ impl PreparedExpression {
             None
         };
         Ok(Some(Self {
-            evaluator: conduit_form::PreparedPortableExpressionEvaluator::new(&program)
+            evaluator: conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
                 .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
             filter_output,
         }))
@@ -108,7 +108,7 @@ impl PreparedExpression {
 }
 
 pub(crate) fn offer(
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<CapabilityOffer, String> {
     let contract = conduit_semantic_catalog::pure_expression_contract(program, temporal)
@@ -122,7 +122,7 @@ pub(crate) fn offer(
                 "browser/pure-expression-kernel-hosted@1",
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-form/pure-expression@1"),
+            artifact_id: ArtifactId::from("conduit-plot/pure-expression@1"),
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target),
@@ -138,7 +138,7 @@ pub(crate) fn offer(
 }
 
 pub(crate) fn filter_offer(
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<CapabilityOffer, String> {
     let contract = conduit_semantic_catalog::pure_filter_contract(program, temporal)
@@ -150,7 +150,7 @@ pub(crate) fn filter_offer(
             capability_id: CapabilityId::from(format!("browser/{}", target.as_str())),
             execution_profile_id: ExecutionProfileId::from("browser/pure-filter-kernel-hosted@1"),
             implementation_id: ImplementationId::from(FILTER_IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-form/pure-filter@1"),
+            artifact_id: ArtifactId::from("conduit-plot/pure-filter@1"),
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from(FILTER_HOST_CALL),
                 target_kind: Some(target),
@@ -176,7 +176,7 @@ pub(crate) fn offer_for_placement(
     }
     let program = program_from_placement(placement)?;
     validate(placement, &program)?;
-    let exact = if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+    let exact = if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
         filter_offer(&program, placement.inputs[0].temporal)?
     } else {
         offer(&program, placement.inputs[0].temporal)?
@@ -189,33 +189,33 @@ pub(crate) fn offer_for_placement(
 
 pub(crate) fn program_from_configuration(
     configuration: &[conduit_core::ConfigurationEntry],
-) -> Result<conduit_form::PortableExpressionProgram, String> {
+) -> Result<conduit_plot::PortableExpressionProgram, String> {
     let [entry] = configuration else {
         return Err("pure expression requires one exact configuration".into());
     };
     let ("program", ConfigurationValue::Text(encoded)) = (entry.key.as_str(), &entry.value) else {
         return Err("pure expression configuration is malformed".into());
     };
-    conduit_form::PortableExpressionProgram::from_canonical_hex(encoded)
+    conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded)
         .map_err(|error| format!("pure expression configuration: {error:?}"))
 }
 
 fn program_from_placement(
     placement: &PlannedGear,
-) -> Result<conduit_form::PortableExpressionProgram, String> {
+) -> Result<conduit_plot::PortableExpressionProgram, String> {
     program_from_configuration(&placement.configuration)
 }
 
 fn validate(
     placement: &PlannedGear,
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
 ) -> Result<(), String> {
     let temporal = placement
         .inputs
         .first()
         .map(|port| port.temporal)
         .ok_or("pure expression input is absent")?;
-    let exact = if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+    let exact = if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
         filter_offer(program, temporal)?
     } else {
         offer(program, temporal)?
@@ -237,7 +237,7 @@ fn validate(
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let program = program_from_placement(placement)?;
     validate(placement, &program)?;
-    if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+    if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
         Ok(BrowserBack::installed_step(
             conduit_semantic_catalog::StructuredSelectorBack::new(
                 MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -252,14 +252,14 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserB
     }
 }
 
-fn failure(refusal: conduit_form::PortableExpressionEvaluationRefusal) -> Failure {
+fn failure(refusal: conduit_plot::PortableExpressionEvaluationRefusal) -> Failure {
     let detail = match refusal {
-        conduit_form::PortableExpressionEvaluationRefusal::InvalidInput => 1,
-        conduit_form::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
-        conduit_form::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
-        conduit_form::PortableExpressionEvaluationRefusal::Arithmetic => 4,
-        conduit_form::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
-        conduit_form::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
+        conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput => 1,
+        conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
+        conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
+        conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic => 4,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
     };
     Failure {
         code: FailureCode::InvalidInput,

@@ -101,11 +101,11 @@ fn plan_retains_the_exact_non_authored_window_specialization() {
         PortDirection::Input,
         &window,
     );
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     for kind in [&source, &sink] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.kind_id.as_str().into(),
                 startup_parameters: Vec::new(),
             })
@@ -119,12 +119,12 @@ fn plan_retains_the_exact_non_authored_window_specialization() {
         &mut profile,
     )
     .unwrap();
-    let syntax = conduit_form::parse_syntax_document(
-        "form windowed-text {\n source: test/window-text-source\n window: time/window(duration-ms = 5ms)\n sink: test/window-text-sink\n source.out >> window.value\n window.window >> sink.in\n}.\n",
+    let syntax = conduit_plot::parse_syntax_document(
+        "plot windowed-text {\n source: test/window-text-source\n window: time/window(duration-ms = 5ms)\n sink: test/window-text-sink\n source.out >> window.value\n window.window >> sink.in\n}.\n",
     );
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "windowed-text", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "windowed-text", &profile).unwrap();
 
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,

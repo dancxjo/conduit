@@ -15,8 +15,8 @@ pub(super) fn prepare(
     let parts = &prepared.lowered.partitions;
     let count = parts.len();
     if count == 0
-        || count > FORMS
-        || count != prepared.plan.forms.len()
+        || count > PLOTS
+        || count != prepared.plan.plots.len()
         || usize::from(prepared.lowered.nodes) > NODES
         || usize::from(prepared.lowered.cords) > CORDS
     {
@@ -28,8 +28,8 @@ pub(super) fn prepare(
     let mut bindings = [None; NODES];
     let mut editors = core::array::from_fn(|_| None);
     let mut operations = Vec::with_capacity(NODES);
-    for (form, part) in parts.iter().enumerate() {
-        let fragment = &prepared.plan.forms[form].plan.fragments[0];
+    for (plot, part) in parts.iter().enumerate() {
+        let fragment = &prepared.plan.plots[plot].plan.fragments[0];
         if part.identity.plan_id != fragment.plan_id
             || part.identity.fragment_id != fragment.fragment_id
             || part.nodes.len() != fragment.placements.len()
@@ -100,10 +100,10 @@ pub(super) fn prepare(
                             _ => None,
                         })
                         .ok_or(WorksetRefusal::Plan)?;
-                    if editors[form].is_some() {
+                    if editors[plot].is_some() {
                         return Err(WorksetRefusal::Plan);
                     }
-                    editors[form] = Some(
+                    editors[plot] = Some(
                         BoundedTextState::new(
                             conduit_semantic_catalog::TextStateMode::Edit,
                             maximum,
@@ -127,7 +127,7 @@ pub(super) fn prepare(
                 _ => return Err(WorksetRefusal::Capability),
             };
             bindings[operations.len()] = Some(Binding {
-                form: form as u8,
+                plot: plot as u8,
                 effect,
             });
             operations.push(operation);
@@ -193,8 +193,8 @@ pub(super) fn prepare(
     )
     .map_err(|_| WorksetRefusal::Kernel)?;
     let mut applications = core::array::from_fn(|_| None);
-    for (form, application) in applications.iter_mut().enumerate().take(count) {
-        let planned = &prepared.plan.forms[form];
+    for (plot, application) in applications.iter_mut().enumerate().take(count) {
+        let planned = &prepared.plan.plots[plot];
         if !planned.plan.fragments[0]
             .placements
             .iter()
@@ -205,12 +205,12 @@ pub(super) fn prepare(
         {
             continue;
         }
-        *application = Some(match super::super::resolve(&planned.form)? {
-            super::super::NativeForm::Tour => NativeApplication::Tour(Box::new(
+        *application = Some(match super::super::resolve(&planned.plot)? {
+            super::super::NativePlot::Tour => NativeApplication::Tour(Box::new(
                 conduit_tour_model::TourApplicationPort::canonical(),
             )),
-            super::super::NativeForm::Patchbay => NativeApplication::Patchbay(
-                super::super::application_delivery::PatchbayTargets::prepare(prepared, form)?,
+            super::super::NativePlot::Patchbay => NativeApplication::Patchbay(
+                super::super::application_delivery::PatchbayTargets::prepare(prepared, plot)?,
             ),
             _ => return Err(WorksetRefusal::Plan),
         });
@@ -220,14 +220,14 @@ pub(super) fn prepare(
         bindings,
         keymaps: core::array::from_fn(|_| ConduitIntlKeymap::new()),
         editors,
-        pending: [None; FORMS],
+        pending: [None; PLOTS],
         held: [None; 256],
-        presentations: [None; FORMS],
+        presentations: [None; PLOTS],
         application_views: core::array::from_fn(|_| None),
         applications,
         application_requests: core::array::from_fn(|_| None),
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
-        form_count: count,
+        plot_count: count,
         cancelled: false,
     })
 }

@@ -1,0 +1,12 @@
+# Portable Plot Library meaning. Rust consumes generated bindings.
+
+type LibraryAvailability =
+    available
+    | needs_capability {
+        reason: Text <= 512B not in [""]
+    }
+
+type LibraryRefusal =
+    invalid_inventory
+    | search_bound
+    | presentation

@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
-    FullWindowPolicyCode, MeasurementRange, MeasurementSample, MeasurementWindowProfile,
+    FullWindowPolicyForm, MeasurementRange, MeasurementSample, MeasurementWindowProfile,
     MeasurementWireRefusal, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
@@ -19,10 +19,8 @@ pub fn encode_measurement_window_profile(
         .map_err(|_| MeasurementWireRefusal::InvalidWindow)?;
     let mut bytes = Vec::with_capacity(64 + profile.clock_basis.len());
     bytes.push(1);
-    bytes.push(
-        u8::try_from(profile.capacity).map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
-    );
-    bytes.extend_from_slice(&FullWindowPolicyCode::encode(profile.full_policy));
+    bytes.push(profile.capacity);
+    bytes.extend_from_slice(&FullWindowPolicyForm::encode(profile.full_policy));
     bytes.extend_from_slice(&profile.range.minimum.encode());
     bytes.extend_from_slice(&profile.range.maximum.encode());
     put_text(&mut bytes, &profile.clock_basis)?;
@@ -42,17 +40,16 @@ pub fn decode_measurement_window_profile(
     if input.u8()? != 1 {
         return Err(MeasurementWireRefusal::UnsupportedVersion);
     }
-    let capacity = usize::from(input.u8()?);
-    if capacity == 0 || capacity > MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
+    let capacity = input.u8()?;
+    if capacity == 0 || usize::from(capacity) > MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
-    let full_policy = FullWindowPolicyCode::decode(&[input.u8()?])
+    let full_policy = FullWindowPolicyForm::decode(&[input.u8()?])
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
     let minimum = input.quantity()?;
     let maximum = input.quantity()?;
     let profile = MeasurementWindowProfile {
         capacity,
-        unit: minimum.unit(),
         range: MeasurementRange { minimum, maximum },
         clock_basis: input.text()?,
         full_policy,
@@ -78,7 +75,7 @@ pub fn encode_measurement_sample(
     }) {
         return Err(MeasurementWireRefusal::Malformed);
     }
-    let mut bytes = Vec::with_capacity(64 + sample.observed_at.clock_basis.len());
+    let mut bytes = Vec::with_capacity(64 + sample.observed_at.clock_basis().len());
     bytes.push(1);
     bytes.extend_from_slice(&sample.value.encode());
     put_instant(&mut bytes, &sample.observed_at)?;
@@ -106,7 +103,10 @@ pub fn decode_measurement_sample(
         return Err(MeasurementWireRefusal::UnsupportedVersion);
     }
     let value = input.quantity()?;
-    let observed_at = input.instant()?;
+    let observed_at = input
+        .instant()?
+        .try_into()
+        .map_err(|_| MeasurementWireRefusal::Malformed)?;
     let uncertainty = match input.u8()? {
         0 => None,
         1 => Some(input.quantity()?),
@@ -134,18 +134,18 @@ fn put_text(output: &mut Vec<u8>, value: &str) -> Result<(), MeasurementWireRefu
 
 fn put_instant(
     output: &mut Vec<u8>,
-    instant: &TemporalInstant,
+    instant: &conduit_time::NativeTemporalInstant,
 ) -> Result<(), MeasurementWireRefusal> {
-    output.extend_from_slice(&instant.ticks.to_le_bytes());
-    output.push(match instant.scale {
-        TemporalScale::Seconds => 0,
-        TemporalScale::Milliseconds => 1,
-        TemporalScale::Microseconds => 2,
-        TemporalScale::Nanoseconds => 3,
+    output.extend_from_slice(&instant.ticks().to_le_bytes());
+    output.push(match instant.scale() {
+        conduit_time::NativeTemporalScale::Seconds => 0,
+        conduit_time::NativeTemporalScale::Milliseconds => 1,
+        conduit_time::NativeTemporalScale::Microseconds => 2,
+        conduit_time::NativeTemporalScale::Nanoseconds => 3,
     });
-    put_text(output, &instant.clock_basis)?;
-    output.extend_from_slice(&instant.resolution_ticks.to_le_bytes());
-    output.extend_from_slice(&instant.uncertainty_ticks.to_le_bytes());
+    put_text(output, instant.clock_basis())?;
+    output.extend_from_slice(&instant.resolution_ticks().to_le_bytes());
+    output.extend_from_slice(&instant.uncertainty_ticks().to_le_bytes());
     Ok(())
 }
 
@@ -226,7 +226,6 @@ mod tests {
     fn profile_and_sample_payloads_round_trip_without_host_defaults() {
         let profile = MeasurementWindowProfile {
             capacity: 8,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(-100, QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, QuantityUnit::Millivolt),
@@ -248,7 +247,9 @@ mod tests {
                 clock_basis: "source-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
+            }
+            .try_into()
+            .unwrap(),
             uncertainty: Some(Quantity::new(1, QuantityUnit::Millivolt)),
         };
         assert_eq!(

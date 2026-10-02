@@ -7,8 +7,8 @@ edition = "2021"
 conduit-core = { path = "../../architecture/core" }
 conduit-data = { path = "../data" }
 conduit-time = { path = "../time", default-features = false }
-conduit-form = { path = "../../architecture/form" }
-conduit-web = { path = "../web", optional = true, default-features = false, features = ["form-catalog"] }
+conduit-plot = { path = "../../architecture/plot" }
+conduit-web = { path = "../web", optional = true, default-features = false, features = ["plot-catalog"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 libm = "0.2"
@@ -16,11 +16,11 @@ sha2 = { version = "0.10", default-features = false }
 
 [features]
 default = []
-form-catalog = ["dep:conduit-web"]
+plot-catalog = ["dep:conduit-web"]
 
 [dev-dependencies]
-conduit-semantic-catalog = { path = "../catalog", features = ["form-catalog"] }
-conduit-form = { path = "../../architecture/form" }
+conduit-semantic-catalog = { path = "../catalog", features = ["plot-catalog"] }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-signal = { path = "../signal", features = ["host-profile"] }
@@ -29,4 +29,5 @@ conduit-presentation = { path = "../presentation" }
 postcard = { version = "1", features = ["alloc"] }
 
 [build-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-data = { path = "../data" }
+conduit-plot = { path = "../../architecture/plot" }

@@ -1,7 +1,7 @@
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
@@ -371,16 +371,16 @@ pub fn time_window_semantic_contract(
     })
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_time_window_kind(
     value: &CheckedValueContract,
     maximum_items: u16,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: TIME_WINDOW_KIND.to_string(),
-        startup_parameters: vec![conduit_form::StartupParameterSignature {
+        startup_parameters: vec![conduit_plot::StartupParameterSignature {
             name: "duration-ms".into(),
             value_type: "Duration".into(),
             default: Some("100ms".into()),
@@ -391,13 +391,13 @@ pub fn install_time_window_kind(
         .map_err(|error| error.to_string())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_time_sample_kind(
     value: &CheckedValueContract,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: TIME_SAMPLE_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
@@ -423,12 +423,12 @@ fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_timing_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
 
     for contract in [
         time_debounce_contract(),
@@ -518,11 +518,11 @@ fn limits() -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn configuration_source(field: &KindConfigurationField) -> alloc::string::String {
     match (&*field.key, &field.default_value) {
         (_, ConfigurationValue::Quantity(value)) => {
-            alloc::format!("{}{}", value.value(), value.unit().form_suffix())
+            alloc::format!("{}{}", value.value(), value.unit().plot_suffix())
         }
         (_, ConfigurationValue::U64(value)) => value.to_string(),
         (_, ConfigurationValue::Text(value)) => alloc::format!("\"{value}\""),
@@ -594,7 +594,7 @@ mod tests {
     }
 
     #[test]
-    fn authored_sample_form_expands_with_the_non_authored_exact_specialization() {
+    fn authored_sample_plot_expands_with_the_non_authored_exact_specialization() {
         let text = CheckedValueContract::new(kind_id("value/text"), 73, Vec::new()).unwrap();
         let source = Kind {
             startup_parameters: Vec::new(),
@@ -644,17 +644,17 @@ mod tests {
                 max_queue_bytes: text.maximum_bytes,
             },
         };
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
         for kind in [&source, &sink] {
             startup
-                .insert(conduit_form::KindSignature {
+                .insert(conduit_plot::KindSignature {
                     kind: kind.kind_id.as_str().to_string(),
                     startup_parameters: kind
                         .startup_parameters
                         .iter()
-                        .map(|parameter| conduit_form::StartupParameterSignature {
+                        .map(|parameter| conduit_plot::StartupParameterSignature {
                             name: parameter.name.clone(),
                             value_type: parameter.value_type.as_str().to_string(),
                             default: None,
@@ -665,12 +665,12 @@ mod tests {
             profile.insert_kind((*kind).clone()).unwrap();
         }
         install_time_sample_kind(&text, &mut startup, &mut profile).unwrap();
-        let syntax = conduit_form::parse_syntax_document(
-            "form sampled-text {\n values: test/text-flow-source\n cadence: time/tick(count = 2, period-ms = 1)\n sampler: time/sample\n sink: test/text-flow-sink\n values.out >> sampler.value\n cadence.tick >> sampler.cadence\n sampler.sample >> sink.in\n}.\n",
+        let syntax = conduit_plot::parse_syntax_document(
+            "plot sampled-text {\n values: test/text-flow-source\n cadence: time/tick(count = 2, period-ms = 1)\n sampler: time/sample\n sink: test/text-flow-sink\n values.out >> sampler.value\n cadence.tick >> sampler.cadence\n sampler.sample >> sink.in\n}.\n",
         );
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
         let expanded =
-            conduit_form::expand_canonical_form(&checked, "sampled-text", &profile).unwrap();
+            conduit_plot::expand_canonical_plot(&checked, "sampled-text", &profile).unwrap();
         let gear = expanded
             .gears
             .iter()

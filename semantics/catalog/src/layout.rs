@@ -3,7 +3,7 @@
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
@@ -185,12 +185,12 @@ fn viewport_fields() -> Vec<KindConfigurationField> {
     ]
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_layout_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     for contract in [
         layout_viewport_contract(),
         layout_inset_contract(),

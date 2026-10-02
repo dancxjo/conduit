@@ -4,7 +4,7 @@ use conduit_body::{
 };
 use conduit_core::{
     compute_reservation, compute_resource_offer, compute_resource_requirement, resource_offer,
-    resource_requirement, ArchitectureBaseId, ArchitectureBaseKind, BootId, CheckedFormId,
+    resource_requirement, ArchitectureBaseId, ArchitectureBaseKind, BootId, CheckedPlotId,
     ComputeDomainId, ComputePerformanceClassId, ComputePoolContract, ComputeServiceGuarantee,
     ComputeTopologyGroup, ComputeTopologyGroupId, ComputeTopologyRequirement, HostAdvertisement,
     HostId, HostProfileId, OfferGeneration, ResourceBinding, ResourceHealth, ResourceObservation,
@@ -14,7 +14,7 @@ use conduit_core::{
 fn body_and_part() -> (conduit_body::BodyId, PartId) {
     let body = Body::born(
         SourceDocumentId::from("source"),
-        CheckedFormId::from("checked"),
+        CheckedPlotId::from("checked"),
         1,
         SignId::from("born"),
     )

@@ -18,17 +18,19 @@ fn timeline() -> BoundedHistoricalTimeline {
 }
 
 fn append(identity: &str, ticks: u64, seed: u8) -> HistoricalTimelineCommand {
-    HistoricalTimelineCommand::Append {
-        identity: identity.into(),
-        event_time: TemporalInstant {
+    HistoricalTimelineCommand::append(
+        TemporalInstant {
             ticks,
             scale: TemporalScale::Milliseconds,
             clock_basis: "bench/event-clock".into(),
             resolution_ticks: 1,
             uncertainty_ticks: 0,
-        },
-        origin: HistoricalEntryOrigin::MachineObservation,
-        value: BoundedResourceRef {
+        }
+        .try_into()
+        .unwrap(),
+        identity.into(),
+        HistoricalEntryOrigin::MachineObservation,
+        BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest([seed; 32]),
             content_profile: kind_id("bench/observation@1"),
             access_class: ResourceClassId::from("conduit.resource/history-value@1"),
@@ -41,7 +43,8 @@ fn append(identity: &str, ticks: u64, seed: u8) -> HistoricalTimelineCommand {
                 expires_at: None,
             },
         },
-    }
+    )
+    .unwrap()
 }
 
 fn encode(command: &HistoricalTimelineCommand) -> Vec<u8> {
@@ -61,18 +64,18 @@ fn encoded_commands_emit_complete_canonical_history_snapshots() {
         .unwrap();
     assert_eq!(
         appended.outcome,
-        HistoricalTimelineOutcome::Appended { sequence: 10 }
+        HistoricalTimelineOutcome::appended(10).unwrap()
     );
     let restored = decode_historical_timeline(&snapshot[..appended.timeline_bytes]).unwrap();
     assert_eq!(restored.entry(0), operation.timeline().entry(0));
     assert_eq!(restored.entry(0).unwrap().identity, "observation/a");
 
     let cleared = operation
-        .apply_command(&encode(&HistoricalTimelineCommand::Clear), &mut snapshot)
+        .apply_command(&encode(&HistoricalTimelineCommand::clear()), &mut snapshot)
         .unwrap();
     assert_eq!(
         cleared.outcome,
-        HistoricalTimelineOutcome::Cleared { revision: 1 }
+        HistoricalTimelineOutcome::cleared(1).unwrap()
     );
     let restored = decode_historical_timeline(&snapshot[..cleared.timeline_bytes]).unwrap();
     assert!(restored.is_empty());

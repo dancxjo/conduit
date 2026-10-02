@@ -21,7 +21,7 @@ const RANGES: &[(u32, u32)] = &[
 
 // The shared naming source is data, not a second list of transliterations.
 // Its module syntax is ASCII and is already included by the base ranges.
-const NAMING_CATALOG: &str = include_str!("../../../../forms/birth/names/catalog.mjs");
+const NAMING_CATALOG: &str = include_str!("../../../../plots/birth/names/catalog.mjs");
 
 pub fn run(args: UnifontSubsetArgs) -> Result<(), Box<dyn std::error::Error>> {
     let input = File::open(&args.input)?;

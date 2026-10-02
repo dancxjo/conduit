@@ -1,32 +1,32 @@
 use conduit_body::{
-    Body, BodyFormPlan, BodyLifecycleError, BodyPlan, BodyPlanError, BodyPlayIdentity,
-    ResidentForm, WakeLifecycle,
+    Body, BodyLifecycleError, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyPlotPlan,
+    ResidentPlot, WakeLifecycle,
 };
 use conduit_core::{
-    seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, Plan, PlanId, SignId, SourceDocumentId,
+    seal_plan, CheckedPlotId, ExpandedPlotId, Plan, PlanId, PlotIdentity, SignId, SourceDocumentId,
 };
 
-fn resident(name: &str) -> ResidentForm {
-    ResidentForm::new(
+fn resident(name: &str) -> ResidentPlot {
+    ResidentPlot::new(
         SourceDocumentId::from(format!("source/{name}")),
-        CheckedFormId::from(format!("checked/{name}")),
+        CheckedPlotId::from(format!("checked/{name}")),
     )
 }
 
-fn plan(form: &ResidentForm, expansion: &str) -> Plan {
+fn plan(plot: &ResidentPlot, expansion: &str) -> Plan {
     seal_plan(
-        FormIdentity {
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
-            expanded_form_id: ExpandedFormId::from(format!("expanded/{expansion}")),
+        PlotIdentity {
+            source_document_id: plot.source_document_id.clone(),
+            checked_plot_id: plot.checked_plot_id.clone(),
+            expanded_plot_id: ExpandedPlotId::from(format!("expanded/{expansion}")),
         },
         vec![],
     )
 }
 
-fn two_form_wake() -> conduit_body::Wake {
-    let body = Body::born_with_forms(
-        conduit_body::BodyWorkset::from_forms([resident("dashboard"), resident("service")])
+fn two_plot_wake() -> conduit_body::Wake {
+    let body = Body::born_with_plots(
+        conduit_body::BodyWorkset::from_plots([resident("dashboard"), resident("service")])
             .unwrap(),
         1,
         SignId::from("sign/born"),
@@ -36,26 +36,26 @@ fn two_form_wake() -> conduit_body::Wake {
 }
 
 #[test]
-fn one_body_plan_and_one_play_cover_two_exact_forms() {
-    let wake = two_form_wake();
+fn one_body_plan_and_one_play_cover_two_exact_plots() {
+    let wake = two_plot_wake();
     let dashboard = resident("dashboard");
     let service = resident("service");
     let body_plan = BodyPlan::seal(
         &wake,
         vec![
-            BodyFormPlan {
-                form: service.clone(),
+            BodyPlotPlan {
+                plot: service.clone(),
                 plan: plan(&service, "service"),
             },
-            BodyFormPlan {
-                form: dashboard.clone(),
+            BodyPlotPlan {
+                plot: dashboard.clone(),
                 plan: plan(&dashboard, "dashboard"),
             },
         ],
     )
     .unwrap();
-    assert_eq!(body_plan.forms[0].form, dashboard);
-    assert_eq!(body_plan.forms[1].form, service);
+    assert_eq!(body_plan.plots[0].plot, dashboard);
+    assert_eq!(body_plan.plots[1].plot, service);
     assert_eq!(body_plan.verify_seal(), Ok(()));
     let mut forged = body_plan.clone();
     forged.plan_id = PlanId::from("body-plan/forged");
@@ -82,45 +82,45 @@ fn one_body_plan_and_one_play_cover_two_exact_forms() {
 
 #[test]
 fn body_plan_requires_the_complete_current_workset_exactly_once() {
-    let wake = two_form_wake();
+    let wake = two_plot_wake();
     let dashboard = resident("dashboard");
     let service = resident("service");
-    let dashboard_partition = BodyFormPlan {
-        form: dashboard.clone(),
+    let dashboard_partition = BodyPlotPlan {
+        plot: dashboard.clone(),
         plan: plan(&dashboard, "dashboard"),
     };
     assert_eq!(
         BodyPlan::seal(&wake, vec![dashboard_partition.clone()]),
-        Err(BodyPlanError::MissingForm)
+        Err(BodyPlanError::MissingPlot)
     );
     assert_eq!(
         BodyPlan::seal(
             &wake,
             vec![dashboard_partition.clone(), dashboard_partition]
         ),
-        Err(BodyPlanError::DuplicateForm)
+        Err(BodyPlanError::DuplicatePlot)
     );
     let unowned = resident("unowned");
     assert_eq!(
         BodyPlan::seal(
             &wake,
             vec![
-                BodyFormPlan {
-                    form: dashboard.clone(),
+                BodyPlotPlan {
+                    plot: dashboard.clone(),
                     plan: plan(&dashboard, "dashboard"),
                 },
-                BodyFormPlan {
-                    form: unowned.clone(),
+                BodyPlotPlan {
+                    plot: unowned.clone(),
                     plan: plan(&unowned, "unowned"),
                 },
             ],
         ),
-        Err(BodyPlanError::UnexpectedForm)
+        Err(BodyPlanError::UnexpectedPlot)
     );
 
     let only_service = Body::born(
         service.source_document_id.clone(),
-        service.checked_form_id.clone(),
+        service.checked_plot_id.clone(),
         9,
         SignId::from("sign/other-born"),
     )
@@ -130,8 +130,8 @@ fn body_plan_requires_the_complete_current_workset_exactly_once() {
     .1;
     let stale = BodyPlan::seal(
         &only_service,
-        vec![BodyFormPlan {
-            form: service.clone(),
+        vec![BodyPlotPlan {
+            plot: service.clone(),
             plan: plan(&service, "service"),
         }],
     )
@@ -145,14 +145,14 @@ fn legacy_single_plan_validation_uses_current_workset_not_seed_provenance() {
     let replacement = resident("replacement");
     let body = Body::born(
         seed.source_document_id,
-        seed.checked_form_id,
+        seed.checked_plot_id,
         1,
         SignId::from("sign/born"),
     )
     .unwrap()
-    .remove_form(&resident("seed"), SignId::from("sign/remove-seed"))
+    .remove_plot(&resident("seed"), SignId::from("sign/remove-seed"))
     .unwrap()
-    .admit_form(replacement.clone(), SignId::from("sign/add-replacement"))
+    .admit_plot(replacement.clone(), SignId::from("sign/add-replacement"))
     .unwrap();
     let wake = body.wake(1, SignId::from("sign/woke")).unwrap().1;
     wake.plan_ready(
@@ -168,24 +168,24 @@ fn workload_change_replaces_the_plan_and_play_without_replacing_the_wake() {
     let service = resident("service");
     let (awake_body, wake) = Body::born(
         seed.source_document_id.clone(),
-        seed.checked_form_id.clone(),
+        seed.checked_plot_id.clone(),
         1,
         SignId::from("sign/born"),
     )
     .unwrap()
-    .admit_form(service.clone(), SignId::from("sign/admit-service"))
+    .admit_plot(service.clone(), SignId::from("sign/admit-service"))
     .unwrap()
     .wake(1, SignId::from("sign/woke"))
     .unwrap();
     let initial_plan = BodyPlan::seal(
         &wake,
         vec![
-            BodyFormPlan {
-                form: seed.clone(),
+            BodyPlotPlan {
+                plot: seed.clone(),
                 plan: plan(&seed, "dashboard"),
             },
-            BodyFormPlan {
-                form: service.clone(),
+            BodyPlotPlan {
+                plot: service.clone(),
                 plan: plan(&service, "service"),
             },
         ],
@@ -204,7 +204,7 @@ fn workload_change_replaces_the_plan_and_play_without_replacing_the_wake() {
 
     let recorder = resident("recorder");
     let changed_body = awake_body
-        .admit_form(recorder.clone(), SignId::from("sign/admit-recorder"))
+        .admit_plot(recorder.clone(), SignId::from("sign/admit-recorder"))
         .unwrap();
     let changed = playing
         .workload_changed(&changed_body, SignId::from("sign/workload-changed"))
@@ -219,16 +219,16 @@ fn workload_change_replaces_the_plan_and_play_without_replacing_the_wake() {
     let replacement = BodyPlan::seal(
         &changed,
         vec![
-            BodyFormPlan {
-                form: seed.clone(),
+            BodyPlotPlan {
+                plot: seed.clone(),
                 plan: plan(&seed, "dashboard-2"),
             },
-            BodyFormPlan {
-                form: service.clone(),
+            BodyPlotPlan {
+                plot: service.clone(),
                 plan: plan(&service, "service-2"),
             },
-            BodyFormPlan {
-                form: recorder.clone(),
+            BodyPlotPlan {
+                plot: recorder.clone(),
                 plan: plan(&recorder, "recorder"),
             },
         ],

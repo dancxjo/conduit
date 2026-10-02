@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::ImageTextMetadata;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn image_text_metadata_round_trips_exact_text_boundaries() {

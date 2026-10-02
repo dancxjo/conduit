@@ -1,8 +1,7 @@
-//! Minimal compiler boundary for the repository-owned CI impact planner.
+//! Dependency-light entrance for repository CI and build setup.
 //!
-//! `cargo xtask ci` dispatches here so planning and attestation do not compile
-//! unrelated hardware, product, and proof orchestration. The planner and shard
-//! metadata remain the exact source files used by the full xtask binary.
+//! `cargo xtask ci` dispatches here without compiling unrelated hardware and
+//! product orchestration. Unit shard metadata is shared with the full xtask.
 
 #[cfg(feature = "host-release")]
 use std::path::PathBuf;
@@ -89,21 +88,13 @@ pub mod suite_workspace_shards;
 
 mod suites {
     pub use crate::suite_check as check;
+    #[cfg(test)]
     pub use crate::suite_network_capability as network_capability;
+    #[cfg(test)]
     pub use crate::suite_pico_compositions as pico_compositions;
     pub use crate::suite_workspace_shards as workspace_shards;
 }
 
-#[path = "../../xtask/src/commands/ci/impact.rs"]
-mod impact;
-#[path = "../../xtask/src/commands/ci/integration.rs"]
-mod integration;
-#[path = "../../xtask/src/commands/ci/monitor.rs"]
-mod monitor;
-#[path = "../../xtask/src/commands/ci/product_reconciliation.rs"]
-mod product_reconciliation;
-#[path = "../../xtask/src/commands/ci/proof_graph.rs"]
-mod proof_graph;
 #[path = "../../xtask/src/commands/ci/rust_toolchain.rs"]
 mod rust_toolchain;
 #[path = "../../xtask/src/commands/ci/standalone_locks.rs"]
@@ -315,7 +306,7 @@ mod dependency_boundary_tests {
     use std::collections::BTreeSet;
 
     #[test]
-    fn default_planner_test_target_has_only_dependency_light_inputs() {
+    fn default_dispatcher_test_target_has_only_dependency_light_inputs() {
         let root = crate::workspace::workspace_root().unwrap();
         let manifest = std::fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml"))
             .expect("read dispatcher manifest");

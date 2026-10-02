@@ -28,8 +28,8 @@ pub(super) struct KernelSign {
     pub(super) boot_id: String,
     pipeline: String,
     pub(super) source_document_id: String,
-    pub(super) checked_form_id: String,
-    pub(super) expanded_form_id: String,
+    pub(super) checked_plot_id: String,
+    pub(super) expanded_plot_id: String,
     pub(super) plan_id: String,
     pub(super) fragment_id: String,
     pub(super) active_play_id: String,
@@ -73,7 +73,7 @@ pub(super) struct IdentitySign {
     wake_source: String,
     wake_cause: u32,
     timer_mechanism: String,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
     pub(super) a4_observatory_patchbay_claimed: bool,
 }
 
@@ -140,8 +140,8 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let (second_kernel, second_identity) = boot_once(&paths)?;
     let stable_semantic_identities = first_kernel.source_document_id
         == second_kernel.source_document_id
-        && first_kernel.checked_form_id == second_kernel.checked_form_id
-        && first_kernel.expanded_form_id == second_kernel.expanded_form_id;
+        && first_kernel.checked_plot_id == second_kernel.checked_plot_id
+        && first_kernel.expanded_plot_id == second_kernel.expanded_plot_id;
     let fresh_realization_identities = first_kernel.plan_id != second_kernel.plan_id
         && first_kernel.fragment_id != second_kernel.fragment_id
         && first_kernel.active_play_id != second_kernel.active_play_id;
@@ -164,7 +164,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .map_err(|e| refusal("unavailable-loongarch64-emulator", e.to_string()))?;
     let proof = Proof {
         schema: "conduit.conduitos.loongarch64-a3-proof/v1",
-        proof_class: "freestanding-loongarch64-ordinary-form-plan-play",
+        proof_class: "freestanding-loongarch64-ordinary-plot-plan-play",
         base_commit: git_head(&paths.root)?,
         architecture: "loongarch64",
         rust_target: loongarch64_a0::TARGET,
@@ -332,8 +332,8 @@ pub(super) fn validate(
         || kernel.pipeline != "check-plan-lower-kernel"
         || ![
             &kernel.source_document_id,
-            &kernel.checked_form_id,
-            &kernel.expanded_form_id,
+            &kernel.checked_plot_id,
+            &kernel.expanded_plot_id,
             &kernel.plan_id,
             &kernel.fragment_id,
             &kernel.active_play_id,
@@ -377,12 +377,12 @@ pub(super) fn validate(
         || identity.wake_source != "loongarch-local-timer-interrupt"
         || identity.wake_cause != 11
         || identity.timer_mechanism != "TCFG/TICLR"
-        || !identity.a3_ordinary_form_claimed
+        || !identity.a3_ordinary_plot_claimed
         || identity.a4_observatory_patchbay_claimed != expected_a4
     {
         return Err(refusal(
             "stale-or-invalid-loongarch64-a3-sign",
-            "ordinary form/Plan/Play proof violates the exact A3 contract",
+            "ordinary plot/Plan/Play proof violates the exact A3 contract",
         ));
     }
     Ok(())

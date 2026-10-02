@@ -1,13 +1,13 @@
 use alloc::{format, vec};
 use conduit_core::{
     kind_id, mandatory_sign_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
-    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, CheckedFront,
-    ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId,
-    GearId, HostId, ImplementationId, KindIdentity, OfferGeneration, PlacementId, PlanFragment,
-    PlanId, PlannedSharedPool, PlanningRequestAuthority, PlayUnsatisfiedReason, PoolDeclarationId,
-    PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope, PoolRealizationHealth,
-    PoolRealizationObservation, PoolSelectionDisposition, SharedPoolId, SignId, SignStorageBudget,
-    SourceDocumentId, TerminalPolicy,
+    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFront, CheckedPlotId,
+    ExecutionProfileId, ExpandedPlotId, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostId,
+    ImplementationId, KindIdentity, OfferGeneration, PlacementId, PlanFragment, PlanId,
+    PlannedSharedPool, PlanningRequestAuthority, PlayUnsatisfiedReason, PlotIdentity,
+    PoolDeclarationId, PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope,
+    PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition, SharedPoolId,
+    SignId, SignStorageBudget, SourceDocumentId, TerminalPolicy,
 };
 use conduit_kernel::{shared_pool::MemberKey, NodeId};
 
@@ -57,8 +57,8 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: SourceDocumentId::from("source/model-pool"),
-        checked_form_id: CheckedFormId::from("checked/model-pool"),
-        expanded_form_id: ExpandedFormId::from("expanded/model-pool"),
+        checked_plot_id: CheckedPlotId::from("checked/model-pool"),
+        expanded_plot_id: ExpandedPlotId::from("expanded/model-pool"),
         completion_policy: conduit_core::PlanCompletionPolicy::Live,
         realization_backs: vec![],
         host_id: HostId::from("coordinator"),
@@ -117,10 +117,10 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
 
 fn plan() -> conduit_core::Plan {
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source/model-pool"),
-            checked_form_id: CheckedFormId::from("checked/model-pool"),
-            expanded_form_id: ExpandedFormId::from("expanded/model-pool"),
+            checked_plot_id: CheckedPlotId::from("checked/model-pool"),
+            expanded_plot_id: ExpandedPlotId::from("expanded/model-pool"),
         },
         vec![fragment(pool())],
     )

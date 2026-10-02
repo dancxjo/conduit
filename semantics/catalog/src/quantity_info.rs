@@ -1,7 +1,7 @@
 //! Explicit conversion from a Quantity into its structured leaf envelope.
 
 use crate::{KindTerminalBehavior, StandardKindContract};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -88,9 +88,9 @@ pub fn quantity_info_wrap_semantic_contract() -> Kind {
     }
 }
 
-pub fn quantity_presentation_definition() -> conduit_form::KindProjection {
+pub fn quantity_presentation_definition() -> conduit_plot::KindProjection {
     let contract = quantity_presentation_semantic_contract();
-    conduit_form::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
@@ -127,19 +127,19 @@ pub fn quantity_presentation_semantic_contract() -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_quantity_info_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: QUANTITY_INFO_WRAP_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
     profile
         .insert_kind(quantity_info_wrap_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))?;
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: QUANTITY_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),
     })?;

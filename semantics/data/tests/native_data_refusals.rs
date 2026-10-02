@@ -1,8 +1,9 @@
 use conduit_data::{
-    DataGenerationNamespaceRefusal, DataReferenceRefusal, ScientificObservationRefusal,
+    DataGenerationNamespaceRefusal, DataGenerationRefusal, DataReferenceRefusal,
+    ScientificAlignmentRefusal, ScientificCorpusRefusal, ScientificObservationRefusal,
     TensorRefusal,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn round_trip<T>(value: T)
 where
@@ -10,6 +11,20 @@ where
 {
     let structured = value.clone().into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn corpus_refusal_keeps_nested_observation_meaning() {
+    round_trip(
+        ScientificCorpusRefusal::observation(ScientificObservationRefusal::MissingIdentity)
+            .unwrap(),
+    );
+    round_trip(ScientificCorpusRefusal::SplitLeakage);
+    round_trip(
+        ScientificAlignmentRefusal::observation(ScientificObservationRefusal::ClockMismatch)
+            .unwrap(),
+    );
+    round_trip(ScientificAlignmentRefusal::CalibrationShapeMismatch);
 }
 
 #[test]
@@ -72,4 +87,18 @@ fn immutable_data_reference_refusals_are_native() {
     ] {
         round_trip(value);
     }
+
+    for value in [
+        DataGenerationRefusal::InvalidBounds,
+        DataGenerationRefusal::WrongContentKind,
+        DataGenerationRefusal::ValueTooLarge,
+        DataGenerationRefusal::GenerationCapacityExhausted,
+        DataGenerationRefusal::ByteCapacityExhausted,
+        DataGenerationRefusal::ReferenceOutputCapacity,
+        DataGenerationRefusal::GenerationNotRetained,
+        DataGenerationRefusal::ExtentMismatch,
+    ] {
+        round_trip(value);
+    }
+    round_trip(DataGenerationRefusal::reference(DataReferenceRefusal::WrongAccessClass).unwrap());
 }

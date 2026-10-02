@@ -1,10 +1,10 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_net::*;
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_net::*;
 
 #[test]
 fn local_queue_partial_and_remote_receipt_are_distinct_exact_states() {
@@ -289,14 +289,14 @@ fn bounded_status_codec_projects_an_ordered_flow_without_changing_evidence() {
 }
 
 #[test]
-fn delivery_projection_is_an_ordinary_reusable_closing_flow_form() {
+fn delivery_projection_is_an_ordinary_reusable_closing_flow_plot() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_record_delivery_status_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/record-delivery-status/main.conduit");
+    let source = include_str!("../../../plots/record-delivery-status/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "record-delivery-status", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "record-delivery-status", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 1);
     assert_eq!(

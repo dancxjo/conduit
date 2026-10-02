@@ -1,4 +1,4 @@
-//! Continuous Form execution over finitely admitted play work.
+//! Continuous Plot execution over finitely admitted play work.
 //!
 //! Continuous execution is a lifetime property, not an unbounded allocation
 //! or a hidden restart loop.  The contract below is deliberately small: a
@@ -6,18 +6,18 @@
 //! transitions, while every individual Play admits the storage and operation
 //! slots it needs before it starts.
 
-use conduit_core::{CheckedFormId, PlanId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, PlanId, SourceDocumentId};
 use serde::{Deserialize, Serialize};
 
-/// Machine-readable outcomes for a continuing Form or one of its finite
+/// Machine-readable outcomes for a continuing Plot or one of its finite
 /// interaction episodes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContinuousDisposition {
-    /// The form has completed its semantic work and will not continue.
+    /// The plot has completed its semantic work and will not continue.
     SemanticCompletion,
-    /// The form remains live but currently has no admitted work to perform.
+    /// The plot remains live but currently has no admitted work to perform.
     Quiescent,
-    /// The body deliberately ended the current wake while retaining the form.
+    /// The body deliberately ended the current wake while retaining the plot.
     Lull,
     /// An explicit cancellation ended the current work.
     Cancelled,
@@ -31,16 +31,16 @@ pub enum ContinuousDisposition {
     HostBootResourceOrLineLost,
     /// The immutable realization is no longer current and must be replaced.
     PlanRetired,
-    /// The same form and retained state continued under a replacement Plan.
+    /// The same plot and retained state continued under a replacement Plan.
     Replanned,
-    /// One finite transition was accepted and the form remains live.
+    /// One finite transition was accepted and the plot remains live.
     Continued,
 }
 
 /// Finite storage and operation admission for one active play.
 ///
 /// These limits apply to the instantaneous workset.  They do not limit the
-/// number of future transitions over the form's lifetime.
+/// number of future transitions over the plot's lifetime.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContinuousResourceAdmission {
     pub retained_value_bytes: u16,
@@ -70,7 +70,7 @@ impl ContinuousResourceAdmission {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContinuousSpecimen {
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub plan_id: PlanId,
     pub state: u16,
     pub resources: ContinuousResourceAdmission,
@@ -88,12 +88,12 @@ pub enum ContinuousError {
 impl ContinuousSpecimen {
     pub fn admit(
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         plan_id: PlanId,
         resources: ContinuousResourceAdmission,
     ) -> Result<Self, ContinuousError> {
         if source_document_id.as_str().is_empty()
-            || checked_form_id.as_str().is_empty()
+            || checked_plot_id.as_str().is_empty()
             || plan_id.as_str().is_empty()
         {
             return Err(ContinuousError::InvalidIdentity);
@@ -103,7 +103,7 @@ impl ContinuousSpecimen {
         }
         Ok(Self {
             source_document_id,
-            checked_form_id,
+            checked_plot_id,
             plan_id,
             state: 0,
             resources,
@@ -132,7 +132,7 @@ impl ContinuousSpecimen {
         Ok(self.disposition)
     }
 
-    /// Replace only the realization.  Form identity and retained state stay
+    /// Replace only the realization.  Plot identity and retained state stay
     /// unchanged, so this is not a semantic restart.
     pub fn replan(
         &mut self,

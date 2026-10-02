@@ -1,4 +1,4 @@
-//! Canonical Form catalog for linguistic Info.
+//! Canonical Plot catalog for linguistic Info.
 
 use alloc::{
     string::{String, ToString},
@@ -10,7 +10,7 @@ use conduit_core::{
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
@@ -30,8 +30,8 @@ pub const ANNOTATE_FOUR_KIND: &str = "language/annotate-four";
 pub const LINGUISTICS_REVISION: &str = "conduit.std/linguistics@1";
 
 pub fn install_linguistics_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in linguistic_types() {
         startup

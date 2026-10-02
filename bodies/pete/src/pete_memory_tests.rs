@@ -1,8 +1,27 @@
 use super::*;
-use conduit_ai::{TemporalEvidenceSelection, TemporalRetrievalIntent};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_ai::{
+    TemporalEvidenceIdentities, TemporalEvidenceIdentity, TemporalEvidenceSelection,
+    TemporalRetrievalIntent, TemporalRetrievalWindow,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    rust_binding::BoundedSequence,
+};
+
+fn selected(identities: &[&str]) -> TemporalEvidenceSelection {
+    TemporalEvidenceSelection::selected(
+        TemporalEvidenceIdentities::new(
+            BoundedSequence::try_from_iter(
+                identities
+                    .iter()
+                    .map(|identity| TemporalEvidenceIdentity::new((*identity).into()).unwrap()),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
 
 fn candidate(identity: &str, kind: ExperienceKind) -> ExperienceCandidate {
     ExperienceCandidate {
@@ -72,13 +91,13 @@ fn corrections_append_and_pressure_provider_loss_and_authority_are_explicit() {
 }
 
 #[test]
-fn canonical_memory_form_is_checked_and_host_neutral() {
-    let source = include_str!("../../../forms/pete-memory/main.conduit");
+fn canonical_memory_plot_is_checked_and_host_neutral() {
+    let source = include_str!("../../../plots/pete-memory/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_pete_memory_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let authored = expand_canonical_form_for_authoring(&checked, "pete-memory", &profile).unwrap();
+    let authored = expand_canonical_plot_for_authoring(&checked, "pete-memory", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 1);
     assert_eq!(
@@ -100,24 +119,21 @@ fn temporal_queries_delegate_to_the_generic_temporal_contract() {
     memory.retain(early, true).unwrap();
     assert_eq!(
         memory.select_temporal(100, &TemporalRetrievalIntent::EarliestEvidence, true),
-        Ok(TemporalEvidenceSelection::Selected {
-            identities: vec!["early".into()]
-        })
+        Ok(selected(&["early"]))
     );
     assert_eq!(
         memory.select_temporal(100, &TemporalRetrievalIntent::LatestEvidence, true),
-        Ok(TemporalEvidenceSelection::Selected {
-            identities: vec!["late".into()]
-        })
+        Ok(selected(&["late"]))
     );
     assert_eq!(
         memory.select_temporal(
             100,
-            &TemporalRetrievalIntent::EvidenceWithin { start: 20, end: 40 },
+            &TemporalRetrievalIntent::evidence_within(
+                TemporalRetrievalWindow::new(20, 40).unwrap()
+            )
+            .unwrap(),
             true
         ),
-        Ok(TemporalEvidenceSelection::Selected {
-            identities: vec!["late".into()]
-        })
+        Ok(selected(&["late"]))
     );
 }

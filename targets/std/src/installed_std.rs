@@ -30,7 +30,7 @@ mod flow_first_back;
 mod flow_gate_back;
 mod flow_pressure_backs;
 #[cfg(test)]
-mod flow_pressure_form_tests;
+mod flow_pressure_plot_tests;
 mod flow_state_backs;
 mod generated_speech_commit_back;
 mod generated_validation_backs;
@@ -775,7 +775,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         lowered
             .host_calls
             .iter()
-            .any(|operation| operation.contract_id == keyboard_contract_id),
+            .map(|operation| &operation.contract_id),
     );
     let mut indicator_host = indicator_host::IndicatorHost::prepare(
         indicator,

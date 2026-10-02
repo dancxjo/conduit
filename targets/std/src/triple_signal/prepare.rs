@@ -31,7 +31,7 @@ impl TripleSource {
         )
         .map_err(|error| error.to_string())?;
         if *configuration.count() != VALUES as u64 || *configuration.period_ms() != 250 {
-            return Err("triple form is not the accepted sixteen-value Signal vector".to_owned());
+            return Err("triple plot is not the accepted sixteen-value Signal vector".to_owned());
         }
 
         let mut values = HostedValueStore::new(STORED_ITEMS, SIGNAL_ENCODED_LEN, STORED_BYTES)

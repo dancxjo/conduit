@@ -90,13 +90,13 @@ pub struct StreamSemantics {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StandardRealizationForm {
+pub struct StandardRealizationPlot {
     pub requirement_kind: &'static str,
     pub stages: [&'static str; 2],
 }
 
 /// Ordinary reusable expansion; planners need no backend-specific switch.
-pub const MUSIC_PLAY_THROUGH_SYNTH: StandardRealizationForm = StandardRealizationForm {
+pub const MUSIC_PLAY_THROUGH_SYNTH: StandardRealizationPlot = StandardRealizationPlot {
     requirement_kind: MUSIC_PLAY_KIND,
     stages: [MUSIC_SYNTH_KIND, AUDIO_PLAY_KIND],
 };
@@ -322,7 +322,7 @@ pub fn audio_gain_contract() -> StandardKindContract {
         plain_name: "Apply bounded PCM gain".to_string(),
         summary: "Scale each PCM sample by the current normalized amplitude without changing its clock or format.".to_string(),
         inputs: vec![
-            PortDescriptor { port_id: port_id("audio"), value_kind: kind_id(AUDIO_PCM_INFO_ID), direction: PortDirection::Input, temporal: PortTemporal::Flow { closes: true }, abnormal_kind: None },
+            PortDescriptor { port_id: port_id("source-audio"), value_kind: kind_id(AUDIO_PCM_INFO_ID), direction: PortDirection::Input, temporal: PortTemporal::Flow { closes: true }, abnormal_kind: None },
             PortDescriptor { port_id: port_id("amplitude"), value_kind: kind_id(SCALAR_INFO_ID), direction: PortDirection::Input, temporal: PortTemporal::Value, abnormal_kind: None },
         ],
         outputs: vec![PortDescriptor { port_id: port_id("audio"), value_kind: kind_id(AUDIO_PCM_INFO_ID), direction: PortDirection::Output, temporal: PortTemporal::Flow { closes: true }, abnormal_kind: None }],

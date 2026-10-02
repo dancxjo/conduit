@@ -1,12 +1,12 @@
 use crate::cli::GlobalOpts;
 use conduit_ai::LocalModelKindProfile;
 use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyFormPlan, BodyMembership,
-    BodyPlayIdentity, MembershipProofId, PartId, ResidentForm, WakeRejectionEvidence,
+    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership, BodyPlayIdentity,
+    BodyPlotPlan, MembershipProofId, PartId, ResidentPlot, WakeRejectionEvidence,
 };
 use conduit_core::{
-    bind_sign, seal_plan, AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostId,
-    OfferGeneration,
+    bind_sign, seal_plan, AuthorityGrantId, BootId, ExpandedPlotId, HostId, OfferGeneration,
+    PlotIdentity,
 };
 use conduit_std_host::hosted_local_model::{HostedLocalModelAdapter, OllamaDiscovery};
 use serde::Serialize;
@@ -103,9 +103,9 @@ pub(super) fn prove(
         );
         println!(
             "limits: input={} output={} work={} memory={}MiB in-flight={} queue={}/{}B cancellation={}",
-            offer.limits.work.maximum_input_bytes,
-            offer.limits.work.maximum_output_bytes,
-            offer.limits.work.maximum_work_units,
+            offer.limits.work.maximum_input_bytes(),
+            offer.limits.work.maximum_output_bytes(),
+            offer.limits.work.maximum_work_units(),
             offer.limits.admitted_memory_mib,
             offer.limits.maximum_in_flight,
             offer.limits.maximum_queue_items,
@@ -174,11 +174,11 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
     let host = HostId::from("host/orifina-local-model");
     let boot = BootId::from("boot/orifina-local-model");
     let mut body = orifina_body()?;
-    let mut requests = vec![conduit_tutorial_form::generative_request(
+    let mut requests = vec![conduit_tutorial_plot::generative_request(
         &body,
         "request/workspace/orifina/provider-proof".into(),
         1,
-        conduit_tutorial_form::TutorialPlayback::Lulled,
+        conduit_tutorial_plot::TutorialPlayback::Lulled,
     )
     .map_err(|error| proof_error("build Workspace Orifina request", error))?];
     let mut plan_ids = Vec::new();
@@ -198,13 +198,13 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "playing",
         2,
-        conduit_tutorial_form::TutorialPlayback::Playing,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
     )?);
     body.lull(&host, &boot, Some(&first))
         .map_err(|error| proof_error("lull initial Orifina Play", error))?;
-    body.admit_form(
+    body.admit_plot(
         0,
-        ResidentForm::new(
+        ResidentPlot::new(
             "source/orifina-notes".into(),
             "checked/orifina-notes".into(),
         ),
@@ -217,7 +217,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "revised",
         3,
-        conduit_tutorial_form::TutorialPlayback::Lulled,
+        conduit_tutorial_plot::TutorialPlayback::Lulled,
     )?);
 
     let failed = body
@@ -238,11 +238,11 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
             host_id: host.clone(),
             boot_id: boot.clone(),
             plan_id: Some(failed.plan.plan_id),
-            checked_form_ids: failed
+            checked_plot_ids: failed
                 .plan
-                .forms
+                .plots
                 .iter()
-                .map(|form| form.form.checked_form_id.clone())
+                .map(|plot| plot.plot.checked_plot_id.clone())
                 .collect(),
         }],
     )
@@ -251,7 +251,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "fault",
         4,
-        conduit_tutorial_form::TutorialPlayback::Refused,
+        conduit_tutorial_plot::TutorialPlayback::Refused,
     )?);
 
     let repaired = start_orifina(&mut body, &host, &boot, 2)?;
@@ -268,7 +268,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "repaired",
         5,
-        conduit_tutorial_form::TutorialPlayback::Playing,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
     )?);
     body.lull(&host, &boot, Some(&repaired))
         .map_err(|error| proof_error("lull repaired Orifina Play", error))?;
@@ -276,7 +276,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "lulled",
         6,
-        conduit_tutorial_form::TutorialPlayback::Lulled,
+        conduit_tutorial_plot::TutorialPlayback::Lulled,
     )?);
     body.fulfill(
         &host,
@@ -289,7 +289,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "fulfilled",
         7,
-        conduit_tutorial_form::TutorialPlayback::Completed,
+        conduit_tutorial_plot::TutorialPlayback::Completed,
     )?);
     let evidence = body.evidence().clone();
     Ok(PreparedOrifinaJourney {
@@ -322,10 +322,10 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
 }
 
 fn orifina_body() -> Result<conduit_body::BodyLifecycleSession, Box<dyn std::error::Error>> {
-    let form = ResidentForm::new("source/morse".into(), "checked/morse".into());
+    let plot = ResidentPlot::new("source/morse".into(), "checked/morse".into());
     let body = Body::born(
-        form.source_document_id,
-        form.checked_form_id,
+        plot.source_document_id,
+        plot.checked_plot_id,
         1,
         "sign/orifina-provider-proof/birth".into(),
     )
@@ -373,19 +373,19 @@ fn orifina_body() -> Result<conduit_body::BodyLifecycleSession, Box<dyn std::err
         .map_err(|error| proof_error("open Orifina Workspace Body", error))
 }
 
-fn orifina_plans(body: &conduit_body::BodyLifecycleSession) -> Vec<BodyFormPlan> {
+fn orifina_plans(body: &conduit_body::BodyLifecycleSession) -> Vec<BodyPlotPlan> {
     body.evidence()
         .body
         .workset
-        .forms()
+        .plots()
         .iter()
-        .map(|form| BodyFormPlan {
-            form: form.clone(),
+        .map(|plot| BodyPlotPlan {
+            plot: plot.clone(),
             plan: seal_plan(
-                FormIdentity {
-                    source_document_id: form.source_document_id.clone(),
-                    checked_form_id: form.checked_form_id.clone(),
-                    expanded_form_id: ExpandedFormId::from("expanded/orifina-proof"),
+                PlotIdentity {
+                    source_document_id: plot.source_document_id.clone(),
+                    checked_plot_id: plot.checked_plot_id.clone(),
+                    expanded_plot_id: ExpandedPlotId::from("expanded/orifina-proof"),
                 },
                 vec![],
             ),
@@ -464,9 +464,9 @@ fn tutorial_request(
     body: &conduit_body::BodyLifecycleSession,
     stage: &str,
     revision: u64,
-    playback: conduit_tutorial_form::TutorialPlayback,
+    playback: conduit_tutorial_plot::TutorialPlayback,
 ) -> Result<conduit_presentation::GenerativePresenterRequest, Box<dyn std::error::Error>> {
-    conduit_tutorial_form::generative_request(
+    conduit_tutorial_plot::generative_request(
         body,
         format!("request/workspace/orifina/journey/{stage}"),
         revision,

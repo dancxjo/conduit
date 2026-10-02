@@ -1,11 +1,11 @@
 use crate::PlannerError;
 use alloc::collections::BTreeMap;
-use conduit_form::{
-    CheckedForm, DiagnosticSeverity, RelatedDiagnosticSubject, StructuredDiagnosticV1,
+use conduit_plot::{
+    CheckedPlot, DiagnosticSeverity, RelatedDiagnosticSubject, StructuredDiagnosticV1,
 };
 
 pub fn structured_planner_diagnostic(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     error: &PlannerError,
 ) -> Option<StructuredDiagnosticV1> {
     let (code, summary) = classification(error)?;
@@ -14,12 +14,12 @@ pub fn structured_planner_diagnostic(
             code,
             DiagnosticSeverity::Error,
             summary,
-            form.source_document_id.as_str(),
+            plot.source_document_id.as_str(),
             None,
             None,
             vec![RelatedDiagnosticSubject {
-                relationship: "checked-form".into(),
-                subject: form.checked_form_id.as_str().into(),
+                relationship: "checked-plot".into(),
+                subject: plot.checked_plot_id.as_str().into(),
                 span: None,
             }],
             BTreeMap::new(),
@@ -56,8 +56,8 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
             "CND-PLN-011",
             "selected realization has an incompatible port contract",
         )),
-        PlannerError::InvalidFormIdentity(_) => {
-            Some(("CND-PLN-001", "checked form identity is invalid"))
+        PlannerError::InvalidPlotIdentity(_) => {
+            Some(("CND-PLN-001", "checked plot identity is invalid"))
         }
         _ => None,
     }
@@ -68,26 +68,26 @@ mod tests {
     use crate::prelude::*;
 
     use super::*;
-    use conduit_core::{CheckedFormId, ExpandedFormId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, ExpandedPlotId, SourceDocumentId};
 
-    fn checked_form() -> CheckedForm {
-        CheckedForm {
+    fn checked_plot() -> CheckedPlot {
+        CheckedPlot {
             source_document_id: SourceDocumentId::from("source-1"),
-            checked_form_id: CheckedFormId::from("checked-1"),
-            expanded_form_id: ExpandedFormId::from("expanded-1"),
+            checked_plot_id: CheckedPlotId::from("checked-1"),
+            expanded_plot_id: ExpandedPlotId::from("expanded-1"),
             name: "demo".into(),
-            completion: conduit_form::FormCompletionPolicy::Live,
+            completion: conduit_plot::PlotCompletionPolicy::Live,
             gears: Vec::new(),
             connections: Vec::new(),
             exports: Vec::new(),
-            nested_forms: Vec::new(),
+            nested_plots: Vec::new(),
         }
     }
 
     #[test]
     fn front_mismatch_is_structured_without_nominal_or_private_detail() {
         let diagnostic = structured_planner_diagnostic(
-            &checked_form(),
+            &checked_plot(),
             &PlannerError::IncompatibleCheckedFront(
                 "gear secret front differs from host-local secret".into(),
             ),
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn missing_front_compatible_offer_has_a_stable_functional_code() {
         let diagnostic = structured_planner_diagnostic(
-            &checked_form(),
+            &checked_plot(),
             &PlannerError::UnknownCapability("nominal-name-is-not-the-gate".into()),
         )
         .unwrap();
@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn semantic_contract_mismatch_is_distinct_from_front_mismatch() {
         let diagnostic = structured_planner_diagnostic(
-            &checked_form(),
+            &checked_plot(),
             &PlannerError::WrongKindContractRevision("private semantic identity".into()),
         )
         .unwrap();
@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn hard_requirement_refusal_has_a_stable_non_policy_code() {
         let diagnostic = structured_planner_diagnostic(
-            &checked_form(),
+            &checked_plot(),
             &PlannerError::HardRealizationRequirementUnsatisfied("private candidate facts".into()),
         )
         .unwrap();
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn current_observation_refusal_is_distinct_and_redacted() {
         let diagnostic = structured_planner_diagnostic(
-            &checked_form(),
+            &checked_plot(),
             &PlannerError::CurrentResourceObservationUnavailable("private pool state".into()),
         )
         .unwrap();
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn unreviewed_failures_do_not_collapse_into_a_generic_public_code() {
         let diagnostic = structured_planner_diagnostic(
-            &checked_form(),
+            &checked_plot(),
             &PlannerError::UnknownHost("private-host".into()),
         );
         assert!(diagnostic.is_none());

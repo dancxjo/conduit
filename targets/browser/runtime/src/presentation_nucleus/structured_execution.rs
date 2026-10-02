@@ -1,4 +1,4 @@
-//! One ordinary structured education Form executed by the browser kernel.
+//! One ordinary structured education Plot executed by the browser kernel.
 
 use super::{
     debug_error, NucleusBack, BROWSER_PRESENTATION_ARTIFACT, BROWSER_PRESENTATION_PROFILE, PORTS,
@@ -7,10 +7,6 @@ use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, BaseImplementationId, ConfigurationValue,
     Observation, ObservationKind, ValuePayload, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, HostCallDisposition, HostCallOutcome,
@@ -18,9 +14,13 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 use std::collections::BTreeMap;
 
-const SOURCE: &str = "form browser-education-feedback {\n value: structured-info/literal(value = {outcome: passed(true), prompt_id: \"question/3\", score: 88%})\n show: presentation/structured-info\n value >> show\n}\n";
+const SOURCE: &str = "plot browser-education-feedback {\n value: structured-info/literal(value = {outcome: passed(true), prompt_id: \"question/3\", score: 88%})\n show: presentation/structured-info\n value >> show\n}\n";
 const NODES: usize = 2;
 const CORDS: usize = 1;
 const ROUTES: usize = NODES * FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -53,12 +53,12 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
     )?;
     let syntax = parse_syntax_document(SOURCE);
     if !syntax.diagnostics.is_empty() {
-        return Err("browser education Form has syntax diagnostics".into());
+        return Err("browser education Plot has syntax diagnostics".into());
     }
     let checked = check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check browser education Form: {error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "browser-education-feedback", &profile)
-        .map_err(|error| format!("expand browser education Form: {error:?}"))?;
+        .map_err(|error| format!("check browser education Plot: {error:?}"))?;
+    let expanded = expand_canonical_plot(&checked, "browser-education-feedback", &profile)
+        .map_err(|error| format!("expand browser education Plot: {error:?}"))?;
 
     let literal = crate::structured_offers::structured_literal_offer(
         conduit_semantic_catalog::EDUCATION_FEEDBACK_TYPE,
@@ -98,7 +98,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
     };
     let hosts = [advertisement.clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
-        .map_err(|error| format!("place browser education Form: {error:?}"))?;
+        .map_err(|error| format!("place browser education Plot: {error:?}"))?;
     let plan = plan_expanded_canonical_with_options(
         &expanded,
         &hosts,
@@ -114,7 +114,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
             line_offers: &[],
         },
     )
-    .map_err(|error| format!("plan browser education Form: {error:?}"))?;
+    .map_err(|error| format!("plan browser education Plot: {error:?}"))?;
     let fragment = plan
         .fragments
         .first()

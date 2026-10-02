@@ -6,7 +6,7 @@
 <main id="nucleus" aria-label="gear front"></main>
 <section id="controls" aria-label="Bounded controls"></section>
 <section data-application-slot="semantic" aria-label="Semantic mechanisms"></section>
-<section data-application-slot="focus" aria-label="form and navigation mechanisms"></section>
+<section data-application-slot="focus" aria-label="plot and navigation mechanisms"></section>
 <section id="theme-products" aria-label="Shared product theme mechanism"></section>
 <script type="module">
 import {
@@ -84,7 +84,7 @@ try {
     nodes: [
       { parent: null, component: "shell", action: null, key: "control-shell", text: "" },
       {
-        parent: 0, component: "textarea", action: 0, key: "source", text: "form source",
+        parent: 0, component: "textarea", action: 0, key: "source", text: "plot source",
         value: "gear source", valueCapacity: 65_536,
       },
     ],
@@ -92,7 +92,7 @@ try {
   const controls = manifestApplicationView(controlView, controlRoot, { eventByteCapacity: 40 });
   const source = controlRoot.querySelector("[data-application-key='source']");
   assert(source.value === "gear source", "control value remains distinct from its label");
-  assert(source.getAttribute("aria-label") === "form source", "control label remains explicit");
+  assert(source.getAttribute("aria-label") === "plot source", "control label remains explicit");
   source.value = "gear edited";
   source.dispatchEvent(new Event("input"));
   assert(controls.queuedEventBytes() === controls.nextEvent().encoded.length, "queue reports exact encoded-byte pressure");
@@ -190,16 +190,16 @@ try {
   const focusView = (revision, value, error) => ({
     revision,
     actions: [
-      { id: "form.source", event: "input" },
+      { id: "plot.source", event: "input" },
       { id: "navigate.previous", event: "activate" },
       { id: "navigate.next", event: "activate" },
     ],
     nodes: [
       { parent: null, component: "shell", action: null, key: "focus-shell", text: "" },
-      { parent: 0, component: "form-field", action: null, key: "source-field", text: "" },
-      { parent: 1, component: "field-label", action: null, key: "source-label", text: "form source" },
-      { parent: 1, component: "textarea", action: 0, key: "source-control", text: "form source", value, valueCapacity: 64 },
-      { parent: 1, component: "field-help", action: null, key: "source-help", text: "Enter one bounded form" },
+      { parent: 0, component: "plot-field", action: null, key: "source-field", text: "" },
+      { parent: 1, component: "field-label", action: null, key: "source-label", text: "plot source" },
+      { parent: 1, component: "textarea", action: 0, key: "source-control", text: "plot source", value, valueCapacity: 64 },
+      { parent: 1, component: "field-help", action: null, key: "source-help", text: "Enter one bounded plot" },
       ...(error ? [{ parent: 1, component: "field-error", action: null, key: "source-error", text: error }] : []),
       { parent: 0, component: "navigation", action: null, key: "navigation", text: "Tour pages", value: "page-two", valueCapacity: 16 },
       { parent: error ? 6 : 5, component: "button", action: 1, key: "page-one", text: "Previous" },

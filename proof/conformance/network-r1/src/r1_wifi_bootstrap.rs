@@ -111,31 +111,31 @@ pub fn r1_usb_bootstrap_line() -> conduit_core::LineOffer {
 pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, String> {
     let source_advertisement = r1_std_bootstrap_advertisement();
     let pico_advertisement = r1_pico_network_advertisement();
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_network_bootstrap_catalogs(&mut startup, &mut profile)?;
-    let syntax = conduit_form::parse_syntax_document(include_str!(
-        "../../../../forms/r1-network-bootstrap/main.conduit"
+    let syntax = conduit_plot::parse_syntax_document(include_str!(
+        "../../../../plots/r1-network-bootstrap/main.conduit"
     ));
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
         .map_err(|error| format!("{}: {}", error.code, error.message))?;
-    let form = conduit_form::expand_canonical_form(&checked, "r1-network-bootstrap", &profile)
+    let plot = conduit_plot::expand_canonical_plot(&checked, "r1-network-bootstrap", &profile)
         .map_err(|error| error.to_string())?;
-    let credentials_gear = form
+    let credentials_gear = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == conduit_net::NETWORK_CREDENTIALS_OPERATION)
-        .ok_or_else(|| "expanded bootstrap Form has no credentials Gear".to_string())?;
-    let join_gear = form
+        .ok_or_else(|| "expanded bootstrap Plot has no credentials Gear".to_string())?;
+    let join_gear = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == conduit_net::NETWORK_JOIN_OPERATION)
-        .ok_or_else(|| "expanded bootstrap Form has no join Gear".to_string())?;
-    let attachment_sign_gear = form
+        .ok_or_else(|| "expanded bootstrap Plot has no join Gear".to_string())?;
+    let attachment_sign_gear = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)
-        .ok_or_else(|| "expanded bootstrap Form has no attachment Sign Gear".to_string())?;
+        .ok_or_else(|| "expanded bootstrap Plot has no attachment Sign Gear".to_string())?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
@@ -181,7 +181,7 @@ pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, 
     ];
     let usb_line = r1_usb_bootstrap_line();
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &[source_advertisement.clone(), pico_advertisement.clone()],
         &placements,
         &[

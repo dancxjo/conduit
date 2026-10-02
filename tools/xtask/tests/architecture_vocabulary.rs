@@ -18,12 +18,7 @@ const ALLOWLIST: &[(&str, &str, &str)] = &[
     (
         "proof/conformance/patchbay-workbench/src/lib.rs",
         "capstone",
-        "accepted canonical Form identity is preserved without migration",
-    ),
-    (
-        "products/patchbay/native/src/bin/browser_parts_capstone/physical_body.rs",
-        "r1_",
-        "physical proof composition consumes the explicitly proof-owned R1 contract",
+        "accepted canonical Plot identity is preserved without migration",
     ),
     (
         "semantics/audio/src/sound_info.rs",

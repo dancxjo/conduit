@@ -19,7 +19,7 @@ pub mod doctor;
 pub mod esp32_firmware;
 pub mod evidence;
 pub mod evidence_little_life;
-pub mod forms;
+pub mod handbook;
 pub mod host;
 mod host_configuration_prompt;
 pub mod integrate;
@@ -40,6 +40,7 @@ mod pete_std_test_support;
 pub mod pete_workload_check;
 #[path = "../../../../targets/rp2040/firmware/pico-w-signal/make/xtask/mod.rs"]
 pub mod pico;
+pub mod plots;
 pub mod proofs;
 pub mod prove;
 pub mod r1_recovery;

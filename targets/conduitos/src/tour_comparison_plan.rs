@@ -1,4 +1,4 @@
-//! Distinct direct and recursively expanded Plans for the shared comparison Tour Form.
+//! Distinct direct and recursively expanded Plans for the shared comparison Tour Plot.
 
 use alloc::collections::BTreeMap;
 use conduit_core::{ActivePlayIdentity, BaseImplementationId, Plan, bind_active_play};
@@ -15,7 +15,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-const FORM_NAME: &str = "same-morse-caller";
+const PLOT_NAME: &str = "same-morse-caller";
 const CORD_BYTES: u32 = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32;
 
 pub struct PreparedComparisonPlans {
@@ -34,16 +34,16 @@ pub fn prepare(
     build_id: &str,
 ) -> Result<PreparedComparisonPlans, PreparationError> {
     let source =
-        conduit_tour_model::tour_stage_source(1, 0).map_err(|_| PreparationError::FormRejected)?;
-    let direct = crate::ordinary_form::checked_expanded_text_form_named(&source, FORM_NAME)?;
+        conduit_tour_model::tour_stage_source(1, 0).map_err(|_| PreparationError::PlotRejected)?;
+    let direct = crate::ordinary_plot::checked_expanded_text_plot_named(&source, PLOT_NAME)?;
     let recursive =
-        crate::ordinary_form::checked_expanded_text_form_with_morse_backs(&source, FORM_NAME)?;
-    if direct.expanded_form_id == recursive.expanded_form_id
+        crate::ordinary_plot::checked_expanded_text_plot_with_morse_backs(&source, PLOT_NAME)?;
+    if direct.expanded_plot_id == recursive.expanded_plot_id
         || direct.gears.len() != 3
         || recursive.gears.len() != 7
         || recursive.realization_backs.len() != 2
     {
-        return Err(PreparationError::FormRejected);
+        return Err(PreparationError::PlotRejected);
     }
     let advertisement = crate::ordinary_plan::advertisement(identities, offer, build_id)?;
     let direct =
@@ -87,14 +87,14 @@ pub fn prepare(
 }
 
 fn plan(
-    form: &conduit_form::ExpandedCanonicalForm,
+    plot: &conduit_plot::ExpandedCanonicalPlot,
     advertisement: &conduit_core::HostAdvertisement,
     offer: &HostOffer<'_>,
 ) -> Result<Plan, PreparationError> {
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(form, &hosts)
+    let placements = default_expanded_placements(plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
-    let limits = form
+    let limits = plot
         .connections
         .iter()
         .map(|connection| {
@@ -113,7 +113,7 @@ fn plan(
         })
         .collect();
     let plan = plan_expanded_canonical_with_connection_limits(
-        form,
+        plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -178,8 +178,8 @@ mod tests {
         );
         let prepared = prepare(&identities, &offer, "build").unwrap();
         assert_ne!(
-            prepared.direct.expanded_form_id,
-            prepared.recursive.expanded_form_id
+            prepared.direct.expanded_plot_id,
+            prepared.recursive.expanded_plot_id
         );
         assert_ne!(prepared.direct.plan_id, prepared.recursive.plan_id);
         assert_eq!(prepared.direct.fragments[0].placements.len(), 3);

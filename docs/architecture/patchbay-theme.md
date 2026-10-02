@@ -1,7 +1,7 @@
 # Patchbay renderer theme contract
 
 Patchbay renderers share the toolkit-independent `ApplicationTheme` token contract from
-`conduit-presentation`, re-exported by `patchbay-model`. The `conduit.presentation/phosphor@1` theme supplies bounded RGB values for
+`conduit-presentation`, re-exported by `conduit-patchbay-workbench`. The `conduit.presentation/phosphor@1` theme supplies bounded RGB values for
 background, surface, structure, readable text, emphasis, focus, warning, failure, success, and
 muted presentation roles. It contains no renderer primitives, fonts, geometry, effects, host
 facts, or semantic identities.
@@ -22,7 +22,7 @@ light realization through the user's color-scheme preference, preserving the sam
 focus cues, and semantic behavior. The shell carries the current Home, Body, Patchbay, and Source routes;
 application workflow controls remain separate from those global destinations.
 
-Theme values are decorative inputs after semantic planning. They do not participate in form,
+Theme values are decorative inputs after semantic planning. They do not participate in plot,
 body, wake, plan, play, host, line, sign, renderer-plan, or Face identity. Tests verify
 the exact shared mapping, native finite clipping, browser computed colors and focus/selection
 cues, identity stability across theme changes, minimum contrast, and a deuteranopia simulation.

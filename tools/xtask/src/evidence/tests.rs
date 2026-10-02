@@ -307,7 +307,7 @@ fn bounded_capture_declarations_import_exact_provenance() {
       "outputs":[{
         "id":"patchbay.overview","kind":"screenshot","path":"overview.png",
         "media_type":"image/png","required":true,
-        "provenance":{"scenario_id":"patchbay-html.overview@1","step_id":"prove.browser-host.patchbay-html-matrix",
+        "provenance":{"scenario_id":"patchbay-html.overview@1","step_id":"prove.browser-host.conduit-browser-patchbay-workbench-matrix",
           "browser_engine":"chromium","browser_version":"1","viewport":"1440x1000","device_scale_factor":"1",
           "locale":"en-US","timezone":"UTC","presentation_id":"presentation","presentation_revision":"1",
           "plan_id":"plan","active_play_id":"play","manifestation_id":"manifestation",
@@ -482,7 +482,7 @@ fn complete_two_fronts_evidence(root: &Path) {
     let mut evidence = EvidenceManifest::new(
         root,
         Path::new(env!("CARGO_MANIFEST_DIR")),
-        "journey-one-form-two-fronts",
+        "journey-one-plot-two-fronts",
         "journey-gallery",
     )
     .unwrap();
@@ -501,7 +501,7 @@ fn complete_two_fronts_evidence(root: &Path) {
                 },
                 required: true,
                 provenance: EvidenceProvenance {
-                    scenario_id: "one-form-two-fronts.front-door@1".into(),
+                    scenario_id: "one-plot-two-fronts.front-door@1".into(),
                     presentation_id: Some(presentation.into()),
                     presentation_revision: Some("1".into()),
                     plan_id: Some(
@@ -583,7 +583,9 @@ fn gallery_publishes_current_history_and_provenance() {
     let scenario =
         fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
     assert!(index.contains(&commit));
-    assert!(index.contains("latest 32 published main commits"));
+    assert!(index.contains("latest 32 published source commits"));
+    assert!(index.contains("Publication source:"));
+    assert!(!index.contains("Current accepted main:"));
     assert!(index.contains("One Journey.<br><em>Three Bodies.</em>"));
     assert!(index.contains("Evidence not yet admitted for this commit"));
     assert!(index.contains("The evidence library"));
@@ -595,7 +597,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(!index.contains("presentation Host"));
     assert!(index.contains("journey-card"));
     assert!(index.contains("Follow the evidence"));
-    assert!(index.contains("Browse every closed and upcoming vertical"));
+    assert!(index.contains("Browse the completed vertical journeys"));
     let catalogue: serde_json::Value =
         serde_json::from_slice(&fs::read(site_root.join("catalogue.json")).unwrap()).unwrap();
     assert_eq!(catalogue["schema"], "conduit.vertical-journey-catalogue/v1");
@@ -609,7 +611,7 @@ fn gallery_publishes_current_history_and_provenance() {
             .filter(|vertical| vertical["state"] == "accepted"
                 && vertical["accepted_source"].is_string())
             .count(),
-        3
+        6
     );
     assert_eq!(
         catalogue["verticals"]
@@ -619,7 +621,7 @@ fn gallery_publishes_current_history_and_provenance() {
             .filter(|vertical| vertical["state"] == "planned"
                 && vertical.get("accepted_source").is_none())
             .count(),
-        3
+        0
     );
     for slug in [
         "field-station-clock",
@@ -646,21 +648,21 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read(site_root.join(format!("commits/{commit}/patchbay/overview.png"))).unwrap()
     );
     let two_fronts_page =
-        fs::read_to_string(site_root.join("current/one-form-two-fronts/index.html")).unwrap();
-    assert!(two_fronts_page.contains("One form, Two Fronts"));
+        fs::read_to_string(site_root.join("current/one-plot-two-fronts/index.html")).unwrap();
+    assert!(two_fronts_page.contains("One plot, Two Fronts"));
     assert!(two_fronts_page.contains("One meaning, two manifestations"));
     assert!(two_fronts_page.contains("Pixel equality, physical display output"));
     assert!(two_fronts_page.contains("What Conduit established"));
     assert!(two_fronts_page.contains("What it does not prove"));
-    assert!(two_fronts_page.contains("cargo xtask prove one-form-two-fronts"));
+    assert!(two_fronts_page.contains("cargo xtask prove one-plot-two-fronts"));
     assert!(two_fronts_page.contains("presentation/two-fronts"));
     assert_eq!(
-        fs::read(site_root.join("current/one-form-two-fronts/native.png")).unwrap(),
-        fs::read(site_root.join(format!("commits/{commit}/one-form-two-fronts/native.png")))
+        fs::read(site_root.join("current/one-plot-two-fronts/native.png")).unwrap(),
+        fs::read(site_root.join(format!("commits/{commit}/one-plot-two-fronts/native.png")))
             .unwrap()
     );
     assert!(site_root
-        .join("current/one-form-two-fronts/manifest.json")
+        .join("current/one-plot-two-fronts/manifest.json")
         .is_file());
     assert!(site_root
         .join(format!("commits/{commit}/manifest.json"))

@@ -1,14 +1,13 @@
 use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 use conduit_data::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 
 fn window(count: usize) -> BoundedMeasurementWindow {
     let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
         capacity: 8,
-        unit: QuantityUnit::Millivolt,
         range: MeasurementRange {
             minimum: Quantity::new(-100, QuantityUnit::Millivolt),
             maximum: Quantity::new(100, QuantityUnit::Millivolt),
@@ -27,7 +26,9 @@ fn window(count: usize) -> BoundedMeasurementWindow {
                     clock_basis: "fixture-clock".into(),
                     resolution_ticks: 1,
                     uncertainty_ticks: 0,
-                },
+                }
+                .try_into()
+                .unwrap(),
                 uncertainty: None,
             })
             .unwrap();
@@ -84,7 +85,7 @@ fn projection_pressure_and_invalid_profiles_refuse_distinctly() {
 }
 
 #[test]
-fn reusable_plot_projection_has_an_exact_checked_form_contract() {
+fn reusable_plot_projection_has_an_exact_checked_plot_contract() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_measurement_window_catalog(&mut startup, &mut profile).unwrap();
@@ -96,10 +97,10 @@ fn reusable_plot_projection_has_an_exact_checked_form_contract() {
         &mut profile,
     )
     .unwrap();
-    let source = include_str!("../../../forms/little-seismograph/main.conduit");
+    let source = include_str!("../../../plots/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "measurement-plot", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "measurement-plot", &profile).unwrap();
     assert_eq!(authored.expanded.gears.len(), 1);
     assert_eq!(
         authored.expanded.gears[0].kind_id.as_str(),

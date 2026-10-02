@@ -5,7 +5,6 @@ use conduit_core::{
     KindIdentity, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
     PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
-use conduit_form::{ProfileCatalog, parse};
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
@@ -13,6 +12,7 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_plot::{ProfileCatalog, parse};
 use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect, MAX_GRAPHICS_SCENE_BYTES,
 };
@@ -23,7 +23,7 @@ use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
 const SOURCE_KIND: &str = "conduitos/fixture-bool-source";
 const SOURCE_REVISION: &str = "conduitos/fixture-bool-source@1";
 const SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/bool-source@1";
-const FORM: &str = "form bool_presentation {\n source: conduitos/fixture-bool-source\n show: presentation/bool\n source >> show\n}\n";
+const PLOT: &str = "plot bool_presentation {\n source: conduitos/fixture-bool-source\n show: presentation/bool\n source >> show\n}\n";
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 2;
 const CORDS: usize = 1;
@@ -64,7 +64,7 @@ pub struct BoolPresentationProof {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoolPresentationError {
     Catalog,
-    Form,
+    Plot,
     Placement,
     Plan,
     Lowering,
@@ -83,7 +83,7 @@ pub fn prepare_bool(
     conduit_semantic_catalog::install_bool_presentation_catalog(&mut catalog)
         .map_err(|_| BoolPresentationError::Catalog)?;
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
@@ -91,13 +91,13 @@ pub fn prepare_bool(
             configuration: Default::default(),
         })
         .map_err(|_| BoolPresentationError::Catalog)?;
-    let form = parse(FORM, &catalog).map_err(|_| BoolPresentationError::Form)?;
+    let plot = parse(PLOT, &catalog).map_err(|_| BoolPresentationError::Plot)?;
     let advertisement = advertisement(host, boot, value);
     let hosts = [advertisement.clone()];
     let placements =
-        default_placements(&form, &hosts).map_err(|_| BoolPresentationError::Placement)?;
+        default_placements(&plot, &hosts).map_err(|_| BoolPresentationError::Placement)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -404,7 +404,7 @@ mod tests {
     }
 
     #[test]
-    fn ordinary_boolean_form_plans_lowers_and_manifests_through_the_kernel() {
+    fn ordinary_boolean_plot_plans_lowers_and_manifests_through_the_kernel() {
         for value in [InfoBool::FALSE, InfoBool::TRUE] {
             let prepared = prepare_bool("bool-host", "bool-boot", value).unwrap();
             let placement = prepared.plan.fragments[0]

@@ -1,6 +1,6 @@
 use conduit_core::{resource_offer, ObservationKind, TerminalDisposition, INPUT_RESOURCE_CLASS};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{
@@ -9,10 +9,10 @@ use conduit_std_host::{
 };
 use std::collections::{BTreeMap, VecDeque};
 
-const SOURCE: &str = include_str!("../../../forms/desk-telegraph/main.conduit");
-const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+const SOURCE: &str = include_str!("../../../plots/desk-telegraph/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
@@ -25,7 +25,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let syntax = parse_syntax_document(SOURCE);
     assert_eq!(syntax.round_trip(), SOURCE);
     let checked = check_syntax_document(&syntax, &startup).expect("Desk Telegraph checks");
-    expand_canonical_form(&checked, "desk_telegraph", &profile)
+    expand_canonical_plot(&checked, "desk_telegraph", &profile)
         .expect("Desk Telegraph recursively expands")
 }
 
@@ -49,7 +49,7 @@ fn host() -> StdHost {
     StdHost::from_advertisement(advertisement).unwrap()
 }
 
-fn plan(host: &StdHost, expanded: &conduit_form::ExpandedCanonicalForm) -> conduit_core::Plan {
+fn plan(host: &StdHost, expanded: &conduit_plot::ExpandedCanonicalPlot) -> conduit_core::Plan {
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(expanded, &hosts).unwrap();
     let limits = expanded

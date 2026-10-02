@@ -53,9 +53,9 @@ pub fn text_presentation_inputs() -> Vec<PortDescriptor> {
     }]
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn text_presentation_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::ProfileCatalog;
+#[cfg(feature = "plot-catalog")]
+pub fn text_presentation_profile_catalog() -> conduit_plot::ProfileCatalog {
+    use conduit_plot::ProfileCatalog;
     let mut catalog = ProfileCatalog::new();
     catalog
         .insert_kind(

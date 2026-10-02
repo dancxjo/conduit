@@ -1,6 +1,6 @@
 //! Canonical bounded International Morse representation and text transforms.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
@@ -9,7 +9,9 @@ use conduit_core::{
     PortTemporal,
 };
 
-use crate::{MorseError, MorseSegment};
+use conduit_plot::rust_binding::{BoundedSequence, BoundedSequenceCapacityRefusal};
+
+use crate::{MorseError, MorsePattern, MorseSegment, MorseSegments};
 
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
 pub const TEXT_MORSE_KIND: &str = "text/morse";
@@ -26,12 +28,6 @@ pub const MAXIMUM_MORSE_PATTERN_BYTES: usize = 5 + MAXIMUM_MORSE_SEGMENTS * 2;
 
 pub(crate) fn morse_segment(level: bool, units: u8) -> MorseSegment {
     MorseSegment::new(level, units).expect("Boolean and U8 have no narrower native constraint")
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MorsePattern {
-    pub unit_millis: u16,
-    pub segments: Vec<MorseSegment>,
 }
 
 pub fn text_morse_semantics() -> MorseKindContract {
@@ -108,12 +104,12 @@ impl MorseKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_morse_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
+    use conduit_plot::{
         KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
     };
 
@@ -149,6 +145,21 @@ pub fn install_morse_catalogs(
 }
 
 impl MorsePattern {
+    pub(crate) fn from_segments(
+        unit_millis: u16,
+        segments: Vec<MorseSegment>,
+    ) -> Result<Self, MorseError> {
+        valid_unit_millis(unit_millis)?;
+        if segments.is_empty() {
+            return Err(MorseError::InvalidPattern);
+        }
+        let segments = BoundedSequence::try_from_iter(segments).map_err(
+            |BoundedSequenceCapacityRefusal::MaximumExceeded| MorseError::SegmentCapacity,
+        )?;
+        let segments = MorseSegments::new(segments).map_err(|_| MorseError::InvalidPattern)?;
+        Self::new(segments, unit_millis).map_err(|_| MorseError::InvalidPattern)
+    }
+
     pub fn from_text(text: &str, unit_millis: u16) -> Result<Self, MorseError> {
         crate::composed_morse_from_text(text, unit_millis)
     }
@@ -205,10 +216,7 @@ impl MorsePattern {
             };
             segments.push(morse_segment(level, pair[1]));
         }
-        let pattern = Self {
-            unit_millis,
-            segments,
-        };
+        let pattern = Self::from_segments(unit_millis, segments)?;
         pattern.validate()?;
         if pattern.encode()?.as_slice() != encoded {
             return Err(MorseError::NonCanonicalEncoding);
@@ -230,13 +238,31 @@ impl MorsePattern {
                 || (!segment.level() && !matches!(segment.units(), 1 | 3 | 7))
                 || self
                     .segments
-                    .get(index + 1)
+                    .iter()
+                    .nth(index + 1)
                     .is_some_and(|next| next.level() == segment.level())
             {
                 return Err(MorseError::InvalidPattern);
             }
         }
         Ok(())
+    }
+}
+
+impl core::ops::Deref for MorseSegments {
+    type Target = BoundedSequence<MorseSegment, MAXIMUM_MORSE_SEGMENTS>;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
+    }
+}
+
+impl<'a> IntoIterator for &'a MorseSegments {
+    type Item = &'a MorseSegment;
+    type IntoIter = core::slice::Iter<'a, MorseSegment>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.get().iter()
     }
 }
 

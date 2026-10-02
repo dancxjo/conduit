@@ -119,9 +119,9 @@ pub extern "C" fn conduitos_riscv64_a3_start() -> ! {
     arch::present(b"CONDUIT_RISCV64_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
     #[cfg(feature = "riscv64-a4")]
-    arch::present(b"\",\"wake_source\":\"riscv-supervisor-timer-interrupt\",\"wake_cause\":5,\"sbi_mechanism\":\"TIME/set_timer\",\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
+    arch::present(b"\",\"wake_source\":\"riscv-supervisor-timer-interrupt\",\"wake_cause\":5,\"sbi_mechanism\":\"TIME/set_timer\",\"a3_ordinary_plot_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
     #[cfg(not(feature = "riscv64-a4"))]
-    arch::present(b"\",\"wake_source\":\"riscv-supervisor-timer-interrupt\",\"wake_cause\":5,\"sbi_mechanism\":\"TIME/set_timer\",\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":false}\n");
+    arch::present(b"\",\"wake_source\":\"riscv-supervisor-timer-interrupt\",\"wake_cause\":5,\"sbi_mechanism\":\"TIME/set_timer\",\"a3_ordinary_plot_claimed\":true,\"a4_observatory_patchbay_claimed\":false}\n");
     loop {
         core::hint::spin_loop();
     }

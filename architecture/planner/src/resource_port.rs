@@ -1,6 +1,6 @@
 use crate::PlannerError;
 use conduit_core::{PlannedGear, PlannedResourceConnection};
-use conduit_form::{CheckedConnection, CheckedGear};
+use conduit_plot::{CheckedConnection, CheckedGear};
 
 pub(crate) fn plan_resource_connection(
     connection: &CheckedConnection,

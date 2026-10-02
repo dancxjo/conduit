@@ -15,7 +15,7 @@ use conduit_planner::{
 mod common;
 
 struct Fixture {
-    form: conduit_form::CheckedForm,
+    plot: conduit_plot::CheckedPlot,
     semantic_kinds: Vec<conduit_core::Kind>,
     hosts: Vec<conduit_core::HostAdvertisement>,
     line: conduit_core::LineOffer,
@@ -23,11 +23,11 @@ struct Fixture {
 
 fn fixture() -> Fixture {
     let profile = conduit_semantic_catalog::standard_profile_catalog();
-    let form = conduit_form::parse(
-        "form fusion (\n input: Scalar >> output: Scalar\n) {\n source: math/clamp\n transform: math/scale\n analysis: math/deadband\n input >> source >> transform >> analysis >> output\n}\n",
+    let plot = conduit_plot::parse(
+        "plot fusion (\n input: Scalar >> output: Scalar\n) {\n source: math/clamp\n transform: math/scale\n analysis: math/deadband\n input >> source >> transform >> analysis >> output\n}\n",
         &profile,
     )
-    .expect("three-Gear fusion Form checks");
+    .expect("three-Gear fusion Plot checks");
     let semantic_kinds = vec![
         conduit_semantic_catalog::math_clamp_semantic_contract(),
         conduit_semantic_catalog::math_scale_semantic_contract(),
@@ -53,7 +53,7 @@ fn fixture() -> Fixture {
     line.availability.line_id = line.line_id.clone();
     line.availability.binding_id = line.binding.binding_id.clone();
     Fixture {
-        form,
+        plot,
         semantic_kinds,
         hosts: vec![local, remote],
         line,
@@ -72,7 +72,7 @@ fn provenance(id: &str) -> ObservationProvenance {
 fn capability(fixture: &Fixture, gear: &str, host: usize) -> CapabilityId {
     let gear = format!("fusion/{gear}");
     let gear = fixture
-        .form
+        .plot
         .gears
         .iter()
         .find(|item| item.gear_id.as_str() == gear)
@@ -290,7 +290,7 @@ fn fusion_observation(work: u64) -> FusionPlanningObservation {
 fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
     let fixture = fixture();
     let selection = select_fusion_candidate(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &candidates(&fixture),
         &basis(&fixture, 2),
@@ -315,7 +315,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
     assert!(selection.explain().contains("safely fused"));
 
     let optimized = plan_selected_optimization(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &selection,
         &[conduit_core::BaseImplementationId::from(
@@ -333,7 +333,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
     )
     .expect("fusion explanation wraps the ordinary plan");
     assert!(optimized.verify());
-    assert_eq!(optimized.plan.checked_form_id, fixture.form.checked_form_id);
+    assert_eq!(optimized.plan.checked_plot_id, fixture.plot.checked_plot_id);
     assert_eq!(optimized.plan.fragments[0].placements.len(), 3);
     assert_eq!(optimized.plan.fragments[0].connections.len(), 2);
     assert_eq!(optimized.plan.fragments[0].execution_fusions.len(), 1);
@@ -352,7 +352,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
     assert_eq!(lowered.fusions[0].cords.len(), 2);
 
     let unfused_selection = select_fusion_candidate(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &candidates(&fixture),
         &basis(&fixture, 2),
@@ -371,7 +371,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
     )
     .expect("required observation retains the ordinary local realization");
     let unfused = plan_selected_optimization(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &unfused_selection,
         &[conduit_core::BaseImplementationId::from(
@@ -410,7 +410,7 @@ fn remote_split_wins_only_when_advantage_exceeds_line_cost() {
     let fixture = fixture();
     let expensive_fusion = fusion_observation(3_000);
     let selection = select_fusion_candidate(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &candidates(&fixture),
         &basis(&fixture, 0),
@@ -446,7 +446,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
         },
     ] {
         let selection = select_fusion_candidate(
-            &fixture.form,
+            &fixture.plot,
             &fixture.hosts,
             &candidates(&fixture),
             &basis(&fixture, 2),
@@ -469,7 +469,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
     let mut unsafe_offer = offer(&fixture);
     unsafe_offer.preserves_cancellation = false;
     let selection = select_fusion_candidate(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &candidates(&fixture),
         &basis(&fixture, 2),
@@ -495,7 +495,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
             maximum_output_bytes: 1,
         });
     let selection = select_fusion_candidate(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &candidates(&fixture),
         &basis(&fixture, 2),
@@ -517,7 +517,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
     let mut stale_offer = offer(&fixture);
     stale_offer.offer_generation = OfferGeneration(2);
     let selection = select_fusion_candidate(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &candidates(&fixture),
         &basis(&fixture, 2),
@@ -538,7 +538,7 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
 
     let incomplete_semantics = &fixture.semantic_kinds[..2];
     let selection = select_fusion_candidate(
-        &fixture.form,
+        &fixture.plot,
         &fixture.hosts,
         &candidates(&fixture),
         &basis(&fixture, 2),

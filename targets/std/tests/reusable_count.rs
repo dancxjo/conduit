@@ -1,13 +1,13 @@
 use conduit_core::{ObservationKind, TerminalDisposition};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
 use std::time::Duration;
 
-const COUNT_SOURCE: &str = include_str!("../../../forms/count/main.conduit");
-const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+const COUNT_SOURCE: &str = include_str!("../../../plots/count/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
 #[derive(Default)]
 struct RecordingTimer {
@@ -43,34 +43,34 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
     let (startup, profile) = catalogs();
     let canonical = check_syntax_document(&parse_syntax_document(COUNT_SOURCE), &startup).unwrap();
     let canonical_count_id = canonical
-        .forms
+        .plots
         .iter()
-        .find(|form| form.name == "count")
+        .find(|plot| plot.name == "count")
         .unwrap()
-        .checked_form_id
+        .checked_plot_id
         .clone();
     let proof_source = format!(
-        "{COUNT_SOURCE}\nform nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nform count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: presentation/count\n    clock >> nested >> show\n}}\n"
+        "{COUNT_SOURCE}\nplot nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nplot count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: presentation/count\n    clock >> nested >> show\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(
         checked
-            .forms
+            .plots
             .iter()
-            .find(|form| form.name == "count")
+            .find(|plot| plot.name == "count")
             .unwrap()
-            .checked_form_id,
+            .checked_plot_id,
         canonical_count_id
     );
 
-    let expanded = expand_canonical_form(&checked, "count-nesting-driver", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "count-nesting-driver", &profile).unwrap();
     let count = expanded
         .provenance
         .iter()
-        .find(|row| row.source_form == "count" && row.source_gear == "gear")
+        .find(|row| row.source_plot == "count" && row.source_gear == "gear")
         .unwrap();
     assert_eq!(
-        count.form_path,
+        count.plot_path,
         ["count-nesting-driver", "nested", "counter"]
     );
 

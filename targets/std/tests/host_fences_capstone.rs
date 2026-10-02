@@ -10,14 +10,14 @@ use conduit_body::{
 use conduit_core::{
     mandatory_sign_storage_requirement, prepare_plan_on_hosts, process_owned_line_offer,
     resource_offer, resource_requirement, seal_plan, start_prepared_plan, ActivePlayId,
-    BaseImplementationId, BootId, CancellationPolicy, CapabilityId, CheckedFormId, ConnectionId,
-    ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId,
-    HostAdvertisement, HostId, HostPreparationRefusal, HostProfileId, KindId, LineScope,
-    LinkBindingId, OfferGeneration, PlacementId, Plan, PlanFragment, PlanPreparationHost,
-    PlannedConnection, PortId, PortTemporal, PreparationHostIdentity, PreparedFragmentReceipt,
-    ProtectedResourceAccess, ProtectedResourceCommitPolicy, ResourceBinding, ResourceBindingRoleId,
-    ResourceHandleId, ResourceHealth, ResourceObservation, SignId, SourceDocumentId,
-    TerminalPolicy, PROTOCOL_VERSION,
+    BaseImplementationId, BootId, CancellationPolicy, CapabilityId, CheckedPlotId, ConnectionId,
+    ExpandedPlotId, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement, HostId,
+    HostPreparationRefusal, HostProfileId, KindId, LineScope, LinkBindingId, OfferGeneration,
+    PlacementId, Plan, PlanFragment, PlanPreparationHost, PlannedConnection, PlotIdentity, PortId,
+    PortTemporal, PreparationHostIdentity, PreparedFragmentReceipt, ProtectedResourceAccess,
+    ProtectedResourceCommitPolicy, ResourceBinding, ResourceBindingRoleId, ResourceHandleId,
+    ResourceHealth, ResourceObservation, SignId, SourceDocumentId, TerminalPolicy,
+    PROTOCOL_VERSION,
 };
 use conduit_std_host::{
     prepare_copy_task, CopyRequestId, CopyResult, CopyStopToken, ProtectedFileAvailability,
@@ -95,8 +95,8 @@ fn exact_plan(hosts: &[HostAdvertisement], label: &str) -> Plan {
             plan_id: conduit_core::PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from(""),
-            checked_form_id: CheckedFormId::from(""),
-            expanded_form_id: ExpandedFormId::from(""),
+            checked_plot_id: CheckedPlotId::from(""),
+            expanded_plot_id: ExpandedPlotId::from(""),
             realization_backs: vec![],
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),
@@ -119,10 +119,10 @@ fn exact_plan(hosts: &[HostAdvertisement], label: &str) -> Plan {
         })
         .collect();
     seal_plan(
-        FormIdentity {
-            source_document_id: SourceDocumentId::from("form/host-fences-capstone"),
-            checked_form_id: CheckedFormId::from("checked/host-fences-capstone"),
-            expanded_form_id: ExpandedFormId::from(label),
+        PlotIdentity {
+            source_document_id: SourceDocumentId::from("plot/host-fences-capstone"),
+            checked_plot_id: CheckedPlotId::from("checked/host-fences-capstone"),
+            expanded_plot_id: ExpandedPlotId::from(label),
         },
         fragments,
     )
@@ -202,10 +202,10 @@ fn candidate(host: &HostAdvertisement) -> CandidateObservation {
 }
 
 #[test]
-fn three_fenced_hosts_prepare_then_start_one_unchanged_form() {
+fn three_fenced_hosts_prepare_then_start_one_unchanged_plot() {
     let body = Body::born(
         SourceDocumentId::from("source/body"),
-        CheckedFormId::from("checked/body"),
+        CheckedPlotId::from("checked/body"),
         1,
         SignId::from("body/born"),
     )
@@ -392,14 +392,14 @@ fn browser_loss_requires_fresh_plan_without_mutating_old_truth() {
     let constrained = advertisement("constrained", 2, 2);
     let old = exact_plan(
         &[workstation.clone(), browser.clone(), constrained.clone()],
-        "expanded/unchanged-form",
+        "expanded/unchanged-plot",
     );
     let old_snapshot = old.clone();
-    let replacement = exact_plan(&[workstation, constrained], "expanded/unchanged-form");
+    let replacement = exact_plan(&[workstation, constrained], "expanded/unchanged-plot");
 
     assert_eq!(old.source_document_id, replacement.source_document_id);
-    assert_eq!(old.checked_form_id, replacement.checked_form_id);
-    assert_eq!(old.expanded_form_id, replacement.expanded_form_id);
+    assert_eq!(old.checked_plot_id, replacement.checked_plot_id);
+    assert_eq!(old.expanded_plot_id, replacement.expanded_plot_id);
     assert_ne!(old.plan_id, replacement.plan_id);
     assert_eq!(old, old_snapshot);
     assert!(old

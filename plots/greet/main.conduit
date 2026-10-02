@@ -1,0 +1,17 @@
+plot greet (
+    greeting: Text = "Hello"
+    name: Text >> text: Text
+) {
+    join: text/join(greeting)
+    name >> join >> text
+}
+
+plot welcome {
+    hello: greet("Welcome")
+    "Travis" >> hello >> presentation/text
+}
+
+plot default-welcome {
+    hello: greet
+    "Travis" >> hello >> presentation/text
+}

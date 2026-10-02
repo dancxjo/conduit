@@ -103,7 +103,7 @@ fn admitted(deadline_us: u32) -> (conduitos::timing_profile::AdmittedTimingPlan,
 }
 
 #[test]
-fn form_requirement_is_platform_neutral_and_exact_plan_seals_every_cost() {
+fn plot_requirement_is_platform_neutral_and_exact_plan_seals_every_cost() {
     let (plan, _) = admitted(1_000);
     assert_eq!(plan.basis.proof_class, PROOF_CLASS);
     assert!(plan.basis.proven_worst_case_us <= plan.basis.deadline_us);
@@ -115,7 +115,7 @@ fn form_requirement_is_platform_neutral_and_exact_plan_seals_every_cost() {
     assert!(plan.basis.mandatory_sign_bytes > 0);
     assert!(plan.basis.fault_reserve_bytes > 0);
     assert!(!plan.basis.inspection_included);
-    let source = conduitos::ordinary_plan::ORDINARY_FORM_SOURCE;
+    let source = conduitos::ordinary_plan::ORDINARY_PLOT_SOURCE;
     for forbidden in [
         "QEMU",
         "x86",

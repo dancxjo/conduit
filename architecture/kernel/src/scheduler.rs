@@ -876,7 +876,7 @@ pub enum SchedulerStatus {
     Idle,
     /// Every gear has settled and every Cord has drained.
     ///
-    /// This is structural scheduler truth, not a claim that the form's
+    /// This is structural scheduler truth, not a claim that the plot's
     /// meaning is complete. The play lifecycle must separately classify a
     /// drained scheduler as quiescent or semantically completed.
     Drained,

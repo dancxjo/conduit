@@ -1,22 +1,22 @@
-// Route acquired input to the foreground Form inside one immutable Body Plan.
+// Route acquired input to the foreground Plot inside one immutable Body Plan.
 // This only delivers Host observations; it never advances or replaces Play.
 import { BrowserInputRefusal } from "./browser-human-input.mjs";
-export function createBodyInputRouting({ forms, foreground, maximumPlacements }) {
-  if (!Array.isArray(forms) || forms.length < 1 || forms.length > 16 || typeof foreground !== "function" ||
+export function createBodyInputRouting({ plots, foreground, maximumPlacements }) {
+  if (!Array.isArray(plots) || plots.length < 1 || plots.length > 16 || typeof foreground !== "function" ||
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) {
     throw new BrowserInputRefusal("InvalidInventory", "invalid Body input routing inventory");
   }
-  const placementForms = new Map();
+  const placementPlots = new Map();
   const placementInputs = new Map();
   const inputKinds = new Map([["input/keyboard", "keyboard"], ["input/button", "button"], ["input/pointer-source", "pointer"]]);
   const formIds = new Set();
-  for (const partition of forms) {
-    const form = partition.form?.checked_form_id;
-    if (typeof form !== "string" || !form || form.length > 256 || formIds.has(form)) throw new BrowserInputRefusal("InvalidFormIdentity", "invalid Body input Form identity");
-    formIds.add(form);
+  for (const partition of plots) {
+    const plot = partition.plot?.checked_plot_id;
+    if (typeof plot !== "string" || !plot || plot.length > 256 || formIds.has(plot)) throw new BrowserInputRefusal("InvalidPlotIdentity", "invalid Body input Plot identity");
+    formIds.add(plot);
     for (const fragment of partition.plan.fragments) for (const placement of fragment.placements) {
-      if (typeof placement.placement_id !== "string" || !placement.placement_id || placement.placement_id.length > 256 || placementForms.has(placement.placement_id) || placementForms.size === maximumPlacements) throw new BrowserInputRefusal("PlacementBound", "Body input placement bound exceeded");
-      placementForms.set(placement.placement_id, form);
+      if (typeof placement.placement_id !== "string" || !placement.placement_id || placement.placement_id.length > 256 || placementPlots.has(placement.placement_id) || placementPlots.size === maximumPlacements) throw new BrowserInputRefusal("PlacementBound", "Body input placement bound exceeded");
+      placementPlots.set(placement.placement_id, plot);
       if (inputKinds.has(placement.kind_id)) placementInputs.set(placement.placement_id, inputKinds.get(placement.kind_id));
     }
   }
@@ -35,29 +35,29 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
     for (const waiter of waiters.splice(0)) { waiter.dispose(); waiter.reject(error); }
   };
   const selected = () => {
-    const form = foreground();
-    if (!formIds.has(form)) throw new BrowserInputRefusal("StaleForm", "foreground Form is outside the admitted body Plan");
-    return form;
+    const plot = foreground();
+    if (!formIds.has(plot)) throw new BrowserInputRefusal("StalePlot", "foreground Plot is outside the admitted body Plan");
+    return plot;
   };
-  const accepts = (form, kind) => {
-    for (const [placement, inputKind] of placementInputs) if (inputKind === kind && placementForms.get(placement) === form) return true;
+  const accepts = (plot, kind) => {
+    for (const [placement, inputKind] of placementInputs) if (inputKind === kind && placementPlots.get(placement) === plot) return true;
     return false;
   };
-  const streamKey = (kind, form) => `${kind}\u0000${form}`;
-  const streamPressure = (kind, form) => {
-    const key = streamKey(kind, form);
+  const streamKey = (kind, plot) => `${kind}\u0000${plot}`;
+  const streamPressure = (kind, plot) => {
+    const key = streamKey(kind, plot);
     let state = pressure.get(key);
     if (!state) {
-      state = { kind, form, capacity: kind === "pointer" ? 1 : 8, accepted: 0, delivered: 0, coalesced: 0, dropped: 0, refusals: 0 };
+      state = { kind, plot, capacity: kind === "pointer" ? 1 : 8, accepted: 0, delivered: 0, coalesced: 0, dropped: 0, refusals: 0 };
       pressure.set(key, state);
     }
     return state;
   };
-  const queueFor = (kind, form) => {
-    const key = streamKey(kind, form);
+  const queueFor = (kind, plot) => {
+    const key = streamKey(kind, plot);
     let queue = queues.get(key);
     if (!queue) {
-      const capacity = streamPressure(kind, form).capacity;
+      const capacity = streamPressure(kind, plot).capacity;
       queue = { items: new Array(capacity).fill(null), head: 0, length: 0 };
       queues.set(key, queue);
     }
@@ -84,15 +84,15 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
     if (!Number.isSafeInteger(next)) throw new BrowserInputRefusal("SequenceOverflow", "input pressure evidence overflowed");
     state[field] = next;
   };
-  const failStream = (kind, form, error) => {
-    const key = streamKey(kind, form);
+  const failStream = (kind, plot, error) => {
+    const key = streamKey(kind, plot);
     streamFailures.set(key, error);
     const queue = queues.get(key);
     if (queue) clearQueue(queue);
-    increment(streamPressure(kind, form), "refusals");
+    increment(streamPressure(kind, plot), "refusals");
     for (let index = waiters.length - 1; index >= 0; index -= 1) {
       const waiter = waiters[index];
-      if (waiter.kind !== kind || waiter.form !== form) continue;
+      if (waiter.kind !== kind || waiter.plot !== plot) continue;
       waiters.splice(index, 1);
       waiter.dispose();
       waiter.reject(error);
@@ -116,30 +116,30 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
     });
   };
   const deliver = (kind, event) => {
-    if (!formIds.has(event.delivery_form)) throw new BrowserInputRefusal("StaleForm", "input lacks its captured Form identity");
-    const form = event.delivery_form;
-    const key = streamKey(kind, form);
+    if (!formIds.has(event.delivery_plot)) throw new BrowserInputRefusal("StalePlot", "input lacks its captured Plot identity");
+    const plot = event.delivery_plot;
+    const key = streamKey(kind, plot);
     if (streamFailures.has(key)) return;
-    const state = streamPressure(kind, form);
+    const state = streamPressure(kind, plot);
     increment(state, "accepted");
     if (kind === "pointer") {
       increment(state, "coalesced", event.coalesced ?? 0);
       increment(state, "dropped", event.dropped ?? 0);
     }
-    const index = waiters.findIndex(waiter => waiter.kind === kind && waiter.form === event.delivery_form);
+    const index = waiters.findIndex(waiter => waiter.kind === kind && waiter.plot === event.delivery_plot);
     if (index >= 0) {
       const waiter = waiters.splice(index, 1)[0];
       increment(state, "delivered");
       waiter.dispose(); waiter.resolve(event);
     } else {
-      const queue = queueFor(kind, form);
+      const queue = queueFor(kind, plot);
       if (kind === "pointer" && queue.length === 1) {
         try { queue.items[queue.head] = coalescePointer(queue.items[queue.head], event, state); }
-        catch (error) { failStream(kind, form, error); }
+        catch (error) { failStream(kind, plot, error); }
         return;
       }
       if (queue.length === state.capacity) {
-        failStream(kind, form, new BrowserInputRefusal("Pressure", `ordered ${kind} stream capacity exhausted`));
+        failStream(kind, plot, new BrowserInputRefusal("Pressure", `ordered ${kind} stream capacity exhausted`));
         return;
       }
       enqueue(queue, event);
@@ -170,20 +170,20 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
       if (kind === "keyboard") {
         if (!(value instanceof Uint8Array) || value.length !== 3 || value[1] > 1) throw new BrowserInputRefusal("InvalidInput", "invalid routed key event");
         const [usage, phase] = value;
-        const form = heldKeys[usage] ?? selected();
-        if (!accepts(form, kind)) return null;
-        heldKeys[usage] = phase === 0 ? form : null;
-        return form;
+        const plot = heldKeys[usage] ?? selected();
+        if (!accepts(plot, kind)) return null;
+        heldKeys[usage] = phase === 0 ? plot : null;
+        return plot;
       }
       if (kind === "button") {
-        const form = heldButton ?? selected();
-        if (!accepts(form, kind)) return null;
-        heldButton = value.pressed ? form : null;
-        return form;
+        const plot = heldButton ?? selected();
+        if (!accepts(plot, kind)) return null;
+        heldButton = value.pressed ? plot : null;
+        return plot;
       }
       if (kind === "pointer") {
-        const form = selected();
-        return accepts(form, kind) ? form : null;
+        const plot = selected();
+        return accepts(plot, kind) ? plot : null;
       }
       throw new BrowserInputRefusal("UnsupportedInput", "unsupported routed input kind");
     },
@@ -200,14 +200,14 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
       if (waiters.some(waiter => waiter.placement === placement)) {
         return Promise.reject(new BrowserInputRefusal("DuplicateRequest", "Body input placement already has a pending request"));
       }
-      const form = placementForms.get(placement);
-      const key = streamKey(kind, form);
+      const plot = placementPlots.get(placement);
+      const key = streamKey(kind, plot);
       const failed = streamFailures.get(key);
       if (failed) return Promise.reject(failed);
       const queue = queues.get(key);
       if (queue?.length) {
         const event = dequeue(queue);
-        increment(streamPressure(kind, form), "delivered");
+        increment(streamPressure(kind, plot), "delivered");
         return Promise.resolve(event);
       }
       if (waiters.length === 16) {
@@ -219,7 +219,7 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
           if (index >= 0) waiters.splice(index, 1);
           waiter.dispose(); reject(new BrowserInputRefusal("Cancelled", "Body input request cancelled"));
         };
-        const waiter = { kind, form, placement, resolve, reject, dispose: () => signal.removeEventListener("abort", abort) };
+        const waiter = { kind, plot, placement, resolve, reject, dispose: () => signal.removeEventListener("abort", abort) };
         waiters.push(waiter);
         signal.addEventListener("abort", abort, { once: true });
       });
@@ -229,8 +229,8 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
     pressure() {
       return Object.freeze([...pressure.values()].map(state => Object.freeze({
         ...state,
-        occupancy: queues.get(streamKey(state.kind, state.form))?.length ?? 0,
-        terminal: streamFailures.get(streamKey(state.kind, state.form))?.code ?? null,
+        occupancy: queues.get(streamKey(state.kind, state.plot))?.length ?? 0,
+        terminal: streamFailures.get(streamKey(state.kind, state.plot))?.code ?? null,
       })));
     },
     close() { fail(new BrowserInputRefusal("Cancelled", "Body input routing closed")); },

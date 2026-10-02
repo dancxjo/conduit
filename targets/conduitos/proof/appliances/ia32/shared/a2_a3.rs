@@ -222,7 +222,7 @@ extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
     arch::present(b"\n");
     arch::present(b"CONDUIT_IA32_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
-    arch::present(b"\",\"wake_source\":\"8254-pit-channel0-irq0\",\"wake_irq\":32,\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
+    arch::present(b"\",\"wake_source\":\"8254-pit-channel0-irq0\",\"wake_irq\":32,\"a3_ordinary_plot_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
     loop {
         unsafe { core::arch::asm!("hlt", options(nomem, nostack)) }
     }
@@ -256,7 +256,7 @@ fn machine_sign(nonce: u64, lane: &AdmittedLane, idle: u32, wakes: u32) {
     out.decimal(lane.decisions());
     out.push(b",\"kernel_signs\":");
     out.decimal(u32::from(lane.signs()));
-    out.push(b",\"pending_host_calls\":0,\"sequence\":[\"machine-init\",\"lane-handoff\",\"idle\",\"timer-wake\",\"terminal\"],\"a3_ordinary_form_claimed\":false}\n");
+    out.push(b",\"pending_host_calls\":0,\"sequence\":[\"machine-init\",\"lane-handoff\",\"idle\",\"timer-wake\",\"terminal\"],\"a3_ordinary_plot_claimed\":false}\n");
     arch::present(out.bytes());
 }
 

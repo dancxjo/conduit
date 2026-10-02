@@ -21,8 +21,8 @@ cargo xtask prove browser-host
 contracts without launching a browser or fabricating product shells. `prove
 browser-host` stages the required artifacts and runs the pinned live-browser
 evidence matrix. Inspect prerequisites with `cargo xtask doctor browser`.
-For reviewed canonical forms specifically, use
-`cargo xtask check forms run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
+For reviewed canonical plots specifically, use
+`cargo xtask check plots run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
 for capture and publication rules.
 
 Browser acceptance uses pinned Chromium, one worker, zero retries, and ordinary
@@ -33,7 +33,7 @@ separate roles and do not replace the canonical capture environment.
 ## What the tests establish
 
 The basic Signal specimen parses and plans unchanged
-`proof/fixtures/forms/signal-demo.conduit`, lowers the exact fragment, and runs
+`proof/fixtures/plots/signal-demo.conduit`, lowers the exact fragment, and runs
 `conduit-kernel` compiled to WASM. JavaScript supplies timers and DOM effects.
 Each page has its own WASM instance, host/boot identity, plan, active play,
 fixed ABI buffers, and receipts. Completion must match the outstanding
@@ -45,7 +45,7 @@ at the boundary actually exercised: a WASM build is not a browser test, and a
 local browser fixture does not establish physical hardware behavior.
 
 `webchat.test.html`, for example, runs one kernel per page over
-`forms/webchat/main.conduit`. The external-WebSocket proof sends messages through
+`plots/webchat/main.conduit`. The external-WebSocket proof sends messages through
 real controls and observes disconnect behavior with bounded history and input.
 Its authored `net/websocket` operation is separate from a Conduit session line
 using the WebSocket base.

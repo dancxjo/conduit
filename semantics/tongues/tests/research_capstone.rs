@@ -1,6 +1,6 @@
 use conduit_tongues::{
-    check_research_forms, run_research, shared_latent_signature, shared_relation_signature,
-    Pb2007Slice, RESEARCH_SEED, TRAINING_FORM_SOURCE,
+    check_research_plots, run_research, shared_latent_signature, shared_relation_signature,
+    Pb2007Slice, RESEARCH_SEED, TRAINING_PLOT_SOURCE,
 };
 
 #[test]
@@ -33,13 +33,13 @@ fn exact_corpus_is_split_and_label_free_at_training_boundary() {
 }
 
 #[test]
-fn portable_forms_check_and_training_form_has_no_labels_or_realization_facts() {
-    let forms = check_research_forms().expect("research Forms check and expand");
-    assert_eq!(forms[0].gears.len(), 2);
-    assert_eq!(forms[1].gears.len(), 4);
+fn portable_plots_check_and_training_plot_has_no_labels_or_realization_facts() {
+    let plots = check_research_plots().expect("research Plots check and expand");
+    assert_eq!(plots[0].gears.len(), 2);
+    assert_eq!(plots[1].gears.len(), 4);
     for forbidden in ["phone", "syllable", "IPA", "host", "device", "runtime"] {
         assert!(
-            !TRAINING_FORM_SOURCE.contains(forbidden),
+            !TRAINING_PLOT_SOURCE.contains(forbidden),
             "found {forbidden}"
         );
     }

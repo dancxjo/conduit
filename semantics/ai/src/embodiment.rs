@@ -3,7 +3,7 @@
 use crate::{EffectAuthority, EmbodimentStage, ProposalDecisionOutcome, ProposalRefusal};
 use alloc::{collections::BTreeSet, string::String, vec::Vec};
 use conduit_core::{
-    verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, KindId, PlacementId, Plan, PlanId,
+    verify_plan, ActivePlayId, CheckedPlotId, ExpandedPlotId, KindId, PlacementId, Plan, PlanId,
     SignId,
 };
 use serde::{Deserialize, Serialize};
@@ -14,8 +14,8 @@ pub const MAXIMUM_EMBODIMENT_SIGNS: usize = 16;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EmbodiedModelView {
     pub stage: EmbodimentStage,
-    pub checked_form_id: CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub checked_plot_id: CheckedPlotId,
+    pub expanded_plot_id: ExpandedPlotId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub model_gear_identity: String,
@@ -175,8 +175,8 @@ impl EmbodiedModelView {
 
         Ok(Self {
             stage,
-            checked_form_id: plan.checked_form_id.clone(),
-            expanded_form_id: plan.expanded_form_id.clone(),
+            checked_plot_id: plan.checked_plot_id.clone(),
+            expanded_plot_id: plan.expanded_plot_id.clone(),
             plan_id: plan.plan_id.clone(),
             active_play_id,
             model_gear_identity: model.gear_id.as_str().into(),
@@ -327,8 +327,8 @@ fn unique_identities(views: &[EmbodiedModelView]) -> Result<(), EmbodimentReceip
     let mut plans = BTreeSet::new();
     let mut plays = BTreeSet::new();
     for view in views {
-        if !checked.insert(view.checked_form_id.as_str())
-            || !expanded.insert(view.expanded_form_id.as_str())
+        if !checked.insert(view.checked_plot_id.as_str())
+            || !expanded.insert(view.expanded_plot_id.as_str())
             || !plans.insert(view.plan_id.as_str())
             || !plays.insert(view.active_play_id.as_str())
         {

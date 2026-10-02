@@ -1,11 +1,12 @@
 //! Canonical bounded encoding for deterministic source-extraction results.
 
 use alloc::{string::String, vec::Vec};
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
-    Chunk, ExtractedSourceValue, ExtractionLineage, ResourceMetadataEntry, SourceExtractionReceipt,
-    SourceRef, SourceSpan, SourceSpanUnit, MAXIMUM_EXTRACTION_OUTPUT_BYTES,
-    MAXIMUM_RAG_IDENTITY_BYTES,
+    Chunk, ExtractedSourceValue, ExtractionLineage, RagIdentity, ResourceMetadataEntry,
+    SourceExtractionReceipt, SourceRef, SourceSpan, SourceSpanUnit, TransformProfiles,
+    MAXIMUM_EXTRACTION_OUTPUT_BYTES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 const VERSION: u8 = 1;
@@ -116,17 +117,17 @@ fn encode_chunk(
     if &chunk.lineage.source != source {
         return Err(SourceExtractionCodecRefusal::MixedSources);
     }
-    if !chunk.lineage.transform_profiles.is_empty() || chunk.lineage.parent_chunk.is_some() {
+    if !chunk.lineage.transform_profiles.get().is_empty() || chunk.lineage.parent_chunk.is_some() {
         return Err(SourceExtractionCodecRefusal::UnsupportedLineage);
     }
     encoded.extend_from_slice(&chunk.identity.digest());
-    encoded.push(match chunk.lineage.span.unit {
+    encoded.push(match chunk.lineage.span.unit() {
         SourceSpanUnit::Bytes => 0,
         SourceSpanUnit::Items => 1,
     });
-    encoded.extend_from_slice(&chunk.lineage.span.start.to_le_bytes());
-    encoded.extend_from_slice(&chunk.lineage.span.end.to_le_bytes());
-    push_identity(encoded, &chunk.lineage.extraction_profile)?;
+    encoded.extend_from_slice(&chunk.lineage.span.start().to_le_bytes());
+    encoded.extend_from_slice(&chunk.lineage.span.end().to_le_bytes());
+    push_identity(encoded, chunk.lineage.extraction_profile.get())?;
     match &chunk.value {
         ExtractedSourceValue::Text(bytes) => {
             encoded.push(0);
@@ -161,11 +162,8 @@ fn decode_chunk(
         1 => SourceSpanUnit::Items,
         _ => return Err(SourceExtractionCodecRefusal::Malformed),
     };
-    let span = SourceSpan {
-        unit,
-        start: cursor.u64()?,
-        end: cursor.u64()?,
-    };
+    let span = SourceSpan::new(unit, cursor.u64()?, cursor.u64()?)
+        .map_err(|_| SourceExtractionCodecRefusal::Malformed)?;
     let extraction_profile = cursor.identity()?;
     let value = match cursor.u8()? {
         0 => ExtractedSourceValue::Text(cursor.bytes_u32()?.to_vec()),
@@ -195,8 +193,10 @@ fn decode_chunk(
         lineage: ExtractionLineage {
             source: source.clone(),
             span,
-            extraction_profile,
-            transform_profiles: Vec::new(),
+            extraction_profile: RagIdentity::new(extraction_profile)
+                .map_err(|_| SourceExtractionCodecRefusal::Malformed)?,
+            transform_profiles: TransformProfiles::new(BoundedSequence::new())
+                .map_err(|_| SourceExtractionCodecRefusal::Malformed)?,
             parent_chunk: None,
         },
         value,

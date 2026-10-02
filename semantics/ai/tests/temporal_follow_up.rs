@@ -3,8 +3,7 @@ use conduit_ai::{
     ProposalDecisionOutcome, ProposalGate, ProposalRefusal,
 };
 use conduit_core::{
-    BootId, HostId, KindId, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, PlanId,
-    SignId, TemporalScale,
+    BootId, HostId, KindId, MonotonicClockIdentity, MonotonicInstant, PlanId, SignId, TemporalScale,
 };
 use conduit_time::{
     elapsed_trigger_window, MissedOccurrencePolicy, OccurrenceInstant, RecurrenceOccurrence,
@@ -23,6 +22,7 @@ fn model_follow_up_timing_is_proposal_info_not_effect_authority() {
     )
     .unwrap();
     let at = MonotonicInstant::new(1_000, clock).unwrap();
+    let at = conduit_time::MonotonicInstant::try_from(at).unwrap();
     let effect = ModelEffectProposal {
         proposal_id: "proposal/follow-up-effect".into(),
         plan_id: PlanId::from("plan/current"),
@@ -40,16 +40,21 @@ fn model_follow_up_timing_is_proposal_info_not_effect_authority() {
                 identity: "recurrence/follow-up/occurrence/0".into(),
                 recurrence_identity: "recurrence/follow-up".into(),
                 ordinal: 0,
-                at: OccurrenceInstant::Monotonic(at.clone()),
+                at: OccurrenceInstant::monotonic(at.clone()).unwrap(),
             },
-            trigger: TriggerProfile::Elapsed(
+            trigger: TriggerProfile::elapsed(
                 elapsed_trigger_window(
                     at,
-                    MonotonicDuration::new(100, TemporalScale::Milliseconds),
+                    conduit_time::MonotonicDuration::new(
+                        100,
+                        conduit_time::TemporalScale::Milliseconds,
+                    )
+                    .unwrap(),
                     SuspendBehavior::ClockExcludesSuspend,
                 )
                 .unwrap(),
-            ),
+            )
+            .unwrap(),
             missed: MissedOccurrencePolicy::Skip,
             payload: effect,
         },

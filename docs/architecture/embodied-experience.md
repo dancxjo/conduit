@@ -10,7 +10,7 @@ This document builds on existing accepted Conduit boundaries rather than
 creating a new cognitive runtime. In particular:
 
 - [continuous execution](continuous-execution.md) already establishes that a
-  form may remain useful for an externally unbounded lifetime while every
+  plot may remain useful for an externally unbounded lifetime while every
   concrete state, queue, resource, plan, and play remains finite;
 - [body lifecycle](body-lifecycle-waists.md) keeps body continuity distinct
   from host, boot, plan, play, resource, and line truth;
@@ -26,7 +26,7 @@ creating a new cognitive runtime. In particular:
 The new claim is that these pieces can compose into something much more useful
 than a collection of sensors and model calls:
 
-> **A body may continuously perceive through ordinary forms, relate those
+> **A body may continuously perceive through ordinary plots, relate those
 > observations into a bounded current experience, retain exact optional purpose
 > across changing machinery, and present that experience in the
 > first person without making a language model the body or a source of truth.**
@@ -122,7 +122,7 @@ typed visual observations
 current experience
 ```
 
-The form describes the semantic work. A browser camera, a robot camera, an
+The plot describes the semantic work. A browser camera, a robot camera, an
 imported image, a remote host, a framebuffer capture, or a deterministic
 fixture can all provide compatible image observations when their exact
 contracts match.
@@ -182,21 +182,21 @@ vision/describe
 
 A constrained host may offer only cheap visual operations. A workstation may
 offer expensive object recognition and multimodal description. One body-wide
-plan may place different branches of the same Vision form on different hosts.
+plan may place different branches of the same Vision plot on different hosts.
 
-The portable form does not change.
+The portable plot does not change.
 
 ---
 
 ## 3. Existing checked source is the starting seam
 
-Conduit already has an ordinary browser-neutral visual form shape. A minimal
+Conduit already has an ordinary browser-neutral visual plot shape. A minimal
 composition can be written today in the style of the existing
-`forms/vision-metadata` source:
+`plots/vision-metadata` source:
 
 ```conduit
 # Existing syntax and existing semantic family.
-form vision-observe (
+plot vision-observe (
     >> image: ImageObservationReference
     detections: VisionDetectionsFour >
 ) {
@@ -215,7 +215,7 @@ with a private video runtime.
 
 ---
 
-## 4. Proposed full Vision form
+## 4. Proposed full Vision plot
 
 The following is an **architectural source sketch**, not yet checked source.
 kinds such as `flow/coalesce-latest`, `vision/objects`, `vision/ocr`,
@@ -224,7 +224,7 @@ that must be reviewed and implemented before this exact source can compile.
 
 ```conduit
 # PROPOSED SOURCE: illustrates the intended composition, not current support.
-form vision (
+plot vision (
     >> frames: ImageObservationReference...
     experience: VisualExperience... >
 ) {
@@ -246,16 +246,16 @@ form vision (
     experience: experience/visual(maximum-observations = 32)
 
     frames >> ingress.in
-    ingress.out >> normalize.image
-    normalize.image >> fanout.in
+    ingress.out >> normalize.source
+    normalize.normalized >> fanout.in
 
     fanout.left >> change.image
     fanout.right >> objects.image
-    normalize.image >> text.image
+    normalize.normalized >> text.image
 
     objects.detections >> tracks.detections
 
-    normalize.image >> describe.image
+    normalize.normalized >> describe.image
     objects.detections >> describe.observations
     text.observations >> describe.observations
     tracks.tracks >> describe.observations
@@ -273,7 +273,7 @@ form vision (
 This sketch is intentionally a graph, not a magic `vision()` operation.
 Implementations remain independently placeable and replaceable.
 
-A later checked form may use a reusable back or smaller sub-forms to reduce
+A later checked plot may use a reusable back or smaller sub-plots to reduce
 visual noise while preserving the same semantic graph.
 
 ---
@@ -319,13 +319,13 @@ backlog simply because RAM is currently plentiful.
 
 Sampling and overload are not synonyms.
 
-If a form means:
+If a plot means:
 
 > Describe the newest available view whenever the describer is ready.
 
 then a capacity-one coalescing operation may be semantically correct.
 
-If a form means:
+If a plot means:
 
 > Examine every package that crosses this inspection line.
 
@@ -554,7 +554,7 @@ It is not:
 - a private memory store;
 - a source of lifecycle or effect authority.
 
-It should be representable as ordinary portable forms/gears and placeable by the
+It should be representable as ordinary portable plots/gears and placeable by the
 same plan machinery as other work.
 
 ---
@@ -636,14 +636,14 @@ It is not the canonical experience store.
 
 ---
 
-## 14. Proposed Experiencer form
+## 14. Proposed Experiencer plot
 
 The following is **proposed source**. Its kinds/types are architectural
-candidates, not current checked syntax beyond the ordinary form/port/cord shape.
+candidates, not current checked syntax beyond the ordinary plot/port/cord shape.
 
 ```conduit
 # PROPOSED SOURCE.
-form experiencer (
+plot experiencer (
     >> visual: VisualExperience...
     >> heard: AuditoryExperience...
     >> location: LocationExperience...
@@ -721,7 +721,7 @@ The path remains:
 experience
    |
    v
-ordinary semantic application/form logic
+ordinary semantic application/plot logic
    |
    v
 available action / proposal
@@ -784,7 +784,7 @@ At the diegetic/presented level:
 ```text
 body's first-person lived voice
   I / me / my
-  my forms
+  my plots
   I'm awake
   I see ...
   I hear ...
@@ -822,7 +822,7 @@ authority, or a desire to preserve the narrator/model itself.
 ```
 
 The exact prompt belongs to the concrete Presenter implementation and its
-versioned evidence, not authored forms.
+versioned evidence, not authored plots.
 
 ---
 
@@ -894,7 +894,7 @@ Neither is the model's hidden chain-of-thought.
 
 Private model reasoning is not captured, canonized, or called the body's mind.
 If an explicit presented thought is retained into autobiographical memory, an
-ordinary form must deliberately retain the generated artifact with its
+ordinary plot must deliberately retain the generated artifact with its
 provenance.
 
 A future generated Manifestation envelope may therefore distinguish finite
@@ -1009,7 +1009,7 @@ The first-person feeling is a character Manifestation. The completion facts are
 ordinary semantic truth.
 
 The actual `Fulfill` lifecycle transition remains an explicit authoritative
-body administrative operation. A purpose form, Experiencer, or LLM Presenter
+body administrative operation. A purpose plot, Experiencer, or LLM Presenter
 cannot trigger it merely by wanting or saying it.
 
 ---
@@ -1020,7 +1020,7 @@ A deterministic purpose evaluation might look conceptually like:
 
 ```conduit
 # PROPOSED SOURCE.
-form fulfillment-readiness (
+plot fulfillment-readiness (
     >> purpose: PurposeState
     readiness: FulfillmentReadiness >
 ) {
@@ -1075,7 +1075,7 @@ zero model-level stake
 
 ---
 
-## 26. Vision, Experience, purpose, and Fulfillment form one coherent life
+## 26. Vision, Experience, purpose, and Fulfillment plot one coherent life
 
 These ideas become especially powerful together.
 
@@ -1277,7 +1277,7 @@ The proof is that the same semantic life can be embodied differently.
 
 The design can be summarized as these rules.
 
-1. **Perception is ordinary long-running form work.** Vision, hearing, and other
+1. **Perception is ordinary long-running plot work.** Vision, hearing, and other
    faculties do not require a privileged agent runtime.
 
 2. **Vision is modular.** Acquisition, pressure policy, normalization, cheap

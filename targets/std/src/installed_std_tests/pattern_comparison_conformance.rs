@@ -2,8 +2,8 @@ use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
     BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -35,8 +35,8 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
         (SINK_KIND, &comparison, &sink_offer),
     ]);
     let source = format!(
-        "{}\nform gesture-cadence-proof {{\n    candidate: {CANDIDATE_KIND}(value = \"{}\")\n    template: {TEMPLATE_KIND}(value = \"{}\")\n    compare: compare-pattern(tolerance-millionths = 60000)\n    result: {SINK_KIND}(value = \"{}\")\n    candidate.output >> compare.candidate\n    template.output >> compare.template\n    compare.comparison >> result.input\n}}\n",
-        include_str!("../../../../forms/secret-knock/main.conduit"),
+        "{}\nplot gesture-cadence-proof {{\n    candidate: {CANDIDATE_KIND}(value = \"{}\")\n    template: {TEMPLATE_KIND}(value = \"{}\")\n    compare: compare-pattern(tolerance-millionths = 60000)\n    result: {SINK_KIND}(value = \"{}\")\n    candidate.output >> compare.candidate\n    template.output >> compare.template\n    compare.comparison >> result.input\n}}\n",
+        include_str!("../../../../plots/secret-knock/main.conduit"),
         hex(&candidate.canonical_bytes().unwrap()),
         hex(&template.canonical_bytes().unwrap()),
         hex(&comparison.canonical_bytes().unwrap()),
@@ -45,25 +45,25 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let canonical = check_syntax_document(
-        &parse_syntax_document(include_str!("../../../../forms/secret-knock/main.conduit")),
+        &parse_syntax_document(include_str!("../../../../plots/secret-knock/main.conduit")),
         &startup,
     )
     .unwrap();
     assert_eq!(
         canonical
-            .forms
+            .plots
             .iter()
-            .find(|form| form.name == "compare-pattern")
+            .find(|plot| plot.name == "compare-pattern")
             .unwrap()
-            .checked_form_id,
+            .checked_plot_id,
         checked
-            .forms
+            .plots
             .iter()
-            .find(|form| form.name == "compare-pattern")
+            .find(|plot| plot.name == "compare-pattern")
             .unwrap()
-            .checked_form_id
+            .checked_plot_id
     );
-    let expanded = expand_canonical_form(&checked, "gesture-cadence-proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "gesture-cadence-proof", &profile).unwrap();
     assert!(expanded.gears.iter().any(|gear| {
         gear.kind_id.as_str() == conduit_semantic_catalog::COMPARE_PATTERN_KIND
             && gear.configuration.iter().any(|entry| {
@@ -134,7 +134,7 @@ fn catalogs<const N: usize>(
 ) -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    super::timing_form_catalogs::install_catalogs(&mut startup, &mut profile);
+    super::timing_plot_catalogs::install_catalogs(&mut startup, &mut profile);
     for (kind, value, offer) in fixtures {
         startup
             .insert(KindSignature {

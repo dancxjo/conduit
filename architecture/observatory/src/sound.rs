@@ -2,8 +2,8 @@
 
 use alloc::{format, string::String, vec::Vec};
 use conduit_core::{
-    ActivePlayId, BootId, CapabilityId, ExecutionProfileId, FormIdentity, HostId, ImplementationId,
-    KindId, PlanId,
+    ActivePlayId, BootId, CapabilityId, ExecutionProfileId, HostId, ImplementationId, KindId,
+    PlanId, PlotIdentity,
 };
 use serde::{Deserialize, Serialize};
 
@@ -53,7 +53,7 @@ pub struct SoundCandidateInspection {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SoundRealizationInspection {
     pub schema: String,
-    pub form: FormIdentity,
+    pub plot: PlotIdentity,
     pub requirement_profile_id: String,
     pub candidates: Vec<SoundCandidateInspection>,
     pub selected_capability_id: Option<CapabilityId>,
@@ -137,8 +137,8 @@ pub fn render_sound_inspection(
 ) -> Result<String, SoundInspectionError> {
     validate_sound_inspection(inspection)?;
     let mut rendered = format!(
-        "Sound realization\nForm {}\nRequirement {}\n",
-        inspection.form.source_document_id.as_str(),
+        "Sound realization\nPlot {}\nRequirement {}\n",
+        inspection.plot.source_document_id.as_str(),
         inspection.requirement_profile_id
     );
     for candidate in &inspection.candidates {
@@ -181,13 +181,13 @@ pub fn render_sound_inspection(
 mod tests {
     use super::*;
     use alloc::vec;
-    use conduit_core::{CheckedFormId, ExpandedFormId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, ExpandedPlotId, SourceDocumentId};
 
-    fn form() -> FormIdentity {
-        FormIdentity {
+    fn plot() -> PlotIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source-a"),
-            checked_form_id: CheckedFormId::from("checked-a"),
-            expanded_form_id: ExpandedFormId::from("expanded-a"),
+            checked_plot_id: CheckedPlotId::from("checked-a"),
+            expanded_plot_id: ExpandedPlotId::from("expanded-a"),
         }
     }
 
@@ -209,7 +209,7 @@ mod tests {
     fn explanation_keeps_fit_refusal_route_and_missing_proof_distinct() {
         let inspection = SoundRealizationInspection {
             schema: SOUND_INSPECTION_SCHEMA.into(),
-            form: form(),
+            plot: plot(),
             requirement_profile_id: "conformance/simple@1".into(),
             candidates: vec![
                 candidate("direct", SoundCandidateStatus::Compatible),
@@ -254,7 +254,7 @@ mod tests {
         incompatible.selected_plan_id = Some(PlanId::from("plan"));
         let inspection = SoundRealizationInspection {
             schema: SOUND_INSPECTION_SCHEMA.into(),
-            form: form(),
+            plot: plot(),
             requirement_profile_id: "conformance/expressive@1".into(),
             candidates: vec![incompatible],
             selected_capability_id: Some(CapabilityId::from("candidate")),

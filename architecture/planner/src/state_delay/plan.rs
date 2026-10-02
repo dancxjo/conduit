@@ -5,7 +5,7 @@ use conduit_core::{
     seal_plan_with_realization_backs_and_completion, state_resource_budget, verify_plan, Plan,
     PlannedStateBoundary, StatePlanError,
 };
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 
 use super::{admit_state_graph, StateGraphError};
 
@@ -15,15 +15,15 @@ use super::{admit_state_graph, StateGraphError};
 /// This does not grant an unsupported Host permission to ignore State: current
 /// lowering profiles explicitly refuse until they implement the sealed contract.
 pub fn seal_state_plan(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     plan: &Plan,
     states: Vec<PlannedStateBoundary>,
 ) -> Result<Plan, StateGraphError> {
-    let graph = admit_state_graph(form, states)?;
+    let graph = admit_state_graph(plot, states)?;
     if !verify_plan(plan)
-        || plan.source_document_id != form.source_document_id
-        || plan.checked_form_id != form.checked_form_id
-        || plan.expanded_form_id != form.expanded_form_id
+        || plan.source_document_id != plot.source_document_id
+        || plan.checked_plot_id != plot.checked_plot_id
+        || plan.expanded_plot_id != plot.expanded_plot_id
     {
         return Err(StateGraphError::InvalidPlan);
     }
@@ -71,7 +71,7 @@ pub fn seal_state_plan(
             ))?;
     }
     let sealed = seal_plan_with_realization_backs_and_completion(
-        form.identity(),
+        plot.identity(),
         plan.completion_policy,
         plan.realization_backs.clone(),
         fragments,

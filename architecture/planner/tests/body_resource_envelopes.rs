@@ -1,12 +1,12 @@
 mod common;
 
 use conduit_body::{Body, BodyResourceAllowance, BodyResourceEnvelope, PartId};
-use conduit_core::{CheckedFormId, ResourceHealth, ResourceObservation, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, ResourceHealth, ResourceObservation, SignId, SourceDocumentId};
 use conduit_planner::{default_placements, plan_with_resource_allowances, PlannerError};
 
 #[test]
 fn ordinary_planning_cannot_exceed_body_allowance_despite_host_capacity() {
-    let form = common::llm_generate_form();
+    let plot = common::llm_generate_plot();
     let mut host = conduit_ai::llm_generate_base_fixtures()[0]
         .advertisement
         .clone();
@@ -24,7 +24,7 @@ fn ordinary_planning_cannot_exceed_body_allowance_despite_host_capacity() {
 
     let body = Body::born(
         SourceDocumentId::from("body-envelope-source"),
-        CheckedFormId::from("body-envelope-form"),
+        CheckedPlotId::from("body-envelope-plot"),
         1,
         SignId::from("body-born"),
     )
@@ -70,10 +70,10 @@ fn ordinary_planning_cannot_exceed_body_allowance_despite_host_capacity() {
         })
         .collect::<Vec<_>>();
     let hosts = vec![host.clone()];
-    let placements = default_placements(&form, &hosts).unwrap();
+    let placements = default_placements(&plot, &hosts).unwrap();
     assert!(matches!(
         plan_with_resource_allowances(
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[],
@@ -85,9 +85,9 @@ fn ordinary_planning_cannot_exceed_body_allowance_despite_host_capacity() {
 
     host.capabilities[0].resource_requirements[0].units = 2;
     let hosts = vec![host.clone()];
-    let placements = default_placements(&form, &hosts).unwrap();
+    let placements = default_placements(&plot, &hosts).unwrap();
     let plan = plan_with_resource_allowances(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[],
@@ -106,9 +106,9 @@ fn ordinary_planning_cannot_exceed_body_allowance_despite_host_capacity() {
     assert_ne!(envelope.envelope_id(), expanded.envelope_id());
     host.capabilities[0].resource_requirements[0].units = 4;
     let hosts = vec![host];
-    let placements = default_placements(&form, &hosts).unwrap();
+    let placements = default_placements(&plot, &hosts).unwrap();
     let expanded_plan = plan_with_resource_allowances(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[],

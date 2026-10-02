@@ -111,7 +111,7 @@ mod tests {
         CandidateObservation, DiscoveryProofId,
     };
     use conduit_core::{
-        CheckedFormId, HostAdvertisement, HostProfileId, LinkBindingId, OfferGeneration, SignId,
+        CheckedPlotId, HostAdvertisement, HostProfileId, LinkBindingId, OfferGeneration, SignId,
         SourceDocumentId, PROTOCOL_VERSION,
     };
     use ed25519_dalek::Verifier;
@@ -134,7 +134,7 @@ mod tests {
     fn browser_key_proves_exact_host_and_boot_without_becoming_identity() {
         let body = Body::born(
             SourceDocumentId::from("source/browser-admission"),
-            CheckedFormId::from("checked/browser-admission"),
+            CheckedPlotId::from("checked/browser-admission"),
             1,
             SignId::from("sign/body-born"),
         )

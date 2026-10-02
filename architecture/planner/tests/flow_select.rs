@@ -4,17 +4,17 @@ use conduit_core::{
     ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
     BOOL_INFO_ID, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    CanonicalBackCatalog, KindSignature, ProfileCatalog, StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    CanonicalBackCatalog, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use std::collections::BTreeMap;
 
 const SOURCE: &str = "
-form text/is-useful (
+plot text/is-useful (
  >> value: Text
  accepted: Boolean <= 21B >>
 ) {
@@ -23,7 +23,7 @@ form text/is-useful (
  predicate.accepted >> accepted
 }
 
-form flow/select (
+plot flow/select (
  item: type
  predicate: kind (
   >> value: item
@@ -37,7 +37,7 @@ form flow/select (
  selection.selected >> selected
 }
 
-form main {
+plot main {
  selection: flow/select(item = Text, predicate = text/is-useful)
 }
 ";
@@ -233,7 +233,7 @@ fn host() -> HostAdvertisement {
 fn authored_select_seals_the_exact_value_to_boolean_predicate_plan() {
     let (startup, profile) = catalogs();
     let document = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
-    let authoring = expand_canonical_form_for_authoring(&document, "main", &profile).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&document, "main", &profile).unwrap();
     let hosts = [host()];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let empty_bases = BTreeMap::new();

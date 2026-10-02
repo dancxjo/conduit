@@ -5,6 +5,7 @@ extern crate alloc;
 #[allow(clippy::clone_on_copy, clippy::too_many_arguments, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+    include!("key_event_construction.rs");
 
     impl Copy for KeyModifiers {}
 
@@ -54,20 +55,30 @@ mod generated {
     }
 }
 pub use generated::{
-    ChordInfo, ChordPhase, ChordPhaseCode, ControlChordModifier, CoreChordId, CoreChordIdCode,
-    CurrentExperienceProjection, ExperienceAvailability, ExperienceBodyInput, ExperienceCertainty,
-    ExperienceDomain, ExperienceHumanInput, ExperienceHypothesisInput, ExperienceInferenceInput,
-    ExperienceMemoryInput, ExperienceOrigin, ExperienceRelationKind, ExperienceSourceStatus,
-    ExperienceTemporalPolicy, ExperienceTemporalRefusal, ExperienceTemporalRole, HumanMediaKind,
-    ImageObservationReference, ImageObservationRefusal, ImageRegion, ImageTextContentDigest,
-    ImageTextMetadata, ImageTextMetadataEntries, ImageTextRecord, ImageTextRefusal,
-    InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
+    ChordInfo, ChordPhase, ChordPhaseForm, ControlChordModifier, CoreChordId, CoreChordIdForm,
+    CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAvailability,
+    ExperienceBodyInput, ExperienceCertainty, ExperienceDomain, ExperienceHumanInput,
+    ExperienceHypothesisInput, ExperienceInferenceInput, ExperienceMemoryInput, ExperienceOrigin,
+    ExperienceRefusal, ExperienceRelationKind, ExperienceSourceRefusal, ExperienceSourceStatus,
+    ExperienceTemporalPolicy, ExperienceTemporalRefusal, ExperienceTemporalRole,
+    ExperienceUpdateRefusal, GamepadState, HumanMediaKind, ImageObservationReference,
+    ImageObservationRefusal, ImageRegion, ImageTextContentDigest, ImageTextMetadata,
+    ImageTextMetadataEntries, ImageTextRecord, ImageTextRefusal, InputAxisSlot, InputAxisSlots,
+    InputAxisState, InputButtonPhase, InputButtonSlot, InputButtonSlots, InputButtonState,
+    InputButtonTransition, InputPressure, InputPressurePolicy, InputSurfacePoint,
+    InputSurfaceVector, InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
     InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
-    InteractionBoundKind as BoundKind, InteractionRefusal, KeyEvent, KeyModifiers, KeyTransition,
-    KeyTransitionCode, KeymapDisposition, KeymapRefusal, OptionAvailability,
-    OptionAvailabilityUnavailable, RealizationRangePolicy, ScalarQuantization, SourceAvailability,
-    TextFragment, VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
-    VisualImpressionDispositionTruncated,
+    InteractionBoundKind as BoundKind, InteractionCanonicalBytes, InteractionFamily,
+    InteractionFamilyChooseMany, InteractionFamilyChooseOne, InteractionFamilyRelativeAdjustment,
+    InteractionFamilyScalar, InteractionFamilyStructured, InteractionFamilyText,
+    InteractionProposalPayload, InteractionRefusal, InteractionTypeDigest, InteractionValue,
+    InteractionValueKind, InteractionValues, KeyEvent, KeyModifiers, KeyTransition,
+    KeyTransitionForm, KeymapDisposition, KeymapRefusal, OptionAvailability,
+    OptionAvailabilityUnavailable, PointerEvent, RealizationRangePolicy, RotaryDirection,
+    RotaryStep, ScalarQuantization, SourceAvailability, TextFragment, TouchContact,
+    TouchContactPhase, TouchContactSlot, TouchContacts, TouchFrame, VisualEvidenceClass,
+    VisualExperienceRefusal, VisualExperienceRelationKind, VisualImpressionDisposition,
+    VisualImpressionDispositionTruncated, VisualImpressionRefusal, VisualObservationRefusal,
 };
 
 mod current_experience;

@@ -1,4 +1,4 @@
-//! Bounded authority-reduction requests below ordinary form interpretation.
+//! Bounded authority-reduction requests below ordinary plot interpretation.
 
 use alloc::string::String;
 use conduit_core::{BootId, HostId};

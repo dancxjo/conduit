@@ -127,14 +127,14 @@ impl AwaitingBirth {
         self,
         action: ConfirmBirthAction,
         source_document_id: conduit_core::SourceDocumentId,
-        checked_form_id: conduit_core::CheckedFormId,
+        checked_plot_id: conduit_core::CheckedPlotId,
         birth_sequence: u64,
         birth_sign_id: SignId,
         body_text: &str,
     ) -> Result<(Body, SpokenBirthJourneyEvidence), String> {
         let body = Body::born(
             source_document_id,
-            checked_form_id,
+            checked_plot_id,
             birth_sequence,
             birth_sign_id.clone(),
         )
@@ -188,12 +188,11 @@ fn validate_event(event: &SpokenEventEvidence) -> Result<(), String> {
         || event.speech.sign_count == 0
         || event.speech.kernel_event_count == 0
         || !matches!(
-            event.speech.outcome,
-            SpeechOutcome::WavArtifact {
-                wav_bytes: 1..,
-                ref wav_sha256,
-                ref pcm_sha256,
-            } if wav_sha256.len() == 64 && pcm_sha256.len() == 64
+            &event.speech.outcome,
+            SpeechOutcome::WavArtifact(payload)
+                if *payload.wav_bytes() > 0
+                    && payload.wav_sha256().get().len() == 64
+                    && payload.pcm_sha256().get().len() == 64
         )
     {
         return Err("Tongues spoken event evidence is incomplete".into());

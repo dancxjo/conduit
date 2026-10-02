@@ -10,10 +10,12 @@ use crate::cli::GlobalOpts;
 
 use super::{
     aarch64_a0, armv6_rpi_b_plus_a0, ia32_a0, ia32_a2, loongarch64_a0,
-    profile::{Paths, COMMON_BACKBONE_TARGETS},
+    profile::Paths,
     report::{git_head, sha256_file, ArtifactRole, BuildRecord},
     riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
 };
+
+mod backbone;
 
 pub fn execute_architecture_proof(
     arch: ConduitosArch,
@@ -263,7 +265,11 @@ fn execute_with_features(
     }
     fs::create_dir_all(&paths.target)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
-    check_common_backbone(&paths, opts)?;
+    backbone::check(
+        &paths,
+        opts,
+        product_artifact.map(|artifact| artifact.rust_target),
+    )?;
     let base_commit = git_head(&paths.root)?;
     let legacy_image_id = format!("conduitos-image/{base_commit}/{}/v1", arch.as_str());
     let build_id = make.map_or(base_commit.as_str(), |item| item.build_id);
@@ -393,37 +399,6 @@ struct ProfileMake<'a> {
     image_binding: &'a str,
 }
 
-fn check_common_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    for target in COMMON_BACKBONE_TARGETS {
-        let mut command = Command::new("cargo");
-        command.arg("check");
-        if *target == armv6_rpi_b_plus_a0::TARGET {
-            command
-                .arg("-Zbuild-std=core,alloc")
-                .env("RUSTC_BOOTSTRAP", "1");
-        }
-        command
-            .args(["-p", "conduitos", "--lib", "--target", target])
-            .current_dir(&paths.root);
-        if opts.locked {
-            command.arg("--locked");
-        }
-        let status = command.status().map_err(|error| {
-            ConduitosError::refusal(
-                "matrix-toolchain-unavailable",
-                format!("cannot check common backbone for {target}: {error}"),
-            )
-        })?;
-        if !status.success() {
-            return Err(ConduitosError::refusal(
-                "matrix-common-backbone-failed",
-                format!("shared ConduitOS backbone did not compile for {target}"),
-            ));
-        }
-    }
-    Ok(())
-}
-
 fn assert_elf(arch: ConduitosArch, paths: &Paths) -> Result<(), ConduitosError> {
     let kernel = paths.kernel.to_str().ok_or_else(|| {
         ConduitosError::refusal("build-output-unavailable", "non-UTF-8 kernel path")
@@ -508,81 +483,4 @@ fn dry_record(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn native_make_uses_the_admitted_heap_arena_ceiling() {
-        let profile = check_host_configuration(
-            parse_host_configuration_conduit(include_str!(
-                "../../profiles/conduitos-native.host.conduit"
-            ))
-            .unwrap(),
-            &conduit_workspace_make::catalog(),
-            &conduit_workspace_make::package_set(),
-        )
-        .unwrap()
-        .into_profile();
-        let (checked, _) = build_default_host_image(
-            profile,
-            &conduit_workspace_make::catalog(),
-            &conduit_workspace_make::package_set(),
-            &BuildInputs {
-                source_identity: "test-source".into(),
-                toolchain_available: true,
-            },
-        )
-        .unwrap();
-        assert_eq!(runtime_arena_ceiling(&checked.manifest), 16 * 1024 * 1024);
-        assert_ne!(
-            runtime_arena_ceiling(&checked.manifest),
-            checked.manifest.bounds.static_memory_bytes
-        );
-    }
-
-    #[test]
-    fn headless_make_retains_its_static_arena_ceiling() {
-        let packages = conduit_workspace_make::package_set();
-        let profile = check_host_configuration(
-            parse_host_configuration_conduit(include_str!(
-                "../../profiles/conduitos-aarch64-virt.host.conduit"
-            ))
-            .unwrap(),
-            &conduit_workspace_make::catalog(),
-            &packages,
-        )
-        .unwrap()
-        .into_profile();
-        let (checked, _) = build_default_host_image(
-            profile,
-            &conduit_workspace_make::catalog(),
-            &conduit_workspace_make::package_set(),
-            &BuildInputs {
-                source_identity: "test-source".into(),
-                toolchain_available: true,
-            },
-        )
-        .unwrap();
-        assert_eq!(checked.manifest.bounds.heap_arena_bytes, 0);
-        assert_eq!(
-            runtime_arena_ceiling(&checked.manifest),
-            checked.manifest.bounds.static_memory_bytes
-        );
-    }
-
-    #[test]
-    fn aarch64_architecture_build_is_typed_as_a_proof_appliance() {
-        let record = execute_architecture_proof(
-            ConduitosArch::Aarch64,
-            &GlobalOpts {
-                dry_run: true,
-                ..GlobalOpts::default()
-            },
-        )
-        .unwrap();
-        assert_eq!(
-            record.artifact_role,
-            ArtifactRole::ArchitectureProofAppliance
-        );
-    }
-}
+mod tests;

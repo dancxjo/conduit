@@ -53,8 +53,8 @@ Good evidence binds the identities relevant to the claim:
 
 ```text
 source document
-checked form
-expanded form
+checked plot
+expanded plot
 body
 wake
 host

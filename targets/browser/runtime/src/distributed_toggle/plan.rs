@@ -13,8 +13,8 @@ use std::collections::BTreeMap;
 pub(super) fn exact_toggle_plan() -> Result<Plan, i32> {
     let source = distributed_toggle_std_source_advertisement();
     let sink = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../../../proof/fixtures/forms/remote-toggle.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../../../proof/fixtures/plots/remote-toggle.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -45,7 +45,7 @@ pub(super) fn exact_toggle_plan() -> Result<Plan, i32> {
         ]),
     };
     plan_with_line_offers(
-        &form,
+        &plot,
         &[source, sink],
         &placements,
         &[

@@ -514,7 +514,7 @@ fn quantity_field(
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub(crate) fn configuration_type(field: &KindConfigurationField) -> &'static str {
     match &field.default_value {
         ConfigurationValue::Text(_) => "Text",

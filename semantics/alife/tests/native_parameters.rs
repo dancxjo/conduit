@@ -2,7 +2,7 @@ use conduit_alife::{
     GrayScottParameters, LeniaBoundary, LeniaParameters, LeniaRefusal, LeniaValueRefusal,
     ReactionDiffusionRefusal, ReactionDiffusionValueRefusal, LENIA_Q16_ONE,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn lenia_parameters_round_trip_exact_native_bounds_and_retain_owner_validation() {

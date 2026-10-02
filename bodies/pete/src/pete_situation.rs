@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, SignId, TemporalInstant, TemporalRelation,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_robotics::{BatteryObservation, ROBOTICS_BATTERY_INFO_ID};
 use serde::Serialize;
 

@@ -1,58 +1,15 @@
 //! Scientific observations retain measurement identity, clocks, and lineage.
 
-use alloc::{boxed::Box, string::String, vec::Vec};
-use conduit_core::BoundedResourceRef;
+use alloc::vec::Vec;
 
-use crate::{SampledSignal, ScientificObservationRefusal, TensorElement, TensorValue};
+use crate::{
+    MissingDataMask, ObservationProvenance, ObservationSet, ObservationValue,
+    ScientificObservation, ScientificObservationRefusal, TensorElement,
+};
 
 pub const MAXIMUM_OBSERVATIONS_PER_SET: usize = 64;
 pub const MAXIMUM_OBSERVATION_SOURCES: usize = 16;
 pub const MAXIMUM_SCIENTIFIC_IDENTITY_BYTES: usize = 128;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ObservationValue {
-    Tensor(Box<TensorValue>),
-    SampledSignal(Box<SampledSignal>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ObservationProvenance {
-    Measured {
-        source: BoundedResourceRef,
-        measurement_profile: String,
-    },
-    Derived {
-        source_observations: Vec<[u8; 32]>,
-        transform_identity: String,
-        realization_profile: String,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ScientificObservation {
-    pub identity: [u8; 32],
-    pub semantic_kind: String,
-    pub clock_identity: Option<String>,
-    pub coordinate_frame: Option<String>,
-    pub value: ObservationValue,
-    pub provenance: ObservationProvenance,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MissingDataMask {
-    pub observation_identity: [u8; 32],
-    /// U8 values: 0 observed, 1 not observed, 2 invalid/clipped, 3 discarded.
-    pub mask: TensorValue,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ObservationSet {
-    pub identity: [u8; 32],
-    pub session_identity: String,
-    pub subject_identity: Option<String>,
-    pub observations: Vec<ScientificObservation>,
-    pub missing_data: Vec<MissingDataMask>,
-}
 
 impl ScientificObservation {
     pub fn validate(&self) -> Result<(), ScientificObservationRefusal> {
@@ -65,10 +22,12 @@ impl ScientificObservation {
             text(frame)?;
         }
         match &self.value {
-            ObservationValue::Tensor(value) => value
+            ObservationValue::Tensor(payload) => payload
+                .value()
                 .validate()
                 .map_err(|_| ScientificObservationRefusal::InvalidValue)?,
-            ObservationValue::SampledSignal(value) => {
+            ObservationValue::SampledSignal(payload) => {
+                let value = payload.value();
                 value
                     .validate()
                     .map_err(|_| ScientificObservationRefusal::InvalidValue)?;
@@ -78,31 +37,23 @@ impl ScientificObservation {
             }
         }
         match &self.provenance {
-            ObservationProvenance::Measured {
-                source,
-                measurement_profile,
-            } => {
-                source
+            ObservationProvenance::Measured(provenance) => {
+                provenance
+                    .source()
                     .validate()
                     .map_err(|_| ScientificObservationRefusal::MissingSource)?;
-                text(measurement_profile)?;
+                text(provenance.measurement_profile())?;
             }
-            ObservationProvenance::Derived {
-                source_observations,
-                transform_identity,
-                realization_profile,
-            } => {
-                if source_observations.is_empty() {
+            ObservationProvenance::Derived(provenance) => {
+                if provenance
+                    .source_observations()
+                    .iter()
+                    .any(|identity| identity.get() == &[0; 32])
+                {
                     return Err(ScientificObservationRefusal::MissingSource);
                 }
-                if source_observations.len() > MAXIMUM_OBSERVATION_SOURCES {
-                    return Err(ScientificObservationRefusal::TooManySources);
-                }
-                if source_observations.contains(&[0; 32]) {
-                    return Err(ScientificObservationRefusal::MissingSource);
-                }
-                text(transform_identity)?;
-                text(realization_profile)?;
+                text(provenance.transform_identity())?;
+                text(provenance.realization_profile())?;
             }
         }
         Ok(())
@@ -110,8 +61,10 @@ impl ScientificObservation {
 
     pub fn shape(&self) -> &[u64] {
         match &self.value {
-            ObservationValue::Tensor(value) => &value.dimensions,
-            ObservationValue::SampledSignal(value) => &value.samples.dimensions,
+            ObservationValue::Tensor(payload) => payload.value().dimensions.as_slice(),
+            ObservationValue::SampledSignal(payload) => {
+                payload.value().samples.dimensions.as_slice()
+            }
         }
     }
 }
@@ -131,11 +84,11 @@ impl MissingDataMask {
         if self.mask.element != TensorElement::U8 {
             return Err(ScientificObservationRefusal::InvalidMask);
         }
-        if self.mask.dimensions != observation.shape() {
+        if self.mask.dimensions.as_slice() != observation.shape() {
             return Err(ScientificObservationRefusal::MaskShapeMismatch);
         }
         if let crate::TensorBacking::Inline(values) = &self.mask.backing {
-            if values.iter().any(|value| *value > 3) {
+            if values.as_slice().iter().any(|value| *value > 3) {
                 return Err(ScientificObservationRefusal::InvalidMask);
             }
         }

@@ -212,7 +212,7 @@ mod tests {
                     status: 503,
                     headers: conduit_web::http_headers([HttpHeader::new(
                         "content-type".into(),
-                        conduit_form::rust_binding::BoundedBytes::new(b"text/plain").unwrap(),
+                        conduit_plot::rust_binding::BoundedBytes::new(b"text/plain").unwrap(),
                     )
                     .unwrap()])
                     .unwrap(),

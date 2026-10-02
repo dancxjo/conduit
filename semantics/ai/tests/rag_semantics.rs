@@ -1,13 +1,66 @@
 use conduit_ai::{
-    AnswerSpan, Candidate, Chunk, ChunkIdentity, ContextBudgetCost, ContextItem, ContextSelection,
-    ContextSelectionOutcome, ContextSelectionRationale, ContextTruncationReason, ExtractionLineage,
-    GroundedClaim, GroundedResult, GroundingDisposition, ModelResultProvenance, RagSemanticRefusal,
-    RetrievalIntent, RetrievalMode, SourceRef, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
+    AnswerSpan, Candidate, Chunk, ChunkIdentity, CitationIndices, ContextBudgetCost, ContextItem,
+    ContextSelection, ContextSelectionOutcome, ContextSelectionRationale, ContextTruncationReason,
+    ExtractionLineage, GroundedClaim, GroundedResult, GroundingDisposition, ModelResultProvenance,
+    RagIdentity, RagSemanticRefusal, RetrievalIntent, RetrievalIntentIdentity, RetrievalMode,
+    RetrievalModes, SourceRef, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
+    TransformProfiles, MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_TRANSFORM_LINEAGE,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_plot::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::NativeRustBinding;
+
+#[test]
+fn chunk_identity_is_one_native_fixed_digest() {
+    let identity = ChunkIdentity::from_digest([7; 32]);
+    assert_eq!(identity.digest(), [7; 32]);
+    let structured = identity.into_structured().unwrap();
+    assert_eq!(
+        ChunkIdentity::from_structured(structured).unwrap(),
+        identity
+    );
+    assert!(
+        !include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "ChunkIdentity"))
+    );
+
+    let source = source(3);
+    let structured = source.clone().into_structured().unwrap();
+    assert_eq!(SourceRef::from_structured(structured).unwrap(), source);
+    let citation = conduit_ai::Citation {
+        source,
+        span: SourceSpan::new(SourceSpanUnit::Bytes, 10, 40).unwrap(),
+        chunk_identity: identity,
+    };
+    let structured = citation.clone().into_structured().unwrap();
+    assert_eq!(
+        conduit_ai::Citation::from_structured(structured).unwrap(),
+        citation
+    );
+    assert!(!include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "SourceRef")));
+    assert!(!include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "Citation")));
+
+    let lineage = lineage(3, 10, 40);
+    let structured = lineage.clone().into_structured().unwrap();
+    assert_eq!(
+        ExtractionLineage::from_structured(structured).unwrap(),
+        lineage
+    );
+    assert!(RagIdentity::new(String::new()).is_err());
+    assert!(RagIdentity::new("x".repeat(MAXIMUM_RAG_IDENTITY_BYTES)).is_ok());
+    assert!(RagIdentity::new("x".repeat(MAXIMUM_RAG_IDENTITY_BYTES + 1)).is_err());
+    assert!(
+        BoundedSequence::<RagIdentity, MAXIMUM_TRANSFORM_LINEAGE>::try_from_iter(
+            (0..=MAXIMUM_TRANSFORM_LINEAGE)
+                .map(|index| RagIdentity::new(format!("transform/{index}")).unwrap())
+        )
+        .is_err()
+    );
+    assert!(!include_str!("../src/rag_semantics.rs")
+        .contains(concat!("pub struct ", "ExtractionLineage")));
+}
 
 fn source(version: u8) -> SourceRef {
     SourceRef {
@@ -28,26 +81,34 @@ fn source(version: u8) -> SourceRef {
 }
 
 fn intent() -> RetrievalIntent {
-    RetrievalIntent {
-        identity: "retrieval/project-history".into(),
-        modes: vec![
-            RetrievalMode::Semantic,
-            RetrievalMode::Boundary(TemporalRetrievalIntent::EarliestEvidence),
-        ],
-        maximum_candidates: 8,
-    }
+    RetrievalIntent::new(
+        RetrievalIntentIdentity::new("retrieval/project-history".into()).unwrap(),
+        RetrievalModes::new(
+            BoundedSequence::try_from_iter([
+                RetrievalMode::Semantic,
+                RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap(),
+            ])
+            .unwrap(),
+        )
+        .unwrap(),
+        8,
+    )
+    .unwrap()
 }
 
 fn lineage(version: u8, start: u64, end: u64) -> ExtractionLineage {
     ExtractionLineage {
         source: source(version),
-        span: SourceSpan {
-            unit: SourceSpanUnit::Bytes,
-            start,
-            end,
-        },
-        extraction_profile: "extract/markdown-blocks@1".into(),
-        transform_profiles: vec!["transform/normalize-newlines@1".into()],
+        span: SourceSpan::new(SourceSpanUnit::Bytes, start, end).unwrap(),
+        extraction_profile: RagIdentity::new("extract/markdown-blocks@1".into()).unwrap(),
+        transform_profiles: TransformProfiles::new(
+            BoundedSequence::try_from_iter([RagIdentity::new(
+                "transform/normalize-newlines@1".into(),
+            )
+            .unwrap()])
+            .unwrap(),
+        )
+        .unwrap(),
         parent_chunk: None,
     }
 }
@@ -62,10 +123,7 @@ fn context() -> ContextSelection<&'static str> {
                 retrieval_basis: "exact temporal boundary candidate".into(),
             },
             rationale: ContextSelectionRationale::BoundaryEvidence,
-            budget: ContextBudgetCost {
-                bytes: 30,
-                tokens: 8,
-            },
+            budget: ContextBudgetCost::new(30, 8).unwrap(),
         }],
         outcome: ContextSelectionOutcome::Complete,
     }
@@ -81,28 +139,38 @@ fn exact_source_version_span_and_transform_lineage_derive_chunk_identity() {
     changed_version.source = source(4);
     assert_ne!(changed_version.identity().unwrap(), identity);
     let mut changed_span = base.clone();
-    changed_span.span.end = 41;
+    changed_span.span =
+        SourceSpan::new(changed_span.span.unit(), changed_span.span.start(), 41).unwrap();
     assert_ne!(changed_span.identity().unwrap(), identity);
     let mut changed_transform = base;
-    changed_transform
-        .transform_profiles
-        .push("transform/remove-front-matter@1".into());
+    changed_transform.transform_profiles = TransformProfiles::new(
+        BoundedSequence::try_from_iter(
+            changed_transform
+                .transform_profiles
+                .get()
+                .iter()
+                .cloned()
+                .chain([RagIdentity::new("transform/remove-front-matter@1".into()).unwrap()]),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     assert_ne!(changed_transform.identity().unwrap(), identity);
 }
 
 #[test]
 fn temporal_boundary_intent_is_typed_and_bounded() {
     assert_eq!(intent().validate(), Ok(()));
-    let mut invalid = intent();
-    invalid.modes = vec![RetrievalMode::Temporal(
-        TemporalRetrievalIntent::EvidenceWithin { start: 9, end: 2 },
-    )];
-    assert_eq!(
-        invalid.validate(),
-        Err(RagSemanticRefusal::InvalidTemporalIntent)
-    );
-    let mut duplicate = intent();
-    duplicate.modes = vec![RetrievalMode::Exact, RetrievalMode::Exact];
+    assert!(conduit_ai::TemporalRetrievalWindow::new(9, 2).is_err());
+    let duplicate = RetrievalIntent::new(
+        RetrievalIntentIdentity::new("retrieval/duplicate".into()).unwrap(),
+        RetrievalModes::new(
+            BoundedSequence::try_from_iter([RetrievalMode::Exact, RetrievalMode::Exact]).unwrap(),
+        )
+        .unwrap(),
+        8,
+    )
+    .unwrap();
     assert_eq!(
         duplicate.validate(),
         Err(RagSemanticRefusal::DuplicateRetrievalMode)
@@ -113,10 +181,8 @@ fn temporal_boundary_intent_is_typed_and_bounded() {
 fn candidates_context_and_citations_remain_distinct_and_exact() {
     let mut context = context();
     context.validate_against(&intent()).unwrap();
-    context.outcome = ContextSelectionOutcome::Truncated {
-        omitted_candidates: 2,
-        reason: ContextTruncationReason::TokenBudget,
-    };
+    context.outcome =
+        ContextSelectionOutcome::truncated(2, ContextTruncationReason::TokenBudget).unwrap();
     context.validate_against(&intent()).unwrap();
     let citation = conduit_ai::Citation {
         source: context.items[0].candidate.chunk.lineage.source.clone(),
@@ -152,17 +218,19 @@ fn grounded_results_are_model_derived_and_citation_fenced() {
         answer_kind: "value/text".into(),
         answer: b"The project began here.".to_vec(),
         disposition: GroundingDisposition::Supported,
-        claims: vec![GroundedClaim {
-            answer_span: AnswerSpan { start: 0, end: 23 },
-            citation_indices: vec![0],
-        }],
+        claims: vec![GroundedClaim::new(
+            AnswerSpan::new(0, 23).unwrap(),
+            CitationIndices::new(BoundedSequence::try_from_iter([0]).unwrap()).unwrap(),
+        )
+        .unwrap()],
         citations: vec![citation],
         limitations: vec![],
     };
     assert_eq!(result.validate_against(&intent(), &context), Ok(()));
 
     let mut made = result.clone();
-    made.citations[0].span.end += 1;
+    let span = made.citations[0].span;
+    made.citations[0].span = SourceSpan::new(span.unit(), span.start(), span.end() + 1).unwrap();
     assert_eq!(
         made.validate_against(&intent(), &context),
         Err(RagSemanticRefusal::CitationNotInContext)
@@ -190,16 +258,10 @@ fn insufficient_and_conflicting_evidence_are_first_class() {
 
 #[test]
 fn malformed_spans_ranks_budgets_and_claims_fail_closed() {
-    let mut invalid_lineage = lineage(3, 40, 40);
-    assert_eq!(
-        invalid_lineage.identity(),
-        Err(RagSemanticRefusal::EmptySpan)
-    );
-    invalid_lineage.span = SourceSpan {
-        unit: SourceSpanUnit::Items,
-        start: 99,
-        end: 101,
-    };
+    assert!(SourceSpan::new(SourceSpanUnit::Bytes, 40, 40).is_err());
+    assert!(AnswerSpan::new(23, 23).is_err());
+    let mut invalid_lineage = lineage(3, 40, 41);
+    invalid_lineage.span = SourceSpan::new(SourceSpanUnit::Items, 99, 101).unwrap();
     assert_eq!(
         invalid_lineage.identity(),
         Err(RagSemanticRefusal::SpanOutsideSource)
@@ -212,27 +274,9 @@ fn malformed_spans_ranks_budgets_and_claims_fail_closed() {
         Err(RagSemanticRefusal::RankZero)
     );
     context.items[0].candidate.rank = 1;
-    context.items[0].budget = ContextBudgetCost {
-        bytes: 0,
-        tokens: 0,
-    };
-    assert_eq!(
-        context.validate_against(&intent()),
-        Err(RagSemanticRefusal::EmptyBudget)
-    );
-
-    context.items[0].budget = ContextBudgetCost {
-        bytes: 30,
-        tokens: 8,
-    };
-    context.outcome = ContextSelectionOutcome::Truncated {
-        omitted_candidates: 0,
-        reason: ContextTruncationReason::TokenBudget,
-    };
-    assert_eq!(
-        context.validate_against(&intent()),
-        Err(RagSemanticRefusal::EmptyTruncation)
-    );
+    assert!(ContextBudgetCost::new(0, 0).is_err());
+    context.items[0].budget = ContextBudgetCost::new(30, 8).unwrap();
+    assert!(ContextSelectionOutcome::truncated(0, ContextTruncationReason::TokenBudget).is_err());
 }
 
 #[test]

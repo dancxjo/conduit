@@ -70,12 +70,12 @@ impl FrontDoor {
     ) -> Result<(), Error> {
         if journey.body_id.as_ref() != Some(&workspace.body_id)
             || journey.revision != workspace.revision
-            || workspace.forms.is_empty()
-            || workspace.forms.len() > crate::native_workset::NATIVE_FORM_CAPACITY
+            || workspace.plots.is_empty()
+            || workspace.plots.len() > crate::native_workset::NATIVE_PLOT_CAPACITY
             || workspace
-                .forms
+                .plots
                 .iter()
-                .filter(|form| form.foreground)
+                .filter(|plot| plot.foreground)
                 .count()
                 != 1
         {
@@ -85,21 +85,21 @@ impl FrontDoor {
             .journey
             .as_ref()
             .is_some_and(|previous| previous.revision > journey.revision)
-            || workspace.forms.iter().enumerate().any(|(index, form)| {
-                workspace.forms[..index]
+            || workspace.plots.iter().enumerate().any(|(index, plot)| {
+                workspace.plots[..index]
                     .iter()
-                    .any(|prior| prior.form == form.form)
+                    .any(|prior| prior.plot == plot.plot)
             })
         {
             return Err(Error::Presentation);
         }
         let selected = workspace
-            .forms
+            .plots
             .iter()
-            .find(|form| form.foreground)
+            .find(|plot| plot.foreground)
             .ok_or(Error::Presentation)?;
-        if journey.source_document_id.as_ref() != Some(&selected.form.source_document_id)
-            || journey.checked_form_id.as_ref() != Some(&selected.form.checked_form_id)
+        if journey.source_document_id.as_ref() != Some(&selected.plot.source_document_id)
+            || journey.checked_plot_id.as_ref() != Some(&selected.plot.checked_plot_id)
             || self
                 .journey
                 .as_ref()
@@ -112,18 +112,18 @@ impl FrontDoor {
             return Err(Error::Presentation);
         }
         if let Some(previous) = &self.workspace {
-            let unchanged = previous.forms.len() == workspace.forms.len()
+            let unchanged = previous.plots.len() == workspace.plots.len()
                 && previous
-                    .forms
+                    .plots
                     .iter()
-                    .zip(&workspace.forms)
-                    .all(|(left, right)| left.form == right.form && left.title == right.title);
-            let admitted_append = workspace.forms.len() == previous.forms.len() + 1
+                    .zip(&workspace.plots)
+                    .all(|(left, right)| left.plot == right.plot && left.title == right.title);
+            let admitted_append = workspace.plots.len() == previous.plots.len() + 1
                 && previous
-                    .forms
+                    .plots
                     .iter()
-                    .zip(&workspace.forms)
-                    .all(|(left, right)| left.form == right.form && left.title == right.title)
+                    .zip(&workspace.plots)
+                    .all(|(left, right)| left.plot == right.plot && left.title == right.title)
                 && self.journey.as_ref().is_some_and(|prior| {
                     prior
                         .workload_revision
@@ -137,18 +137,18 @@ impl FrontDoor {
                 return Err(Error::Presentation);
             }
             if admitted_append {
-                let appended = workspace.forms.last().ok_or(Error::Presentation)?;
-                let kind = crate::native_workset::resolve(&appended.form)
+                let appended = workspace.plots.last().ok_or(Error::Presentation)?;
+                let kind = crate::native_workset::resolve(&appended.plot)
                     .map_err(|_| Error::Presentation)?;
                 if kind.title() != appended.title {
                     return Err(Error::Presentation);
                 }
             }
         } else {
-            for form in &workspace.forms {
+            for plot in &workspace.plots {
                 let kind =
-                    crate::native_workset::resolve(&form.form).map_err(|_| Error::Presentation)?;
-                if kind.title() != form.title {
+                    crate::native_workset::resolve(&plot.plot).map_err(|_| Error::Presentation)?;
+                if kind.title() != plot.title {
                     return Err(Error::Presentation);
                 }
             }
@@ -158,12 +158,12 @@ impl FrontDoor {
             .source_document_id
             .clone()
             .ok_or(Error::Presentation)?;
-        self.checked_form_id = journey.checked_form_id.clone().ok_or(Error::Presentation)?;
-        self.form_subject = format!("form/{}", self.checked_form_id.as_str());
-        if self.selected_subject.starts_with("form/") {
-            self.selected_subject = self.form_subject.clone();
+        self.checked_plot_id = journey.checked_plot_id.clone().ok_or(Error::Presentation)?;
+        self.plot_subject = format!("plot/{}", self.checked_plot_id.as_str());
+        if self.selected_subject.starts_with("plot/") {
+            self.selected_subject = self.plot_subject.clone();
         }
-        self.form_open = false;
+        self.plot_open = false;
         // A newly admitted play supersedes an earlier startup/input refusal.
         if journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput {
             self.refusal = None;

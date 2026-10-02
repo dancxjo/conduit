@@ -1,6 +1,6 @@
 //! Exact bounded collection of one closing Flow into one sequence Value.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -115,15 +115,15 @@ pub fn flow_collect_semantic_contract(
     })
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_collect_kind(
     element: &CheckedValueContract,
     maximum_items: u16,
     overflow_disposition: &CheckedValueContract,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: FLOW_COLLECT_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
@@ -196,13 +196,13 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
     fn installer_registers_the_exact_specialization() {
         let element = value("value/text", 32);
         let overflow = value("flow/collect-overflow@1", 1);
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         install_flow_collect_kind(&element, 4, &overflow, &mut startup, &mut profile).unwrap();
 
         let installed = profile.canonical_kind(&kind_id(FLOW_COLLECT_KIND)).unwrap();

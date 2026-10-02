@@ -1,13 +1,14 @@
 use conduit_ai::{
     Chunk, ExtractedSourceValue, ExtractionLineage, FusionStrategy, HybridFusionPolicy,
     HybridRetrievalCodecRefusal, HybridRetrievalOutcome, HybridRetrievalReceipt, MechanismScore,
-    RetrievalMechanism, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit,
-    StageCandidate, MAXIMUM_HYBRID_BATCH_BYTES,
+    RagIdentity, RetrievalMechanism, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan,
+    SourceSpanUnit, StageCandidate, TransformProfiles, MAXIMUM_HYBRID_BATCH_BYTES,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 
 fn chunk(version: u8, start: u64, text: &str) -> Chunk<ExtractedSourceValue> {
     Chunk::new(
@@ -27,13 +28,9 @@ fn chunk(version: u8, start: u64, text: &str) -> Chunk<ExtractedSourceValue> {
                     },
                 },
             },
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start,
-                end: start + text.len() as u64,
-            },
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + text.len() as u64).unwrap(),
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(text.as_bytes().to_vec()),
@@ -49,10 +46,7 @@ fn stage(
     temporal: Option<&str>,
 ) -> RetrievalStage<ExtractedSourceValue> {
     RetrievalStage {
-        retriever: RetrieverIdentity {
-            identity: identity.into(),
-            mechanism,
-        },
+        retriever: RetrieverIdentity::new(identity.into(), mechanism).unwrap(),
         candidates: vec![StageCandidate {
             chunk,
             rank: 1,
@@ -98,20 +92,21 @@ fn stages() -> Vec<RetrievalStage<ExtractedSourceValue>> {
 }
 
 fn policy() -> HybridFusionPolicy {
-    HybridFusionPolicy {
-        identity: "fusion/reciprocal-rank@1".into(),
-        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
-        required_mechanisms: vec![
+    HybridFusionPolicy::from_parts(
+        "fusion/reciprocal-rank@1".into(),
+        FusionStrategy::reciprocal_rank(60).unwrap(),
+        vec![
             RetrievalMechanism::VectorSimilarity,
             RetrievalMechanism::Lexical,
             RetrievalMechanism::Metadata,
             RetrievalMechanism::Temporal,
         ],
-        temporal_hard_filter: None,
-        maximum_candidates_per_stage: 8,
-        maximum_output_candidates: 8,
-        maximum_total_work_units: 32,
-    }
+        None,
+        8,
+        8,
+        32,
+    )
+    .unwrap()
 }
 
 #[test]

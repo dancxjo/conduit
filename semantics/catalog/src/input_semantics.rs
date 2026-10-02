@@ -4,7 +4,7 @@ use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
     TEXT_PRESENTATION_VALUE_KIND,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
@@ -186,12 +186,12 @@ fn port(
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_input_semantic_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     for (contract, revision) in [
         (key_event_tee_contract(), KEY_EVENT_TEE_REVISION),
         (keymap_contract(), KEYMAP_REVISION),

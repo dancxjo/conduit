@@ -39,8 +39,8 @@ fn exact_endpoint_plan_executes_without_redirect_or_sibling_authority() {
         provider.clone(),
     )
     .unwrap();
-    let (form, plan) = plan(&host, &authority);
-    assert!(form
+    let (plot, plan) = plan(&host, &authority);
+    assert!(plot
         .gears
         .iter()
         .any(|gear| gear.kind_id.as_str() == conduit_web::HTTP_CLIENT_KIND));
@@ -180,12 +180,12 @@ fn config(
 fn plan(
     host: &IsolatedHttpHost,
     _authority: &str,
-) -> (conduit_form::CheckedForm, conduit_core::Plan) {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut catalog = conduit_form::ProfileCatalog::new();
+) -> (conduit_plot::CheckedPlot, conduit_core::Plan) {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     conduit_web::install_http_catalogs(&mut startup, &mut catalog).unwrap();
-    let form = conduit_form::parse(
-        "form proxy {\n server: http/server\n client: http/client\n server.request >> client.request\n client.response >> server.response\n}\n",
+    let plot = conduit_plot::parse(
+        "plot proxy {\n server: http/server\n client: http/client\n server.request >> client.request\n client.response >> server.response\n}\n",
         &catalog,
     )
     .unwrap();
@@ -214,9 +214,9 @@ fn plan(
         })
         .collect::<Vec<_>>();
     let hosts = [host.host().advertisement().clone()];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -232,7 +232,7 @@ fn plan(
         },
     )
     .unwrap();
-    (form, plan)
+    (plot, plan)
 }
 
 fn request(authority: &str, path: &str) -> HttpRequest {

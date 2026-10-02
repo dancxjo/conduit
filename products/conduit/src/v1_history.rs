@@ -1,6 +1,7 @@
-//! Locked identity proof for Conduitese v1 sources accepted before #4375.
+//! Archived source identity proof; executable `form` is no longer accepted.
 
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 
 const MANIFEST: &str = include_str!("../tests/fixtures/v1-history/manifest.json");
 
@@ -14,10 +15,7 @@ struct HistoryManifest {
 #[derive(Deserialize)]
 struct HistoryProgram {
     fixture: String,
-    entry: String,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
 }
 
 fn source(fixture: &str) -> &'static str {
@@ -30,7 +28,7 @@ fn source(fixture: &str) -> &'static str {
 }
 
 #[test]
-fn accepted_v1_sources_retain_exact_source_checked_and_expanded_truth() {
+fn archived_v1_sources_retain_identity_and_are_explicitly_refused() {
     let manifest: HistoryManifest = serde_json::from_str(MANIFEST).unwrap();
     assert_eq!(manifest.schema, "conduit.form/v1-history-corpus@1");
     assert_eq!(
@@ -41,20 +39,20 @@ fn accepted_v1_sources_retain_exact_source_checked_and_expanded_truth() {
 
     for expected in manifest.programs {
         let authored = source(&expected.fixture);
-        let loaded = crate::form_source::parse(authored).unwrap();
+        let loaded = crate::plot_source::parse(authored).unwrap();
         assert_eq!(loaded.source, authored);
         assert_eq!(loaded.syntax.round_trip(), authored);
 
-        let expanded = loaded.expand_entry().unwrap();
-        assert_eq!(expanded.name, expected.entry);
         assert_eq!(
-            expanded.source_document_id.as_str(),
+            format!(
+                "{:x}",
+                Sha256::digest(format!("canonical-source:{authored}"))
+            ),
             expected.source_document_id
         );
-        assert_eq!(expanded.checked_form_id.as_str(), expected.checked_form_id);
-        assert_eq!(
-            expanded.expanded_form_id.as_str(),
-            expected.expanded_form_id
-        );
+        let diagnostic = loaded
+            .check()
+            .expect_err("historical executable form is refused");
+        assert!(diagnostic.contains("CND-FRM-019"), "{diagnostic}");
     }
 }

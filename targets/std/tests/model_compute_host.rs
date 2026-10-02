@@ -3,6 +3,7 @@ use conduit_core::ComputeServiceGuarantee;
 use conduit_data::{
     tensor_content_digest, TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 use conduit_std_host::hosted_model_compute::{
     LinearF32ModelAdapter, ModelComputeAdapter, ModelComputeAdapterTerminal,
     ModelComputeInvocation, ReferenceModelComputeAdapter,
@@ -61,14 +62,15 @@ fn input(values: [f32; 2]) -> TensorValue {
         .collect::<Vec<_>>();
     TensorValue {
         element: TensorElement::F32,
-        dimensions: vec![2],
-        axes: vec![TensorAxis {
+        dimensions: BoundedSequence::try_from_iter([2]).unwrap(),
+        axes: BoundedSequence::try_from_iter([TensorAxis {
             role: TensorAxisRole::Feature,
             identity: Some("linear-feature".into()),
             unit: None,
-        }],
+        }])
+        .unwrap(),
         content_digest: tensor_content_digest(&bytes),
-        backing: TensorBacking::Inline(bytes),
+        backing: TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap()),
     }
 }
 
@@ -105,6 +107,7 @@ fn values(tensor: &TensorValue) -> [f32; 2] {
     let TensorBacking::Inline(bytes) = &tensor.backing else {
         panic!()
     };
+    let bytes = bytes.as_slice();
     [
         f32::from_le_bytes(bytes[0..4].try_into().unwrap()),
         f32::from_le_bytes(bytes[4..8].try_into().unwrap()),

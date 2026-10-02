@@ -7,19 +7,19 @@ test.beforeEach(async () => { entrance = await startStaticProduct("target/worksp
 test.afterEach(() => entrance?.child.kill());
 
 async function inventory(page) {
-  const response = await page.request.get(new URL("forms/initial-body.conduit", entrance.url).href);
+  const response = await page.request.get(new URL("plots/initial-body.conduit", entrance.url).href);
   expect(response.ok()).toBe(true);
   return response.json();
 }
 
 function selectedSource(bundled, names) {
-  return bundled.forms
-    .filter((form) => names.includes(form.entry ?? form.slug.replaceAll('-', '_')))
-    .map((form) => form.source.trimEnd())
+  return bundled.plots
+    .filter((plot) => names.includes(plot.entry ?? plot.slug.replaceAll('-', '_')))
+    .map((plot) => plot.source.trimEnd())
     .join("\n\n");
 }
 
-test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload preserves the body", async ({ page }, testInfo) => {
+test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload preserves the body", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(entrance.url);
   const birth = page.locator(".body-birth-runner");
@@ -31,26 +31,26 @@ test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload p
   await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
   await expect(page.locator("[data-body-name]")).toHaveText("Roseau");
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
-  await expect(page.locator("#surface-guidance")).toContainText("Wake it to start its forms");
-  await expect(page.locator("#form-input")).toHaveAttribute("aria-disabled", "true");
+  await expect(page.locator("#surface-guidance")).toContainText("Wake it to start its plots");
+  await expect(page.locator("#plot-input")).toHaveAttribute("aria-disabled", "true");
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.locator("[data-wake-body]")).toBeHidden();
   const identity = () => page.evaluate(() => globalThis.__conduitWorkspace.current());
   const first = await identity();
-  await expect(page.getByRole("navigation", { name: "Your forms" }).locator("[data-checked-form-id]")).toHaveCount(4);
-  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
-  const output = page.locator("[data-form-output] output:visible");
+  await expect(page.getByRole("navigation", { name: "Your plots" }).locator("[data-checked-plot-id]")).toHaveCount(4);
+  await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
+  const output = page.locator("[data-plot-output] output:visible");
   await page.keyboard.press("h");
   await expect(output).toHaveText("h");
   await page.keyboard.press("i");
   await expect(output).toHaveText("hi");
-  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
+  await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
   await page.keyboard.press("o");
   await page.keyboard.press("k");
   await page.keyboard.press("Enter");
   await expect(output).toHaveText("ok");
-  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
+  await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
   await expect(output).toHaveText("hi");
   await expect(page.locator("[data-flow-label]")).toHaveText("keyboard → keymap → edit → text");
   await page.keyboard.press("Backspace");
@@ -59,7 +59,7 @@ test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload p
   expect((await identity()).plan_id).toBe(first.plan_id);
   await page.screenshot({ path: testInfo.outputPath("workspace-listening.png"), fullPage: true });
 
-  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
+  await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
@@ -106,7 +106,7 @@ test("a failed started-state save cancels the real Play before dispatching effec
   await expect(page.locator("[data-play-state]")).toHaveText("Stopped");
   await expect(page.locator("#surface-guidance")).toContainText("Your body could not be saved");
   await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeDisabled();
-  await expect(page.locator("#form-input")).toHaveAttribute("aria-disabled", "true");
+  await expect(page.locator("#plot-input")).toHaveAttribute("aria-disabled", "true");
   const result = await page.evaluate(() => ({ state: globalThis.__conduitWorkspace.state(), writes: globalThis.__failedBodyWrites }));
   expect(result.writes).toBe(1);
   expect(result.state.terminal.disposition).toBe("cancelled");
@@ -114,7 +114,7 @@ test("a failed started-state save cancels the real Play before dispatching effec
   expect(result.state.terminal.active_play_id).toBe(result.state.play.active_play_id);
   expect(result.state.terminal.manifestation_completions).toBe(0);
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(0);
-  await expect(page.locator("[data-form-output] output")).toHaveCount(0);
+  await expect(page.locator("[data-plot-output] output")).toHaveCount(0);
 });
 
 test("a second window cannot recover a body while its first host is alive", async ({ page, context }) => {
@@ -126,9 +126,9 @@ test("a second window cannot recover a body while its first host is alive", asyn
   await other.goto(entrance.url);
   await expect(other.locator("[data-workspace-notice]")).toContainText("This body is open in another window");
   await expect(other.locator("[data-workspace-surface]")).toBeHidden();
-  await page.locator("#form-input").focus();
+  await page.locator("#plot-input").focus();
   await page.keyboard.press("a");
-  await expect(page.locator("[data-form-output] output:visible")).toHaveText("a");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("a");
   await other.close();
 });
 
@@ -141,7 +141,7 @@ test("Birth and the listening surface fit a narrow window", async ({ page }, tes
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
-  await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("h");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: testInfo.outputPath("workspace-narrow.png"), fullPage: true });
 });
@@ -153,8 +153,8 @@ test("an intentionally empty Body remains lulled without inventing a play", asyn
   await page.getByRole("checkbox", { name: "Tutorial", exact: true }).uncheck();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
-  await expect(page.getByRole("heading", { name: "No Forms installed", exact: true })).toBeVisible();
-  await expect(page.locator("#form-input")).toBeHidden();
+  await expect(page.getByRole("heading", { name: "No Plots installed", exact: true })).toBeVisible();
+  await expect(page.locator("#plot-input")).toBeHidden();
   await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeHidden();
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(original.active_play_id).toBeUndefined();
@@ -207,7 +207,7 @@ test("explicit Finish retires work, records provenance, and restores as read-onl
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled");
-  await expect(page.getByRole("button", { name: "+ Forms", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "+ Plots", exact: true })).toHaveCount(0);
   await page.locator('[data-inspect="lifecycle"]').click();
   await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
   expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).state).toBe("FULFILLED");
@@ -245,8 +245,8 @@ test("a sound-only Body renders the original cue through real browser audio and 
   const audio = await page.evaluate(() => globalThis.__cueAudio);
   expect(audio.starts).toEqual([{ frames: 57600, sampleRate: 48000, channels: 1, state: 'running' }]);
   expect(audio.ended).toBe(1);
-  await expect(page.locator('#form-input')).toBeHidden();
-  await expect(page.locator('[data-form-output] output')).toHaveCount(0);
+  await expect(page.locator('#plot-input')).toBeHidden();
+  await expect(page.locator('[data-plot-output] output')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'wake body', exact: true })).toBeHidden();
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.map(record => record.disposition)).toEqual(['completed']);
@@ -290,8 +290,8 @@ test("removing the default cue survives reload and a later first-wake installati
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await expect.poll(() => page.evaluate(() => globalThis.__cueAudio.ended)).toBe(1);
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
-  const card = title => page.locator('[data-application-key^="library-form-"]').filter({ hasText: title });
-  await page.getByRole('button', { name: '+ Forms', exact: true }).click();
+  const card = title => page.locator('[data-application-key^="library-plot-"]').filter({ hasText: title });
+  await page.getByRole('button', { name: '+ Plots', exact: true }).click();
   await card('Startup Chime').getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(card('Startup Chime')).toContainText('Not in your body');
   await card('First wake Chime').getByRole('button', { name: 'Use', exact: true }).click();
@@ -313,16 +313,16 @@ test("removing the default cue survives reload and a later first-wake installati
   expect(restored.boot_id).not.toBe(original.boot_id);
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(0);
   expect((await liveEvidence(page)).host_completions.records).toEqual([]);
-  await page.getByRole('button', { name: '+ Forms', exact: true }).click();
+  await page.getByRole('button', { name: '+ Plots', exact: true }).click();
   await expect(card('Startup Chime')).toContainText('Not in your body');
   await expect(card('First wake Chime')).toContainText('In your body');
   await page.getByRole('button', { name: 'back to the surface', exact: true }).click();
-  await page.getByRole('navigation', { name: 'Your forms' }).getByRole('button', { name: 'Memory Lantern', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Your plots' }).getByRole('button', { name: 'Memory Lantern', exact: true }).click();
   await page.keyboard.press('a');
-  await expect(page.locator('[data-form-output] output:visible')).toHaveText('a');
+  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('a');
 });
 
-test("unavailable audio is omitted by default and an explicitly installed cue cannot stop other Forms", async ({ page }, testInfo) => {
+test("unavailable audio is omitted by default and an explicitly installed cue cannot stop other Plots", async ({ page }, testInfo) => {
   await page.addInitScript(() => { window.AudioContext = undefined; });
   await page.goto(entrance.url);
   await expect(page.getByRole('checkbox', { name: 'Startup Chime', exact: true })).not.toBeChecked();
@@ -331,7 +331,7 @@ test("unavailable audio is omitted by default and an explicitly installed cue ca
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('a');
-  await expect(page.locator('[data-form-output] output:visible')).toHaveText('a');
+  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('a');
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.some(record => record.disposition === 'failed' && record.failure_code === 'host_call_failed' && record.failure_detail === 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('chime-unavailable-body-listening.png'), fullPage: true });
@@ -349,7 +349,7 @@ test("a suspended real audio context reports denial while the body keeps listeni
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('b');
-  await expect(page.locator('[data-form-output] output:visible')).toHaveText('b');
+  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('b');
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.some(record => record.disposition === 'denied' && record.failure_code === 'host_call_denied' && record.failure_detail === 2)).toBe(true);
 });
@@ -372,14 +372,14 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   await memory.check();
   await birth.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await birth.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
-  const selected = birth.locator('[data-application-key="selected-forms"]');
+  const selected = birth.locator('[data-application-key="selected-plots"]');
   const initialCount = Number((await selected.textContent()).match(/\d+/u)?.[0]);
   expect(initialCount).toBeGreaterThan(0);
 
-  const search = birth.getByLabel('Search Forms', { exact: true });
-  await search.fill('no-such-form');
-  await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveText(
-    'No Forms match your search. — Your selected forms are still included.',
+  const search = birth.getByLabel('Search Plots', { exact: true });
+  await search.fill('no-such-plot');
+  await expect(birth.locator('[data-application-key="initial-plots"]')).toHaveText(
+    'No Plots match your search. — Your selected plots are still included.',
   );
   await expect(selected).toHaveText(`Selected: ${initialCount}`);
   await search.fill('');
@@ -397,7 +397,7 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   await expect(restored.getByRole('checkbox', { name: 'Desk Telegraph', exact: true })).toBeChecked();
 
   await restored.getByText('Details and source', { exact: true }).click();
-  const source = restored.getByLabel('Selected Conduit Form source', { exact: true });
+  const source = restored.getByLabel('Selected Conduit Plot source', { exact: true });
   const bundled = await inventory(page);
   const expectedSource = selectedSource(bundled, ['memory_lantern', 'desk_telegraph']);
   await expect(source).toHaveValue(expectedSource);
@@ -405,7 +405,7 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   await expect(restored.locator('[data-application-key="review-basis"]')).toContainText(
     'current host OFFER(s); no permission or resource acquired; no Body Plan or Play created',
   );
-  await expect(restored.locator('[data-application-key="birth-status"]')).toHaveText('Ready to birth with 2 Form(s).');
+  await expect(restored.locator('[data-application-key="birth-status"]')).toHaveText('Ready to birth with 2 Plot(s).');
 
   await restored.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
@@ -413,21 +413,21 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   expect(receipt.state).toBe('LULLED');
   expect(receipt.workload_revision).toBe(0);
   expect(receipt.active_play_id).toBeUndefined();
-  expect(receipt.initial_forms).toHaveLength(2);
-  expect(receipt.initial_forms).toEqual([
-    { source_document_id: expect.any(String), checked_form_id: expect.any(String) },
-    { source_document_id: expect.any(String), checked_form_id: expect.any(String) },
+  expect(receipt.initial_plots).toHaveLength(2);
+  expect(receipt.initial_plots).toEqual([
+    { source_document_id: expect.any(String), checked_plot_id: expect.any(String) },
+    { source_document_id: expect.any(String), checked_plot_id: expect.any(String) },
   ]);
-  expect(new Set(receipt.initial_forms.map(({ source_document_id }) => source_document_id)).size).toBe(2);
-  expect(new Set(receipt.initial_forms.map(({ checked_form_id }) => checked_form_id)).size).toBe(2);
+  expect(new Set(receipt.initial_plots.map(({ source_document_id }) => source_document_id)).size).toBe(2);
+  expect(new Set(receipt.initial_plots.map(({ checked_plot_id }) => checked_plot_id)).size).toBe(2);
 });
 
 test('Workspace Birth serves the canonical reviewed inventory source without edits', async ({ page }) => {
   await page.goto(entrance.url);
   const bundled = await inventory(page);
-  for (const { slug } of bundled.forms) {
-    const canonical = readFileSync(new URL(`../../forms/${slug}/main.conduit`, import.meta.url), 'utf8');
-    expect(bundled.forms.find(form => form.slug === slug)?.source).toBe(canonical);
+  for (const { slug } of bundled.plots) {
+    const canonical = readFileSync(new URL(`../../plots/${slug}/main.conduit`, import.meta.url), 'utf8');
+    expect(bundled.plots.find(plot => plot.slug === slug)?.source).toBe(canonical);
   }
 
   const birth = page.locator('.body-birth-runner');
@@ -435,9 +435,9 @@ test('Workspace Birth serves the canonical reviewed inventory source without edi
   await birth.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
   await birth.getByRole('checkbox', { name: 'Desk Telegraph', exact: true }).check();
   await birth.getByText('Details and source', { exact: true }).click();
-  const source = birth.getByLabel('Selected Conduit Form source', { exact: true });
+  const source = birth.getByLabel('Selected Conduit Plot source', { exact: true });
   await expect(source).toHaveValue(selectedSource(bundled, ['memory_lantern', 'desk_telegraph']));
-  await expect(source).not.toHaveValue(/conduit\.creche\/reviewed-form-bundle/u);
+  await expect(source).not.toHaveValue(/conduit\.creche\/reviewed-plot-bundle/u);
 });
 
 test('Workspace Birth controls remain bounded and usable at a narrow width', async ({ page }) => {
@@ -445,20 +445,20 @@ test('Workspace Birth controls remain bounded and usable at a narrow width', asy
   await page.goto(entrance.url);
   const birth = page.locator('.body-birth-runner');
   await expect(birth.getByRole('heading', { name: 'A body of your own', exact: true })).toBeVisible();
-  const [forms, name, sourceDetails, editor] = await Promise.all([
-    birth.locator('[data-application-slot="birth-fields"] [data-application-key="initial-forms"]').boundingBox(),
+  const [plots, name, sourceDetails, editor] = await Promise.all([
+    birth.locator('[data-application-slot="birth-fields"] [data-application-key="initial-plots"]').boundingBox(),
     birth.getByLabel('Friendly Body name', { exact: true }).boundingBox(),
     birth.locator('.birth-presentation .birth-details').boundingBox(),
     birth.locator('.birth-presentation').boundingBox(),
   ]);
-  for (const box of [forms, name, sourceDetails, editor]) expect(box).not.toBeNull();
-  expect(name.y + name.height).toBeLessThanOrEqual(forms.y);
-  expect(forms.y + forms.height).toBeLessThanOrEqual(sourceDetails.y);
-  for (const box of [forms, name, sourceDetails]) {
+  for (const box of [plots, name, sourceDetails, editor]) expect(box).not.toBeNull();
+  expect(name.y + name.height).toBeLessThanOrEqual(plots.y);
+  expect(plots.y + plots.height).toBeLessThanOrEqual(sourceDetails.y);
+  for (const box of [plots, name, sourceDetails]) {
     expect(box.x).toBeGreaterThanOrEqual(editor.x);
     expect(box.x + box.width).toBeLessThanOrEqual(editor.x + editor.width);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await birth.getByText('Details and source', { exact: true }).click();
-  await expect(birth.getByLabel('Selected Conduit Form source', { exact: true })).toBeVisible();
+  await expect(birth.getByLabel('Selected Conduit Plot source', { exact: true })).toBeVisible();
 });

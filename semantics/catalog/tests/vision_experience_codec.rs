@@ -126,11 +126,14 @@ fn observation_values_retain_actual_length_and_exact_domain_truth() {
         assert_eq!(values.len(), 1);
         assert!(!value.canonical_bytes().unwrap().is_empty());
     }
+    let StructuredInfoTypeShape::Nominal { representation, .. } = texts.value_type().shape() else {
+        unreachable!()
+    };
     let StructuredInfoTypeShape::Sequence {
         minimum_items,
         maximum_items,
         ..
-    } = texts.value_type().shape()
+    } = representation.shape()
     else {
         unreachable!()
     };

@@ -2,8 +2,8 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     ArchitectureBaseId, ArchitectureBaseKind, ComputeReservation, ComputeServiceGuarantee,
     ExecutionProfileId, ExecutionRegion, ExecutionRegionId, ExecutionRegionRequirements,
-    ExecutionScheduling, FormIdentity, HostAdvertisement, HostBaseId, PlacementId, Plan,
-    PlanFragment, ResourceBinding, seal_plan_with_completion,
+    ExecutionScheduling, HostAdvertisement, HostBaseId, PlacementId, Plan, PlanFragment,
+    PlotIdentity, ResourceBinding, seal_plan_with_completion,
 };
 
 use crate::{
@@ -40,10 +40,10 @@ pub(super) fn seal_execution_region(
         fragment,
     )?];
     Ok(seal_plan_with_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: plan.source_document_id,
-            checked_form_id: plan.checked_form_id,
-            expanded_form_id: plan.expanded_form_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
         },
         completion_policy,
         fragments,
@@ -81,10 +81,10 @@ pub(super) fn seal_two_execution_regions(
         )?,
     ];
     Ok(seal_plan_with_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: plan.source_document_id,
-            checked_form_id: plan.checked_form_id,
-            expanded_form_id: plan.expanded_form_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
         },
         completion_policy,
         fragments,

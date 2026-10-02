@@ -101,7 +101,7 @@ pub(crate) fn push_linear_basis(
         optional_identity(basis.wake_id.as_ref().map(|identity| identity.as_str()))
     ))?;
     builder.push(format!(
-        "FORM source={} checked={} expanded={}",
+        "PLOT source={} checked={} expanded={}",
         optional_identity(
             basis
                 .source_document_id
@@ -110,13 +110,13 @@ pub(crate) fn push_linear_basis(
         ),
         optional_identity(
             basis
-                .checked_form_id
+                .checked_plot_id
                 .as_ref()
                 .map(|identity| identity.as_str())
         ),
         optional_identity(
             basis
-                .expanded_form_id
+                .expanded_plot_id
                 .as_ref()
                 .map(|identity| identity.as_str())
         )

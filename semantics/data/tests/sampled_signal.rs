@@ -1,21 +1,19 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::*;
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
     let payload = vec![0_u8; usize::try_from(count * channels * 4).unwrap()];
     SampledSignal {
         clock_identity: clock.into(),
-        start: SignalStart::SampleIndex(start),
-        cadence: SignalCadence::Regular {
-            samples: 100,
-            per: Quantity::new(1, QuantityUnit::Second),
-        },
+        start: SignalStart::at_sample(start),
+        cadence: SignalCadence::regular(Quantity::new(1, QuantityUnit::Second), 100).unwrap(),
         sample_count: count,
         continuity: SignalContinuity::Continuous,
         samples: TensorValue {
             element: TensorElement::F32,
-            dimensions: vec![count, channels],
-            axes: vec![
+            dimensions: BoundedSequence::try_from_iter([count, channels]).unwrap(),
+            axes: BoundedSequence::try_from_iter([
                 TensorAxis {
                     role: TensorAxisRole::Time,
                     identity: Some("observation".into()),
@@ -26,9 +24,10 @@ fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
                     identity: Some("channel".into()),
                     unit: Some(QuantityUnit::One),
                 },
-            ],
+            ])
+            .unwrap(),
             content_digest: tensor_content_digest(&payload),
-            backing: TensorBacking::Inline(payload),
+            backing: TensorBacking::Inline(BoundedBytes::new(&payload).unwrap()),
         },
     }
 }
@@ -43,14 +42,14 @@ fn independently_clocked_audio_f0_and_articulation_do_not_invent_segments() {
         assert!(!format!("{:?}", value.summary().unwrap()).contains("phone"));
     }
     assert_ne!(audio.semantic_digest(), f0.semantic_digest());
-    assert_eq!(articulation.samples.dimensions, [8, 2]);
+    assert_eq!(articulation.samples.dimensions.as_slice(), [8, 2]);
 }
 
 #[test]
 fn windows_preserve_source_clock_and_identity() {
     let value = signal("clock/ema", 10, 8, 2);
     let window = value.window(3, 4).unwrap();
-    assert_eq!(window.start, SignalStart::SampleIndex(13));
+    assert_eq!(window.start, SignalStart::at_sample(13));
     assert_eq!(window.source_signal, value.semantic_digest().unwrap());
     assert_eq!(
         value.window(7, 2),
@@ -64,10 +63,10 @@ fn concatenation_requires_exact_contiguity_and_compatible_descriptors() {
     let second = signal("clock/ema", 4, 4, 2);
     let joined = concatenate(&[first.clone(), second.clone()]).unwrap();
     assert_eq!(joined.sample_count, 8);
-    assert_eq!(joined.sample_shape, [2]);
+    assert_eq!(joined.sample_shape.as_slice(), [2]);
     assert_eq!(joined.source_parts.len(), 2);
     let mut gap = second.clone();
-    gap.start = SignalStart::SampleIndex(5);
+    gap.start = SignalStart::at_sample(5);
     assert_eq!(
         concatenate(&[first.clone(), gap]),
         Err(SampledSignalRefusal::NoncontiguousSignals)

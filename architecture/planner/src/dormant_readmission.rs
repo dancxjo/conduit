@@ -6,7 +6,7 @@ use conduit_core::{
     LineAvailability, LineContract, LineId, LineOffer, OfferGeneration, Plan, PlanId,
     ResourceObservation, SignId,
 };
-use conduit_form::CheckedGear;
+use conduit_plot::CheckedGear;
 
 pub const MAXIMUM_DORMANT_ABSENT_GENERATIONS: usize = 32;
 pub const MAXIMUM_DORMANT_REQUIRED_LINES: usize = 16;
@@ -72,7 +72,7 @@ pub enum DormantReadmissionRefusal {
     IncompatibleLineContract,
     MissingCurrentAuthority,
     InvalidPlan,
-    FormChanged,
+    PlotChanged,
     PlanReused,
     PlacementMismatch,
     LineNotAdmitted,
@@ -151,10 +151,10 @@ pub fn prove_dormant_readmission(
         return Err(DormantReadmissionRefusal::InvalidPlan);
     }
     if previous_plan.source_document_id != plan.source_document_id
-        || previous_plan.checked_form_id != plan.checked_form_id
-        || previous_plan.expanded_form_id != plan.expanded_form_id
+        || previous_plan.checked_plot_id != plan.checked_plot_id
+        || previous_plan.expanded_plot_id != plan.expanded_plot_id
     {
-        return Err(DormantReadmissionRefusal::FormChanged);
+        return Err(DormantReadmissionRefusal::PlotChanged);
     }
     if previous_plan.plan_id == plan.plan_id {
         return Err(DormantReadmissionRefusal::PlanReused);

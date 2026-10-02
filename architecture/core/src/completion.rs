@@ -1,4 +1,4 @@
-//! Semantic lifetime policy sealed by a checked form into its exact plan.
+//! Semantic lifetime policy sealed by a checked plot into its exact plan.
 
 use serde::{Deserialize, Serialize};
 

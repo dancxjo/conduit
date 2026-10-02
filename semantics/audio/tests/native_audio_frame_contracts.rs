@@ -1,7 +1,7 @@
 use conduit_audio::{
     AudioRenderDemand, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, SoundInfoError,
 };
-use conduit_form::rust_binding::NativeBindingRefusal;
+use conduit_plot::rust_binding::NativeBindingRefusal;
 
 #[test]
 fn render_demand_owns_the_exact_checked_interval_without_losing_domain_refusals() {

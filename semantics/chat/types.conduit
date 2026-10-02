@@ -19,11 +19,74 @@ type PresenceState =
     | offline
     | unknown
 
+type RecognitionEvidenceStatus =
+    provisional
+    | revised
+    | committed
+    | no_speech
+    | provider_lost
+    | cancelled
+    | closed
+
+type RecognitionEvidenceView = {
+    stream-id: Text <= 256B not in [""]
+    status: RecognitionEvidenceStatus
+    audio-extent-bytes: U32
+    turn-identity: Text <= 256B not in [""]?
+}
+
+type SpeechCommitEvidenceView = {
+    stream-identity: Text <= 256B not in [""]
+    segment-count: U16
+    committed-text-bytes: U32
+    pcm-extent-bytes: U64
+    cancelled: Boolean
+}
+
+type LiveConversationStageKind =
+    recognition_hypothesis
+    | committed_turn
+    | current_context_basis
+    | generated_text_flow
+    | committed_speech
+    | pcm_flow
+
+type LiveConversationStageState =
+    awaiting
+    | provisional
+    | committed
+    | flowing
+    | completed
+    | cancelled
+    | refused
+
+type LiveConversationStage = {
+    kind: LiveConversationStageKind
+    state: LiveConversationStageState
+    identity: Text <= 256B not in [""]?
+    items: U64
+    bytes: U64
+}
+
+type LiveConversationStages = collection LiveConversationStage = 6
+
+type LiveConversationFlowProjection = {
+    schema: Text <= 64B not in [""]
+    stages: LiveConversationStages
+}
+
+type LiveConversationProjectionError =
+    recognition_bound_exceeded
+    | recognition_identity_mismatch
+    | committed_turn_mismatch
+    | invalid_context_evidence
+    | invalid_speech_evidence
+
 type BodyChatRole =
     human
     | body
 
-code chat/body-role = BodyChatRole as u8
+form chat/body-role = BodyChatRole as u8
 
 type BodyChatMessage = Text <= 4096B not in [""]
 
@@ -38,7 +101,7 @@ type BodyConversationalSummary = {
     lifecycle: Text <= 16B not in [""]
     present_hosts: U16
     offline_hosts: U16
-    active_forms: U16
+    active_plots: U16
     execution: Text <= 16B not in [""]
     ready_lines: U16
     unavailable_lines: U16

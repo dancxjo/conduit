@@ -4,8 +4,8 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::{PortId, ValueRef, ValueStorage};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 #[cfg(feature = "local-model-proof")]
 use std::cell::RefCell;
 
@@ -333,7 +333,7 @@ pub(crate) fn install_navigation_catalog(
     for offer in navigation_source_offers() {
         install_offer(startup, catalog, offer);
     }
-    let request_kind = conduit_robotics::robotics_motion_request_type();
+    let request_kind = conduit_semantic_catalog::navigation_bounded_motion_intent_type();
     install_offer(
         startup,
         catalog,
@@ -608,18 +608,19 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     } else if placement.outputs[0].value_kind.as_str()
         == conduit_tongues::WIRED_HOUSE_CONTEXT_VALUE_KIND
     {
-        conduit_tongues::encode_wired_house_context(&[conduit_ai::WiredHouseContextItem {
-            item_identity: "context/upstairs-temperature".into(),
-            value_kind: "temperature/summary@1".into(),
-            canonical_value: b"21 degrees Celsius, observed 18 seconds ago".to_vec(),
-            provenance: conduit_ai::HouseContextProvenanceClass::ObservedSign,
-            source_identity: "sign/temperature/42".into(),
-        }])
+        conduit_tongues::encode_wired_house_context(&[conduit_ai::wired_house_context_item(
+            "context/upstairs-temperature",
+            "temperature/summary@1",
+            b"21 degrees Celsius, observed 18 seconds ago",
+            conduit_ai::HouseContextProvenanceClass::ObservedSign,
+            "sign/temperature/42",
+        )
+        .map_err(|error| format!("build House context: {error:?}"))?])
         .map_err(|error| format!("encode House context: {error:?}"))?
     } else if placement.outputs[0].value_kind.as_str() == conduit_ai::SIMILARITY_QUERY_VALUE_KIND {
         serde_json::to_vec(&conduit_ai::SimilarityQuery {
-            embedding: conduit_ai::Embedding {
-                profile: conduit_ai::EmbeddingProfile {
+            embedding: conduit_ai::Embedding::from_values(
+                conduit_ai::EmbeddingProfile {
                     identity: "embedding/vector-play-fixture".into(),
                     semantic_space_identity: "space/vector-play-fixture".into(),
                     model_identity: "model/vector-play-fixture".into(),
@@ -629,12 +630,13 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
                     compatible_metrics: conduit_ai::CompatibleMetrics::new(true, true, true)
                         .unwrap(),
                 },
-                values: vec![1.0, 0.0, 0.0],
-            },
+                vec![1.0, 0.0, 0.0],
+            )
+            .unwrap(),
             metric: conduit_ai::SimilarityMetric::CosineSimilarity,
             top_k: 2,
             threshold: None,
-            filters: Vec::new(),
+            filters: conduit_ai::MetadataFilters::from_values(Vec::new()).unwrap(),
             temporal_intent: None,
         })
         .map_err(|error| format!("encode vector-search request: {error}"))?

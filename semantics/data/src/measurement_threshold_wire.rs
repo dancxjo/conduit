@@ -5,7 +5,7 @@ use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
     MeasurementHysteresis, MeasurementHysteresisProfile, MeasurementThresholdDecision,
-    MeasurementThresholdState, MeasurementThresholdStateCode, MeasurementThresholdTransition,
+    MeasurementThresholdState, MeasurementThresholdStateForm, MeasurementThresholdTransition,
     MeasurementWireRefusal,
 };
 
@@ -111,8 +111,14 @@ pub fn decode_measurement_threshold_decision(
         state,
         transition,
         evaluated_value: input.quantity()?,
-        first_observed_at: input.instant()?,
-        last_observed_at: input.instant()?,
+        first_observed_at: input
+            .instant()?
+            .try_into()
+            .map_err(|_| MeasurementWireRefusal::Malformed)?,
+        last_observed_at: input
+            .instant()?
+            .try_into()
+            .map_err(|_| MeasurementWireRefusal::Malformed)?,
     };
     if !input.finished() {
         return Err(MeasurementWireRefusal::Malformed);
@@ -122,11 +128,11 @@ pub fn decode_measurement_threshold_decision(
 }
 
 const fn state_byte(state: MeasurementThresholdState) -> u8 {
-    MeasurementThresholdStateCode::encode(state)[0]
+    MeasurementThresholdStateForm::encode(state)[0]
 }
 
 fn decode_state(value: u8) -> Result<MeasurementThresholdState, MeasurementWireRefusal> {
-    MeasurementThresholdStateCode::decode(&[value]).map_err(|_| MeasurementWireRefusal::Malformed)
+    MeasurementThresholdStateForm::decode(&[value]).map_err(|_| MeasurementWireRefusal::Malformed)
 }
 
 fn put_text(output: &mut Vec<u8>, value: &str) -> Result<(), MeasurementWireRefusal> {
@@ -139,18 +145,18 @@ fn put_text(output: &mut Vec<u8>, value: &str) -> Result<(), MeasurementWireRefu
 
 fn put_instant(
     output: &mut Vec<u8>,
-    instant: &TemporalInstant,
+    instant: &conduit_time::NativeTemporalInstant,
 ) -> Result<(), MeasurementWireRefusal> {
-    output.extend_from_slice(&instant.ticks.to_le_bytes());
-    output.push(match instant.scale {
-        TemporalScale::Seconds => 0,
-        TemporalScale::Milliseconds => 1,
-        TemporalScale::Microseconds => 2,
-        TemporalScale::Nanoseconds => 3,
+    output.extend_from_slice(&instant.ticks().to_le_bytes());
+    output.push(match instant.scale() {
+        conduit_time::NativeTemporalScale::Seconds => 0,
+        conduit_time::NativeTemporalScale::Milliseconds => 1,
+        conduit_time::NativeTemporalScale::Microseconds => 2,
+        conduit_time::NativeTemporalScale::Nanoseconds => 3,
     });
-    put_text(output, &instant.clock_basis)?;
-    output.extend_from_slice(&instant.resolution_ticks.to_le_bytes());
-    output.extend_from_slice(&instant.uncertainty_ticks.to_le_bytes());
+    put_text(output, instant.clock_basis())?;
+    output.extend_from_slice(&instant.resolution_ticks().to_le_bytes());
+    output.extend_from_slice(&instant.uncertainty_ticks().to_le_bytes());
     Ok(())
 }
 

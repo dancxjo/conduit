@@ -47,7 +47,7 @@ pub struct PresentationProof {
     pub text_display: DisplayReceipt,
     pub display: DisplayReceipt,
     pub kernel_signs: u16,
-    pub realization_back: conduit_core::FormBack,
+    pub realization_back: conduit_core::PlotBack,
     pub node_count: u8,
     pub cord_count: u8,
 }
@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    fn one_ordinary_form_runs_all_three_branches_through_the_kernel() {
+    fn one_ordinary_plot_runs_all_three_branches_through_the_kernel() {
         with_kernel_stack(|| {
             let prepared = super::super::prepare("test-host", "test-boot").unwrap();
             let mut display = Buffer::new();

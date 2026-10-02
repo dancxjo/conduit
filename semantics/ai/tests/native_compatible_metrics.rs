@@ -1,5 +1,5 @@
 use conduit_ai::CompatibleMetrics;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_native_round_trip(value: CompatibleMetrics) {
     let structured = value.into_structured().unwrap();

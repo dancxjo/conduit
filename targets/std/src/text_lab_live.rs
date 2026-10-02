@@ -32,7 +32,7 @@ fn return_line_loss(
     };
     if outcome.immutable_plan_id != plan.plan_id
         || outcome.source_document_id != plan.source_document_id
-        || outcome.checked_form_id != plan.checked_form_id
+        || outcome.checked_plot_id != plan.checked_plot_id
     {
         return "CND-TEXT-LIVE-302 loss reconciliation changed accepted identity".into();
     }
@@ -48,12 +48,12 @@ fn return_line_loss(
         line_id: outcome.unavailable_line_id.as_str().into(),
         plan_id: outcome.immutable_plan_id.as_str().into(),
         source_document_id: outcome.source_document_id.as_str().into(),
-        checked_form_id: outcome.checked_form_id.as_str().into(),
+        checked_plot_id: outcome.checked_plot_id.as_str().into(),
         active_play_id: active.active_play_id.as_str().into(),
         sign_id: sign.sign_id.as_str().into(),
         old_plan_disposition: "immutable".into(),
         fresh_planning: "unrealizable".into(),
-        form_unchanged: true,
+        plot_unchanged: true,
         refusal: outcome.refusal,
         transport_failure: transport_failure.into(),
     })

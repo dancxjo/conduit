@@ -379,7 +379,7 @@ pub fn signal_payload_size() -> u32 {
 #[cfg(feature = "host-profile")]
 mod profile_catalog;
 #[cfg(feature = "host-profile")]
-pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
+pub fn signal_profile_catalog() -> conduit_plot::ProfileCatalog {
     let mut catalog = profile_catalog::signal_profile_catalog();
     trigger::extend_profile_catalog(&mut catalog);
     control::extend_control_profile_catalog(&mut catalog);
@@ -387,7 +387,7 @@ pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
 }
 
 #[cfg(feature = "host-profile")]
-pub fn primary_signal_profile_catalog() -> conduit_form::ProfileCatalog {
+pub fn primary_signal_profile_catalog() -> conduit_plot::ProfileCatalog {
     profile_catalog::signal_profile_catalog()
 }
 
@@ -397,7 +397,7 @@ mod tests;
 #[cfg(test)]
 mod native_type_tests {
     use super::{PulseConfiguration, Signal, ToggleConfiguration, Trigger, TriggerConfiguration};
-    use conduit_form::rust_binding::NativeRustBinding;
+    use conduit_plot::rust_binding::NativeRustBinding;
 
     fn assert_round_trip<T>(value: T)
     where

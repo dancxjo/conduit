@@ -2,17 +2,20 @@ use conduit_ai::{
     AnswerSpan, Chunk, Citation, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionDisposition, ExtractedSourceValue, ExtractionLineage,
     GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedAnswerRequest,
-    GroundedClaimSupport, GroundingInputAssessment, HybridCandidate, LlmDeterminismProfile,
-    MechanismScore, ModelDerivedResult, ModelRefusal, ModelResultDisposition,
-    ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim,
-    RerankScore, RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
-    RetrievalMechanism, RetrievalMode, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
+    GroundedClaimSupport, GroundingInputAssessment, GroundingLimitation, HybridCandidate,
+    LlmDeterminismProfile, MechanismScore, ModelDerivedResult, ModelRefusal,
+    ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport,
+    ProposedGroundedClaim, RagIdentity, RerankScore, RerankedCandidate, RerankingProofClass,
+    RetrievalContribution, RetrievalIntent, RetrievalIntentIdentity, RetrievalMechanism,
+    RetrievalMode, RetrievalModes, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
     SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
+    TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn source(version: u8) -> SourceRef {
     SourceRef {
@@ -36,13 +39,9 @@ fn selected_item(version: u8, rank: u16, start: u64, text: &str) -> SelectedCont
     let chunk = Chunk::new(
         ExtractionLineage {
             source: source(version),
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start,
-                end: start + text.len() as u64,
-            },
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + text.len() as u64).unwrap(),
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(text.as_bytes().to_vec()),
@@ -55,10 +54,11 @@ fn selected_item(version: u8, rank: u16, start: u64, text: &str) -> SelectedCont
                 rank,
                 fusion_score_micros: 100_000 - u64::from(rank),
                 contributions: vec![RetrievalContribution {
-                    retriever: RetrieverIdentity {
-                        identity: "retriever/exact@1".into(),
-                        mechanism: RetrievalMechanism::DomainExact,
-                    },
+                    retriever: RetrieverIdentity::new(
+                        "retriever/exact@1".into(),
+                        RetrievalMechanism::DomainExact,
+                    )
+                    .unwrap(),
                     stage_rank: rank,
                     score: Some(MechanismScore::ExactMatch),
                     temporal_evidence_identity: None,
@@ -88,11 +88,13 @@ fn fixture_request() -> GroundedAnswerRequest {
     ];
     GroundedAnswerRequest {
         identity: "request/project-history/7".into(),
-        retrieval_intent: RetrievalIntent {
-            identity: "intent/project-history".into(),
-            modes: vec![RetrievalMode::Exact],
-            maximum_candidates: 8,
-        },
+        retrieval_intent: RetrievalIntent::new(
+            RetrievalIntentIdentity::new("intent/project-history".into()).unwrap(),
+            RetrievalModes::new(BoundedSequence::try_from_iter([RetrievalMode::Exact]).unwrap())
+                .unwrap(),
+            8,
+        )
+        .unwrap(),
         context: StructuredContext {
             policy_identity: "context/reranked-diverse@1".into(),
             token_accounting_profile: "tokens/exact-fixture@1".into(),
@@ -110,14 +112,34 @@ fn fixture_request() -> GroundedAnswerRequest {
 }
 
 fn policy() -> GroundedAnswerPolicy {
-    GroundedAnswerPolicy {
-        identity: "grounding/exact-context-citations@1".into(),
-        answer_kind: "value/text-utf8@1".into(),
-        maximum_output_bytes: 1_024,
-        maximum_claims: 8,
-        maximum_citations: 8,
-        maximum_work_units: 64,
-    }
+    GroundedAnswerPolicy::new(
+        "grounding/exact-context-citations@1".into(),
+        "value/text-utf8@1".into(),
+        1_024,
+        8,
+        8,
+        64,
+    )
+    .unwrap()
+}
+
+#[test]
+fn grounded_answer_policy_is_native_and_intrinsically_bounded() {
+    let policy = policy();
+    assert_eq!(
+        GroundedAnswerPolicy::from_structured(policy.clone().into_structured().unwrap()).unwrap(),
+        policy
+    );
+    assert!(GroundedAnswerPolicy::new(
+        "grounding/too-many-claims@1".into(),
+        "value/text-utf8@1".into(),
+        1_024,
+        65,
+        8,
+        64,
+    )
+    .is_err());
+    assert!(!include_str!("../src/grounded_answer.rs").contains("pub struct GroundedAnswerPolicy"));
 }
 
 fn model_result(
@@ -165,13 +187,13 @@ fn citation(request: &GroundedAnswerRequest, index: usize) -> Citation {
 fn supported_claims(request: &GroundedAnswerRequest) -> Vec<ProposedGroundedClaim> {
     vec![
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 0, end: 27 },
+            answer_span: AnswerSpan::new(0, 27).unwrap(),
             support: ProposedClaimSupport::Supported {
                 citations: vec![citation(request, 0)],
             },
         },
         ProposedGroundedClaim {
-            answer_span: AnswerSpan { start: 29, end: 58 },
+            answer_span: AnswerSpan::new(29, 58).unwrap(),
             support: ProposedClaimSupport::Supported {
                 citations: vec![citation(request, 1)],
             },
@@ -252,21 +274,23 @@ fn unsupported_claims_and_evidence_dispositions_remain_explicit() {
         GroundedAnswerDisposition::PartiallySupported
     );
     assert!(matches!(
-        partial.claims[1].support,
-        GroundedClaimSupport::Unsupported { .. }
+        partial.claims[1].support(),
+        GroundedClaimSupport::Unsupported(_)
     ));
 
     for (assessment, expected) in [
         (
-            GroundingInputAssessment::InsufficientEvidence {
-                limitation: "origin evidence is absent".into(),
-            },
+            GroundingInputAssessment::insufficient_evidence(
+                GroundingLimitation::new("origin evidence is absent".into()).unwrap(),
+            )
+            .unwrap(),
             GroundedAnswerDisposition::InsufficientEvidence,
         ),
         (
-            GroundingInputAssessment::ConflictingEvidence {
-                limitation: "selected sources disagree".into(),
-            },
+            GroundingInputAssessment::conflicting_evidence(
+                GroundingLimitation::new("selected sources disagree".into()).unwrap(),
+            )
+            .unwrap(),
             GroundedAnswerDisposition::ConflictingEvidence,
         ),
     ] {
@@ -329,23 +353,20 @@ fn forged_context_accounting_and_every_policy_bound_fail_closed() {
         ),
         Err(GroundedAnswerRefusal::ContextAccountingMismatch)
     );
-    for mutate in [
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_output_bytes = 0,
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_claims = 0,
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_citations = 0,
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_work_units = 0,
+    for bounds in [
+        (0, 8, 8, 64),
+        (1_024, 0, 8, 64),
+        (1_024, 8, 0, 64),
+        (1_024, 8, 8, 0),
     ] {
-        let request = fixture_request();
-        let mut policy = policy();
-        mutate(&mut policy);
-        assert_eq!(
-            policy.assemble(
-                &request,
-                &GroundingInputAssessment::Sufficient,
-                &model_result("model/a", "run/1", ModelResultDisposition::Produced),
-                &supported_claims(&request),
-            ),
-            Err(GroundedAnswerRefusal::InvalidBound)
-        );
+        assert!(GroundedAnswerPolicy::new(
+            "grounding/invalid-bound@1".into(),
+            "value/text-utf8@1".into(),
+            bounds.0,
+            bounds.1,
+            bounds.2,
+            bounds.3,
+        )
+        .is_err());
     }
 }

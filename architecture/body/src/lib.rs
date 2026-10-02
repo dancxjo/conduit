@@ -1,13 +1,13 @@
 #![no_std]
 
-//! Exact bounded lifecycle for a body born with an initial checked form workset.
+//! Exact bounded lifecycle for a body born with an initial checked plot workset.
 //!
 //! A body is durable intent and obligations, never a physical host. A wake is
 //! one active maintenance interval; Lull ends that interval while preserving
 //! the body. Plans and Plays may be replaced within one wake.
 //!
 //! Capacity taxonomy:
-//! - Form, Part, Line, active wake/Plan, and simultaneous resource limits are
+//! - Plot, Part, Line, active wake/Plan, and simultaneous resource limits are
 //!   working-set bounds and may refuse additional concurrent work.
 //! - Body Signs, membership events, retained wakes, and biography records are
 //!   active-history bounds; exact prefixes cross a checkpoint into bounded,

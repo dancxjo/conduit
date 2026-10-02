@@ -29,7 +29,7 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
   const liveExit = exitOutcome(live);
   const base = await liveOutput.value;
 
-  const patchbay = spawn("target/debug/patchbay-html", ["--text-lab-split", base], {
+  const patchbay = spawn("target/debug/conduit-browser-patchbay-workbench", ["--text-lab-split", base], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const patchbayErrors = [];
@@ -47,8 +47,8 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
     const before = await page.evaluate(async () => (await fetch("/api/snapshot")).json());
     expect(before.presentation.basis).toMatchObject({
       source_document_id: expect.any(String),
-      checked_form_id: expect.any(String),
-      expanded_form_id: expect.any(String),
+      checked_plot_id: expect.any(String),
+      expanded_plot_id: expect.any(String),
       body_id: expect.any(String),
       wake_id: expect.any(String),
       plan_id: expect.any(String),
@@ -88,10 +88,10 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
       line_id: "text-lab/browser-to-native",
       plan_id: before.presentation.basis.plan_id,
       source_document_id: before.presentation.basis.source_document_id,
-      checked_form_id: before.presentation.basis.checked_form_id,
+      checked_plot_id: before.presentation.basis.checked_plot_id,
       old_plan_disposition: "immutable",
       fresh_planning: "unrealizable",
-      form_unchanged: true,
+      plot_unchanged: true,
     });
     const forged = { ...receipt, plan_id: `${receipt.plan_id}-forged` };
     const refused = await fetch(`${url}/api/text-lab-loss`, {
@@ -112,8 +112,8 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
     expect(after.presentation.basis.plan_id).toBe(before.presentation.basis.plan_id);
     expect(after.presentation.basis.source_document_id)
       .toBe(before.presentation.basis.source_document_id);
-    expect(after.presentation.basis.checked_form_id)
-      .toBe(before.presentation.basis.checked_form_id);
+    expect(after.presentation.basis.checked_plot_id)
+      .toBe(before.presentation.basis.checked_plot_id);
     expect(after.presentation.basis.sign_ids).toContain(receipt.sign_id);
     expect(after.presentation.subjects).toContainEqual(expect.objectContaining({
       role: "Sign",
@@ -121,7 +121,7 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
     }));
     await page.reload();
     await expect(page.locator("#ordinary-summary"))
-      .toContainText("browser Part unavailable -> unchanged Form currently unrealizable");
+      .toContainText("browser Part unavailable -> unchanged Plot currently unrealizable");
     await expect(page.getByRole("button", { name: "Observe browser loss" })).toBeDisabled();
   } finally {
     liveOutput.output.close();

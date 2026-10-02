@@ -1,5 +1,5 @@
 use conduit_core::InfoDecodeError;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{WheelDropObservation, ROBOTICS_WHEEL_DROP_ENCODED_LEN, WHEEL_MASK};
 
 #[test]

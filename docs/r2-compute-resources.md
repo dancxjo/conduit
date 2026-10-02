@@ -8,7 +8,7 @@ allocator, scheduler, planner, or execution API.
 
 - A host advertises architecture-neutral compute pools. Physical packages,
   cores, hardware threads, and base scheduler identifiers remain base
-  facts rather than authored form facts.
+  facts rather than authored plot facts.
 - A capability requirement states minimum, preferred, and maximum lanes, a
   minimum service guarantee (`Shared`, `Reserved`, or `Exclusive`), and optional
   topology constraints. The planner admits every minimum before assigning spare

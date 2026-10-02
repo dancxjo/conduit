@@ -140,7 +140,7 @@ fn verify_membership_receipt(
     let active_plan_id = field("active_plan_id")?;
     let expected_body = conduit_body::Body::born(
         exact_plan.plan.source_document_id.clone(),
-        exact_plan.plan.checked_form_id.clone(),
+        exact_plan.plan.checked_plot_id.clone(),
         1,
         conduit_core::SignId::from("r1/physical/body-born"),
     )
@@ -182,7 +182,7 @@ mod tests {
         .plan;
         let body = conduit_body::Body::born(
             plan.source_document_id.clone(),
-            plan.checked_form_id.clone(),
+            plan.checked_plot_id.clone(),
             1,
             conduit_core::SignId::from("r1/physical/body-born"),
         )

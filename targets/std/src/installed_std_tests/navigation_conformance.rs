@@ -4,13 +4,13 @@ use conduit_core::{
     BaseImplementationId, BootId, HostId, ObservationKind, OfferGeneration, PortTemporal,
     TerminalDisposition,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
 use std::collections::BTreeMap;
 
-const FORM: &str = r#"form navigation_play {
+const PLOT: &str = r#"plot navigation_play {
  pose: conduit-test/navigation-pose-source
  goal: conduit-test/navigation-goal-source
  grid: conduit-test/navigation-grid-source
@@ -40,11 +40,11 @@ fn portable_navigation_executes_as_one_bounded_production_play() {
         .unwrap();
     conduit_semantic_catalog::install_navigation_catalogs(&mut startup, &mut profiles).unwrap();
     installed_std::test_local_model_io::install_navigation_catalog(&mut startup, &mut profiles);
-    let checked = check_syntax_document(&parse_syntax_document(FORM), &startup).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(PLOT), &startup).unwrap();
     let selector_specs = checked
-        .forms
+        .plots
         .iter()
-        .flat_map(|form| &form.cords)
+        .flat_map(|plot| &plot.cords)
         .flat_map(|cord| &cord.stages)
         .filter_map(|stage| match stage {
             CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
@@ -60,7 +60,7 @@ fn portable_navigation_executes_as_one_bounded_production_play() {
             ))
             .unwrap();
     }
-    let expanded = expand_canonical_form(&checked, "navigation_play", &profiles).unwrap();
+    let expanded = expand_canonical_plot(&checked, "navigation_play", &profiles).unwrap();
 
     let mut host = StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from("host/navigation-kernel"),
@@ -75,7 +75,7 @@ fn portable_navigation_executes_as_one_bounded_production_play() {
         .extend(selector_specs.iter().map(|selector| {
             conduit_std_offers::structured_selector_std_offer(selector, PortTemporal::Value)
         }));
-    let motion = conduit_robotics::robotics_motion_request_type();
+    let motion = conduit_semantic_catalog::navigation_bounded_motion_intent_type();
     host.advertisement
         .capabilities
         .push(installed_std::test_local_model_io::sink_offer(

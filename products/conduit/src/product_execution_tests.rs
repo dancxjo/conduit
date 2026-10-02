@@ -1,4 +1,4 @@
-use crate::form_source;
+use crate::plot_source;
 use crate::product_execution::{ProductExecutionContext, ProductRuntime};
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_planner::{PlacementChoice, PlacementChoices};
@@ -6,18 +6,18 @@ use conduit_std_host::{StdHost, StdHostConfig};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-fn hello_form() -> conduit_form::ExpandedCanonicalForm {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../forms/hello/main.conduit");
-    form_source::load(&path)
+fn hello_plot() -> conduit_plot::ExpandedCanonicalPlot {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../plots/hello/main.conduit");
+    plot_source::load(&path)
         .expect("canonical hello source loads")
         .expand_entry()
         .expect("canonical hello expands")
 }
 
-fn lenia_form() -> conduit_form::ExpandedCanonicalForm {
+fn lenia_plot() -> conduit_plot::ExpandedCanonicalPlot {
     let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../forms/lenia-orbium/main.conduit");
-    form_source::load(&path)
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../plots/lenia-orbium/main.conduit");
+    plot_source::load(&path)
         .expect("canonical Lenia source loads")
         .expand_entry()
         .expect("canonical Lenia demo expands")
@@ -63,15 +63,15 @@ fn two_advertisement_context_reaches_ordinary_planner_placement() {
         Vec::new(),
     )
     .expect("two Hosts and two product Bases are finite context truth");
-    let form = hello_form();
+    let plot = hello_plot();
     let second_advertisement = context
-        .default_placements(&form)
+        .default_placements(&plot)
         .expect("ordinary default placement sees the context");
-    assert_eq!(second_advertisement.by_gear.len(), form.gears.len());
+    assert_eq!(second_advertisement.by_gear.len(), plot.gears.len());
 
     let second_host = HostId::from("product-host-b");
     let default_plan = context
-        .plan_with_placements(&form, &second_advertisement)
+        .plan_with_placements(&plot, &second_advertisement)
         .expect("default context placement plans");
     let capabilities = default_plan
         .fragments
@@ -94,7 +94,7 @@ fn two_advertisement_context_reaches_ordinary_planner_placement() {
             .collect::<BTreeMap<_, _>>(),
     };
     let plan = context
-        .plan_with_placements(&form, &placements)
+        .plan_with_placements(&plot, &placements)
         .expect("ordinary planner accepts explicit placement on the second host");
     assert_eq!(plan.fragments.len(), 1);
     assert_eq!(plan.fragments[0].host_id, second_host);
@@ -133,7 +133,7 @@ fn planned_local_fragment_without_runtime_is_refused() {
     )
     .expect("remote advertisements need not imply local runtime authority");
     let plan = context
-        .plan(&hello_form(), None)
+        .plan(&hello_plot(), None)
         .expect("ordinary planning uses advertised truth");
     let error = context
         .execute(plan, &mut Vec::new())
@@ -158,8 +158,8 @@ fn product_context_does_not_classify_base_identity_names() {
 #[test]
 fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
     let mut context = ProductExecutionContext::local_std().unwrap();
-    let form = lenia_form();
-    let plan = context.plan(&form, None).unwrap();
+    let plot = lenia_plot();
+    let plan = context.plan(&plot, None).unwrap();
     for connection in plan
         .fragments
         .iter()
@@ -184,7 +184,7 @@ fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
 
 #[test]
 fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_order() {
-    let form = lenia_form();
+    let plot = lenia_plot();
     let seed = host("bounds-seed");
     let clock = host("bounds-clock");
     let evolve = host("bounds-evolve");
@@ -197,7 +197,7 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
         other => panic!("unexpected Lenia demo Kind '{other}'"),
     };
     let placements = PlacementChoices {
-        by_gear: form
+        by_gear: plot
             .gears
             .iter()
             .map(|gear| {
@@ -237,7 +237,7 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
         Vec::new(),
     )
     .unwrap();
-    let plan = context.plan_with_placements(&form, &placements).unwrap();
+    let plan = context.plan_with_placements(&plot, &placements).unwrap();
     let capacities = plan
         .fragments
         .iter()
@@ -280,7 +280,7 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
         Vec::new(),
     )
     .unwrap()
-    .plan_with_placements(&form, &placements)
+    .plan_with_placements(&plot, &placements)
     .unwrap_err();
     assert!(
         error.contains("lenia-orbium-demo/organism/evolve")

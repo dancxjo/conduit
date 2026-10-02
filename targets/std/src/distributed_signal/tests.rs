@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn unchanged_form_prepares_exact_independent_remote_fragments() {
-    let canonical_source = include_str!("../../../../forms/signal-demo/main.conduit");
+fn unchanged_plot_prepares_exact_independent_remote_fragments() {
+    let canonical_source = include_str!("../../../../plots/signal-demo/main.conduit");
     for realization_fact in ["std", "browser", "websocket", "host", "line"] {
         assert!(!canonical_source
             .to_ascii_lowercase()
@@ -51,8 +51,8 @@ fn unchanged_form_prepares_exact_independent_remote_fragments() {
 fn missing_and_stale_observed_links_fail_planning() {
     let source = distributed_std_source_advertisement();
     let sink = distributed_browser_sink_advertisement();
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../../proof/fixtures/forms/signal-demo.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../../proof/fixtures/plots/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -76,7 +76,7 @@ fn missing_and_stale_observed_links_fail_planning() {
         ]),
     };
     assert!(plan_with_line_offers(
-        &form,
+        &plot,
         &[source.clone(), sink.clone()],
         &placements,
         &[BaseImplementationId::from(
@@ -90,7 +90,7 @@ fn missing_and_stale_observed_links_fail_planning() {
     let mut stale_source = distributed_websocket_line_offer();
     stale_source.binding.source.boot_id = conduit_core::BootId::from("stale-source");
     assert!(plan_with_line_offers(
-        &form,
+        &plot,
         &[source.clone(), sink.clone()],
         &placements,
         &[BaseImplementationId::from(
@@ -104,7 +104,7 @@ fn missing_and_stale_observed_links_fail_planning() {
     let mut stale_sink = distributed_websocket_line_offer();
     stale_sink.binding.sink.boot_id = conduit_core::BootId::from("stale-browser");
     assert!(plan_with_line_offers(
-        &form,
+        &plot,
         &[source, sink],
         &placements,
         &[BaseImplementationId::from(
