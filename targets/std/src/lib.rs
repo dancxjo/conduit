@@ -65,6 +65,7 @@ pub mod hosted_http;
 pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
+mod hosted_process;
 #[cfg(feature = "local-model-proof")]
 mod house_conversation_topology;
 #[cfg(unix)]
@@ -103,6 +104,7 @@ pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
 pub mod hosted_speech_recognition;
+pub mod hosted_speech_synthesis;
 mod hosted_spoken_output_host;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
@@ -458,6 +460,7 @@ pub struct StdHost {
     image_identity: Option<conduit_host_make::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
     wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
+    speech_synthesis: Option<hosted_speech_synthesis::EspeakSpeechAdapter>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
@@ -612,6 +615,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -678,6 +682,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -755,6 +760,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
@@ -796,6 +802,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -837,6 +844,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -892,6 +900,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -948,6 +957,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1061,6 +1071,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1111,6 +1122,7 @@ impl StdHost {
             image_identity: None,
             playback: Some(playback),
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1156,6 +1168,7 @@ impl StdHost {
             image_identity: None,
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
@@ -1190,6 +1203,7 @@ impl StdHost {
             image_identity: Some(image_identity),
             playback: None,
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1237,6 +1251,7 @@ impl StdHost {
             image_identity: None,
             playback: Some(playback),
             wav_artifact: None,
+            speech_synthesis: None,
             midi_input: None,
             midi_output: None,
             local_model: None,

@@ -250,10 +250,27 @@ pub fn presentation_from_evidence(
     let readiness = derive_fulfillment_readiness(&purpose)
         .expect("validated tutorial purpose must derive readiness");
     let readiness_text = match &readiness {
-        FulfillmentReadiness::Ready { .. } => "ready".into(),
-        FulfillmentReadiness::Unavailable { .. } => "unavailable".into(),
+        FulfillmentReadiness::Ready { .. } => {
+            "The recorded lifecycle evidence supports fulfillment.".into()
+        }
+        FulfillmentReadiness::Unavailable { .. } => "Fulfillment readiness is unavailable.".into(),
         FulfillmentReadiness::NotReady { reasons, .. } => {
-            format!("not ready · {} exact obligation(s) remain", reasons.len())
+            let summaries = reasons
+                .iter()
+                .map(|reason| {
+                    purpose
+                        .obligations
+                        .iter()
+                        .find(|obligation| obligation.obligation_id == reason.obligation_id)
+                        .expect("readiness reasons name existing obligations")
+                        .summary
+                        .as_str()
+                })
+                .collect::<Vec<_>>()
+                .join("; ");
+            format!(
+                "Not yet fulfilled. Additional lifecycle evidence remains: {summaries}. You can keep exploring."
+            )
         }
     };
     let view = SemanticApplicationView {
@@ -291,7 +308,7 @@ pub fn presentation_from_evidence(
                     "tutorial-purpose",
                     PresentationMechanism::Status {
                         kind: StatusKind::Ordinary,
-                        title: "Purpose · exact readiness".into(),
+                        title: "Lifecycle evidence".into(),
                         detail: readiness_text,
                     },
                     vec![],
@@ -385,14 +402,14 @@ fn guidance(
     }
     Guidance {
         phase: "living",
-        title: "Use it, then leave it useful",
+        title: "Explore this Body",
         detail: if playback == TutorialPlayback::Idle {
-            "Idle means admitted work awaits future input. Finite means bounded state, queues, authority, and obligations—not a short lifetime."
+            "This Body is waiting for input. Try the current Plot when you are ready."
         } else {
-            "Interact more than once. A finite Body may remain awake indefinitely because its instantaneous and retained bounds stay finite."
+            "Try a Plot, inspect what happened, then try again. When you pause, this Body keeps its identity and history."
         },
         action: "body.use-current",
-        label: "Use the current plot",
+        label: "Try the current Plot",
     }
 }
 
