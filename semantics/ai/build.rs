@@ -76,6 +76,17 @@ fn main() {
                     vec!["label".into(), "allowed_labels".into()],
                 ),
                 (
+                    "GroundedAnswerPolicy".into(),
+                    vec![
+                        "identity".into(),
+                        "answer_kind".into(),
+                        "maximum_output_bytes".into(),
+                        "maximum_claims".into(),
+                        "maximum_citations".into(),
+                        "maximum_work_units".into(),
+                    ],
+                ),
+                (
                     "IntegrationAccuracy".into(),
                     vec![
                         "absolute-tolerance-millionths".into(),
