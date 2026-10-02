@@ -23,9 +23,9 @@ pub fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
 }
 
 fn tensor_constraint() -> ModelTensorConstraint {
-    ModelTensorConstraint {
-        elements: vec![TensorElement::F32],
-        axes: vec![
+    ModelTensorConstraint::from_parts(
+        vec![TensorElement::F32],
+        vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
                 dimension: ModelDimensionConstraint::bounded(256, 1).unwrap(),
@@ -35,34 +35,38 @@ fn tensor_constraint() -> ModelTensorConstraint {
                 dimension: ModelDimensionConstraint::fixed(12).unwrap(),
             },
         ],
-        maximum_bytes: 12_288,
-    }
+        12_288,
+    )
+    .unwrap()
 }
 
 pub fn signature() -> ModelSignature {
-    let value = ModelValueConstraint::SampledSignal(tensor_constraint());
-    ModelSignature {
-        identity: "tongues/shared-latent@1".into(),
-        compatibility_version: 1,
-        operations: vec![
+    let value = ModelValueConstraint::sampled_signal(tensor_constraint()).unwrap();
+    ModelSignature::from_parts(
+        "tongues/shared-latent@1".into(),
+        1,
+        vec![
             ModelOperation::Encode,
             ModelOperation::Decode,
             ModelOperation::Evaluate,
             ModelOperation::Train,
         ],
-        inputs: vec![ModelPortConstraint {
-            identity: "observation".into(),
-            semantic_kind: "science/observation-set@1".into(),
-            presence: ModelPortPresence::Required,
-            value: value.clone(),
-        }],
-        outputs: vec![ModelPortConstraint {
-            identity: "prediction".into(),
-            semantic_kind: "science/probability-samples@1".into(),
-            presence: ModelPortPresence::Required,
+        vec![ModelPortConstraint::from_parts(
+            "observation".into(),
+            "science/observation-set@1".into(),
+            ModelPortPresence::Required,
+            value.clone(),
+        )
+        .unwrap()],
+        vec![ModelPortConstraint::from_parts(
+            "prediction".into(),
+            "science/probability-samples@1".into(),
+            ModelPortPresence::Required,
             value,
-        }],
-    }
+        )
+        .unwrap()],
+    )
+    .unwrap()
 }
 
 pub fn artifact(signature: &ModelSignature) -> ModelArtifact {

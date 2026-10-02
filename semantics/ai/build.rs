@@ -11,6 +11,10 @@ fn main() {
         conduit_data::TensorValue::semantic_type().expect("TensorValue semantic Type checks");
     let sampled_signal =
         conduit_data::SampledSignal::semantic_type().expect("SampledSignal semantic Type checks");
+    let tensor_element =
+        conduit_data::TensorElement::semantic_type().expect("TensorElement semantic Type checks");
+    let tensor_axis_role =
+        conduit_data::TensorAxisRole::semantic_type().expect("TensorAxisRole semantic Type checks");
     let mut catalog = StartupCatalog::new();
     catalog
         .insert_value_kind_alias(
@@ -26,21 +30,40 @@ fn main() {
     catalog
         .insert_structured_type("SampledSignal", sampled_signal.clone())
         .expect("SampledSignal installs once");
+    catalog
+        .insert_structured_type("TensorElement", tensor_element.clone())
+        .expect("TensorElement installs once");
+    catalog
+        .insert_structured_type("TensorAxisRole", tensor_axis_role.clone())
+        .expect("TensorAxisRole installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
     )
     .expect("AI semantic Types must check");
-    let external_types = [tensor_value, sampled_signal];
+    let external_types = [
+        tensor_value,
+        sampled_signal,
+        tensor_element,
+        tensor_axis_role,
+    ];
     let external_identities =
         external_types
             .each_ref()
             .map(|value_type| match value_type.shape() {
-                conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
+                conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Nominal {
+                    schema,
+                    ..
+                }
+                | conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
+                    schema,
+                    ..
+                }
+                | conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Variant {
                     schema,
                     ..
                 } => schema.as_str().to_owned(),
-                _ => panic!("external native Type has a named record identity"),
+                _ => panic!("external native Type has a named identity"),
             });
     let generated = generate_rust_bindings_with_codes_and_external_bindings(
         &checked.native_types,
@@ -54,6 +77,14 @@ fn main() {
             ExternalNativeRustBinding {
                 semantic_identity: &external_identities[1],
                 rust_type_path: "conduit_data::SampledSignal",
+            },
+            ExternalNativeRustBinding {
+                semantic_identity: &external_identities[2],
+                rust_type_path: "conduit_data::TensorElement",
+            },
+            ExternalNativeRustBinding {
+                semantic_identity: &external_identities[3],
+                rust_type_path: "conduit_data::TensorAxisRole",
             },
         ],
         &RustBindingOptions {
@@ -93,6 +124,7 @@ fn main() {
                 "GroundingInputAssessment".into(),
                 "GroundedClaimSupport".into(),
                 "MissingModalityPolicy".into(),
+                "ModelValueConstraint".into(),
                 "RetrievalMode".into(),
             ]
             .into(),
@@ -164,6 +196,10 @@ fn main() {
                 "ExtractionLineage".into(),
                 "FiniteClassification".into(),
                 "IntegrationAccuracy".into(),
+                "ModelAxisConstraint".into(),
+                "ModelPortConstraint".into(),
+                "ModelSignature".into(),
+                "ModelTensorConstraint".into(),
                 "ModelWorkAccounting".into(),
                 "SelectedContextCost".into(),
                 "SourceRef".into(),

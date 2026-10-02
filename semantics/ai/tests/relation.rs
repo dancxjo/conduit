@@ -10,47 +10,55 @@ use conduit_data::{
 use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn constraint() -> ModelValueConstraint {
-    ModelValueConstraint::SampledSignal(ModelTensorConstraint {
-        elements: vec![TensorElement::F32],
-        axes: vec![
-            ModelAxisConstraint {
-                role: TensorAxisRole::Time,
-                dimension: ModelDimensionConstraint::bounded(8, 1).unwrap(),
-            },
-            ModelAxisConstraint {
-                role: TensorAxisRole::Feature,
-                dimension: ModelDimensionConstraint::fixed(2).unwrap(),
-            },
-        ],
-        maximum_bytes: 64,
-    })
+    ModelValueConstraint::sampled_signal(
+        ModelTensorConstraint::from_parts(
+            vec![TensorElement::F32],
+            vec![
+                ModelAxisConstraint {
+                    role: TensorAxisRole::Time,
+                    dimension: ModelDimensionConstraint::bounded(8, 1).unwrap(),
+                },
+                ModelAxisConstraint {
+                    role: TensorAxisRole::Feature,
+                    dimension: ModelDimensionConstraint::fixed(2).unwrap(),
+                },
+            ],
+            64,
+        )
+        .unwrap(),
+    )
+    .unwrap()
 }
 
 fn callable_signature() -> ModelSignature {
-    ModelSignature {
-        identity: "tongues/joint-callable".into(),
-        compatibility_version: 1,
-        operations: vec![
+    let tensor = match constraint() {
+        ModelValueConstraint::SampledSignal(value) => value.constraint().clone(),
+        _ => unreachable!(),
+    };
+    ModelSignature::from_parts(
+        "tongues/joint-callable".into(),
+        1,
+        vec![
             ModelOperation::Infer,
             ModelOperation::Sample,
             ModelOperation::Decode,
         ],
-        inputs: vec![ModelPortConstraint {
-            identity: "evidence".into(),
-            semantic_kind: "relation/evidence@1".into(),
-            presence: ModelPortPresence::Required,
-            value: constraint(),
-        }],
-        outputs: vec![ModelPortConstraint {
-            identity: "result".into(),
-            semantic_kind: "relation/result@1".into(),
-            presence: ModelPortPresence::Required,
-            value: ModelValueConstraint::ProbabilisticSignal(match constraint() {
-                ModelValueConstraint::SampledSignal(value) => value,
-                _ => unreachable!(),
-            }),
-        }],
-    }
+        vec![ModelPortConstraint::from_parts(
+            "evidence".into(),
+            "relation/evidence@1".into(),
+            ModelPortPresence::Required,
+            constraint(),
+        )
+        .unwrap()],
+        vec![ModelPortConstraint::from_parts(
+            "result".into(),
+            "relation/result@1".into(),
+            ModelPortPresence::Required,
+            ModelValueConstraint::probabilistic_signal(tensor).unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap()
 }
 
 fn artifact(signature: &ModelSignature) -> ModelArtifact {

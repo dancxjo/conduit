@@ -147,6 +147,55 @@ type ModelDimensionConstraint =
         maximum: U64 in 1..=18446744073709551615
     }
 
+type ModelAxisConstraint = {
+    role: TensorAxisRole
+    dimension: ModelDimensionConstraint
+}
+
+type ModelTensorElements = sequence TensorElement in 1..=8
+type ModelTensorAxes = sequence ModelAxisConstraint in 1..=8
+
+type ModelTensorConstraint = {
+    elements: ModelTensorElements
+    axes: ModelTensorAxes
+    maximum_bytes: U64 in 1..=18446744073709551615
+}
+
+type ModelValueConstraint =
+    tensor {
+        constraint: ModelTensorConstraint
+    }
+    | sampled_signal {
+        constraint: ModelTensorConstraint
+    }
+    | probabilistic_tensor {
+        constraint: ModelTensorConstraint
+    }
+    | probabilistic_signal {
+        constraint: ModelTensorConstraint
+    }
+
+type ModelPortIdentity = Text <= 128B not in [""]
+type ModelSemanticKind = Text <= 128B not in [""]
+
+type ModelPortConstraint = {
+    identity: ModelPortIdentity
+    semantic_kind: ModelSemanticKind
+    presence: ModelPortPresence
+    value: ModelValueConstraint
+}
+
+type ModelOperations = sequence ModelOperation in 1..=8
+type ModelPorts = sequence ModelPortConstraint in 0..=32
+
+type ModelSignature = {
+    identity: Text <= 128B not in [""]
+    compatibility_version: U32 in 1..=4294967295
+    operations: ModelOperations
+    inputs: ModelPorts
+    outputs: ModelPorts
+}
+
 type SimilarityMetric =
     cosine_similarity
     | dot_product_similarity

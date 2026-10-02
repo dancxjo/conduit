@@ -2,27 +2,26 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::semantic_digest;
 
 use super::*;
-use crate::{ModelOperation, ModelPortConstraint, ModelPortPresence, ModelSignature};
+use crate::ModelSignature;
 
 impl ModelRelationSignature {
     pub fn semantic_digest(&self) -> Result<[u8; 32], RelationRefusal> {
         self.validate()?;
-        let variable_signature = ModelSignature {
-            identity: self.identity.clone(),
-            compatibility_version: self.compatibility_version,
-            operations: alloc::vec![ModelOperation::Infer],
-            inputs: self
-                .variables
+        let variable_signature = ModelSignature::inference_only(
+            self.identity.clone(),
+            self.compatibility_version,
+            self.variables
                 .iter()
-                .map(|variable| ModelPortConstraint {
-                    identity: variable.identity.clone(),
-                    semantic_kind: variable.semantic_role.clone(),
-                    presence: ModelPortPresence::Optional,
-                    value: variable.value.clone(),
+                .map(|variable| {
+                    (
+                        variable.identity.clone(),
+                        variable.semantic_role.clone(),
+                        variable.value.clone(),
+                    )
                 })
                 .collect(),
-            outputs: Vec::new(),
-        };
+        )
+        .map_err(|_| RelationRefusal::InvalidSignature)?;
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.callable_signature_identity);
         bytes.extend_from_slice(
