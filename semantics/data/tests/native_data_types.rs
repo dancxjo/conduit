@@ -1,14 +1,14 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
-    ClockRelation, ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal,
-    DatasetExampleIdentity, DatasetSplitMembership, FullWindowPolicy, MathScalarRefusal,
-    MeasurementHysteresisProfile, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
-    MeasurementRange, MeasurementSample, MeasurementSummaryRefusal, MeasurementThresholdPolicy,
-    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
-    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison, SignalContinuity,
-    SignalStart, SignalWindow, TensorAxis, TensorAxisRole, TensorBacking, TensorElement,
-    TensorSummary, TensorValue,
+    tensor_content_digest, ClockRelation, ClockRelationQuality, DataLoadTextTerminal,
+    DataSaveTextTerminal, DatasetExampleIdentity, DatasetSplitMembership, FullWindowPolicy,
+    MathScalarRefusal, MeasurementHysteresisProfile, MeasurementPlotOverflowPolicy,
+    MeasurementPlotRefusal, MeasurementRange, MeasurementSample, MeasurementSummaryRefusal,
+    MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
+    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignal, SampledSignalRefusal,
+    ScalarComparison, SignalCadence, SignalContinuity, SignalStart, SignalWindow, TensorAxis,
+    TensorAxisRole, TensorBacking, TensorElement, TensorSummary, TensorValue,
 };
 use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
@@ -364,6 +364,35 @@ fn tensor_family_round_trips_native_shape_axes_units_and_backing() {
         bytes: 2,
         resource_identity: None,
     });
+}
+
+#[test]
+fn sampled_signal_family_round_trips_native_cadence_and_tensor_meaning() {
+    let cadence = SignalCadence::regular(Quantity::new(1, QuantityUnit::Moment), 2).unwrap();
+    assert_owned_round_trip(cadence.clone());
+
+    let signal = SampledSignal {
+        clock_identity: "clock/medieval-observatory".into(),
+        start: SignalStart::at_sample(0),
+        cadence,
+        sample_count: 2,
+        continuity: SignalContinuity::Continuous,
+        samples: TensorValue {
+            element: TensorElement::U8,
+            dimensions: BoundedSequence::try_from_iter([2]).unwrap(),
+            axes: BoundedSequence::try_from_iter([TensorAxis {
+                role: TensorAxisRole::Time,
+                identity: Some("moment".into()),
+                unit: Some(QuantityUnit::Moment),
+            }])
+            .unwrap(),
+            content_digest: tensor_content_digest(&[1, 2]),
+            backing: TensorBacking::Inline(BoundedBytes::new(&[1, 2]).unwrap()),
+        },
+    };
+    signal.validate().unwrap();
+    assert_ne!(signal.semantic_digest().unwrap(), [0; 32]);
+    assert_owned_round_trip(signal);
 }
 
 #[test]

@@ -92,18 +92,17 @@ fn candidate(solver: &str, internal_steps: u64) -> IntegrationCandidate {
         trajectory: SampledSignal {
             clock_identity: "experiment/monotonic-ms".into(),
             start: SignalStart::at_sample(0),
-            cadence: SignalCadence::Irregular {
-                coordinates: Box::new(tensor(
-                    TensorElement::I64,
-                    vec![5],
-                    vec![TensorAxis {
-                        role: TensorAxisRole::Time,
-                        identity: Some("requested-output-grid".into()),
-                        unit: Some(QuantityUnit::Millisecond),
-                    }],
-                    coordinates,
-                )),
-            },
+            cadence: SignalCadence::irregular(tensor(
+                TensorElement::I64,
+                vec![5],
+                vec![TensorAxis {
+                    role: TensorAxisRole::Time,
+                    identity: Some("requested-output-grid".into()),
+                    unit: Some(QuantityUnit::Millisecond),
+                }],
+                coordinates,
+            ))
+            .unwrap(),
             sample_count: 5,
             continuity: SignalContinuity::Continuous,
             samples: tensor(
@@ -250,15 +249,17 @@ fn exact_grid_stale_state_resource_bounds_and_unsupported_sde_refuse() {
     request.expected_generation = 7;
 
     let mut wrong_grid = candidate("fixed-step", 40);
-    let SignalCadence::Irregular { coordinates } = &mut wrong_grid.trajectory.cadence else {
+    let SignalCadence::Irregular(irregular) = &wrong_grid.trajectory.cadence else {
         unreachable!()
     };
+    let mut coordinates = irregular.coordinates().clone();
     let wrong = [0_i64, 200, 500, 750, 1_000]
         .into_iter()
         .flat_map(i64::to_le_bytes)
         .collect::<Vec<_>>();
     coordinates.content_digest = tensor_content_digest(&wrong);
     coordinates.backing = TensorBacking::Inline(BoundedBytes::new(&wrong).unwrap());
+    wrong_grid.trajectory.cadence = SignalCadence::irregular(coordinates).unwrap();
     assert_eq!(
         contract.realize(
             &request,

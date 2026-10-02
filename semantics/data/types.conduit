@@ -234,6 +234,37 @@ type SignalSummary = {
     content-digest: collection U8 = 32
 }
 
+type SignalCadence =
+    regular {
+        samples: U64 in 1..=18446744073709551615
+        per: Quantity
+    }
+    | irregular {
+        coordinates: TensorValue
+    }
+
+type SampledSignal = {
+    clock-identity: Text <= 128B not in [""]
+    start: SignalStart
+    cadence: SignalCadence
+    sample-count: U64 in 1..=18446744073709551615
+    continuity: SignalContinuity
+    samples: TensorValue
+}
+
+type SignalIdentity = collection U8 = 32
+
+type ConcatenatedSignal = {
+    clock-identity: Text <= 128B not in [""]
+    start: SignalStart
+    cadence: SignalCadence
+    sample-count: U64 in 1..=18446744073709551615
+    element: TensorElement
+    sample-shape: sequence U64 <= 7
+    axes: sequence TensorAxis in 1..=8
+    source-parts: sequence SignalIdentity in 1..=64
+}
+
 type RangePolicy =
     refuse
     | clamp

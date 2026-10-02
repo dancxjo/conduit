@@ -24,10 +24,11 @@ pub fn pcm_as_sampled_signal(
     Ok(SampledSignal {
         clock_identity: format!("audio/pcm-clock/{}", header.clock_id()),
         start: SignalStart::at_sample(header.start_frame()),
-        cadence: SignalCadence::Regular {
-            samples: u64::from(header.sample_rate_hz()),
-            per: Quantity::new(1, QuantityUnit::Second),
-        },
+        cadence: SignalCadence::regular(
+            Quantity::new(1, QuantityUnit::Second),
+            u64::from(header.sample_rate_hz()),
+        )
+        .map_err(|_| SoundInfoError::OutOfRange("pcm-cadence"))?,
         sample_count: u64::from(header.frame_count()),
         continuity: if header.discontinuity() {
             SignalContinuity::discontinuous("audio/declared-discontinuity".to_string())
@@ -85,14 +86,14 @@ pub fn sampled_signal_as_pcm(
     let SignalStart::SampleIndex(start_frame) = &signal.start else {
         return Err(SoundInfoError::OutOfRange("pcm-start"));
     };
-    let SignalCadence::Regular { samples, per } = signal.cadence else {
+    let SignalCadence::Regular(regular) = &signal.cadence else {
         return Err(SoundInfoError::OutOfRange("pcm-cadence"));
     };
-    if per != Quantity::new(1, QuantityUnit::Second) {
+    if regular.per() != &Quantity::new(1, QuantityUnit::Second) {
         return Err(SoundInfoError::OutOfRange("pcm-cadence"));
     }
-    let sample_rate_hz =
-        u32::try_from(samples).map_err(|_| SoundInfoError::OutOfRange("sample-rate-hz"))?;
+    let sample_rate_hz = u32::try_from(*regular.samples())
+        .map_err(|_| SoundInfoError::OutOfRange("sample-rate-hz"))?;
     let frame_count = u16::try_from(signal.sample_count)
         .map_err(|_| SoundInfoError::OutOfRange("frame-count"))?;
     let representation = match signal.samples.element {
