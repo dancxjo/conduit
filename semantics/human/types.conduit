@@ -291,6 +291,46 @@ type VisualExperienceRelationKind =
     | supports
     | contradicts
 
+type InteractionValueKind = Text <= 128B not in [""]
+type InteractionTypeDigest = collection U8 = 32
+
+type InteractionFamily =
+    activate
+    | boolean
+    | choose-one {
+        value-kind: InteractionValueKind
+        maximum-options: U16
+    }
+    | choose-many {
+        value-kind: InteractionValueKind
+        maximum-options: U16
+        minimum-selections: U16
+        maximum-selections: U16
+    }
+    | scalar {
+        unit: QuantityUnit
+        minimum: I64
+        minimum-bound: InteractionBoundKind
+        maximum: I64
+        maximum-bound: InteractionBoundKind
+        granularity: I64
+    }
+    | relative-adjustment {
+        unit: QuantityUnit
+        minimum-delta: I64
+        maximum-delta: I64
+        granularity: I64
+    }
+    | text {
+        maximum-bytes: U32
+        allow-empty: Boolean
+    }
+    | structured {
+        value-kind: InteractionValueKind
+        type-digest: InteractionTypeDigest
+        maximum-bytes: U32
+    }
+
 type VisualObservationRefusal =
     invalid-image
     | wrong-image-profile

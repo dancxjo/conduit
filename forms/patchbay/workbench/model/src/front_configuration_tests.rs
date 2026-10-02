@@ -161,7 +161,7 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
     let interaction = waveform.interaction.as_ref().unwrap();
     assert!(matches!(
         interaction.contract.family,
-        conduit_human::InteractionFamily::ChooseOne { .. }
+        conduit_human::InteractionFamily::ChooseOne(_)
     ));
     let proposal = HumanInteractionProposal::new(
         &interaction.contract,

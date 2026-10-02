@@ -228,28 +228,31 @@ fn proposal_for_configuration(
             .encode()
             .to_vec(),
         ),
-        (InteractionFamily::Scalar { unit, .. }, ConfigurationValue::U64(value)) => {
+        (InteractionFamily::Scalar(family), ConfigurationValue::U64(value)) => {
             let value = i64::try_from(value).map_err(|_| {
                 FormEditorError::InvalidConfiguration("scalar exceeds interaction range".into())
             })?;
             InteractionValue::new(
                 KindId::from(QUANTITY_INFO_ID),
-                Quantity::new(value, *unit).encode().to_vec(),
+                Quantity::new(value, *family.unit()).encode().to_vec(),
             )
         }
-        (InteractionFamily::Scalar { unit, .. }, ConfigurationValue::I64(value)) => {
+        (InteractionFamily::Scalar(family), ConfigurationValue::I64(value)) => {
             InteractionValue::new(
                 KindId::from(QUANTITY_INFO_ID),
-                Quantity::new(value, *unit).encode().to_vec(),
+                Quantity::new(value, *family.unit()).encode().to_vec(),
             )
         }
-        (InteractionFamily::Scalar { .. }, ConfigurationValue::Quantity(value)) => {
+        (InteractionFamily::Scalar(_), ConfigurationValue::Quantity(value)) => {
             InteractionValue::new(KindId::from(QUANTITY_INFO_ID), value.encode().to_vec())
         }
-        (InteractionFamily::ChooseOne { value_kind, .. }, ConfigurationValue::Text(value)) => {
-            InteractionValue::new(value_kind.clone(), value.into_bytes())
+        (InteractionFamily::ChooseOne(family), ConfigurationValue::Text(value)) => {
+            InteractionValue::new(
+                KindId::from(family.value_kind().get().as_str()),
+                value.into_bytes(),
+            )
         }
-        (InteractionFamily::Text { .. }, ConfigurationValue::Text(value)) => {
+        (InteractionFamily::Text(_), ConfigurationValue::Text(value)) => {
             InteractionValue::new(KindId::from(TEXT_INFO_ID), value.into_bytes())
         }
         _ => {
@@ -297,15 +300,15 @@ fn configuration_from_proposal(
                 .map(|decoded| ConfigurationValue::Bool(decoded == InfoBool::TRUE))
                 .map_err(|_| FormEditorError::InvalidConfiguration("malformed Boolean".into()))
         }
-        InteractionFamily::Scalar { unit, .. } if value.value_kind.as_str() == QUANTITY_INFO_ID => {
+        InteractionFamily::Scalar(family) if value.value_kind.as_str() == QUANTITY_INFO_ID => {
             let decoded = Quantity::decode(&value.canonical_bytes).map_err(|_| {
                 FormEditorError::InvalidConfiguration("malformed scalar quantity".into())
             })?;
-            if *unit == conduit_core::QuantityUnit::Millionth {
+            if *family.unit() == conduit_core::QuantityUnit::Millionth {
                 Ok(ConfigurationValue::I64(decoded.value()))
             } else if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
                 decoded
-                    .convert(*unit)
+                    .convert(*family.unit())
                     .and_then(|value| {
                         u64::try_from(value.value())
                             .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
@@ -316,9 +319,9 @@ fn configuration_from_proposal(
                             "inexact, incompatible, or negative quantity".into(),
                         )
                     })
-            } else if *unit != conduit_core::QuantityUnit::One {
+            } else if *family.unit() != conduit_core::QuantityUnit::One {
                 decoded
-                    .convert(*unit)
+                    .convert(*family.unit())
                     .map(ConfigurationValue::Quantity)
                     .map_err(|_| {
                         FormEditorError::InvalidConfiguration(
@@ -337,7 +340,7 @@ fn configuration_from_proposal(
                     })
             }
         }
-        InteractionFamily::ChooseOne { .. } | InteractionFamily::Text { .. } => {
+        InteractionFamily::ChooseOne(_) | InteractionFamily::Text(_) => {
             core::str::from_utf8(&value.canonical_bytes)
                 .map(|text| ConfigurationValue::Text(text.into()))
                 .map_err(|_| FormEditorError::InvalidConfiguration("malformed text".into()))

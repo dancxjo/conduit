@@ -31,6 +31,7 @@ fn main() {
                 "ExperienceRefusal".into(),
                 "ExperienceSourceRefusal".into(),
                 "ExperienceUpdateRefusal".into(),
+                "InteractionFamily".into(),
                 "KeymapDisposition".into(),
                 "VisualExperienceRefusal".into(),
                 "VisualImpressionRefusal".into(),

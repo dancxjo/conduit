@@ -281,12 +281,12 @@ fn interaction_family(family: &conduit_human::InteractionFamily) -> &'static str
     match family {
         conduit_human::InteractionFamily::Activate => "Activate",
         conduit_human::InteractionFamily::Boolean => "Boolean",
-        conduit_human::InteractionFamily::ChooseOne { .. } => "ChooseOne",
-        conduit_human::InteractionFamily::ChooseMany { .. } => "ChooseMany",
-        conduit_human::InteractionFamily::Scalar { .. } => "Scalar",
-        conduit_human::InteractionFamily::RelativeAdjustment { .. } => "RelativeAdjustment",
-        conduit_human::InteractionFamily::Text { .. } => "Text",
-        conduit_human::InteractionFamily::Structured { .. } => "Structured",
+        conduit_human::InteractionFamily::ChooseOne(_) => "ChooseOne",
+        conduit_human::InteractionFamily::ChooseMany(_) => "ChooseMany",
+        conduit_human::InteractionFamily::Scalar(_) => "Scalar",
+        conduit_human::InteractionFamily::RelativeAdjustment(_) => "RelativeAdjustment",
+        conduit_human::InteractionFamily::Text(_) => "Text",
+        conduit_human::InteractionFamily::Structured(_) => "Structured",
     }
 }
 

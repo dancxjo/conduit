@@ -9,65 +9,50 @@ pub(super) fn encode_family(output: &mut Vec<u8>, family: &InteractionFamily) {
     match family {
         InteractionFamily::Activate => output.push(0),
         InteractionFamily::Boolean => output.push(1),
-        InteractionFamily::ChooseOne {
-            value_kind,
-            maximum_options,
-        } => {
+        InteractionFamily::ChooseOne(value) => {
             output.push(2);
-            field(output, value_kind.as_str().as_bytes());
-            output.extend_from_slice(&maximum_options.to_le_bytes());
+            field(output, value.value_kind().get().as_bytes());
+            output.extend_from_slice(&value.maximum_options().to_le_bytes());
         }
-        InteractionFamily::ChooseMany {
-            value_kind,
-            maximum_options,
-            minimum_selections,
-            maximum_selections,
-        } => {
+        InteractionFamily::ChooseMany(value) => {
             output.push(3);
-            field(output, value_kind.as_str().as_bytes());
-            output.extend_from_slice(&maximum_options.to_le_bytes());
-            output.extend_from_slice(&minimum_selections.to_le_bytes());
-            output.extend_from_slice(&maximum_selections.to_le_bytes());
+            field(output, value.value_kind().get().as_bytes());
+            output.extend_from_slice(&value.maximum_options().to_le_bytes());
+            output.extend_from_slice(&value.minimum_selections().to_le_bytes());
+            output.extend_from_slice(&value.maximum_selections().to_le_bytes());
         }
-        InteractionFamily::Scalar {
-            unit,
-            minimum,
-            minimum_bound,
-            maximum,
-            maximum_bound,
-            granularity,
-        } => {
+        InteractionFamily::Scalar(value) => {
             output.push(4);
-            encode_quantity_profile(output, *unit, *minimum, *maximum, *granularity);
-            output.push(*minimum_bound as u8);
-            output.push(*maximum_bound as u8);
+            encode_quantity_profile(
+                output,
+                *value.unit(),
+                *value.minimum(),
+                *value.maximum(),
+                *value.granularity(),
+            );
+            output.push(*value.minimum_bound() as u8);
+            output.push(*value.maximum_bound() as u8);
         }
-        InteractionFamily::RelativeAdjustment {
-            unit,
-            minimum_delta,
-            maximum_delta,
-            granularity,
-        } => {
+        InteractionFamily::RelativeAdjustment(value) => {
             output.push(5);
-            encode_quantity_profile(output, *unit, *minimum_delta, *maximum_delta, *granularity);
+            encode_quantity_profile(
+                output,
+                *value.unit(),
+                *value.minimum_delta(),
+                *value.maximum_delta(),
+                *value.granularity(),
+            );
         }
-        InteractionFamily::Text {
-            maximum_bytes,
-            allow_empty,
-        } => {
+        InteractionFamily::Text(value) => {
             output.push(6);
-            output.extend_from_slice(&maximum_bytes.to_le_bytes());
-            output.push(u8::from(*allow_empty));
+            output.extend_from_slice(&value.maximum_bytes().to_le_bytes());
+            output.push(u8::from(*value.allow_empty()));
         }
-        InteractionFamily::Structured {
-            value_kind,
-            type_digest,
-            maximum_bytes,
-        } => {
+        InteractionFamily::Structured(value) => {
             output.push(7);
-            field(output, value_kind.as_str().as_bytes());
-            output.extend_from_slice(type_digest);
-            output.extend_from_slice(&maximum_bytes.to_le_bytes());
+            field(output, value.value_kind().get().as_bytes());
+            output.extend_from_slice(value.type_digest().get());
+            output.extend_from_slice(&value.maximum_bytes().to_le_bytes());
         }
     }
 }

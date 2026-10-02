@@ -34,10 +34,7 @@ fn option(identity: &str, bytes: &[u8]) -> InteractionOption {
 fn waveform_contract() -> InteractionContract {
     InteractionContract::new(
         "interaction/waveform",
-        InteractionFamily::ChooseOne {
-            value_kind: KindId::from(WAVEFORM_KIND),
-            maximum_options: 4,
-        },
+        InteractionFamily::choice_one(KindId::from(WAVEFORM_KIND), 4),
     )
     .unwrap()
 }
@@ -64,51 +61,38 @@ fn one_portable_algebra_covers_every_family_without_renderer_or_device_vocabular
         waveform_contract(),
         InteractionContract::new(
             "interaction/channels",
-            InteractionFamily::ChooseMany {
-                value_kind: KindId::from("audio/channel@1"),
-                maximum_options: 16,
-                minimum_selections: 0,
-                maximum_selections: 8,
-            },
+            InteractionFamily::choice_many(KindId::from("audio/channel@1"), 16, 0, 8),
         )
         .unwrap(),
         InteractionContract::new(
             "interaction/volume",
-            InteractionFamily::Scalar {
-                unit: QuantityUnit::Millionth,
-                minimum: 0,
-                minimum_bound: BoundKind::Inclusive,
-                maximum: 1_000_000,
-                maximum_bound: BoundKind::Inclusive,
-                granularity: 1_000,
-            },
+            InteractionFamily::scalar_range(
+                QuantityUnit::Millionth,
+                0,
+                BoundKind::Inclusive,
+                1_000_000,
+                BoundKind::Inclusive,
+                1_000,
+            ),
         )
         .unwrap(),
         InteractionContract::new(
             "interaction/transpose",
-            InteractionFamily::RelativeAdjustment {
-                unit: QuantityUnit::One,
-                minimum_delta: -24,
-                maximum_delta: 24,
-                granularity: 1,
-            },
+            InteractionFamily::relative_range(QuantityUnit::One, -24, 24, 1),
         )
         .unwrap(),
         InteractionContract::new(
             "interaction/text",
-            InteractionFamily::Text {
-                maximum_bytes: 4_096,
-                allow_empty: false,
-            },
+            InteractionFamily::text_value(4_096, false),
         )
         .unwrap(),
         InteractionContract::new(
             "interaction/structured",
-            InteractionFamily::Structured {
-                value_kind: structured_profile.value_kind().clone(),
-                type_digest: structured_type.semantic_digest().unwrap(),
-                maximum_bytes: 4_096,
-            },
+            InteractionFamily::structured_value(
+                structured_profile.value_kind().clone(),
+                structured_type.semantic_digest().unwrap(),
+                4_096,
+            ),
         )
         .unwrap(),
     ];
@@ -142,24 +126,19 @@ fn action_boolean_absolute_and_relative_semantics_remain_distinct() {
 
     let absolute = InteractionContract::new(
         "interaction/cutoff",
-        InteractionFamily::Scalar {
-            unit: QuantityUnit::Hertz,
-            minimum: 20,
-            minimum_bound: BoundKind::Inclusive,
-            maximum: 20_000,
-            maximum_bound: BoundKind::Exclusive,
-            granularity: 5,
-        },
+        InteractionFamily::scalar_range(
+            QuantityUnit::Hertz,
+            20,
+            BoundKind::Inclusive,
+            20_000,
+            BoundKind::Exclusive,
+            5,
+        ),
     )
     .unwrap();
     let relative = InteractionContract::new(
         "interaction/cutoff-adjust",
-        InteractionFamily::RelativeAdjustment {
-            unit: QuantityUnit::Hertz,
-            minimum_delta: -100,
-            maximum_delta: 100,
-            granularity: 5,
-        },
+        InteractionFamily::relative_range(QuantityUnit::Hertz, -100, 100, 5),
     )
     .unwrap();
     let absolute_state =
@@ -227,11 +206,11 @@ fn structured_and_bounded_text_values_use_ordinary_canonical_info() {
     );
     let contract = InteractionContract::new(
         "interaction/structured",
-        InteractionFamily::Structured {
-            value_kind: interaction_value.value_kind.clone(),
-            type_digest: value_type.semantic_digest().unwrap(),
-            maximum_bytes: 1_024,
-        },
+        InteractionFamily::structured_value(
+            interaction_value.value_kind.clone(),
+            value_type.semantic_digest().unwrap(),
+            1_024,
+        ),
     )
     .unwrap();
     let state = InteractionCurrentState::new(&contract, 0, None, vec![]).unwrap();
@@ -245,10 +224,7 @@ fn structured_and_bounded_text_values_use_ordinary_canonical_info() {
 
     let text = InteractionContract::new(
         "interaction/message",
-        InteractionFamily::Text {
-            maximum_bytes: 8,
-            allow_empty: false,
-        },
+        InteractionFamily::text_value(8, false),
     )
     .unwrap();
     let text_state = InteractionCurrentState::new(&text, 0, None, vec![]).unwrap();
@@ -328,14 +304,14 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
 
     let scalar = InteractionContract::new(
         "interaction/volume",
-        InteractionFamily::Scalar {
-            unit: QuantityUnit::Percent,
-            minimum: 0,
-            minimum_bound: BoundKind::Inclusive,
-            maximum: 100,
-            maximum_bound: BoundKind::Inclusive,
-            granularity: 5,
-        },
+        InteractionFamily::scalar_range(
+            QuantityUnit::Percent,
+            0,
+            BoundKind::Inclusive,
+            100,
+            BoundKind::Inclusive,
+            5,
+        ),
     )
     .unwrap();
     let scalar_state =
@@ -403,12 +379,7 @@ fn proposal_queue_keeps_duplicate_pressure_cancellation_and_result_identity_dist
 fn many_choice_identity_treats_selection_order_as_non_semantic() {
     let contract = InteractionContract::new(
         "interaction/layers",
-        InteractionFamily::ChooseMany {
-            value_kind: KindId::new(WAVEFORM_KIND),
-            maximum_options: 4,
-            minimum_selections: 1,
-            maximum_selections: 2,
-        },
+        InteractionFamily::choice_many(KindId::new(WAVEFORM_KIND), 4, 1, 2),
     )
     .unwrap();
     let domain = waveform_domain();

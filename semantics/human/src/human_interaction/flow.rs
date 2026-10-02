@@ -31,11 +31,10 @@ impl InteractionSelectionRules {
         mut mutually_exclusive: Vec<MutuallyExclusiveValues>,
     ) -> Result<Self, InteractionRefusal> {
         let (value_kind, maximum_options) = match &contract.family {
-            InteractionFamily::ChooseMany {
-                value_kind,
-                maximum_options,
-                ..
-            } => (value_kind, usize::from(*maximum_options)),
+            InteractionFamily::ChooseMany(value) => (
+                value.value_kind().get(),
+                usize::from(*value.maximum_options()),
+            ),
             _ => return Err(InteractionRefusal::InvalidContract),
         };
         if mutually_exclusive.len() > MAXIMUM_INTERACTION_COMBINATION_RULES {
@@ -50,7 +49,7 @@ impl InteractionSelectionRules {
                 || rule
                     .values
                     .iter()
-                    .any(|value| &value.value_kind != value_kind)
+                    .any(|value| value.value_kind.as_str() != value_kind)
             {
                 return Err(InteractionRefusal::InvalidContract);
             }
@@ -133,21 +132,14 @@ impl ScalarRealizationMapping {
         quantization: ScalarQuantization,
     ) -> Result<Self, InteractionRefusal> {
         let (unit, minimum, minimum_bound, maximum, maximum_bound, granularity) =
-            match contract.family {
-                InteractionFamily::Scalar {
-                    unit,
-                    minimum,
-                    minimum_bound,
-                    maximum,
-                    maximum_bound,
-                    granularity,
-                } => (
-                    unit,
-                    minimum,
-                    minimum_bound,
-                    maximum,
-                    maximum_bound,
-                    granularity,
+            match &contract.family {
+                InteractionFamily::Scalar(value) => (
+                    *value.unit(),
+                    *value.minimum(),
+                    *value.minimum_bound(),
+                    *value.maximum(),
+                    *value.maximum_bound(),
+                    *value.granularity(),
                 ),
                 _ => return Err(InteractionRefusal::InvalidContract),
             };
