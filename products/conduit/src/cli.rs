@@ -300,6 +300,18 @@ pub(crate) enum HostServiceCommand {
 pub(crate) enum BodyCommand {
     /// Enter the birth encounter for a Host that does not yet belong to a Body.
     Birth,
+    /// Own a retained Body on an installed Linux Host in the foreground.
+    ///
+    /// Run the installed product executable with its service stopped. Standard
+    /// input/output carry bounded internal JSON control, not a terminal Mask.
+    Own {
+        /// Checked canonical Plot source; must match retained source on recovery.
+        source: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, default_value = "My Body")]
+        name: String,
+    },
     /// Inspect the body retained by this installed host.
     #[command(hide = true)]
     Status {
