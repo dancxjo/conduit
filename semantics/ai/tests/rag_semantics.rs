@@ -1,13 +1,15 @@
 use conduit_ai::{
-    AnswerSpan, Candidate, Chunk, ChunkIdentity, ContextBudgetCost, ContextItem, ContextSelection,
-    ContextSelectionOutcome, ContextSelectionRationale, ContextTruncationReason, ExtractionLineage,
-    GroundedClaim, GroundedResult, GroundingDisposition, ModelResultProvenance, RagSemanticRefusal,
-    RetrievalIntent, RetrievalMode, SourceRef, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
+    AnswerSpan, Candidate, Chunk, ChunkIdentity, CitationIndices, ContextBudgetCost, ContextItem,
+    ContextSelection, ContextSelectionOutcome, ContextSelectionRationale, ContextTruncationReason,
+    ExtractionLineage, GroundedClaim, GroundedResult, GroundingDisposition, ModelResultProvenance,
+    RagSemanticRefusal, RetrievalIntent, RetrievalMode, SourceRef, SourceSpan, SourceSpanUnit,
+    TemporalRetrievalIntent,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_form::rust_binding::BoundedSequence;
 use conduit_form::rust_binding::NativeRustBinding;
 
 #[test]
@@ -159,10 +161,11 @@ fn grounded_results_are_model_derived_and_citation_fenced() {
         answer_kind: "value/text".into(),
         answer: b"The project began here.".to_vec(),
         disposition: GroundingDisposition::Supported,
-        claims: vec![GroundedClaim {
-            answer_span: AnswerSpan::new(0, 23).unwrap(),
-            citation_indices: vec![0],
-        }],
+        claims: vec![GroundedClaim::new(
+            AnswerSpan::new(0, 23).unwrap(),
+            CitationIndices::new(BoundedSequence::try_from_iter([0]).unwrap()).unwrap(),
+        )
+        .unwrap()],
         citations: vec![citation],
         limitations: vec![],
     };

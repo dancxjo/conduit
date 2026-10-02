@@ -1,8 +1,8 @@
 use conduit_ai::{
-    AnswerSpan, ContextBudgetCost, ContextSelectionOutcome, ContextTruncationReason,
-    RetrievalScore, SourceSpan, SourceSpanUnit,
+    AnswerSpan, CitationIndices, ContextBudgetCost, ContextSelectionOutcome,
+    ContextTruncationReason, GroundedClaim, RetrievalScore, SourceSpan, SourceSpanUnit,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn round_trip<T>(value: T)
 where
@@ -53,4 +53,18 @@ fn context_selection_outcome_owns_positive_omission_truth() {
     );
     assert!(!include_str!("../src/rag_semantics.rs")
         .contains(concat!("pub enum ", "ContextSelectionOutcome")));
+}
+
+#[test]
+fn grounded_claim_owns_a_nonempty_bounded_citation_list() {
+    let indices = CitationIndices::new(
+        BoundedSequence::try_from_iter(0..128).expect("exactly 128 indices fit"),
+    )
+    .unwrap();
+    round_trip(GroundedClaim::new(AnswerSpan::new(1, 2).unwrap(), indices).unwrap());
+    assert!(CitationIndices::new(BoundedSequence::new()).is_err());
+
+    let rust = include_str!("../src/rag_semantics.rs");
+    assert!(!rust.contains(concat!("pub struct ", "GroundedClaim")));
+    assert!(!rust.contains("ClaimWithoutCitation"));
 }

@@ -10,9 +10,9 @@ use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    AnswerSpan, ChunkIdentity, ContextBudgetCost, ContextSelectionOutcome,
-    ContextSelectionRationale, GroundingDisposition, ModelResultProvenance, RetrievalScore,
-    SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
+    ChunkIdentity, ContextBudgetCost, ContextSelectionOutcome, ContextSelectionRationale,
+    GroundedClaim, GroundingDisposition, ModelResultProvenance, RetrievalScore, SourceSpan,
+    SourceSpanUnit, TemporalRetrievalIntent,
 };
 
 pub const MAXIMUM_RETRIEVAL_MODES: usize = 8;
@@ -89,12 +89,6 @@ pub struct Citation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GroundedClaim {
-    pub answer_span: AnswerSpan,
-    pub citation_indices: Vec<u16>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GroundedResult {
     pub provenance: ModelResultProvenance,
     pub answer_kind: String,
@@ -131,7 +125,6 @@ pub enum RagSemanticRefusal {
     MissingAnswerKind,
     ClaimLimitExceeded,
     InvalidAnswerSpan,
-    ClaimWithoutCitation,
     CitationIndexOutOfBounds,
     DuplicateCitationIndex,
     MissingSupportedClaim,
@@ -370,17 +363,15 @@ impl GroundedResult {
             citation.validate_against(context)?;
         }
         for claim in &self.claims {
-            if claim.answer_span.end() as usize > self.answer.len() {
+            if claim.answer_span().end() as usize > self.answer.len() {
                 return Err(RagSemanticRefusal::InvalidAnswerSpan);
             }
-            if claim.citation_indices.is_empty() {
-                return Err(RagSemanticRefusal::ClaimWithoutCitation);
-            }
-            for (index, citation) in claim.citation_indices.iter().enumerate() {
+            let citation_indices = claim.citation_indices().get();
+            for (index, citation) in citation_indices.iter().enumerate() {
                 if *citation as usize >= self.citations.len() {
                     return Err(RagSemanticRefusal::CitationIndexOutOfBounds);
                 }
-                if claim.citation_indices[index + 1..].contains(citation) {
+                if citation_indices.as_slice()[index + 1..].contains(citation) {
                     return Err(RagSemanticRefusal::DuplicateCitationIndex);
                 }
             }

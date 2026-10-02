@@ -334,6 +334,13 @@ type AnswerSpan = {
     where .start < .end
 }
 
+type CitationIndices = sequence U16 in 1..=128
+
+type GroundedClaim = {
+    answer_span: AnswerSpan
+    citation_indices: CitationIndices
+}
+
 type RetrievalScore = {
     value_micros: I64
 }

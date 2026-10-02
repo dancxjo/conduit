@@ -383,6 +383,7 @@ are satisfied.
 | AI RAG source and answer spans | `semantics/ai/types.conduit` | generated at build time with retained Copy behavior | yes | yes | native record laws own byte/item source intervals and answer-byte intervals with strictly increasing endpoints; Rust retains source-extent and answer-length relational validation |
 | AI RAG retrieval score and context budget | `semantics/ai/types.conduit` | generated at build time with retained Copy behavior | yes | yes | native source owns the signed scorer-local value and the byte/token cost law requiring at least one nonzero dimension; Rust retains candidate and aggregate context validation |
 | AI RAG context-selection outcome | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns complete versus truncated selection and the positive omission count bounded by the 1,024-candidate ceiling; the obsolete zero-omission runtime refusal is gone |
+| AI RAG grounded claim | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns the answer span and a nonempty citation-index sequence bounded to 128; Rust retains result-relative index existence and duplicate-index validation |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a
