@@ -14,6 +14,7 @@ use crate::display::DisplayError;
 use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 mod arrival;
+mod application_layout;
 mod home;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
@@ -61,6 +62,7 @@ pub struct FrontDoor {
     refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
     application_view: Option<conduit_presentation::ApplicationView>,
+    application_viewport: application_layout::ApplicationViewport,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -157,6 +159,7 @@ impl FrontDoor {
             refusal: None,
             workspace: None,
             application_view: None,
+            application_viewport: application_layout::ApplicationViewport::default(),
         }
     }
 

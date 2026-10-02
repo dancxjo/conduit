@@ -17,7 +17,10 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
+mod biography;
 mod birth;
+mod tutorial;
+pub use tutorial::{TutorialRefusal, TutorialSurface};
 mod result_window;
 use result_window::ResultWindow;
 mod play;
@@ -92,6 +95,7 @@ pub enum JourneyError {
     AlreadyBorn,
     BodyAbsent,
     InvalidTransition,
+    Biography(conduit_body::BodyBiographyError),
     Membership,
     Plan(PreparationError),
     Workset(native_workset::WorksetRefusal),
@@ -112,6 +116,10 @@ impl JourneyError {
             Self::AlreadyBorn => "product-birth-duplicate",
             Self::BodyAbsent => "product-body-absent",
             Self::InvalidTransition => "product-lifecycle-transition-refused",
+            Self::Biography(conduit_body::BodyBiographyError::CapacityExhausted) => {
+                "product-biography-capacity-exhausted"
+            }
+            Self::Biography(_) => "product-biography-evidence-refused",
             Self::Membership => "product-birth-membership-refused",
             Self::Plan(error) => error.as_str(),
             Self::Workset(error) => error.as_str(),
@@ -174,6 +182,7 @@ pub struct ProductJourney {
     revision: u64,
     request_sequence: u64,
     body: Option<Body>,
+    biography: Option<conduit_body::BodyBiographyEvidence>,
     friendly_name: Option<String>,
     born_sign_id: Option<SignId>,
     membership: Option<BodyMembership>,
@@ -184,6 +193,7 @@ pub struct ProductJourney {
     play: Option<BodyPlayIdentity>,
     kernel: Option<Box<NativeWorksetPlay>>,
     foreground: usize,
+    last_working_plot: Option<conduit_body::ResidentPlot>,
     plots: [Option<NativePlot>; native_workset::NATIVE_PLOT_CAPACITY],
     input_owners: [Option<native_workset::AdmittedPlotInput>; native_workset::NATIVE_PLOT_CAPACITY],
     input_count: u32,
@@ -282,6 +292,7 @@ impl ProductJourney {
             revision: 1,
             request_sequence: 0,
             body: None,
+            biography: None,
             friendly_name: None,
             born_sign_id: None,
             membership: None,
@@ -292,6 +303,7 @@ impl ProductJourney {
             play: None,
             kernel: None,
             foreground: 0,
+            last_working_plot: None,
             plots: [None; native_workset::NATIVE_PLOT_CAPACITY],
             input_owners: core::array::from_fn(|_| None),
             input_count: 0,
@@ -574,6 +586,11 @@ impl ProductJourney {
                 SignId::from(format!("conduitos/product/woke/{}", self.revision)),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
+        self.prepare_biography(
+            &body,
+            Some(&wake),
+            self.membership.as_ref().ok_or(JourneyError::Membership)?,
+        )?;
         self.body = Some(body);
         self.wake = Some(wake);
         self.plan = None;
@@ -584,6 +601,7 @@ impl ProductJourney {
     }
 
     fn advance(&mut self) -> Result<(), JourneyError> {
+        self.retain_biography()?;
         self.revision = self
             .revision
             .checked_add(1)
@@ -616,6 +634,7 @@ impl ProductJourney {
         membership
             .seal_fulfilled(&fulfilled)
             .map_err(|_| JourneyError::Membership)?;
+        self.prepare_biography(&fulfilled, self.wake.as_ref(), &membership)?;
         self.body = Some(fulfilled);
         self.membership = Some(membership);
         self.status = JourneyStatus::Fulfilled;
@@ -630,3 +649,6 @@ mod workset_tests;
 
 #[cfg(test)]
 pub(crate) mod test_support;
+
+#[cfg(test)]
+mod tutorial_tests;

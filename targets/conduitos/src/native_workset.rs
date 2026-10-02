@@ -5,6 +5,7 @@ mod keyboard_delivery;
 mod planning;
 mod play;
 mod text_state;
+mod tutorial_application;
 
 pub use application_delivery::NativeApplicationRequest;
 pub use catalog::{
@@ -13,6 +14,7 @@ pub use catalog::{
 };
 pub use planning::{AdmittedPlotInput, PreparedNativeWorkset, prepare, review};
 pub use play::{NativePresentation, NativeWorksetPlay, PlayRefusal};
+pub use tutorial_application::TutorialAction;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorksetRefusal {

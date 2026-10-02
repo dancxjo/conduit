@@ -2,12 +2,10 @@
 
 mod arrival;
 mod input_actions;
-use input_actions::{
-    ProductControl, action_for, product_control, resident_application_action, tour_action,
-};
+mod tutorial;
+mod workspace_view_sign;
+use input_actions::{ProductControl, action_for, product_control, resident_application_action};
 mod journey_sign;
-mod scroll_input;
-mod tour_sign;
 pub(crate) mod transient_sign;
 mod workspace_input;
 use workspace_input::refresh;
@@ -15,8 +13,7 @@ use workspace_input::refresh;
 use alloc::format;
 
 use conduit_human::KeyTransition;
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
-use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourTransientKind};
+use conduit_presentation::ApplicationEvent;
 
 use crate::{
     arch::{self, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
@@ -32,12 +29,8 @@ use crate::{
     product_bases::{EffectFamily, FRAMEBUFFER_RESOURCE_CLASS, NativeProductBases},
     product_journey::{JourneyStatus, ProductJourney},
     rescue_guest,
-    tour_product::TourProduct,
-    tour_shell::TourShellPresenter,
 };
 use journey_sign::emit_journey_sign;
-use tour_sign::emit_tour_sign;
-use transient_sign::{emit_dismissed_transient, emit_shown_transient};
 
 const ENTER: u8 = 40;
 const F1: u8 = 58;
@@ -55,8 +48,8 @@ pub fn run(
     controller: &mut XhciReady,
     controller_id: [u8; 32],
     usb: &UsbDevice,
-    mut pointer_session: Option<&mut HidPointerSession>,
-    pointer_usb: Option<&UsbDevice>,
+    pointer_session: Option<&mut HidPointerSession>,
+    _pointer_usb: Option<&UsbDevice>,
     usb_line_device: Option<&UsbDevice>,
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
@@ -133,21 +126,8 @@ pub fn run(
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\nCONDUIT_CRECHE_CHECKPOINT ready\n");
-    let mut tour = TourProduct::canonical(1);
-    let mut shell = TourShellPresenter::prepare(
-        conduit_core::HostId::from(identity::hex(&identities.host)),
-        conduit_core::BootId::from(identity::hex(&identities.boot)),
-        generation,
-        make.profile_id,
-        make.image_binding,
-        framebuffer_basis.base_id.clone(),
-        make.presentation_surface_slots,
-    )
-    .map_err(|error| error.as_str())?;
-    let mut tour_open = false;
     let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
-    let mut timer = arch::Timer::new();
     let mut serial = arch::Serial::new();
     let mut interrupts = arch::Interrupts::new();
     let mut idle = arch::Idle::new();
@@ -162,7 +142,7 @@ pub fn run(
                         &journey,
                         &mut presenter,
                         display,
-                        !tour_open,
+                        true,
                     )? {
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
@@ -199,11 +179,7 @@ pub fn run(
                 workspace_updates.accept(event, &mut journey, &mut front_door)?;
                 return Ok(ProductInputControl::Continue);
             }
-            let keyboard_route = if tour_open {
-                shell.route_keyboard().map_err(|error| error.as_str())?
-            } else {
-                presenter.route_keyboard().map_err(|error| error.as_str())?
-            };
+            let keyboard_route = presenter.route_keyboard().map_err(|error| error.as_str())?;
             if matches!(keyboard_route, InputRoute::NoTarget) {
                 return Ok(ProductInputControl::Continue);
             }
@@ -221,134 +197,11 @@ pub fn run(
             }
             if event.transition() == KeyTransition::Pressed
                 && product_control(event.usage()) == Some(ProductControl::Tour)
-                && !tour_open
             {
-                presenter.suspend().map_err(|error| error.as_str())?;
-                tour_open = true;
-                let shell_receipt = shell
-                    .present_with_lifecycle(&tour, &journey.projection(), display)
-                    .map_err(|error| error.as_str())?;
-                emit_tour_sign(&tour, None, &shell_receipt, identities, make);
-                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT workspace-opened\n");
+                tutorial::select(&mut journey, &mut front_door, &mut presenter, display, make)?;
                 return Ok(ProductInputControl::Continue);
             }
-            if tour_open && event.transition() == KeyTransition::Pressed {
-                if scroll_input::accept(event.usage(), &mut shell, display)? {
-                    return Ok(ProductInputControl::Continue);
-                }
-                if product_control(event.usage()) == Some(ProductControl::Escape) {
-                    if shell.has_transient() {
-                        let dismissal = shell
-                            .dismiss_transient(display)
-                            .map_err(|error| error.as_str())?;
-                        emit_dismissed_transient(&dismissal, false, identities, make);
-                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-dismissed\n");
-                        return Ok(ProductInputControl::Continue);
-                    }
-                    if tour
-                        .controller()
-                        .state()
-                        .selected_patchbay_subject
-                        .is_some()
-                    {
-                        tour.dismiss_inspector().map_err(|error| error.as_str())?;
-                        shell
-                            .present_with_lifecycle(&tour, &journey.projection(), display)
-                            .map_err(|error| error.as_str())?;
-                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT gear-inspector-dismissed\n");
-                        return Ok(ProductInputControl::Continue);
-                    }
-                    tour_open = false;
-                    shell.suspend().map_err(|error| error.as_str())?;
-                    let receipt = presenter
-                        .present(&front_door, display)
-                        .map_err(|error| error.as_str())?;
-                    emit_journey_sign(&journey.projection(), make, &receipt);
-                    arch::early_write(b"CONDUIT_TOUR_CHECKPOINT world-returned\n");
-                    return Ok(ProductInputControl::Continue);
-                }
-                if let Some(action) = tour_action(event.usage()) {
-                    let event = ApplicationEvent {
-                        revision: tour.controller().state().revision,
-                        action: action.into(),
-                        kind: ApplicationEventKind::Activate,
-                        value: alloc::vec::Vec::new(),
-                    };
-                    let update = match tour.accept_with_timer(
-                        &event,
-                        identities,
-                        offer,
-                        make.build_id,
-                        &mut clock,
-                        &mut timer,
-                        &mut serial,
-                        &mut interrupts,
-                        &mut idle,
-                    ) {
-                        Ok(update) => update,
-                        Err(error) if error.controller_refusal().is_some() => {
-                            let refusal = error.controller_refusal().expect("matched refusal");
-                            let receipt = shell
-                                .show_transient(
-                                    &tour,
-                                    TourTransientKind::Refusal,
-                                    refusal.as_str(),
-                                    display,
-                                )
-                                .map_err(|error| error.as_str())?;
-                            emit_shown_transient(
-                                &receipt,
-                                Some(refusal.as_str()),
-                                &shell,
-                                identities,
-                                make,
-                            )?;
-                            arch::early_write(b"CONDUIT_TOUR_CHECKPOINT refusal-transient-shown\n");
-                            return Ok(ProductInputControl::Continue);
-                        }
-                        Err(error) => return Err(error.as_str()),
-                    };
-                    let shell_receipt = shell
-                        .present_with_lifecycle(&tour, &journey.projection(), display)
-                        .map_err(|error| error.as_str())?;
-                    emit_tour_sign(&tour, Some(&update), &shell_receipt, identities, make);
-                    if update.play.is_some() {
-                        arch::early_write(b"\n");
-                        let receipt = shell
-                            .show_transient(
-                                &tour,
-                                TourTransientKind::Confirmation,
-                                "Play completed",
-                                display,
-                            )
-                            .map_err(|error| error.as_str())?;
-                        emit_shown_transient(&receipt, None, &shell, identities, make)?;
-                        arch::early_write(
-                            b"CONDUIT_TOUR_CHECKPOINT confirmation-transient-shown\n",
-                        );
-                    } else if action == OPEN_PATCHBAY_ACTION_ID {
-                        let receipt = shell
-                            .show_transient(
-                                &tour,
-                                TourTransientKind::Chooser,
-                                "Choose a Patchbay Gear",
-                                display,
-                            )
-                            .map_err(|error| error.as_str())?;
-                        emit_shown_transient(&receipt, None, &shell, identities, make)?;
-                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-transient-shown\n");
-                    }
-                    return Ok(
-                        if action == OPEN_PATCHBAY_ACTION_ID && pointer_session.is_some() {
-                            ProductInputControl::Yield
-                        } else {
-                            ProductInputControl::Continue
-                        },
-                    );
-                }
-            }
-            if !tour_open
-                && front_door.home_open()
+            if front_door.home_open()
                 && product_control(event.usage()) != Some(ProductControl::Lifecycle)
             {
                 match front_door
@@ -372,13 +225,13 @@ pub fn run(
                         );
                     }
                     crate::front_door::HomeInput::OpenTour => {
-                        presenter.suspend().map_err(|error| error.as_str())?;
-                        tour_open = true;
-                        let receipt = shell
-                            .present_with_lifecycle(&tour, &journey.projection(), display)
-                            .map_err(|error| error.as_str())?;
-                        emit_tour_sign(&tour, None, &receipt, identities, make);
-                        arch::early_write(b"CONDUIT_HOME_CHECKPOINT tour-opened\n");
+                        tutorial::select(
+                            &mut journey,
+                            &mut front_door,
+                            &mut presenter,
+                            display,
+                            make,
+                        )?;
                     }
                     crate::front_door::HomeInput::OpenPatchbay => {
                         for _ in 0..crate::native_workset::NATIVE_PLOT_CAPACITY {
@@ -462,7 +315,7 @@ pub fn run(
                 }
                 return Ok(ProductInputControl::Continue);
             }
-            if !tour_open && front_door.creche_open() {
+            if front_door.creche_open() {
                 match front_door
                     .accept_creche(event, front_door.revision())
                     .map_err(|e| e.as_str())?
@@ -476,22 +329,19 @@ pub fn run(
                     }
                     crate::front_door::ArrivalInput::Birth(selection) => {
                         consumed_birth_key = Some(event.usage());
-                        arrival::birth_and_wake(
+                        arrival::birth_and_arrive(
                             selection,
                             &mut front_door,
                             &mut journey,
                             &mut presenter,
                             display,
-                            identities,
-                            offer,
                             make,
                         )?;
                     }
                 }
                 return Ok(ProductInputControl::Continue);
             }
-            if !tour_open
-                && event.transition() == KeyTransition::Pressed
+            if event.transition() == KeyTransition::Pressed
                 && product_control(event.usage()) == Some(ProductControl::Escape)
                 && journey.projection().body_id.is_some()
                 && !front_door.exact_details_open()
@@ -502,22 +352,40 @@ pub fn run(
                 arch::early_write(b"CONDUIT_HOME_CHECKPOINT returned\n");
                 return Ok(ProductInputControl::Continue);
             }
-            if !tour_open && !front_door.exact_details_open() {
+            if !front_door.exact_details_open() {
+                if tutorial::navigate(event, &journey, &mut front_door, &mut presenter, display)? {
+                    return Ok(ProductInputControl::Continue);
+                }
+
                 if event.transition() == KeyTransition::Pressed
-                    && matches!(event.usage(), F1 | F10 | F11)
-                    && let Some(view) = journey.foreground_application_view().cloned()
+                    && matches!(event.usage(), 40 | F1 | F10 | F11)
+                    && let Some(view) = front_door.application_view().cloned()
                 {
-                    let action = resident_application_action(event.usage(), &view)
-                        .ok_or("application-action-unavailable")?;
+                    let Some(action) = tutorial::selected_action(event.usage(), &front_door, &view)
+                    else {
+                        return Ok(ProductInputControl::Continue);
+                    };
+                    if journey.foreground_is_tutorial() {
+                        tutorial::activate(
+                            &view,
+                            &action,
+                            &mut journey,
+                            &mut front_door,
+                            &mut presenter,
+                            display,
+                            identities,
+                            offer,
+                            make,
+                        )?;
+                        return Ok(ProductInputControl::Continue);
+                    }
                     journey
-                        .accept_application_event(&ApplicationEvent {
-                            revision: view.revision,
-                            action: action.id.clone(),
-                            kind: action.event,
-                            value: alloc::vec::Vec::new(),
-                        })
+                        .accept_application_event(&tutorial::event(&view, &action))
                         .map_err(|error| error.as_str())?;
                     match journey.take_application_request() {
+                        Some(crate::native_workset::NativeApplicationRequest::Tutorial(_)) => {
+                            return Err("tutorial-request-outside-current-tutorial");
+                        }
                         Some(crate::native_workset::NativeApplicationRequest::RunTour {
                             chapter: 0,
                             stage: 2,
@@ -672,7 +540,7 @@ pub fn run(
             keyboard_input::run_product(session, controller, usb, &mut interact)?;
         }
         if !line_requested {
-            break;
+            return Err("product-input-ended-without-control-request");
         }
         let body_id = journey
             .projection()
@@ -740,45 +608,6 @@ pub fn run(
         // hand-back boundary when the finite Line session ends.
         arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-resumed-after-line\n");
     }
-    let mut execute_tour = |tour: &mut TourProduct, event: &ApplicationEvent| {
-        tour.accept_with_timer(
-            event,
-            identities,
-            offer,
-            make.build_id,
-            &mut clock,
-            &mut timer,
-            &mut serial,
-            &mut interrupts,
-            &mut idle,
-        )
-    };
-    if let Some(ps2) = ps2_input {
-        return crate::product_pointer::run_ps2(
-            identities,
-            make,
-            &mut tour,
-            &mut shell,
-            display,
-            ps2,
-            &mut execute_tour,
-        );
-    }
-    let (pointer_session, pointer_usb) = pointer_session
-        .take()
-        .zip(pointer_usb)
-        .ok_or("front-door-pointer-realization-missing")?;
-    crate::product_pointer::run(
-        identities,
-        make,
-        &mut tour,
-        &mut shell,
-        display,
-        pointer_session,
-        controller,
-        pointer_usb,
-        &mut execute_tour,
-    )
 }
 
 #[cfg(test)]

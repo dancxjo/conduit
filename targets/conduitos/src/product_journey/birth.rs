@@ -105,6 +105,12 @@ impl ProductJourney {
             .map_err(|_| JourneyError::Membership)?;
         let mut membership =
             BodyMembership::new(body.body_id.clone()).map_err(|_| JourneyError::Membership)?;
+        let biography = conduit_body::BodyBiographyEvidence::born(
+            body.clone(),
+            membership.clone(),
+            name.clone(),
+        )
+        .map_err(|_| JourneyError::InvalidTransition)?;
         membership
             .admit(
                 &body.body_id,
@@ -138,6 +144,7 @@ impl ProductJourney {
             expanded_plot_id: first.expanded_plot_id,
         });
         self.body = Some(body);
+        self.biography = Some(biography);
         self.born_sign_id = Some(born_sign);
         self.membership = Some(membership);
         self.part_id = Some(part);

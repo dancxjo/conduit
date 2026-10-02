@@ -112,6 +112,11 @@ impl ProductJourney {
         if previous_len >= self.plots.len() || insertion > previous_len {
             return Err(JourneyError::InvalidTransition);
         }
+        self.prepare_biography(
+            &next_body,
+            Some(&next_wake),
+            self.membership.as_ref().ok_or(JourneyError::Membership)?,
+        )?;
         if let Some(kernel) = self.kernel.as_mut() {
             kernel.cancel().map_err(JourneyError::Play)?;
             self.retained_kernel_sign_gap = kernel.sign_retention_gap();
@@ -214,6 +219,12 @@ impl ProductJourney {
                 expanded_plot_id: plot.expanded_plot_id,
             }
         };
+        if matches!(
+            self.plots[previous],
+            Some(NativePlot::KeyboardCanvas | NativePlot::MemoryLantern)
+        ) {
+            self.last_working_plot = Some(body.workset.plots()[previous].clone());
+        }
         self.plot = Some(identity);
         self.foreground = index;
         self.advance()

@@ -1,31 +1,36 @@
-# The Conduit Tour
+# Tutorial in the Workspace
 
-The Tour is canonical journey content plus a portable semantic model consumed
-by resident Plots. The former standalone browser application, storage identity,
-and product route were retired before v1; browser HTML participates through
+The canonical plot in this directory selects `application = "tutorial"`.
+It is the living Tutorial used by the [Workspace](https://dancxjo.github.io/conduit/workspace/):
+guidance comes from the current Body biography, workset, and lifecycle. Browser
+and native adapters must honor that same selection and dispatch the same semantic
+actions. Neither adapter owns a private chapter-progress model for this plot.
+
+A new Body arrives Lulled. The user explicitly wakes it, tries its installed
+plots, inspects what happened, and continues from the resulting real evidence.
+Native rendering may use bounded pages and keyboard navigation; those pages
+must expose all content and controls instead of discarding overflow. A missing
+host implementation must produce an explicit unavailable action or planning
+refusal, never substitute the old Tour.
+
+The native installed catalog currently contains four plots. That packaging
+limit and its four-resident capacity are distinct from host capability review.
+An absent catalog entry does not establish that the host cannot realize it.
+Shared catalog discovery and the complete nonvisual interface, including birth,
+remain open work under [#4807](https://github.com/dancxjo/conduit/issues/4807).
+
+## Retained Tour lessons
+
+The seven-chapter model and `docs/journeys/tour/` retain earlier executable
+lessons and focused conformance fixtures. An explicit `application = "tour"`
+selects that historical model where a host still offers it. Its screenshots and
+chapter proofs are not evidence of the current Workspace Tutorial.
+
+The former standalone browser Tour application and route were retired. The
+public browser entrance is the Workspace; HTML participates through
 `@conduit/browser` rather than owning a private runtime bridge.
 
-Tour does not own body lifecycle truth, a compiler, simulator, scheduler,
-or alternate runtime.
-If a listing cannot run through a real host, the missing work belongs to that
-host or to Conduit's portable semantics.
-
-The [project introduction](../../README.md) explains the motivation. Each lesson should give the human reason for a capability
-before asking architectural precision or evidence to carry the explanation:
-problem or desire, Conduit idea, executable demonstration, then payoff.
-
-`docs/journeys/tour/` owns the lessons; this Plot directory owns the portable
-semantic model and canonical source. Keep Plot identities and stage
-declarations aligned when changing a lesson.
-
-The native ConduitOS Tour consumes the seven-page semantic port, chapter/stage
-catalog, Plot source identities, and semantic actions. Focus the left pane and
-use Page Up, Page Down, Home, or End to read it;
-scrolling leaves the laboratory in place. `F3`/`F4` select stages, `F5`/`F6`
-select chapters, `F10` runs the current exercise, and `F11` opens the resident
-Patchbay over the active plots on the same body.
-
-Linux and Windows packages use their platform desktop presentation
-implementations over that same portable application state. A host can choose a
-different direct or recursive realization for a plot, but it does not get a
-private Tour program or progress state.
+The [project introduction](../../README.md) explains the motivation. Lessons
+should explain a real desire, show the Conduit idea through an executable
+example, and explain the result. Neither Tutorial nor retained Tour content
+owns an alternate compiler, planner, scheduler, or Body lifecycle.
