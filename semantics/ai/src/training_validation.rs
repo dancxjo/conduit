@@ -214,17 +214,16 @@ pub(super) fn validate_metrics(
         return Err(TrainingRefusal::InvalidMetric);
     }
     for value in values {
-        text(&value.output_identity)?;
         if !objectives
             .iter()
-            .any(|objective| objective.output_identity().get() == &value.output_identity)
+            .any(|objective| objective.output_identity() == value.output_identity())
         {
             return Err(TrainingRefusal::InvalidMetric);
         }
     }
     let outputs = values
         .iter()
-        .map(|value| value.output_identity.clone())
+        .map(|value| value.output_identity().get().clone())
         .collect::<Vec<_>>();
     if has_duplicate_text(&outputs) {
         return Err(TrainingRefusal::DuplicateMetric);

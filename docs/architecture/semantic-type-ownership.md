@@ -375,6 +375,7 @@ are satisfied.
 | AI supported relation-query pattern | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns nonempty 32-member evidence/target identity sequences with nonempty 128-byte members, exact mode/result profile and positive work/output bounds; Rust retains duplicate, disjointness and signature-membership laws |
 | AI relation candidate output | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns the bounded target variable, exact 32-byte value identity, probabilistic disposition and sample count; Rust retains requested-profile/sample-count coherence and nonzero digest validation |
 | AI training objective | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns nonempty 128-byte role, configuration and output identities, fixed-point weight, participation, and the law that optimized objectives have positive weight; Rust retains session-wide uniqueness and at-least-one-optimization laws |
+| AI training metric | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns the bounded objective-output identity and exact signed-millionths value; Rust retains receipt-level uniqueness and objective-membership laws |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a

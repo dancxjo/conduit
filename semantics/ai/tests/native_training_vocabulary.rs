@@ -1,9 +1,9 @@
 use conduit_ai::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, ModelComputeLifecycle, ModelComputeOperation,
     ModelComputeRefusal, ModelSignatureRefusal, ObjectiveParticipation, PortableComputeClass,
-    RelationQueryMode, RelationRefusal, TrainingObjective, TrainingObjectiveIdentity,
-    TrainingRefusal, TrainingResourceEnvelope, VectorIndexHealth, VectorIndexMaintenanceKind,
-    VectorIndexResourceRefusal,
+    RelationQueryMode, RelationRefusal, TrainingMetric, TrainingObjective,
+    TrainingObjectiveIdentity, TrainingRefusal, TrainingResourceEnvelope, VectorIndexHealth,
+    VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -42,6 +42,10 @@ fn training_vocabularies_round_trip_through_native_types() {
     assert!(
         !include_str!("../src/training.rs").contains(concat!("pub struct ", "TrainingObjective"))
     );
+    let metric = TrainingMetric::new(objective_identity("loss/acoustic"), -125_000).unwrap();
+    let structured = metric.clone().into_structured().unwrap();
+    assert_eq!(TrainingMetric::from_structured(structured).unwrap(), metric);
+    assert!(!include_str!("../src/training.rs").contains(concat!("pub struct ", "TrainingMetric")));
 
     assert_round_trip(
         TrainingResourceEnvelope::new(4096, 1_048_576, 2, 4096, 65_536, 3, 10_000, 16_384, 1)

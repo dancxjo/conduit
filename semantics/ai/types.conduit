@@ -1158,6 +1158,11 @@ type TrainingObjective = {
     where .participation is observe_only || .weight_millionths > 0
 }
 
+type TrainingMetric = {
+    output_identity: TrainingObjectiveIdentity
+    value_millionths: I64
+}
+
 type EmbodimentStage =
     perception_only
     | expressive
