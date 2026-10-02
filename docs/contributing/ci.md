@@ -31,11 +31,46 @@ live in `tools/ci/pipeline/plan.mjs`.
 
 Every selected target owns setup, build, proof, packaging, and one final
 artifact upload on its runner. Targets never depend on an unrelated target.
-Target caches retain only Cargo compiler directories and dependencies; staged
-products, proof outputs, and receipts always start fresh.
+Compiler caches retain Cargo compiler directories and dependencies. A separate
+acquisition cache retains verified tool downloads and pinned installations;
+staged products and product proof always start fresh.
 Once the target matrix starts, a failure does not cancel siblings. Code tests
 have no retries. Acquisition may have one bounded infrastructure retry.
 Browser acceptance keeps pinned Chromium, one worker, and zero retries.
+
+## Tool acquisition
+
+Each lane resolves one package set and checks installed tools before acquiring
+anything. Linux lanes use one apt transaction; browser dependencies come from
+the pinned Playwright package. Pico radio assets are already versioned source
+and are verified without downloading them again. AVR checks its retained core
+and compiler identities before repeating setup. Cargo-installed tools and ESP
+compilers retain their exact version and content checks on cache restoration.
+
+Acquisition caches are separate from compiler and product artifacts. Their
+keys include the runner image, platform, architecture, and checked-in tool
+specification. Apt archives additionally bind the installed baseline and exact
+resolved dependency versions; cached bytes must match current authenticated
+repository metadata. No cache restores `/usr` or the package-manager database.
+Ubuntu acquisition uses the official archive mirror rather than the Azure
+mirror. If a cached package version is no longer authenticated by the
+repository, acquisition refuses; this cache is not a historical apt snapshot.
+
+Every setup emits `target/acquisition/<lane>.json` with verified identities,
+operations, durations, cache outcomes, and known download sizes. The supported
+local entrance remains `cargo xtask ci pipeline setup <target>` (`setup-unit`
+and `setup-ci` cover portable checks and CI validation).
+
+The **Measure tool acquisition** workflow compares a cold project cache with
+an exact restored cache on a second, fresh hosted runner. It runs when a tooling
+PR becomes ready for review, or manually with selected target IDs or `all`.
+Its default selection covers apt, validation tools, QEMU, Chromium/npm, Cargo
+tools, AVR, and both ESP compiler families. Measurements include cache
+restoration and saving, but exclude common checkout and baseline Rust/Node
+provisioning. They require matching source, runner image, specification, and
+actual tool identities. A slower warm run is retained as a regression rather
+than reported as a speedup. Existing runner-image tools are part of the
+recorded baseline; “cold” does not mean an empty machine.
 
 ## Combined development
 
