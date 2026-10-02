@@ -170,13 +170,13 @@ mod tests {
         Body, BodyConversationContextBasis, BodyConversationHost, BodyConversationLine, WakeId,
     };
     use conduit_core::{
-        ActivePlayId, CheckedFormId, HostId, LineAvailability, PlanId, SignId, SourceDocumentId,
+        ActivePlayId, CheckedPlotId, HostId, LineAvailability, PlanId, SignId, SourceDocumentId,
     };
 
     fn context(revision: u64, present: bool) -> BodyConversationContext {
         let body = Body::born(
             SourceDocumentId::from("source/current-context"),
-            CheckedFormId::from("checked/current-context"),
+            CheckedPlotId::from("checked/current-context"),
             1,
             SignId::from("sign/current-context/born"),
         )
@@ -202,7 +202,7 @@ mod tests {
                 host_id: HostId::from("host/latimer"),
                 present,
             }],
-            active_forms: vec!["form/home".into()],
+            active_plots: vec!["plot/home".into()],
             current_plan_id: None,
             active_play_id: None,
             lines: vec![],
@@ -304,7 +304,7 @@ mod tests {
 
         let mut changed = initial.clone();
         changed.basis.revision = 5;
-        changed.active_forms.push("form/voice".into());
+        changed.active_plots.push("plot/voice".into());
         changed.lines.push(BodyConversationLine {
             line_id: "line/latimer-to-kitchen".into(),
             source_host_id: HostId::from("host/latimer"),
@@ -319,7 +319,7 @@ mod tests {
         let changed_fingerprint = match source.poll_after(Some(first), <[u8]>::to_vec) {
             BodyConversationContextPoll::Current { fingerprint, value } => {
                 let observed = conduit_chat::decode_body_conversation_context(&value).unwrap();
-                assert_eq!(observed.active_forms, ["form/home", "form/voice"]);
+                assert_eq!(observed.active_plots, ["plot/home", "plot/voice"]);
                 assert_eq!(
                     observed.lines[0].availability,
                     Some(LineAvailability::Unavailable)

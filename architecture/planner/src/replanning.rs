@@ -12,7 +12,7 @@ use conduit_core::{
     BaseImplementationId, GearId, HostAdvertisement, Plan, PlanId, RealizationAdvertisement,
     ResourceObservation,
 };
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RealizationReplanOutcome {
@@ -32,7 +32,7 @@ pub enum RealizationReplanOutcome {
 #[allow(clippy::too_many_arguments)]
 pub fn replan_selected_realizations_with_characteristics(
     previous: &Plan,
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
@@ -41,19 +41,19 @@ pub fn replan_selected_realizations_with_characteristics(
     policies: &BTreeMap<GearId, RealizationPolicy>,
     planning_options: PlanningOptions<'_>,
 ) -> Result<RealizationReplanOutcome, PlannerError> {
-    if previous.source_document_id != form.source_document_id
-        || previous.checked_form_id != form.checked_form_id
-        || previous.expanded_form_id != form.expanded_form_id
+    if previous.source_document_id != plot.source_document_id
+        || previous.checked_plot_id != plot.checked_plot_id
+        || previous.expanded_plot_id != plot.expanded_plot_id
     {
-        return Err(PlannerError::InvalidFormIdentity(
-            "previous Plan and replanning form identities differ".to_string(),
+        return Err(PlannerError::InvalidPlotIdentity(
+            "previous Plan and replanning plot identities differ".to_string(),
         ));
     }
-    reject_unknown_operation_inputs(form, requirements, policies)?;
+    reject_unknown_operation_inputs(plot, requirements, policies)?;
     validate_resource_observations(hosts, observations)?;
     let mut remaining = observations.to_vec();
     let mut by_gear = BTreeMap::new();
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let choice = select_realization_with_characteristics(
             gear,
             hosts,
@@ -77,9 +77,9 @@ pub fn replan_selected_realizations_with_characteristics(
         requirement.required_characteristic_flags.clear();
         requirement.required_characteristic_labels.clear();
     }
-    validate_hard_requirements(form, hosts, &placements, &plain_requirements)?;
+    validate_hard_requirements(plot, hosts, &placements, &plain_requirements)?;
     let replacement = seal_characteristics(
-        plan_with_options(form, hosts, &placements, bases, planning_options)?,
+        plan_with_options(plot, hosts, &placements, bases, planning_options)?,
         advertisements,
     )?;
     if replacement.plan_id == previous.plan_id {

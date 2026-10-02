@@ -1,10 +1,10 @@
 #[cfg(feature = "authenticated-admission")]
 use crate::AdmissionRefusal;
 use crate::{
-    BodyBiographyArchiveSegment, BodyBiographyError, BodyBiographyEvidence, BodyFormPlan,
-    BodyFulfillment, BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError,
-    BodyPlayIdentity, BodyState, FulfillmentObligation, MembershipRefusal, MembershipState,
-    ResidentForm, Wake,
+    BodyBiographyArchiveSegment, BodyBiographyError, BodyBiographyEvidence, BodyFulfillment,
+    BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity,
+    BodyPlotPlan, BodyState, FulfillmentObligation, MembershipRefusal, MembershipState,
+    ResidentPlot, Wake,
 };
 use alloc::{vec, vec::Vec};
 use conduit_core::{bind_sign, AuthorityGrantId, BootId, HostId, SignId};
@@ -27,7 +27,7 @@ pub struct BodyLifecycleRealization {
 pub struct BodyLifecycleSession {
     evidence: BodyBiographyEvidence,
     realization: Option<BodyLifecycleRealization>,
-    foreground: Option<ResidentForm>,
+    foreground: Option<ResidentPlot>,
     pub(crate) pending_archives: Vec<BodyBiographyArchiveSegment>,
 }
 
@@ -45,7 +45,7 @@ pub enum BodyLifecycleSessionError {
     StaleHost,
     StalePlay,
     StaleWorkload,
-    UninstalledForm,
+    UninstalledPlot,
     SequenceExhausted,
     UnreconciledWake,
     ArchivePersistenceRequired,
@@ -65,7 +65,7 @@ impl BodyLifecycleSession {
         ) {
             return Err(BodyLifecycleSessionError::UnreconciledWake);
         }
-        let foreground = evidence.body.workset.forms().first().cloned();
+        let foreground = evidence.body.workset.plots().first().cloned();
         Ok(Self {
             foreground,
             evidence,
@@ -93,7 +93,7 @@ impl BodyLifecycleSession {
         self.realization.as_ref()
     }
 
-    pub fn foreground(&self) -> Option<&ResidentForm> {
+    pub fn foreground(&self) -> Option<&ResidentPlot> {
         self.foreground.as_ref()
     }
 
@@ -116,11 +116,11 @@ impl BodyLifecycleSession {
 
     /// Foreground is presentation focus within the current workset. Selecting a
     /// surface changes neither its body lifecycle nor the exact admitted play.
-    pub fn select_form(&mut self, form: &ResidentForm) -> Result<(), BodyLifecycleSessionError> {
-        if !self.evidence.body.workset.forms().contains(form) {
-            return Err(BodyLifecycleSessionError::UninstalledForm);
+    pub fn select_plot(&mut self, plot: &ResidentPlot) -> Result<(), BodyLifecycleSessionError> {
+        if !self.evidence.body.workset.plots().contains(plot) {
+            return Err(BodyLifecycleSessionError::UninstalledPlot);
         }
-        self.foreground = Some(form.clone());
+        self.foreground = Some(plot.clone());
         Ok(())
     }
 
@@ -129,7 +129,7 @@ impl BodyLifecycleSession {
     /// admits resources before starting the returned proposal.
     pub fn propose(
         &mut self,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
         host: &HostId,
         boot: &BootId,
     ) -> Result<&BodyLifecycleRealization, BodyLifecycleSessionError> {
@@ -138,7 +138,7 @@ impl BodyLifecycleSession {
             return Err(BodyLifecycleSessionError::NotLulled);
         }
         self.require_host(host, boot)?;
-        for partition in &forms {
+        for partition in &plots {
             for fragment in &partition.plan.fragments {
                 self.require_host(&fragment.host_id, &fragment.boot_id)?;
             }
@@ -152,7 +152,7 @@ impl BodyLifecycleSession {
             .body
             .wake(sequence, sign(host, boot, sequence))
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let plan = BodyPlan::seal(&wake, forms).map_err(BodyLifecycleSessionError::Plan)?;
+        let plan = BodyPlan::seal(&wake, plots).map_err(BodyLifecycleSessionError::Plan)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_wake(body, wake.clone(), sequence)
@@ -269,13 +269,13 @@ impl BodyLifecycleSession {
                 rejection.host_id != *host
                     || rejection.boot_id != *boot
                     || rejection.plan_id.as_ref() != Some(&current.plan.plan_id)
-                    || rejection.checked_form_ids.is_empty()
-                    || rejection.checked_form_ids.iter().any(|checked| {
+                    || rejection.checked_plot_ids.is_empty()
+                    || rejection.checked_plot_ids.iter().any(|checked| {
                         !current
                             .plan
-                            .forms
+                            .plots
                             .iter()
-                            .any(|form| &form.form.checked_form_id == checked)
+                            .any(|plot| &plot.plot.checked_plot_id == checked)
                     })
             })
         {

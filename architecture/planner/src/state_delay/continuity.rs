@@ -1,6 +1,6 @@
 //! plan-level admission for an explicitly approved same-specialization handoff.
 use conduit_core::{
-    state_resource_budget, verify_plan, FormIdentity, Plan, PlanId, RetainedStateProvenance,
+    state_resource_budget, verify_plan, Plan, PlanId, PlotIdentity, RetainedStateProvenance,
     StateId,
 };
 
@@ -19,7 +19,7 @@ pub struct StateContinuityApproval {
 pub enum StateContinuityRefusal {
     InvalidPlan,
     ApprovalMismatch,
-    FormMismatch,
+    PlotMismatch,
     SourceMismatch,
     StateMissing,
     ContractMismatch,
@@ -48,13 +48,13 @@ pub fn seal_state_continuity(
     {
         return Err(R::ApprovalMismatch);
     }
-    let identity = |plan: &Plan| FormIdentity {
+    let identity = |plan: &Plan| PlotIdentity {
         source_document_id: plan.source_document_id.clone(),
-        checked_form_id: plan.checked_form_id.clone(),
-        expanded_form_id: plan.expanded_form_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
     };
-    if identity(source) != retained.source_form || identity(source) != identity(destination) {
-        return Err(R::FormMismatch);
+    if identity(source) != retained.source_plot || identity(source) != identity(destination) {
+        return Err(R::PlotMismatch);
     }
     let source_fragment = source
         .fragments

@@ -4,7 +4,7 @@ use conduit_core::{
     resource_binding_satisfies, BaseImplementationId, HostAdvertisement, ResourceAllowanceSet,
     ResourceHealth, ResourceObservation,
 };
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 
 use crate::{plan, PlacementChoices, PlannerError};
 
@@ -12,14 +12,14 @@ use crate::{plan, PlacementChoices, PlannerError};
 /// binding satisfies its original requirement, allowance, unchanged Host
 /// offer, and current observation. Allowance provenance remains opaque.
 pub fn plan_with_resource_allowances(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     allowance_sets: &[ResourceAllowanceSet],
     observations: &[ResourceObservation],
 ) -> Result<conduit_core::Plan, PlannerError> {
-    let plan = plan(form, hosts, placements, bases)?;
+    let plan = plan(plot, hosts, placements, bases)?;
     for planned in plan
         .fragments
         .iter()

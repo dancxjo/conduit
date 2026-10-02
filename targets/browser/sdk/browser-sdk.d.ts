@@ -64,9 +64,9 @@ export class BrowserHost {
   }>;
   refresh(): Promise<ReturnType<BrowserHost["current"]>>;
   /** Preserve ordinary Conduitese source; the canonical Rust checker owns its meaning. */
-  form(source: string): BrowserForm;
-  /** Rust expands selected Forms against this exact Host without acquiring resources or making a Plan. */
-  review(forms: readonly (BrowserForm | CheckedForm | CheckedSource)[]): Promise<FormWorkloadReview>;
+  plot(source: string): BrowserPlot;
+  /** Rust expands selected Plots against this exact Host without acquiring resources or making a Plan. */
+  review(plots: readonly (BrowserPlot | CheckedPlot | CheckedSource)[]): Promise<PlotWorkloadReview>;
   /** Participate in one externally owned Body without creating a second Host or Boot. */
   participate(options: {
     invitation: string;
@@ -79,8 +79,8 @@ export class BrowserHost {
     renewPresence?: boolean;
     reconnectPresence?: boolean;
   }): Promise<BrowserBodyParticipation>;
-  /** Birth a Body only from Forms checked by this Host's exact Browser runtime. */
-  birth(options: { name: string; forms: readonly (BrowserForm | CheckedForm | CheckedSource)[] }): Promise<BrowserBody>;
+  /** Birth a Body only from Plots checked by this Host's exact Browser runtime. */
+  birth(options: { name: string; plots: readonly (BrowserPlot | CheckedPlot | CheckedSource)[] }): Promise<BrowserBody>;
   /** Recover the retained Body under this fresh Boot. Returns null when no Body is retained. */
   recover(): Promise<BrowserBody | null>;
 }
@@ -138,13 +138,13 @@ export class BrowserBodyPreparation {
   close(): Readonly<Record<string, unknown>> | undefined;
 }
 
-export interface FormDiagnostic {
+export interface PlotDiagnostic {
   readonly code: string;
   readonly message: string;
   readonly span?: Readonly<{ start: number; end: number; line: number; column: number; endLine: number; endColumn: number }>;
 }
 
-export interface FormRequirements {
+export interface PlotRequirements {
   /** Canonical Kind identities found by Rust checking. */
   readonly kinds: readonly string[];
   /** Null until a Rust planner has derived exact requirements for a proposed realization. */
@@ -153,34 +153,34 @@ export interface FormRequirements {
   readonly capabilities: null;
 }
 
-export interface CheckedForm {
-  readonly schema: "conduit.browser/checked-form@1";
+export interface CheckedPlot {
+  readonly schema: "conduit.browser/checked-plot@1";
   readonly name: string;
   readonly title: string;
   readonly source: string;
   readonly documentSource: string;
   readonly sourceDocumentId: string;
-  readonly checkedFormId: string;
-  readonly requirements: FormRequirements;
-  readonly diagnostics: readonly FormDiagnostic[];
-  readonly identity: Readonly<{ sourceDocumentId: string; checkedFormId: string }>;
+  readonly checkedPlotId: string;
+  readonly requirements: PlotRequirements;
+  readonly diagnostics: readonly PlotDiagnostic[];
+  readonly identity: Readonly<{ sourceDocumentId: string; checkedPlotId: string }>;
 }
 
 export interface CheckedSource {
   readonly schema: "conduit.browser/checked-source@1";
   readonly ok: boolean;
   readonly sourceDocumentId: string | null;
-  readonly diagnostics: readonly FormDiagnostic[];
-  readonly requirements: FormRequirements;
-  readonly forms: readonly CheckedForm[];
+  readonly diagnostics: readonly PlotDiagnostic[];
+  readonly requirements: PlotRequirements;
+  readonly plots: readonly CheckedPlot[];
   readonly source: string;
   readonly refusal?: Readonly<{ code: string; message: string }>;
 }
 
-export interface FormWorkloadReview {
-  readonly schema: "conduit.browser/form-workload-review@1";
+export interface PlotWorkloadReview {
+  readonly schema: "conduit.browser/plot-workload-review@1";
   readonly sourceDocumentId: string;
-  readonly checkedForms: readonly Readonly<{ sourceDocumentId: string; checkedFormId: string }>[];
+  readonly checkedPlots: readonly Readonly<{ sourceDocumentId: string; checkedPlotId: string }>[];
   readonly requirements: Readonly<{
     kinds: readonly string[];
     resources: readonly Readonly<{ hostId: string; resourceClassId: string; units: number }>[];
@@ -195,21 +195,21 @@ export interface FormWorkloadReview {
   readonly evidence: Readonly<Record<string, unknown>>;
 }
 
-export class BrowserForm {
+export class BrowserPlot {
   private constructor(source: string);
-  readonly schema: "conduit.browser/form-source@1";
+  readonly schema: "conduit.browser/plot-source@1";
   readonly source: string;
   check(): Promise<CheckedSource>;
   /** Rust-checked authoring projection; creates no Body, Plan, Play, or authority. */
-  patchbay(): BrowserFormPatchbay;
+  patchbay(): BrowserPlotPatchbay;
 }
 
-export interface BrowserFormPatchbay extends Readonly<Record<string, unknown>> {
-  readonly schema: "conduit.patchbay/checked-form-projection@1";
+export interface BrowserPlotPatchbay extends Readonly<Record<string, unknown>> {
+  readonly schema: "conduit.patchbay/checked-plot-projection@1";
   readonly source_document_id: string;
-  readonly checked_form_id: string;
-  readonly visible_expanded_form_id: string;
-  readonly form_name: string;
+  readonly checked_plot_id: string;
+  readonly visible_expanded_plot_id: string;
+  readonly plot_name: string;
   readonly front_inputs: readonly BrowserPatchbayPort[];
   readonly front_outputs: readonly BrowserPatchbayPort[];
   readonly gears: readonly Readonly<Record<string, unknown>>[];
@@ -231,8 +231,8 @@ export class BrowserBody {
   wake(): Promise<BrowserPlay>;
   /** Terminate or close the current Play and record the exact Body lull transition. */
   lull(): Promise<Readonly<Record<string, unknown>>>;
-  install(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
-  remove(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
+  install(plot: BrowserPlot | CheckedPlot | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
+  remove(plot: BrowserPlot | CheckedPlot | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
 }
 
 export interface BrowserBodyPatchbay {
@@ -243,11 +243,11 @@ export interface BrowserBodyPatchbay {
   readonly planId: string | null;
   readonly playId: string | null;
   readonly topology: Readonly<{
-    schema: "conduit.patchbay/checked-form-projection@1";
+    schema: "conduit.patchbay/checked-plot-projection@1";
     source_document_id: string;
-    checked_form_id: string;
-    visible_expanded_form_id: string;
-    form_name: string;
+    checked_plot_id: string;
+    visible_expanded_plot_id: string;
+    plot_name: string;
     front_inputs: readonly BrowserPatchbayPort[];
     front_outputs: readonly BrowserPatchbayPort[];
     gears: readonly Readonly<{

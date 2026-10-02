@@ -10,7 +10,7 @@ use conduit_core::{
     KindId, LocalDate, LocalDateTime, LocalTime, NamedTimeZone, PlanId, TemporalInstant,
     TemporalScale, ZonedResolution, UNIX_UTC_CLOCK_BASIS,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 use conduit_time::{
     AvailabilityBasis, AvailabilityInterval, AvailabilityState, MeetingProposalRefusal,
     ParticipantAvailability, TemporalBoundary, TemporalWindow,

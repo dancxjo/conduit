@@ -4,12 +4,12 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
-#[cfg(test)]
-use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
+#[cfg(test)]
+use conduit_plot::{KindProjection, ProfileCatalog};
 
 pub(crate) const KIND: &str = "conduit-proof/speech-pcm-sink";
 const REVISION: &str = "conduit-proof/speech-pcm-sink@1";

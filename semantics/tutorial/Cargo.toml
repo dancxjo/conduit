@@ -1,5 +1,5 @@
 [package]
-name = "conduit-tutorial-form"
+name = "conduit-tutorial-plot"
 version = "0.1.0"
 edition = "2024"
 publish = false
@@ -8,9 +8,9 @@ publish = false
 conduit-ai = { path = "../ai", default-features = false }
 conduit-body = { path = "../../architecture/body", default-features = false, features = ["authenticated-admission"] }
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-presentation = { path = "../presentation", default-features = false }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 
 [build-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }

@@ -35,15 +35,15 @@ fn required_value_bytes(
 }
 
 pub fn plan_expanded_canonical(
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
 ) -> Result<Plan, PlannerError> {
-    form.validate_expansion()
-        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
+    plot.validate_expansion()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
     let mut limits = BTreeMap::new();
-    for connection in &form.connections {
+    for connection in &plot.connections {
         let capability = |gear: &conduit_core::GearId| {
             let choice = placements
                 .by_gear
@@ -53,14 +53,14 @@ pub fn plan_expanded_canonical(
         };
         let source = capability(&connection.source_gear_id)?;
         let sink = capability(&connection.sink_gear_id)?;
-        let source_gear = form
+        let source_gear = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id == connection.source_gear_id)
             .ok_or_else(|| {
                 PlannerError::MissingPlacement(connection.source_gear_id.as_str().to_string())
             })?;
-        let sink_gear = form
+        let sink_gear = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id == connection.sink_gear_id)
@@ -103,7 +103,7 @@ pub fn plan_expanded_canonical(
         );
     }
     plan_expanded_canonical_with_connection_limits(
-        form,
+        plot,
         hosts,
         placements,
         bases,

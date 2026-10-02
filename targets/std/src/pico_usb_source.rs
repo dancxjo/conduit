@@ -112,7 +112,7 @@ impl PicoUsbSource {
         let configuration = parse_pulse_configuration(&fragment.placements[0].configuration)
             .map_err(|error| error.to_string())?;
         if *configuration.count() != MAXIMUM_VALUES as u64 {
-            return Err("unchanged Signal form no longer produces sixteen values".to_owned());
+            return Err("unchanged Signal plot no longer produces sixteen values".to_owned());
         }
         let mut values = HostedValueStore::new(
             MAXIMUM_STORED_ITEMS,

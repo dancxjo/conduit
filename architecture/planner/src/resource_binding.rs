@@ -9,7 +9,7 @@ use conduit_core::{
     CapabilityOffer, HostAdvertisement, HostId, ProtectedResourceGrant, ResourceBinding,
     ResourceHandleId, ResourcePoolId,
 };
-use conduit_form::CheckedGear;
+use conduit_plot::CheckedGear;
 
 pub(crate) struct ResourcePlanningState<'a> {
     pub writers: &'a mut BTreeSet<(HostId, ResourcePoolId)>,

@@ -188,7 +188,7 @@ mod tests {
         AdmissionManager, AdmissionSigns, Body, BodyMembership, CandidateInventory, CandidateState,
         PicoAdmissionProof,
     };
-    use conduit_core::{CheckedFormId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, SourceDocumentId};
     use conduit_signal_conformance::pico_local_advertisement;
     use ed25519_dalek::{Signer, SigningKey};
 
@@ -240,7 +240,7 @@ mod tests {
         let key = SigningKey::from_bytes(&[31; 32]);
         let body = Body::born(
             SourceDocumentId::from("source/pico-wire"),
-            CheckedFormId::from("checked/pico-wire"),
+            CheckedPlotId::from("checked/pico-wire"),
             1,
             SignId::from("sign/body-born"),
         )

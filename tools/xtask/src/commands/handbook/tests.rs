@@ -3,17 +3,17 @@ use super::*;
 #[test]
 fn wiki_links_and_heading_ids_become_static_routes() {
     let prepared = prepare_wiki_markdown(
-        "# Hello, world!\nSee [[Forms and flow|Forms-and-flow#cords-and-fore-direction]].\n",
+        "# Hello, world!\nSee [[Plots and flow|Plots-and-flow#cords-and-fore-direction]].\n",
     );
     assert!(prepared.contains("# Hello, world! {#hello-world}"));
-    assert!(prepared.contains("[Forms and flow](Forms-and-flow.html#cords-and-fore-direction)"));
+    assert!(prepared.contains("[Plots and flow](Plots-and-flow.html#cords-and-fore-direction)"));
 }
 
 #[test]
 fn conduit_fences_use_the_canonical_highlighter_losslessly() {
-    let source = "form hello {\n    \"hi\" >> text/upper\n}.\n";
+    let source = "plot hello {\n    \"hi\" >> text/upper\n}.\n";
     let rendered = render_markdown(&format!("```conduit\n{source}```\n")).unwrap();
-    assert!(rendered.contains("class=\"syntax-keyword\">form</span>"));
+    assert!(rendered.contains("class=\"syntax-keyword\">plot</span>"));
     assert!(rendered.contains("class=\"syntax-identity\">text/upper</span>"));
     assert_eq!(
         rendered
@@ -53,7 +53,7 @@ fn sidebar_order_drives_the_reading_sequence() {
 
 #[test]
 fn handbook_shell_loads_the_diagram_viewport_enhancement() {
-    let shell = page_shell("Form-diagrams", "Form diagrams", "", "", None, None);
+    let shell = page_shell("Plot-diagrams", "Plot diagrams", "", "", None, None);
     assert!(shell.contains("<script type=\"module\" src=\"handbook.mjs\"></script>"));
     assert!(shell.contains("<link rel=\"stylesheet\" href=\"svg-viewport.css\">"));
 }

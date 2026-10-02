@@ -29,7 +29,7 @@ pub(super) const TODO_STATE_STEPS: &[Step] = &[
     ),
     Step::new(
         "todo-state.kernel",
-        "Execute add, toggle and remove through composed Todo Forms and the production kernel",
+        "Execute add, toggle and remove through composed Todo Plots and the production kernel",
         "cargo",
         &[
             "test",
@@ -42,7 +42,7 @@ pub(super) const TODO_STATE_STEPS: &[Step] = &[
     ),
     Step::new(
         "todo-state.browser-kernel",
-        "Execute the same Todo Forms through the browser Host production kernel",
+        "Execute the same Todo Plots through the browser Host production kernel",
         "cargo",
         &[
             "test",

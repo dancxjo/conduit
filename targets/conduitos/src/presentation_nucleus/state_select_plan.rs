@@ -1,4 +1,4 @@
-//! Ordinary form and immutable Plan preparation for portable `state/select`.
+//! Ordinary plot and immutable Plan preparation for portable `state/select`.
 
 use alloc::{
     collections::BTreeMap,
@@ -13,8 +13,8 @@ use conduit_core::{
     KindIdentity, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
     PortTemporal, Scalar, kind_id, port_id,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_plot::{ProfileCatalog, StartupCatalog, parse};
 
 use super::state_select_play::StateSelectError;
 
@@ -63,7 +63,7 @@ pub fn prepare_state_select(
         .map_err(|_| StateSelectError::Catalog)?;
     for offer in source_and_sink_offers(sequence) {
         catalog
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
@@ -73,14 +73,14 @@ pub fn prepare_state_select(
             .map_err(|_| StateSelectError::Catalog)?;
     }
     let source = format!(
-        "form state_select {{\n selector: {SELECTOR_SOURCE_KIND}\n when_false: {FALSE_SOURCE_KIND}\n when_true: {TRUE_SOURCE_KIND}\n select: state/select\n sink: {SINK_KIND}\n selector.value >> select.selector\n when_false.value >> select.when-false\n when_true.value >> select.when-true\n select.out >> sink.value\n}}\n"
+        "plot state_select {{\n selector: {SELECTOR_SOURCE_KIND}\n when_false: {FALSE_SOURCE_KIND}\n when_true: {TRUE_SOURCE_KIND}\n select: state/select\n sink: {SINK_KIND}\n selector.value >> select.selector\n when_false.value >> select.when-false\n when_true.value >> select.when-true\n select.out >> sink.value\n}}\n"
     );
-    let form = parse(&source, &catalog).map_err(|_| StateSelectError::Form)?;
+    let plot = parse(&source, &catalog).map_err(|_| StateSelectError::Plot)?;
     let advertisement = advertisement(host, boot, sequence);
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts).map_err(|_| StateSelectError::Placement)?;
+    let placements = default_placements(&plot, &hosts).map_err(|_| StateSelectError::Placement)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

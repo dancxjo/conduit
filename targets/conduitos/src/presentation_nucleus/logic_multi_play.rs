@@ -43,7 +43,7 @@ type Kernel = FixedScheduler<
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LogicMultiError {
     Catalog,
-    Form,
+    Plot,
     Placement,
     Plan,
     Lowering,

@@ -10,7 +10,7 @@ conduit-kernel = { path = "../../architecture/kernel" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 
 [dev-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-net = { path = "../../semantics/net" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-planner = { path = "../../architecture/planner" }

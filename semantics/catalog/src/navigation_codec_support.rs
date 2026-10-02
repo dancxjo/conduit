@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 use conduit_core::StructuredInfoRefusal;
-use conduit_form::rust_binding::{NativeBindingRefusal, NativeRustBinding};
+use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
 use crate::NavigationRefusal;
 

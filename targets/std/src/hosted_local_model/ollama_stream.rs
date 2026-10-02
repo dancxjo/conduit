@@ -254,13 +254,10 @@ fn decode(
             return flow.finish(conduit_ai::GeneratedTextFlowTerminal::ProviderLost);
         };
         if !response.response.is_empty() {
-            let Ok(chunk) = conduit_ai::GeneratedTextChunk::new(
-                flow.next_sequence(),
-                response.response,
-            ) else {
-                return flow.finish(
-                    conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted,
-                );
+            let Ok(chunk) =
+                conduit_ai::GeneratedTextChunk::new(flow.next_sequence(), response.response)
+            else {
+                return flow.finish(conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted);
             };
             if flow.admit(&chunk).is_err() {
                 return flow.finish(conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted);

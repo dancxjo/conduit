@@ -62,12 +62,12 @@ pub fn indicator_presentation_inputs() -> Vec<PortDescriptor> {
     }]
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_indicator_presentation_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     startup.insert(KindSignature {
         kind: INDICATOR_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),

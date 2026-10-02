@@ -238,8 +238,8 @@ fn verify_static_identity(
     let expected = &identity.generated_image;
     verify_field(record, "firmware_build_id", &identity.firmware_build_id)?;
     verify_field(record, "source_document_id", &expected.source_document_id)?;
-    verify_field(record, "checked_form_id", &expected.checked_form_id)?;
-    verify_field(record, "expanded_form_id", &expected.expanded_form_id)?;
+    verify_field(record, "checked_plot_id", &expected.checked_plot_id)?;
+    verify_field(record, "expanded_plot_id", &expected.expanded_plot_id)?;
     verify_field(record, "plan_id", &expected.plan_id)?;
     verify_field(record, "fragment_id", &expected.fragment_id)?;
     verify_field(record, "host_id", &expected.host_id)?;

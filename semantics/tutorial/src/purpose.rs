@@ -66,7 +66,7 @@ pub fn purpose_state_from_evidence(
             exact_obligation("born", "Be born as one retained body", born),
             exact_obligation("wake", "Wake through an admitted plan and Play", woke),
             exact_obligation("plan-ready", "Establish an exact current plan", planned),
-            exact_obligation("play-started", "Start ordinary form work", played),
+            exact_obligation("play-started", "Start ordinary plot work", played),
             PurposeObligation {
                 obligation_id: "repair-fault".into(),
                 summary: "Repair a real failed Wake".into(),

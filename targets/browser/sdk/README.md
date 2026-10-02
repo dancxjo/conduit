@@ -52,7 +52,7 @@ modules, or the mutable execution owner.
 
 ## Source, checked meaning, and Body work
 
-Conduit keeps authorship separate from realization. A Form says what a
+Conduit keeps authorship separate from realization. A Plot says what a
 computation means; a Host says which implementations it currently offers; a
 Plan can later choose exact realizations. Source text is therefore not a graph
 of browser callbacks, and checking source does not silently acquire resources,
@@ -61,13 +61,13 @@ ask for permissions, or promise that a Plan can run.
 The browser SDK sends ordinary Conduitese text to the checked Rust runtime.
 JavaScript retains the exact text as a source value; it does not tokenize,
 parse, normalize, or infer a second language. Rust returns the canonical source
-document identity, each checked Form identity, and the Kind requirements it
+document identity, each checked Plot identity, and the Kind requirements it
 derived. These are different facts: changing whitespace can change the source
-identity while preserving a checked Form identity, and neither identity is a
+identity while preserving a checked Plot identity, and neither identity is a
 Plan or a running Play.
 
 ```js
-const clock = host.form(`
+const clock = host.plot(`
 clock {
   every: time/every(1s)
   tick: presentation/tick
@@ -81,15 +81,15 @@ if (!checked.ok) {
     console.error(diagnostic.code, diagnostic.message, diagnostic.span);
   }
 } else {
-  console.log(checked.sourceDocumentId, checked.forms[0].checkedFormId);
+  console.log(checked.sourceDocumentId, checked.plots[0].checkedPlotId);
   console.log(checked.requirements.kinds);
 
   // Rust reviews exact requirements without creating a Plan or acquiring them.
-  const review = await host.review(checked.forms);
+  const review = await host.review(checked.plots);
   console.log(review.requirements.resources, review.requirements.capabilities);
   console.log(review.bodyPlanCreated, review.resourcesAcquired); // false, false
 
-  const body = await host.birth({ name: "Clock", forms: checked.forms });
+  const body = await host.birth({ name: "Clock", plots: checked.plots });
   await body.install(clock);
   const play = await body.wake();
   console.log(play.id, play.plan.planId, play.state);
@@ -110,14 +110,14 @@ carry the canonical UTF-8 byte range and one-based line and column when the
 grammar provides them. Other refusals remain structured with a stable code and
 message; the SDK never scrapes prose to recover an error category.
 
-`birth()` requires checked Forms and sends the exact source, source identity,
-and checked Form identities to Rust. Rust admits the source interaction,
+`birth()` requires checked Plots and sends the exact source, source identity,
+and checked Plot identities to Rust. Rust admits the source interaction,
 validates initial membership and the bounded workload, and returns the Body
 receipt. The Body begins lulled: birth does not imply a plan, selected
 implementation, permission, or active Play. `install()` and `remove()` operate
 on that Body's workload. Each operation reads the current authoritative
 workload revision and submits it as the expected revision; a stale update is a
-typed refusal with the runtime evidence and revision that was used. Form
+typed refusal with the runtime evidence and revision that was used. Plot
 identity and workload revision are not browser-side mutable state.
 
 ## From workload to Play
@@ -147,7 +147,7 @@ code or prompt while planning. Distributed execution Lines and permission-
 gated acquisition are only usable when the admitted Plan and selected Host
 profile provide their exact support.
 
-Forms intentionally contain no DOM selector, browser API, implementation ID,
+Plots intentionally contain no DOM selector, browser API, implementation ID,
 permission decision, or resource handle. Those belong to later Host and Plan
 decisions. This is what lets one checked meaning remain portable without
 pretending each Host can realize it.
@@ -161,14 +161,14 @@ that workset again. It does not serialize a JavaScript Body or an in-memory
 Play.
 
 On a later page load, `recover()` rechecks the source, refuses any retained
-Form identity that no longer matches canonical checking, and asks the Rust
+Plot identity that no longer matches canonical checking, and asks the Rust
 Workspace runtime to restore the same Body under the current Boot:
 
 ```js
 const host = await Conduit.browser({ root });
-const checked = await host.form(source).check();
+const checked = await host.plot(source).check();
 const body = await host.recover()
-  ?? await host.birth({ name: "Clock", forms: checked.forms });
+  ?? await host.birth({ name: "Clock", plots: checked.plots });
 const play = await body.wake();
 ```
 
@@ -208,9 +208,9 @@ snapshot independently of subscriptions.
 const snapshot = await body.snapshot();
 console.log(snapshot.evidence.body_id, snapshot.evidence.body.workload_revision);
 
-// Authored Form inspection creates no Body, Plan, Play, or authority. The
+// Authored Plot inspection creates no Body, Plan, Play, or authority. The
 // projected Front retains each exact Rust-checked value contract.
-const authored = host.form(`form code (
+const authored = host.plot(`plot code (
   >> value: Text <= 8B ~ /^[A-Z]{2}[0-9]{2}$/
 ) {
   upper: text/upper
@@ -291,7 +291,7 @@ entries with `bundle/browser-bundle-release.json`; then inspect
 loader repeats these identity and closure checks at runtime.
 
 The BrowserHost surface carries exact Host and Boot identity, while its current
-offers remain a refreshed projection of Boot evidence. Forms and Body workload
+offers remain a refreshed projection of Boot evidence. Plots and Body workload
 operations use that same admitted Browser runtime. Typed refusal classes retain
 machine category, operation, and runtime evidence. Typed events, full Play
 lifecycle, and reload recovery are layered on the same Host and Body contracts.

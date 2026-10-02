@@ -3,7 +3,7 @@
 use alloc::vec::Vec;
 
 use crate::{
-    ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode,
+    ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeForm,
     ReactionDiffusionBoundaryState, ReactionDiffusionCell, ReactionDiffusionFieldId,
     ReactionDiffusionPartitionRefusal, ReactionDiffusionRegionId,
     REACTION_DIFFUSION_BOUNDARY_HEADER_BYTES,
@@ -55,7 +55,7 @@ impl ReactionDiffusionBoundaryState {
         }
         let mut field_id = [0; 16];
         field_id.copy_from_slice(&encoded[12..28]);
-        let edge = ReactionDiffusionBoundaryEdgeCode::decode(&[encoded[44]])
+        let edge = ReactionDiffusionBoundaryEdgeForm::decode(&[encoded[44]])
             .map_err(|_| ReactionDiffusionPartitionRefusal::WrongBoundaryEdge)?;
         let mut values = Vec::with_capacity(count);
         for offset in (REACTION_DIFFUSION_BOUNDARY_HEADER_BYTES..expected).step_by(8) {
@@ -83,7 +83,7 @@ impl ReactionDiffusionBoundaryState {
 }
 
 pub(crate) fn edge_tag(edge: ReactionDiffusionBoundaryEdge) -> u8 {
-    ReactionDiffusionBoundaryEdgeCode::encode(edge)[0]
+    ReactionDiffusionBoundaryEdgeForm::encode(edge)[0]
 }
 
 fn read_u16(encoded: &[u8], offset: usize) -> Result<u16, ReactionDiffusionPartitionRefusal> {

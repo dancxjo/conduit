@@ -1,4 +1,4 @@
-//! Form catalog and hosted offer boundary for application networking.
+//! Plot catalog and hosted offer boundary for application networking.
 
 use alloc::{
     format,
@@ -13,7 +13,7 @@ use conduit_core::{
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_core::{Back, BackOfferBuilder};
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{
     application_network_registered_types, dns_query_type, dns_result_type,
@@ -37,8 +37,8 @@ pub const DNS_RESOLVE_AUTHORITY: &str = "conduit.authority/dns-resolve@1";
 pub const NETWORK_CONNECT_AUTHORITY: &str = "conduit.authority/network-connect@1";
 
 pub fn install_application_network_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in application_network_registered_types() {
         startup

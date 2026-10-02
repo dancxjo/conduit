@@ -25,8 +25,8 @@
           "specifier": "./body-bootstrap.mjs"
         },
         {
-          "role": "creche-form-selection",
-          "specifier": "./reviewed-form-selection.mjs"
+          "role": "creche-plot-selection",
+          "specifier": "./reviewed-plot-selection.mjs"
         },
         {
           "role": "workspace-session",
@@ -75,16 +75,16 @@
       ]
     },
     {
-      "role": "reviewed-form-inventory",
+      "role": "reviewed-plot-inventory",
       "kind": "content",
-      "path": "forms/initial-body.conduit",
+      "path": "plots/initial-body.conduit",
       "maximum_bytes": 24576,
       "dependencies": []
     },
     {
-      "role": "reviewed-form-catalog",
+      "role": "reviewed-plot-catalog",
       "kind": "content",
-      "path": "forms/workspace-catalog.json",
+      "path": "plots/workspace-catalog.json",
       "maximum_bytes": 131072,
       "dependencies": []
     },
@@ -130,15 +130,15 @@
           "specifier": "../../../targets/browser/host/assets/application-syntax-presentation.mjs"
         },
         {
-          "role": "creche-form-selection",
-          "specifier": "./reviewed-form-selection.mjs"
+          "role": "creche-plot-selection",
+          "specifier": "./reviewed-plot-selection.mjs"
         }
       ]
     },
     {
-      "role": "creche-form-selection",
+      "role": "creche-plot-selection",
       "kind": "module",
-      "path": "reviewed-form-selection.mjs",
+      "path": "reviewed-plot-selection.mjs",
       "maximum_bytes": 8192,
       "dependencies": []
     },
@@ -437,8 +437,8 @@
           "specifier": "./browser-human-input.mjs"
         },
         {
-          "role": "browser-form-effects",
-          "specifier": "./browser-form-effects.mjs"
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
         },
         {
           "role": "browser-body-input",
@@ -489,9 +489,9 @@
       "dependencies": []
     },
     {
-      "role": "browser-form-effects",
+      "role": "browser-plot-effects",
       "kind": "module",
-      "path": "browser-form-effects.mjs",
+      "path": "browser-plot-effects.mjs",
       "maximum_bytes": 16384,
       "dependencies": []
     },
@@ -514,8 +514,8 @@
       "maximum_bytes": 8192,
       "dependencies": [
         {
-          "role": "browser-form-effects",
-          "specifier": "./browser-form-effects.mjs"
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
         }
       ]
     },
@@ -526,8 +526,8 @@
       "maximum_bytes": 16384,
       "dependencies": [
         {
-          "role": "browser-form-effects",
-          "specifier": "./browser-form-effects.mjs"
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
         }
       ]
     },

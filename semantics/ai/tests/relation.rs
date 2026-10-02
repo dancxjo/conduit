@@ -7,7 +7,7 @@ use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
 fn constraint() -> ModelValueConstraint {
     ModelValueConstraint::sampled_signal(

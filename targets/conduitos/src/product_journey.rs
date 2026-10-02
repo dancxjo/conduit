@@ -7,12 +7,12 @@ use conduit_body::{
     BodyPlayIdentity, BodyState, FulfillmentObligation, MembershipProofId, PartId, Wake,
     WakeLifecycleEvent,
 };
-use conduit_core::{AuthorityGrantId, BootId, ExpandedFormId, HostId, OfferGeneration, SignId};
+use conduit_core::{AuthorityGrantId, BootId, ExpandedPlotId, HostId, OfferGeneration, SignId};
 
 use crate::{
     identity::BootIdentities,
-    keyboard_text_plan::{self, KeyboardTextFormIdentity},
-    native_workset::{self, NativeForm, NativeWorksetPlay},
+    keyboard_text_plan::{self, KeyboardTextPlotIdentity},
+    native_workset::{self, NativePlot, NativeWorksetPlay},
     offer::HostOffer,
     ordinary_plan::PreparationError,
 };
@@ -22,8 +22,8 @@ mod result_window;
 use result_window::ResultWindow;
 mod play;
 mod workset;
-use workset::FormResult;
-pub use workset::{WorkspaceForm, WorkspaceProjection};
+use workset::PlotResult;
+pub use workset::{WorkspacePlot, WorkspaceProjection};
 
 pub use patchbay_control::{
     PatchbayAction as JourneyAction, PatchbayControlRequest as JourneyRequest,
@@ -32,7 +32,7 @@ pub use patchbay_control::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum JourneyStatus {
     World,
-    FormOpened,
+    PlotOpened,
     BornLulled,
     Awake,
     Planned,
@@ -48,7 +48,7 @@ impl JourneyStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::World => "world",
-            Self::FormOpened => "form-opened",
+            Self::PlotOpened => "plot-opened",
             Self::BornLulled => "born-lulled",
             Self::Awake => "awake",
             Self::Planned => "planned",
@@ -88,7 +88,7 @@ impl JourneyLossKind {
 pub enum JourneyError {
     StalePresentation,
     WrongTarget,
-    FormNotOpened,
+    PlotNotOpened,
     AlreadyBorn,
     BodyAbsent,
     InvalidTransition,
@@ -108,7 +108,7 @@ impl JourneyError {
         match self {
             Self::StalePresentation => "product-interaction-stale-presentation",
             Self::WrongTarget => "product-interaction-wrong-target",
-            Self::FormNotOpened => "product-birth-form-not-open",
+            Self::PlotNotOpened => "product-birth-plot-not-open",
             Self::AlreadyBorn => "product-birth-duplicate",
             Self::BodyAbsent => "product-body-absent",
             Self::InvalidTransition => "product-lifecycle-transition-refused",
@@ -130,8 +130,8 @@ pub struct JourneyProjection {
     pub status: JourneyStatus,
     pub revision: u64,
     pub source_document_id: Option<conduit_core::SourceDocumentId>,
-    pub checked_form_id: Option<conduit_core::CheckedFormId>,
-    pub expanded_form_id: Option<ExpandedFormId>,
+    pub checked_plot_id: Option<conduit_core::CheckedPlotId>,
+    pub expanded_plot_id: Option<ExpandedPlotId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -169,7 +169,7 @@ pub struct ProductJourney {
     host_id: HostId,
     boot_id: BootId,
     offer_generation: OfferGeneration,
-    form: Option<KeyboardTextFormIdentity>,
+    plot: Option<KeyboardTextPlotIdentity>,
     status: JourneyStatus,
     revision: u64,
     request_sequence: u64,
@@ -184,13 +184,13 @@ pub struct ProductJourney {
     play: Option<BodyPlayIdentity>,
     kernel: Option<Box<NativeWorksetPlay>>,
     foreground: usize,
-    forms: [Option<NativeForm>; native_workset::NATIVE_FORM_CAPACITY],
-    input_owners: [Option<native_workset::AdmittedFormInput>; native_workset::NATIVE_FORM_CAPACITY],
+    plots: [Option<NativePlot>; native_workset::NATIVE_PLOT_CAPACITY],
+    input_owners: [Option<native_workset::AdmittedPlotInput>; native_workset::NATIVE_PLOT_CAPACITY],
     input_count: u32,
     input_sign_id: Option<SignId>,
     loss_kind: Option<JourneyLossKind>,
     loss_sign_id: Option<SignId>,
-    results: [FormResult; native_workset::NATIVE_FORM_CAPACITY],
+    results: [PlotResult; native_workset::NATIVE_PLOT_CAPACITY],
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
     application_request: Option<native_workset::NativeApplicationRequest>,
@@ -277,7 +277,7 @@ impl ProductJourney {
             host_id,
             boot_id,
             offer_generation,
-            form: None,
+            plot: None,
             status: JourneyStatus::World,
             revision: 1,
             request_sequence: 0,
@@ -292,13 +292,13 @@ impl ProductJourney {
             play: None,
             kernel: None,
             foreground: 0,
-            forms: [None; native_workset::NATIVE_FORM_CAPACITY],
+            plots: [None; native_workset::NATIVE_PLOT_CAPACITY],
             input_owners: core::array::from_fn(|_| None),
             input_count: 0,
             input_sign_id: None,
             loss_kind: None,
             loss_sign_id: None,
-            results: core::array::from_fn(|_| FormResult::new()),
+            results: core::array::from_fn(|_| PlotResult::new()),
             retained_kernel_sign_gap: None,
             last_request_id: None,
             application_request: None,
@@ -360,7 +360,7 @@ impl ProductJourney {
         }
         self.validate_target(&request)?;
         match request.action {
-            JourneyAction::OpenBack => self.open_form()?,
+            JourneyAction::OpenBack => self.open_plot()?,
             JourneyAction::Birth => self.birth()?,
             JourneyAction::Wake => self.wake()?,
             JourneyAction::Plan => self.plan(identities, offer, build_id)?,
@@ -368,7 +368,7 @@ impl ProductJourney {
             JourneyAction::Stop => self.stop()?,
             JourneyAction::Lull => self.lull()?,
             JourneyAction::Fulfill => self.fulfill()?,
-            JourneyAction::AdmitForm => self.admit_next_form()?,
+            JourneyAction::AdmitPlot => self.admit_next_plot()?,
             _ => return Err(JourneyError::WrongTarget),
         }
         self.last_request_id = Some(request.request_id);
@@ -417,11 +417,11 @@ impl ProductJourney {
             status: self.status,
             revision: self.revision,
             source_document_id: self
-                .form
+                .plot
                 .as_ref()
-                .map(|form| form.source_document_id.clone()),
-            checked_form_id: self.form.as_ref().map(|form| form.checked_form_id.clone()),
-            expanded_form_id: self.form.as_ref().map(|form| form.expanded_form_id.clone()),
+                .map(|plot| plot.source_document_id.clone()),
+            checked_plot_id: self.plot.as_ref().map(|plot| plot.checked_plot_id.clone()),
+            expanded_plot_id: self.plot.as_ref().map(|plot| plot.expanded_plot_id.clone()),
             host_id: self.host_id.clone(),
             boot_id: self.boot_id.clone(),
             offer_generation: self.offer_generation,
@@ -434,7 +434,7 @@ impl ProductJourney {
             workload_revision: self.body.as_ref().map(|body| body.workload_revision),
             workload_sign_id: self.body.as_ref().and_then(|body| {
                 body.events.iter().rev().find_map(|event| match event {
-                    conduit_body::BodyLifecycleEvent::FormAdmitted { sign_id, .. } => {
+                    conduit_body::BodyLifecycleEvent::PlotAdmitted { sign_id, .. } => {
                         Some(sign_id.clone())
                     }
                     _ => None,
@@ -451,7 +451,7 @@ impl ProductJourney {
             workload_capacity_available: self
                 .body
                 .as_ref()
-                .is_some_and(|body| body.workset.len() < native_workset::NATIVE_FORM_CAPACITY),
+                .is_some_and(|body| body.workset.len() < native_workset::NATIVE_PLOT_CAPACITY),
             friendly_name: self.friendly_name.clone(),
             part_id: self.part_id.clone(),
             wake_id: self.wake.as_ref().map(|wake| wake.wake_id.clone()),
@@ -463,16 +463,16 @@ impl ProductJourney {
             gear_ids: self
                 .plan
                 .iter()
-                .flat_map(|plan| &plan.forms)
-                .flat_map(|form| &form.plan.fragments)
+                .flat_map(|plan| &plan.plots)
+                .flat_map(|plot| &plot.plan.fragments)
                 .flat_map(|fragment| &fragment.placements)
                 .map(|placement| placement.gear_id.as_str().to_owned())
                 .collect(),
             port_ids: self
                 .plan
                 .iter()
-                .flat_map(|plan| &plan.forms)
-                .flat_map(|form| &form.plan.fragments)
+                .flat_map(|plan| &plan.plots)
+                .flat_map(|plot| &plot.plan.fragments)
                 .flat_map(|fragment| &fragment.connections)
                 .flat_map(|connection| {
                     [
@@ -492,8 +492,8 @@ impl ProductJourney {
             cord_ids: self
                 .plan
                 .iter()
-                .flat_map(|plan| &plan.forms)
-                .flat_map(|form| &form.plan.fragments)
+                .flat_map(|plan| &plan.plots)
+                .flat_map(|plot| &plot.plan.fragments)
                 .flat_map(|fragment| &fragment.connections)
                 .map(|connection| connection.connection_id.as_str().to_owned())
                 .collect(),
@@ -503,7 +503,7 @@ impl ProductJourney {
             result_sign_id: self.results[self.foreground].sign.clone(),
             result: self.foreground_result().map(|text| text.into()),
             result_omitted_bytes: self.results[self.foreground]
-                .omitted_bytes(self.forms[self.foreground]),
+                .omitted_bytes(self.plots[self.foreground]),
             input_count: self.input_count,
             kernel_sign_gap: self
                 .kernel
@@ -521,18 +521,18 @@ impl ProductJourney {
     fn validate_target(&self, request: &JourneyRequest) -> Result<(), JourneyError> {
         let expected = match request.action {
             JourneyAction::OpenBack => format!(
-                "form/{}",
-                keyboard_text_plan::checked_form_identity()
+                "plot/{}",
+                keyboard_text_plan::checked_plot_identity()
                     .map_err(JourneyError::Plan)?
-                    .checked_form_id
+                    .checked_plot_id
                     .as_str()
             ),
             JourneyAction::Birth => format!(
-                "form/{}",
-                self.form
+                "plot/{}",
+                self.plot
                     .as_ref()
-                    .ok_or(JourneyError::FormNotOpened)?
-                    .checked_form_id
+                    .ok_or(JourneyError::PlotNotOpened)?
+                    .checked_plot_id
                     .as_str()
             ),
             JourneyAction::Wake
@@ -541,7 +541,7 @@ impl ProductJourney {
             | JourneyAction::Stop
             | JourneyAction::Lull
             | JourneyAction::Fulfill
-            | JourneyAction::AdmitForm => self
+            | JourneyAction::AdmitPlot => self
                 .body
                 .as_ref()
                 .map(|body| format!("body/{}", body.body_id.as_str()))
@@ -554,12 +554,12 @@ impl ProductJourney {
         Ok(())
     }
 
-    fn open_form(&mut self) -> Result<(), JourneyError> {
+    fn open_plot(&mut self) -> Result<(), JourneyError> {
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
-        self.form = Some(keyboard_text_plan::checked_form_identity().map_err(JourneyError::Plan)?);
-        self.status = JourneyStatus::FormOpened;
+        self.plot = Some(keyboard_text_plan::checked_plot_identity().map_err(JourneyError::Plan)?);
+        self.status = JourneyStatus::PlotOpened;
         Ok(())
     }
 

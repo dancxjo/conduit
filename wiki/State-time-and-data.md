@@ -19,7 +19,7 @@ T...|   a closing flow
 $T      a current retained value
 ```
 
-Optionality composes with these forms, so `T?` and `$T?` remain distinct.
+Optionality composes with these plots, so `T?` and `$T?` remain distinct.
 
 ## keep means retained current truth
 
@@ -88,25 +88,25 @@ G still names immutable C
 
 That is why the Durable Notebook vertical refuses "autosave fiction." See [#4116](https://github.com/dancxjo/conduit/issues/4116).
 
-## Live versus finite forms
+## Live versus finite plots
 
-A live form:
+A live plot:
 
 ```conduit
-form clock-demo {
+plot clock-demo {
     clock: time/every(1s)
     clock >> presentation/tick
 }
 ```
 
-![The clock demo form as connected gears](assets/sample-diagrams/clock-demo.svg)
+![The clock demo plot as connected gears](assets/sample-diagrams/clock-demo.svg)
 
 can quiesce and resume.
 
-A finite-on-drain form:
+A finite-on-drain plot:
 
 ```conduit
-form upper (
+plot upper (
     >> input: Text
     output: Text >>
 ) {
@@ -114,7 +114,7 @@ form upper (
 }.
 ```
 
-![The finite upper form as connected gears](assets/sample-diagrams/upper.svg)
+![The finite upper plot as connected gears](assets/sample-diagrams/upper.svg)
 
 turns structural drain into semantic completion.
 
@@ -130,7 +130,7 @@ That state is **quiescence**.
 active → quiescent → active
 ```
 
-Later admitted work can wake the same play again. Semantic completion is stronger: it means the authored form has supplied a completion witness, such as structural drain on a form explicitly marked finite-on-drain.
+Later admitted work can wake the same play again. Semantic completion is stronger: it means the authored plot has supplied a completion witness, such as structural drain on a plot explicitly marked finite-on-drain.
 
 The distinction prevents an idle reactive system from being mistaken for a finished one.
 
@@ -139,7 +139,7 @@ The distinction prevents an idle reactive system from being mistaken for a finis
 External conditions can activate source gears:
 
 ```conduit
-form scheduled-reminder {
+plot scheduled-reminder {
     source: notification/deterministic-reminder
     deliver: notification/deliver-reminder
 

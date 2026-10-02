@@ -11,8 +11,8 @@ mod generated {
 }
 
 pub use generated::{
-    AccelerationObservation, BatteryObservation, BeaconKind, BeaconKindCode, BeaconObservation,
-    ButtonSetObservation, ChargingObservation, ChargingState, ChargingStateCode, CliffObservation,
+    AccelerationObservation, BatteryObservation, BeaconKind, BeaconKindForm, BeaconObservation,
+    ButtonSetObservation, ChargingObservation, ChargingState, ChargingStateForm, CliffObservation,
     CliffSignal, CliffSignalObserved, ContactObservation, NavigationBoundedMotionIntent,
     NavigationControlDecision, NavigationControlDecisionArrived, NavigationControlDecisionHold,
     NavigationControlDecisionMotion, NavigationControlDecisionPoseStale,

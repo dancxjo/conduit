@@ -7,10 +7,9 @@ use alloc::{
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    StructuredInfoType, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
@@ -146,8 +145,8 @@ pub fn named_pattern_template_initializer_semantic_contract() -> Kind {
 }
 
 pub fn install_template_storage_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(NAMED_PATTERN_TEMPLATE_TYPE, named_pattern_template_type())

@@ -130,14 +130,14 @@ fn compiled_families_are_not_ambient_runtime_promises() {
 #[test]
 fn planner_cannot_obtain_an_unselected_family_from_a_category_prefix() {
     let host = host(StdHostComposition::minimal().with_text());
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../../proof/fixtures/forms/signal-demo.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../../proof/fixtures/plots/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     )
-    .expect("Signal form checks independently of host composition");
+    .expect("Signal plot checks independently of host composition");
 
-    assert!(host.plan_local(&form, None).is_err());
+    assert!(host.plan_local(&plot, None).is_err());
 }
 
 #[test]

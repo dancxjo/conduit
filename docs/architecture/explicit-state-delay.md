@@ -41,7 +41,7 @@ is a separate realization limit: exhaustion refuses before rollover, leaving
 current state unchanged. It is not semantic completion or permission to reset.
 Candidate evidence retains the identity assigned at offer through commit or
 abort. A finite transition-budget realization continues to report its distinct
-budget refusal. Checked-form execution and cross-play continuity use the installed hosted
+budget refusal. Checked-plot execution and cross-play continuity use the installed hosted
 state path described below; #2688 and #2691 retain the wider acceptance scope.
 The kernel `StateOperation` Back exposes this cell through exact next/current
 ports in the fixed scheduler's Step protocol. Its profile admits
@@ -62,7 +62,7 @@ contracts participate in both fragment and plan fingerprints. Mutating any of
 those fields invalidates the sealed identity; a changed capacity requires a
 fresh plan. The ordinary planner's `seal_state_plan` validates checked state
 graph admission and seals these contracts with their mandatory state evidence
-reserve, preserving the original plan and checked form identity.
+reserve, preserving the original plan and checked plot identity.
 
 The hosted implementation now lowers admitted state into numeric storage and
 installs `TypedStateOperation` in the ordinary std operation registry. A
@@ -75,7 +75,7 @@ contracts return `StateStorageExceeded`.
 The std continuation path consumes a terminal, execution-bound operation to
 obtain `RetainedTypedState`. The cell is privately owned, not a cloneable
 serialized checkpoint. Replacement planning seals the exact retained
-provenance; replacement preparation validates source form, state, generation,
+provenance; replacement preparation validates source plot, state, generation,
 value type, initial value, and distinct destination play before moving the cell.
 Generation and transition allowance are preserved. Refusal returns ownership
 of the original cell; fresh initialization cannot silently reset a retained

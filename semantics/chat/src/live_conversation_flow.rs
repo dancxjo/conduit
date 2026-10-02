@@ -235,13 +235,9 @@ mod tests {
             false,
         )
         .unwrap();
-        let generation = GeneratedTextFlowEvidence::new(
-            3,
-            42,
-            GeneratedTextFlowTerminal::Completed,
-            false,
-        )
-        .unwrap();
+        let generation =
+            GeneratedTextFlowEvidence::new(3, 42, GeneratedTextFlowTerminal::Completed, false)
+                .unwrap();
         let speech = SpeechCommitEvidenceView {
             stream_identity: "speech/live-1".into(),
             segment_count: 2,

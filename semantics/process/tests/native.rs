@@ -2,7 +2,7 @@ use conduit_core::{
     kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_process::{
     JobArguments, JobEnvironment, JobEnvironmentEntry, JobExecutable, JobOutputBytes, JobRequest,
     JobRequestRefusal, JobText, JOB_EXECUTABLE_ACCESS_CLASS, JOB_EXECUTABLE_CONTENT_PROFILE,

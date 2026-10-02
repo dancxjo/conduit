@@ -2,7 +2,7 @@
 
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 use conduit_body::{Body, BodyState, Wake};
-use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
+use conduit_core::{ActivePlayId, CheckedPlotId, PlanId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -28,9 +28,9 @@ pub const MAX_FACE_TRANSIENTS: usize = 2;
 pub enum FaceContext {
     Overview,
     Library,
-    ResidentForm(CheckedFormId),
-    Tutorial(CheckedFormId),
-    Inspection(CheckedFormId),
+    ResidentPlot(CheckedPlotId),
+    Tutorial(CheckedPlotId),
+    Inspection(CheckedPlotId),
 }
 
 impl FaceContributionRole {
@@ -47,7 +47,7 @@ impl FaceContributionRole {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FaceContribution {
     pub role: FaceContributionRole,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub presentation: Box<PresentationFragment>,
@@ -57,7 +57,7 @@ impl FaceContribution {
     pub fn from_presentation(role: FaceContributionRole, fragment: PresentationFragment) -> Self {
         Self {
             role,
-            checked_form_id: fragment.basis.checked_form_id.clone(),
+            checked_plot_id: fragment.basis.checked_plot_id.clone(),
             plan_id: fragment.basis.plan_id.clone(),
             active_play_id: fragment.basis.active_play_id.clone(),
             presentation: Box::new(fragment),
@@ -94,8 +94,8 @@ pub enum FaceOperatorActionKind {
     Lull,
     OpenOverview,
     OpenLibrary,
-    OpenResidentForm(CheckedFormId),
-    OpenInspection(CheckedFormId),
+    OpenResidentPlot(CheckedPlotId),
+    OpenInspection(CheckedPlotId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,15 +108,15 @@ pub enum FaceRefusal {
     TooManyTransients,
     DuplicateRole,
     DuplicatePlay,
-    FormNotResident,
+    PlotNotResident,
     PlayNotCurrent,
     InvalidPresentationFragment(PresentationFragmentError),
     IncompatibleInteractionContext,
     FaceOwnedIdentity(String),
     ContributionIdentityCollision {
         identity: String,
-        first: CheckedFormId,
-        second: CheckedFormId,
+        first: CheckedPlotId,
+        second: CheckedPlotId,
     },
     InvalidContext,
     InvalidFocus,
@@ -191,7 +191,7 @@ impl Face {
         let mut text = vec![PresentationText {
             subject: body_subject.clone(),
             text: format!(
-                "Body {} is {} with {} resident Form(s) at workload revision {}.",
+                "Body {} is {} with {} resident Plot(s) at workload revision {}.",
                 body.body_id.as_str(),
                 lifecycle_label(&body.state),
                 body.workset.len(),
@@ -222,37 +222,37 @@ impl Face {
             &mut disclosures,
         );
 
-        for form in body.workset.forms() {
-            let form_subject = format!("form/{}", form.checked_form_id.as_str());
+        for plot in body.workset.plots() {
+            let plot_subject = format!("plot/{}", plot.checked_plot_id.as_str());
             subjects.push(PresentationSubject {
-                identity: form_subject.clone(),
-                role: PresentationRole::Form,
-                name: format!("Resident Form {}", form.checked_form_id.as_str()),
+                identity: plot_subject.clone(),
+                role: PresentationRole::Plot,
+                name: format!("Resident Plot {}", plot.checked_plot_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: body_subject.clone(),
-                target: form_subject.clone(),
+                target: plot_subject.clone(),
                 kind: PresentationRelationshipKind::Contains,
             });
             properties.extend([
                 identity_property(
-                    &form_subject,
+                    &plot_subject,
                     "source-document-id",
-                    form.source_document_id.as_str(),
+                    plot.source_document_id.as_str(),
                 ),
                 identity_property(
-                    &form_subject,
-                    "checked-form-id",
-                    form.checked_form_id.as_str(),
+                    &plot_subject,
+                    "checked-plot-id",
+                    plot.checked_plot_id.as_str(),
                 ),
                 PresentationProperty {
-                    subject: form_subject.clone(),
+                    subject: plot_subject.clone(),
                     name: "workload-membership".into(),
                     value: PresentationPropertyValue::Text("resident".into()),
                 },
             ]);
             disclosures.push(PresentationDisclosure {
-                subject: form_subject,
+                subject: plot_subject,
                 level: PresentationDisclosureLevel::Context,
             });
         }
@@ -294,8 +294,8 @@ impl Face {
                 body_id: Some(body.body_id.clone()),
                 wake_id: wake.map(|value| value.wake_id.clone()),
                 source_document_id: None,
-                checked_form_id: None,
-                expanded_form_id: None,
+                checked_plot_id: None,
+                expanded_plot_id: None,
                 plan_id: None,
                 active_play_id: None,
                 sign_ids,
@@ -350,7 +350,7 @@ fn context_label(context: &FaceContext) -> &'static str {
     match context {
         FaceContext::Overview => "overview",
         FaceContext::Library => "library",
-        FaceContext::ResidentForm(_) => "resident-form",
+        FaceContext::ResidentPlot(_) => "resident-plot",
         FaceContext::Tutorial(_) => "tutorial",
         FaceContext::Inspection(_) => "inspection",
     }
@@ -370,9 +370,9 @@ pub(super) fn interaction_context_identity(context: &FaceContext, focus: &FaceFo
     let context = match context {
         FaceContext::Overview => "overview".into(),
         FaceContext::Library => "library".into(),
-        FaceContext::ResidentForm(form) => format!("resident-form/{}", form.as_str()),
-        FaceContext::Tutorial(form) => format!("tutorial/{}", form.as_str()),
-        FaceContext::Inspection(form) => format!("inspection/{}", form.as_str()),
+        FaceContext::ResidentPlot(plot) => format!("resident-plot/{}", plot.as_str()),
+        FaceContext::Tutorial(plot) => format!("tutorial/{}", plot.as_str()),
+        FaceContext::Inspection(plot) => format!("inspection/{}", plot.as_str()),
     };
     format!("face/context/{context}/focus/{}", focus_label(focus))
 }

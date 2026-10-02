@@ -148,15 +148,15 @@ fn contract(
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_structured_value_catalogs(
     type_name: &str,
     value_type: &StructuredInfoType,
     default_value: &StructuredInfoValue,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
 
     if default_value.value_type() != value_type {
         return Err("structured literal default has the wrong exact type".into());

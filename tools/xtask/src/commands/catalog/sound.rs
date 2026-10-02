@@ -9,8 +9,8 @@ use crate::cli::GlobalOpts;
 use super::CatalogError;
 
 mod adapters;
-mod forms;
 mod plans;
+mod plots;
 
 const SCHEMA: &str = "conduit.sound/conformance-matrix@1";
 const MAXIMUM_REALIZATIONS: usize = 6;
@@ -78,7 +78,7 @@ struct Report {
     realizations: Vec<Realization>,
     requirements: Vec<Requirement>,
     cells: Vec<Cell>,
-    canonical_forms: Vec<forms::CanonicalForm>,
+    canonical_plots: Vec<plots::CanonicalPlot>,
     cross_realization_plans: plans::PlanComparison,
     recursive_realization: RecursiveRealization,
     lossy_adapter: adapters::LossyAdapterProof,
@@ -131,7 +131,7 @@ fn build() -> Result<Report, CatalogError> {
             });
         }
     }
-    let canonical_forms = forms::build()?;
+    let canonical_plots = plots::build()?;
     let cross_realization_plans = plans::build()?;
     Ok(Report {
         schema: SCHEMA,
@@ -146,7 +146,7 @@ fn build() -> Result<Report, CatalogError> {
         realizations,
         requirements,
         cells,
-        canonical_forms,
+        canonical_plots,
         cross_realization_plans,
         recursive_realization: RecursiveRealization {
             requirement_kind: conduit_semantic_catalog::MUSIC_PLAY_THROUGH_SYNTH.requirement_kind,

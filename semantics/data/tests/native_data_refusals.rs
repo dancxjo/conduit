@@ -3,7 +3,7 @@ use conduit_data::{
     ScientificAlignmentRefusal, ScientificCorpusRefusal, ScientificObservationRefusal,
     TensorRefusal,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn round_trip<T>(value: T)
 where

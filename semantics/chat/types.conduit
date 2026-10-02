@@ -86,7 +86,7 @@ type BodyChatRole =
     human
     | body
 
-code chat/body-role = BodyChatRole as u8
+form chat/body-role = BodyChatRole as u8
 
 type BodyChatMessage = Text <= 4096B not in [""]
 
@@ -101,7 +101,7 @@ type BodyConversationalSummary = {
     lifecycle: Text <= 16B not in [""]
     present_hosts: U16
     offline_hosts: U16
-    active_forms: U16
+    active_plots: U16
     execution: Text <= 16B not in [""]
     ready_lines: U16
     unavailable_lines: U16

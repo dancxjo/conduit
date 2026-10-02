@@ -1,10 +1,10 @@
 use conduit_body::*;
-use conduit_core::{BootId, CheckedFormId, HostId, SignId, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, HostId, SignId, SourceDocumentId};
 
 fn body_id() -> BodyId {
     Body::born(
         SourceDocumentId::from("source/emergency"),
-        CheckedFormId::from("checked/emergency"),
+        CheckedPlotId::from("checked/emergency"),
         1,
         SignId::from("sign/emergency-born"),
     )
@@ -179,7 +179,7 @@ fn timeout_loss_stale_audio_and_overflow_fail_closed() {
 fn birth_retains_exact_emergency_configuration_across_durable_roundtrip() {
     let body = Body::born(
         SourceDocumentId::from("source/emergency-biography"),
-        CheckedFormId::from("checked/emergency-biography"),
+        CheckedPlotId::from("checked/emergency-biography"),
         1,
         SignId::from("sign/emergency-biography-born"),
     )
@@ -211,7 +211,7 @@ fn birth_retains_exact_emergency_configuration_across_durable_roundtrip() {
 fn phrase_change_requires_monotonic_durable_evidence() {
     let body = Body::born(
         SourceDocumentId::from("source/emergency-change"),
-        CheckedFormId::from("checked/emergency-change"),
+        CheckedPlotId::from("checked/emergency-change"),
         1,
         SignId::from("sign/emergency-change-born"),
     )

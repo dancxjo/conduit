@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="./workspace.css">
 </head>
 <body>
-  <a class="skip-link" href="#form-input">Skip to the form</a>
+  <a class="skip-link" href="#plot-input">Skip to the plot</a>
   <div class="workspace-shell">
     <header class="body-header">
       <a class="conduit-mark" href="../" aria-label="Conduit home"><span aria-hidden="true">c.</span> conduit</a>
@@ -29,34 +29,34 @@
       <section class="workspace-creche" data-workspace-creche hidden aria-label="Birth your body">
         <div data-creche-content></div>
       </section>
-      <section class="form-surface" aria-labelledby="surface-title" data-workspace-surface hidden>
+      <section class="plot-surface" aria-labelledby="surface-title" data-workspace-surface hidden>
         <div class="surface-content">
           <h2 id="surface-title">Start with a word.</h2>
           <p class="surface-invitation" data-surface-invitation>Type something. Watch it become a signal.</p>
-          <div id="form-input" role="textbox" aria-multiline="true" aria-label="Interact with your form" tabindex="-1" aria-disabled="true" aria-describedby="surface-guidance" inert>
+          <div id="plot-input" role="textbox" aria-multiline="true" aria-label="Interact with your plot" tabindex="-1" aria-disabled="true" aria-describedby="surface-guidance" inert>
             <span class="input-prompt" aria-hidden="true">Type to begin.</span>
-            <div class="signal-manifestation" aria-label="form output" data-form-output></div>
+            <div class="signal-manifestation" aria-label="plot output" data-plot-output></div>
           </div>
-          <p id="surface-guidance" class="surface-guidance">Preparing your form…</p>
+          <p id="surface-guidance" class="surface-guidance">Preparing your plot…</p>
           <div class="body-controls"><button type="button" data-wake-body hidden>wake body</button><button type="button" data-lull-body disabled>lull body</button><button type="button" data-fulfill-body>Finish body</button></div>
         </div>
       </section>
-      <nav class="activity-switcher" aria-label="Your forms" hidden></nav>
-      <section class="workspace-panel form-library-panel" id="workspace-library" aria-labelledby="library-title" hidden>
-        <div class="panel-heading"><h2 id="library-title" tabindex="-1">forms for your body</h2><button type="button" data-close-library>back to the surface</button></div>
-        <div data-application-slot="workspace-form-library"></div>
+      <nav class="activity-switcher" aria-label="Your plots" hidden></nav>
+      <section class="workspace-panel plot-library-panel" id="workspace-library" aria-labelledby="library-title" hidden>
+        <div class="panel-heading"><h2 id="library-title" tabindex="-1">plots for your body</h2><button type="button" data-close-library>back to the surface</button></div>
+        <div data-application-slot="workspace-plot-library"></div>
       </section>
       <section class="workspace-panel membership-panel" id="workspace-membership" aria-labelledby="membership-title" hidden>
         <div class="panel-heading"><h2 id="membership-title" tabindex="-1">parts and hosts</h2><button type="button" data-close-membership>back to the surface</button></div>
         <div data-membership-content></div>
       </section>
       <section class="workspace-panel" id="workspace-inspection" aria-labelledby="inspection-title" hidden>
-        <div class="panel-heading"><h2 id="inspection-title" tabindex="-1">Inside this form</h2><button type="button" data-close-inspection aria-label="Close inspection">back to the surface <span aria-hidden="true">↗</span></button></div>
+        <div class="panel-heading"><h2 id="inspection-title" tabindex="-1">Inside this plot</h2><button type="button" data-close-inspection aria-label="Close inspection">back to the surface <span aria-hidden="true">↗</span></button></div>
         <div data-inspection-content></div>
       </section>
     </main>
     <footer class="truth-strip" aria-label="Current activity">
-      <button type="button" data-inspect="form" aria-controls="workspace-inspection" aria-expanded="false" class="current-form">Your form <span aria-hidden="true">⌄</span></button>
+      <button type="button" data-inspect="plot" aria-controls="workspace-inspection" aria-expanded="false" class="current-plot">Your plot <span aria-hidden="true">⌄</span></button>
       <button type="button" data-inspect="flow" aria-controls="workspace-inspection" aria-expanded="false" class="current-flow"><span data-flow-label>keyboard → encode → light</span><span class="inspect-hint">Look inside ↗</span></button>
       <button type="button" data-inspect="lifecycle" aria-controls="workspace-inspection" aria-expanded="false" class="current-state"><span class="state-dot" aria-hidden="true"></span><span data-play-state>Preparing</span></button>
     </footer>

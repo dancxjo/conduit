@@ -1,5 +1,5 @@
 use conduit_ai::{ChunkIdentity, RerankObservation, RerankingProofClass, RerankingStrategy};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn reranking_strategy_payload_is_one_bounded_native_type() {

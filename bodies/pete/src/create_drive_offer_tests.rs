@@ -10,7 +10,7 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-const DRIVE_FORM: &str = r#"form move_body {
+const DRIVE_FORM: &str = r#"plot move_body {
     drive: robotics/drive-differential(ttl-ms = 250)
 }
 "#;
@@ -84,7 +84,7 @@ fn plan(
     grants: &[AuthorityGrant],
 ) -> Result<conduit_core::Plan, PlannerError> {
     let (_, profile) = crate::catalogs().unwrap();
-    let checked = conduit_form::parse(DRIVE_FORM, &profile).unwrap();
+    let checked = conduit_plot::parse(DRIVE_FORM, &profile).unwrap();
     plan_selected_realizations_with_characteristics_and_authority(
         &checked,
         SelectedRealizationPlanning {
@@ -191,7 +191,7 @@ fn unlatched_raw_safety_truth_cannot_offer_physical_drive() {
 }
 
 #[test]
-fn unchanged_mechanism_free_form_requires_exact_authority_and_resources() {
+fn unchanged_mechanism_free_plot_requires_exact_authority_and_resources() {
     for forbidden in ["create", "uart", "serial", "gpio", "safety", "host"] {
         assert!(!DRIVE_FORM.contains(forbidden));
     }

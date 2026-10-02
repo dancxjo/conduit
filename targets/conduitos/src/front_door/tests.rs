@@ -11,7 +11,7 @@ fn door() -> FrontDoor {
         "build:one",
         "image:one",
         SourceDocumentId::from("source"),
-        CheckedFormId::from("checked"),
+        CheckedPlotId::from("checked"),
         7,
         false,
     )
@@ -31,8 +31,8 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         status: JourneyStatus::Lulled,
         revision: 9,
         source_document_id: Some(SourceDocumentId::from("source")),
-        checked_form_id: Some(CheckedFormId::from("checked")),
-        expanded_form_id: Some(conduit_core::ExpandedFormId::from("expanded")),
+        checked_plot_id: Some(CheckedPlotId::from("checked")),
+        expanded_plot_id: Some(conduit_core::ExpandedPlotId::from("expanded")),
         host_id: HostId::from("host"),
         boot_id: BootId::from("boot"),
         offer_generation: OfferGeneration(3),
@@ -70,7 +70,7 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
 fn body_id(sequence: u64) -> conduit_body::BodyId {
     conduit_body::Body::born(
         SourceDocumentId::from("source"),
-        CheckedFormId::from("checked"),
+        CheckedPlotId::from("checked"),
         sequence,
         conduit_core::SignId::from("sign/born"),
     )
@@ -104,7 +104,7 @@ fn entrance_is_a_zero_body_portable_presentation_and_finite_scene() {
     let presentation = door.presentation().unwrap();
     assert!(presentation.basis.body_id.is_none());
     assert!(presentation.basis.plan_id.is_none());
-    assert_eq!(presentation.subjects[1].role, PresentationRole::Form);
+    assert_eq!(presentation.subjects[1].role, PresentationRole::Plot);
     assert_eq!(presentation.actions.len(), 2);
     assert!(
         presentation
@@ -128,11 +128,11 @@ fn entrance_is_a_zero_body_portable_presentation_and_finite_scene() {
 #[test]
 fn open_is_inert_and_details_are_progressive() {
     let mut door = door();
-    assert!(!door.form_open);
-    assert!(!door.selected_subject.starts_with("form/"));
+    assert!(!door.plot_open);
+    assert!(!door.selected_subject.starts_with("plot/"));
     assert!(door.accept(key(TAB), 1).unwrap());
     assert!(door.accept(key(ENTER), 2).unwrap());
-    assert!(door.form_open);
+    assert!(door.plot_open);
     assert_eq!(door.revision(), 3);
     assert!(door.presentation().unwrap().basis.body_id.is_none());
     assert!(door.accept(key(F2), 3).unwrap());
@@ -173,7 +173,7 @@ fn bounded_lifecycle_surface_resolves_revision_and_fulfillment_transitions() {
     door.observe_journey(projection.clone()).unwrap();
     assert_eq!(door.presentation().unwrap().actions.len(), 8);
     assert!(
-        door.resolve_action(patchbay_control::PatchbayAction::AdmitForm, door.revision())
+        door.resolve_action(patchbay_control::PatchbayAction::AdmitPlot, door.revision())
             .is_ok()
     );
 

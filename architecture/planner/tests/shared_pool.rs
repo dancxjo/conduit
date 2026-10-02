@@ -8,25 +8,25 @@ use conduit_core::{
     PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
-    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_shared_pools, PlanningOptions,
     SharedPoolPlanningRequirement,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindProjection,
+    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
+};
 use std::collections::{BTreeMap, BTreeSet};
 
-const SOURCE: &str = "form chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
+const SOURCE: &str = "plot chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
 
 fn peer_front() -> conduit_core::CheckedFront {
     let checked =
         check_syntax_document(&parse_syntax_document(SOURCE), &startup_with_observe()).unwrap();
     checked
-        .forms
+        .plots
         .iter()
-        .find(|form| form.name == "chat/peer")
+        .find(|plot| plot.name == "chat/peer")
         .unwrap()
         .checked_front()
 }
@@ -49,7 +49,7 @@ fn startup_with_observe() -> StartupCatalog {
     startup
 }
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let startup = startup_with_observe();
     let mut profile = ProfileCatalog::new();
     profile
@@ -62,7 +62,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
         })
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
-    expand_canonical_form(&checked, "room", &profile).unwrap()
+    expand_canonical_plot(&checked, "room", &profile).unwrap()
 }
 
 fn offer_from_front(
@@ -102,8 +102,8 @@ fn offer_from_front(
     }
 }
 
-fn host(form: &conduit_form::ExpandedCanonicalForm) -> HostAdvertisement {
-    let observe = form.gears.first().expect("expanded room has observers");
+fn host(plot: &conduit_plot::ExpandedCanonicalPlot) -> HostAdvertisement {
+    let observe = plot.gears.first().expect("expanded room has observers");
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser"),
@@ -170,11 +170,11 @@ fn requirements() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
 
 #[test]
 fn canonical_pool_is_explicitly_structural_and_seals_exact_members_and_authority() {
-    let form = expanded();
-    let host = host(&form);
-    let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let plot = expanded();
+    let host = host(&plot);
+    let placements = default_expanded_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let plan = plan_expanded_canonical_with_shared_pools(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[conduit_core::BaseImplementationId::from(
@@ -236,8 +236,8 @@ fn canonical_pool_is_explicitly_structural_and_seals_exact_members_and_authority
 
 #[test]
 fn shared_pool_preserves_each_workers_selected_compute_entitlement() {
-    let form = expanded();
-    let mut host = host(&form);
+    let plot = expanded();
+    let mut host = host(&plot);
     host.capabilities[1].resource_requirements = vec![ResourceRequirement {
         class_id: ResourceClassId::from("resource/compute"),
         units: 2,
@@ -263,9 +263,9 @@ fn shared_pool_preserves_each_workers_selected_compute_entitlement() {
         }),
         content: None,
     }];
-    let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let placements = default_expanded_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let plan = plan_expanded_canonical_with_shared_pools(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[conduit_core::BaseImplementationId::from(
@@ -293,10 +293,10 @@ fn shared_pool_preserves_each_workers_selected_compute_entitlement() {
 
 #[test]
 fn pool_planning_fails_when_front_capacity_or_authority_scope_is_not_exact() {
-    let form = expanded();
-    let mut host = host(&form);
+    let plot = expanded();
+    let mut host = host(&plot);
     host.capabilities[1].limits.max_active_instances = 1;
-    let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let placements = default_expanded_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let options = PlanningOptions {
         connection_bases: &BTreeMap::new(),
         line_candidates: &BTreeMap::new(),
@@ -307,7 +307,7 @@ fn pool_planning_fails_when_front_capacity_or_authority_scope_is_not_exact() {
         line_offers: &[],
     };
     assert!(plan_expanded_canonical_with_shared_pools(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[conduit_core::BaseImplementationId::from(
@@ -326,7 +326,7 @@ fn pool_planning_fails_when_front_capacity_or_authority_scope_is_not_exact() {
         .admission_authority
         .contract_id = AuthorityContractId::from("wrong/authority");
     assert!(plan_expanded_canonical_with_shared_pools(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[conduit_core::BaseImplementationId::from(

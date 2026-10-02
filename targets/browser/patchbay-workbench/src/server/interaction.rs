@@ -72,7 +72,7 @@ impl PatchbayHtmlServer {
             self.encoded_snapshot = self.snapshot.encode()?;
             return Ok(self.encoded_snapshot.clone());
         }
-        if self.snapshot.presentation.basis.expanded_form_id.is_none() && input.kind == "select" {
+        if self.snapshot.presentation.basis.expanded_plot_id.is_none() && input.kind == "select" {
             self.snapshot.interaction.revision =
                 self.snapshot.interaction.revision.saturating_add(1);
             if stale_presentation {
@@ -106,13 +106,13 @@ impl PatchbayHtmlServer {
             "select" => PatchbayInteractionRequest::select(
                 request_id,
                 &PatchbaySubjectRef {
-                    expanded_form_id: if stale_presentation {
-                        conduit_core::ExpandedFormId::from(input.presentation_id.clone())
+                    expanded_plot_id: if stale_presentation {
+                        conduit_core::ExpandedPlotId::from(input.presentation_id.clone())
                     } else {
                         self.snapshot
                             .presentation
                             .basis
-                            .expanded_form_id
+                            .expanded_plot_id
                             .clone()
                             .ok_or(ServerError::InvalidRequest)?
                     },
@@ -138,11 +138,11 @@ impl PatchbayHtmlServer {
             invocation.presentation_id = input.presentation_id.clone();
             invocation.presentation_revision = input.presentation_revision;
         }
-        let expected_form_target = self
+        let expected_plot_target = self
             .snapshot
             .presentation
             .basis
-            .expanded_form_id
+            .expanded_plot_id
             .as_ref()
             .map(|identity| identity.as_str().to_owned());
         let requested_action = match &request {
@@ -158,7 +158,7 @@ impl PatchbayHtmlServer {
                         &request,
                         PatchbayInteractionRequest::Invoke { invocation, .. }
                             if Some(invocation.target_identity.as_str())
-                                == expected_form_target.as_deref()
+                                == expected_plot_target.as_deref()
                     ) =>
             {
                 self.front_door.as_ref().map_or(
@@ -170,7 +170,7 @@ impl PatchbayHtmlServer {
                         let mut candidate = session.clone();
                         let result = match requested_action {
                             Some(PatchbayAction::Wake) => candidate.wake_body().map(|_| ()),
-                            Some(PatchbayAction::Plan) => candidate.plan_form().map(|_| ()),
+                            Some(PatchbayAction::Plan) => candidate.plan_plot().map(|_| ()),
                             Some(PatchbayAction::Play) => candidate.play_plan().map(|_| ()),
                             _ => unreachable!("guard restricts lifecycle action"),
                         };
@@ -231,7 +231,7 @@ impl PatchbayHtmlServer {
                             return PatchbayInvocationOutcome::Failed;
                         };
                         let mut candidate = session.clone();
-                        match save_opened_form(&mut candidate) {
+                        match save_opened_plot(&mut candidate) {
                             Ok(()) => {
                                 prepared_zero_body = Some(candidate);
                                 PatchbayInvocationOutcome::Succeeded
@@ -255,7 +255,7 @@ impl PatchbayHtmlServer {
                 let PatchbayInteractionRequest::Edit { edit, .. } = &request else {
                     unreachable!("guard restricts request")
                 };
-                let outcome = candidate.apply_opened_form_edit(edit);
+                let outcome = candidate.apply_opened_plot_edit(edit);
                 if outcome == PatchbayInvocationOutcome::Succeeded {
                     prepared_zero_body = Some(candidate);
                 }
@@ -297,8 +297,8 @@ impl PatchbayHtmlServer {
                     prepared_outcome
                 }
                 PatchbayInteractionRequest::Edit { edit, .. }
-                    if Some(edit.basis().expanded_form_id.as_str())
-                        != expected_form_target.as_deref() =>
+                    if Some(edit.basis().expanded_plot_id.as_str())
+                        != expected_plot_target.as_deref() =>
                 {
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
                 }
@@ -351,31 +351,31 @@ impl PatchbayHtmlServer {
     }
 }
 
-fn save_opened_form(
+fn save_opened_plot(
     session: &mut conduit_patchbay_workbench::ZeroBodyFrontDoor,
 ) -> Result<(), String> {
     let document = session
-        .opened_form_document()
-        .ok_or("SAVE requires an opened Form")?;
+        .opened_plot_document()
+        .ok_or("SAVE requires an opened Plot")?;
     let parent = document
         .path
         .parent()
-        .ok_or("Form source has no parent directory")?;
+        .ok_or("Plot source has no parent directory")?;
     let file_name = document
         .path
         .file_name()
-        .ok_or("Form source has no file name")?;
+        .ok_or("Plot source has no file name")?;
     let temporary = parent.join(format!(
         ".{}.conduit-browser-patchbay-workbench-save",
         file_name.to_string_lossy()
     ));
     std::fs::write(&temporary, document.source.as_bytes())
-        .map_err(|error| format!("write temporary canonical Form: {error}"))?;
+        .map_err(|error| format!("write temporary canonical Plot: {error}"))?;
     if let Err(error) = std::fs::rename(&temporary, &document.path) {
         let _ = std::fs::remove_file(&temporary);
-        return Err(format!("replace canonical Form: {error}"));
+        return Err(format!("replace canonical Plot: {error}"));
     }
-    session.mark_opened_form_saved(document.revision)
+    session.mark_opened_plot_saved(document.revision)
 }
 
 #[derive(Deserialize)]
@@ -394,7 +394,7 @@ struct HtmlInteractionInput {
 struct HtmlEditInput {
     source_document_id: String,
     source_revision: u64,
-    expanded_form_id: String,
+    expanded_plot_id: String,
     operation: String,
     primary: String,
     secondary: Option<String>,
@@ -406,7 +406,7 @@ fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
     let basis = PatchbayEditBasis::new(
         conduit_core::SourceDocumentId::from(input.source_document_id),
         input.source_revision,
-        conduit_core::ExpandedFormId::from(input.expanded_form_id),
+        conduit_core::ExpandedPlotId::from(input.expanded_plot_id),
     )
     .map_err(|_| ServerError::InvalidRequest)?;
     match input.operation.as_str() {

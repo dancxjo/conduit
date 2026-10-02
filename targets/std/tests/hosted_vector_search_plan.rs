@@ -7,8 +7,8 @@ use conduit_core::{
     kind_id, resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement,
     HostId, HostProfileId, OfferGeneration, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::hosted_vector_index::{
@@ -16,17 +16,17 @@ use conduit_std_host::hosted_vector_index::{
     HOSTED_HNSW_IMPLEMENTATION_ID, HOSTED_HNSW_LIBRARY_NAME, HOSTED_HNSW_LIBRARY_VERSION,
 };
 
-const SOURCE: &str = "form retrieval {\n search: retrieval/vector-search(4096, 8192, 1024, 8)\n}\n";
+const SOURCE: &str = "plot retrieval {\n search: retrieval/vector-search(4096, 8192, 1024, 8)\n}\n";
 const VECTOR_WORK_UNITS: u32 = 65_536;
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_vector_search_catalog(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(SOURCE);
     assert_eq!(syntax.round_trip(), SOURCE);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    expand_canonical_form(&checked, "retrieval", &profile).unwrap()
+    expand_canonical_plot(&checked, "retrieval", &profile).unwrap()
 }
 
 fn host(name: &str, capability: CapabilityOffer, capacity_units: u32) -> HostAdvertisement {
@@ -61,7 +61,7 @@ fn hnsw_offer() -> CapabilityOffer {
 }
 
 fn plan_on(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
     host: HostAdvertisement,
 ) -> conduit_core::Plan {
     let placements =
@@ -90,8 +90,8 @@ fn one_authored_vector_search_plans_to_materially_distinct_exact_and_hnsw_backen
     let approximate = plan_on(&expanded, host("hnsw", hnsw_offer(), VECTOR_WORK_UNITS));
 
     assert_eq!(exact.source_document_id, approximate.source_document_id);
-    assert_eq!(exact.checked_form_id, approximate.checked_form_id);
-    assert_eq!(exact.expanded_form_id, approximate.expanded_form_id);
+    assert_eq!(exact.checked_plot_id, approximate.checked_plot_id);
+    assert_eq!(exact.expanded_plot_id, approximate.expanded_plot_id);
     let exact = &exact.fragments[0].placements[0];
     let approximate = &approximate.fragments[0].placements[0];
     assert_eq!(exact.kind_id, approximate.kind_id);

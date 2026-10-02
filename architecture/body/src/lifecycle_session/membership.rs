@@ -33,7 +33,7 @@ impl BodyLifecycleSession {
 
     /// Complete one canonical single-use invitation at the body authority.
     /// Admission and authenticated presence are separate membership events;
-    /// neither grants Form or effect authority.
+    /// neither grants Plot or effect authority.
     #[cfg(feature = "authenticated-admission")]
     pub fn admit_invited_host(
         &mut self,

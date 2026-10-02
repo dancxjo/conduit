@@ -1,6 +1,6 @@
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner } from "./body-bootstrap.mjs";
-import { readReviewedFormInventory, openFormSelection, persistedFormSelection } from "./reviewed-form-selection.mjs";
+import { readReviewedPlotInventory, openPlotSelection, persistedPlotSelection } from "./reviewed-plot-selection.mjs";
 import { openWorkspaceSession } from "./workspace-session.mjs";
 import { openWorkspacePlay } from "./workspace-play.mjs";
 import { configureWorkspaceInput } from "./workspace-surface.mjs";
@@ -20,7 +20,7 @@ export async function startApplication(application) {
   const activities = root.querySelector('.activity-switcher');
   const strip = root.querySelector('.truth-strip');
   const notice = root.querySelector('[data-workspace-notice]');
-  const input = root.querySelector('#form-input');
+  const input = root.querySelector('#plot-input');
   const inspection = root.querySelector('#workspace-inspection');
   const details = inspection.querySelector('[data-inspection-content]');
   const wakeButton = root.querySelector('[data-wake-body]');
@@ -82,35 +82,35 @@ export async function startApplication(application) {
       },
     });
     const session = openWorkspaceSession({ host, storage: application.storage });
-    const source = application.text('reviewed-form-inventory');
-    const inventory = readReviewedFormInventory(host.runtime, source);
-    const catalogSource = application.text('reviewed-form-catalog');
+    const source = application.text('reviewed-plot-inventory');
+    const inventory = readReviewedPlotInventory(host.runtime, source);
+    const catalogSource = application.text('reviewed-plot-catalog');
     const catalog = readWorkspaceCatalog(catalogSource);
-    const tutorialForm = catalog.forms.find(form => form.entry === 'tour');
-    if (!tutorialForm) throw new Error('The reviewed resident Tutorial Form is absent');
+    const tutorialPlot = catalog.plots.find(plot => plot.entry === 'tour');
+    if (!tutorialPlot) throw new Error('The reviewed resident Tutorial Plot is absent');
     let handoff = null, handoffFailure = null;
     try { handoff = readWorkspaceHandoff(globalThis.location, inventory); }
     catch (error) { handoffFailure = error; }
-    const retainedSelection = await application.storage.readJson('form-selection');
-    let selection = openFormSelection(inventory, retainedSelection);
+    const retainedSelection = await application.storage.readJson('plot-selection');
+    let selection = openPlotSelection(inventory, retainedSelection);
     if (retainedSelection === null) {
-      const scratch = inventory.forms.find(form => form.name === 'memory_lantern');
-      const chime = typeof window.AudioContext === 'function' ? inventory.forms.find(form => form.name === 'startup_chime') : null;
-      const residentTutorial = inventory.forms.find(form => form.name === 'tour');
+      const scratch = inventory.plots.find(plot => plot.name === 'memory_lantern');
+      const chime = typeof window.AudioContext === 'function' ? inventory.plots.find(plot => plot.name === 'startup_chime') : null;
+      const residentTutorial = inventory.plots.find(plot => plot.name === 'tour');
       selection = { selected: [scratch, residentTutorial, chime].filter(Boolean), refusals: [] };
     }
     const restored = invitation ? null : await session.restore();
     if (handoff && !session.current()) {
-      selection = openFormSelection(inventory, persistedFormSelection(inventory, selection.selected), handoff);
-      await application.storage.writeJson('form-selection', persistedFormSelection(inventory, selection.selected));
+      selection = openPlotSelection(inventory, persistedPlotSelection(inventory, selection.selected), handoff);
+      await application.storage.writeJson('plot-selection', persistedPlotSelection(inventory, selection.selected));
       await consumeWorkspaceHandoff({ host, applicationId: application.manifest.applicationId });
     }
     let saving = Promise.resolve();
-    let selected = session.foreground()?.checked_form_id;
-    let playback = { state: 'Lulled', detail: 'Its forms can wake here.' };
+    let selected = session.foreground()?.checked_plot_id;
+    let playback = { state: 'Lulled', detail: 'Its plots can wake here.' };
     let play = null, currentMask = null;
     let library = null, membership = null, editing = false;
-    const tutorialInstalled = () => session.current()?.initial_forms.some(form => form.checked_form_id === tutorialForm.checked_form_id) ?? false;
+    const tutorialInstalled = () => session.current()?.initial_plots.some(plot => plot.checked_plot_id === tutorialPlot.checked_plot_id) ?? false;
     const handleTutorialEvent = (event, resident = false) => {
       if ((!resident && event.revision !== tutorialRevision) || event.kind !== 1 || event.value.length !== 0) {
         fail(new Error('This tutorial action is stale'));
@@ -201,18 +201,18 @@ export async function startApplication(application) {
           await session.save();
         }
         await session.arrive();
-        const resident = session.current().initial_forms;
-        if (handoff && resident.some(form => form.checked_form_id === handoff.checked_form_id)) {
-          await session.selectForm({ source_document_id: handoff.source_document_id, checked_form_id: handoff.checked_form_id });
+        const resident = session.current().initial_plots;
+        if (handoff && resident.some(plot => plot.checked_plot_id === handoff.checked_plot_id)) {
+          await session.selectPlot({ source_document_id: handoff.source_document_id, checked_plot_id: handoff.checked_plot_id });
         }
-        const foreground = catalog.forms.find(form => form.checked_form_id === session.foreground()?.checked_form_id);
-        if (foreground?.required_kinds.includes('sound/startup-chime') || foreground?.checked_form_id === tutorialForm.checked_form_id) {
-          const visible = resident.find(form => catalog.forms.some(candidate => candidate.checked_form_id === form.checked_form_id
-            && candidate.checked_form_id !== tutorialForm.checked_form_id
+        const foreground = catalog.plots.find(plot => plot.checked_plot_id === session.foreground()?.checked_plot_id);
+        if (foreground?.required_kinds.includes('sound/startup-chime') || foreground?.checked_plot_id === tutorialPlot.checked_plot_id) {
+          const visible = resident.find(plot => catalog.plots.some(candidate => candidate.checked_plot_id === plot.checked_plot_id
+            && candidate.checked_plot_id !== tutorialPlot.checked_plot_id
             && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
-          if (visible) await session.selectForm(visible);
+          if (visible) await session.selectPlot(visible);
         }
-        selected = session.foreground()?.checked_form_id;
+        selected = session.foreground()?.checked_plot_id;
         render();
       }).catch(fail);
     };
@@ -220,17 +220,17 @@ export async function startApplication(application) {
       library?.hide();
       membership && (membership.isOpen() ? membership.close() : null);
       const body = session.current();
-      const form = catalog.forms.find(form => form.checked_form_id === selected);
+      const plot = catalog.plots.find(plot => plot.checked_plot_id === selected);
       const evidence = session.evidence();
       const heading = inspection.querySelector('h2');
-      heading.textContent = kind === 'form' ? (form?.title ?? 'This form') : kind === 'flow' ? 'Inside this form' : `${body.friendly_name} · ${playback.state}`;
+      heading.textContent = kind === 'plot' ? (plot?.title ?? 'This plot') : kind === 'flow' ? 'Inside this plot' : `${body.friendly_name} · ${playback.state}`;
       details.replaceChildren();
       const text = document.createElement('p'); text.className = 'inspection-explanation';
-      text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this form’s meaning. Its exact realization appears below when admitted.' : 'An installed form in this body. Opening its surface keeps the current play.';
+      text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this plot’s meaning. Its exact realization appears below when admitted.' : 'An installed plot in this body. Opening its surface keeps the current play.';
       details.append(text);
       const pre = document.createElement('pre');
       pre.textContent = kind === 'lifecycle' ? JSON.stringify({ body: evidence?.evidence, realization: evidence?.realization, active_observation: play?.evidence(), terminal: playback.terminal, refusal: playback.refusal }, null, 2)
-        : kind === 'flow' && evidence?.realization ? JSON.stringify(evidence.realization.plan.forms.find(item => item.form.checked_form_id === selected), null, 2) : (form?.source ?? 'Source unavailable');
+        : kind === 'flow' && evidence?.realization ? JSON.stringify(evidence.realization.plan.plots.find(item => item.plot.checked_plot_id === selected), null, 2) : (plot?.source ?? 'Source unavailable');
       const disclosure = document.createElement('details'), summary = document.createElement('summary');
       summary.textContent = kind === 'lifecycle' ? 'Exact lifecycle evidence' : kind === 'flow' && evidence?.realization ? 'Exact plan' : 'Checked source';
       disclosure.append(summary, pre); details.append(disclosure);
@@ -244,16 +244,16 @@ export async function startApplication(application) {
       const button = strip.querySelector('[aria-expanded="true"]'); button?.setAttribute('aria-expanded', 'false'); button?.focus();
     });
     const showSelected = () => {
-      const form = catalog.forms.find(item => item.checked_form_id === selected);
-      const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
-      root.querySelector('#surface-title').textContent = form?.title ?? 'No Forms installed';
-      root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, form, partition);
-      root.querySelector('.current-form').textContent = form?.title ?? 'Your forms';
+      const plot = catalog.plots.find(item => item.checked_plot_id === selected);
+      const partition = session.evidence()?.realization?.plan.plots.find(item => item.plot.checked_plot_id === selected);
+      root.querySelector('#surface-title').textContent = plot?.title ?? 'No Plots installed';
+      root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition);
+      root.querySelector('.current-plot').textContent = plot?.title ?? 'Your plots';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
-      for (const button of activities.querySelectorAll('[data-checked-form-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedFormId === selected));
+      for (const button of activities.querySelectorAll('[data-checked-plot-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedPlotId === selected));
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
-      for (const output of root.querySelectorAll('[data-form-output] > output')) output.hidden = !visible.has(output.dataset.placementId);
-      for (const button of strip.querySelectorAll('[data-inspect="form"], [data-inspect="flow"]')) button.disabled = !form;
+      for (const output of root.querySelectorAll('[data-plot-output] > output')) output.hidden = !visible.has(output.dataset.placementId);
+      for (const button of strip.querySelectorAll('[data-inspect="plot"], [data-inspect="flow"]')) button.disabled = !plot;
     };
     function render() {
       const body = session.current();
@@ -278,14 +278,14 @@ export async function startApplication(application) {
           slot.replaceChildren(createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged }));
         } else {
           const birth = createBodyBirthRunner({
-            source, sourceKey: 'workspace-creche', listingId: 'workspace-forms', host,
+            source, sourceKey: 'workspace-creche', listingId: 'workspace-plots', host,
             presentationFor: application.presentationFor, inventory, initialSelection: selection,
             nextSequence: session.nextSequence, onBodyChanged: bodyChanged,
             onSelection(selected) {
-              selection = selected === null ? openFormSelection(inventory) : { selected, refusals: [] };
+              selection = selected === null ? openPlotSelection(inventory) : { selected, refusals: [] };
               saving = saving.then(() => selected === null
-                ? application.storage.deleteJson('form-selection')
-                : application.storage.writeJson('form-selection', persistedFormSelection(inventory, selected))).catch(fail);
+                ? application.storage.deleteJson('plot-selection')
+                : application.storage.writeJson('plot-selection', persistedPlotSelection(inventory, selected))).catch(fail);
             },
           });
           const receiver = createBodyInvitationReceiver({ location: globalThis.location, onReceive({ fragment }) {
@@ -300,31 +300,31 @@ export async function startApplication(application) {
       root.dataset.bodyId = body.body_id;
       root.querySelector('[data-play-state]').textContent = playback.state;
       root.querySelector('#surface-guidance').textContent = playback.detail;
-      lullButton.hidden = !body.initial_forms.length;
+      lullButton.hidden = !body.initial_plots.length;
       fulfillButton.hidden = body.state === 'FULFILLED';
       fulfillButton.disabled = body.state !== 'LULLED' || Boolean(session.persistenceFailure());
       if (body.state === 'FULFILLED') {
         wakeButton.hidden = true;
         lullButton.hidden = true;
       }
-      if (!body.initial_forms.length) {
+      if (!body.initial_plots.length) {
         root.querySelector('#surface-guidance').textContent = 'This body can remain lulled.';
         wakeButton.hidden = true;
         lullButton.hidden = true;
       }
-      notice.textContent = `${body.initial_forms.length} Form${body.initial_forms.length === 1 ? '' : 's'} in ${body.friendly_name}.`;
-      if (!body.initial_forms.some(form => form.checked_form_id === selected) || selected === tutorialForm.checked_form_id) {
-        selected = body.initial_forms.find(form => form.checked_form_id !== tutorialForm.checked_form_id)?.checked_form_id
-          ?? body.initial_forms[0]?.checked_form_id;
+      notice.textContent = `${body.initial_plots.length} Plot${body.initial_plots.length === 1 ? '' : 's'} in ${body.friendly_name}.`;
+      if (!body.initial_plots.some(plot => plot.checked_plot_id === selected) || selected === tutorialPlot.checked_plot_id) {
+        selected = body.initial_plots.find(plot => plot.checked_plot_id !== tutorialPlot.checked_plot_id)?.checked_plot_id
+          ?? body.initial_plots[0]?.checked_plot_id;
       }
-      activities.replaceChildren(...body.initial_forms.map(form => {
+      activities.replaceChildren(...body.initial_plots.map(plot => {
         const button = document.createElement('button'); button.type = 'button';
-        button.textContent = catalog.forms.find(item => item.checked_form_id === form.checked_form_id)?.title ?? form.name;
-        button.dataset.checkedFormId = form.checked_form_id;
+        button.textContent = catalog.plots.find(item => item.checked_plot_id === plot.checked_plot_id)?.title ?? plot.name;
+        button.dataset.checkedPlotId = plot.checked_plot_id;
         button.addEventListener('click', () => {
           if (editing) return;
-          selected = form.checked_form_id;
-          session.selectForm({ source_document_id: form.source_document_id, checked_form_id: form.checked_form_id }).catch(fail);
+          selected = plot.checked_plot_id;
+          session.selectPlot({ source_document_id: plot.source_document_id, checked_plot_id: plot.checked_plot_id }).catch(fail);
           library?.hide(); inspection.hidden = true; surface.hidden = false;
           showSelected();
           if (!input.disabled) input.focus();
@@ -332,16 +332,16 @@ export async function startApplication(application) {
         return button;
       }));
       const browse = document.createElement('button'); browse.type = 'button';
-      browse.textContent = '+ Forms'; browse.dataset.openLibrary = '';
+      browse.textContent = '+ Plots'; browse.dataset.openLibrary = '';
       browse.addEventListener('click', () => {
         if (editing) return;
         surface.hidden = true; inspection.hidden = true; library.show();
       });
       if (body.state !== 'FULFILLED') activities.append(browse);
-      if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'),
-        presentationRootFor: ({ checkedFormId }) => checkedFormId === tutorialForm.checked_form_id ? tutorialResident : null,
-        onApplicationEvent: ({ checkedFormId, event }) => {
-          if (checkedFormId === tutorialForm.checked_form_id) {
+      if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundPlot: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-plot-output]'),
+        presentationRootFor: ({ checkedPlotId }) => checkedPlotId === tutorialPlot.checked_plot_id ? tutorialResident : null,
+        onApplicationEvent: ({ checkedPlotId, event }) => {
+          if (checkedPlotId === tutorialPlot.checked_plot_id) {
             try { submitMaskInteraction(event); }
             catch (error) { fail(error); return; }
             handleTutorialEvent(event, true);
@@ -353,9 +353,9 @@ export async function startApplication(application) {
           playback.state,
         ),
         async prepareExternal(proposal) {
-          const distributed = proposal.plan.forms.filter(form => form.plan.fragments.length > 1);
+          const distributed = proposal.plan.plots.filter(plot => plot.plan.fragments.length > 1);
           if (!distributed.length) return null;
-          if (distributed.length !== 1) throw new Error('This body Plan exceeds the one external Form bound');
+          if (distributed.length !== 1) throw new Error('This body Plan exceeds the one external Plot bound');
           const plan = distributed[0].plan;
           const peer = plan.fragments.find(fragment => fragment.host_id !== host.hostId || fragment.boot_id !== host.bootId);
           const joined = peer && membership?.executionLine(peer.host_id, peer.boot_id);
@@ -372,7 +372,7 @@ export async function startApplication(application) {
           await joined.line.installBodyContext(session.conversationContext());
           const voice = await prepareWorkspaceVoicePlay({ api: host.runtime,
             localAdvertisement: host.membership.advertisement(), joined, plan,
-            outputRoot: root.querySelector('[data-form-output]') });
+            outputRoot: root.querySelector('[data-plot-output]') });
           return Object.freeze({ planId: plan.plan_id, identity: voice.identity,
             updateContext: () => joined.line.installBodyContext(session.conversationContext()),
             run: () => voice.run(), close: () => voice.close() });
@@ -391,41 +391,41 @@ export async function startApplication(application) {
         input.inert = input.disabled;
         input.tabIndex = input.disabled ? -1 : 0;
         input.setAttribute('aria-disabled', String(input.disabled));
-        wakeButton.hidden = session.current().initial_forms.length === 0 || ['Playing', 'Idle', 'Preparing', 'Fulfilled'].includes(state.state);
+        wakeButton.hidden = session.current().initial_plots.length === 0 || ['Playing', 'Idle', 'Preparing', 'Fulfilled'].includes(state.state);
         if (state.state === 'Fulfilled') lullButton.hidden = true;
         showSelected();
         if (state.state === 'Playing' && input.dataset.acceptsInput === 'true') input.focus();
       } });
       showSelected();
     }
-    const useForm = async (form, expectedRevision) => {
+    const usePlot = async (plot, expectedRevision) => {
       if (editing) throw new Error('A body transition is already in progress');
       editing = true;
       try {
-        const identity = { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id };
-        const installed = session.current().initial_forms.some(item => item.source_document_id === identity.source_document_id && item.checked_form_id === identity.checked_form_id);
-        if (installed) await session.selectForm(identity);
+        const identity = { source_document_id: plot.source_document_id, checked_plot_id: plot.checked_plot_id };
+        const installed = session.current().initial_plots.some(item => item.source_document_id === identity.source_document_id && item.checked_plot_id === identity.checked_plot_id);
+        if (installed) await session.selectPlot(identity);
         else await play.changeWorkset('Install', identity, expectedRevision);
-        selected = session.foreground()?.checked_form_id;
+        selected = session.foreground()?.checked_plot_id;
         library.hide(); inspection.hidden = true;
         render();
         if (!installed || session.current().state === 'LULLED') await play.wake(true);
         if (!input.disabled && !input.hidden) input.focus();
       } finally { editing = false; }
     };
-    const removeForm = async (form, expectedRevision) => {
+    const removePlot = async (plot, expectedRevision) => {
       if (editing) throw new Error('A body transition is already in progress');
       editing = true;
       try {
-        await play.changeWorkset('Remove', { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id }, expectedRevision);
-        selected = session.foreground()?.checked_form_id;
+        await play.changeWorkset('Remove', { source_document_id: plot.source_document_id, checked_plot_id: plot.checked_plot_id }, expectedRevision);
+        selected = session.foreground()?.checked_plot_id;
         render();
-        if (session.current().initial_forms.length) await play.wake();
+        if (session.current().initial_plots.length) await play.wake();
       } finally { editing = false; }
     };
     library = openWorkspaceLibrary({ panel: root.querySelector('#workspace-library'), session, source: catalogSource, inventory: catalog,
       planningLines: () => membership?.planningLines() ?? [],
-      presentationFor: application.presentationFor, onUse: useForm, onRemove: removeForm, onFailure: fail,
+      presentationFor: application.presentationFor, onUse: usePlot, onRemove: removePlot, onFailure: fail,
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, presentationFor: application.presentationFor, current: session.current, evidence: session.evidence,
@@ -453,7 +453,7 @@ export async function startApplication(application) {
       },
       state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
     membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
-      invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
+      invitationLabel: () => catalog.plots.find(plot => plot.checked_plot_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another host',
       async beforeAdmission() {
         if (['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state)) await play?.lull();
@@ -471,8 +471,8 @@ export async function startApplication(application) {
     render();
     if (handoff && session.current()?.here_part_id) {
       await consumeWorkspaceHandoff({ host, applicationId: application.manifest.applicationId });
-      await useForm(handoff, session.current().workload_revision);
-    } else if (restored?.resume_wake && session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
+      await usePlot(handoff, session.current().workload_revision);
+    } else if (restored?.resume_wake && session.current()?.here_part_id && session.current().initial_plots.length) await play.wake();
     if (handoffFailure) fail(handoffFailure);
     globalThis.addEventListener('pagehide', () => { play?.close(); membership?.dispose(); });
   } catch (error) { fail(error); }
@@ -480,24 +480,24 @@ export async function startApplication(application) {
 
 function readWorkspaceCatalog(source) {
   const catalog = JSON.parse(source);
-  if (catalog?.schema !== 'conduit.workspace/reviewed-form-catalog@2'
-      || !Number.isSafeInteger(catalog.maximum_forms) || catalog.maximum_forms < 1
-      || !Array.isArray(catalog.forms) || catalog.forms.length > catalog.maximum_forms) {
-    throw new Error('reviewed Workspace Form catalog is malformed or over capacity');
+  if (catalog?.schema !== 'conduit.workspace/reviewed-plot-catalog@3'
+      || !Number.isSafeInteger(catalog.maximum_plots) || catalog.maximum_plots < 1
+      || !Array.isArray(catalog.plots) || catalog.plots.length > catalog.maximum_plots) {
+    throw new Error('reviewed Workspace Plot catalog is malformed or over capacity');
   }
   const identities = new Set();
-  for (const form of catalog.forms) {
-    if (typeof form?.title !== 'string' || typeof form.entry !== 'string'
-        || typeof form.source !== 'string' || typeof form.source_document_id !== 'string'
-        || typeof form.checked_form_id !== 'string' || !Array.isArray(form.required_kinds)
-        || !Number.isSafeInteger(form.presentation_profile)
-        || form.presentation_profile < 0 || form.presentation_profile > 3
-        || typeof form.unavailable_hint !== 'string' || form.unavailable_hint.length < 1
-        || identities.has(form.checked_form_id)) {
-      throw new Error('reviewed Workspace Form catalog contains an invalid or duplicate entry');
+  for (const plot of catalog.plots) {
+    if (typeof plot?.title !== 'string' || typeof plot.entry !== 'string'
+        || typeof plot.source !== 'string' || typeof plot.source_document_id !== 'string'
+        || typeof plot.checked_plot_id !== 'string' || !Array.isArray(plot.required_kinds)
+        || !Number.isSafeInteger(plot.presentation_profile)
+        || plot.presentation_profile < 0 || plot.presentation_profile > 3
+        || typeof plot.unavailable_hint !== 'string' || plot.unavailable_hint.length < 1
+        || identities.has(plot.checked_plot_id)) {
+      throw new Error('reviewed Workspace Plot catalog contains an invalid or duplicate entry');
     }
-    form.name = form.entry;
-    identities.add(form.checked_form_id);
+    plot.name = plot.entry;
+    identities.add(plot.checked_plot_id);
   }
   return catalog;
 }

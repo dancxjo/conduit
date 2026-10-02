@@ -147,7 +147,7 @@ pub extern "C" fn conduitos_armv6_rpi_b_plus_a3_start() -> ! {
     arch::present(sign.as_bytes());
     arch::present(b"CONDUIT_ARMV6_RPI_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
-    arch::present(b"\",\"wake_source\":\"bcm2835-system-timer-compare-1\",\"wake_irq\":1,\"a3_ordinary_form_claimed\":true}\n");
+    arch::present(b"\",\"wake_source\":\"bcm2835-system-timer-compare-1\",\"wake_irq\":1,\"a3_ordinary_plot_claimed\":true}\n");
     loop {
         unsafe { core::arch::asm!("wfe", options(nomem, nostack)) };
     }

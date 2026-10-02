@@ -12,11 +12,11 @@ const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
 const BROWSER_PARTICIPATION_KEY = Symbol("Conduit BrowserBodyParticipation");
 const BROWSER_PREPARATION_KEY = Symbol("Conduit BrowserBodyPreparation");
-import { BrowserForm, birthBrowserBody, recoverBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
+import { BrowserPlot, birthBrowserBody, recoverBrowserBody, reviewBrowserPlots, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-plots.mjs";
 import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
 import { joinBrowserBody } from "../host/assets/browser-membership.js";
-export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
+export { BrowserPlot, BrowserBody } from "./browser-sdk-plots.mjs";
 export { BrowserFaceClient, BrowserFaceError } from "./browser-sdk-face.mjs";
 
 export class ConduitSdkError extends Error {
@@ -86,10 +86,10 @@ export class BrowserHost {
     return this.current();
   }
 
-  form(source) { return new BrowserForm(source, this.#state.bridge); }
+  plot(source) { return new BrowserPlot(source, this.#state.bridge); }
 
-  async review(forms) {
-    return reviewBrowserForms({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, forms });
+  async review(plots) {
+    return reviewBrowserPlots({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, plots });
   }
 
   /** Join this already-admitted Host and Boot to one external Body invitation. */
@@ -122,8 +122,8 @@ export class BrowserHost {
     });
   }
 
-  async birth({ name, forms }) {
-    if (typeof name !== "string" || !Array.isArray(forms)) throw new TypeError("BrowserHost.birth requires a name and checked Forms");
+  async birth({ name, plots }) {
+    if (typeof name !== "string" || !Array.isArray(plots)) throw new TypeError("BrowserHost.birth requires a name and checked Plots");
     return birthBrowserBody({
       bridge: this.#state.bridge,
       host: this.id,
@@ -135,7 +135,7 @@ export class BrowserHost {
       acquireBodyHost: acquireBrowserBodyHost,
       storage: this.#state.storage,
       name,
-      forms,
+      plots,
       sequence: () => {
         if (this.#state.sequence >= Number.MAX_SAFE_INTEGER - 1) throw new RangeError("Body event sequence exhausted");
         return ++this.#state.sequence;
@@ -201,7 +201,7 @@ export class BrowserBodyParticipation {
     if (api.conduit_browser_body_capabilities() < 0) {
       throw new Error("external Body execution capabilities unavailable");
     }
-    const value = this.#state.host.bridge.browserFormReadOutputJson();
+    const value = this.#state.host.bridge.browserPlotReadOutputJson();
     if (value?.schema !== "conduit.browser/body-capabilities@1"
         || !Array.isArray(value.capability_ids) || value.capability_ids.length > 112
         || value.capability_ids.some(identity => typeof identity !== "string"
@@ -212,7 +212,7 @@ export class BrowserBodyParticipation {
   }
 
   /** Acquire this page's exact resources for an authority-owned external Body proposal. */
-  prepare({ proposal, inputTarget, outputRoot, foregroundForm, presentationRootFor,
+  prepare({ proposal, inputTarget, outputRoot, foregroundPlot, presentationRootFor,
     onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential
@@ -226,7 +226,7 @@ export class BrowserBodyParticipation {
       proposal,
       inputTarget,
       outputRoot,
-      foregroundForm,
+      foregroundPlot,
       presentationRootFor,
       onApplicationEvent,
       onTutorialPresenterRequest,

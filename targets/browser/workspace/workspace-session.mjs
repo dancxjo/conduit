@@ -61,7 +61,7 @@ export function openWorkspaceSession({ host, storage }) {
         ? 'FULFILLED' : evidence.body.state === 'Lulled' ? 'LULLED' : 'AWAKE';
       return { body_id: evidence.body_id, friendly_name: evidence.friendly_name,
         state,
-        initial_forms: evidence.body.workset.forms, workload_revision: evidence.body.workload_revision,
+        initial_plots: evidence.body.workset.plots, workload_revision: evidence.body.workload_revision,
         here_part_id: part?.part_id, host_id: part?.current?.host_id, boot_id: part?.current?.boot_id,
         wake_id: realization?.wake.wake_id, plan_id: realization?.plan.plan_id,
         active_play_id: realization?.play?.active_play_id };
@@ -71,7 +71,7 @@ export function openWorkspaceSession({ host, storage }) {
       const at = nextSequence(); nextSequence();
       return call(bridge.crecheAttachHere(parts[0], parts[1], BigInt(at)));
     },
-    selectForm(form) { request('SelectForm', { form }); return save(); },
+    selectPlot(plot) { request('SelectPlot', { plot }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
     tutorialView(revision, playback) { return request('TutorialView', { revision, playback }, true); },
     tutorialPresenterRequest(request_identity, presentation_revision, playback) {
@@ -94,10 +94,10 @@ export function openWorkspaceSession({ host, storage }) {
     prepareTutorialMaskRestored() { return request('PrepareTutorialMaskRestored'); },
     invitationView(fields) { return request('InvitationView', fields, true); },
     invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
-    async changeWorkset(edit, form, source, expected_revision) {
+    async changeWorkset(edit, plot, source, expected_revision) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
-      request('ChangeWorkset', { ...here, edit, form, source, expected_revision });
+      request('ChangeWorkset', { ...here, edit, plot, source, expected_revision });
       await save();
     },
     foreground: () => workspace ? request('Current').foreground : null,
@@ -177,7 +177,7 @@ export function openWorkspaceSession({ host, storage }) {
     async openAdmitted(durable) {
       if (workspace) throw new Error('Close the current body before joining another body');
       request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, advertisement: localAdvertisement, ...here });
-      if (durable.foreground) request('SelectForm', { form: durable.foreground });
+      if (durable.foreground) request('SelectPlot', { plot: durable.foreground });
       await save();
       return workspace;
     },
@@ -188,7 +188,7 @@ export function openWorkspaceSession({ host, storage }) {
         const resumeWake = snapshot.evidence?.body?.state !== 'Lulled'
           && !(typeof snapshot.evidence?.body?.state === 'object' && snapshot.evidence.body.state?.Fulfilled);
         request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, advertisement: localAdvertisement, ...here });
-        if (snapshot.foreground) request('SelectForm', { form: snapshot.foreground });
+        if (snapshot.foreground) request('SelectPlot', { plot: snapshot.foreground });
         await save();
         return { body: workspace, resume_wake: resumeWake };
       }

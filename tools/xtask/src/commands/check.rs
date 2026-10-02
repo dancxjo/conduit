@@ -8,9 +8,9 @@ use crate::{
     cli::GlobalOpts,
     process::{run_step, run_step_with_arguments, run_suite, Step, StepError},
     suites::check::{
-        BROWSER_CHECK_STEPS, FORM_S3_STEPS, INPUT_SEMANTICS_STEPS, KERNEL_TAKEOVER_STEPS,
-        OBSERVATORY_READINESS_STEPS, PLANNING_S2_STEPS, SEMANTIC_CATALOG_READINESS_STEPS,
-        SIM_READINESS_STEPS, WORKSPACE_STEPS,
+        BROWSER_CHECK_STEPS, INPUT_SEMANTICS_STEPS, KERNEL_TAKEOVER_STEPS,
+        OBSERVATORY_READINESS_STEPS, PLANNING_S2_STEPS, PLOT_S3_STEPS,
+        SEMANTIC_CATALOG_READINESS_STEPS, SIM_READINESS_STEPS, WORKSPACE_STEPS,
     },
     suites::network_capability::NETWORK_CAPABILITY_STEPS,
     suites::pico_compositions::PICO_COMPOSITION_STEPS,
@@ -32,8 +32,8 @@ pub struct CheckArgs {
 pub enum CheckScope {
     /// Inspect mechanically derived portable kind coverage by Host profile.
     Catalog(crate::commands::catalog::CatalogArgs),
-    /// Check and report the explicit reviewed form inventory.
-    Forms(crate::commands::forms::FormsArgs),
+    /// Check and report the explicit reviewed plot inventory.
+    Plots(crate::commands::plots::PlotsArgs),
     /// Check Pete's reviewed workload and Host make closure without physical access.
     Pete,
 }
@@ -51,12 +51,12 @@ pub enum CheckSuite {
     Sim,
     KernelTakeover,
     PlanningS2,
-    FormS3,
+    PlotS3,
     Observatory,
     SemanticCatalog,
     /// Execute authored quantity mappings through the std production kernel and presentation.
     QuantityMapping,
-    /// Prove bounded Todo state transitions and recursive Form execution.
+    /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
     InputSemantics,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
@@ -105,7 +105,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::Sim => run_suite(SIM_READINESS_STEPS, &root, opts),
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
-        CheckSuite::FormS3 => run_suite(FORM_S3_STEPS, &root, opts),
+        CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
@@ -438,7 +438,7 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
     ),
     Step::new(
         "quantity-mapping.kernel",
-        "Execute authored quantity Forms with output, correlated Signs and connected refusals",
+        "Execute authored quantity Plots with output, correlated Signs and connected refusals",
         "cargo",
         &[
             "test",
@@ -451,7 +451,7 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
     ),
     Step::new(
         "quantity-mapping.browser-runtime",
-        "Execute authored quantity Forms through browser kernel and typed output effects",
+        "Execute authored quantity Plots through browser kernel and typed output effects",
         "cargo",
         &[
             "test",

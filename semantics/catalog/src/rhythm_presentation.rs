@@ -40,12 +40,12 @@ pub fn rhythm_presentation_semantic_contract() -> Kind {
     rhythm_presentation_contract().into_semantic_contract(RHYTHM_PRESENTATION_CONTRACT_REVISION)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_rhythm_presentation_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     startup.insert(KindSignature {
         kind: RHYTHM_PRESENTATION_KIND.to_string(),
         startup_parameters: vec![],

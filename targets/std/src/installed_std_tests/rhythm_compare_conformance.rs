@@ -3,8 +3,8 @@ use conduit_audio::{BeatReference, Gate, MusicalNoteEvent, MusicalPitch, NoteOcc
 use conduit_core::{
     BaseImplementationId, KindId, KindIdentity, PortDirection, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document,
     rust_binding::NativeRustBinding, KindConfigurationField, KindConfigurationRule, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
@@ -46,7 +46,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
 
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_semantic_catalog::install_structured_music_form_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_structured_music_plot_catalogs(&mut startup, &mut profile)
         .unwrap();
     for (kind, value) in [(REFERENCE_SOURCE, &reference), (FEEDBACK_SINK, &feedback)] {
         let offer = if kind == REFERENCE_SOURCE {
@@ -65,12 +65,12 @@ fn portable_lesson_executes_with_generic_structured_sources() {
     );
 
     let source = format!(
-        "form lesson {{\n performance: {PERFORMANCE_SOURCE}\n reference: {REFERENCE_SOURCE}\n feedback: {FEEDBACK_SINK}\n compare: music/rhythm-compare(target-offset-micros = 0, tolerance-micros = 30000)\n performance >> compare.performance\n reference >> compare.reference\n compare.feedback >> feedback\n}}\n"
+        "plot lesson {{\n performance: {PERFORMANCE_SOURCE}\n reference: {REFERENCE_SOURCE}\n feedback: {FEEDBACK_SINK}\n compare: music/rhythm-compare(target-offset-micros = 0, tolerance-micros = 30000)\n performance >> compare.performance\n reference >> compare.reference\n compare.feedback >> feedback\n}}\n"
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "lesson", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "lesson", &profile).unwrap();
 
     let mut advertisement = host("rhythm-lesson-host").advertisement().clone();
     advertisement.capabilities.extend([

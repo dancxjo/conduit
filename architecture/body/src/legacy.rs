@@ -5,7 +5,7 @@
 //! historical provenance as if it had been emitted by the v2 workset model.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 use serde::{Deserialize, Serialize};
 
 use crate::{BodyId, BodyState, BodyWorkset};
@@ -18,7 +18,7 @@ pub struct HistoricalSeedBodyV1 {
     /// Exact opaque Seed identity from the historical schema.
     pub seed_id: String,
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     #[serde(default)]
     pub workset: BodyWorkset,
     #[serde(default)]
@@ -34,15 +34,15 @@ pub enum HistoricalBodyLifecycleEventV1 {
     Born {
         sign_id: SignId,
     },
-    FormAdmitted {
+    PlotAdmitted {
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         workload_revision: u64,
         sign_id: SignId,
     },
-    FormRemoved {
+    PlotRemoved {
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         workload_revision: u64,
         sign_id: SignId,
     },

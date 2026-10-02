@@ -16,7 +16,7 @@ physical-effect-proof = []
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc"]
 
 [dependencies]
-conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
+conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog"] }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
@@ -26,9 +26,9 @@ conduit-browser-runtime = { path = "../browser/runtime" }
 conduit-core = { path = "../../architecture/core" }
 conduit-human = { path = "../../semantics/human" }
 conduit-robotics = { path = "../../semantics/robotics" }
-conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
+conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-composite = { path = "../../architecture/composite" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-host-make = { path = "../../make/host" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-language = { path = "../../semantics/language" }
@@ -37,7 +37,7 @@ conduit-emergency-keyword-spotter = { path = "../../mechanisms/implementations/e
 conduit-finance = { path = "../../semantics/finance" }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi", optional = true }
-conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
+conduit-net = { path = "../../semantics/net", features = ["plot-catalog"] }
 conduit-rp2040-network-realization = { path = "../rp2040/network-realization" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-planner = { path = "../../architecture/planner" }
@@ -47,7 +47,7 @@ conduit-protected-line = { path = "../../architecture/protected-line" }
 conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
-conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["body-coordination-plan", "form-catalog", "text-lab-plan", "kernel-step"] }
+conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["body-coordination-plan", "plot-catalog", "text-lab-plan", "kernel-step"] }
 conduit-std-offers = { path = "offers", features = ["speech"] }
 conduit-time = { path = "../../semantics/time", features = ["kernel-step"] }
 conduit-text = { path = "../../semantics/text", default-features = false }

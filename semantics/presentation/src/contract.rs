@@ -407,9 +407,9 @@ fn build_offer(
     .build()
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn renderer_kind_projection() -> conduit_form::KindProjection {
-    conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn renderer_kind_projection() -> conduit_plot::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: kind_id(RENDERER_KIND),
         kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
         inputs: renderer_inputs(),
@@ -418,19 +418,19 @@ pub fn renderer_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn show_resource_source_kind() -> Kind {
     show_resource_source_contract()
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn resource_renderer_kind() -> Kind {
     resource_renderer_contract()
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn face_interaction_kind_projection() -> conduit_form::KindProjection {
-    conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn face_interaction_kind_projection() -> conduit_plot::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: kind_id(FACE_INTERACTION_KIND),
         kind_contract_revision: KindIdentity::from(FACE_INTERACTION_CONTRACT_REVISION),
         inputs: interaction_inputs(),
@@ -439,9 +439,9 @@ pub fn face_interaction_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn presentation_tee_kind_projection() -> conduit_form::KindProjection {
-    conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn presentation_tee_kind_projection() -> conduit_plot::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: kind_id(PRESENTATION_TEE_KIND),
         kind_contract_revision: KindIdentity::from(PRESENTATION_TEE_CONTRACT_REVISION),
         inputs: presentation_tee_inputs(),
@@ -450,9 +450,9 @@ pub fn presentation_tee_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn presenter_stage_kind_projection() -> conduit_form::KindProjection {
-    conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn presenter_stage_kind_projection() -> conduit_plot::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: kind_id(PRESENTER_STAGE_KIND),
         kind_contract_revision: KindIdentity::from(PRESENTER_STAGE_CONTRACT_REVISION),
         inputs: presenter_stage_inputs(),
@@ -461,21 +461,21 @@ pub fn presenter_stage_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-/// Install the portable Kind fronts used by ordinary Forms serving as Masks.
+/// Install the portable Kind fronts used by ordinary Plots serving as Masks.
 ///
 /// This is checking truth only. A Host still has to offer and the Plan still
 /// has to select each exact renderer, tee, and Face-interaction Back.
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_mask_mechanism_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profiles: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profiles: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     for projection in [
         renderer_kind_projection(),
         face_interaction_kind_projection(),
         presentation_tee_kind_projection(),
     ] {
-        startup.insert(conduit_form::KindSignature {
+        startup.insert(conduit_plot::KindSignature {
             kind: projection.kind_id.as_str().into(),
             startup_parameters: alloc::vec::Vec::new(),
         })?;
@@ -484,7 +484,7 @@ pub fn install_mask_mechanism_catalog(
             .map_err(|error| alloc::format!("install Mask mechanism profile: {error:?}"))?;
     }
     for kind in [show_resource_source_kind(), resource_renderer_kind()] {
-        startup.insert(conduit_form::KindSignature {
+        startup.insert(conduit_plot::KindSignature {
             kind: kind.kind_id.as_str().into(),
             startup_parameters: alloc::vec::Vec::new(),
         })?;

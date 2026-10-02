@@ -96,8 +96,8 @@ impl FirmwareIdentity {
             if image.schema != "conduit.pico-signal.generated-image@1"
                 || image.firmware_mode != self.firmware_mode
                 || image.source_document_id != exact.plan.source_document_id.as_str()
-                || image.checked_form_id != exact.plan.checked_form_id.as_str()
-                || image.expanded_form_id != exact.plan.expanded_form_id.as_str()
+                || image.checked_plot_id != exact.plan.checked_plot_id.as_str()
+                || image.expanded_plot_id != exact.plan.expanded_plot_id.as_str()
                 || image.plan_id != exact.plan.plan_id.as_str()
                 || image.fragment_id != fragment.fragment_id.as_str()
                 || image.host_id != conduit_r1_network_conformance::R1_PICO_HOST_ID
@@ -121,8 +121,8 @@ pub struct GeneratedImageIdentity {
     pub firmware_mode: String,
     pub firmware_build_id: String,
     pub source_document_id: String,
-    pub checked_form_id: String,
-    pub expanded_form_id: String,
+    pub checked_plot_id: String,
+    pub expanded_plot_id: String,
     pub plan_id: String,
     pub fragment_id: String,
     pub host_id: String,
@@ -328,7 +328,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
                 "power_toggle": {"gpio": 18, "level": "low"},
                 "create_uart": "supervised_57600_8n1",
                 "robot_control_capable": true,
-                "form": "pete-capstone",
+                "plot": "pete-capstone",
                 "kernel": "conduit-kernel",
                 "oi_exposed": false,
             });

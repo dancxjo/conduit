@@ -27,7 +27,7 @@ struct CrecheArrivalProof {
     profile: &'static str,
     body: Option<String>,
     creche_ready: bool,
-    form_opened: bool,
+    plot_opened: bool,
     naming_edited: bool,
     effects: u8,
     remained_alive: bool,
@@ -152,10 +152,10 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "normal zero-body arrival did not project an explicitly absent Body",
         ));
     }
-    if serial.contains("\"status\":\"form-opened\"") {
+    if serial.contains("\"status\":\"plot-opened\"") {
         return Err(ConduitosError::refusal(
-            "creche-arrival-opened-form",
-            "normal zero-body arrival opened a form before explicit Crèche selection",
+            "creche-arrival-opened-plot",
+            "normal zero-body arrival opened a plot before explicit Crèche selection",
         ));
     }
     if !serial.contains("CONDUIT_CRECHE_CHECKPOINT edited") {
@@ -181,7 +181,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         profile: super::demo::DEMO_PROFILE,
         body: None,
         creche_ready,
-        form_opened: false,
+        plot_opened: false,
         naming_edited: true,
         effects: 0,
         remained_alive: true,

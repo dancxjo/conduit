@@ -205,7 +205,7 @@ fn validate(
         || boot.build_id != build
         || boot.image_binding != image
         || boot.offer_generation != 1
-        || journey["status"] != "form-opened"
+        || journey["status"] != "plot-opened"
         || journey["profile_id"] != profile
         || journey["build_id"] != build
         || journey["image_id"] != image

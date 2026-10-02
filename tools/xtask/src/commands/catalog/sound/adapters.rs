@@ -10,7 +10,7 @@ use conduit_core::{
     HostProfileId, ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
-use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
+use conduit_plot::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use serde::Serialize;
 
 use super::super::CatalogError;
@@ -27,8 +27,8 @@ const VELOCITY_POLICY: &str = "discard-explicitly";
 const PITCH_POLICY: &str = "preserve-exact";
 const MAXIMUM_ACTIVE_NOTES: usize = 8;
 
-const ADAPTED_FORM: &str = "form explicit-loss {\n source: conduit-conformance/note-source\n adapt: music/to-monophonic-tone(polyphony-policy = \"newest-note-priority\", velocity-policy = \"discard-explicitly\", pitch-policy = \"preserve-exact\")\n output: sound/tone-play\n source.notes >> adapt.notes\n adapt.tone >> output.tone\n}\n";
-const UNADAPTED_FORM: &str = "form implicit-loss {\n source: conduit-conformance/note-source\n output: sound/tone-play\n source.notes >> output.tone\n}\n";
+const ADAPTED_FORM: &str = "plot explicit-loss {\n source: conduit-conformance/note-source\n adapt: music/to-monophonic-tone(polyphony-policy = \"newest-note-priority\", velocity-policy = \"discard-explicitly\", pitch-policy = \"preserve-exact\")\n output: sound/tone-play\n source.notes >> adapt.notes\n adapt.tone >> output.tone\n}\n";
+const UNADAPTED_FORM: &str = "plot implicit-loss {\n source: conduit-conformance/note-source\n output: sound/tone-play\n source.notes >> output.tone\n}\n";
 
 #[derive(Debug, Serialize)]
 pub(super) struct LossyAdapterProof {
@@ -46,23 +46,23 @@ pub(super) struct LossyAdapterProof {
 
 pub(super) fn build() -> Result<LossyAdapterProof, CatalogError> {
     let catalog = catalog()?;
-    if conduit_form::parse(UNADAPTED_FORM, &catalog).is_ok() {
+    if conduit_plot::parse(UNADAPTED_FORM, &catalog).is_ok() {
         return Err(CatalogError::new(
             "implicit-sound-loss-accepted",
             "note Info connected directly to tone Info without an authored adapter",
         ));
     }
-    let form = conduit_form::parse(ADAPTED_FORM, &catalog).map_err(|error| {
+    let plot = conduit_plot::parse(ADAPTED_FORM, &catalog).map_err(|error| {
         CatalogError::new(
             "explicit-sound-adapter-invalid",
-            format!("explicit adapter Form did not check: {error}"),
+            format!("explicit adapter Plot did not check: {error}"),
         )
     })?;
     let host = host(&catalog)?;
-    let placements = conduit_planner::default_placements(&form, core::slice::from_ref(&host))
+    let placements = conduit_planner::default_placements(&plot, core::slice::from_ref(&host))
         .map_err(|error| CatalogError::new("sound-adapter-placement-failed", error.to_string()))?;
     let plan = conduit_planner::plan(
-        &form,
+        &plot,
         core::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -94,7 +94,7 @@ pub(super) fn build() -> Result<LossyAdapterProof, CatalogError> {
         unadapted_result: "refused-info-kind-mismatch",
         adapted_result: "planned-explicit-policy",
         plan_id: plan.plan_id.as_str().to_owned(),
-        source_document_id: form.source_document_id.as_str().to_owned(),
+        source_document_id: plot.source_document_id.as_str().to_owned(),
         adapter_configuration: adapter
             .configuration
             .iter()

@@ -8,9 +8,9 @@ fn open_request() -> OpenRequest {
         choices: vec![Choice {
             title: "Memory Lantern".into(),
             search_text: "state text".into(),
-            form: ResidentForm {
+            plot: ResidentPlot {
                 source_document_id: "source/lantern".into(),
-                checked_form_id: "checked/lantern".into(),
+                checked_plot_id: "checked/lantern".into(),
             },
             selected: false,
         }],
@@ -51,7 +51,7 @@ fn shared_draft_edits_and_birth_request_do_not_create_lifecycle_truth() {
         .event(event(&current, "creche.name", "input", "Juniper"))
         .unwrap();
     current
-        .event(event(&current, "creche.form.0", "change", "true"))
+        .event(event(&current, "creche.plot.0", "change", "true"))
         .unwrap();
     current
         .event(event(&current, "creche.birth", "activate", ""))
@@ -62,7 +62,7 @@ fn shared_draft_edits_and_birth_request_do_not_create_lifecycle_truth() {
     assert_eq!(
         result["selected"],
         json!([{
-            "source_document_id": "source/lantern", "checked_form_id": "checked/lantern"
+            "source_document_id": "source/lantern", "checked_plot_id": "checked/lantern"
         }])
     );
     assert_eq!(result["birth_requested"], true);
@@ -85,8 +85,8 @@ fn replaced_generation_and_stale_or_malformed_events_leave_draft_unchanged() {
         .unwrap_err()
         .contains("StalePresentation"));
     for (action, kind, value) in [
-        ("creche.form.0", "change", "yes"),
-        ("creche.form.01", "change", "true"),
+        ("creche.plot.0", "change", "yes"),
+        ("creche.plot.01", "change", "true"),
         ("creche.naming", "change", "Roman tria nomina"),
         ("creche.name", "activate", "wrong kind"),
         ("creche.birth", "activate", "invented payload"),
@@ -107,12 +107,12 @@ fn oversized_inventory_is_refused_before_replacing_the_current_draft() {
     let mut oversized = open_request();
     oversized.choices = (0..16)
         .map(|index| Choice {
-            title: format!("Form {index}"),
+            title: format!("Plot {index}"),
             search_text: String::new(),
             selected: false,
-            form: ResidentForm {
+            plot: ResidentPlot {
                 source_document_id: format!("{index:02}{}", "s".repeat(2046)).into(),
-                checked_form_id: format!("{index:02}{}", "c".repeat(2046)).into(),
+                checked_plot_id: format!("{index:02}{}", "c".repeat(2046)).into(),
             },
         })
         .collect();

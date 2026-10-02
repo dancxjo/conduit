@@ -1,14 +1,14 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, AuthorityGrantId,
-    CheckedFormId, Plan, PlanId, SignId, SourceDocumentId,
+    CheckedPlotId, Plan, PlanId, SignId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::identity::{bind_identity, validate_ids};
 use crate::validation::{validate_new_sign, validate_plan_history, validate_sign};
 use crate::{
-    BodyId, BodyLifecycleEvent, BodyWorkset, BodyWorksetError, ResidentForm, WakeId,
+    BodyId, BodyLifecycleEvent, BodyWorkset, BodyWorksetError, ResidentPlot, WakeId,
     WakeLifecycleEvent,
 };
 
@@ -43,7 +43,7 @@ pub struct BodyFulfillment {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyIdentityDerivation {
-    /// Canonical initial Form workset plus the attributable birth sequence.
+    /// Canonical initial Plot workset plus the attributable birth sequence.
     InitialWorksetV2,
 }
 
@@ -59,7 +59,7 @@ pub struct BodyHistoryCheckpoint {
 pub struct Body {
     pub body_id: BodyId,
     pub identity_derivation: BodyIdentityDerivation,
-    /// Exact current form workload. Birth establishes revision zero.
+    /// Exact current plot workload. Birth establishes revision zero.
     pub workset: BodyWorkset,
     pub workload_revision: u64,
     pub birth_sequence: u64,
@@ -116,7 +116,7 @@ pub struct WakeRejectionEvidence {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plan_id: Option<PlanId>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub checked_form_ids: Vec<CheckedFormId>,
+    pub checked_plot_ids: Vec<CheckedPlotId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -151,10 +151,10 @@ pub enum BodyLifecycleError {
     AuthorityDenied,
     HoldRequired,
     MismatchedWake,
-    DuplicateForm,
-    FormAbsent,
-    FormCapacityExhausted,
-    FormIdentityBytesExhausted,
+    DuplicatePlot,
+    PlotAbsent,
+    PlotCapacityExhausted,
+    PlotIdentityBytesExhausted,
     Fulfilled,
     UnsettledObligations,
 }
@@ -168,32 +168,32 @@ impl core::fmt::Display for BodyLifecycleError {
 impl From<BodyWorksetError> for BodyLifecycleError {
     fn from(value: BodyWorksetError) -> Self {
         match value {
-            BodyWorksetError::InvalidFormIdentity => Self::InvalidIdentity,
-            BodyWorksetError::DuplicateForm => Self::DuplicateForm,
-            BodyWorksetError::FormAbsent => Self::FormAbsent,
-            BodyWorksetError::FormCapacityExhausted => Self::FormCapacityExhausted,
-            BodyWorksetError::IdentityBytesExhausted => Self::FormIdentityBytesExhausted,
+            BodyWorksetError::InvalidPlotIdentity => Self::InvalidIdentity,
+            BodyWorksetError::DuplicatePlot => Self::DuplicatePlot,
+            BodyWorksetError::PlotAbsent => Self::PlotAbsent,
+            BodyWorksetError::PlotCapacityExhausted => Self::PlotCapacityExhausted,
+            BodyWorksetError::IdentityBytesExhausted => Self::PlotIdentityBytesExhausted,
         }
     }
 }
 
 impl Body {
-    /// Convenience entrance for a one-Form initial workset. The form has no
+    /// Convenience entrance for a one-Plot initial workset. The plot has no
     /// privileged status after birth.
     pub fn born(
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         birth_sequence: u64,
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
-        Self::born_with_forms(
-            BodyWorkset::one(ResidentForm::new(source_document_id, checked_form_id))?,
+        Self::born_with_plots(
+            BodyWorkset::one(ResidentPlot::new(source_document_id, checked_plot_id))?,
             birth_sequence,
             sign_id,
         )
     }
 
-    pub fn born_with_forms(
+    pub fn born_with_plots(
         initial_workset: BodyWorkset,
         birth_sequence: u64,
         sign_id: SignId,
@@ -601,7 +601,7 @@ impl Wake {
                     || rejection.stage.is_empty()
                     || rejection.resource.is_empty()
                     || rejection.required <= rejection.available
-                    || rejection.checked_form_ids.len() > crate::MAX_BODY_FORMS
+                    || rejection.checked_plot_ids.len() > crate::MAX_BODY_PLOTS
             })
         {
             return Err(BodyLifecycleError::InvalidPlanningBasis);
@@ -627,11 +627,11 @@ impl Wake {
         if !verify_plan(plan) {
             return Err(BodyLifecycleError::InvalidPlan);
         }
-        let form = ResidentForm::new(
+        let plot = ResidentPlot::new(
             plan.source_document_id.clone(),
-            plan.checked_form_id.clone(),
+            plan.checked_plot_id.clone(),
         );
-        if self.workset.len() != 1 || !self.workset.contains(&form) {
+        if self.workset.len() != 1 || !self.workset.contains(&plot) {
             return Err(BodyLifecycleError::StalePlan);
         }
         Ok(())
@@ -650,9 +650,9 @@ impl Wake {
 fn bind_body_v2(initial_workset: &BodyWorkset, birth_sequence: u64) -> BodyId {
     let mut values = alloc::vec::Vec::with_capacity(1 + initial_workset.len() * 2);
     values.push("conduit.body/identity@2");
-    for form in initial_workset.forms() {
-        values.push(form.source_document_id.as_str());
-        values.push(form.checked_form_id.as_str());
+    for plot in initial_workset.plots() {
+        values.push(plot.source_document_id.as_str());
+        values.push(plot.checked_plot_id.as_str());
     }
     BodyId::bound(bind_identity("body", &values, birth_sequence))
 }

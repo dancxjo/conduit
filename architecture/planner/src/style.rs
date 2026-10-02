@@ -9,7 +9,7 @@ use conduit_core::{
     stable_realization_boolean, stable_realization_category, CharacteristicId, CharacteristicValue,
     HostAdvertisement, RealizationAdvertisement, RealizationCharacteristic,
 };
-use conduit_form::CheckedGear;
+use conduit_plot::CheckedGear;
 
 pub const DOS_SHELL_STYLE_ID: &str = "conduit.style/dos-shell@1";
 pub const PRESENTATION_TEXT_LAYOUT: &str = "presentation/text-layout";

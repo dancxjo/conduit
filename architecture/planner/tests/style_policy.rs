@@ -12,17 +12,17 @@ use conduit_planner::{
 mod common;
 
 fn presentation_fixture() -> (
-    conduit_form::CheckedGear,
+    conduit_plot::CheckedGear,
     Vec<conduit_core::HostAdvertisement>,
     Vec<RealizationAdvertisement>,
     Vec<ReviewedObservation>,
 ) {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
         .expect("Patchbay presentation catalogs install");
-    let gear = conduit_form::parse(
-        "form styled {\n    canvas: presentation/patchbay\n}\n",
+    let gear = conduit_plot::parse(
+        "plot styled {\n    canvas: presentation/patchbay\n}\n",
         &profile,
     )
     .expect("semantic Patchbay presentation checks")

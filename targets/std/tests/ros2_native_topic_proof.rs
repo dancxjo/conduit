@@ -1,6 +1,6 @@
 use conduit_core::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::ros2_base::*;
@@ -104,31 +104,31 @@ fn native_ros_topic_round_trip_has_no_sibling_or_reflection_effect() {
         )
         .unwrap();
     // The selected ROS value becomes ordinary semantic input. The checked
-    // Form and its planner/kernel path contain no ROS name, type, QoS, or ABI.
-    let form_source = format!(
-        "form selected_text {{\n    upper: text/upper\n    show: presentation/text(maximum-values = 1)\n    {:?} >> upper >> show\n}}\n",
+    // Plot and its planner/kernel path contain no ROS name, type, QoS, or ABI.
+    let plot_source = format!(
+        "plot selected_text {{\n    upper: text/upper\n    show: presentation/text(maximum-values = 1)\n    {:?} >> upper >> show\n}}\n",
         semantic_text
     );
-    assert!(!form_source.contains("/fixture"));
-    assert!(!form_source.contains("std_msgs"));
-    assert!(!form_source.contains("qos"));
+    assert!(!plot_source.contains("/fixture"));
+    assert!(!plot_source.contains("std_msgs"));
+    assert!(!plot_source.contains("qos"));
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-    let syntax = parse_syntax_document(&form_source);
+    let syntax = parse_syntax_document(&plot_source);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "selected_text", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "selected_text", &profile).unwrap();
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&expanded).unwrap();
-    let mut form_output = Vec::new();
+    let mut plot_output = Vec::new();
     host.run_fragment_to(
         plan.fragments[0].clone(),
-        &mut form_output,
+        &mut plot_output,
         &mut ThreadTimer,
     )
     .unwrap();
-    let form_output = String::from_utf8(form_output).unwrap();
-    assert!(form_output.contains("HELLO FROM ROS\n"), "{form_output}");
+    let plot_output = String::from_utf8(plot_output).unwrap();
+    assert!(plot_output.contains("HELLO FROM ROS\n"), "{plot_output}");
     let transformed = "HELLO FROM ROS";
     let mut publish = security_support::authority("output", "conduit.host/ros2-publish@1");
     let manifestation = base

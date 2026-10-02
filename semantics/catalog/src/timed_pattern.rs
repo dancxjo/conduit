@@ -10,7 +10,7 @@ use conduit_core::{
     PortTemporal, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
     StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{rust_binding::NativeRustBinding, KindProjection, KindSignature};
+use conduit_plot::{rust_binding::NativeRustBinding, KindProjection, KindSignature};
 pub use conduit_time::TimedPatternRefusal;
 
 pub const TIMED_EVENT_SEQUENCE_TYPE: &str = "TimedEventSequence";
@@ -65,8 +65,8 @@ pub fn ordered_event_intervals_semantic_contract() -> Kind {
 }
 
 pub fn install_timed_pattern_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(TIMED_EVENT_SEQUENCE_TYPE, timed_event_sequence_type())

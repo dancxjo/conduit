@@ -44,10 +44,10 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
             &[conduit_home_model::HOME_ARRIVED_STEP_ID][..],
         ),
         (
-            "home-forms",
+            "home-plots",
             &[
-                conduit_home_model::FORMS_OPENED_STEP_ID,
-                conduit_home_model::FORM_SELECTED_STEP_ID,
+                conduit_home_model::PLOTS_OPENED_STEP_ID,
+                conduit_home_model::PLOT_SELECTED_STEP_ID,
             ][..],
         ),
         (
@@ -57,7 +57,7 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
         (
             "home-play-observed",
             &[
-                conduit_home_model::FORM_RUN_STEP_ID,
+                conduit_home_model::PLOT_RUN_STEP_ID,
                 conduit_home_model::PLAY_OBSERVED_STEP_ID,
             ][..],
         ),
@@ -172,10 +172,10 @@ mod tests {
         for (name, steps) in [
             ("body-awake", vec![conduit_home_model::HOME_ARRIVED_STEP_ID]),
             (
-                "home-forms",
+                "home-plots",
                 vec![
-                    conduit_home_model::FORMS_OPENED_STEP_ID,
-                    conduit_home_model::FORM_SELECTED_STEP_ID,
+                    conduit_home_model::PLOTS_OPENED_STEP_ID,
+                    conduit_home_model::PLOT_SELECTED_STEP_ID,
                 ],
             ),
             (
@@ -185,7 +185,7 @@ mod tests {
             (
                 "home-play-observed",
                 vec![
-                    conduit_home_model::FORM_RUN_STEP_ID,
+                    conduit_home_model::PLOT_RUN_STEP_ID,
                     conduit_home_model::PLAY_OBSERVED_STEP_ID,
                 ],
             ),

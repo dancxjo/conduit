@@ -110,14 +110,14 @@ fn all_storage_and_pressure_are_finite() {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
 fn authored_synth_patch_has_exact_defaults_and_overrides() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     crate::install_sound_catalogs(&mut startup, &mut profile).unwrap();
-    let checked = conduit_form::parse(
-        "form patch {\n synth: music/synth(maximum-voices = 12, oscillator = \"triangle\", filter-envelope-amount-q16 = -4096)\n}\n",
+    let checked = conduit_plot::parse(
+        "plot patch {\n synth: music/synth(maximum-voices = 12, oscillator = \"triangle\", filter-envelope-amount-q16 = -4096)\n}\n",
         &profile,
     )
     .unwrap();
@@ -157,24 +157,24 @@ fn authored_synth_patch_has_exact_defaults_and_overrides() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn synth_playback_realization_is_an_ordinary_recursive_form() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn synth_playback_realization_is_an_ordinary_recursive_plot() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     crate::install_sound_catalogs(&mut startup, &mut profile).unwrap();
     for (kind, info) in [
         ("test/note-source", MUSIC_NOTE_INFO_ID),
         ("test/control-source", MUSIC_CONTROL_INFO_ID),
     ] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.into(),
                 startup_parameters: Vec::new(),
             })
             .unwrap();
         profile
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from(alloc::format!("{kind}@1")),
                 inputs: Vec::new(),
@@ -183,11 +183,11 @@ fn synth_playback_realization_is_an_ordinary_recursive_form() {
             })
             .unwrap();
     }
-    let source = "form music/play-through-synth (\n >> notes: music/note-event@1\n >> controls: music/control-event@1\n) {\n synth: music/synth\n output: audio/play\n notes >> synth.notes\n controls >> synth.controls\n synth.audio >> output.audio\n}\n\nform instrument-output {\n notes: test/note-source\n controls: test/control-source\n realization: music/play-through-synth\n notes >> realization.notes\n controls >> realization.controls\n}\n";
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let source = "plot music/play-through-synth (\n >> notes: music/note-event@1\n >> controls: music/control-event@1\n) {\n synth: music/synth\n output: audio/play\n notes >> synth.notes\n controls >> synth.controls\n synth.audio >> output.audio\n}\n\nform instrument-output {\n notes: test/note-source\n controls: test/control-source\n realization: music/play-through-synth\n notes >> realization.notes\n controls >> realization.controls\n}\n";
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "instrument-output", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "instrument-output", &profile).unwrap();
     assert_eq!(expanded.gears.len(), 4);
     assert!(expanded
         .gears

@@ -132,8 +132,8 @@ fn prove(inputs: &mut HotplugProofInputs<'_>) -> Result<(), &'static str> {
         .map_err(|_| "d2-plan-refused")?;
     if p1.plan.plan_id == p2.plan.plan_id
         || p1.source_document_id != p2.source_document_id
-        || p1.checked_form_id != p2.checked_form_id
-        || p1.expanded_form_id != p2.expanded_form_id
+        || p1.checked_plot_id != p2.checked_plot_id
+        || p1.expanded_plot_id != p2.expanded_plot_id
         || keyboard_text_plan::validate(&p1.plan, &p2.advertisement, &d2_offer, build_id).is_ok()
     {
         return Err("fresh-plan-or-stale-plan-check-invalid");
@@ -168,12 +168,12 @@ fn prove(inputs: &mut HotplugProofInputs<'_>) -> Result<(), &'static str> {
         return Err("d2-play-result-invalid");
     }
     let sign = format!(
-        "CONDUIT_HOTPLUG_SIGN {{\"schema\":\"conduit.conduitos.keyboard-hotplug/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"d1_device_id\":\"{}\",\"p1_plan_id\":\"{}\",\"x_active_play_id\":\"{}\",\"x_terminal\":\"failed-device-removed\",\"p1_immutable\":true,\"made_semantic_events\":0,\"stale_completions_retired\":{},\"d2_device_id\":\"{}\",\"p2_plan_id\":\"{}\",\"y_active_play_id\":\"{}\",\"same_form\":true,\"same_host\":true,\"same_boot\":true,\"stale_plan_refused\":true,\"semantic_topology_stable\":true,\"usb_hid_in_form\":false,\"completed\":true}}\n",
+        "CONDUIT_HOTPLUG_SIGN {{\"schema\":\"conduit.conduitos.keyboard-hotplug/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"d1_device_id\":\"{}\",\"p1_plan_id\":\"{}\",\"x_active_play_id\":\"{}\",\"x_terminal\":\"failed-device-removed\",\"p1_immutable\":true,\"made_semantic_events\":0,\"stale_completions_retired\":{},\"d2_device_id\":\"{}\",\"p2_plan_id\":\"{}\",\"y_active_play_id\":\"{}\",\"same_plot\":true,\"same_host\":true,\"same_boot\":true,\"stale_plan_refused\":true,\"semantic_topology_stable\":true,\"usb_hid_in_plot\":false,\"completed\":true}}\n",
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
         p1.source_document_id.as_str(),
-        p1.checked_form_id.as_str(),
-        p1.expanded_form_id.as_str(),
+        p1.checked_plot_id.as_str(),
+        p1.expanded_plot_id.as_str(),
         identity::hex(&d1_ids.device_id),
         p1.plan.plan_id.as_str(),
         p1.active_play.active_play_id.as_str(),

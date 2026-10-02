@@ -23,9 +23,9 @@ use firmware_mode::firmware_mode;
 #[path = "build/r1_control_images.rs"]
 mod r1_control_images;
 
-const SIGNAL_DEMO_FORM: &str = include_str!("../../../../proof/fixtures/forms/signal-demo.conduit");
-const R1_CONTROL_FORM: &str = include_str!("../../../../proof/fixtures/forms/r1-three-peer-control.conduit");
-const TRIPLE_SIGNAL_FORM: &str = include_str!("../../../../proof/fixtures/forms/triple-signal.conduit");
+const SIGNAL_DEMO_FORM: &str = include_str!("../../../../proof/fixtures/plots/signal-demo.conduit");
+const R1_CONTROL_FORM: &str = include_str!("../../../../proof/fixtures/plots/r1-three-peer-control.conduit");
+const TRIPLE_SIGNAL_FORM: &str = include_str!("../../../../proof/fixtures/plots/triple-signal.conduit");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const APPLIANCE_IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR";
@@ -146,8 +146,8 @@ fn generate_pico_lenia_image(out: &Path) {
         "firmware_mode": "distributed-lenia",
         "firmware_build_id": appliance_build_id(),
         "source_document_id": exact.plan.source_document_id.as_str(),
-        "checked_form_id": exact.plan.checked_form_id.as_str(),
-        "expanded_form_id": exact.plan.expanded_form_id.as_str(),
+        "checked_plot_id": exact.plan.checked_plot_id.as_str(),
+        "expanded_plot_id": exact.plan.expanded_plot_id.as_str(),
         "plan_id": generated.plan_id,
         "fragment_id": generated.fragment_id,
         "host_id": generated.host_id,
@@ -210,12 +210,12 @@ fn emit_linker_contract(out: &Path) {
     }
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=../../../../proof/fixtures/forms/signal-demo.conduit");
+    println!("cargo:rerun-if-changed=../../../../proof/fixtures/plots/signal-demo.conduit");
     println!(
-        "cargo:rerun-if-changed=../../../../proof/fixtures/forms/r1-three-peer-control.conduit"
+        "cargo:rerun-if-changed=../../../../proof/fixtures/plots/r1-three-peer-control.conduit"
     );
-    println!("cargo:rerun-if-changed=../../../../proof/fixtures/forms/triple-signal.conduit");
-    println!("cargo:rerun-if-changed=../../../../forms/r1-network-bootstrap/main.conduit");
+    println!("cargo:rerun-if-changed=../../../../proof/fixtures/plots/triple-signal.conduit");
+    println!("cargo:rerun-if-changed=../../../../plots/r1-network-bootstrap/main.conduit");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
     r1_control_images::emit_rerun_directives();
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
@@ -362,12 +362,12 @@ fn generate_pico_appliance_identity() {
 }
 
 fn generate_r1_recovery_signal_images(out: &Path) {
-    let form = conduit_form::parse_with_startup(
+    let plot = conduit_plot::parse_with_startup(
         SIGNAL_DEMO_FORM,
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
-    .expect("R1 Signal form must check against conduit-signal profile");
+    .expect("R1 Signal plot must check against conduit-signal profile");
     for (stem, routes) in [
         (
             "r1_plan_a_signal",
@@ -398,7 +398,7 @@ fn generate_r1_recovery_signal_images(out: &Path) {
         let lowered = lower_plan_fragment(fragment).expect("R1 Pico Signal fragment must lower");
         let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
             .expect("R1 Pico Signal fragment must fit reviewed fixed-image bounds");
-        let identity = GeneratedFirmwareIdentity::new(&form, &generated);
+        let identity = GeneratedFirmwareIdentity::new(&plot, &generated);
         let rendered = render_firmware_module(&generated, &identity);
         fs::write(out.join(format!("{stem}_image.rs")), &rendered)
             .expect("generated R1 Pico Signal image should be writable");
@@ -472,8 +472,8 @@ fn generate_pico_network_image(out: &Path) {
         firmware_mode: firmware_mode(),
         firmware_build_id: firmware_build_id.clone(),
         source_document_id: fragment.source_document_id.as_str().to_owned(),
-        checked_form_id: fragment.checked_form_id.as_str().to_owned(),
-        expanded_form_id: fragment.expanded_form_id.as_str().to_owned(),
+        checked_plot_id: fragment.checked_plot_id.as_str().to_owned(),
+        expanded_plot_id: fragment.expanded_plot_id.as_str().to_owned(),
         active_play_id: active_play.active_play_id.as_str().to_owned(),
         boot_sign_id: boot_sign.sign_id.as_str().to_owned(),
         presentation_ids: Vec::new(),
@@ -488,13 +488,13 @@ fn generate_pico_network_image(out: &Path) {
     );
     render_string_constant(
         &mut module,
-        "CHECKED_FORM_ID",
-        fragment.checked_form_id.as_str(),
+        "CHECKED_PLOT_ID",
+        fragment.checked_plot_id.as_str(),
     );
     render_string_constant(
         &mut module,
-        "EXPANDED_FORM_ID",
-        fragment.expanded_form_id.as_str(),
+        "EXPANDED_PLOT_ID",
+        fragment.expanded_plot_id.as_str(),
     );
     render_string_constant(
         &mut module,
@@ -530,12 +530,12 @@ fn generate_pico_signal_image(out: &Path) {
     } else {
         SIGNAL_DEMO_FORM
     };
-    let form = conduit_form::parse_with_startup(
+    let plot = conduit_plot::parse_with_startup(
         source,
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
-    .expect("selected Signal form must check against conduit-signal profile");
+    .expect("selected Signal plot must check against conduit-signal profile");
     let (plan, target_host) = if firmware_mode() == "triple-remote" {
         let exact = triple::exact_plan().expect("exact three-host Signal plan must resolve");
         (exact.plan, triple::PICO_HOST_ID)
@@ -552,17 +552,17 @@ fn generate_pico_signal_image(out: &Path) {
     } else {
         let advertisement = pico_local_advertisement();
         let placements =
-            conduit_planner::default_placements(&form, std::slice::from_ref(&advertisement))
-                .expect("Pico local advertisement must cover the Signal form");
+            conduit_planner::default_placements(&plot, std::slice::from_ref(&advertisement))
+                .expect("Pico local advertisement must cover the Signal plot");
         let plan = conduit_planner::plan_with_connection_limits(
-            &form,
+            &plot,
             std::slice::from_ref(&advertisement),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
             DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             SIGNAL_ENCODED_LEN,
         )
-        .expect("Pico local Signal form must plan");
+        .expect("Pico local Signal plot must plan");
         (plan, PICO_LOCAL_HOST_ID)
     };
     let fragment = plan
@@ -573,7 +573,7 @@ fn generate_pico_signal_image(out: &Path) {
     let lowered = lower_plan_fragment(fragment).expect("Pico fragment must lower");
     let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
         .expect("Pico fragment must fit the reviewed fixed-image bounds");
-    let identity = GeneratedFirmwareIdentity::new(&form, &generated);
+    let identity = GeneratedFirmwareIdentity::new(&plot, &generated);
 
     fs::write(
         out.join("pico_signal_image.rs"),
@@ -615,8 +615,8 @@ struct GeneratedFirmwareIdentity {
     firmware_mode: &'static str,
     firmware_build_id: String,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
+    checked_plot_id: String,
+    expanded_plot_id: String,
     active_play_id: String,
     boot_sign_id: String,
     presentation_ids: Vec<String>,
@@ -625,7 +625,7 @@ struct GeneratedFirmwareIdentity {
 }
 
 impl GeneratedFirmwareIdentity {
-    fn new(form: &conduit_form::CheckedForm, generated: &GeneratedEmbeddedPlan) -> Self {
+    fn new(plot: &conduit_plot::CheckedPlot, generated: &GeneratedEmbeddedPlan) -> Self {
         let plan_id = PlanId::from(generated.plan_id.clone());
         let host_id = HostId::from(generated.host_id.clone());
         let boot_id = BootId::from(generated.boot_id.clone());
@@ -666,14 +666,14 @@ impl GeneratedFirmwareIdentity {
             .sign_id
             .as_str()
             .to_owned();
-        let firmware_build_id = firmware_build_id(form, generated, &active_play.active_play_id);
+        let firmware_build_id = firmware_build_id(plot, generated, &active_play.active_play_id);
 
         Self {
             firmware_mode: firmware_mode(),
             firmware_build_id,
-            source_document_id: form.source_document_id.as_str().to_owned(),
-            checked_form_id: form.checked_form_id.as_str().to_owned(),
-            expanded_form_id: form.expanded_form_id.as_str().to_owned(),
+            source_document_id: plot.source_document_id.as_str().to_owned(),
+            checked_plot_id: plot.checked_plot_id.as_str().to_owned(),
+            expanded_plot_id: plot.expanded_plot_id.as_str().to_owned(),
             active_play_id: active_play.active_play_id.as_str().to_owned(),
             boot_sign_id,
             presentation_ids,
@@ -684,7 +684,7 @@ impl GeneratedFirmwareIdentity {
 }
 
 fn firmware_build_id(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     generated: &GeneratedEmbeddedPlan,
     active_play_id: &conduit_core::ActivePlayId,
 ) -> String {
@@ -695,9 +695,9 @@ fn firmware_build_id(
         env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
         env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
         firmware_mode(),
-        form.source_document_id.as_str(),
-        form.checked_form_id.as_str(),
-        form.expanded_form_id.as_str(),
+        plot.source_document_id.as_str(),
+        plot.checked_plot_id.as_str(),
+        plot.expanded_plot_id.as_str(),
         generated.plan_id,
         generated.fragment_id,
         active_play_id.as_str(),
@@ -740,8 +740,8 @@ fn show_placement_id(generated: &GeneratedEmbeddedPlan) -> PlacementId {
 fn render_identity_constants(module: &mut String, identity: &GeneratedFirmwareIdentity) {
     render_string_constant(module, "FIRMWARE_BUILD_ID", &identity.firmware_build_id);
     render_string_constant(module, "SOURCE_DOCUMENT_ID", &identity.source_document_id);
-    render_string_constant(module, "CHECKED_FORM_ID", &identity.checked_form_id);
-    render_string_constant(module, "EXPANDED_FORM_ID", &identity.expanded_form_id);
+    render_string_constant(module, "CHECKED_PLOT_ID", &identity.checked_plot_id);
+    render_string_constant(module, "EXPANDED_PLOT_ID", &identity.expanded_plot_id);
     render_string_constant(module, "ACTIVE_PLAY_ID", &identity.active_play_id);
     render_string_constant(module, "BOOT_SIGN_ID", &identity.boot_sign_id);
     render_string_constant(module, "TERMINAL_SIGN_ID", &identity.terminal_sign_id);

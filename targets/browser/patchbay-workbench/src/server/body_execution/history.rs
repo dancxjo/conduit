@@ -37,7 +37,7 @@ pub(in crate::server) fn retain(
         revision,
         next.encoded_evidence(),
         workbench.entrance.clone(),
-        &workbench.reviewed_forms,
+        &workbench.reviewed_plots,
     )
     .map_err(|error| ServerError::Interaction(error.to_string()))?;
     snapshot.mark_available(conduit_core::SignId::from(format!(

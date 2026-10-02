@@ -2,13 +2,13 @@
 
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyGraduationChoice,
-    BodyGraduationEvidence, BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentForm,
+    BodyGraduationEvidence, BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
 use conduit_core::{bind_sign, BootId, HostId, ImplementationId, OfferGeneration, PlanId, SignId};
-use conduit_patchbay_workbench::FormCandidate;
+use conduit_patchbay_workbench::PlotCandidate;
 
 use crate::{
-    body_workbench_snapshot_with_forms, BodyWorkbenchError, BrowserBodyWorkbenchEntrance,
+    body_workbench_snapshot_with_plots, BodyWorkbenchError, BrowserBodyWorkbenchEntrance,
     RendererSnapshot,
 };
 
@@ -16,67 +16,67 @@ use crate::{
 pub fn body_workbench_fixture_snapshot(
     hosted: bool,
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
-    let forms = body_workbench_fixture_forms()?;
-    body_workbench_fixture_snapshot_with_forms(hosted, &forms)
+    let plots = body_workbench_fixture_plots()?;
+    body_workbench_fixture_snapshot_with_plots(hosted, &plots)
 }
 
-pub fn body_workbench_fixture_forms() -> Result<Vec<FormCandidate>, BodyWorkbenchError> {
+pub fn body_workbench_fixture_plots() -> Result<Vec<PlotCandidate>, BodyWorkbenchError> {
     Ok(vec![
-        reviewed_form(
+        reviewed_plot(
             "Hello",
-            "forms/hello/main.conduit",
-            include_str!("../../../../forms/hello/main.conduit"),
+            "plots/hello/main.conduit",
+            include_str!("../../../../plots/hello/main.conduit"),
             "hello",
             5,
         )?,
-        reviewed_form(
+        reviewed_plot(
             "Greet",
-            "forms/greet/main.conduit",
-            include_str!("../../../../forms/greet/main.conduit"),
+            "plots/greet/main.conduit",
+            include_str!("../../../../plots/greet/main.conduit"),
             "greet",
             6,
         )?,
-        reviewed_form(
+        reviewed_plot(
             "Count",
-            "forms/count/main.conduit",
-            include_str!("../../../../forms/count/main.conduit"),
+            "plots/count/main.conduit",
+            include_str!("../../../../plots/count/main.conduit"),
             "count",
             7,
         )?,
-        reviewed_form(
+        reviewed_plot(
             "Desk Telegraph",
-            "forms/desk-telegraph/main.conduit",
-            include_str!("../../../../forms/desk-telegraph/main.conduit"),
+            "plots/desk-telegraph/main.conduit",
+            include_str!("../../../../plots/desk-telegraph/main.conduit"),
             "desk_telegraph",
             8,
         )?,
-        reviewed_form(
+        reviewed_plot(
             "Memory Lantern",
-            "forms/memory-lantern/main.conduit",
-            include_str!("../../../../forms/memory-lantern/main.conduit"),
+            "plots/memory-lantern/main.conduit",
+            include_str!("../../../../plots/memory-lantern/main.conduit"),
             "memory_lantern",
             9,
         )?,
     ])
 }
 
-fn body_workbench_fixture_snapshot_with_forms(
+fn body_workbench_fixture_snapshot_with_plots(
     hosted: bool,
-    available: &[FormCandidate],
+    available: &[PlotCandidate],
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
     const PLAN: &str = "plan/roseau-hosted-patchbay";
     const IMPLEMENTATION: &str = "browser/patchbay-surface@1";
     let host = HostId::from("host/roseau");
     let boot = BootId::from("boot/roseau/1");
-    let body = Body::born_with_forms(
-        BodyWorkset::from_forms([
-            ResidentForm::new(
+    let body = Body::born_with_plots(
+        BodyWorkset::from_plots([
+            ResidentPlot::new(
                 available[3].source_document_id.clone(),
-                available[3].checked_form_id.clone(),
+                available[3].checked_plot_id.clone(),
             ),
-            ResidentForm::new(
+            ResidentPlot::new(
                 available[4].source_document_id.clone(),
-                available[4].checked_form_id.clone(),
+                available[4].checked_plot_id.clone(),
             ),
         ])
         .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?,
@@ -148,22 +148,22 @@ fn body_workbench_fixture_snapshot_with_forms(
     } else {
         BrowserBodyWorkbenchEntrance::ExternalReader
     };
-    body_workbench_snapshot_with_forms(1, &encoded, entrance, available)
+    body_workbench_snapshot_with_plots(1, &encoded, entrance, available)
 }
 
-fn reviewed_form(
+fn reviewed_plot(
     label: &str,
     source_name: &str,
     source: &str,
-    form_name: &str,
+    plot_name: &str,
     freshness: u64,
-) -> Result<FormCandidate, BodyWorkbenchError> {
-    FormCandidate::from_source_form(
+) -> Result<PlotCandidate, BodyWorkbenchError> {
+    PlotCandidate::from_source_plot(
         label,
         source_name,
         source,
-        form_name,
-        "reviewed canonical fixture Form",
+        plot_name,
+        "reviewed canonical fixture Plot",
         SignId::from(format!("sign/{}-reviewed", label.to_lowercase())),
         freshness,
     )

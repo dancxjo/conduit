@@ -1,7 +1,7 @@
 use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 use conduit_data::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 
@@ -112,7 +112,7 @@ fn unit_range_clock_and_timestamp_refusals_stay_distinct() {
 }
 
 #[test]
-fn reusable_window_has_an_exact_checked_form_contract() {
+fn reusable_window_has_an_exact_checked_plot_contract() {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
     install_measurement_window_catalog(&mut startup, &mut catalog).unwrap();
@@ -124,10 +124,10 @@ fn reusable_window_has_an_exact_checked_form_contract() {
         &mut catalog,
     )
     .unwrap();
-    let source = include_str!("../../../forms/little-seismograph/main.conduit");
+    let source = include_str!("../../../plots/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "measurement-window", &catalog).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "measurement-window", &catalog).unwrap();
     let gear = &authored.expanded.gears[0];
     assert_eq!(gear.kind_id.as_str(), MEASUREMENT_COUNT_WINDOW_KIND);
     assert_eq!(

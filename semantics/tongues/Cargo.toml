@@ -23,10 +23,10 @@ path = "src/bin/conduit-tongues-analysis.rs"
 
 [dependencies]
 conduit-audio = { path = "../audio" }
-conduit-ai = { path = "../ai", features = ["form-catalog"] }
+conduit-ai = { path = "../ai", features = ["plot-catalog"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-data = { path = "../data" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
@@ -39,4 +39,4 @@ tongues-pipeline = { git = "https://github.com/dancxjo/tongues.git", rev = "b5d7
 speaking = { git = "https://github.com/dancxjo/tongues.git", rev = "b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9", default-features = false }
 
 [build-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }

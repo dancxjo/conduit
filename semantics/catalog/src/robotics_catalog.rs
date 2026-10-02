@@ -5,11 +5,11 @@ use super::{
 use alloc::format;
 use alloc::string::{String, ToString};
 use conduit_core::ConfigurationValue;
-use conduit_form::{KindSignature, StartupParameterSignature};
+use conduit_plot::{KindSignature, StartupParameterSignature};
 
 pub fn install_robotics_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in robotics_contracts_with_revisions()
         .into_iter()
@@ -76,7 +76,7 @@ fn configuration_source(field: &KindConfigurationField) -> String {
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
         ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().form_suffix())
+            format!("{}{}", value.value(), value.unit().plot_suffix())
         }
         _ => unreachable!("robotics configuration is finite text/integer"),
     }

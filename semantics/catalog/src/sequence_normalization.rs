@@ -7,10 +7,10 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PortTemporal, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{rust_binding::NativeRustBinding, KindProjection, KindSignature};
+use conduit_plot::{rust_binding::NativeRustBinding, KindProjection, KindSignature};
 pub use conduit_time::SequenceNormalizationRefusal;
 
 pub const NORMALIZED_SEQUENCE_TYPE: &str = "NormalizedDurationSequence";
@@ -62,8 +62,8 @@ pub fn normalize_relative_duration_semantic_contract() -> Kind {
 }
 
 pub fn install_sequence_normalization_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(

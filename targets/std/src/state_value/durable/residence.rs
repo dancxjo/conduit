@@ -19,7 +19,7 @@ const MAGIC: &[u8; 8] = b"CDSTATE1";
 const HEADER_BYTES: usize = MAGIC.len() + 32 + 8 + 4 + 32;
 
 /// One host-selected residence. Its filesystem location is realization truth;
-/// it never enters authored Form meaning or the portable State identity.
+/// it never enters authored Plot meaning or the portable State identity.
 pub struct FileDurableStateResidence {
     binding: DurableStateBinding,
     directory: PathBuf,

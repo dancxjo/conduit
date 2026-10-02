@@ -1,0 +1,6 @@
+plot image-text-inspection (
+    >> record: ImageTextRecord
+) {
+    inspect: presentation/structured-info
+    record >> inspect.input
+}

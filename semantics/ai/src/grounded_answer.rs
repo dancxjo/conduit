@@ -8,7 +8,7 @@ use crate::{
     MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
 };
 use alloc::{string::String, vec::Vec};
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 pub const MAXIMUM_GROUNDED_ANSWER_WORK_UNITS: u64 = 1_000_000;
 

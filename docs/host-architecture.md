@@ -141,7 +141,7 @@ Public Rust identifiers use the same vocabulary deliberately:
 | `ImplementationId` / `ArtifactId` | selected realization provenance sealed by the plan |
 
 These names are the public vocabulary: kind names reusable semantic behavior;
-gear names its configured occurrence in a form. Ordinary source never names
+gear names its configured occurrence in a plot. Ordinary source never names
 `ImplementationId`, `ArtifactId`, a base, or a platform.
 
 ## Remaining architecture work

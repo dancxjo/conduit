@@ -132,7 +132,7 @@ mod tests {
     fn browser_visible_control_replans_parallel_speech_and_restored_graphics() {
         let mut server = proposed_server();
         let plan = server.body_planning.as_ref().unwrap().current_plan();
-        let fragment = &plan.forms[0].plan.fragments[0];
+        let fragment = &plan.plots[0].plan.fragments[0];
         server
             .apply_body_execution(&execution(json!({
                 "kind": "Claim", "plan_id": plan.plan_id,
@@ -173,12 +173,12 @@ mod tests {
                 "disposition": "completed", "terminal_sign_id": sign(2),
             })))
             .unwrap();
-        let source_forms = server
+        let source_plots = server
             .body_planning
             .as_ref()
             .unwrap()
             .current_plan()
-            .forms
+            .plots
             .clone();
         assert!(server.snapshot.mask_topology.is_some());
 
@@ -217,8 +217,8 @@ mod tests {
         let restored = invoke(&mut server, "graphical-and-speech");
         assert_eq!(chains(&restored), 2);
         assert_eq!(
-            server.body_planning.as_ref().unwrap().current_plan().forms,
-            source_forms
+            server.body_planning.as_ref().unwrap().current_plan().plots,
+            source_plots
         );
         for intent in ["add", "remove", "replace", "reorder", "toggle-parallel"] {
             assert!(restored

@@ -1,5 +1,5 @@
 use conduit_ai::{IntegrationAccuracy, IntegrationResourceEnvelope};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn integration_accuracy_round_trips_exact_authored_law_boundaries() {

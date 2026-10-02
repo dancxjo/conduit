@@ -3,7 +3,7 @@
 use conduit_core::{semantic_digest, InfoDecodeError};
 
 use crate::{
-    AccelerationObservation, BeaconKind, BeaconKindCode, BeaconObservation, ButtonSetObservation,
+    AccelerationObservation, BeaconKind, BeaconKindForm, BeaconObservation, ButtonSetObservation,
     ProximityObservation, BODY_SECTOR_MASK,
 };
 use core::{cmp::Ordering, hash::Hash};
@@ -55,7 +55,7 @@ impl Hash for ProximityObservation {
 
 impl BeaconKind {
     pub const fn wire_tag(self) -> u8 {
-        BeaconKindCode::encode(self)[0]
+        BeaconKindForm::encode(self)[0]
     }
 }
 
@@ -75,7 +75,7 @@ impl BeaconObservation {
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_BEACON_ENCODED_LEN)?;
-        let kind = BeaconKindCode::decode(&encoded[0..1])
+        let kind = BeaconKindForm::decode(&encoded[0..1])
             .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[0]))?;
         Self::new(kind, encoded[1])
     }

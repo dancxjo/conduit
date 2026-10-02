@@ -3,8 +3,8 @@ use conduit_core::{
     BaseImplementationId, KindId, KindIdentity, PortDirection, PortTemporal, StructuredFieldType,
     StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document,
     structured_selector_definition, KindConfigurationField, KindConfigurationRule, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
@@ -101,15 +101,15 @@ fn execute_case(
             .unwrap();
     }
     let source = format!(
-        "form pipeline {{\n source: {}\n sink: {}\n source >> project({type_name}.{field}) >> sink\n}}\n",
+        "plot pipeline {{\n source: {}\n sink: {}\n source >> project({type_name}.{field}) >> sink\n}}\n",
         installed_std::test_structured_selector::SOURCE_KIND,
         installed_std::test_structured_selector::SINK_KIND,
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).expect("structured pipeline checks");
-    let conduit_form::CheckedCordStage::StructuredSelector { selector, .. } =
-        &checked.forms[0].cords[0].stages[1]
+    let conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } =
+        &checked.plots[0].cords[0].stages[1]
     else {
         panic!("middle stage is the checked selector");
     };
@@ -129,7 +129,7 @@ fn execute_case(
     profile
         .insert(structured_selector_definition(selector, temporal))
         .unwrap();
-    let expanded = expand_canonical_form(&checked, "pipeline", &profile)
+    let expanded = expand_canonical_plot(&checked, "pipeline", &profile)
         .expect("structured selector expands to ordinary gears");
     assert!(
         expanded

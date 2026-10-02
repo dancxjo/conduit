@@ -1,4 +1,4 @@
-//! Exact two-std-Host realization of the mechanism-free coordination Form.
+//! Exact two-std-Host realization of the mechanism-free coordination Plot.
 
 use crate::{install_text_pipeline_catalogs, TEXT_PRESENTATION_KIND};
 use alloc::{
@@ -19,7 +19,7 @@ use conduit_planner::{
 };
 
 pub const BODY_COORDINATION_SOURCE: &str =
-    include_str!("../../../proof/fixtures/forms/body-coordination.conduit");
+    include_str!("../../../proof/fixtures/plots/body-coordination.conduit");
 pub const FOREBRAIN_HOST: &str = "pete/forebrain-host";
 pub const MOTHERBRAIN_HOST: &str = "pete/motherbrain-host";
 pub const FOREBRAIN_TO_MOTHERBRAIN_LINE: &str = "pete/coordination/forebrain-to-motherbrain";
@@ -91,14 +91,14 @@ fn exact_body_coordination_plan_with_loss(
     base_instance: &str,
     unavailable_line: Option<&str>,
 ) -> Result<BodyCoordinationPlan, String> {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_text_pipeline_catalogs(&mut startup, &mut profile)?;
-    let syntax = conduit_form::parse_syntax_document(BODY_COORDINATION_SOURCE);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check coordination Form: {error:?}"))?;
-    let expanded = conduit_form::expand_canonical_form(&checked, "body-coordination", &profile)
-        .map_err(|error| format!("expand coordination Form: {error:?}"))?;
+    let syntax = conduit_plot::parse_syntax_document(BODY_COORDINATION_SOURCE);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|error| format!("check coordination Plot: {error:?}"))?;
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "body-coordination", &profile)
+        .map_err(|error| format!("expand coordination Plot: {error:?}"))?;
 
     let forebrain = coordination_host(FOREBRAIN_HOST, forebrain_boot);
     let motherbrain = coordination_host(MOTHERBRAIN_HOST, motherbrain_boot);

@@ -2,13 +2,13 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::StructuredInfoType;
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     GamepadState, InputAxisSlot, InputAxisSlots, InputAxisState, InputButtonPhase, InputButtonSlot,
     InputButtonSlots, InputButtonState, InputButtonTransition, InputPressure, InputPressurePolicy,
     PointerEvent, RotaryDirection, RotaryStep, TouchContact, TouchContactPhase, TouchContactSlot,
     TouchContacts, TouchFrame,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const INPUT_BUTTON_TRANSITION_TYPE: &str = "InputButtonTransition";
 pub const INPUT_AXIS_STATE_TYPE: &str = "InputAxisState";

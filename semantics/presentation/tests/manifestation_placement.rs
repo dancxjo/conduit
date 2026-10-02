@@ -1,4 +1,4 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 mod common;
 
@@ -6,20 +6,20 @@ use std::collections::BTreeMap;
 
 use common::{host, presentation, DOM_RESOURCE, WAYLAND_RESOURCE};
 use conduit_core::{bind_active_play, CapabilityId, GearId, SignId};
-use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
+use conduit_plot::{parse, ProfileCatalog};
 use conduit_presentation::{
     renderer_kind_projection, Manifestation, ManifestationAdmission, ManifestationError,
     ManifestationLifecycle, ManifestationSet, Presentation,
 };
 
 const SHARED_FACE_SOURCE: &str =
-    "form shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
+    "plot shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 
-fn two_presenter_plan() -> (conduit_form::CheckedForm, conduit_core::Plan) {
+fn two_presenter_plan() -> (conduit_plot::CheckedPlot, conduit_core::Plan) {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_projection()).unwrap();
-    let form = parse(SHARED_FACE_SOURCE, &catalog).unwrap();
+    let plot = parse(SHARED_FACE_SOURCE, &catalog).unwrap();
     let native = host(
         "native-host",
         "native-boot",
@@ -56,14 +56,14 @@ fn two_presenter_plan() -> (conduit_form::CheckedForm, conduit_core::Plan) {
             ),
         ]),
     };
-    let plan = plan(&form, &[native, browser], &placements, &[]).unwrap();
-    (form, plan)
+    let plan = plan(&plot, &[native, browser], &placements, &[]).unwrap();
+    (plot, plan)
 }
 
 #[test]
 fn one_presentation_has_two_exact_independent_cross_host_manifestations() {
-    let (form, plan) = two_presenter_plan();
-    let presentation = presentation(&form, &plan);
+    let (plot, plan) = two_presenter_plan();
+    let presentation = presentation(&plot, &plan);
     let admission = ManifestationAdmission::from_plan(&plan).unwrap();
     assert_eq!(admission.placement_ids.len(), 2);
     let mut manifestations = Vec::new();
@@ -76,7 +76,7 @@ fn one_presentation_has_two_exact_independent_cross_host_manifestations() {
                 &plan,
                 active,
                 placement.placement_id.clone(),
-                "patchbay/form".into(),
+                "patchbay/plot".into(),
                 format!("{}/display", fragment.host_id.as_str()),
                 SignId::from(format!("{}/prepared", fragment.host_id.as_str())),
             )

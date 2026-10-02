@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const checkpoints = [
-  "front-door-ready", "body-awake", "home-prompt", "home-forms", "home-play-observed", "home-patchbay-open",
+  "front-door-ready", "body-awake", "home-prompt", "home-plots", "home-play-observed", "home-patchbay-open",
   "home-returned",
   "host-current-offers", "quiescent-awaiting-input",
   "input-continued", "workload-revised", "workload-replanned", "patchbay-current-canvas", "patchbay-edit-requested", "patchbay-presenters-replanned",
@@ -41,7 +41,7 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /src="front-door-ready\.png"/);
     assert.match(page, /src="host-current-offers\.png"/);
     assert.match(page, /src="home-prompt\.png"/);
-    assert.match(page, /src="home-forms\.png"/);
+    assert.match(page, /src="home-plots\.png"/);
     assert.match(page, /src="home-patchbay-open\.png"/);
     assert.match(page, /src="home-returned\.png"/);
     assert.match(page, /src="quiescent-awaiting-input\.png"/);

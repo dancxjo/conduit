@@ -1,0 +1,9 @@
+# Deterministic semantic derivation only. This plot offers no lifecycle action.
+plot fulfillment-readiness (
+    >> purpose: $PurposeState
+    readiness: $FulfillmentReadiness >>
+) {
+    evaluate: purpose/fulfillment-readiness
+    purpose >> evaluate.purpose
+    evaluate.readiness >> readiness
+}

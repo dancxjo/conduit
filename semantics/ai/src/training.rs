@@ -3,7 +3,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{PlannedStateBoundary, StateContinuation};
 use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 use crate::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, MissingModalityPolicy, ModelArtifact,

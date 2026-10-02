@@ -11,8 +11,8 @@ use conduit_core::{
     StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::rust_binding::NativeRustBinding;
-use conduit_form::{
+use conduit_plot::rust_binding::NativeRustBinding;
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
@@ -98,8 +98,8 @@ pub fn compare_normalized_pattern_semantic_contract() -> Kind {
 }
 
 pub fn install_pattern_comparison_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(PATTERN_COMPARISON_TYPE, pattern_comparison_type())

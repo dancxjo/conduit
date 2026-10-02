@@ -54,7 +54,7 @@ mod generated {
     }
 }
 pub use generated::{
-    ChordInfo, ChordPhase, ChordPhaseCode, ControlChordModifier, CoreChordId, CoreChordIdCode,
+    ChordInfo, ChordPhase, ChordPhaseForm, ControlChordModifier, CoreChordId, CoreChordIdForm,
     CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAvailability,
     ExperienceBodyInput, ExperienceCertainty, ExperienceDomain, ExperienceHumanInput,
     ExperienceHypothesisInput, ExperienceInferenceInput, ExperienceMemoryInput, ExperienceOrigin,
@@ -72,7 +72,7 @@ pub use generated::{
     InteractionFamilyScalar, InteractionFamilyStructured, InteractionFamilyText,
     InteractionProposalPayload, InteractionRefusal, InteractionTypeDigest, InteractionValue,
     InteractionValueKind, InteractionValues, KeyEvent, KeyModifiers, KeyTransition,
-    KeyTransitionCode, KeymapDisposition, KeymapRefusal, OptionAvailability,
+    KeyTransitionForm, KeymapDisposition, KeymapRefusal, OptionAvailability,
     OptionAvailabilityUnavailable, PointerEvent, RealizationRangePolicy, RotaryDirection,
     RotaryStep, ScalarQuantization, SourceAvailability, TextFragment, TouchContact,
     TouchContactPhase, TouchContactSlot, TouchContacts, TouchFrame, VisualEvidenceClass,

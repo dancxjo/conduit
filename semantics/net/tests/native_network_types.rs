@@ -1,4 +1,3 @@
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_net::{
     ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsResult, DnsTtl, NetworkAddress,
     NetworkAttachmentId, NetworkConnectionState, NetworkEndpoint, NetworkJoinError, NetworkReason,
@@ -6,6 +5,7 @@ use conduit_net::{
     RecordReceipt, RecordTranscriptDirection, RecordTranscriptEntry, RecordTranscriptEvent,
     RecordTranscriptTerminal, ResolvedNetworkAddress, ResolvedNetworkEndpoint, TypedRecordFrame,
 };
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
 fn round_trip<T>(value: T)
 where
@@ -17,8 +17,7 @@ where
 
 #[test]
 fn record_delivery_and_transcript_values_are_native_semantic_types() {
-    let correlation =
-        RecordCorrelation::new(BoundedBytes::new(b"delivery-7").unwrap()).unwrap();
+    let correlation = RecordCorrelation::new(BoundedBytes::new(b"delivery-7").unwrap()).unwrap();
     let observation = RecordDeliveryObservation::new(
         correlation,
         RecordDeliveryEvent::framed_queued(41).unwrap(),

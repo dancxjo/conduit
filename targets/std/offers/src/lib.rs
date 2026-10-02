@@ -485,7 +485,7 @@ mod tests {
             include_str!("../../../../semantics/catalog/src/generalized_input_catalog.rs"),
             include_str!("../../../../semantics/catalog/src/sound.rs"),
             include_str!("../../../../semantics/catalog/src/music_input.rs"),
-            include_str!("../../../../semantics/catalog/src/structured_music_form.rs"),
+            include_str!("../../../../semantics/catalog/src/structured_music_plot.rs"),
             include_str!("../../../../semantics/catalog/src/robotics.rs"),
             include_str!("../../../../semantics/catalog/src/recurrence_catalog.rs"),
             include_str!("../../../../semantics/catalog/src/calendar_proposal_catalog.rs"),

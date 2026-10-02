@@ -4,8 +4,8 @@ use conduit_core::{
     BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal, ResourceClassId,
     ResourceOffer, ResourcePoolId, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -60,13 +60,13 @@ fn portable_button_flow_becomes_one_timed_attempt_in_the_production_kernel() {
         .collect::<Vec<_>>()
         .join(",");
     let source = format!(
-        "form proof {{\n transitions: {SOURCE_KIND}(values = \"{encoded}\")\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)\n sink: {SINK_KIND}(value = \"{}\")\n transitions.output >> attempt.transition\n attempt.events >> sink.input\n}}\n",
+        "plot proof {{\n transitions: {SOURCE_KIND}(values = \"{encoded}\")\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)\n sink: {SINK_KIND}(value = \"{}\")\n transitions.output >> attempt.transition\n attempt.events >> sink.input\n}}\n",
         hex(&expected.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "proof", &profile).unwrap();
 
     let mut advertisement = host("timed-attempt-host").advertisement().clone();
     advertisement.capabilities.extend([

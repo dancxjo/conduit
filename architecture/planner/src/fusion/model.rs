@@ -97,7 +97,7 @@ pub struct FusionCandidateEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FusionSelection {
-    pub checked_form_id: conduit_core::CheckedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
     pub selected_candidate_id: String,
     pub selected_realization: LocalityCandidate,
     pub selected_fusion_groups: Vec<FusionDecisionGroup>,

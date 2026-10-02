@@ -127,14 +127,14 @@ impl AwaitingBirth {
         self,
         action: ConfirmBirthAction,
         source_document_id: conduit_core::SourceDocumentId,
-        checked_form_id: conduit_core::CheckedFormId,
+        checked_plot_id: conduit_core::CheckedPlotId,
         birth_sequence: u64,
         birth_sign_id: SignId,
         body_text: &str,
     ) -> Result<(Body, SpokenBirthJourneyEvidence), String> {
         let body = Body::born(
             source_document_id,
-            checked_form_id,
+            checked_plot_id,
             birth_sequence,
             birth_sign_id.clone(),
         )

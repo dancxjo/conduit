@@ -38,10 +38,10 @@ pub(super) fn fixture() -> (BootIdentities, HostOffer<'static>) {
     (identities, offer)
 }
 
-pub(super) fn wake(forms: &[NativeForm]) -> Wake {
+pub(super) fn wake(plots: &[NativePlot]) -> Wake {
     let workset =
-        BodyWorkset::from_forms(forms.iter().map(|form| resident(*form).unwrap())).unwrap();
-    Body::born_with_forms(workset, 1, "sign/born".into())
+        BodyWorkset::from_plots(plots.iter().map(|plot| resident(*plot).unwrap())).unwrap();
+    Body::born_with_plots(workset, 1, "sign/born".into())
         .unwrap()
         .wake(2, "sign/woke".into())
         .unwrap()
@@ -49,44 +49,44 @@ pub(super) fn wake(forms: &[NativeForm]) -> Wake {
 }
 
 #[test]
-fn native_inventory_preserves_existing_forms_and_adds_the_canonical_tour_identity() {
+fn native_inventory_preserves_existing_plots_and_adds_the_canonical_tour_identity() {
     let profile = profile();
-    assert_eq!(profile.id, "conduitos/native-installed-forms@1");
-    assert_eq!(profile.capacity, NATIVE_FORM_CAPACITY);
+    assert_eq!(profile.id, "conduitos/native-installed-plots@1");
+    assert_eq!(profile.capacity, NATIVE_PLOT_CAPACITY);
     assert_eq!(profile.installed(), &inventory());
-    let old = crate::keyboard_text_plan::checked_form_identity().unwrap();
-    let canvas = resident(NativeForm::KeyboardCanvas).unwrap();
+    let old = crate::keyboard_text_plan::checked_plot_identity().unwrap();
+    let canvas = resident(NativePlot::KeyboardCanvas).unwrap();
     assert_eq!(canvas.source_document_id, old.source_document_id);
-    assert_eq!(canvas.checked_form_id, old.checked_form_id);
-    assert_ne!(canvas, resident(NativeForm::MemoryLantern).unwrap());
+    assert_eq!(canvas.checked_plot_id, old.checked_plot_id);
+    assert_ne!(canvas, resident(NativePlot::MemoryLantern).unwrap());
     assert_eq!(
-        NativeForm::MemoryLantern.source(),
-        include_str!("../../../../forms/memory-lantern/main.conduit")
+        NativePlot::MemoryLantern.source(),
+        include_str!("../../../../plots/memory-lantern/main.conduit")
     );
     assert_eq!(
-        NativeForm::Tour.source(),
-        include_str!("../../../../forms/tour/main.conduit")
+        NativePlot::Tour.source(),
+        include_str!("../../../../plots/tour/main.conduit")
     );
-    assert_ne!(canvas, resident(NativeForm::Tour).unwrap());
+    assert_ne!(canvas, resident(NativePlot::Tour).unwrap());
     assert_eq!(
         catalog::resolve(&canvas).unwrap(),
-        NativeForm::KeyboardCanvas
+        NativePlot::KeyboardCanvas
     );
     let mut substituted = canvas;
-    substituted.checked_form_id = "checked/substituted".into();
+    substituted.checked_plot_id = "checked/substituted".into();
     assert_eq!(
         catalog::resolve(&substituted),
-        Err(WorksetRefusal::UnknownForm)
+        Err(WorksetRefusal::UnknownPlot)
     );
 }
 
 #[test]
 fn profile_capacity_is_the_finite_native_workset_bound() {
-    assert_eq!(NATIVE_FORM_CAPACITY, inventory().len());
-    let one = BodyWorkset::from_forms(inventory()[..1].iter().map(|form| resident(*form).unwrap()))
+    assert_eq!(NATIVE_PLOT_CAPACITY, inventory().len());
+    let one = BodyWorkset::from_plots(inventory()[..1].iter().map(|plot| resident(*plot).unwrap()))
         .unwrap();
     let maximum =
-        BodyWorkset::from_forms(inventory().iter().map(|form| resident(*form).unwrap())).unwrap();
+        BodyWorkset::from_plots(inventory().iter().map(|plot| resident(*plot).unwrap())).unwrap();
     assert_eq!(one.len(), 1);
     assert_eq!(maximum.len(), profile().capacity);
     assert!(BodyWorkset::default().is_empty());
@@ -95,14 +95,14 @@ fn profile_capacity_is_the_finite_native_workset_bound() {
 #[test]
 fn canonical_memory_plans_as_an_exact_native_body_partition_before_play() {
     let (ids, offer) = fixture();
-    let wake = wake(&[NativeForm::MemoryLantern]);
+    let wake = wake(&[NativePlot::MemoryLantern]);
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
     prepared.plan.validate_for(&wake).unwrap();
-    assert_eq!(prepared.plan.forms.len(), 1);
+    assert_eq!(prepared.plan.plots.len(), 1);
     assert_eq!(prepared.lowered.nodes, 4);
     assert_eq!(prepared.lowered.cords, 3);
     assert!(
-        prepared.plan.forms[0].plan.fragments[0]
+        prepared.plan.plots[0].plan.fragments[0]
             .placements
             .iter()
             .any(|gear| gear.implementation_id.as_str() == text_state::TEXT_EDIT_IMPLEMENTATION)
@@ -114,17 +114,17 @@ fn canonical_memory_plans_as_an_exact_native_body_partition_before_play() {
 }
 
 #[test]
-fn four_forms_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
+fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
     let (ids, offer) = fixture();
     let wake = wake(&inventory());
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
     assert_eq!(prepared.lowered.nodes, 14);
     assert_eq!(prepared.lowered.cords, 10);
-    assert_eq!(prepared.plan.forms.len(), 4);
+    assert_eq!(prepared.plan.plots.len(), 4);
     assert_eq!(prepared.keyboard, offer.keyboard.unwrap().realization);
     assert_eq!(prepared.input_owners().len(), 4);
-    for (form, owner) in prepared.plan.forms.iter().zip(prepared.input_owners()) {
-        let source = form.plan.fragments[0]
+    for (plot, owner) in prepared.plan.plots.iter().zip(prepared.input_owners()) {
+        let source = plot.plan.fragments[0]
             .placements
             .iter()
             .find(|placement| {
@@ -135,7 +135,7 @@ fn four_forms_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
                 )
             })
             .unwrap();
-        assert_eq!(owner.form, form.form);
+        assert_eq!(owner.plot, plot.plot);
         assert_eq!(owner.placement_id, source.placement_id);
         if source.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND {
             assert_eq!(
@@ -193,15 +193,15 @@ fn four_forms_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
 }
 
 #[test]
-fn pre_birth_review_checks_each_exact_form_without_a_body_or_play() {
+fn pre_birth_review_checks_each_exact_plot_without_a_body_or_play() {
     let (ids, mut offer) = fixture();
-    for form in inventory() {
-        assert_eq!(review(form, &ids, &offer, "build"), Ok(()));
+    for plot in inventory() {
+        assert_eq!(review(plot, &ids, &offer, "build"), Ok(()));
     }
     offer.keyboard = None;
-    for form in inventory() {
+    for plot in inventory() {
         assert_eq!(
-            review(form, &ids, &offer, "build"),
+            review(plot, &ids, &offer, "build"),
             Err(WorksetRefusal::Host)
         );
     }

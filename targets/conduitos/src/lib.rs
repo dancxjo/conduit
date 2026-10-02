@@ -84,8 +84,8 @@ pub mod opl2_offer;
 pub mod opl2_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_play;
-mod ordinary_form;
 pub mod ordinary_plan;
+mod ordinary_plot;
 pub mod outbound_network;
 #[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
 #[cfg_attr(

@@ -34,22 +34,22 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     Ok(snapshot)
 }
 
-pub fn recursive_form_demonstration_snapshot() -> Result<RendererSnapshot, String> {
-    let presentation = conduit_patchbay_workbench::recursive_form_demonstration()?;
+pub fn recursive_plot_demonstration_snapshot() -> Result<RendererSnapshot, String> {
+    let presentation = conduit_patchbay_workbench::recursive_plot_demonstration()?;
     let execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
-            host_id: HostId::from("patchbay-html/recursive-form"),
-            boot_id: BootId::from("patchbay-html/recursive-form/boot"),
-            target_subject: "patchbay-html/recursive-form/document".into(),
+            host_id: HostId::from("patchbay-html/recursive-plot"),
+            boot_id: BootId::from("patchbay-html/recursive-plot/boot"),
+            target_subject: "patchbay-html/recursive-plot/document".into(),
         },
-        SignId::from("patchbay-html/recursive-form/prepared"),
+        SignId::from("patchbay-html/recursive-plot/prepared"),
     )
     .map_err(|error| error.to_string())?;
     execution.validate().map_err(|error| error.to_string())?;
     patchbay_application::PatchbayEntranceState::enter(&execution.presentation)
-        .map_err(|error| format!("recursive Form entrance: {error:?}"))?;
+        .map_err(|error| format!("recursive Plot entrance: {error:?}"))?;
     let mut snapshot =
         RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
     let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
@@ -110,10 +110,10 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
         .map_err(|error| error.to_string())?;
     let events: Vec<patchbay_application::DebuggerTimelineEvent> = serde_json::from_value(
         serde_json::json!([
-            { "execution": execution, "sequence": 39, "host_sequence": 39, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "41", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null, "causal_parent_sequence": null, "invocation_sequence": 39 },
-            { "execution": execution, "sequence": 40, "host_sequence": 40, "host": 1, "form": 1, "subject": gear, "related_subject": null, "event": "fault", "value": null, "fault_code": 17, "causal_parent_sequence": 39, "invocation_sequence": 39 },
-            { "execution": execution, "sequence": 41, "host_sequence": 41, "host": 1, "form": 1, "subject": port, "related_subject": null, "event": "value-received", "value": { "kind": "text", "summary": "\"hello watch\"", "type_identity": 11, "total_bytes": 11, "truncated": false }, "fault_code": null, "causal_parent_sequence": 39, "invocation_sequence": 39 },
-            { "execution": execution, "sequence": 42, "host_sequence": 42, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "42", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null, "causal_parent_sequence": 41, "invocation_sequence": 39 }
+            { "execution": execution, "sequence": 39, "host_sequence": 39, "host": 1, "plot": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "41", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null, "causal_parent_sequence": null, "invocation_sequence": 39 },
+            { "execution": execution, "sequence": 40, "host_sequence": 40, "host": 1, "plot": 1, "subject": gear, "related_subject": null, "event": "fault", "value": null, "fault_code": 17, "causal_parent_sequence": 39, "invocation_sequence": 39 },
+            { "execution": execution, "sequence": 41, "host_sequence": 41, "host": 1, "plot": 1, "subject": port, "related_subject": null, "event": "value-received", "value": { "kind": "text", "summary": "\"hello watch\"", "type_identity": 11, "total_bytes": 11, "truncated": false }, "fault_code": null, "causal_parent_sequence": 39, "invocation_sequence": 39 },
+            { "execution": execution, "sequence": 42, "host_sequence": 42, "host": 1, "plot": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "42", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null, "causal_parent_sequence": 41, "invocation_sequence": 39 }
         ]),
     )
     .map_err(|error| error.to_string())?;

@@ -3,7 +3,7 @@ use conduit_body::{
     MembershipProofId, PartId, MAX_BODY_LINES,
 };
 use conduit_core::{
-    process_owned_line_offer, BaseImplementationId, BootId, CheckedFormId, HostAdvertisement,
+    process_owned_line_offer, BaseImplementationId, BootId, CheckedPlotId, HostAdvertisement,
     HostId, HostProfileId, LineAvailability, LineId, OfferGeneration, SignId, SourceDocumentId,
     PROTOCOL_VERSION,
 };
@@ -25,7 +25,7 @@ fn host(name: &str, boot: &str) -> HostAdvertisement {
 fn membership() -> (Body, BodyMembership, Vec<PartId>, Vec<HostAdvertisement>) {
     let body = Body::born(
         SourceDocumentId::from("source/body-space"),
-        CheckedFormId::from("checked/body-space"),
+        CheckedPlotId::from("checked/body-space"),
         1,
         SignId::from("sign/body-space-born"),
     )
@@ -130,7 +130,7 @@ fn wrong_body_stale_endpoint_duplicate_and_pressure_refuse() {
     let (body, membership, _, hosts) = membership();
     let other = Body::born(
         SourceDocumentId::from("source/other-space"),
-        CheckedFormId::from("checked/other-space"),
+        CheckedPlotId::from("checked/other-space"),
         2,
         SignId::from("sign/other-space-born"),
     )

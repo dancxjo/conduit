@@ -126,7 +126,7 @@ impl BoundedGeneratedTextFlow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_form::rust_binding::NativeRustBinding;
+    use conduit_plot::rust_binding::NativeRustBinding;
 
     #[test]
     fn generated_text_chunks_are_native_bounded_and_keep_the_exact_codec() {
@@ -140,16 +140,14 @@ mod tests {
         }
         assert!(GeneratedTextChunk::new(MAXIMUM_GENERATED_TEXT_CHUNKS, "x".into()).is_err());
         assert!(GeneratedTextChunk::new(0, String::new()).is_err());
-        assert!(GeneratedTextChunk::new(
-            0,
-            "x".repeat(MAXIMUM_GENERATED_TEXT_CHUNK_BYTES + 1)
-        )
-        .is_err());
+        assert!(
+            GeneratedTextChunk::new(0, "x".repeat(MAXIMUM_GENERATED_TEXT_CHUNK_BYTES + 1)).is_err()
+        );
 
         let chunk = GeneratedTextChunk::new(7, "hi".into()).unwrap();
         let expected = [
-            b'C', b'D', b'T', b'G', b'T', b'C', b'0', b'1', 7, 0, 0, 0, 0, 0, 0, 0, 2, 0,
-            0, 0, b'h', b'i',
+            b'C', b'D', b'T', b'G', b'T', b'C', b'0', b'1', 7, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0,
+            b'h', b'i',
         ];
         assert_eq!(encode_generated_text_chunk(&chunk).unwrap(), expected);
         assert_eq!(decode_generated_text_chunk(&expected).unwrap(), chunk);
@@ -160,13 +158,8 @@ mod tests {
     #[test]
     fn generated_text_flow_evidence_is_native_bounded_and_coherent() {
         for evidence in [
-            GeneratedTextFlowEvidence::new(
-                0,
-                0,
-                GeneratedTextFlowTerminal::ProviderLost,
-                false,
-            )
-            .unwrap(),
+            GeneratedTextFlowEvidence::new(0, 0, GeneratedTextFlowTerminal::ProviderLost, false)
+                .unwrap(),
             GeneratedTextFlowEvidence::new(
                 MAXIMUM_GENERATED_TEXT_CHUNKS,
                 super::super::MAXIMUM_LLM_OUTPUT_BYTES,
@@ -176,10 +169,8 @@ mod tests {
             .unwrap(),
         ] {
             assert_eq!(
-                GeneratedTextFlowEvidence::from_structured(
-                    evidence.into_structured().unwrap(),
-                )
-                .unwrap(),
+                GeneratedTextFlowEvidence::from_structured(evidence.into_structured().unwrap(),)
+                    .unwrap(),
                 evidence
             );
         }
@@ -197,20 +188,14 @@ mod tests {
             false,
         )
         .is_err());
-        assert!(GeneratedTextFlowEvidence::new(
-            0,
-            1,
-            GeneratedTextFlowTerminal::Completed,
-            false,
-        )
-        .is_err());
-        assert!(GeneratedTextFlowEvidence::new(
-            1,
-            0,
-            GeneratedTextFlowTerminal::Completed,
-            false,
-        )
-        .is_err());
+        assert!(
+            GeneratedTextFlowEvidence::new(0, 1, GeneratedTextFlowTerminal::Completed, false,)
+                .is_err()
+        );
+        assert!(
+            GeneratedTextFlowEvidence::new(1, 0, GeneratedTextFlowTerminal::Completed, false,)
+                .is_err()
+        );
         assert!(!include_str!("streaming_generation.rs")
             .contains(concat!("pub struct ", "GeneratedTextFlowEvidence")));
     }
@@ -232,13 +217,8 @@ mod tests {
         assert_eq!(reconstructed, "Hello world.");
         assert_eq!(
             flow.finish(GeneratedTextFlowTerminal::Completed),
-            GeneratedTextFlowEvidence::new(
-                2,
-                12,
-                GeneratedTextFlowTerminal::Completed,
-                false,
-            )
-            .unwrap()
+            GeneratedTextFlowEvidence::new(2, 12, GeneratedTextFlowTerminal::Completed, false,)
+                .unwrap()
         );
     }
 
@@ -251,7 +231,7 @@ mod tests {
         );
         assert!(GeneratedTextChunk::new(0, String::new()).is_err());
         flow.admit(&GeneratedTextChunk::new(0, "four".into()).unwrap())
-        .unwrap();
+            .unwrap();
         assert_eq!(
             flow.admit(&GeneratedTextChunk::new(1, "!".into()).unwrap()),
             Err(GeneratedTextFlowRefusal::OutputOverflow)

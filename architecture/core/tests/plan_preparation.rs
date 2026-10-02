@@ -2,9 +2,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use conduit_core::{
     mandatory_sign_storage_requirement, prepare_plan_on_hosts, seal_plan, start_prepared_plan,
-    verify_prepared_plan, ActivePlayId, BootId, CancellationPolicy, CheckedFormId, ExpandedFormId,
-    ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, HostId, HostPreparationRefusal,
-    OfferGeneration, Plan, PlanFragment, PlanPreparationError, PlanPreparationHost,
+    verify_prepared_plan, ActivePlayId, BootId, CancellationPolicy, CheckedPlotId, ExpandedPlotId,
+    ExpectedSign, ExpectedTerminal, FragmentId, HostId, HostPreparationRefusal, OfferGeneration,
+    Plan, PlanFragment, PlanPreparationError, PlanPreparationHost, PlotIdentity,
     PreparationHostIdentity, PreparedFragmentReceipt, SignStorageBudget, SourceDocumentId,
     TerminalPolicy,
 };
@@ -157,10 +157,10 @@ fn activation_plan() -> Plan {
         },
     };
     conduit_core::seal_plan_with_activations(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         conduit_core::PlanCompletionPolicy::Live,
         vec![],
@@ -270,10 +270,10 @@ fn subordinate_preparation_total_is_finitely_bounded_before_host_work() {
         activations.push(conduit_core::PlannedActivationEntry::Unary(activation));
     }
     let plan = conduit_core::seal_plan_with_activation_entries(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         conduit_core::PlanCompletionPolicy::Live,
         vec![],
@@ -397,8 +397,8 @@ fn exact_plan(hosts: &[&str], label: &str) -> Plan {
             plan_id: conduit_core::PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from("source"),
-            checked_form_id: CheckedFormId::from("checked"),
-            expanded_form_id: ExpandedFormId::from(label),
+            checked_plot_id: CheckedPlotId::from("checked"),
+            expanded_plot_id: ExpandedPlotId::from(label),
             realization_backs: vec![],
             host_id: HostId::from(*host),
             boot_id: BootId::from(format!("{host}-boot")),
@@ -426,10 +426,10 @@ fn exact_plan(hosts: &[&str], label: &str) -> Plan {
         })
         .collect();
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source"),
-            checked_form_id: CheckedFormId::from("checked"),
-            expanded_form_id: ExpandedFormId::from(label),
+            checked_plot_id: CheckedPlotId::from("checked"),
+            expanded_plot_id: ExpandedPlotId::from(label),
         },
         fragments,
     )
@@ -439,10 +439,10 @@ fn exact_plan(hosts: &[&str], label: &str) -> Plan {
 fn completion_policy_is_sealed_into_plan_and_fragment_identity() {
     let live = exact_plan(&["origin"], "completion-policy");
     let semantic = conduit_core::seal_plan_with_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: live.source_document_id.clone(),
-            checked_form_id: live.checked_form_id.clone(),
-            expanded_form_id: live.expanded_form_id.clone(),
+            checked_plot_id: live.checked_plot_id.clone(),
+            expanded_plot_id: live.expanded_plot_id.clone(),
         },
         conduit_core::PlanCompletionPolicy::SemanticCompletion,
         live.fragments.clone(),

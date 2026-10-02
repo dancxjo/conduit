@@ -1,12 +1,12 @@
 use conduit_body::{
     ContinuousDisposition, ContinuousError, ContinuousResourceAdmission, ContinuousSpecimen,
 };
-use conduit_core::{CheckedFormId, PlanId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, PlanId, SourceDocumentId};
 
 fn specimen() -> ContinuousSpecimen {
     ContinuousSpecimen::admit(
         SourceDocumentId::from("source/thermostat"),
-        CheckedFormId::from("checked/thermostat"),
+        CheckedPlotId::from("checked/thermostat"),
         PlanId::from("plan/a"),
         ContinuousResourceAdmission::specimen(),
     )
@@ -14,7 +14,7 @@ fn specimen() -> ContinuousSpecimen {
 }
 
 #[test]
-fn finite_state_form_accepts_continuation_without_a_fixed_transition_count() {
+fn finite_state_plot_accepts_continuation_without_a_fixed_transition_count() {
     let mut specimen = specimen();
     for _ in 0..1_024 {
         assert_eq!(specimen.accept(1), Ok(ContinuousDisposition::Continued));
@@ -24,11 +24,11 @@ fn finite_state_form_accepts_continuation_without_a_fixed_transition_count() {
 }
 
 #[test]
-fn replan_preserves_form_and_retained_state_but_changes_realization() {
+fn replan_preserves_plot_and_retained_state_but_changes_realization() {
     let mut specimen = specimen();
     specimen.accept(7).unwrap();
     let source = specimen.source_document_id.clone();
-    let checked = specimen.checked_form_id.clone();
+    let checked = specimen.checked_plot_id.clone();
     let state = specimen.state;
 
     assert_eq!(
@@ -36,7 +36,7 @@ fn replan_preserves_form_and_retained_state_but_changes_realization() {
         Ok(ContinuousDisposition::Replanned)
     );
     assert_eq!(specimen.source_document_id, source);
-    assert_eq!(specimen.checked_form_id, checked);
+    assert_eq!(specimen.checked_plot_id, checked);
     assert_eq!(specimen.state, state);
     assert_eq!(specimen.plan_id, PlanId::from("plan/b"));
     assert_eq!(specimen.accept(1), Ok(ContinuousDisposition::Continued));
@@ -92,7 +92,7 @@ fn admission_rejects_zero_capacity() {
     assert_eq!(
         ContinuousSpecimen::admit(
             SourceDocumentId::from("source"),
-            CheckedFormId::from("checked"),
+            CheckedPlotId::from("checked"),
             PlanId::from("plan"),
             resources,
         ),

@@ -5,7 +5,7 @@ use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::{
     assess_workflow_timing, recurrence_instant_type, recurrence_occurrence_instant_type,

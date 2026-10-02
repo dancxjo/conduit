@@ -3,7 +3,7 @@
 This directory owns reusable, lower-level device and protocol mechanisms.
 
 Code here may describe an exact device protocol, finite device-local state, and
-local safety behavior. It does not own portable semantic kinds, forms, host or
+local safety behavior. It does not own portable semantic kinds, plots, host or
 boot composition, planning, body or application orchestration, target
 make, or proof-class promotion.
 

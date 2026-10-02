@@ -11,12 +11,12 @@ use conduit_core::{
     ImplementationId, ImplementationOffer, Kind, KindIdentity, LinkLimits, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
-    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
-};
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_with_backs, parse_syntax_document,
+    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 
 pub const FIELD: &str = "field/evolve";
@@ -34,23 +34,23 @@ pub const MAX_FRAME: u32 = 4_096;
 pub const FIELD_ID: ReactionDiffusionFieldId =
     ReactionDiffusionFieldId::from_bytes(*b"field-a2-line001");
 
-pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
+pub fn distributed_plan() -> (conduit_plot::ExpandedCanonicalPlot, conduit_core::Plan) {
     let (startup, profile, field) = catalogs();
     let user = check_syntax_document(
-        &parse_syntax_document("form field-step {\n evolve: field/evolve\n}\n"),
+        &parse_syntax_document("plot field-step {\n evolve: field/evolve\n}\n"),
         &startup,
     )
     .unwrap();
     let back = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form field/evolve (\n >> state: {STATE}\n >> request: {REQUEST}\n {NEXT_STATE}: {STATE} >>\n) {{\n prepare-west: {PREPARE}\n prepare-east: {PREPARE}\n west: {WORKER}\n east: {WORKER}\n join: {JOIN}\n state >> prepare-west.state\n request >> prepare-west.request\n state >> prepare-east.state\n request >> prepare-east.request\n prepare-west.work >> west.work\n prepare-east.work >> east.work\n prepare-west.boundary >> east.boundary\n prepare-east.boundary >> west.boundary\n west.result >> join.west\n east.result >> join.east\n join.state >> {NEXT_STATE}\n}}\n"
+            "plot field/evolve (\n >> state: {STATE}\n >> request: {REQUEST}\n {NEXT_STATE}: {STATE} >>\n) {{\n prepare-west: {PREPARE}\n prepare-east: {PREPARE}\n west: {WORKER}\n east: {WORKER}\n join: {JOIN}\n state >> prepare-west.state\n request >> prepare-west.request\n state >> prepare-east.state\n request >> prepare-east.request\n prepare-west.work >> west.work\n prepare-east.work >> east.work\n prepare-west.boundary >> east.boundary\n prepare-east.boundary >> west.boundary\n west.result >> join.west\n east.result >> join.east\n join.state >> {NEXT_STATE}\n}}\n"
         )),
         &startup,
     )
     .unwrap();
     let mut backs = CanonicalBackCatalog::new();
     backs.insert(&field, &back, FIELD).unwrap();
-    let expanded = expand_canonical_form_with_backs(&user, "field-step", &profile, &backs).unwrap();
+    let expanded = expand_canonical_plot_with_backs(&user, "field-step", &profile, &backs).unwrap();
     let west = host("west", &[PREPARE, WORKER, JOIN], &profile);
     let east = host("east", &[PREPARE, WORKER], &profile);
     let placements = PlacementChoices {

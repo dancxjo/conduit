@@ -28,7 +28,7 @@ cargo xtask make body deploy bodies/pete/profiles/pete-r1.body.conduit --host fo
 `check` and `show` parse descriptors and reuse host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected host. `--host` selects one named host declaration and its make package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
 
 `body` is a canonical Conduit document role parsed by the same tokenizer,
-declarations, structured values, spans, and diagnostics as `form` and `host`.
+declarations, structured values, spans, and diagnostics as `plot` and `host`.
 Each repeated `host` declaration references checked `*.host.conduit` source and
 then enters the existing host configuration path. body construction has no
 private parser and creates no host, boot, OFFER, OBSERVE, ADMIT, line, plan, or

@@ -73,7 +73,8 @@ is not itself evidence that every target implements it.
 
 - [Portable catalog and std offers](semantic-catalog.md)
 - [Semantic type ownership](semantic-type-ownership.md)
-- [Code ownership audit](code-ownership.md)
+- [Form ownership audit](form-ownership.md)
+- [Plot and Form language migration audit](plot-form-language-migration.md)
 - [Portable navigation](portable-navigation.md)
 - [Pete Brainstem migration](pete-brainstem-migration.md): retained provenance and remaining physical-proof gates
 - [Embodied experience](embodied-experience.md): architectural direction, not a completed capability list

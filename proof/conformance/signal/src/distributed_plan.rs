@@ -42,12 +42,12 @@ pub fn exact_distributed_signal_plan_for_endpoints(
         crate::distributed_source_advertisement_for(source_host_id.clone(), source_boot_id.clone());
     let sink_advertisement =
         crate::distributed_browser_advertisement_for(sink_host_id, sink_boot_id);
-    let syntax = conduit_form::parse_syntax_document(include_str!(
-        "../../../../forms/signal-demo/main.conduit"
+    let syntax = conduit_plot::parse_syntax_document(include_str!(
+        "../../../../plots/signal-demo/main.conduit"
     ));
-    let checked = conduit_form::check_syntax_document(&syntax, &crate::signal_startup_catalog())
+    let checked = conduit_plot::check_syntax_document(&syntax, &crate::signal_startup_catalog())
         .map_err(|error| alloc::format!("{}: {}", error.code, error.message))?;
-    let form = conduit_form::expand_canonical_form(
+    let plot = conduit_plot::expand_canonical_plot(
         &checked,
         "signal-demo",
         &crate::signal_profile_catalog(),
@@ -78,7 +78,7 @@ pub fn exact_distributed_signal_plan_for_endpoints(
         sink_advertisement.boot_id.clone(),
     );
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
         &[BaseImplementationId::from(

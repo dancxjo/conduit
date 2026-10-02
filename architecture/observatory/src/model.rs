@@ -2,8 +2,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, AdmittedLine, ArtifactId, AuthorityBinding, AuthorityRequirement, BootId,
-    CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionTerminalDisposition,
-    DeviceAssociation, ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedFormId,
+    CapabilityId, CapabilityLimits, CheckedPlotId, ConnectionId, ConnectionTerminalDisposition,
+    DeviceAssociation, ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedPlotId,
     FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostCallRequirement, HostId,
     HostProfileId, ImplementationId, KindId, KindIdentity, LineOffer, Observation, OfferGeneration,
     PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, PresentationId,
@@ -273,8 +273,8 @@ pub struct LineRow {
 pub struct PlanRow {
     pub plan_id: PlanId,
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub checked_plot_id: CheckedPlotId,
+    pub expanded_plot_id: ExpandedPlotId,
     pub fragment_count: usize,
     pub placement_count: usize,
     pub connection_count: usize,

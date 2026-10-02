@@ -4,7 +4,7 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity, ValueConstraint, COUNT_ENCODED_LEN,
     COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
-use conduit_form::TextPatternExpression;
+use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
     plan_face_utterances, FaceActionArgument, FaceUtteranceClauseKind, FaceUtteranceProvenance,
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
@@ -19,8 +19,8 @@ fn basis() -> PresentationBasis {
         body_id: None,
         wake_id: None,
         source_document_id: None,
-        checked_form_id: None,
-        expanded_form_id: None,
+        checked_plot_id: None,
+        expanded_plot_id: None,
         plan_id: None,
         active_play_id: None,
         sign_ids: vec![],

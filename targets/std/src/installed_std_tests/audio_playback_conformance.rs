@@ -31,16 +31,16 @@ fn host(behavior: FakePlaybackBehavior) -> StdHost {
         .expect("fixture selection matches exact host identity")
 }
 
-fn form() -> conduit_form::CheckedForm {
-    conduit_form::parse(
-        "form audio_fixture {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio >> output.audio\n}\n",
+fn plot() -> conduit_plot::CheckedPlot {
+    conduit_plot::parse(
+        "plot audio_fixture {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio >> output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
-    .expect("audio fixture Form is valid")
+    .expect("audio fixture Plot is valid")
 }
 
 fn fragment(host: &StdHost, with_authority: bool) -> Result<conduit_core::PlanFragment, String> {
-    let form = form();
+    let plot = plot();
     let advertisements = [host.advertisement().clone()];
     let grants = if with_authority {
         vec![host.playback_authority_grant("grant/test-audio-play")?]
@@ -61,7 +61,7 @@ fn fragment(host: &StdHost, with_authority: bool) -> Result<conduit_core::PlanFr
             conduit_core::SignId::from("sign/test-playback-ready"),
         );
     let plan = conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
-        &form,
+        &plot,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &advertisements,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],
@@ -130,8 +130,8 @@ fn speech_conversion_feeds_the_selected_playback_base_through_plan_and_play() {
     let mut catalog = crate::installed_std::test_catalog();
     let mut startup = catalog.startup_catalog().unwrap();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog).unwrap();
-    let form = conduit_form::parse(
-        "form spoken_audio {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n \"Rosehip\" >> synthesize.text\n synthesize.audio >> convert.audio\n convert.converted >> output.audio\n}\n",
+    let plot = conduit_plot::parse(
+        "plot spoken_audio {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n \"Rosehip\" >> synthesize.text\n synthesize.audio >> convert.audio\n convert.converted >> output.audio\n}\n",
         &catalog,
     )
     .unwrap();
@@ -147,7 +147,7 @@ fn speech_conversion_feeds_the_selected_playback_base_through_plan_and_play() {
         conduit_core::SignId::from("sign/converted-speech-playback-ready"),
     );
     let plan = conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
-        &form,
+        &plot,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &advertisements,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],
@@ -290,11 +290,11 @@ fn stale_selection_and_wrong_grant_fail_before_play() {
     let host = host(FakePlaybackBehavior::Success);
     let mut grant = host.playback_authority_grant("grant/wrong").unwrap();
     grant.boot_id = BootId::from("wrong-boot");
-    let form = form();
+    let plot = plot();
     let advertisements = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&form, &advertisements).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &advertisements).unwrap();
     let error = conduit_planner::plan_with_authority_grants(
-        &form,
+        &plot,
         &advertisements,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

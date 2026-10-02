@@ -1,13 +1,13 @@
-//! Body-owned runtime eligibility for ordinary Forms serving as Masks.
+//! Body-owned runtime eligibility for ordinary Plots serving as Masks.
 
 use alloc::{string::String, vec::Vec};
 use conduit_body::{BodyId, WakeId};
-use conduit_core::{FormIdentity, PlacementId, PlanId};
+use conduit_core::{PlacementId, PlanId, PlotIdentity};
 use serde::{Deserialize, Serialize};
 
 use crate::{MaskPlanningDisposition, MaskWardrobeError, MaskWardrobeLifetime};
 
-pub const MAX_WORN_MASK_FORMS: usize = 16;
+pub const MAX_WORN_MASK_PLOTS: usize = 16;
 pub const MAX_SEALED_MASK_ROUTES: usize = 32;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,9 +15,9 @@ pub const MAX_SEALED_MASK_ROUTES: usize = 32;
 pub struct MaskWardrobe {
     pub revision: u64,
     pub lifetime: MaskWardrobeLifetime,
-    pub worn: Vec<FormIdentity>,
+    pub worn: Vec<PlotIdentity>,
     /// Most preferred first. Preference never confers eligibility.
-    pub preference: Vec<FormIdentity>,
+    pub preference: Vec<PlotIdentity>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,9 +31,9 @@ pub struct BodyMaskWardrobe {
 /// One realization route already sealed by an immutable ordinary Plan.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SealedMaskFormRoute {
+pub struct SealedMaskPlotRoute {
     pub route_id: String,
-    pub mask_form: FormIdentity,
+    pub mask_plot: PlotIdentity,
     pub plan_id: PlanId,
     pub placement_ids: Vec<PlacementId>,
     pub currently_available: bool,
@@ -41,21 +41,21 @@ pub struct SealedMaskFormRoute {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SelectedMaskFormRoute {
+pub struct SelectedMaskPlotRoute {
     pub route_id: String,
-    pub mask_form: FormIdentity,
+    pub mask_plot: PlotIdentity,
     pub plan_id: PlanId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaskShowDisposition {
-    Retain(SelectedMaskFormRoute),
+    Retain(SelectedMaskPlotRoute),
     SelectSealed {
-        prior: Option<SelectedMaskFormRoute>,
-        selected: SelectedMaskFormRoute,
+        prior: Option<SelectedMaskPlotRoute>,
+        selected: SelectedMaskPlotRoute,
     },
     NoCurrentShow {
-        prior: Option<SelectedMaskFormRoute>,
+        prior: Option<SelectedMaskPlotRoute>,
     },
 }
 
@@ -86,8 +86,8 @@ impl BodyMaskWardrobe {
 impl MaskWardrobe {
     pub fn new(
         lifetime: MaskWardrobeLifetime,
-        worn: Vec<FormIdentity>,
-        preference: Vec<FormIdentity>,
+        worn: Vec<PlotIdentity>,
+        preference: Vec<PlotIdentity>,
     ) -> Result<Self, MaskWardrobeError> {
         let wardrobe = Self {
             revision: 0,
@@ -102,15 +102,15 @@ impl MaskWardrobe {
     pub fn wear(
         &self,
         basis_revision: u64,
-        mask_form: FormIdentity,
+        mask_plot: PlotIdentity,
     ) -> Result<Self, MaskWardrobeError> {
         self.require_revision(basis_revision)?;
-        if self.worn.contains(&mask_form) {
+        if self.worn.contains(&mask_plot) {
             return Err(MaskWardrobeError::DuplicateMask);
         }
         let mut next = self.clone();
         next.revision += 1;
-        next.worn.push(mask_form);
+        next.worn.push(mask_plot);
         next.validate()?;
         Ok(next)
     }
@@ -118,16 +118,16 @@ impl MaskWardrobe {
     pub fn doff(
         &self,
         basis_revision: u64,
-        mask_form: &FormIdentity,
+        mask_plot: &PlotIdentity,
     ) -> Result<Self, MaskWardrobeError> {
         self.require_revision(basis_revision)?;
-        let Some(index) = self.worn.iter().position(|worn| worn == mask_form) else {
+        let Some(index) = self.worn.iter().position(|worn| worn == mask_plot) else {
             return Err(MaskWardrobeError::UnknownMask);
         };
         let mut next = self.clone();
         next.revision += 1;
         next.worn.remove(index);
-        next.preference.retain(|preferred| preferred != mask_form);
+        next.preference.retain(|preferred| preferred != mask_plot);
         next.validate()?;
         Ok(next)
     }
@@ -135,7 +135,7 @@ impl MaskWardrobe {
     pub fn prefer(
         &self,
         basis_revision: u64,
-        preference: Vec<FormIdentity>,
+        preference: Vec<PlotIdentity>,
     ) -> Result<Self, MaskWardrobeError> {
         self.require_revision(basis_revision)?;
         let mut next = self.clone();
@@ -148,21 +148,21 @@ impl MaskWardrobe {
     pub fn reconcile(
         &self,
         active_plan_id: &PlanId,
-        routes: &[SealedMaskFormRoute],
-        selected: Option<&SelectedMaskFormRoute>,
+        routes: &[SealedMaskPlotRoute],
+        selected: Option<&SelectedMaskPlotRoute>,
     ) -> Result<MaskReconciliation, MaskWardrobeError> {
         self.validate()?;
         validate_routes(active_plan_id, routes)?;
         if let Some(selected) = selected {
             let route = routes.iter().find(|route| {
                 route.route_id == selected.route_id
-                    && route.mask_form == selected.mask_form
+                    && route.mask_plot == selected.mask_plot
                     && route.plan_id == selected.plan_id
             });
             if selected.plan_id != *active_plan_id || route.is_none() {
                 return Err(MaskWardrobeError::StaleSelection);
             }
-            if self.worn.contains(&selected.mask_form)
+            if self.worn.contains(&selected.mask_plot)
                 && route.is_some_and(|route| route.currently_available)
             {
                 return Ok(MaskReconciliation {
@@ -175,9 +175,9 @@ impl MaskWardrobe {
             return Ok(MaskReconciliation {
                 show: MaskShowDisposition::SelectSealed {
                     prior: selected.cloned(),
-                    selected: SelectedMaskFormRoute {
+                    selected: SelectedMaskPlotRoute {
                         route_id: route.route_id.clone(),
-                        mask_form: route.mask_form.clone(),
+                        mask_plot: route.mask_plot.clone(),
                         plan_id: route.plan_id.clone(),
                     },
                 },
@@ -198,12 +198,12 @@ impl MaskWardrobe {
 
     fn select_available_route<'a>(
         &self,
-        routes: &'a [SealedMaskFormRoute],
-    ) -> Option<&'a SealedMaskFormRoute> {
+        routes: &'a [SealedMaskPlotRoute],
+    ) -> Option<&'a SealedMaskPlotRoute> {
         for preferred in &self.preference {
             if let Some(route) = routes
                 .iter()
-                .filter(|route| route.currently_available && &route.mask_form == preferred)
+                .filter(|route| route.currently_available && &route.mask_plot == preferred)
                 .min_by(|left, right| left.route_id.cmp(&right.route_id))
             {
                 return Some(route);
@@ -213,8 +213,8 @@ impl MaskWardrobe {
             .iter()
             .filter(|route| {
                 route.currently_available
-                    && self.worn.contains(&route.mask_form)
-                    && !self.preference.contains(&route.mask_form)
+                    && self.worn.contains(&route.mask_plot)
+                    && !self.preference.contains(&route.mask_plot)
             })
             .min_by(|left, right| left.route_id.cmp(&right.route_id))
     }
@@ -226,7 +226,7 @@ impl MaskWardrobe {
     }
 
     fn validate(&self) -> Result<(), MaskWardrobeError> {
-        if self.worn.len() > MAX_WORN_MASK_FORMS || self.preference.len() > MAX_WORN_MASK_FORMS {
+        if self.worn.len() > MAX_WORN_MASK_PLOTS || self.preference.len() > MAX_WORN_MASK_PLOTS {
             return Err(MaskWardrobeError::CapacityExceeded);
         }
         if has_duplicates(&self.worn) || has_duplicates(&self.preference) {
@@ -245,7 +245,7 @@ impl MaskWardrobe {
 
 fn validate_routes(
     active_plan_id: &PlanId,
-    routes: &[SealedMaskFormRoute],
+    routes: &[SealedMaskPlotRoute],
 ) -> Result<(), MaskWardrobeError> {
     if routes.len() > MAX_SEALED_MASK_ROUTES {
         return Err(MaskWardrobeError::CapacityExceeded);

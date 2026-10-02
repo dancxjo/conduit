@@ -1,4 +1,4 @@
-//! Canonical Forms for generalized input Info.
+//! Canonical Plots for generalized input Info.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{
     gamepad_state_type, generalized_input_registered_types, input_button_transition_type,
@@ -22,8 +22,8 @@ pub const POINTER_SOURCE_KIND: &str = "input/pointer-source";
 pub const GENERALIZED_INPUT_REVISION: &str = "conduit.std/generalized-input@2";
 
 pub fn install_generalized_input_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in generalized_input_registered_types() {
         startup
@@ -116,8 +116,8 @@ fn semantic_contract(kind: &str, outputs: Vec<PortDescriptor>) -> Kind {
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     kind: &str,
     outputs: Vec<PortDescriptor>,
 ) -> Result<(), String> {
@@ -125,8 +125,8 @@ fn insert_kind(
 }
 
 fn insert_semantic_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: Kind,
 ) -> Result<(), String> {
     startup

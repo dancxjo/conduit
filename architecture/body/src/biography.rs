@@ -1,6 +1,6 @@
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    AuthorityGrantId, BootId, CheckedFormId, HostId, ImplementationId, PlanId, SignId,
+    AuthorityGrantId, BootId, CheckedPlotId, HostId, ImplementationId, PlanId, SignId,
     SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
@@ -88,14 +88,14 @@ pub enum BodyBiographyRecordKind {
         change_id: MembershipChangeId,
         part_id: PartId,
     },
-    FormAdmitted {
+    PlotAdmitted {
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         workload_revision: u64,
     },
-    FormRemoved {
+    PlotRemoved {
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         workload_revision: u64,
     },
     Fulfilled {
@@ -394,24 +394,24 @@ impl BodyBiographyEvidence {
                 .find(|event| event.sign_id() == sign_id)
                 .ok_or(BodyBiographyError::InvalidEvidence)?;
             let kind = match event {
-                BodyLifecycleEvent::FormAdmitted {
+                BodyLifecycleEvent::PlotAdmitted {
                     source_document_id,
-                    checked_form_id,
+                    checked_plot_id,
                     workload_revision,
                     ..
-                } => BodyBiographyRecordKind::FormAdmitted {
+                } => BodyBiographyRecordKind::PlotAdmitted {
                     source_document_id: source_document_id.clone(),
-                    checked_form_id: checked_form_id.clone(),
+                    checked_plot_id: checked_plot_id.clone(),
                     workload_revision: *workload_revision,
                 },
-                BodyLifecycleEvent::FormRemoved {
+                BodyLifecycleEvent::PlotRemoved {
                     source_document_id,
-                    checked_form_id,
+                    checked_plot_id,
                     workload_revision,
                     ..
-                } => BodyBiographyRecordKind::FormRemoved {
+                } => BodyBiographyRecordKind::PlotRemoved {
                     source_document_id: source_document_id.clone(),
-                    checked_form_id: checked_form_id.clone(),
+                    checked_plot_id: checked_plot_id.clone(),
                     workload_revision: *workload_revision,
                 },
                 BodyLifecycleEvent::Fulfilled {
@@ -452,8 +452,8 @@ impl BodyBiographyEvidence {
                 event.sign_id() == sign_id
                     && !matches!(
                         event,
-                        BodyLifecycleEvent::FormAdmitted { .. }
-                            | BodyLifecycleEvent::FormRemoved { .. }
+                        BodyLifecycleEvent::PlotAdmitted { .. }
+                            | BodyLifecycleEvent::PlotRemoved { .. }
                     )
             })
         }) {

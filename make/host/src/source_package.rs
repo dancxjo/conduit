@@ -23,7 +23,7 @@ const MAXIMUM_PACKAGE_TEXT_BYTES: usize = 256;
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SourceExportKind {
-    Form,
+    Plot,
     Type,
     SemanticCatalog,
 }

@@ -1,15 +1,15 @@
 //! Browser production realization of explicitly initialized measurement hysteresis.
 
-use super::factory::{BrowserInstallation, validate_placement};
+use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId,
-    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [

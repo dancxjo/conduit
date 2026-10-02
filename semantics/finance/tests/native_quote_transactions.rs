@@ -4,7 +4,7 @@ use conduit_finance::{
     FinanceOrderIdentity, FinanceQuote, FinanceQuoteFreshness, FinanceQuoteSource,
     FinanceRejectionReason, FinanceTransactionEvent, FinanceTransactionEventsThree,
 };
-use conduit_form::rust_binding::{NativeBindingRefusal, NativeRustBinding};
+use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
 #[test]
 fn quote_and_transaction_family_is_owned_by_native_types() {

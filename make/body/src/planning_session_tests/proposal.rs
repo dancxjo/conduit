@@ -1,6 +1,6 @@
 use conduit_body::{
-    Body, BodyFaceSelector, BodyFormPlan, BodyMaskChainPlan, BodyMaskTopology, BodyPlanningSession,
-    BodyPlanningTransition, BodyWorkset, ResidentForm, WakeLifecycle, WakePlanState,
+    Body, BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlanningSession,
+    BodyPlanningTransition, BodyPlotPlan, BodyWorkset, ResidentPlot, WakeLifecycle, WakePlanState,
 };
 use conduit_core::{BaseImplementationId, BootId, HostId, PlacementId, SignId};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
@@ -8,10 +8,10 @@ use conduit_std_host::StdHost;
 
 #[test]
 fn unstarted_proposals_preserve_the_wake_without_inventing_play_events() {
-    let expanded = super::hello_form();
-    let on_a = planned_form(&expanded, "host/a", "boot/a");
-    let body = Body::born_with_forms(
-        BodyWorkset::one(on_a.form.clone()).unwrap(),
+    let expanded = super::hello_plot();
+    let on_a = planned_plot(&expanded, "host/a", "boot/a");
+    let body = Body::born_with_plots(
+        BodyWorkset::one(on_a.plot.clone()).unwrap(),
         1,
         "sign/proposal-born".into(),
     )
@@ -31,7 +31,7 @@ fn unstarted_proposals_preserve_the_wake_without_inventing_play_events() {
         session.snapshot().unavailable_proposal_sign_id,
         Some("sign/proposed-host-left".into())
     );
-    let on_b = planned_form(&expanded, "host/b", "boot/b");
+    let on_b = planned_plot(&expanded, "host/b", "boot/b");
     session.replace_proposal(vec![on_b.clone()]).unwrap();
     assert!(session.snapshot().unavailable_proposal_sign_id.is_none());
     assert_eq!(session.wake(), &original_wake);
@@ -43,11 +43,11 @@ fn unstarted_proposals_preserve_the_wake_without_inventing_play_events() {
     assert_eq!(session.snapshot(), snapshot);
 }
 
-fn planned_form(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+fn planned_plot(
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
     host_id: &str,
     boot_id: &str,
-) -> BodyFormPlan {
+) -> BodyPlotPlan {
     let mut advertisement = StdHost::new().advertisement().clone();
     advertisement.host_id = HostId::from(host_id);
     advertisement.boot_id = BootId::from(boot_id);
@@ -59,10 +59,10 @@ fn planned_form(
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
-    BodyFormPlan {
-        form: ResidentForm::new(
+    BodyPlotPlan {
+        plot: ResidentPlot::new(
             expanded.source_document_id.clone(),
-            expanded.checked_form_id.clone(),
+            expanded.checked_plot_id.clone(),
         ),
         plan,
     }
@@ -70,10 +70,10 @@ fn planned_form(
 
 #[test]
 fn joined_host_offer_replans_one_body_without_erasing_plan_history() {
-    let expanded = super::hello_form();
-    let on_a = planned_form(&expanded, "host/a", "boot/a");
-    let resident = on_a.form.clone();
-    let body = Body::born_with_forms(
+    let expanded = super::hello_plot();
+    let on_a = planned_plot(&expanded, "host/a", "boot/a");
+    let resident = on_a.plot.clone();
+    let body = Body::born_with_plots(
         BodyWorkset::one(resident).unwrap(),
         1,
         SignId::from("sign/body-born"),
@@ -92,7 +92,7 @@ fn joined_host_offer_replans_one_body_without_erasing_plan_history() {
     .unwrap();
     let prior_plan_id = session.current_plan().plan_id.clone();
 
-    let on_b = planned_form(&expanded, "host/b", "boot/b");
+    let on_b = planned_plot(&expanded, "host/b", "boot/b");
     session
         .replan(
             vec![on_b],
@@ -107,7 +107,7 @@ fn joined_host_offer_replans_one_body_without_erasing_plan_history() {
 
     assert_eq!(session.body().body_id, original_body_id);
     assert_ne!(session.current_plan().plan_id, prior_plan_id);
-    assert!(session.current_plan().forms[0]
+    assert!(session.current_plan().plots[0]
         .plan
         .fragments
         .iter()
@@ -120,10 +120,10 @@ fn joined_host_offer_replans_one_body_without_erasing_plan_history() {
 
 #[test]
 fn selected_host_loss_is_machine_readable_and_keeps_the_plan() {
-    let expanded = super::hello_form();
-    let on_a = planned_form(&expanded, "host/a", "boot/a");
-    let body = Body::born_with_forms(
-        BodyWorkset::one(on_a.form.clone()).unwrap(),
+    let expanded = super::hello_plot();
+    let on_a = planned_plot(&expanded, "host/a", "boot/a");
+    let body = Body::born_with_plots(
+        BodyWorkset::one(on_a.plot.clone()).unwrap(),
         1,
         SignId::from("sign/body-born"),
     )
@@ -150,11 +150,11 @@ fn selected_host_loss_is_machine_readable_and_keeps_the_plan() {
 }
 
 #[test]
-fn mask_replan_changes_plan_play_without_changing_body_or_authored_forms() {
-    let expanded = super::hello_form();
-    let body_form = planned_form(&expanded, "host/body", "boot/body");
-    let resident = body_form.form.clone();
-    let body = Body::born_with_forms(
+fn mask_replan_changes_plan_play_without_changing_body_or_authored_plots() {
+    let expanded = super::hello_plot();
+    let body_plot = planned_plot(&expanded, "host/body", "boot/body");
+    let resident = body_plot.plot.clone();
+    let body = Body::born_with_plots(
         BodyWorkset::one(resident.clone()).unwrap(),
         1,
         SignId::from("sign/body-born"),
@@ -171,7 +171,7 @@ fn mask_replan_changes_plan_play_without_changing_body_or_authored_forms() {
             .clone()
     };
     let selector = BodyFaceSelector {
-        form: Some(resident),
+        plot: Some(resident),
         source_placement_id: PlacementId::from("hello/presentation"),
     };
     let graphical = BodyMaskChainPlan {
@@ -190,15 +190,15 @@ fn mask_replan_changes_plan_play_without_changing_body_or_authored_forms() {
         &body,
         2,
         SignId::from("sign/woke"),
-        vec![body_form.clone()],
+        vec![body_plot.clone()],
         vec![initial_topology],
     )
     .unwrap();
     let initial_plan = session.current_plan().clone();
-    let initial_form = initial_plan.forms[0].clone();
+    let initial_plot = initial_plan.plots[0].clone();
     session
         .replace_proposal_with_masks(
-            vec![body_form],
+            vec![body_plot],
             vec![BodyMaskTopology {
                 face: selector,
                 chains: vec![graphical, speech],
@@ -206,7 +206,7 @@ fn mask_replan_changes_plan_play_without_changing_body_or_authored_forms() {
         )
         .unwrap();
     assert_eq!(session.body().body_id, body.body_id);
-    assert_eq!(session.current_plan().forms, vec![initial_form]);
+    assert_eq!(session.current_plan().plots, vec![initial_plot]);
     assert_ne!(session.current_plan().plan_id, initial_plan.plan_id);
     assert_eq!(session.current_plan().mask_topologies[0].chains.len(), 2);
     assert_eq!(session.plan(&initial_plan.plan_id), Some(&initial_plan));

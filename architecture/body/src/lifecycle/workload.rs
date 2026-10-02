@@ -7,7 +7,7 @@ use super::{
     MAX_BODY_SIGNS,
 };
 use crate::{
-    BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyWorkset, ResidentForm,
+    BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyWorkset, ResidentPlot,
     WakeLifecycleEvent,
 };
 
@@ -17,9 +17,9 @@ impl Body {
         Ok(self.workset.clone())
     }
 
-    pub fn admit_form(
+    pub fn admit_plot(
         &self,
-        form: ResidentForm,
+        plot: ResidentPlot,
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
@@ -29,15 +29,15 @@ impl Body {
         validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
         let mut next = self.clone();
         next.workset = self.effective_workset()?;
-        next.workset.add(form.clone())?;
+        next.workset.add(plot.clone())?;
         next.workload_revision = self
             .workload_revision
             .checked_add(1)
             .ok_or(BodyLifecycleError::InvalidTransition)?;
         next.sign_ids.push(sign_id.clone());
-        next.events.push(BodyLifecycleEvent::FormAdmitted {
-            source_document_id: form.source_document_id,
-            checked_form_id: form.checked_form_id,
+        next.events.push(BodyLifecycleEvent::PlotAdmitted {
+            source_document_id: plot.source_document_id,
+            checked_plot_id: plot.checked_plot_id,
             workload_revision: next.workload_revision,
             sign_id,
         });
@@ -45,9 +45,9 @@ impl Body {
         Ok(next)
     }
 
-    pub fn remove_form(
+    pub fn remove_plot(
         &self,
-        form: &ResidentForm,
+        plot: &ResidentPlot,
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
@@ -57,15 +57,15 @@ impl Body {
         validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
         let mut next = self.clone();
         next.workset = self.effective_workset()?;
-        next.workset.remove(form)?;
+        next.workset.remove(plot)?;
         next.workload_revision = self
             .workload_revision
             .checked_add(1)
             .ok_or(BodyLifecycleError::InvalidTransition)?;
         next.sign_ids.push(sign_id.clone());
-        next.events.push(BodyLifecycleEvent::FormRemoved {
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
+        next.events.push(BodyLifecycleEvent::PlotRemoved {
+            source_document_id: plot.source_document_id.clone(),
+            checked_plot_id: plot.checked_plot_id.clone(),
             workload_revision: next.workload_revision,
             sign_id,
         });
@@ -105,7 +105,7 @@ impl Wake {
         self.start_play_identity(&play.plan_id, &play.active_play_id, sign_id)
     }
 
-    /// Retires the active body-wide Plan after the owning body's exact form
+    /// Retires the active body-wide Plan after the owning body's exact plot
     /// workset changes. The wake survives and must receive one replacement
     /// body-wide Plan before another play can start.
     pub fn workload_changed(

@@ -6,14 +6,14 @@ maximum_edges = 18
 # rejects additions, removals, and dependency-kind changes.
 
 [[edges]]
-manifest = "forms/patchbay/workbench/model/Cargo.toml"
+manifest = "plots/patchbay/workbench/model/Cargo.toml"
 dependency = "conduit-patchbay-workbench-conformance"
 kind = "dependencies"
 classification = "product-demo-fixture"
 resolution = "Remove when the remaining Patchbay product shell is retired; the extracted proof owns the fixed workbench realization meanwhile."
 
 [[edges]]
-manifest = "forms/patchbay/workbench/model/Cargo.toml"
+manifest = "plots/patchbay/workbench/model/Cargo.toml"
 dependency = "conduit-signal-conformance"
 kind = "dependencies"
 classification = "product-demo-fixture"

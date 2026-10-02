@@ -1,6 +1,6 @@
 //! Portable request to manifest one exact frequency as a bounded tone.
 use crate::{KindTerminalBehavior, StandardKindContract};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -12,7 +12,7 @@ pub const PITCH_TONE_KIND: &str = "sound/pitch-tone";
 pub const PITCH_TONE_REVISION: &str = "conduit.sound/pitch-tone@1";
 
 /// Loudness, envelope, device, and activation policy belong to the selected
-/// Host realization rather than the authored form.
+/// Host realization rather than the authored plot.
 pub fn pitch_tone_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(PITCH_TONE_KIND),
@@ -44,12 +44,12 @@ pub fn pitch_tone_semantic_contract() -> Kind {
     pitch_tone_contract().into_semantic_contract(PITCH_TONE_REVISION)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_pitch_tone_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: PITCH_TONE_KIND.into(),
         startup_parameters: vec![],
     })?;

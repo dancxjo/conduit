@@ -2,7 +2,7 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 use crate::{
     tensor::*, TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorRefusal, TensorValue,

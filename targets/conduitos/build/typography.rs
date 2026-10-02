@@ -10,7 +10,7 @@ const MAX_CODEPOINTS: usize = 1_024;
 const MAX_COVERAGE_BYTES: usize = 4 * 1_048_576;
 const MAX_GLYPH_EDGE: usize = 64;
 const SUBSET: &str = "../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex";
-const NAMES: &str = "../../forms/birth/names/catalog.mjs";
+const NAMES: &str = "../../plots/birth/names/catalog.mjs";
 const FONTS: &[(&str, &str)] = &[
     (
         "DejaVuSans.ttf",
@@ -22,7 +22,7 @@ const FONTS: &[(&str, &str)] = &[
     ),
 ];
 // Fixed profile index: label, body, heading, title, code. These are Presenter
-// resources, never part of a portable Presentation or authored form identity.
+// resources, never part of a portable Presentation or authored plot identity.
 const PROFILES: &[(usize, u8)] = &[(0, 14), (0, 16), (0, 20), (0, 24), (1, 14)];
 
 pub fn generate() {

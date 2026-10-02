@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{
     NavigationIdentity64, NavigationTraversability4x4, NavigationTraversabilityCell,
     NavigationTraversabilityCells, NavigationValidity,

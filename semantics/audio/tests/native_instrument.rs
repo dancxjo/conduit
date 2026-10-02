@@ -1,7 +1,5 @@
-use conduit_audio::{
-    InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
-};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_audio::{InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn instrument_mapping_round_trips_through_its_authored_type() {
@@ -11,7 +9,10 @@ fn instrument_mapping_round_trips_through_its_authored_type() {
     .unwrap();
     let mapping = InstrumentMapping::new(1, 0, pitches, 8).unwrap();
     let structured = mapping.clone().into_structured().unwrap();
-    assert_eq!(InstrumentMapping::from_structured(structured).unwrap(), mapping);
+    assert_eq!(
+        InstrumentMapping::from_structured(structured).unwrap(),
+        mapping
+    );
 }
 
 #[test]
@@ -22,6 +23,9 @@ fn both_instrument_control_payloads_are_native() {
     ];
     for control in controls {
         let structured = control.clone().into_structured().unwrap();
-        assert_eq!(InstrumentControl::from_structured(structured).unwrap(), control);
+        assert_eq!(
+            InstrumentControl::from_structured(structured).unwrap(),
+            control
+        );
     }
 }

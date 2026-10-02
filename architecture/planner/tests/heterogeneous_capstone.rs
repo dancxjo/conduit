@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    BootId, CapabilityId, CheckedFormId, GearId, HostId, ImplementationId, OfferGeneration, PlanId,
+    BootId, CapabilityId, CheckedPlotId, GearId, HostId, ImplementationId, OfferGeneration, PlanId,
     ResourcePoolId, SignId,
 };
 use conduit_planner::proof::heterogeneous::{
@@ -143,14 +143,14 @@ fn performance_selections() -> (String, String, u64, u64) {
         performance_candidate("batch-on-laptops", "host/laptops", 120, 3_000),
     ];
     let interactive = select_performance_candidate(
-        CheckedFormId::from("checked/mixed-capstone"),
+        CheckedPlotId::from("checked/mixed-capstone"),
         &candidates,
         &performance_policy(PerformanceIntent::Interactive),
         1_000,
     )
     .unwrap();
     let batch = select_performance_candidate(
-        CheckedFormId::from("checked/mixed-capstone"),
+        CheckedPlotId::from("checked/mixed-capstone"),
         &candidates,
         &performance_policy(PerformanceIntent::ThroughputBatch),
         1_000,

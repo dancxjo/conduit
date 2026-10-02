@@ -5,7 +5,7 @@ import { join } from "node:path";
 const STEPS = [
   ["body.absent", "body-absent", "runtime-receipt"], ["bootstrap.started", "bootstrap-started", "runtime-receipt"],
   ["body.born", "body-born", "body-biography"], ["body.awake", "body-awake", "body-biography"],
-  ["form.used", "standing-form-used", "runtime-receipt"], ["body.inspected", "body-inspected", "semantic-face"],
+  ["plot.used", "standing-plot-used", "runtime-receipt"], ["body.inspected", "body-inspected", "semantic-face"],
   ["workload.revised", "workload-revised", "body-biography"], ["host.added", "host-added", "runtime-receipt"],
   ["fault.observed", "fault-observed", "stream-disposition"], ["body.repaired", "body-repaired", "runtime-receipt"],
   ["body.long-running", "body-long-running", "runtime-receipt"], ["body.lulled", "body-lulled", "lifecycle-action"],
@@ -38,7 +38,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   const born = required(events[0]?.Born?.sign_id, "birth sign");
   const fulfilled = required(events.at(-1)?.Fulfilled?.sign_id, "fulfillment sign");
   const wake = required(evidence.wakes[0]?.sign_ids?.[0], "Wake sign");
-  const workload = required(events.find(event => event.FormAdmitted)?.FormAdmitted?.sign_id, "workload sign");
+  const workload = required(events.find(event => event.PlotAdmitted)?.PlotAdmitted?.sign_id, "workload sign");
   const fault = required(refusedWake.sign_ids.at(-1), "fault sign");
   const repaired = required(repairedWake.sign_ids.at(-1), "repair sign");
   const lull = required(events.findLast(event => event.LullRetained)?.LullRetained?.sign_id, "Lull sign");
@@ -74,7 +74,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     play: required(plan.active_play_id, "Play identity"),
     face: required(inspectedMask.presentation?.identity, "Face identity"),
     show: required(inspectedMask.mask_show?.show?.manifestation_id, "Show identity"),
-    maskForm: required(inspectedMask.planned_mask?.mask?.form_identity?.checked_form_id, "Mask Form identity"),
+    maskPlot: required(inspectedMask.planned_mask?.mask?.plot_identity?.checked_plot_id, "Mask Plot identity"),
     maskPlan: required(inspectedMask.planned_mask?.plan?.plan_id, "Mask Plan identity"),
     maskPlay: required(inspectedMask.mask_play?.active_play_id, "Mask Play identity") };
   const construction = [
@@ -95,7 +95,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     { initial_body: null, host_id: ids.host, boot_id: ids.boot }, { host_id: ids.host, boot_id: ids.boot },
     { event: events[0] }, { wake: evidence.wakes[0] }, { plan_id: ids.plan, active_play_id: ids.play },
     { face_id: ids.face, show_id: ids.show },
-    { workload_revision: current.workload_revision, forms: evidence.body.workset.forms },
+    { workload_revision: current.workload_revision, plots: evidence.body.workset.plots },
     { peer, membership_revision: source.checkpoints.joined.evidence.membership.revision },
     { refusal: source.checkpoints.refused.playback.refusal, wake: refusedWake }, { wake: repairedWake },
     { active_play_id: ids.play }, { lull_sign_id: lull }, { event: events.at(-1) },
@@ -116,8 +116,8 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     receipts.push({ step_id: stepId, assertion, disposition: "established", provenance: {
       body_id: index >= 2 ? ids.body : null, host_id: index < 3 ? ids.host : hostAdded ? ids.peerHost : null,
       boot_id: index < 3 ? ids.boot : hostAdded ? ids.peerBoot : null,
-      plan_id: ["form.used", "workload.revised", "host.added", "body.repaired"].includes(stepId) ? ids.plan : null,
-      play_id: ["form.used", "body.repaired", "body.long-running"].includes(stepId) ? ids.play : null,
+      plan_id: ["plot.used", "workload.revised", "host.added", "body.repaired"].includes(stepId) ? ids.plan : null,
+      play_id: ["plot.used", "body.repaired", "body.long-running"].includes(stepId) ? ids.play : null,
       face_id: stepId === "body.inspected" ? ids.face : null,
       show_id: stepId === "body.inspected" ? ids.show : null, line_id: null, sign_id: signs[index],
     }, evidence: [{ artifact_id: `browser-graphical/${stepId}`, evidence_class: "semantic-receipt",
@@ -141,7 +141,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       const observationBytes = Buffer.from(`${JSON.stringify(capture.mask, null, 2)}\n`);
       await writeFile(join(output, observationRelative), observationBytes, { flag: "wx" });
       step.evidence.push({ artifact_id: `browser-graphical/${stepId}/mask`, evidence_class: "semantic-receipt",
-        assertion_rung: "semantic-face", documentary_description: "Rust-owned ordinary Mask Form, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+        assertion_rung: "semantic-face", documentary_description: "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
         path: observationRelative, sha256: digest(observationBytes) });
     }
   }
@@ -186,7 +186,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   const publicActions = [
     { action_id: "journey.bootstrap", concrete_event: "The browser Host started with no Body, then accepted the bounded bootstrap through the live DOM entrance.", receipt_ids: ["body.absent", "bootstrap.started"] },
     { action_id: "journey.birth", concrete_event: "The browser birth action created this independent Body and admitted its first wake.", receipt_ids: ["body.born", "body.awake"] },
-    { action_id: "journey.useful-work", concrete_event: "A browser interaction exercised the standing Form through its retained Plan and Play.", receipt_ids: ["form.used"] },
+    { action_id: "journey.useful-work", concrete_event: "A browser interaction exercised the standing Plot through its retained Plan and Play.", receipt_ids: ["plot.used"] },
     { action_id: "journey.break-recover", concrete_event: "A refused browser wake remained a fault until a later admitted wake established repair.", receipt_ids: ["fault.observed", "body.repaired"] },
     { action_id: "journey.rest-finish", concrete_event: "Explicit browser actions lulled the Body and then fulfilled its biography.", receipt_ids: ["body.lulled", "body.fulfilled"] },
   ];
@@ -196,7 +196,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   await writeFile(join(output, "track.json"), `${JSON.stringify({
     schema: "conduit.evidence/body-journey-track@6", journey_id: "orifina/tutorial@1", git_commit: commit,
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
-    mask_form_id: ids.maskForm, construction, hosts: [
+    mask_plot_id: ids.maskPlot, construction, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
     ], line_ids: [], distributed_plan_ids: [], receipts, actions: publicActions,
     mask_actions: maskActions,

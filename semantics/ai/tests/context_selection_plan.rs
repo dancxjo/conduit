@@ -1,4 +1,4 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 use std::collections::BTreeMap;
 
@@ -11,17 +11,17 @@ use conduit_core::{
     verify_plan, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 
-fn form(rerank_policy: &str, context_policy: &str, redundancy: &str, ordering: &str) -> String {
+fn plot(rerank_policy: &str, context_policy: &str, redundancy: &str, ordering: &str) -> String {
     format!(
-        "form r3 {{\n rerank: retrieval/rerank(\"{rerank_policy}\", 8, 32)\n select: context/select(\"{context_policy}\", \"tokens/exact-fixture@1\", \"{redundancy}\", \"{ordering}\", 8, 4096, 1024, 32)\n}}\n"
+        "plot r3 {{\n rerank: retrieval/rerank(\"{rerank_policy}\", 8, 32)\n select: context/select(\"{context_policy}\", \"tokens/exact-fixture@1\", \"{redundancy}\", \"{ordering}\", 8, 4096, 1024, 32)\n}}\n"
     )
 }
 
@@ -35,7 +35,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 fn plan(source: &str) -> conduit_core::Plan {
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "r3", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "r3", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/r3"),
@@ -99,13 +99,13 @@ fn portable_fronts_are_typed_bounded_and_require_no_authority() {
 
 #[test]
 fn proof_ordering_and_redundancy_policies_are_exact_plan_facts() {
-    let deterministic = plan(&form(
+    let deterministic = plan(&plot(
         "rerank/preserve-hybrid-deterministic@1",
         "context/reranked-diverse@1",
         "keep-all",
         "reranked",
     ));
-    let model_chronological = plan(&form(
+    let model_chronological = plan(&plot(
         "rerank/observed-model-derived@1",
         "context/chronological-diverse@1",
         "one-per-reviewed-group",
@@ -132,12 +132,12 @@ fn proof_ordering_and_redundancy_policies_are_exact_plan_facts() {
 #[test]
 fn unreviewed_reranking_policy_refuses_canonical_expansion() {
     let (startup, profile) = catalogs();
-    let source = form(
+    let source = plot(
         "provider/opaque-score@1",
         "context/reranked-diverse@1",
         "keep-all",
         "reranked",
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    assert!(expand_canonical_form(&checked, "r3", &profile).is_err());
+    assert!(expand_canonical_plot(&checked, "r3", &profile).is_err());
 }

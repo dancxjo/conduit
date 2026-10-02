@@ -58,7 +58,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
       malformedRefusal: "unsupported-version",
       unchangedAfterRefusal: true,
       controlValue: "gear edited",
-      controlLabel: "form source",
+      controlLabel: "plot source",
       controlBytePressureRefusal: "queue-pressure",
       semantic: {
         panelTag: "SECTION",
@@ -79,7 +79,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   });
 });
 
-test("shared forms and navigation preserve exact keyboard interaction across revisions", async ({ page }) => {
+test("shared plots and navigation preserve exact keyboard interaction across revisions", async ({ page }) => {
   await page.goto("/proof/browser/presentation-nucleus.test.html");
   await expect(page.locator("#result")).toHaveText("ok");
   const field = page.locator('[data-application-key="source-field"]');
@@ -88,7 +88,7 @@ test("shared forms and navigation preserve exact keyboard interaction across rev
   const help = field.locator('[data-application-key="source-help"]');
   const error = field.locator('[data-application-key="source-error"]');
   await expect(label).toHaveAttribute("for", await control.getAttribute("id"));
-  await expect(field.getByLabel("form source")).toHaveCount(1);
+  await expect(field.getByLabel("plot source")).toHaveCount(1);
   await expect(control).toHaveAttribute("aria-describedby", `${await help.getAttribute("id")} ${await error.getAttribute("id")}`);
   await expect(control).toHaveAttribute("aria-errormessage", await error.getAttribute("id"));
   await expect(control).toHaveAttribute("aria-invalid", "true");
@@ -157,7 +157,7 @@ test("semantic product and same-site links retain exact bounded destinations wit
       actions: [],
       nodes: [{
         parent: null, component: "link", key: "handoff", text: "Add to new body",
-        value: "/conduit/workspace/?form=memory_lantern", valueCapacity: 2_048, action: null,
+        value: "/conduit/workspace/?plot=memory_lantern", valueCapacity: 2_048, action: null,
       }],
     }), handoff);
     let externalRefusal = "";
@@ -178,7 +178,7 @@ test("semantic product and same-site links retain exact bounded destinations wit
   await expect(link).toHaveAttribute("href", "/conduit/workspace/");
   await expect(link).toHaveAttribute("aria-current", "page");
   const handoff = page.locator('#same-site-link-proof [data-application-key="handoff"]');
-  await expect(handoff).toHaveAttribute("href", /\/conduit\/workspace\/\?form=memory_lantern$/u);
+  await expect(handoff).toHaveAttribute("href", /\/conduit\/workspace\/\?plot=memory_lantern$/u);
   expect(await handoff.evaluate((element) => element.onclick)).toBeNull();
   expect(await page.evaluate(() => globalThis.__sameSiteLinkRefusal)).toBe("invalid-control-value");
 });

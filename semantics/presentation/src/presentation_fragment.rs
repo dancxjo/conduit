@@ -1,7 +1,7 @@
-//! Bounded universal Presentation truth contributed by one ordinary Form play.
+//! Bounded universal Presentation truth contributed by one ordinary Plot play.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
+use conduit_core::{ActivePlayId, CheckedPlotId, PlanId};
 
 use crate::{
     PresentationAction, PresentationDisclosure, PresentationProperty, PresentationRelationship,
@@ -13,7 +13,7 @@ use crate::{
 /// Exact source and optional Face-context requirement for one contribution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PresentationContributionBasis {
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     /// An exact context requirement, never an audience role or authority grant.

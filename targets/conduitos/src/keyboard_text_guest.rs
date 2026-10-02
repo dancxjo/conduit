@@ -46,10 +46,10 @@ pub fn run_reviewed_sequences(
         ],
     )?;
     let sign = format!(
-        "CONDUIT_KEYBOARD_TEXT_SIGN {{\"schema\":\"conduit.conduitos.keyboard-text-form/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"form_machine_facts\":false,\"keymap_configuration\":\"conduit-intl\",\"physical_transition_count\":{},\"presentation_fragments\":[\"H\",\"E\",\"L\",\"L\",\"O\",\"Æ\",\"É\",\"Λ\"],\"visible_ascii\":\"HELLO\",\"bounded\":true,\"completed\":true}}\n",
+        "CONDUIT_KEYBOARD_TEXT_SIGN {{\"schema\":\"conduit.conduitos.keyboard-text-plot/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"plot_machine_facts\":false,\"keymap_configuration\":\"conduit-intl\",\"physical_transition_count\":{},\"presentation_fragments\":[\"H\",\"E\",\"L\",\"L\",\"O\",\"Æ\",\"É\",\"Λ\"],\"visible_ascii\":\"HELLO\",\"bounded\":true,\"completed\":true}}\n",
         prepared.source_document_id.as_str(),
-        prepared.checked_form_id.as_str(),
-        prepared.expanded_form_id.as_str(),
+        prepared.checked_plot_id.as_str(),
+        prepared.expanded_plot_id.as_str(),
         prepared.plan.plan_id.as_str(),
         prepared.active_play.active_play_id.as_str(),
         identity::hex(&identities.host),

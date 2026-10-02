@@ -4,13 +4,13 @@ use conduit_core::{
 };
 use conduit_net::*;
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn install_gallery_input_test_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) {
     use conduit_core::{port_id, ConfigurationValue, PortDescriptor, PortDirection, PortTemporal};
-    use conduit_form::{
+    use conduit_plot::{
         KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
@@ -169,9 +169,9 @@ fn bounded_frame_round_trips_exact_type_and_payload_in_caller_storage() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn declared_form_values_wrap_frame_and_deframe_exact_structured_info() {
+fn declared_plot_values_wrap_frame_and_deframe_exact_structured_info() {
     let original = StructuredInfoValue::leaf(
         StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
         b"CALLING".to_vec(),
@@ -351,11 +351,11 @@ fn type_payload_and_output_bounds_refuse_before_writing_past_capacity() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn framing_and_deframing_are_independent_reusable_checked_forms() {
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+fn framing_and_deframing_are_independent_reusable_checked_plots() {
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
         ProfileCatalog, StartupCatalog,
     };
 
@@ -367,17 +367,17 @@ fn framing_and_deframing_are_independent_reusable_checked_forms() {
     for (name, source, kind) in [
         (
             "typed-record-frame",
-            include_str!("../../../forms/typed-record-frame/main.conduit"),
+            include_str!("../../../plots/typed-record-frame/main.conduit"),
             TYPED_RECORD_FRAME_KIND,
         ),
         (
             "typed-record-deframe",
-            include_str!("../../../forms/typed-record-deframe/main.conduit"),
+            include_str!("../../../plots/typed-record-deframe/main.conduit"),
             TYPED_RECORD_DEFRAME_KIND,
         ),
     ] {
         let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-        let authored = expand_canonical_form_for_authoring(&checked, name, &profile).unwrap();
+        let authored = expand_canonical_plot_for_authoring(&checked, name, &profile).unwrap();
         assert_eq!(authored.input_bindings.len(), 1);
         assert_eq!(authored.output_bindings.len(), 1);
         assert_eq!(authored.expanded.gears[0].kind_id.as_str(), kind);
@@ -387,24 +387,24 @@ fn framing_and_deframing_are_independent_reusable_checked_forms() {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
 fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
     install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
     install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
     install_gallery_input_test_catalogs(&mut startup, &mut profile);
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: "presentation/text".into(),
             startup_parameters: vec![],
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id("presentation/text"),
             kind_contract_revision: "test/presentation-text@1".into(),
             inputs: vec![conduit_core::PortDescriptor {
@@ -418,20 +418,20 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
             configuration: vec![],
         })
         .unwrap();
-    let source = include_str!("../../../forms/desk-telegraph/main.conduit");
+    let source = include_str!("../../../plots/desk-telegraph/main.conduit");
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
     for (entry, expected_kind) in [
         ("text-record", TEXT_TO_TYPED_RECORD_KIND),
         ("text-from-record", TYPED_RECORD_TO_TEXT_KIND),
     ] {
         let expanded =
-            conduit_form::expand_canonical_form_for_authoring(&checked, entry, &profile).unwrap();
+            conduit_plot::expand_canonical_plot_for_authoring(&checked, entry, &profile).unwrap();
         assert_eq!(expanded.expanded.gears.len(), 1);
         assert_eq!(expanded.expanded.gears[0].kind_id.as_str(), expected_kind);
     }
-    let send = conduit_form::expand_canonical_form_for_authoring(
+    let send = conduit_plot::expand_canonical_plot_for_authoring(
         &checked,
         "bounded-record-send",
         &profile,
@@ -441,7 +441,7 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
     assert_eq!(send.input_bindings.len(), 1);
     assert_eq!(send.output_bindings.len(), 1);
     let telegraph =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "desk_telegraph", &profile)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "desk_telegraph", &profile)
             .unwrap();
     let kinds: Vec<_> = telegraph
         .expanded
@@ -456,24 +456,24 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
     assert!(kinds.contains(&ORDERED_RECORD_QUEUE_KIND));
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
 fn night_radio_composes_existing_framing_queue_and_presentation() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
     install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
     install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
     install_gallery_input_test_catalogs(&mut startup, &mut profile);
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: "presentation/text".into(),
             startup_parameters: vec![],
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id("presentation/text"),
             kind_contract_revision: "test/presentation-text@1".into(),
             inputs: vec![conduit_core::PortDescriptor {
@@ -488,15 +488,15 @@ fn night_radio_composes_existing_framing_queue_and_presentation() {
         })
         .unwrap();
 
-    let source = include_str!("../../../forms/night-radio/main.conduit");
+    let source = include_str!("../../../plots/night-radio/main.conduit");
     for forbidden in ["WebSocket", "WebRTC", "HostId", "BootId", "browser", "DOM"] {
         assert!(!source.contains(forbidden));
     }
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
     let expanded =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "night-radio", &profile)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "night-radio", &profile)
             .unwrap();
     let kinds = expanded
         .expanded

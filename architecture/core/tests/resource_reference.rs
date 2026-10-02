@@ -130,7 +130,7 @@ fn prepared_reference_encoding_never_grows_caller_storage() {
 }
 
 #[test]
-fn structured_form_value_carries_reference_without_inlining_large_content() {
+fn structured_plot_value_carries_reference_without_inlining_large_content() {
     let reference_type = StructuredInfoType::leaf(kind_id(RESOURCE_REFERENCE_INFO_ID)).unwrap();
     let record_type = StructuredInfoType::record(
         kind_id("media/input@1"),

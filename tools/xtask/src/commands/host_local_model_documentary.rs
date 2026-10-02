@@ -18,7 +18,7 @@ pub(super) fn retain(
     for (step_id, request_index) in [
         ("body.born", 0),
         ("body.awake", 1),
-        ("form.used", 1),
+        ("plot.used", 1),
         ("body.inspected", 1),
         ("workload.revised", 2),
         ("host.added", 2),

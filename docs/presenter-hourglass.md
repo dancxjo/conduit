@@ -4,7 +4,7 @@ Conduit has one canonical human-semantic waist:
 
 ```text
 Body/application truth --------+
-resident Form contributions ---+
+resident Plot contributions ---+
 Space/relationship truth ------+
 tutorial and inspection -------+
                                 v
@@ -53,7 +53,7 @@ similar compositions do not define what Face can mean.
 Subject roles and relationship meanings have exact validated semantic
 identities. Generic masks must preserve an unfamiliar valid identity and can
 fall back to its human name, wording, and disclosure. Conduit does not grow a
-central enum every time a form presents a new scientific, educational, social,
+central enum every time a plot presents a new scientific, educational, social,
 musical, spatial, or robotic concept.
 
 Typed content associates a subject with exact finite semantic data. The data
@@ -103,7 +103,7 @@ These identities remain distinct:
 
 ```text
 Face meaning and content identity
-!= mask form source/checked/expanded identity
+!= mask plot source/checked/expanded identity
 != mask plan, implementation, and artifact identity
 != Show identity
 != expanded layout, composition, and graphics placements
@@ -120,7 +120,7 @@ masks. Each mask joins at the highest seam it can truthfully satisfy:
   layout and raster work;
 - a deterministic linear mask consumes the same value without claiming
   two-dimensional geometry;
-- a constrained mask may expand an ordinary canonical form back and realize
+- a constrained mask may expand an ordinary canonical plot back and realize
   admitted layout, composition, and graphics operations recursively.
 
 The linear path is a complete nonvisual realization, not a fake framebuffer.
@@ -131,7 +131,7 @@ Direct masks do not advertise lower layers they do not implement.
 A recursive mask uses the ordinary Conduit path:
 
 ```text
-canonical form/back expansion
+canonical plot/back expansion
 -> checking
 -> exact planning
 -> lowering and preparation
@@ -141,9 +141,9 @@ canonical form/back expansion
 ```
 
 There is no mask scheduler, private recursive executor, or second semantic
-graph. The exact expanded form and plan record every selected back, leaf
+graph. The exact expanded plot and plan record every selected back, leaf
 implementation, host, boot, operation, and resource. Direct and recursive plans
-must differ because their realization differs; the presented user form and its
+must differ because their realization differs; the presented user plot and its
 Face meaning does not change.
 
 The mechanically generated `cargo xtask check catalog matrix` report is the static
@@ -173,7 +173,7 @@ mask back does not gain edit authority from owning geometry.
 
 Mask failures remain realization facts. A lost browser document, native
 surface, display resource, font/icon implementation, or recursive leaf cannot
-rewrite the Face or the user's form. Replanning or fallback is permitted
+rewrite the Face or the user's plot. Replanning or fallback is permitted
 only through ordinary plan rules and exact current offers. A still-available
 linear mask remains a separate truthful realization, not evidence that a
 failed graphical realization succeeded.

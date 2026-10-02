@@ -4,7 +4,7 @@ use conduit_ai::{
     GroundingLimitation, RetrievalIntent, RetrievalIntentIdentity, RetrievalMode, RetrievalModes,
     RetrievalScore, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
 };
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn round_trip<T>(value: T)
 where

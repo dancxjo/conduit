@@ -5,8 +5,8 @@ mod common;
 fn selected_plan(suffix: &str) -> Plan {
     let mut fragment = common::fragment();
     fragment.source_document_id = SourceDocumentId::from(format!("selected-source-{suffix}"));
-    fragment.checked_form_id = CheckedFormId::from(format!("selected-checked-{suffix}"));
-    fragment.expanded_form_id = ExpandedFormId::from(format!("selected-expanded-{suffix}"));
+    fragment.checked_plot_id = CheckedPlotId::from(format!("selected-checked-{suffix}"));
+    fragment.expanded_plot_id = ExpandedPlotId::from(format!("selected-expanded-{suffix}"));
     fragment.fore_ports = vec![
         PlannedForePort {
             front_port_id: port_id("in"),
@@ -76,10 +76,10 @@ fn activation(selected_plan: Plan) -> PlannedActivation {
 fn outer_plan(selected_plan: Plan) -> Plan {
     let fragment = common::fragment();
     seal_plan_with_activations(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: fragment.source_document_id.clone(),
-            checked_form_id: fragment.checked_form_id.clone(),
-            expanded_form_id: fragment.expanded_form_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
         },
         PlanCompletionPolicy::Live,
         vec![],
@@ -137,10 +137,10 @@ fn activation_owner_is_unique_even_when_ids_and_variants_differ() {
     let mut second = activation(child);
     second.activation_id = "second".into();
     let plan = seal_plan_with_activation_entries(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         PlanCompletionPolicy::Live,
         vec![],
@@ -177,10 +177,10 @@ fn activation_preparation_binding_refuses_missing_extra_stale_and_nonlocal_truth
     child.fragments[0].host_id = HostId::from("foreign");
     child.fragments[0].placements[0].host_id = HostId::from("foreign");
     child = seal_plan_with_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: child.source_document_id,
-            checked_form_id: child.checked_form_id,
-            expanded_form_id: child.expanded_form_id,
+            checked_plot_id: child.checked_plot_id,
+            expanded_plot_id: child.expanded_plot_id,
         },
         child.completion_policy,
         child.fragments,
@@ -198,10 +198,10 @@ fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
     fragment.fore_ports.push(item);
     fragment.fore_ports[1].front_port_id = port_id("combined");
     child = seal_plan_with_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: child.source_document_id,
-            checked_form_id: child.checked_form_id,
-            expanded_form_id: child.expanded_form_id,
+            checked_plot_id: child.checked_plot_id,
+            expanded_plot_id: child.expanded_plot_id,
         },
         child.completion_policy,
         child.fragments,
@@ -246,10 +246,10 @@ fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
         },
     };
     let plan = seal_plan_with_activation_entries(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         PlanCompletionPolicy::Live,
         vec![],
@@ -259,10 +259,10 @@ fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
     assert!(verify_plan(&plan));
     let fold_entry = plan.activations[0].clone();
     let duplicate = seal_plan_with_activation_entries(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: plan.source_document_id.clone(),
-            checked_form_id: plan.checked_form_id.clone(),
-            expanded_form_id: plan.expanded_form_id.clone(),
+            checked_plot_id: plan.checked_plot_id.clone(),
+            expanded_plot_id: plan.expanded_plot_id.clone(),
         },
         plan.completion_policy,
         vec![],

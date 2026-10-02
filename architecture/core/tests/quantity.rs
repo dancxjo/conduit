@@ -135,7 +135,7 @@ fn civil_and_medieval_time_units_convert_exactly() {
         Ok(Quantity::new(14, QuantityUnit::Day))
     );
     assert_eq!(
-        Quantity::parse_form_literal("3moment"),
+        Quantity::parse_plot_literal("3moment"),
         Ok(Quantity::new(3, QuantityUnit::Moment))
     );
 }
@@ -216,7 +216,7 @@ fn canonical_multiplication_overflow_is_explicit() {
 }
 
 #[test]
-fn every_reviewed_unit_has_one_round_tripping_form_suffix() {
+fn every_reviewed_unit_has_one_round_tripping_plot_suffix() {
     let units = [
         QuantityUnit::Nanosecond,
         QuantityUnit::Microsecond,
@@ -246,34 +246,34 @@ fn every_reviewed_unit_has_one_round_tripping_form_suffix() {
         QuantityUnit::Pixel,
     ];
     for unit in units {
-        let literal = format!("-17{}", unit.form_suffix());
+        let literal = format!("-17{}", unit.plot_suffix());
         assert_eq!(
-            Quantity::parse_form_literal(&literal),
+            Quantity::parse_plot_literal(&literal),
             Ok(Quantity::new(-17, unit))
         );
     }
 }
 
 #[test]
-fn scientific_form_literals_preserve_reviewed_units_and_exact_decimals() {
+fn scientific_plot_literals_preserve_reviewed_units_and_exact_decimals() {
     assert_eq!(
-        Quantity::parse_form_literal("21°C"),
+        Quantity::parse_plot_literal("21°C"),
         Ok(Quantity::new(21, QuantityUnit::Celsius))
     );
     assert_eq!(
-        Quantity::parse_form_literal("3.2m"),
+        Quantity::parse_plot_literal("3.2m"),
         Ok(Quantity::new(3_200_000, QuantityUnit::Micrometer))
     );
     assert_eq!(
-        Quantity::parse_form_literal("90°"),
+        Quantity::parse_plot_literal("90°"),
         Ok(Quantity::new(90, QuantityUnit::Degree))
     );
     assert_eq!(
-        Quantity::parse_form_literal("640px"),
+        Quantity::parse_plot_literal("640px"),
         Ok(Quantity::new(640, QuantityUnit::Pixel))
     );
     assert_eq!(
-        Quantity::parse_form_literal("69.8°F"),
+        Quantity::parse_plot_literal("69.8°F"),
         Ok(Quantity::new(69_800, QuantityUnit::MilliFahrenheit))
     );
 }
@@ -296,29 +296,29 @@ fn compatible_units_compare_through_the_shared_exact_dimension_law() {
 }
 
 #[test]
-fn form_literals_refuse_missing_unknown_inexact_and_overflowing_parts() {
+fn plot_literals_refuse_missing_unknown_inexact_and_overflowing_parts() {
     assert_eq!(
-        Quantity::parse_form_literal("ms"),
+        Quantity::parse_plot_literal("ms"),
         Err(QuantityLiteralRefusal::MissingValue)
     );
     assert_eq!(
-        Quantity::parse_form_literal("17"),
+        Quantity::parse_plot_literal("17"),
         Err(QuantityLiteralRefusal::MissingUnit)
     );
     assert_eq!(
-        Quantity::parse_form_literal("17parsec"),
+        Quantity::parse_plot_literal("17parsec"),
         Err(QuantityLiteralRefusal::UnknownUnit)
     );
     assert_eq!(
-        Quantity::parse_form_literal("0.1ps"),
+        Quantity::parse_plot_literal("0.1ps"),
         Err(QuantityLiteralRefusal::Inexact)
     );
     assert_eq!(
-        Quantity::parse_form_literal("21C"),
+        Quantity::parse_plot_literal("21C"),
         Err(QuantityLiteralRefusal::NonCanonicalUnit { canonical: "°C" })
     );
     assert_eq!(
-        Quantity::parse_form_literal("9223372036854775808ms"),
+        Quantity::parse_plot_literal("9223372036854775808ms"),
         Err(QuantityLiteralRefusal::InvalidValue)
     );
 }

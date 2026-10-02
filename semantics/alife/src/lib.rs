@@ -21,8 +21,8 @@ mod generated {
 pub use generated::{
     FieldBitmapRefusal, GardenClockObservation, GardenContactObservation,
     GardenEnrichedObservation, GardenEvolutionRefusal, GardenState, GrayScottParameters,
-    LeniaBoundary, LeniaFieldId, LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindCode,
-    LeniaValueRefusal, ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode,
+    LeniaBoundary, LeniaFieldId, LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindForm,
+    LeniaValueRefusal, ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeForm,
     ReactionDiffusionCell, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
     ReactionDiffusionPartition, ReactionDiffusionRegion, ReactionDiffusionRegionId,
     ReactionDiffusionValueRefusal, ReactionDiffusionValueRefusalStaleGeneration,

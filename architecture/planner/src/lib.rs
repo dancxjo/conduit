@@ -5,7 +5,7 @@
 The ordinary v1 path is intentionally small:
 
 1. `default_placements` derives functionally valid placement choices from a
-   checked form and current host advertisements.
+   checked plot and current host advertisements.
 2. `plan` (or `plan_with_options`) validates exact capabilities, resources,
    authority, Lines, queue bounds, and startup order, then seals one immutable
    `Plan`.
@@ -51,7 +51,7 @@ use conduit_core::{
     StateContinuation, StateId, StateLifetime, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
     DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
-use conduit_form::{CheckedForm, CheckedGear};
+use conduit_plot::{CheckedGear, CheckedPlot};
 use sha2::{Digest, Sha256};
 
 mod accelerator;
@@ -277,10 +277,10 @@ pub use wcet::{
 };
 
 pub fn default_placements(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
-    default_placements_unvalidated(&form.gears, hosts)
+    default_placements_unvalidated(&plot.gears, hosts)
 }
 
 /// Plans semantic work under an explicit closed-world set of Cord mechanisms.
@@ -289,13 +289,13 @@ pub fn default_placements(
 /// Capability/resource Base providers are selected exclusively from each
 /// current `HostAdvertisement::bases` entry and do not belong in this list.
 pub fn plan(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     allowed_line_bases: &[BaseImplementationId],
 ) -> Result<Plan, PlannerError> {
     plan_with_connection_limits(
-        form,
+        plot,
         hosts,
         placements,
         allowed_line_bases,
@@ -305,14 +305,14 @@ pub fn plan(
 }
 
 pub fn plan_with_authority_grants(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     allowed_line_bases: &[BaseImplementationId],
     authority_grants: &[AuthorityGrant],
 ) -> Result<Plan, PlannerError> {
     plan_with_options(
-        form,
+        plot,
         hosts,
         placements,
         allowed_line_bases,
@@ -329,7 +329,7 @@ pub fn plan_with_authority_grants(
 }
 
 pub fn plan_with_line_offers(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     allowed_line_bases: &[BaseImplementationId],
@@ -344,7 +344,7 @@ pub fn plan_with_line_offers(
         }
     }
     plan_with_options(
-        form,
+        plot,
         hosts,
         placements,
         &offered_bases,
@@ -361,7 +361,7 @@ pub fn plan_with_line_offers(
 }
 
 pub fn plan_with_connection_limits(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     allowed_line_bases: &[BaseImplementationId],
@@ -369,7 +369,7 @@ pub fn plan_with_connection_limits(
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
     plan_with_connection_limits_and_base_overrides(
-        form,
+        plot,
         hosts,
         placements,
         allowed_line_bases,
@@ -380,7 +380,7 @@ pub fn plan_with_connection_limits(
 }
 
 pub fn plan_with_connection_limits_and_base_overrides(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     allowed_line_bases: &[BaseImplementationId],
@@ -389,7 +389,7 @@ pub fn plan_with_connection_limits_and_base_overrides(
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
     plan_with_options(
-        form,
+        plot,
         hosts,
         placements,
         allowed_line_bases,
@@ -406,26 +406,26 @@ pub fn plan_with_connection_limits_and_base_overrides(
 }
 
 pub fn plan_with_options(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     allowed_line_bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
-    form.validate_identities()
-        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-    plan_validated_form(form, hosts, placements, allowed_line_bases, options)
+    plot.validate_identities()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    plan_validated_plot(plot, hosts, placements, allowed_line_bases, options)
 }
 
-pub(crate) fn plan_validated_form(
-    form: &CheckedForm,
+pub(crate) fn plan_validated_plot(
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
-    plan_validated_form_with_connection_limits(
-        form,
+    plan_validated_plot_with_connection_limits(
+        plot,
         hosts,
         placements,
         bases,
@@ -434,8 +434,8 @@ pub(crate) fn plan_validated_form(
     )
 }
 
-pub(crate) fn plan_validated_form_with_connection_limits(
-    form: &CheckedForm,
+pub(crate) fn plan_validated_plot_with_connection_limits(
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
@@ -463,13 +463,13 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 "per-connection item and byte capacity must both be nonzero".to_string(),
             ));
         }
-        if !form
+        if !plot
             .connections
             .iter()
             .any(|connection| connection_endpoints(connection) == *endpoints)
         {
             return Err(PlannerError::InvalidConnectionBudget(
-                "per-connection capacity names a Cord absent from the checked form".to_string(),
+                "per-connection capacity names a Cord absent from the checked plot".to_string(),
             ));
         }
     }
@@ -488,13 +488,13 @@ pub(crate) fn plan_validated_form_with_connection_limits(
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
     let mut remaining_compute_minimum =
-        compute_admission::admit_minima(form, &host_index, placements)?;
+        compute_admission::admit_minima(plot, &host_index, placements)?;
     let mut consumed_protected_handles = BTreeSet::new();
     let mut resource_writers = BTreeSet::new();
     let mut planned_gears = Vec::<PlannedGear>::new();
     let mut placement_lookup = BTreeMap::<GearId, PlacementId>::new();
 
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let choice = placements
             .by_gear
             .get(&gear.gear_id)
@@ -579,7 +579,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
 
         let placement_id = PlacementId::from(hash_string(&format!(
             "placement:{}:{}:{}:{}",
-            form.checked_form_id.as_str(),
+            plot.checked_plot_id.as_str(),
             gear.gear_id.as_str(),
             host.host_id.as_str(),
             capability.capability_id.as_str()
@@ -620,13 +620,13 @@ pub(crate) fn plan_validated_form_with_connection_limits(
     }
 
     for gear in placements.by_gear.keys() {
-        if !form.gears.iter().any(|item| &item.gear_id == gear) {
+        if !plot.gears.iter().any(|item| &item.gear_id == gear) {
             return Err(PlannerError::UnknownGear(gear.as_str().to_string()));
         }
     }
 
     let mut planned_connections = Vec::<PlannedConnection>::new();
-    for connection in &form.connections {
+    for connection in &plot.connections {
         let limits = connection_limits
             .get(&connection_endpoints(connection))
             .copied()
@@ -652,12 +652,12 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
-        let source_gear = form
+        let source_gear = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id == connection.source_gear_id)
             .expect("checked source gear must exist");
-        let sink_gear = form
+        let sink_gear = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id == connection.sink_gear_id)
@@ -713,7 +713,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
                 "connection:{}:{}:{}:{}:{}:{}:{}:{}",
-                form.checked_form_id.as_str(),
+                plot.checked_plot_id.as_str(),
                 connection.source_gear_id.as_str(),
                 connection.source_port_id.as_str(),
                 connection.sink_gear_id.as_str(),
@@ -748,7 +748,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
     }
 
     let global_startup_order = startup::startup_order(&planned_gears, &planned_connections)
-        .ok_or_else(|| PlannerError::CyclicStartupDependencies(form.name.clone()))?;
+        .ok_or_else(|| PlannerError::CyclicStartupDependencies(plot.name.clone()))?;
 
     let fragments = hosts
         .iter()
@@ -846,10 +846,10 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             Ok(Some(PlanFragment {
                 plan_id: PlanId::from(""),
                 fragment_id: FragmentId::from(""),
-                source_document_id: form.source_document_id.clone(),
-                checked_form_id: form.checked_form_id.clone(),
-                expanded_form_id: form.expanded_form_id.clone(),
-                completion_policy: plan_completion_policy(form.completion),
+                source_document_id: plot.source_document_id.clone(),
+                checked_plot_id: plot.checked_plot_id.clone(),
+                expanded_plot_id: plot.expanded_plot_id.clone(),
+                completion_policy: plan_completion_policy(plot.completion),
                 realization_backs: Vec::new(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
@@ -877,8 +877,8 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         .collect::<Vec<_>>();
 
     Ok(seal_plan_with_completion(
-        form.identity(),
-        plan_completion_policy(form.completion),
+        plot.identity(),
+        plan_completion_policy(plot.completion),
         fragments,
     ))
 }
@@ -1052,7 +1052,7 @@ fn state_lifetime(duration: &str, gear_id: &GearId) -> Result<StateLifetime, Pla
     }
 }
 
-fn connection_endpoints(connection: &conduit_form::CheckedConnection) -> ConnectionEndpoints {
+fn connection_endpoints(connection: &conduit_plot::CheckedConnection) -> ConnectionEndpoints {
     (
         connection.source_gear_id.clone(),
         connection.source_port_id.clone(),

@@ -23,10 +23,10 @@ fn canonical_hello_runs_locally() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let form_path = workspace_root.join("forms/hello/main.conduit");
+    let plot_path = workspace_root.join("plots/hello/main.conduit");
 
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
-        .args(["run", form_path.to_str().expect("form path must be utf-8")])
+        .args(["run", plot_path.to_str().expect("plot path must be utf-8")])
         .output()
         .expect("failed to run conduit binary");
 
@@ -71,7 +71,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let form_path = workspace_root.join("forms/hello/main.conduit");
+    let plot_path = workspace_root.join("plots/hello/main.conduit");
     let report_path = unique_report_path("actual-observatory");
     let artifact_directory = unique_artifact_directory("actual-execution-artifacts");
     let _ = std::fs::remove_file(&report_path);
@@ -80,7 +80,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     let run = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
             "run",
-            form_path.to_str().expect("form path must be utf-8"),
+            plot_path.to_str().expect("plot path must be utf-8"),
             "--report",
             report_path.to_str().expect("report path must be utf-8"),
             "--artifacts",
@@ -280,19 +280,19 @@ fn product_run_refuses_precanonical_fixture_source() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let canonical = workspace_root.join("forms/hello/main.conduit");
-    let form_path = unique_report_path("noncanonical-source").with_extension("form");
-    std::fs::copy(canonical, &form_path).expect("temporary noncanonical source copies");
+    let canonical = workspace_root.join("plots/hello/main.conduit");
+    let plot_path = unique_report_path("noncanonical-source").with_extension("plot");
+    std::fs::copy(canonical, &plot_path).expect("temporary noncanonical source copies");
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
-        .args(["run", form_path.to_str().expect("form path must be utf-8")])
+        .args(["run", plot_path.to_str().expect("plot path must be utf-8")])
         .output()
         .expect("failed to run conduit binary");
-    let _ = std::fs::remove_file(&form_path);
+    let _ = std::fs::remove_file(&plot_path);
 
     assert!(!output.status.success(), "fixture source unexpectedly ran");
     let stderr = String::from_utf8(output.stderr).expect("stderr must be utf-8");
     assert!(
-        stderr.contains("canonical Form source must use the .conduit suffix"),
+        stderr.contains("canonical Plot source must use the .conduit suffix"),
         "unexpected refusal: {stderr}"
     );
 }

@@ -35,7 +35,7 @@ struct A0Inspection {
     runtime_bases_available: bool,
     boot_claimed: bool,
     a2_machine_wake_claimed: bool,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
     a4_observatory_patchbay_claimed: bool,
     elf_sha256: String,
 }
@@ -127,7 +127,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         runtime_bases_available: true,
         boot_claimed: true,
         a2_machine_wake_claimed: true,
-        a3_ordinary_form_claimed: true,
+        a3_ordinary_plot_claimed: true,
         a4_observatory_patchbay_claimed: true,
         elf_sha256: digest.clone(),
     };

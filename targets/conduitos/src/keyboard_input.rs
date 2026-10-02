@@ -36,7 +36,7 @@ impl KeyboardIngressRefusal {
 
 /// Fixed, ordered, portable keyboard ingress.
 ///
-/// HID/PS2 adapters put validated physical transitions here before any Form,
+/// HID/PS2 adapters put validated physical transitions here before any Plot,
 /// compositor, or Sign-export work runs. A host event loop can then take a
 /// bounded work slice with [`Self::service`], while continuing to re-arm and
 /// poll the physical mechanism independently.
@@ -258,7 +258,7 @@ pub fn run_product(
                 return Ok(());
             }
         }
-        // Whole-report admission is atomic. We intentionally do not run Form
+        // Whole-report admission is atomic. We intentionally do not run Plot
         // work here: the loop immediately publishes the next receive transfer,
         // then services these portable events within the admitted bound.
         ingress

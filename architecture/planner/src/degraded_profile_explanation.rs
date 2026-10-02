@@ -46,7 +46,7 @@ pub enum DegradedProfileExplanationError {
     InvalidPlan,
     PlacementMismatch,
     MissingReplacementPlan,
-    FormChanged,
+    PlotChanged,
     PlanReused,
     MissingPolicy,
     EvidenceTooLarge,
@@ -72,10 +72,10 @@ pub fn explain_degraded_profile(
     if admission.disposition == ServiceProfileDisposition::Degraded {
         let prior = previous_plan.ok_or(DegradedProfileExplanationError::MissingReplacementPlan)?;
         if prior.source_document_id != plan.source_document_id
-            || prior.checked_form_id != plan.checked_form_id
-            || prior.expanded_form_id != plan.expanded_form_id
+            || prior.checked_plot_id != plan.checked_plot_id
+            || prior.expanded_plot_id != plan.expanded_plot_id
         {
-            return Err(DegradedProfileExplanationError::FormChanged);
+            return Err(DegradedProfileExplanationError::PlotChanged);
         }
         if prior.plan_id == plan.plan_id {
             return Err(DegradedProfileExplanationError::PlanReused);

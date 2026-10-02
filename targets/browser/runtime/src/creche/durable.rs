@@ -14,7 +14,7 @@ pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
         || receipt.source_interaction.value_kind != conduit_human::TEXT_INFO_ID
         || receipt.initial_review.schema != "conduit.creche/initial-workload-review@1"
         || receipt.initial_review.disposition != "realizable"
-        || receipt.initial_review.selected_form_count != receipt.initial_forms.len()
+        || receipt.initial_review.selected_plot_count != receipt.initial_plots.len()
         || receipt.initial_review.authority_acquired
         || receipt.initial_review.resources_acquired
     {
@@ -40,14 +40,14 @@ pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
         || receipt.raw_membership != snapshot.biography.membership
         || receipt.body_id != snapshot.biography.body_id.as_str()
         || receipt.friendly_name != snapshot.biography.friendly_name
-        || receipt.initial_forms.len() != receipt.raw_body.workset.len()
-        || receipt.initial_forms.iter().any(|form| {
+        || receipt.initial_plots.len() != receipt.raw_body.workset.len()
+        || receipt.initial_plots.iter().any(|plot| {
             !receipt
                 .raw_body
                 .workset
-                .contains(&conduit_body::ResidentForm::new(
-                    conduit_core::SourceDocumentId::from(form.source_document_id.clone()),
-                    conduit_core::CheckedFormId::from(form.checked_form_id.clone()),
+                .contains(&conduit_body::ResidentPlot::new(
+                    conduit_core::SourceDocumentId::from(plot.source_document_id.clone()),
+                    conduit_core::CheckedPlotId::from(plot.checked_plot_id.clone()),
                 ))
         })
     {

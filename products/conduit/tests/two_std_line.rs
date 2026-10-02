@@ -12,7 +12,7 @@ fn installed_run_reports_two_hosts_one_line_and_terminal_values() {
             "run",
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../forms/signal-demo/main.conduit"
+                "/../../plots/signal-demo/main.conduit"
             ),
             "--body",
             concat!(

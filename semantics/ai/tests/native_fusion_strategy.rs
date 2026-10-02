@@ -1,5 +1,5 @@
 use conduit_ai::FusionStrategy;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn fusion_strategy_round_trips_through_its_exact_native_payload_type() {

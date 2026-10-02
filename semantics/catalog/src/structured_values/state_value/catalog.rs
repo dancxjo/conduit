@@ -6,8 +6,8 @@ use conduit_core::{
     ConfigurationValue, GearId, PlannedStateBoundary, StateContinuation, StateId,
     StructuredInfoType, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
-    CheckedForm, KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
+use conduit_plot::{
+    CheckedPlot, KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 
 /// Install the kind for a structured type already registered by the caller.
@@ -40,7 +40,7 @@ pub fn install_state_value_kind(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateValueAdmissionError {
-    InvalidForm,
+    InvalidPlot,
     UnknownGear,
     WrongContract,
     InvalidInitialization,
@@ -52,13 +52,13 @@ pub enum StateValueAdmissionError {
 /// This is not a migration permission or an effect-authority grant. A host must
 /// separately admit its storage, lifetime/evidence resources and implementation.
 pub fn derive_state_boundary(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     gear_id: &GearId,
     maximum_value_bytes: u32,
 ) -> Result<PlannedStateBoundary, StateValueAdmissionError> {
-    form.validate_identities()
-        .map_err(|_| StateValueAdmissionError::InvalidForm)?;
-    let gear = form
+    plot.validate_identities()
+        .map_err(|_| StateValueAdmissionError::InvalidPlot)?;
+    let gear = plot
         .gears
         .iter()
         .find(|gear| &gear.gear_id == gear_id)

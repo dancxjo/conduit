@@ -72,7 +72,7 @@ fn exact_std_path_runs_portable_plan_and_only_speaker_bytes() {
     assert_eq!(evidence.audibility, "pending_operator_confirmation");
     for forbidden in ["create", "uart", "serial", "speaker", "pete"] {
         assert!(!evidence
-            .portable_form
+            .portable_plot
             .to_ascii_lowercase()
             .contains(forbidden));
     }

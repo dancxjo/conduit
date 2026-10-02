@@ -1,7 +1,7 @@
 use conduit_alife::{
     LeniaFieldId, ReactionDiffusionCell, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn field_ids_are_exact_fixed_collections() {

@@ -10,7 +10,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn chunk(source_identity: u8, version: u8, start: u64, value: &str) -> Chunk<String> {
     Chunk::new(

@@ -1,6 +1,6 @@
 //! Finite, explicitly wired house context for an ordinary model request.
 
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 use sha2::{Digest, Sha256};
 
 use crate::{HouseContextRefusal, HouseModelRequest, WiredHouseContextItem};

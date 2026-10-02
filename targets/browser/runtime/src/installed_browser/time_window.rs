@@ -22,7 +22,7 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) fn offer_for_expanded(
-    gear: &conduit_form::CheckedGear,
+    gear: &conduit_plot::CheckedGear,
 ) -> Result<CapabilityOffer, String> {
     let (value, _, maximum_items) = contracts(&gear.semantic_contract)?;
     offer(value, maximum_items)
@@ -264,7 +264,7 @@ mod tests {
         let value =
             CheckedValueContract::new(conduit_core::kind_id("value/text"), 73, vec![]).unwrap();
         let kind = conduit_semantic_catalog::time_window_semantic_contract(&value, 7).unwrap();
-        let gear = conduit_form::checked_gear_from_parts! {
+        let gear = conduit_plot::checked_gear_from_parts! {
             gear_id: conduit_core::GearId::from("window"),
             kind_id: kind.kind_id.clone(),
             kind_contract_revision: kind.kind_contract_revision.clone(),
@@ -323,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_checked_form_plans_the_exact_browser_specialization() {
+    fn unchanged_checked_plot_plans_the_exact_browser_specialization() {
         let value = CheckedValueContract::new(kind_id("value/text"), 73, vec![]).unwrap();
         let encoder = PreparedLeafSequenceEncoder::new(
             value.value_kind.clone(),
@@ -345,11 +345,11 @@ mod tests {
         .unwrap();
         let source = endpoint("test/window-text-source", PortDirection::Output, &value);
         let sink = endpoint("test/window-text-sink", PortDirection::Input, &window);
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         for kind in [&source, &sink] {
             startup
-                .insert(conduit_form::KindSignature {
+                .insert(conduit_plot::KindSignature {
                     kind: kind.kind_id.as_str().into(),
                     startup_parameters: Vec::new(),
                 })
@@ -363,15 +363,15 @@ mod tests {
             &mut profile,
         )
         .unwrap();
-        let checked = conduit_form::check_syntax_document(
-            &conduit_form::parse_syntax_document(
-                "form windowed-text {\n source: test/window-text-source\n window: time/window(duration-ms = 5ms)\n sink: test/window-text-sink\n source.out >> window.value\n window.window >> sink.in\n}.\n",
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(
+                "plot windowed-text {\n source: test/window-text-source\n window: time/window(duration-ms = 5ms)\n sink: test/window-text-sink\n source.out >> window.value\n window.window >> sink.in\n}.\n",
             ),
             &startup,
         )
         .unwrap();
         let expanded =
-            conduit_form::expand_canonical_form(&checked, "windowed-text", &profile).unwrap();
+            conduit_plot::expand_canonical_plot(&checked, "windowed-text", &profile).unwrap();
         let window_offer = super::super::catalogs::offers_for_expanded_time_windows(&expanded)
             .unwrap()
             .pop()

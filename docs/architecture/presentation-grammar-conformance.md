@@ -17,7 +17,7 @@ Classify every candidate fact before extending the grammar:
 
 | Boundary | Owns |
 | --- | --- |
-| Form and domain truth | what exists, remains true, and may happen |
+| Plot and domain truth | what exists, remains true, and may happen |
 | Projection | which of that truth matters in this encounter |
 | Semantic composition | how the projected meanings rhetorically stand together |
 | Mask realization | medium, interaction techniques, adaptation, and design |
@@ -30,7 +30,7 @@ realization; and the particular rendered frame is a Show.
 
 Do not move execution law into Face merely because it affects an
 encounter. Choice, concurrency, synchronization, interruption, iteration, and
-resume normally remain Form truth. Face states their current humanly
+resume normally remain Plot truth. Face states their current humanly
 relevant consequences: an action is available or refused, one subject follows
 another, or a current activity has been interrupted. A proposal for richer
 encounter structure must say why current actions, relationships, order, and
@@ -53,7 +53,7 @@ Before adding or changing a grammar construct, answer all of these:
    wording, action, input, disclosure, order, time, context, or composition
    statement? If so, collapse it rather than adding a synonym.
 7. Does it prescribe application behavior across time rather than describe the
-   present encounter? If so, it belongs in the Form.
+   present encounter? If so, it belongs in the Plot.
 8. Is the value finite, exact, provenance-bearing, and safe to correlate back to
    the Face that authorized interaction?
 
@@ -70,7 +70,7 @@ That is stricter than proving that two renderers can implement it.
 
 Use the following archetypes to discover omissions, not to populate a closed
 enum. For each specimen, record domain truth, projected truth, rhetorical
-composition, Mask-only decisions, Form-only interaction law, and what graphical,
+composition, Mask-only decisions, Plot-only interaction law, and what graphical,
 spoken, and linear realizations must preserve.
 
 | Archetype | Meaning that must survive | Tempting but non-universal furniture |
@@ -87,7 +87,7 @@ spoken, and linear realizations must preserve.
 | nonvisual reader | the same names, structure, state, relationships, actions, and rhetoric | ARIA node, voice choice, braille cell |
 | smart appliance | state, bounded values, commands, dependencies, refusal reasons | dial, touchscreen panel, voice phrase |
 | collaborative classroom | participants, rooms, focus, activities, progress, authority differences | teacher dashboard, breakout-room tile |
-| Patchbay | Forms, Gears, Ports, Cords, exact plan/play truth, source/destination roles | canvas, jack placement, zoom, cord curve |
+| Patchbay | Plots, Gears, Ports, Cords, exact plan/play truth, source/destination roles | canvas, jack placement, zoom, cord curve |
 
 The corpus is deliberately heterogeneous. Passing it does not prove
 universality. A failure is useful: amend the grammar when a missing meaning is

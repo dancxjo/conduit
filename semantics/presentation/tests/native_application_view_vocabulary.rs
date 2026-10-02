@@ -1,7 +1,7 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_presentation::{
-    ApplicationComponent, ApplicationComponentCode, ApplicationEventKind, ApplicationEventKindCode,
-    ApplicationNodeState, ApplicationNodeStateCode, ApplicationViewRefusal,
+    ApplicationComponent, ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm,
+    ApplicationNodeState, ApplicationNodeStateForm, ApplicationViewRefusal,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -15,18 +15,18 @@ where
 #[test]
 fn application_view_wire_tags_belong_to_native_types() {
     assert_eq!(
-        ApplicationComponentCode::encode(ApplicationComponent::Shell),
+        ApplicationComponentForm::encode(ApplicationComponent::Shell),
         [1]
     );
     assert_eq!(
-        ApplicationComponentCode::encode(ApplicationComponent::Separator),
+        ApplicationComponentForm::encode(ApplicationComponent::Separator),
         [47]
     );
     assert_eq!(
-        ApplicationComponentCode::decode(&[47]),
+        ApplicationComponentForm::decode(&[47]),
         Ok(ApplicationComponent::Separator)
     );
-    assert!(ApplicationComponentCode::decode(&[0]).is_err());
+    assert!(ApplicationComponentForm::decode(&[0]).is_err());
 
     for (kind, tag) in [
         (ApplicationEventKind::Activate, 1),
@@ -35,8 +35,8 @@ fn application_view_wire_tags_belong_to_native_types() {
         (ApplicationEventKind::Toggle, 4),
         (ApplicationEventKind::Submit, 5),
     ] {
-        assert_eq!(ApplicationEventKindCode::encode(kind), [tag]);
-        assert_eq!(ApplicationEventKindCode::decode(&[tag]), Ok(kind));
+        assert_eq!(ApplicationEventKindForm::encode(kind), [tag]);
+        assert_eq!(ApplicationEventKindForm::decode(&[tag]), Ok(kind));
     }
 
     for (state, tag) in [
@@ -44,8 +44,8 @@ fn application_view_wire_tags_belong_to_native_types() {
         (ApplicationNodeState::Busy, 2),
         (ApplicationNodeState::Unavailable, 3),
     ] {
-        assert_eq!(ApplicationNodeStateCode::encode(state), [tag]);
-        assert_eq!(ApplicationNodeStateCode::decode(&[tag]), Ok(state));
+        assert_eq!(ApplicationNodeStateForm::encode(state), [tag]);
+        assert_eq!(ApplicationNodeStateForm::decode(&[tag]), Ok(state));
     }
 }
 

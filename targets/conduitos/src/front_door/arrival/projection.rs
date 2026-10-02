@@ -1,7 +1,7 @@
 //! Inspectable Crèche state, with the same action availability as its shared draft.
 use super::{Arrival, Error, FrontDoor};
 use alloc::{format, vec, vec::Vec};
-use conduit_birth_form::BirthPresentation;
+use conduit_birth_plot::BirthPresentation;
 use conduit_presentation::*;
 
 impl Arrival {
@@ -41,10 +41,10 @@ impl Arrival {
             PresentationPropertyValue::Flag(self.draft.friendly_name().is_empty()),
         ));
         for (index, choice) in self.draft.choices().iter().enumerate() {
-            let id = format!("form/{}", choice.form.checked_form_id.as_str());
+            let id = format!("plot/{}", choice.plot.checked_plot_id.as_str());
             subjects.push(PresentationSubject {
                 identity: id.clone(),
-                role: PresentationRole::Form,
+                role: PresentationRole::Plot,
                 name: choice.title.clone(),
             });
             properties.extend([
@@ -52,14 +52,14 @@ impl Arrival {
                     &id,
                     "source-document-id",
                     PresentationPropertyValue::Identity(
-                        choice.form.source_document_id.as_str().into(),
+                        choice.plot.source_document_id.as_str().into(),
                     ),
                 ),
                 property(
                     &id,
-                    "checked-form-id",
+                    "checked-plot-id",
                     PresentationPropertyValue::Identity(
-                        choice.form.checked_form_id.as_str().into(),
+                        choice.plot.checked_plot_id.as_str().into(),
                     ),
                 ),
                 property(
@@ -82,8 +82,8 @@ impl Arrival {
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,
-                checked_form_id: None,
-                expanded_form_id: None,
+                checked_plot_id: None,
+                expanded_plot_id: None,
                 plan_id: None,
                 active_play_id: None,
                 sign_ids: Vec::new(),
@@ -96,7 +96,7 @@ impl Arrival {
                 text: self
                     .refusal
                     .clone()
-                    .unwrap_or_else(|| "Name your body and choose its installed forms.".into()),
+                    .unwrap_or_else(|| "Name your body and choose its installed plots.".into()),
             }],
             actions,
             vec![PresentationDisclosure {

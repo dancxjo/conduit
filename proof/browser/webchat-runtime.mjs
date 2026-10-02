@@ -68,7 +68,7 @@ function requireStatus(status, action) {
   if (status < 0) throw new Error(`CND-CHAT-004 ${action} failed ${status}`);
 }
 
-export async function createWebchatRuntime({ wasmBytes, url, form = "chat/browser-client", bodyUrl = null, spawn = null, root }) {
+export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browser-client", bodyUrl = null, spawn = null, root }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   requireApi(api);
@@ -111,7 +111,7 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "chat/browse
     api.conduit_browser_membership_output_ptr(),
     api.conduit_browser_membership_output_len(),
   )));
-  const startFrame = encoder.encode(`${url}\n${hostId}\n${bootId}\n${form}`);
+  const startFrame = encoder.encode(`${url}\n${hostId}\n${bootId}\n${plot}`);
   writeInput(api, startFrame);
   requireStatus(api.conduit_browser_webchat_start(startFrame.length), "start");
 

@@ -109,7 +109,7 @@ pub struct ObligationRecord {
     pub schema_version: u16,
     pub obligation_id: String,
     pub basis: ObligationBasis,
-    pub form_id: String,
+    pub plot_id: String,
     pub plan_id: String,
     pub attempts: Vec<AttemptRecord>,
     pub retention_gap: u64,

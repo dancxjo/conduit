@@ -4,7 +4,7 @@ type FullWindowPolicy =
     reject
     | drop_oldest
 
-code data/full-window-policy = FullWindowPolicy as u8
+form data/full-window-policy = FullWindowPolicy as u8
 
 type MeasurementPlotOverflowPolicy =
     reject
@@ -579,8 +579,8 @@ type FileCopyResult = {
     outcome: FileCopyOutcome
 }
 
-code data/save-text-terminal = DataSaveTextTerminal as u8
+form data/save-text-terminal = DataSaveTextTerminal as u8
 
-code data/load-text-terminal = DataLoadTextTerminal as u8
+form data/load-text-terminal = DataLoadTextTerminal as u8
 
-code data/measurement-threshold-state = MeasurementThresholdState as u8
+form data/measurement-threshold-state = MeasurementThresholdState as u8

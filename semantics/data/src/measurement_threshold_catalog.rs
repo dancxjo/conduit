@@ -1,11 +1,11 @@
-//! Ordinary form-facing contract for typed hysteresis decisions.
+//! Ordinary plot-facing contract for typed hysteresis decisions.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
     measurement_summary_type, MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID,

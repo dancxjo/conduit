@@ -146,7 +146,7 @@ pub async fn serve_motion(class: &mut InertCdc) {
                             "{{\"schema\":\"conduit.play/physical-receipt@1\",",
                             "\"build_id\":\"{}\",\"success\":{},\"generation\":{},",
                             "\"state\":\"{}\",\"result_code\":{},",
-                            "\"form\":\"pete-capstone\",",
+                            "\"plot\":\"pete-capstone\",",
                             "\"kernel\":\"conduit-kernel\",\"oi_exposed\":false,",
                             "\"selected_linear_microunits\":{},",
                             "\"linear_mm_s\":{},\"angular_mrad_s\":0,\"ttl_ms\":250,",
@@ -182,7 +182,7 @@ pub async fn serve_motion(class: &mut InertCdc) {
                     let motion = snapshot();
                     let _ = write!(
                         response,
-                        "{{\"schema\":\"conduit.play/physical-receipt@1\",\"build_id\":\"{}\",\"success\":false,\"generation\":{},\"state\":\"{}\",\"result_code\":{},\"form\":\"pete-capstone\",\"oi_exposed\":false,\"setup\":\"wheels-off-floor\",\"final_zero_confirmed\":false}}",
+                        "{{\"schema\":\"conduit.play/physical-receipt@1\",\"build_id\":\"{}\",\"success\":false,\"generation\":{},\"state\":\"{}\",\"result_code\":{},\"plot\":\"pete-capstone\",\"oi_exposed\":false,\"setup\":\"wheels-off-floor\",\"final_zero_confirmed\":false}}",
                         env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"), generation,
                         motion.state.name(), motion.result_code,
                     );
@@ -196,7 +196,7 @@ pub async fn serve_motion(class: &mut InertCdc) {
         Err(()) => {
             let _ = write!(
                 response,
-                "{{\"schema\":\"conduit.play/physical-receipt@1\",\"build_id\":\"{}\",\"success\":false,\"state\":\"busy\",\"result_code\":8,\"form\":\"pete-capstone\",\"oi_exposed\":false,\"setup\":\"wheels-off-floor\",\"final_zero_confirmed\":false}}",
+                "{{\"schema\":\"conduit.play/physical-receipt@1\",\"build_id\":\"{}\",\"success\":false,\"state\":\"busy\",\"result_code\":8,\"plot\":\"pete-capstone\",\"oi_exposed\":false,\"setup\":\"wheels-off-floor\",\"final_zero_confirmed\":false}}",
                 env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"),
             );
             let _ = send_control_frame(class, response.as_bytes()).await;

@@ -2,8 +2,8 @@ use conduit_core::{
     BaseImplementationId, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
-use conduit_form::ExpandedCanonicalForm;
 use conduit_planner::{ConnectionQueueLimits, PlacementChoices, PlanningOptions};
+use conduit_plot::ExpandedCanonicalPlot;
 use conduit_std_host::{load_placements, StdHost, ThreadTimer};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -74,7 +74,7 @@ impl ProductRuntime {
 ///
 /// Advertisements are planning truth. Runtime handles are exact local execution
 /// capabilities and need not exist for every advertised Host. Connection Bases
-/// are admitted explicitly; no Base or Host is reconstructed from Form meaning.
+/// are admitted explicitly; no Base or Host is reconstructed from Plot meaning.
 pub(crate) struct ProductExecutionContext {
     advertisements: Vec<HostAdvertisement>,
     runtimes: Vec<ProductRuntime>,
@@ -187,31 +187,31 @@ impl ProductExecutionContext {
 
     pub(crate) fn plan(
         &self,
-        form: &ExpandedCanonicalForm,
+        plot: &ExpandedCanonicalPlot,
         placements_path: Option<&str>,
     ) -> Result<Plan, String> {
         let placements = load_placements(placements_path).map_err(|error| error.to_string())?;
         let placements = match placements {
             Some(placements) => placements,
-            None => self.default_placements(form)?,
+            None => self.default_placements(plot)?,
         };
-        self.plan_with_placements(form, &placements)
+        self.plan_with_placements(plot, &placements)
     }
 
     pub(crate) fn default_placements(
         &self,
-        form: &ExpandedCanonicalForm,
+        plot: &ExpandedCanonicalPlot,
     ) -> Result<PlacementChoices, String> {
-        conduit_planner::default_expanded_placements(form, &self.advertisements)
+        conduit_planner::default_expanded_placements(plot, &self.advertisements)
             .map_err(|error| error.to_string())
     }
 
     pub(crate) fn plan_with_placements(
         &self,
-        form: &ExpandedCanonicalForm,
+        plot: &ExpandedCanonicalPlot,
         placements: &PlacementChoices,
     ) -> Result<Plan, String> {
-        let connection_limits = form
+        let connection_limits = plot
             .connections
             .iter()
             .map(|connection| -> Result<_, String> {
@@ -257,7 +257,7 @@ impl ProductExecutionContext {
             })
             .collect::<Result<BTreeMap<_, _>, _>>()?;
         conduit_planner::plan_expanded_canonical_with_connection_limits(
-            form,
+            plot,
             &self.advertisements,
             placements,
             &self.connection_bases,

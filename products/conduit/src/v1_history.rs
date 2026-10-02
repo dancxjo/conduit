@@ -16,8 +16,8 @@ struct HistoryProgram {
     fixture: String,
     entry: String,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
+    checked_plot_id: String,
+    expanded_plot_id: String,
 }
 
 fn source(fixture: &str) -> &'static str {
@@ -32,7 +32,7 @@ fn source(fixture: &str) -> &'static str {
 #[test]
 fn accepted_v1_sources_retain_exact_source_checked_and_expanded_truth() {
     let manifest: HistoryManifest = serde_json::from_str(MANIFEST).unwrap();
-    assert_eq!(manifest.schema, "conduit.form/v1-history-corpus@1");
+    assert_eq!(manifest.schema, "conduit.plot/v1-history-corpus@1");
     assert_eq!(
         manifest.source_commit,
         "92b9561897f0b82e7dd0f84041b0b3581e9c75f5"
@@ -41,7 +41,7 @@ fn accepted_v1_sources_retain_exact_source_checked_and_expanded_truth() {
 
     for expected in manifest.programs {
         let authored = source(&expected.fixture);
-        let loaded = crate::form_source::parse(authored).unwrap();
+        let loaded = crate::plot_source::parse(authored).unwrap();
         assert_eq!(loaded.source, authored);
         assert_eq!(loaded.syntax.round_trip(), authored);
 
@@ -51,10 +51,10 @@ fn accepted_v1_sources_retain_exact_source_checked_and_expanded_truth() {
             expanded.source_document_id.as_str(),
             expected.source_document_id
         );
-        assert_eq!(expanded.checked_form_id.as_str(), expected.checked_form_id);
+        assert_eq!(expanded.checked_plot_id.as_str(), expected.checked_plot_id);
         assert_eq!(
-            expanded.expanded_form_id.as_str(),
-            expected.expanded_form_id
+            expanded.expanded_plot_id.as_str(),
+            expected.expanded_plot_id
         );
     }
 }

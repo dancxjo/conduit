@@ -267,8 +267,8 @@ fn verify_static(
     for (field, expected) in [
         ("firmware_build_id", identity.firmware_build_id.as_str()),
         ("source_document_id", generated.source_document_id.as_str()),
-        ("checked_form_id", generated.checked_form_id.as_str()),
-        ("expanded_form_id", generated.expanded_form_id.as_str()),
+        ("checked_plot_id", generated.checked_plot_id.as_str()),
+        ("expanded_plot_id", generated.expanded_plot_id.as_str()),
         ("plan_id", generated.plan_id.as_str()),
         ("fragment_id", generated.fragment_id.as_str()),
         ("host_id", generated.host_id.as_str()),
@@ -316,7 +316,7 @@ mod tests {
     use super::expected_bluetooth_level;
 
     #[test]
-    fn bluetooth_receipts_follow_the_forms_false_initial_level() {
+    fn bluetooth_receipts_follow_the_plots_false_initial_level() {
         assert!(!expected_bluetooth_level(0));
         assert!(expected_bluetooth_level(1));
         assert!(!expected_bluetooth_level(2));

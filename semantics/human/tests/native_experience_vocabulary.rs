@@ -1,4 +1,3 @@
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     CurrentExperienceInspectionError, ExperienceAvailability, ExperienceCertainty,
     ExperienceDomain, ExperienceOrigin, ExperienceRefusal, ExperienceRelationKind,
@@ -7,6 +6,7 @@ use conduit_human::{
     SourceAvailability, VisualEvidenceClass, VisualExperienceRefusal, VisualExperienceRelationKind,
     VisualImpressionDisposition, VisualImpressionRefusal, VisualObservationRefusal,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where

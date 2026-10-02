@@ -103,14 +103,14 @@ impl ArtifactAcknowledgedSpokenShow {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_spoken_mask_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profiles: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profiles: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     for kind in spoken_mask_kinds() {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.kind_id.as_str().into(),
                 startup_parameters: alloc::vec::Vec::new(),
             })

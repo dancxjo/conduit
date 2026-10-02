@@ -20,7 +20,7 @@ pub const INFRARED_MAXIMUM_FRAME_BYTES: usize =
     HEADER_BYTES + INFRARED_MAXIMUM_PAYLOAD_BYTES + INTEGRITY_BYTES;
 
 /// Physical requirements an implementation must offer before it can realize
-/// this profile. They do not become Form or Cord meaning.
+/// this profile. They do not become Plot or Cord meaning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InfraredRealizationRequirements {
     pub carrier_hz: u32,

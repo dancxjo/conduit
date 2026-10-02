@@ -1,13 +1,13 @@
-use conduit_form::{
+use conduit_plot::{
     source_document_identity, DiagnosticSeverity, StructuredDiagnosticV1, SyntaxCheckDiagnostic,
 };
 use std::collections::BTreeMap;
 use std::path::Path;
 
 pub(crate) fn run(path: &Path, json: bool) -> Result<bool, String> {
-    let document = crate::form_source::load(path)?;
+    let document = crate::plot_source::load(path)?;
     let diagnostics = if document.syntax.diagnostics.is_empty() {
-        conduit_form::check_syntax_document(&document.syntax, &document.startup)
+        conduit_plot::check_syntax_document(&document.syntax, &document.startup)
             .err()
             .map(|diagnostic| structured(&document.source, &diagnostic))
             .transpose()?
@@ -34,7 +34,7 @@ pub(crate) fn run(path: &Path, json: bool) -> Result<bool, String> {
             serde_json::to_string_pretty(&diagnostics).map_err(|error| error.to_string())?
         );
     } else if diagnostics.is_empty() {
-        println!("No form diagnostics.");
+        println!("No plot diagnostics.");
     } else {
         for diagnostic in &diagnostics {
             println!("{}", diagnostic.render_human());
@@ -59,14 +59,14 @@ fn structured_parts(
     source: &str,
     code: &'static str,
     message: &str,
-    span: conduit_form::Span,
+    span: conduit_plot::Span,
 ) -> Result<StructuredDiagnosticV1, String> {
     StructuredDiagnosticV1::new(
         code,
         DiagnosticSeverity::Error,
         message,
         source_document_identity(source),
-        Some(conduit_form::source_document_identity(source)),
+        Some(conduit_plot::source_document_identity(source)),
         Some(span.into()),
         Vec::new(),
         BTreeMap::new(),

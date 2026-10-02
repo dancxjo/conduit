@@ -12,11 +12,10 @@ pub use generated::{
     DnsTtl, NetworkAddress, NetworkAttachmentId, NetworkConnectionState,
     NetworkConnectionStateConnected, NetworkEndpoint, NetworkJoinError, NetworkReason,
     NetworkTransport, RecordCorrelation, RecordDeliveryEvent, RecordDeliveryEventDisconnected,
-    RecordDeliveryEventFailed, RecordDeliveryEventFramedQueued,
-    RecordDeliveryEventPartiallySent, RecordDeliveryEventRefused,
-    RecordDeliveryEventTimedOut, RecordDeliveryEventTransportUnavailable,
-    RecordDeliveryObservation, RecordDeliveryState, RecordDeliveryStateDisconnected,
-    RecordDeliveryStateFailed, RecordDeliveryStateFramedQueued,
+    RecordDeliveryEventFailed, RecordDeliveryEventFramedQueued, RecordDeliveryEventPartiallySent,
+    RecordDeliveryEventRefused, RecordDeliveryEventTimedOut,
+    RecordDeliveryEventTransportUnavailable, RecordDeliveryObservation, RecordDeliveryState,
+    RecordDeliveryStateDisconnected, RecordDeliveryStateFailed, RecordDeliveryStateFramedQueued,
     RecordDeliveryStatePartiallySent, RecordDeliveryStateRefused, RecordDeliveryStateTimedOut,
     RecordDeliveryStateTransportUnavailable, RecordReceipt, RecordTranscriptDirection,
     RecordTranscriptEntry, RecordTranscriptEvent, RecordTranscriptEventRecord,
@@ -24,7 +23,7 @@ pub use generated::{
     ResolvedNetworkAddress, ResolvedNetworkEndpoint, TypedRecordFrame,
 };
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
@@ -48,33 +47,33 @@ mod record_transcript;
 pub use record_transcript::*;
 mod record_delivery;
 pub use record_delivery::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod typed_record_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use typed_record_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod ordered_record_queue_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use ordered_record_queue_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod record_temporal_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use record_temporal_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod record_transcript_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use record_transcript_catalog::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod record_delivery_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use record_delivery_catalog::*;
 mod network_info;
 pub use network_info::*;
 mod application_info;
 pub use application_info::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod application_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use application_catalog::*;
 
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
@@ -270,12 +269,12 @@ fn network_attachment_sign_contract() -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_network_bootstrap_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_plot::{KindProjection, KindSignature};
 
     for contract in [
         network_credentials_contract(),

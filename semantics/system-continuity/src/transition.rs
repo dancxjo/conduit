@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 use conduit_core::{
-    ActivePlayId, ArtifactId, AuthorityGrantId, CapabilityId, CheckedFormId, ImplementationId,
+    ActivePlayId, ArtifactId, AuthorityGrantId, CapabilityId, CheckedPlotId, ImplementationId,
     PlanId, SignId,
 };
 use conduit_observatory::{HostReport, OperationalState};
@@ -126,7 +126,7 @@ pub struct ReplanRequired {
     pub compatible_replacements: Vec<CompatibleReplacement>,
     pub prior_plan_id: PlanId,
     pub prior_play_ids: Vec<ActivePlayId>,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub system_id: crate::DurableSystemId,
     pub requirements: Vec<crate::RoleRequirement>,
 }
@@ -188,7 +188,7 @@ impl ObservedReplacement {
             compatible_replacements,
             prior_plan_id: record.plan_id.clone(),
             prior_play_ids: record.play_ids.clone(),
-            checked_form_id: record.checked_form_id.clone(),
+            checked_plot_id: record.checked_plot_id.clone(),
             system_id: record.system_id.clone(),
             requirements: record.requirements.clone(),
         }
@@ -203,8 +203,8 @@ impl ReplanRequired {
         if replacement.plan_id == self.prior_plan_id {
             return Err(ContinuityError::ReplanStillUsesOldPlan);
         }
-        if replacement.checked_form_id != self.checked_form_id {
-            return Err(ContinuityError::ReplanChangedCheckedForm);
+        if replacement.checked_plot_id != self.checked_plot_id {
+            return Err(ContinuityError::ReplanChangedCheckedPlot);
         }
         if replacement.system_id != self.system_id {
             return Err(ContinuityError::ReplanChangedSystem);

@@ -1,9 +1,9 @@
 use conduit_core::PlanCompletionPolicy;
-use conduit_form::FormCompletionPolicy;
+use conduit_plot::PlotCompletionPolicy;
 
-pub(crate) const fn plan_completion_policy(policy: FormCompletionPolicy) -> PlanCompletionPolicy {
+pub(crate) const fn plan_completion_policy(policy: PlotCompletionPolicy) -> PlanCompletionPolicy {
     match policy {
-        FormCompletionPolicy::Live => PlanCompletionPolicy::Live,
-        FormCompletionPolicy::SemanticCompletion => PlanCompletionPolicy::SemanticCompletion,
+        PlotCompletionPolicy::Live => PlanCompletionPolicy::Live,
+        PlotCompletionPolicy::SemanticCompletion => PlanCompletionPolicy::SemanticCompletion,
     }
 }

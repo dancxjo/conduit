@@ -1,0 +1,3 @@
+plot field-step {
+    evolve: field/evolve
+}

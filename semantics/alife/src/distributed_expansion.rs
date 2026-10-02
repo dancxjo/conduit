@@ -1,9 +1,9 @@
 //! Canonical recursive realization of portable Lenia across three workers.
 
 use alloc::{format, string::ToString};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
-    CanonicalBackCatalog, ExpandedCanonicalForm, ProfileCatalog, StartupCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_with_backs, parse_syntax_document,
+    CanonicalBackCatalog, ExpandedCanonicalPlot, ProfileCatalog, StartupCatalog,
 };
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
     SCALAR_FIELD_PRESENTATION_KIND,
 };
 
-pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::string::String> {
+pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalPlot, alloc::string::String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_lenia_catalogs(&mut startup, &mut profile)?;
@@ -21,11 +21,11 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     install_distributed_lenia_catalogs(&mut startup, &mut profile)?;
 
-    let source = include_str!("../../../forms/lenia-orbium/main.conduit");
+    let source = include_str!("../../../plots/lenia-orbium/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup)
         .map_err(|diagnostics| format!("portable Lenia source: {diagnostics:?}"))?;
     let back_source = format!(
-        "form alife/lenia-step (\n kernel_radius: Count = 13\n kernel_mu: Scalar = 0.5\n kernel_sigma: Scalar = 0.15\n growth_mu: Scalar = 0.15\n growth_sigma: Scalar = 0.015\n dt: Scalar = 0.1\n boundary: Text = \"wrap\"\n numeric_profile: Text = \"fixed-q16.16\"\n >> initial: {}\n >> tick: {}...|\n field: {}...| >>\n) {{\n partition: {LENIA_PARTITION_KIND}\n region0: {LENIA_REGION_STEP_KIND}\n region1: {LENIA_REGION_STEP_KIND}\n region2: {LENIA_REGION_STEP_KIND}\n join: {LENIA_JOIN_KIND}\n initial >> partition.initial\n tick >> partition.tick\n partition.work0 >> region0.work\n partition.work1 >> region1.work\n partition.work2 >> region2.work\n region0.result >> join.result0\n region1.result >> join.result1\n region2.result >> join.result2\n join.field >> field\n}}\n",
+        "plot alife/lenia-step (\n kernel_radius: Count = 13\n kernel_mu: Scalar = 0.5\n kernel_sigma: Scalar = 0.15\n growth_mu: Scalar = 0.15\n growth_sigma: Scalar = 0.015\n dt: Scalar = 0.1\n boundary: Text = \"wrap\"\n numeric_profile: Text = \"fixed-q16.16\"\n >> initial: {}\n >> tick: {}...|\n field: {}...| >>\n) {{\n partition: {LENIA_PARTITION_KIND}\n region0: {LENIA_REGION_STEP_KIND}\n region1: {LENIA_REGION_STEP_KIND}\n region2: {LENIA_REGION_STEP_KIND}\n join: {LENIA_JOIN_KIND}\n initial >> partition.initial\n tick >> partition.tick\n partition.work0 >> region0.work\n partition.work1 >> region1.work\n partition.work2 >> region2.work\n region0.result >> join.result0\n region1.result >> join.result1\n region2.result >> join.result2\n join.field >> field\n}}\n",
         crate::SCALAR_FIELD2_INFO_ID,
         conduit_time::TICK_VALUE_KIND,
         crate::SCALAR_FIELD2_INFO_ID,
@@ -41,7 +41,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
         .insert(&definition, &back, LENIA_STEP_KIND)
         .map_err(|error| format!("distributed Lenia Back: {error:?}"))?;
     let presentation_back_source = format!(
-        "form presentation/scalar-field (\n title: Text = \"Scalar field\"\n minimum: Scalar = 0.0\n maximum: Scalar = 1.0\n >> field: {}...|\n) {{\n bitmap: {SCALAR_FIELD_GRAY8_KIND}\n manifest: {}\n field >> bitmap.field\n bitmap.bitmap >> manifest.bitmap\n}}\n",
+        "plot presentation/scalar-field (\n title: Text = \"Scalar field\"\n minimum: Scalar = 0.0\n maximum: Scalar = 1.0\n >> field: {}...|\n) {{\n bitmap: {SCALAR_FIELD_GRAY8_KIND}\n manifest: {}\n field >> bitmap.field\n bitmap.bitmap >> manifest.bitmap\n}}\n",
         crate::SCALAR_FIELD2_INFO_ID,
         conduit_presentation::BITMAP_PRESENTATION_KIND,
     );
@@ -60,7 +60,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
         )
         .map_err(|error| format!("Lenia bitmap presentation Back: {error:?}"))?;
     let expanded =
-        expand_canonical_form_with_backs(&checked, "lenia-orbium-demo", &profile, &backs)
+        expand_canonical_plot_with_backs(&checked, "lenia-orbium-demo", &profile, &backs)
             .map_err(|error| error.to_string())?;
     if expanded
         .gears

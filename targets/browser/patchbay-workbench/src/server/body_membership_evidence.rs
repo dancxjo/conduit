@@ -70,8 +70,8 @@ impl PatchbayHtmlServer {
                 .map(|current| &current.host_id)
                 .ok_or_else(|| ServerError::Interaction("leaving Host is not current".into()))?;
             if let Some(planning) = next_planning.as_mut() {
-                let selected = planning.current_plan().forms.iter().any(|form| {
-                    form.plan
+                let selected = planning.current_plan().plots.iter().any(|plot| {
+                    plot.plan
                         .fragments
                         .iter()
                         .any(|fragment| &fragment.host_id == leaving_host)
@@ -116,13 +116,13 @@ impl PatchbayHtmlServer {
             .checked_add(1)
             .ok_or_else(|| ServerError::Interaction("Body evidence revision exhausted".into()))?;
         let entrance = prior.entrance.clone();
-        let reviewed_forms = prior.reviewed_forms.clone();
+        let reviewed_plots = prior.reviewed_plots.clone();
         let prior_interaction = self.snapshot.interaction.clone();
         let mut snapshot = crate::body_workbench::body_workbench_snapshot_with_reviewed(
             evidence_revision,
             &encoded,
             entrance,
-            &reviewed_forms,
+            &reviewed_plots,
         )
         .map_err(|error| ServerError::Interaction(error.to_string()))?;
         snapshot.mark_available(SignId::from(format!(

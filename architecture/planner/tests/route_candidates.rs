@@ -12,12 +12,12 @@ fn plan_with_policy(
     mutate: impl FnOnce(&mut Vec<conduit_core::LineOffer>),
 ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
     let exact = triple::exact_plan().expect("baseline triple plan");
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../proof/fixtures/forms/triple-signal.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../proof/fixtures/plots/triple-signal.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
-    .expect("checked form");
+    .expect("checked plot");
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
@@ -72,7 +72,7 @@ fn plan_with_policy(
         ordered_ids,
     )]);
     plan_with_options(
-        &form,
+        &plot,
         &[
             exact.source_advertisement,
             exact.browser_advertisement,

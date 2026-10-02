@@ -1,9 +1,5 @@
 use super::BrowserChatBack;
 use conduit_core::{bind_active_play, BaseImplementationId, BootId, HostId};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
-};
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostCallRequest, NodeSpec, RemoteValueOffer,
 };
@@ -15,6 +11,10 @@ use conduit_plan_lowering::lowering::{
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_planner::{plan_expanded_authoring_with_options, PlanningOptions};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
+};
 use conduit_presentation::{
     FaceInteractionArgument, FaceInteractionLedger, Presentation, PresentationBasis,
 };
@@ -33,7 +33,7 @@ pub(super) struct InteractionFrame {
     pub(super) sequence: u64,
 }
 
-const SOURCE: &str = include_str!("../../../../../forms/webchat/main.conduit");
+const SOURCE: &str = include_str!("../../../../../plots/webchat/main.conduit");
 const NODES: usize = 6;
 const CORDS: usize = 8;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -104,12 +104,12 @@ pub(crate) struct BrowserChatSession {
 impl BrowserChatSession {
     #[cfg(test)]
     pub(crate) fn prepare(url: &str, host_id: HostId, boot_id: BootId) -> Result<Self, i32> {
-        Self::prepare_form(url, "chat/browser-client", host_id, boot_id)
+        Self::prepare_plot(url, "chat/browser-client", host_id, boot_id)
     }
 
-    pub(crate) fn prepare_form(
+    pub(crate) fn prepare_plot(
         url: &str,
-        form_name: &str,
+        plot_name: &str,
         host_id: HostId,
         boot_id: BootId,
     ) -> Result<Self, i32> {
@@ -133,7 +133,7 @@ impl BrowserChatSession {
         let checked =
             check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|_| -203)?;
         let authoring =
-            expand_canonical_form_for_authoring(&checked, form_name, &profile).map_err(|_| -204)?;
+            expand_canonical_plot_for_authoring(&checked, plot_name, &profile).map_err(|_| -204)?;
         let advertisement = super::catalog::advertisement(host_id, boot_id);
         let hosts = [advertisement.clone()];
         let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
@@ -263,13 +263,13 @@ impl BrowserChatSession {
                 maximum_message_bytes: count("maximum-message-bytes")? as u32,
             })
             .map_err(|_| -212)?;
-        let resident = conduit_body::ResidentForm::new(
+        let resident = conduit_body::ResidentPlot::new(
             fragment.source_document_id.clone(),
-            fragment.checked_form_id.clone(),
+            fragment.checked_plot_id.clone(),
         );
         let born = conduit_body::Body::born(
             resident.source_document_id.clone(),
-            resident.checked_form_id.clone(),
+            resident.checked_plot_id.clone(),
             1,
             conduit_core::SignId::from("sign/webchat-body-born"),
         )
@@ -280,8 +280,8 @@ impl BrowserChatSession {
             .map_err(|_| -212)?;
         let body_plan = conduit_body::BodyPlan::seal(
             &wake,
-            vec![conduit_body::BodyFormPlan {
-                form: resident,
+            vec![conduit_body::BodyPlotPlan {
+                plot: resident,
                 plan: plan_record.clone(),
             }],
         )
@@ -293,8 +293,8 @@ impl BrowserChatSession {
                 body_id: Some(body_id.clone()),
                 wake_id: Some(wake.wake_id.clone()),
                 source_document_id: Some(fragment.source_document_id.clone()),
-                checked_form_id: Some(fragment.checked_form_id.clone()),
-                expanded_form_id: Some(fragment.expanded_form_id.clone()),
+                checked_plot_id: Some(fragment.checked_plot_id.clone()),
+                expanded_plot_id: Some(fragment.expanded_plot_id.clone()),
                 plan_id: Some(fragment.plan_id.clone()),
                 active_play_id: Some(active_play.active_play_id.clone()),
                 sign_ids: vec![conduit_core::SignId::from("sign/webchat-face")],
@@ -391,8 +391,8 @@ impl BrowserChatSession {
         let mut identity_text = format!(
             "source={} checked={} expanded={} plan={} fragment={} play={} host={} boot={}",
             fragment.source_document_id.as_str(),
-            fragment.checked_form_id.as_str(),
-            fragment.expanded_form_id.as_str(),
+            fragment.checked_plot_id.as_str(),
+            fragment.expanded_plot_id.as_str(),
             fragment.plan_id.as_str(),
             fragment.fragment_id.as_str(),
             active_play.active_play_id.as_str(),

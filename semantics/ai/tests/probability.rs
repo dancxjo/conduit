@@ -1,7 +1,7 @@
 use conduit_ai::*;
 use conduit_core::{semantic_digest, Quantity, QuantityUnit};
 use conduit_data::*;
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
 fn assert_native_round_trip<T>(value: &T)
 where

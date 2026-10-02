@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, ConfigurationValue};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -11,7 +11,7 @@ const SINK: &str = "conduit-test/recurrence-sink";
 
 #[test]
 fn checked_civil_recurrence_executes_through_the_production_kernel() {
-    let source = r#"form meeting {
+    let source = r#"plot meeting {
   expand: time/expand-recurrence({ excluded_ordinals: [unused(""), unused(""), unused(""), unused("")], fold_policy: "earlier", gap_policy: "skip", identity: "recurrence/weekly-meeting", maximum_occurrences: 3, maximum_results: 2, resolutions: [unique({ instant: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 100 }, local_date: "2026-03-02", local_time: "09:00:00", ordinal: 0, rule_set: "tzdb/2026a", zone: "America/Los_Angeles" }), unique({ instant: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 300 }, local_date: "2026-03-16", local_time: "09:00:00", ordinal: 2, rule_set: "tzdb/2026a", zone: "America/Los_Angeles" }), unused(""), unused(""), unused(""), unused(""), unused(""), unused("")], rule: civil_weekdays({ excluded_dates: [exclude("2026-03-09"), unused(""), unused(""), unused("")], first_date: "2026-03-02", local_time: "09:00:00", rule_set: "tzdb/2026a", weekdays: 1, zone: "America/Los_Angeles" }), until: civil_date("2026-03-16"), window: wall({ end: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 300 }, start: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 100 } }) })
   sink: conduit-test/recurrence-sink(2)
   expand.occurrences >> sink.occurrences
@@ -25,7 +25,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
     let parsed = parse_syntax_document(source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "meeting", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "meeting", &profile).unwrap();
 
     let mut advertisement = host("recurrence-play-host").advertisement().clone();
     advertisement.capabilities.push(sink_offer);

@@ -17,7 +17,7 @@ pub(super) static FILTER_FACTORY: BackFactory = BackFactory {
 pub(super) use conduit_semantic_catalog::PureExpressionBack;
 
 pub(super) struct PureExpressionHost {
-    evaluator: conduit_form::PreparedPortableExpressionEvaluator,
+    evaluator: conduit_plot::PreparedPortableExpressionEvaluator,
     filter_output: Option<PreparedFilterOutput>,
 }
 
@@ -51,7 +51,7 @@ impl PureExpressionHost {
         let program = program_from_placement(placement)?;
         validate_placement(placement, &program)?;
         let filter_output = if placement.kind_contract_revision.as_str()
-            == conduit_form::PURE_FILTER_REVISION
+            == conduit_plot::PURE_FILTER_REVISION
         {
             Some(match placement.inputs[0].temporal {
                 conduit_core::PortTemporal::Value => PreparedFilterOutput::Value(
@@ -69,7 +69,7 @@ impl PureExpressionHost {
             None
         };
         Ok(Self {
-            evaluator: conduit_form::PreparedPortableExpressionEvaluator::new(&program)
+            evaluator: conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
                 .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
             filter_output,
         })
@@ -78,22 +78,22 @@ impl PureExpressionHost {
     pub(super) fn execute(
         &mut self,
         input: &[u8],
-    ) -> Result<&[u8], conduit_form::PortableExpressionEvaluationRefusal> {
+    ) -> Result<&[u8], conduit_plot::PortableExpressionEvaluationRefusal> {
         self.evaluator.evaluate(input)
     }
 
     pub(super) fn execute_filter(
         &mut self,
         input: &[u8],
-    ) -> Result<Option<&[u8]>, conduit_form::PortableExpressionEvaluationRefusal> {
+    ) -> Result<Option<&[u8]>, conduit_plot::PortableExpressionEvaluationRefusal> {
         let predicate = self.evaluator.evaluate(input)?;
         let selected = conduit_core::InfoBool::decode(predicate)
-            .map_err(|_| conduit_form::PortableExpressionEvaluationRefusal::InvalidProgram)?
+            .map_err(|_| conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram)?
             .get();
         match self
             .filter_output
             .as_mut()
-            .ok_or(conduit_form::PortableExpressionEvaluationRefusal::InvalidProgram)?
+            .ok_or(conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram)?
         {
             PreparedFilterOutput::Flow(output) => {
                 if !selected {
@@ -106,27 +106,27 @@ impl PureExpressionHost {
             PreparedFilterOutput::Value(output) => output
                 .encode(selected.then_some(input))
                 .map(Some)
-                .map_err(|_| conduit_form::PortableExpressionEvaluationRefusal::InvalidInput),
+                .map_err(|_| conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput),
         }
     }
 }
 
 fn program_from_placement(
     placement: &PlannedGear,
-) -> Result<conduit_form::PortableExpressionProgram, String> {
+) -> Result<conduit_plot::PortableExpressionProgram, String> {
     let [entry] = placement.configuration.as_slice() else {
         return Err("pure expression requires one exact planned configuration".into());
     };
     let ("program", ConfigurationValue::Text(encoded)) = (entry.key.as_str(), &entry.value) else {
         return Err("pure expression planned configuration is malformed".into());
     };
-    conduit_form::PortableExpressionProgram::from_canonical_hex(encoded)
+    conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded)
         .map_err(|error| format!("pure expression program refusal: {error:?}"))
 }
 
 fn validate_placement(
     placement: &PlannedGear,
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
 ) -> Result<(), String> {
     let temporal = placement
         .inputs
@@ -134,7 +134,7 @@ fn validate_placement(
         .map(|port| port.temporal)
         .ok_or("pure expression input is absent")?;
     let offer =
-        if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+        if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
             conduit_std_offers::pure_filter_std_offer(program, temporal)
         } else {
             conduit_std_offers::pure_expression_std_offer(program, temporal)
@@ -172,7 +172,7 @@ fn prepare(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     budget(placement)?;
-    if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+    if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
         Ok(InstalledBack::PureFilter(
             conduit_semantic_catalog::StructuredSelectorBack::new(
                 MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -185,13 +185,13 @@ fn prepare(
     }
 }
 
-pub(super) fn refusal_detail(refusal: &conduit_form::PortableExpressionEvaluationRefusal) -> u16 {
+pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluationRefusal) -> u16 {
     match refusal {
-        conduit_form::PortableExpressionEvaluationRefusal::InvalidInput => 1,
-        conduit_form::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
-        conduit_form::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
-        conduit_form::PortableExpressionEvaluationRefusal::Arithmetic => 4,
-        conduit_form::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
-        conduit_form::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
+        conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput => 1,
+        conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
+        conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
+        conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic => 4,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
     }
 }

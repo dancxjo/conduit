@@ -30,7 +30,7 @@ mod flow_first_back;
 mod flow_gate_back;
 mod flow_pressure_backs;
 #[cfg(test)]
-mod flow_pressure_form_tests;
+mod flow_pressure_plot_tests;
 mod flow_state_backs;
 mod generated_speech_commit_back;
 mod generated_validation_backs;

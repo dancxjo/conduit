@@ -44,7 +44,7 @@ impl BodyPlanningSession {
         body: &Body,
         sequence: u64,
         sign: SignId,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
     ) -> Result<(), BodyPlanningSessionError> {
         if self.has_outstanding_execution_claim()
             || self.body.state != crate::BodyState::Lulled
@@ -68,7 +68,7 @@ impl BodyPlanningSession {
         }) {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
-        let plan = BodyPlan::seal(&wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        let plan = BodyPlan::seal(&wake, plots).map_err(BodyPlanningSessionError::Plan)?;
         if self.plans.iter().any(|prior| prior.plan_id == plan.plan_id) {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }

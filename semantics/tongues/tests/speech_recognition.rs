@@ -1,6 +1,6 @@
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_tongues::{
@@ -170,9 +170,9 @@ fn clip_recognition_is_separate_from_the_accepted_single_frame_contract() {
 }
 
 #[test]
-fn ordinary_form_consumes_pcm_and_emits_only_committed_chat_messages_as_flows() {
+fn ordinary_plot_consumes_pcm_and_emits_only_committed_chat_messages_as_flows() {
     let source = r#"
-form live-recognized-turn (
+plot live-recognized-turn (
     audio: PcmFrames...| >> message: ChatMessage...|
 ) {
     recognize: speech/recognize-stream
@@ -200,7 +200,7 @@ form live-recognized-turn (
     install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded =
-        expand_canonical_form_for_authoring(&checked, "live-recognized-turn", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "live-recognized-turn", &profile).unwrap();
     assert_eq!(expanded.input_bindings.len(), 1);
     assert_eq!(expanded.output_bindings.len(), 1);
     assert!(expanded

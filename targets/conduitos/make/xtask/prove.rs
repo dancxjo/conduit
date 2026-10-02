@@ -58,11 +58,11 @@ pub fn execute(
     }
     let stable_semantic_identities = first.kernel.source_document_id
         == second.kernel.source_document_id
-        && first.kernel.checked_form_id == second.kernel.checked_form_id
-        && first.kernel.expanded_form_id == second.kernel.expanded_form_id
+        && first.kernel.checked_plot_id == second.kernel.checked_plot_id
+        && first.kernel.expanded_plot_id == second.kernel.expanded_plot_id
         && first.presentation.source_document_id == second.presentation.source_document_id
-        && first.presentation.checked_form_id == second.presentation.checked_form_id
-        && first.presentation.expanded_form_id == second.presentation.expanded_form_id;
+        && first.presentation.checked_plot_id == second.presentation.checked_plot_id
+        && first.presentation.expanded_plot_id == second.presentation.expanded_plot_id;
     let fresh_realization_identities = first.kernel.plan_id != second.kernel.plan_id
         && first.kernel.fragment_id != second.kernel.fragment_id
         && first.kernel.active_play_id != second.kernel.active_play_id
@@ -251,8 +251,8 @@ fn prove_native_patchbay(paths: &Paths, proof: &ProofRecord) -> Result<usize, Co
         proof.first_kernel.fragment_id.as_str(),
         proof.first_kernel.active_play_id.as_str(),
         proof.first_kernel.source_document_id.as_str(),
-        proof.first_kernel.checked_form_id.as_str(),
-        proof.first_kernel.expanded_form_id.as_str(),
+        proof.first_kernel.checked_plot_id.as_str(),
+        proof.first_kernel.expanded_plot_id.as_str(),
         exact_base_count.as_str(),
         "kind=conduitos.base/framebuffer@1",
         "SIGNS 19",

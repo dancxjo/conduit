@@ -8,17 +8,17 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ExpandedCanonicalForm,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ExpandedCanonicalPlot,
     KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
-pub const FRAME_SOURCE: &str = "form frames {\n source: frame/source\n compose: frame/compose\n display: frame/display\n encoder: frame/encoder\n source >> compose\n compose >> display\n compose >> encoder\n}\n";
+pub const FRAME_SOURCE: &str = "plot frames {\n source: frame/source\n compose: frame/compose\n display: frame/display\n encoder: frame/encoder\n source >> compose\n compose >> display\n compose >> encoder\n}\n";
 pub const FRAME_BYTES: u32 = 262144;
 pub const FRAME_OPERATION: &str = "conduit.host/frame-resource@1";
 pub const FRAME_AUTHORITY: &str = "conduit.authority/frame-resource@1";
 
 pub struct FrameResourcePlan {
-    pub expanded: ExpandedCanonicalForm,
+    pub expanded: ExpandedCanonicalPlot,
     pub host: HostAdvertisement,
     pub plan: Plan,
 }
@@ -85,7 +85,7 @@ pub fn frame_resource_plan(
     let checked = check_syntax_document(&parse_syntax_document(FRAME_SOURCE), &startup)
         .map_err(|e| format!("{e:?}"))?;
     let expanded =
-        expand_canonical_form(&checked, "frames", &profile).map_err(|e| format!("{e:?}"))?;
+        expand_canonical_plot(&checked, "frames", &profile).map_err(|e| format!("{e:?}"))?;
     let host_id = HostId::from("host/frame");
     let boot_id = BootId::from("boot/frame/1");
     let mut resource = resource_offer("pool/frame-output", "resource/frame", 3);

@@ -1,9 +1,9 @@
 use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, ArtifactId, BaseImplementationId, BootId,
-    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,
-    ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,
-    ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindId,
-    KindIdentity, OfferGeneration, PlacementId, PlanFragment, PlanId, PlannedConnection,
+    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedPlotId, ConfigurationEntry,
+    ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedPlotId, ExpectedSign,
+    ExpectedTerminal, FragmentId, GearId, HostId, ImplementationId, KindId, KindIdentity,
+    OfferGeneration, PlacementId, PlanFragment, PlanId, PlannedConnection, PlotIdentity,
     PortDescriptor, PortDirection, PortId, SignStorageBudget, SourceDocumentId, StartupDependency,
     TerminalPolicy,
 };
@@ -85,10 +85,10 @@ fn hosted_text_configuration_is_not_promoted_to_embedded_execution() {
     let mut fragment = sealed_current_fragment();
     fragment.placements[0].configuration[0].value =
         ConfigurationValue::Text("hosted only".to_owned());
-    let identity = FormIdentity {
+    let identity = PlotIdentity {
         source_document_id: fragment.source_document_id.clone(),
-        checked_form_id: fragment.checked_form_id.clone(),
-        expanded_form_id: fragment.expanded_form_id.clone(),
+        checked_plot_id: fragment.checked_plot_id.clone(),
+        expanded_plot_id: fragment.expanded_plot_id.clone(),
     };
     let fragment = seal_plan(identity, vec![fragment])
         .fragments
@@ -108,10 +108,10 @@ fn hosted_text_configuration_is_not_promoted_to_embedded_execution() {
 fn signed_scalar_configuration_remains_exact_in_a_fixed_image() {
     let mut fragment = sealed_current_fragment();
     fragment.placements[0].configuration[0].value = ConfigurationValue::I64(-7);
-    let identity = FormIdentity {
+    let identity = PlotIdentity {
         source_document_id: fragment.source_document_id.clone(),
-        checked_form_id: fragment.checked_form_id.clone(),
-        expanded_form_id: fragment.expanded_form_id.clone(),
+        checked_plot_id: fragment.checked_plot_id.clone(),
+        expanded_plot_id: fragment.expanded_plot_id.clone(),
     };
     let fragment = seal_plan(identity, vec![fragment])
         .fragments
@@ -131,25 +131,25 @@ fn signed_scalar_configuration_remains_exact_in_a_fixed_image() {
 }
 
 #[test]
-fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
+fn unchanged_signal_plot_plans_lowers_and_generates_one_fixed_image() {
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../proof/fixtures/plots/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
-    .expect("unchanged Signal form checks");
+    .expect("unchanged Signal plot checks");
     let host = pico_local_advertisement();
-    let placements = conduit_planner::default_placements(&form, std::slice::from_ref(&host))
-        .expect("Pico profile covers the unchanged Signal form");
+    let placements = conduit_planner::default_placements(&plot, std::slice::from_ref(&host))
+        .expect("Pico profile covers the unchanged Signal plot");
     let plan = conduit_planner::plan_with_connection_limits(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
     )
-    .expect("unchanged Signal form plans locally");
+    .expect("unchanged Signal plot plans locally");
     let fragment = plan
         .fragments
         .iter()
@@ -342,18 +342,18 @@ fn sealed_current_fragment() -> PlanFragment {
             item_capacity: 0,
             byte_capacity: 0,
         });
-    let form_identity = FormIdentity {
+    let plot_identity = PlotIdentity {
         source_document_id: SourceDocumentId::from("source/test"),
-        checked_form_id: CheckedFormId::from("checked/test"),
-        expanded_form_id: ExpandedFormId::from("expanded/test"),
+        checked_plot_id: CheckedPlotId::from("checked/test"),
+        expanded_plot_id: ExpandedPlotId::from("expanded/test"),
     };
     let fragment = PlanFragment {
         completion_policy: conduit_core::PlanCompletionPolicy::Live,
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
-        source_document_id: form_identity.source_document_id.clone(),
-        checked_form_id: form_identity.checked_form_id.clone(),
-        expanded_form_id: form_identity.expanded_form_id.clone(),
+        source_document_id: plot_identity.source_document_id.clone(),
+        checked_plot_id: plot_identity.checked_plot_id.clone(),
+        expanded_plot_id: plot_identity.expanded_plot_id.clone(),
         realization_backs: Vec::new(),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
@@ -461,7 +461,7 @@ fn sealed_current_fragment() -> PlanFragment {
         plan_fragments: Vec::new(),
     };
 
-    seal_plan(form_identity, vec![fragment])
+    seal_plan(plot_identity, vec![fragment])
         .fragments
         .into_iter()
         .next()
@@ -471,18 +471,18 @@ fn sealed_current_fragment() -> PlanFragment {
 #[test]
 fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     use conduit_core::{
-        seal_plan, AdmittedLine, BaseInstanceId, FormIdentity, LineContinuation, LineContract,
-        LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
-        LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkCredentialReference,
-        LinkEndpoint, LinkEndpointId, LinkLimits,
+        seal_plan, AdmittedLine, BaseInstanceId, LineContinuation, LineContract, LineDuplex,
+        LineId, LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
+        LinkAuthorityReference, LinkBinding, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
+        LinkLimits, PlotIdentity,
     };
     use conduit_plan_lowering::lowering::RemoteCordDirection;
 
     let source_fragment = sealed_current_fragment();
-    let form_identity = FormIdentity {
+    let plot_identity = PlotIdentity {
         source_document_id: source_fragment.source_document_id.clone(),
-        checked_form_id: source_fragment.checked_form_id.clone(),
-        expanded_form_id: source_fragment.expanded_form_id.clone(),
+        checked_plot_id: source_fragment.checked_plot_id.clone(),
+        expanded_plot_id: source_fragment.expanded_plot_id.clone(),
     };
 
     let pico_host_id = HostId::from("pico-host");
@@ -582,7 +582,7 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
         ExpectedTerminal::PlanCompleted,
     ];
 
-    let sealed_plan = seal_plan(form_identity, vec![std_fragment, pico_fragment]);
+    let sealed_plan = seal_plan(plot_identity, vec![std_fragment, pico_fragment]);
     let sealed_pico = sealed_plan
         .fragments
         .into_iter()

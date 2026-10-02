@@ -3,7 +3,7 @@
 //! Host-neutral HTTP and JSON semantic contracts.
 //!
 //! This crate owns portable value shape, validation, codecs, Kind identity,
-//! and canonical Form catalog installation. It owns no Host implementation,
+//! and canonical Plot catalog installation. It owns no Host implementation,
 //! execution profile, Host Call, resource, authority, or transport.
 
 extern crate alloc;

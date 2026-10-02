@@ -1,12 +1,12 @@
 //! Bounded ordinary body-wide planning and execution history.
 //!
 //! The session is orchestration, not a second planner or lifecycle. Callers
-//! supply ordinary per-Form Plans; `BodyPlan` seals the exact workset and
+//! supply ordinary per-Plot Plans; `BodyPlan` seals the exact workset and
 //! `Wake` owns every accepted, superseded, playing, and unsatisfied state.
 
 use crate::{
-    Body, BodyFormPlan, BodyId, BodyLifecycleError, BodyMaskTopology, BodyPlan, BodyPlanError,
-    BodyPlayIdentity, Wake, WakeId, WakeLifecycle,
+    Body, BodyId, BodyLifecycleError, BodyMaskTopology, BodyPlan, BodyPlanError, BodyPlayIdentity,
+    BodyPlotPlan, Wake, WakeId, WakeLifecycle,
 };
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{BootId, HostId, PlanId, SignId};
@@ -52,8 +52,8 @@ pub enum BodyPlanningSessionError {
     StaleCurrentPlan,
     OutstandingExecution,
     ExecutionTerminationAbsent,
-    MissingForm,
-    InvalidForm(String),
+    MissingPlot,
+    InvalidPlot(String),
     Planning(String),
 }
 
@@ -72,22 +72,22 @@ impl BodyPlanningSession {
         body: &Body,
         wake_sequence: u64,
         wake_sign_id: SignId,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
     ) -> Result<Self, BodyPlanningSessionError> {
-        Self::prepare_with_masks(body, wake_sequence, wake_sign_id, forms, Vec::new())
+        Self::prepare_with_masks(body, wake_sequence, wake_sign_id, plots, Vec::new())
     }
 
     pub fn prepare_with_masks(
         body: &Body,
         wake_sequence: u64,
         wake_sign_id: SignId,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
         mask_topologies: Vec<BodyMaskTopology>,
     ) -> Result<Self, BodyPlanningSessionError> {
         let (body, wake) = body
             .wake(wake_sequence, wake_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
-        let plan = BodyPlan::seal_with_masks(&wake, forms, mask_topologies)
+        let plan = BodyPlan::seal_with_masks(&wake, plots, mask_topologies)
             .map_err(BodyPlanningSessionError::Plan)?;
         Ok(Self {
             execution_claims: Vec::new(),
@@ -102,15 +102,15 @@ impl BodyPlanningSession {
     /// attributable lifecycle event; offer availability alone cannot do it.
     pub fn replace_proposal(
         &mut self,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
         let mask_topologies = self.current_plan().mask_topologies.clone();
-        self.replace_proposal_with_masks(forms, mask_topologies)
+        self.replace_proposal_with_masks(plots, mask_topologies)
     }
 
     pub fn replace_proposal_with_masks(
         &mut self,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
         mask_topologies: Vec<BodyMaskTopology>,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
         if self.has_outstanding_execution_claim()
@@ -124,7 +124,7 @@ impl BodyPlanningSession {
                 BodyLifecycleError::PlanCapacityExhausted,
             ));
         }
-        let plan = BodyPlan::seal_with_masks(&self.wake, forms, mask_topologies)
+        let plan = BodyPlan::seal_with_masks(&self.wake, plots, mask_topologies)
             .map_err(BodyPlanningSessionError::Plan)?;
         if plan.plan_id == self.current_plan().plan_id {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
@@ -139,7 +139,7 @@ impl BodyPlanningSession {
         body: &Body,
         wake_sequence: u64,
         wake_sign_id: SignId,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
         plan_ready_sign_id: SignId,
         play_sequence: u64,
         play_started_sign_id: SignId,
@@ -148,7 +148,7 @@ impl BodyPlanningSession {
             body,
             wake_sequence,
             wake_sign_id,
-            forms,
+            plots,
             Vec::new(),
             plan_ready_sign_id,
             play_sequence,
@@ -161,7 +161,7 @@ impl BodyPlanningSession {
         body: &Body,
         wake_sequence: u64,
         wake_sign_id: SignId,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
         mask_topologies: Vec<BodyMaskTopology>,
         plan_ready_sign_id: SignId,
         play_sequence: u64,
@@ -170,7 +170,7 @@ impl BodyPlanningSession {
         let (body, wake) = body
             .wake(wake_sequence, wake_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
-        let plan = BodyPlan::seal_with_masks(&wake, forms, mask_topologies)
+        let plan = BodyPlan::seal_with_masks(&wake, plots, mask_topologies)
             .map_err(BodyPlanningSessionError::Plan)?;
         let wake = wake
             .body_plan_ready(&plan, plan_ready_sign_id)
@@ -190,16 +190,16 @@ impl BodyPlanningSession {
 
     pub fn replan(
         &mut self,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
         transition: BodyPlanningTransition,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
         let mask_topologies = self.current_plan().mask_topologies.clone();
-        self.replan_with_masks(forms, mask_topologies, transition)
+        self.replan_with_masks(plots, mask_topologies, transition)
     }
 
     pub fn replan_with_masks(
         &mut self,
-        forms: Vec<BodyFormPlan>,
+        plots: Vec<BodyPlotPlan>,
         mask_topologies: Vec<BodyMaskTopology>,
         transition: BodyPlanningTransition,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
@@ -218,7 +218,7 @@ impl BodyPlanningSession {
         if wake.lifecycle != WakeLifecycle::Unsatisfied {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
-        let replacement = BodyPlan::seal_with_masks(&wake, forms, mask_topologies)
+        let replacement = BodyPlan::seal_with_masks(&wake, plots, mask_topologies)
             .map_err(BodyPlanningSessionError::Plan)?;
         wake = wake
             .body_plan_ready(&replacement, transition.plan_ready_sign_id)
@@ -267,9 +267,9 @@ impl BodyPlanningSession {
     pub fn snapshot(&self) -> BodyPlanningSessionSnapshot {
         let mut current_hosts = self
             .current_plan()
-            .forms
+            .plots
             .iter()
-            .flat_map(|form| &form.plan.fragments)
+            .flat_map(|plot| &plot.plan.fragments)
             .map(|fragment| BodyPlanningHost {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),

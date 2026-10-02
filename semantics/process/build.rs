@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::{generate_rust_bindings, RustBindingOptions};
-use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -8,8 +8,8 @@ fn main() {
     catalog
         .insert_value_kind_alias(
             "ResourceRef",
-            conduit_form::rust_binding::semantic_core::kind_id(
-                conduit_form::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
+            conduit_plot::rust_binding::semantic_core::kind_id(
+                conduit_plot::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
             ),
         )
         .expect("resource references are one exact portable leaf");

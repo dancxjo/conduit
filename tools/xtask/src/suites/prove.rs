@@ -87,7 +87,7 @@ pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
         &[
             "test",
             "-p",
-            "conduit-form",
+            "conduit-plot",
             "canonical_expansion_tests::recursion_and_expansion_depth_fail_with_distinct_diagnostics",
         ],
         None,
@@ -114,8 +114,8 @@ pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
             "-p",
             "conduit-ai",
             "--features",
-            "form-catalog",
-            "provider::tests::unchanged_form_selects_direct_front_or_distributed_provider_back_exactly",
+            "plot-catalog",
+            "provider::tests::unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly",
         ],
         None,
         None,
@@ -196,9 +196,9 @@ pub const PROVE_DEGRADED_PROFILES_STEPS: &[Step] = &[
 pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
     Step::typed(
         "prove.llm-cross-host.provider-back",
-        "Prove an unchanged LLM Form uses exact distributed provider leaves, interruption, fresh Plan truth, and stale-completion refusal",
+        "Prove an unchanged LLM Plot uses exact distributed provider leaves, interruption, fresh Plan truth, and stale-completion refusal",
         "cargo",
-        &["test", "-p", "conduit-ai", "--features", "form-catalog", "provider::tests::unchanged_form_selects_direct_front_or_distributed_provider_back_exactly"],
+        &["test", "-p", "conduit-ai", "--features", "plot-catalog", "provider::tests::unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly"],
         None,
         None,
         Some(ProofClass::HostedIntegration),
@@ -216,7 +216,7 @@ pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.llm-cross-host.patchbay",
-        "Prove Patchbay explains unchanged Form identity, distinct realization truth, no automatic migration, and stale completion refusal",
+        "Prove Patchbay explains unchanged Plot identity, distinct realization truth, no automatic migration, and stale completion refusal",
         "cargo",
         &["test", "-p", "conduit-patchbay-workbench", "llm_replan_explanation"],
         None,
@@ -252,7 +252,7 @@ pub const PROVE_LOCAL_MODEL_POOL_STEPS: &[Step] = &[
 pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     Step::typed(
         "prove.llm-embodiment.plan",
-        "Prove the model situation is derived from exact sealed Forms and Plans",
+        "Prove the model situation is derived from exact sealed Plots and Plans",
         "cargo",
         &["test", "-p", "conduit-planner", "--test", "model_embodiment"],
         None,
@@ -272,7 +272,7 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.llm-embodiment.presentation",
-        "Prove Patchbay Presentation distinguishes Forms, Ports, Cords, proposals, decisions, and effect Signs",
+        "Prove Patchbay Presentation distinguishes Plots, Ports, Cords, proposals, decisions, and effect Signs",
         "cargo",
         &["test", "-p", "conduit-patchbay-workbench", "--test", "llm_embodiment"],
         None,
@@ -905,7 +905,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.browser",
-        "Run zero-body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Form Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
+        "Run zero-body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Plot Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
         "node",
         &[
             "proof/browser/node_modules/@playwright/test/cli.js",
@@ -913,7 +913,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
             "--config",
             "proof/browser/patchbay-html.playwright.config.mjs",
             "proof/browser/patchbay-front-door.spec.mjs",
-            "proof/browser/patchbay-recursive-form.spec.mjs",
+            "proof/browser/patchbay-recursive-plot.spec.mjs",
         ],
         None,
         Some("playwright"),

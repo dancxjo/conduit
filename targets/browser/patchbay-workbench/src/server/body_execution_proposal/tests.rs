@@ -7,7 +7,7 @@ pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
     let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
     let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot)
         .unwrap()
-        .with_body_planning_forms(crate::body_workbench_fixture_forms().unwrap())
+        .with_body_planning_plots(crate::body_workbench_fixture_plots().unwrap())
         .unwrap();
     let evidence = server.body_workload.as_ref().unwrap().evidence();
     let current = evidence
@@ -33,12 +33,12 @@ pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
     host.host_id = current.host_id.clone();
     host.boot_id = current.boot_id.clone();
     host.offer_generation = current.offer_generation;
-    let candidates = super::super::body_host_planning_offer::planning_forms(
+    let candidates = super::super::body_host_planning_offer::planning_plots(
         &evidence.body.workset,
-        &server.body_planning_forms,
+        &server.body_planning_plots,
     )
     .unwrap();
-    let forms = conduit_body_make::plan_body_workset_on_host(
+    let plots = conduit_body_make::plan_body_workset_on_host(
         &evidence.body.workset,
         &candidates,
         &host,
@@ -46,7 +46,7 @@ pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
     )
     .unwrap();
     server.body_planning = Some(
-        BodyPlanningSession::prepare(&evidence.body, 1, "sign/proposal-wake".into(), forms)
+        BodyPlanningSession::prepare(&evidence.body, 1, "sign/proposal-wake".into(), plots)
             .unwrap(),
     );
     if let Some(mut control) = server.mask_control.take() {
@@ -112,7 +112,7 @@ fn absent_unavailable_started_and_stale_proposals_refuse() {
             &body,
             1,
             "sign/started-wake".into(),
-            original.current_plan().forms.clone(),
+            original.current_plan().plots.clone(),
             "sign/plan-ready".into(),
             1,
             "sign/play-started".into(),
@@ -123,14 +123,14 @@ fn absent_unavailable_started_and_stale_proposals_refuse() {
         matches!(server.body_execution_proposal(), Err(ServerError::Interaction(reason)) if reason == "BodyProposalAlreadyAdmitted")
     );
     let different_body =
-        conduit_body::Body::born_with_forms(body.workset.clone(), 99, "sign/different-body".into())
+        conduit_body::Body::born_with_plots(body.workset.clone(), 99, "sign/different-body".into())
             .unwrap();
     server.body_planning = Some(
         BodyPlanningSession::prepare(
             &different_body,
             1,
             "sign/different-wake".into(),
-            original.current_plan().forms.clone(),
+            original.current_plan().plots.clone(),
         )
         .unwrap(),
     );
@@ -164,16 +164,16 @@ fn fresh_membership_must_still_match_the_proposed_host_boot_and_generation() {
     host.capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
     host.resources.sort();
-    let fragment = &original.current_plan().forms[0].plan.fragments[0];
+    let fragment = &original.current_plan().plots[0].plan.fragments[0];
     host.host_id = fragment.host_id.clone();
     host.boot_id = "boot/never-admitted".into();
     host.offer_generation = fragment.offer_generation;
-    let candidates = super::super::body_host_planning_offer::planning_forms(
+    let candidates = super::super::body_host_planning_offer::planning_plots(
         &body.workset,
-        &server.body_planning_forms,
+        &server.body_planning_plots,
     )
     .unwrap();
-    let forms = conduit_body_make::plan_body_workset_on_host(
+    let plots = conduit_body_make::plan_body_workset_on_host(
         &body.workset,
         &candidates,
         &host,
@@ -181,7 +181,7 @@ fn fresh_membership_must_still_match_the_proposed_host_boot_and_generation() {
     )
     .unwrap();
     server.body_planning =
-        Some(BodyPlanningSession::prepare(&body, 1, "sign/stale-host-wake".into(), forms).unwrap());
+        Some(BodyPlanningSession::prepare(&body, 1, "sign/stale-host-wake".into(), plots).unwrap());
     assert!(
         matches!(server.body_execution_proposal(), Err(ServerError::Interaction(reason)) if reason == "BodyProposalStaleHost")
     );

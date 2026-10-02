@@ -113,7 +113,7 @@ relationship and turns the routine return merge into a large false conflict.
 ## Documentary publication is downstream
 
 Promotion does not generate or require a complete Three Bodies documentary or
-the gallery-only One Form, Two Fronts and Little Life evidence. Pages first
+the gallery-only One Plot, Two Fronts and Little Life evidence. Pages first
 retains the exact accepted software carrier and a bounded context linking its
 main commit, release source, promotion run, carrier, and source tree, without
 replacing the public site. `journey-publication.yml` then consumes immutable

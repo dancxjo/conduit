@@ -15,7 +15,7 @@ use conduit_signal_conformance::{
 use std::collections::BTreeMap;
 
 #[test]
-fn unchanged_toggle_form_prepares_exact_independent_remote_fragments() {
+fn unchanged_toggle_plot_prepares_exact_independent_remote_fragments() {
     let source = DistributedToggleSource::prepare().expect("toggle source prepares");
     let exact = exact_distributed_toggle_plan().expect("distributed toggle plan resolves");
     let sink = exact
@@ -47,8 +47,8 @@ fn unchanged_toggle_form_prepares_exact_independent_remote_fragments() {
 fn missing_link_binding_fails_toggle_planning() {
     let source = distributed_toggle_std_source_advertisement();
     let sink = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../../proof/fixtures/forms/remote-toggle.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../../proof/fixtures/plots/remote-toggle.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -79,7 +79,7 @@ fn missing_link_binding_fails_toggle_planning() {
         ]),
     };
     assert!(plan_with_line_offers(
-        &form,
+        &plot,
         &[source, sink],
         &placements,
         &[

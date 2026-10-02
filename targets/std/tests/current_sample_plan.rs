@@ -156,8 +156,8 @@ fn plan_seals_one_exact_4096_byte_triggered_current_sample_specialization() {
     );
     let trigger_recovery = recovery("test/trigger-recovery", "test/trigger-recovery@1");
     let sample_recovery = recovery("test/sample-recovery", "test/sample-recovery@1");
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     for kind in [
         &source,
         &trigger,
@@ -166,7 +166,7 @@ fn plan_seals_one_exact_4096_byte_triggered_current_sample_specialization() {
         &sample_recovery,
     ] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.kind_id.as_str().into(),
                 startup_parameters: Vec::new(),
             })
@@ -180,12 +180,12 @@ fn plan_seals_one_exact_4096_byte_triggered_current_sample_specialization() {
         &mut profile,
     )
     .unwrap();
-    let syntax = conduit_form::parse_syntax_document(
-        "form sample-current-text {\n source: test/current-text-source\n trigger: test/save-trigger\n sample: current/sample\n sink: test/sampled-text-sink\n trigger-recovery: test/trigger-recovery\n sample-recovery: test/sample-recovery\n source.out >> sample.current\n trigger.out >> sample.trigger\n sample.value >> sink.in\n trigger.out! >> trigger-recovery.terminal\n sample.value! >> sample-recovery.terminal\n}\n",
+    let syntax = conduit_plot::parse_syntax_document(
+        "plot sample-current-text {\n source: test/current-text-source\n trigger: test/save-trigger\n sample: current/sample\n sink: test/sampled-text-sink\n trigger-recovery: test/trigger-recovery\n sample-recovery: test/sample-recovery\n source.out >> sample.current\n trigger.out >> sample.trigger\n sample.value >> sink.in\n trigger.out! >> trigger-recovery.terminal\n sample.value! >> sample-recovery.terminal\n}\n",
     );
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "sample-current-text", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "sample-current-text", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/current-sample-proof"),

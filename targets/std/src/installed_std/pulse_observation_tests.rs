@@ -165,5 +165,5 @@ fn closure_requires_no_minimum_count_and_refuses_late_values() {
 #[path = "pulse_observation_kernel_tests.rs"]
 mod kernel;
 
-#[path = "pulse_observation_form_tests.rs"]
-mod form;
+#[path = "pulse_observation_plot_tests.rs"]
+mod plot;

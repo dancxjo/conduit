@@ -67,7 +67,7 @@ fn provider() -> Provider {
 }
 
 #[test]
-fn unchanged_form_plans_exact_attachment_without_mechanism_vocabulary() {
+fn unchanged_plot_plans_exact_attachment_without_mechanism_vocabulary() {
     for forbidden in ["mpu", "i2c", "pico", "gpio", "uart"] {
         assert!(!MPU6050_FORM.to_ascii_lowercase().contains(forbidden));
     }

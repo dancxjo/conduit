@@ -87,8 +87,8 @@ impl TimerAdapter for AdvancingTimer {
 }
 
 fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
-    let form = conduit_form::parse(
-        "form input_loopback {\n input: music/input\n output: music/play\n input.notes >> output.notes\n input.controls >> output.controls\n}\n",
+    let plot = conduit_plot::parse(
+        "plot input_loopback {\n input: music/input\n output: music/play\n input.notes >> output.notes\n input.controls >> output.controls\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .unwrap();
@@ -119,7 +119,7 @@ fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
     );
     let hosts = [host.advertisement().clone()];
     conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
-        &form,
+        &plot,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &hosts,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],

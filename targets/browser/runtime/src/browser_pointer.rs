@@ -8,7 +8,6 @@ use conduit_core::{
     ResourceRequirement, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::scheduler::{
     FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
@@ -18,6 +17,7 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_semantic_catalog::{
     normalized_pointer_value, pointer_event_type, reviewed_delivery_contract,
     NormalizedPointerSample, POINTER_EVENT_INFO_ID, POINTER_EVENT_TYPE, POINTER_SOURCE_KIND,
@@ -35,7 +35,7 @@ mod tests;
 const SOURCE_OPERATION: &str = "browser.host/pointer-source@1";
 const PROFILE: &str = "browser/pointer-source@1";
 const ARTIFACT: &str = "conduit-browser-runtime/pointer-source@1";
-const FORM_SOURCE: &str = "form browser-pointer {\n pointer: input/pointer-source\n show: presentation/structured-info\n pointer.pointer >> show.input\n}\n";
+const PLOT_SOURCE: &str = "plot browser-pointer {\n pointer: input/pointer-source\n show: presentation/structured-info\n pointer.pointer >> show.input\n}\n";
 const NODES: usize = 2;
 const CORDS: usize = 1;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -191,18 +191,18 @@ pub fn execute_browser_pointer(
         .canonical_bytes()
         .map_err(|error| format!("encode pointer value: {error:?}"))?;
     let (startup, profile) = catalogs(&value)?;
-    let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
+    let syntax = conduit_plot::parse_syntax_document(PLOT_SOURCE);
     if !syntax.diagnostics.is_empty() {
-        return Err("browser pointer Form has syntax diagnostics".into());
+        return Err("browser pointer Plot has syntax diagnostics".into());
     }
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check browser pointer Form: {error:?}"))?;
-    let expanded = conduit_form::expand_canonical_form(&checked, "browser-pointer", &profile)
-        .map_err(|error| format!("expand browser pointer Form: {error:?}"))?;
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|error| format!("check browser pointer Plot: {error:?}"))?;
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "browser-pointer", &profile)
+        .map_err(|error| format!("expand browser pointer Plot: {error:?}"))?;
     let host = advertisement();
     let hosts = [host.clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
-        .map_err(|error| format!("place browser pointer Form: {error:?}"))?;
+        .map_err(|error| format!("place browser pointer Plot: {error:?}"))?;
     let plan = plan_expanded_canonical_with_options(
         &expanded,
         &hosts,
@@ -218,7 +218,7 @@ pub fn execute_browser_pointer(
             line_offers: &[],
         },
     )
-    .map_err(|error| format!("plan browser pointer Form: {error:?}"))?;
+    .map_err(|error| format!("plan browser pointer Plot: {error:?}"))?;
     let fragment = plan
         .fragments
         .first()

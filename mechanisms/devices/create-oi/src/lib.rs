@@ -1,7 +1,7 @@
 //! Allocator-free iRobot Create Open Interface mechanism and local safety.
 //!
 //! This crate owns device/protocol truth below portable robotics meaning. It
-//! deliberately has no Host, Plan, Form, operating-system, board, or Conduit
+//! deliberately has no Host, Plan, Plot, operating-system, board, or Conduit
 //! LINE knowledge, so std and constrained embedded providers use one codec and
 //! one non-bypassable drive supervisor.
 

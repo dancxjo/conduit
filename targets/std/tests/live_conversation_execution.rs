@@ -1,11 +1,11 @@
-//! Deterministic fake-provider execution of the checked canonical live Form.
+//! Deterministic fake-provider execution of the checked canonical live Plot.
 
 use conduit_ai::{
     project_generated_chunk_text, BoundedGeneratedTextFlow, GeneratedTextChunk,
     GeneratedTextFlowTerminal,
 };
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 use conduit_tongues::{
     committed_user_message, project_committed_turn_text, SegmentId, StreamEvent,
     StreamingSpeechCommitter, TextRole,
@@ -14,7 +14,7 @@ use conduit_tongues::{
 fn context() -> BodyConversationContext {
     let body = Body::born(
         SourceDocumentId::from("source/live-conversation-execution"),
-        CheckedFormId::from("checked/live-conversation-execution"),
+        CheckedPlotId::from("checked/live-conversation-execution"),
         1,
         SignId::from("sign/live-conversation-execution/born"),
     )
@@ -35,7 +35,7 @@ fn context() -> BodyConversationContext {
             revision: 3,
         },
         hosts: vec![],
-        active_forms: vec!["form/live-conversation".into()],
+        active_plots: vec!["plot/live-conversation".into()],
         current_plan_id: None,
         active_play_id: None,
         lines: vec![],
@@ -106,10 +106,10 @@ fn fake_tts(segment: &str) -> Vec<u8> {
 }
 
 #[test]
-fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
-    let source = include_str!("../../../forms/live-conversation/main.conduit");
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn checked_live_plot_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
+    let source = include_str!("../../../plots/live-conversation/main.conduit");
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     startup
         .insert_value_kind_alias(
             "PcmFrames",
@@ -127,10 +127,10 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     )
     .unwrap();
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
     let authored =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "live-conversation", &profile)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "live-conversation", &profile)
             .unwrap();
     let expanded = authored.expanded;
     let mut exact_kinds = expanded

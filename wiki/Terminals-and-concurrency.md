@@ -30,7 +30,7 @@ Provenance: #3970, #3999, #4001.
 
 ## Terminal transduction and default abnormal propagation
 
-gears/forms transform **values plus terminal truth**.
+gears/plots transform **values plus terminal truth**.
 
 Reusable terminal laws must distinguish at least:
 
@@ -48,9 +48,9 @@ Do not universally copy the last payload into close. Retain last-value context e
 
 Default abnormal composition rule:
 
-> **An unhandled abnormal terminal in a child gear/form propagates as abnormal terminal truth of the containing form.**
+> **An unhandled abnormal terminal in a child gear/plot propagates as abnormal terminal truth of the containing plot.**
 
-Catching/routing `x!` is not by itself successful recovery. The containing form must still satisfy its checked obligations. If recovery faults, the unrecovered terminal propagates.
+Catching/routing `x!` is not by itself successful recovery. The containing plot must still satisfy its checked obligations. If recovery faults, the unrecovered terminal propagates.
 
 Keep three layers distinct:
 
@@ -102,7 +102,7 @@ Distinct operations remain distinct:
 - merge arrivals;
 - race/first result.
 
-These are ordinary semantic gears/forms with exact finite pending-state, pressure, and terminal laws.
+These are ordinary semantic gears/plots with exact finite pending-state, pressure, and terminal laws.
 
 No hidden `combineLatest`, timestamp-proximity join, or source-order synchronization.
 

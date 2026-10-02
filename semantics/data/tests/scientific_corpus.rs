@@ -3,7 +3,7 @@ use conduit_core::{
     ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::*;
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
 fn example_pages<const N: usize>(
     identities: [[u8; 32]; N],

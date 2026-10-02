@@ -113,10 +113,10 @@ fn unary_plan(id: &str) -> Plan {
     let sign_budget = child.fragments[0].sign_storage_budget;
     let outer = common::fragment();
     conduit_core::seal_plan_with_activations(
-        conduit_core::FormIdentity {
+        conduit_core::PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         conduit_core::PlanCompletionPolicy::Live,
         vec![],
@@ -209,10 +209,10 @@ fn progression_plan(scan: bool) -> Plan {
     };
     let outer = common::fragment();
     conduit_core::seal_plan_with_activation_entries(
-        conduit_core::FormIdentity {
+        conduit_core::PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         conduit_core::PlanCompletionPolicy::Live,
         vec![],

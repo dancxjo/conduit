@@ -7,8 +7,8 @@ use conduit_core::{
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
     TerminalDisposition,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -133,17 +133,17 @@ fn authored_local_vision_runs(
         crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
     let source = if track_objects {
         format!(
-            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n track: vision/local-track\n sink: conduit-test/local-model-result\n source.image >> {gear_name}.image\n {gear_name}.{output_port} >> track.detections\n track.tracks >> sink.value\n}}\n",
+            "plot proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n track: vision/local-track\n sink: conduit-test/local-model-result\n source.image >> {gear_name}.image\n {gear_name}.{output_port} >> track.detections\n track.tracks >> sink.value\n}}\n",
             hex(&encoded),
         )
     } else {
         format!(
-            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image >> {gear_name}.image\n {gear_name}.{output_port} >> sink.value\n}}\n",
+            "plot proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image >> {gear_name}.image\n {gear_name}.{output_port} >> sink.value\n}}\n",
             hex(&encoded),
         )
     };
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "proof", &profile).unwrap();
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
     let vision_offer = hosts[0]

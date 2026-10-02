@@ -121,11 +121,11 @@ impl MorseKeyInterpreter {
         let pattern =
             MorsePattern::from_segments(self.unit_millis, self.segments).map_err(|error| {
                 MorseKeyRefusal::invalid_pattern(error)
-                    .expect("a checked Morse error always forms a key refusal")
+                    .expect("a checked Morse error always plots a key refusal")
             })?;
         pattern.to_text().map_err(|error| {
             MorseKeyRefusal::invalid_pattern(error)
-                .expect("a checked Morse error always forms a key refusal")
+                .expect("a checked Morse error always plots a key refusal")
         })?;
         Ok(pattern)
     }

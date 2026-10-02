@@ -4,7 +4,7 @@ use conduit_ai::{
     ProfileReportedConfidence, TemporalReference, TemporalRetrievalIntent,
 };
 use conduit_core::SignId;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn request() -> InterpretationRequest {
     InterpretationRequest {

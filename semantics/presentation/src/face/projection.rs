@@ -61,7 +61,7 @@ fn append_presentation_fragment(
     let provenance = format!("contribution/{}/{index}", contribution.role.token());
     subjects.push(PresentationSubject {
         identity: provenance.clone(),
-        role: PresentationRole::Form,
+        role: PresentationRole::Plot,
         name: "Presentation contribution provenance".into(),
     });
     relationships.push(PresentationRelationship {
@@ -72,8 +72,8 @@ fn append_presentation_fragment(
     properties.extend([
         identity_property(
             &provenance,
-            "checked-form-id",
-            contribution.checked_form_id.as_str(),
+            "checked-plot-id",
+            contribution.checked_plot_id.as_str(),
         ),
         identity_property(&provenance, "plan-id", contribution.plan_id.as_str()),
         identity_property(

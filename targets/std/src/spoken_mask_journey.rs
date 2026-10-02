@@ -14,7 +14,7 @@ pub use routes::*;
 pub struct SpokenMaskExecution {
     pub shown: conduit_presentation::ArtifactAcknowledgedSpokenShow,
     pub plan: conduit_core::Plan,
-    pub mask: conduit_presentation::MaskForm,
+    pub mask: conduit_presentation::MaskPlot,
 }
 
 /// Execute the complete spoken Mask through planning, kernel Host Calls,
@@ -23,7 +23,7 @@ pub struct SpokenMaskExecution {
 /// live Presenter call; the adapter only correlates it to this exact request.
 /// This proves an artifact effect, not playback or hearing.
 pub fn execute_retained_manifestation_mask(
-    form_name: &str,
+    plot_name: &str,
     execution_id: &str,
     presentation: conduit_presentation::Presentation,
     retained: conduit_presentation::GeneratedManifestationCandidate,
@@ -32,17 +32,17 @@ pub fn execute_retained_manifestation_mask(
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
         SignId,
     };
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-        ProfileCatalog, StartupCatalog,
-    };
     use conduit_planner::{
         default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
         ForeBoundaryKey, PlanningOptions,
     };
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+        ProfileCatalog, StartupCatalog,
+    };
     use conduit_presentation::{
         GenerativeNarratorRole, GenerativePresenterBounds, GenerativePresenterPolicy,
-        GenerativePresenterRequest, ManifestationLifecycle, MaskForm, PlannedMaskForm,
+        GenerativePresenterRequest, ManifestationLifecycle, MaskPlot, PlannedMaskPlot,
     };
     use std::collections::BTreeMap;
 
@@ -170,13 +170,13 @@ pub fn execute_retained_manifestation_mask(
     )?;
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
-    conduit_presentation::install_mask_form_value_aliases(&mut startup)?;
+    conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
     conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
     let source = format!(
-        r#"form {form_name} (
+        r#"plot {plot_name} (
  >> face: Presentation
  interaction: FaceInteraction...| >>
  show: Show >>
@@ -212,9 +212,9 @@ pub fn execute_retained_manifestation_mask(
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .map_err(|error| format!("check spoken Mask: {error:?}"))?;
-    let authoring = expand_canonical_form_for_authoring(&checked, form_name, &profiles)
+    let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)
         .map_err(|error| format!("expand spoken Mask: {error:?}"))?;
-    let mask = MaskForm::admit(&authoring).map_err(|error| format!("admit Mask: {error:?}"))?;
+    let mask = MaskPlot::admit(&authoring).map_err(|error| format!("admit Mask: {error:?}"))?;
     let hosts = [host.advertisement().clone()];
     let placements = default_expanded_placements(&authoring.expanded, &hosts)
         .map_err(|error| format!("place spoken Mask: {error:?}"))?;
@@ -265,7 +265,7 @@ pub fn execute_retained_manifestation_mask(
         &boundary_limits,
     )
     .map_err(|error| format!("plan spoken Mask: {error:?}"))?;
-    let planned = PlannedMaskForm::admit(&mask, &plan)
+    let planned = PlannedMaskPlot::admit(&mask, &plan)
         .map_err(|error| format!("seal spoken Mask: {error:?}"))?;
     let request = GenerativePresenterRequest::from_presentation(
         format!("request/{execution_id}"),
@@ -295,7 +295,7 @@ pub fn execute_retained_manifestation_mask(
         available_sign: SignId::from(format!("sign/{execution_id}/available")),
     };
     let mut collector = Collector::default();
-    host.run_spoken_mask_form_to(
+    host.run_spoken_mask_plot_to(
         plan.fragments[0].clone(),
         preparation,
         &[crate::ExternalForeInput {
@@ -328,7 +328,7 @@ pub struct SpokenMaskJourneyObservation {
     pub action_id: String,
     pub concrete_event: String,
     pub presentation_id: String,
-    pub selected_mask_form_id: Option<String>,
+    pub selected_mask_plot_id: Option<String>,
     pub plan_id: String,
     pub selected_route_id: Option<String>,
     pub show_id: Option<String>,

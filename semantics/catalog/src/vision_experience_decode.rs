@@ -5,13 +5,13 @@ use conduit_core::{
     ArtifactId, BaseImplementationId, BaseInstanceId, KindId, SignId, StructuredInfoValue,
     TemporalInstant, TemporalScale,
 };
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     ImageRegion, MotionObservation, ObjectObservation, TrackObservation, VisibleTextObservation,
     VisualEvidenceClass, VisualExperience, VisualExperienceLimits, VisualExperienceObservation,
     VisualExperienceRelation, VisualExperienceRelationKind, VisualImpression,
     VisualImpressionDisposition, VisualObservationProvenance,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_presentation::{
     VisionMotionObservation, VisionMotionsFour, VisionObjectObservation, VisionObjectObservations,
     VisionObservationEvidenceClass, VisionObservationProvenance, VisionOptionalPixelRegion,

@@ -5,7 +5,7 @@ use conduit_core::{
     CapabilityOffer, HostAdvertisement, ProtectedResourceAccess, ProtectedResourceBinding,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceHandleId, ResourceRequirement,
 };
-use conduit_form::CheckedGear;
+use conduit_plot::CheckedGear;
 
 pub(crate) fn validate_protected_resource_grants(
     grants: &[ProtectedResourceGrant],

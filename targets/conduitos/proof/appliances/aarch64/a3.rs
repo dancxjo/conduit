@@ -2,7 +2,7 @@
 #![no_main]
 
 #[cfg(not(target_arch = "aarch64"))]
-compile_error!("conduitos-aarch64-a3 is only an AArch64 ordinary-Form proof");
+compile_error!("conduitos-aarch64-a3 is only an AArch64 ordinary-Plot proof");
 
 use core::panic::PanicInfo;
 
@@ -106,7 +106,7 @@ pub extern "C" fn conduitos_aarch64_a3_start() -> ! {
     arch::present(b"\n");
     arch::present(b"CONDUIT_AARCH64_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
-    arch::present(b"\",\"wake_source\":\"arm-generic-virtual-timer-ppi-27\",\"wake_irq\":27,\"a3_ordinary_form_claimed\":true}\n");
+    arch::present(b"\",\"wake_source\":\"arm-generic-virtual-timer-ppi-27\",\"wake_irq\":27,\"a3_ordinary_plot_claimed\":true}\n");
     exit(true)
 }
 

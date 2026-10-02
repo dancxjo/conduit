@@ -1,5 +1,5 @@
 use conduit_chat::{BodyConversationalSummary, BODY_CONVERSATIONAL_SUMMARY_SCHEMA};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn summary() -> BodyConversationalSummary {
     BodyConversationalSummary::new(
@@ -33,7 +33,7 @@ fn conversational_summary_has_exact_native_and_json_round_trips() {
     let json = summary.canonical_bytes().unwrap();
     assert_eq!(
         core::str::from_utf8(&json).unwrap(),
-        "{\"schema\":\"conduit.body/conversational-summary@1\",\"display_name\":\"Fixture Body\",\"lifecycle\":\"awake\",\"present_hosts\":2,\"offline_hosts\":1,\"active_forms\":1,\"execution\":\"playing\",\"ready_lines\":3,\"unavailable_lines\":4,\"unknown_lines\":5}"
+        "{\"schema\":\"conduit.body/conversational-summary@1\",\"display_name\":\"Fixture Body\",\"lifecycle\":\"awake\",\"present_hosts\":2,\"offline_hosts\":1,\"active_plots\":1,\"execution\":\"playing\",\"ready_lines\":3,\"unavailable_lines\":4,\"unknown_lines\":5}"
     );
     assert_eq!(
         serde_json::from_slice::<BodyConversationalSummary>(&json).unwrap(),

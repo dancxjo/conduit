@@ -80,7 +80,7 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
             "conduit-browser-runtime",
             "--no-default-features",
             "--features",
-            "form-runner,creche-surface",
+            "plot-runner,creche-surface",
             "--target",
             "wasm32-unknown-unknown",
         ]),

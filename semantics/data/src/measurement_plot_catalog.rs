@@ -1,4 +1,4 @@
-//! Ordinary form-facing contract for finite measurement plot projection.
+//! Ordinary plot-facing contract for finite measurement plot projection.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
@@ -6,7 +6,7 @@ use conduit_core::{
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };

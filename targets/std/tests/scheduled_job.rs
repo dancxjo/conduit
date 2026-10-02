@@ -90,7 +90,7 @@ fn request() -> JobRequest {
     let digest = digest("/usr/bin/printf");
     JobRequest::new(
         JobArguments::new(
-            conduit_form::rust_binding::BoundedSequence::try_from_iter([JobText::new(
+            conduit_plot::rust_binding::BoundedSequence::try_from_iter([JobText::new(
                 "scheduled-job".into(),
             )
             .unwrap()])

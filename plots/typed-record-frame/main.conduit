@@ -1,0 +1,7 @@
+plot typed-record-frame (
+    record: TypedRecord >> frame: FramedTypedRecord
+) {
+    framing: record/frame-typed
+    record >> framing.record
+    framing.frame >> frame
+}

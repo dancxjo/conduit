@@ -4,7 +4,7 @@ use conduit_body::{
     SpawnAdmissionProof, SpawnInvitationSecret, ADMISSION_SIGNATURE_BYTES, MAX_ADMISSION_ATTEMPTS,
 };
 use conduit_core::{
-    BootId, CheckedFormId, HostAdvertisement, HostId, HostProfileId, LinkBindingId,
+    BootId, CheckedPlotId, HostAdvertisement, HostId, HostProfileId, LinkBindingId,
     OfferGeneration, PlanId, SignId, SourceDocumentId, PROTOCOL_VERSION,
 };
 use ed25519_dalek::{Signer, SigningKey};
@@ -15,7 +15,7 @@ const EXPIRES: u64 = 20_000;
 fn body() -> Body {
     Body::born(
         SourceDocumentId::from("source/admission"),
-        CheckedFormId::from("checked/admission"),
+        CheckedPlotId::from("checked/admission"),
         1,
         SignId::from("sign/body-born"),
     )
@@ -25,7 +25,7 @@ fn body() -> Body {
 fn wrong_body_id() -> conduit_body::BodyId {
     Body::born(
         SourceDocumentId::from("source/wrong-body"),
-        CheckedFormId::from("checked/wrong-body"),
+        CheckedPlotId::from("checked/wrong-body"),
         99,
         SignId::from("sign/wrong-body-born"),
     )

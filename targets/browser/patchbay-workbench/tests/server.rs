@@ -431,7 +431,7 @@ fn parts_inspection_is_non_mutating_and_ambient_admission_is_never_implicit() {
     let parts = snapshot.parts.as_ref().unwrap();
     let body_id = parts.body_id.as_str().to_owned();
     let candidate = parts.wants_to_join[0].candidate_id.as_str().to_owned();
-    let form = snapshot.presentation.basis.checked_form_id.clone();
+    let plot = snapshot.presentation.basis.checked_plot_id.clone();
     let plan = snapshot.presentation.basis.plan_id.clone();
     let response = post_parts_interaction(
         snapshot,
@@ -457,7 +457,7 @@ fn parts_inspection_is_non_mutating_and_ambient_admission_is_never_implicit() {
         Some(candidate.as_str())
     );
     assert!(decoded.interaction.selected_part.is_none());
-    assert_eq!(decoded.presentation.basis.checked_form_id, form);
+    assert_eq!(decoded.presentation.basis.checked_plot_id, plot);
     assert_eq!(decoded.presentation.basis.plan_id, plan);
     assert_eq!(decoded.parts.unwrap().wants_to_join.len(), 1);
 }
@@ -572,7 +572,7 @@ fn structured_browser_edit_normalizes_without_dom_or_widget_identity() {
     let snapshot = demonstration_snapshot().unwrap();
     let presentation_id = snapshot.presentation.identity.as_str();
     let basis = &snapshot.presentation.basis;
-    let expanded = basis.expanded_form_id.as_ref().unwrap().as_str();
+    let expanded = basis.expanded_plot_id.as_ref().unwrap().as_str();
     let body = serde_json::to_vec(&serde_json::json!({
         "presentation_id": presentation_id,
         "presentation_revision": snapshot.presentation.revision,
@@ -582,7 +582,7 @@ fn structured_browser_edit_normalizes_without_dom_or_widget_identity() {
         "edit": {
             "source_document_id": basis.source_document_id.as_ref().unwrap().as_str(),
             "source_revision": 7,
-            "expanded_form_id": expanded,
+            "expanded_plot_id": expanded,
             "operation": "configure-gear",
             "primary": "gear/count-demo/counter",
             "secondary": null,

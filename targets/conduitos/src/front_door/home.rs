@@ -29,7 +29,7 @@ impl Home {
             self.keymap.apply(event);
             return HomeInput::Unchanged;
         }
-        let forms = installed_form_titles();
+        let plots = installed_plot_titles();
         let abstract_event = match event.usage() {
             79 | 81 | 43 => HomeEvent::Next,
             80 | 82 => HomeEvent::Previous,
@@ -41,19 +41,19 @@ impl Home {
                     let mut utf8 = [0; 4];
                     let text = fragment.encode_utf8(&mut utf8);
                     return core::str::from_utf8(text).map_or(HomeInput::Unchanged, |text| {
-                        self.model.accept(HomeEvent::Text(text), &forms)
+                        self.model.accept(HomeEvent::Text(text), &plots)
                     });
                 }
                 KeymapDisposition::Refused(_) => HomeEvent::CharacterUnavailable,
                 _ => return HomeInput::Unchanged,
             },
         };
-        self.model.accept(abstract_event, &forms)
+        self.model.accept(abstract_event, &plots)
     }
 }
 
-fn installed_form_titles() -> [&'static str; crate::native_workset::NATIVE_FORM_CAPACITY] {
-    crate::native_workset::inventory().map(crate::native_workset::NativeForm::title)
+fn installed_plot_titles() -> [&'static str; crate::native_workset::NATIVE_PLOT_CAPACITY] {
+    crate::native_workset::inventory().map(crate::native_workset::NativePlot::title)
 }
 
 impl FrontDoor {
@@ -179,17 +179,17 @@ impl FrontDoor {
                     GraphicsPaintRole::Status,
                 )?;
             }
-            HomeView::Forms => {
+            HomeView::Plots => {
                 draw_text(
                     &mut scene,
                     screen,
                     56,
                     128,
-                    "INSTALLED FORMS",
+                    "INSTALLED PLOTS",
                     GraphicsTextRole::Heading,
                     GraphicsPaintRole::Accent,
                 )?;
-                for (index, form) in crate::native_workset::inventory().iter().enumerate() {
+                for (index, plot) in crate::native_workset::inventory().iter().enumerate() {
                     draw_text(
                         &mut scene,
                         screen,
@@ -197,12 +197,12 @@ impl FrontDoor {
                         188 + index as i16 * 48,
                         &format!(
                             "{}  {}",
-                            if index == home.model.selected_form_index() {
+                            if index == home.model.selected_plot_index() {
                                 ">"
                             } else {
                                 " "
                             },
-                            form.title()
+                            plot.title()
                         ),
                         GraphicsTextRole::Body,
                         GraphicsPaintRole::Foreground,
@@ -342,7 +342,7 @@ impl FrontDoor {
                 home.model
                     .presentation(
                         u32::try_from(self.revision).map_err(|_| Error::Presentation)?,
-                        &installed_form_titles(),
+                        &installed_plot_titles(),
                     )
                     .lower()
                     .map_err(|_| Error::Presentation)
@@ -416,12 +416,12 @@ mod tests {
     fn command_vocabulary_refuses_unknown_text() {
         let mut model = HomeModel::new();
         assert_eq!(
-            model.submit_text("open nowhere", &installed_form_titles()),
+            model.submit_text("open nowhere", &installed_plot_titles()),
             HomeInput::Changed
         );
         assert_eq!(model.output(), "Unknown command: open nowhere");
         assert_eq!(
-            model.submit_text("open tour", &installed_form_titles()),
+            model.submit_text("open tour", &installed_plot_titles()),
             HomeInput::OpenTour
         );
     }

@@ -3,12 +3,12 @@ use conduit_body::{
     MembershipEventKind, MembershipProofId, MembershipRefusal, MembershipState, PartId,
     MAX_BODY_PARTS, MAX_MEMBERSHIP_EVENTS,
 };
-use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SignId, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SignId, SourceDocumentId};
 
 fn body() -> Body {
     Body::born(
         SourceDocumentId::from("source/body-membership"),
-        CheckedFormId::from("checked/body-membership"),
+        CheckedPlotId::from("checked/body-membership"),
         1,
         SignId::from("sign/body-born"),
     )
@@ -149,7 +149,7 @@ fn duplicate_stale_wrong_body_and_malformed_changes_refuse_distinctly() {
     let body = body();
     let other = Body::born(
         SourceDocumentId::from("source/other"),
-        CheckedFormId::from("checked/other"),
+        CheckedPlotId::from("checked/other"),
         2,
         SignId::from("sign/other-born"),
     )

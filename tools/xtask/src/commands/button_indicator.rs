@@ -1,4 +1,4 @@
-//! Canonical Form, ordinary planner/kernel, scripted input, acquired physical output.
+//! Canonical Plot, ordinary planner/kernel, scripted input, acquired physical output.
 use clap::Args;
 use std::path::PathBuf;
 
@@ -33,7 +33,7 @@ pub fn run(
         return Err("expected exact indicator-resource firmware build identity".into());
     }
     if opts.dry_run {
-        println!("Would acquire {:?}, plan the canonical button Form, and apply scripted press/release to the Pico LED; no flash", args.serial_path);
+        println!("Would acquire {:?}, plan the canonical button Plot, and apply scripted press/release to the Pico LED; no flash", args.serial_path);
         return Ok(());
     }
     #[cfg(unix)]
@@ -70,8 +70,8 @@ pub fn run(
 mod physical {
     use super::*;
     use conduit_core::{resource_offer, HostAdvertisement, Plan, INPUT_RESOURCE_CLASS};
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
         StartupCatalog,
     };
     use conduit_std_host::{
@@ -82,7 +82,7 @@ mod physical {
     };
     use std::time::Duration;
 
-    const SOURCE: &str = include_str!("../../../../forms/button-across-room/main.conduit");
+    const SOURCE: &str = include_str!("../../../../plots/button-across-room/main.conduit");
 
     struct ScriptedInput {
         next: u8,
@@ -191,12 +191,12 @@ mod physical {
         conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
         let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
             .map_err(|e| format!("{e:?}"))?;
-        let form = expand_canonical_form(&checked, "button_across_room", &profile)
+        let plot = expand_canonical_plot(&checked, "button_across_room", &profile)
             .map_err(|e| format!("{e:?}"))?;
         let hosts = [advertisement.clone()];
-        let choices = conduit_planner::default_expanded_placements(&form, &hosts)
+        let choices = conduit_planner::default_expanded_placements(&plot, &hosts)
             .map_err(|e| format!("{e:?}"))?;
-        let limits = form
+        let limits = plot
             .connections
             .iter()
             .map(|c| {
@@ -219,7 +219,7 @@ mod physical {
             })
             .collect();
         conduit_planner::plan_expanded_canonical_with_connection_limits(
-            &form,
+            &plot,
             &hosts,
             &choices,
             &["conduit.base/local@1".into()],

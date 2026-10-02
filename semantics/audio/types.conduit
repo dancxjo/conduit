@@ -196,14 +196,14 @@ type SoundStreamState =
     | cancelled
     | closed
 
-code audio/tone-terminal = AudioToneTerminal as u8
+form audio/tone-terminal = AudioToneTerminal as u8
 
-code audio/pcm-sample-representation = PcmSampleRepresentation as u8
+form audio/pcm-sample-representation = PcmSampleRepresentation as u8
 
-code audio/pcm-channel-layout = PcmChannelLayout as u8
+form audio/pcm-channel-layout = PcmChannelLayout as u8
 
-code audio/gate = Gate as u8
+form audio/gate = Gate as u8
     off
     on
 
-code audio/modulation-destination = ModulationDestination as u8
+form audio/modulation-destination = ModulationDestination as u8

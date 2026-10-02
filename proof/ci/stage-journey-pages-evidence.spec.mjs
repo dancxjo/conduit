@@ -8,7 +8,7 @@ import test from "node:test";
 const script = "tools/ci/stage-journey-pages-evidence.mjs";
 const commit = "0123456789abcdef0123456789abcdef01234567";
 const inventories = new Map([
-  ["one-form-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
+  ["one-plot-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
   ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
 ]);
 const verticals = [
@@ -37,8 +37,8 @@ test("stages only the exact sealed sibling gallery behind the authored entrance"
     "little-life:t032.png",
   );
   assert.equal(
-    readFileSync(path.join(site, `journeys/commits/${commit}/one-form-two-fronts/native.png`), "utf8"),
-    "one-form-two-fronts:native.png",
+    readFileSync(path.join(site, `journeys/commits/${commit}/one-plot-two-fronts/native.png`), "utf8"),
+    "one-plot-two-fronts:native.png",
   );
   rmSync(root, { recursive: true, force: true });
 });

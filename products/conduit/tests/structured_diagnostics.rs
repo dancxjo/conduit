@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-fn form_path(label: &str, source: &str) -> PathBuf {
+fn plot_path(label: &str, source: &str) -> PathBuf {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("clock must follow the Unix epoch")
@@ -27,8 +27,8 @@ fn diagnose(path: &Path, json: bool) -> std::process::Output {
 }
 
 #[test]
-fn malformed_form_human_and_json_render_the_same_owned_diagnostic() {
-    let path = form_path("malformed", "not a form\n");
+fn malformed_plot_human_and_json_render_the_same_owned_diagnostic() {
+    let path = plot_path("malformed", "not a plot\n");
     let human = diagnose(&path, false);
     let machine = diagnose(&path, true);
     assert!(!human.status.success());
@@ -49,7 +49,7 @@ fn malformed_form_human_and_json_render_the_same_owned_diagnostic() {
 
 #[test]
 fn unsupported_kind_keeps_source_identity_and_exact_primary_span() {
-    let path = form_path("unsupported", "form demo {\n  x: missing/kind\n}\n");
+    let path = plot_path("unsupported", "plot demo {\n  x: missing/kind\n}\n");
     let output = diagnose(&path, true);
     assert!(!output.status.success());
     let diagnostics: Value = serde_json::from_slice(&output.stdout).unwrap();

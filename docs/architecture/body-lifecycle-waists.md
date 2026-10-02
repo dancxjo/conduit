@@ -45,7 +45,7 @@ inclusive time-window, relation, and latest selection are deterministic and
 admit candidate and result counts. Ambiguous latest, corrupt/missing
 generation, collection pressure, candidate pressure, and result pressure are
 distinct refusals. This storage-neutral waist serves both retained
-session/history and reviewed form/template catalogs; it is not containment,
+session/history and reviewed plot/template catalogs; it is not containment,
 a filesystem, or a global namespace.
 
 Attended resources share `discoverable -> requested -> current -> released |
@@ -57,14 +57,14 @@ WebUSB consume these semantics; opening a product never requests permission.
 
 ## Administration and fault disposition
 
-Birth, join/leave, form revision, wake/lull, resource acquisition/release,
+Birth, join/leave, plot revision, wake/lull, resource acquisition/release,
 authority change, inspection, and surviving-part recovery are exact bounded
 administrative intents. Mutation checks authority at the trusted boundary;
 reachability and membership are not authority. CLI and Patchbay/Creche are
 front ends to this same operation and evidence result. Inspection is separate
 and read-only. Stale, denied, conflicting, and replayed requests remain distinct.
 
-plans assign an exact failure scope (gear, cord, form, play, Host Call,
+plans assign an exact failure scope (gear, cord, plot, play, Host Call,
 resource, or line) and one finite disposition: terminate scope, use a checked
 degraded alternative, wait for a bounded number of changes, request atomic
 replacement realization, or lull. There is no hidden retry or supervisor

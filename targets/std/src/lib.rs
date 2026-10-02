@@ -2,8 +2,8 @@ use conduit_core::{
     BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
     PlanFragment, PlanId,
 };
-use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
+use conduit_plot::CheckedPlot;
 use conduit_signal::{PULSE_KIND, SHOW_KIND};
 use std::fs;
 use std::io::Write;
@@ -404,7 +404,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     timer: &mut T,
 ) -> Result<kernel_multivalue::MultiValueRunReport, String> {
     let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let form = conduit_form::parse(&source, &kernel_multivalue::profile_catalog())
+    let plot = conduit_plot::parse(&source, &kernel_multivalue::profile_catalog())
         .map_err(|error| error.to_string())?;
     let advertisement = kernel_multivalue::advertisement(
         HostId::from("std-host-1"),
@@ -412,7 +412,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
         OfferGeneration(1),
     );
     let plan =
-        kernel_multivalue::plan_local(&form, &advertisement).map_err(|error| error.to_string())?;
+        kernel_multivalue::plan_local(&plot, &advertisement).map_err(|error| error.to_string())?;
     let fragment = plan
         .fragments
         .into_iter()
@@ -1255,16 +1255,16 @@ impl StdHost {
 
     pub fn plan_local(
         &self,
-        form: &CheckedForm,
+        plot: &CheckedPlot,
         placements: Option<&PlacementChoices>,
     ) -> Result<Plan, Box<dyn std::error::Error>> {
         let hosts = vec![self.advertisement().clone()];
         let placements = match placements {
             Some(placements) => placements.clone(),
-            None => default_placements(form, &hosts)?,
+            None => default_placements(plot, &hosts)?,
         };
         Ok(plan(
-            form,
+            plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -1273,17 +1273,17 @@ impl StdHost {
 
     pub fn plan_local_with_authority(
         &self,
-        form: &CheckedForm,
+        plot: &CheckedPlot,
         placements: Option<&PlacementChoices>,
         authority_grants: &[conduit_core::AuthorityGrant],
     ) -> Result<Plan, Box<dyn std::error::Error>> {
         let hosts = vec![self.advertisement().clone()];
         let placements = match placements {
             Some(placements) => placements.clone(),
-            None => default_placements(form, &hosts)?,
+            None => default_placements(plot, &hosts)?,
         };
         Ok(conduit_planner::plan_with_authority_grants(
-            form,
+            plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -1482,12 +1482,12 @@ impl StdHost {
 
     pub fn plan_expanded_local(
         &self,
-        form: &conduit_form::ExpandedCanonicalForm,
+        plot: &conduit_plot::ExpandedCanonicalPlot,
     ) -> Result<Plan, Box<dyn std::error::Error>> {
         let hosts = vec![self.advertisement().clone()];
-        let placements = conduit_planner::default_expanded_placements(form, &hosts)?;
+        let placements = conduit_planner::default_expanded_placements(plot, &hosts)?;
         Ok(conduit_planner::plan_expanded_canonical(
-            form,
+            plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -1543,11 +1543,11 @@ fn write_operator_report<W: Write>(
     .map_err(|error| error.to_string())?;
     writeln!(
         out,
-        "plan {} source_document={} checked_form={} expanded_form={}",
+        "plan {} source_document={} checked_plot={} expanded_plot={}",
         plan_id.as_str(),
         fragment.source_document_id.as_str(),
-        fragment.checked_form_id.as_str(),
-        fragment.expanded_form_id.as_str()
+        fragment.checked_plot_id.as_str(),
+        fragment.expanded_plot_id.as_str()
     )
     .map_err(|error| error.to_string())?;
     for placement in &fragment.placements {
@@ -1593,10 +1593,10 @@ fn write_operator_report<W: Write>(
 mod tests {
     use super::{StdHost, StdHostConfig, TimerAdapter};
     use conduit_core::{
-        seal_plan, BootId, ConnectionId, FormIdentity, HostId, OfferGeneration, PortDirection,
+        seal_plan, BootId, ConnectionId, HostId, OfferGeneration, PlotIdentity, PortDirection,
         PortId,
     };
-    use conduit_form::parse_with_startup;
+    use conduit_plot::parse_with_startup;
     use conduit_signal::signal_profile_catalog;
     use std::time::Duration;
 
@@ -1648,13 +1648,13 @@ mod tests {
             boot_id: BootId::from("lowering-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse_with_startup(
-            include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
+        let plot = parse_with_startup(
+            include_str!("../../../proof/fixtures/plots/signal-demo.conduit"),
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
-        .expect("signal form parses");
-        let plan = host.plan_local(&form, None).expect("local plan resolves");
+        .expect("signal plot parses");
+        let plan = host.plan_local(&plot, None).expect("local plan resolves");
         let fragment = &plan.fragments[0];
         let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
             .expect("exact fragment lowers");
@@ -1740,14 +1740,14 @@ mod tests {
             Err(conduit_plan_lowering::lowering::LoweringError::InvalidFragment)
         ));
 
-        let form_identity = FormIdentity {
+        let plot_identity = PlotIdentity {
             source_document_id: fragment.source_document_id.clone(),
-            checked_form_id: fragment.checked_form_id.clone(),
-            expanded_form_id: fragment.expanded_form_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
         };
         let mut concurrent = fragment.clone();
         concurrent.placements[0].host_calls[0].maximum_in_flight = 2;
-        let concurrent = seal_plan(form_identity.clone(), vec![concurrent]);
+        let concurrent = seal_plan(plot_identity.clone(), vec![concurrent]);
         assert!(matches!(
             conduit_plan_lowering::lowering::lower_plan_fragment(&concurrent.fragments[0]),
             Err(conduit_plan_lowering::lowering::LoweringError::UnsupportedHostCallConcurrency(_))
@@ -1757,23 +1757,23 @@ mod tests {
         let mut second = fan_in.connections[0].clone();
         second.connection_id = ConnectionId::from("second-cord-to-same-input");
         fan_in.connections.push(second);
-        let fan_in = seal_plan(form_identity, vec![fan_in]);
+        let fan_in = seal_plan(plot_identity, vec![fan_in]);
         assert!(matches!(
             conduit_plan_lowering::lowering::lower_plan_fragment(&fan_in.fragments[0]),
             Err(conduit_plan_lowering::lowering::LoweringError::MultipleConnectionsToInput { .. })
         ));
 
-        let form_identity = FormIdentity {
+        let plot_identity = PlotIdentity {
             source_document_id: fragment.source_document_id.clone(),
-            checked_form_id: fragment.checked_form_id.clone(),
-            expanded_form_id: fragment.expanded_form_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
         };
         let mut remote = fragment.clone();
         let foreign_line: conduit_core::AdmittedLine =
             (&conduit_signal_conformance::distributed_websocket_line_offer()).into();
         remote.connections[0].selected_line = Some(foreign_line.clone());
         remote.connections[0].admitted_lines = vec![foreign_line];
-        let remote = seal_plan(form_identity.clone(), vec![remote]);
+        let remote = seal_plan(plot_identity.clone(), vec![remote]);
         assert!(matches!(
             conduit_plan_lowering::lowering::lower_plan_fragment(&remote.fragments[0]),
             Err(conduit_plan_lowering::lowering::LoweringError::InvalidFragment)
@@ -1787,7 +1787,7 @@ mod tests {
             extra.port_id = PortId::from(format!("extra-output-{index}"));
             too_wide.placements[0].outputs.push(extra);
         }
-        let too_wide = seal_plan(form_identity, vec![too_wide]);
+        let too_wide = seal_plan(plot_identity, vec![too_wide]);
         assert!(matches!(
             conduit_plan_lowering::lowering::lower_plan_fragment(&too_wide.fragments[0]),
             Err(
@@ -1805,10 +1805,10 @@ mod tests {
         second_output.port_id = PortId::from("second-output");
         profile_wide.placements[0].outputs.push(second_output);
         let profile_wide = seal_plan(
-            FormIdentity {
+            PlotIdentity {
                 source_document_id: fragment.source_document_id.clone(),
-                checked_form_id: fragment.checked_form_id.clone(),
-                expanded_form_id: fragment.expanded_form_id.clone(),
+                checked_plot_id: fragment.checked_plot_id.clone(),
+                expanded_plot_id: fragment.expanded_plot_id.clone(),
             },
             vec![profile_wide],
         );
@@ -1867,10 +1867,10 @@ mod tests {
             boot_id: BootId::from("virtual-clock-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse_with_startup(
-            "form virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: presentation/show\n pulse >> show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-        .expect("virtual-clock form parses");
-        let plan = host.plan_local(&form, None).expect("local plan resolves");
+        let plot = parse_with_startup(
+            "plot virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: presentation/show\n pulse >> show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+        .expect("virtual-clock plot parses");
+        let plan = host.plan_local(&plot, None).expect("local plan resolves");
         let fragment = plan.fragments[0].clone();
         let plan_id = fragment.plan_id.clone();
         let mut output = Vec::with_capacity(65_536);
@@ -1981,18 +1981,18 @@ mod tests {
             boot_id: BootId::from("fanout-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse_with_startup(
-            include_str!("../../../proof/fixtures/forms/triple-signal.conduit"),
+        let plot = parse_with_startup(
+            include_str!("../../../proof/fixtures/plots/triple-signal.conduit"),
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
-        .expect("triple signal form parses");
+        .expect("triple signal plot parses");
         let placements = conduit_planner::parse_placements(include_str!(
             "../../../proof/fixtures/placements/triple-local.placements"
         ))
         .expect("triple local placements parse");
         let plan = host
-            .plan_local(&form, Some(&placements))
+            .plan_local(&plot, Some(&placements))
             .expect("triple local plan resolves");
         let fragment = plan.fragments[0].clone();
         let mut output = Vec::with_capacity(65_536);
@@ -2005,23 +2005,23 @@ mod tests {
 
         assert_eq!(timer.waits, vec![Duration::from_millis(250); 15]);
         assert_eq!(report.receipts.len(), 48);
-        let kernel = report.kernel.expect("triple local form uses kernel");
+        let kernel = report.kernel.expect("triple local plot uses kernel");
         assert_eq!(kernel.identity.lengths(), (63, 48, 49));
         assert_eq!(kernel.post_play_start_allocations, 0);
     }
 
     #[test]
-    fn unsupported_production_std_form_fails_closed_without_a_legacy_pump() {
+    fn unsupported_production_std_plot_fails_closed_without_a_legacy_pump() {
         let mut host = StdHost::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),
-            boot_id: BootId::from("unsupported-form-boot"),
+            boot_id: BootId::from("unsupported-plot-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse_with_startup(
-            "form wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: presentation/show\n right: presentation/show\n first >> left\n second >> right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-        .expect("unsupported wider form remains semantically valid");
+        let plot = parse_with_startup(
+            "plot wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: presentation/show\n right: presentation/show\n first >> left\n second >> right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+        .expect("unsupported wider plot remains semantically valid");
         let plan = host
-            .plan_local(&form, None)
+            .plan_local(&plot, None)
             .expect("wider local plan resolves");
         let mut output = Vec::with_capacity(8_192);
         let mut timer = VirtualTimer::default();

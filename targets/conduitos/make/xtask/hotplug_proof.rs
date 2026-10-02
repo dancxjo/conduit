@@ -25,7 +25,7 @@ const NEGATIVE_CASES: &[&str] = &[
     "device-loss-during-play-is-not-success-or-closure",
     "device-loss-makes-no-semantic-release",
     "non-keyboard-and-hid-setup-failure-publish-no-offer",
-    "form-carries-no-usb-hid-or-authority-facts",
+    "plot-carries-no-usb-hid-or-authority-facts",
 ];
 
 #[derive(Serialize)]
@@ -140,7 +140,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .map_err(|error| ConduitosError::refusal("hotplug-sign-invalid", error.to_string()))?;
     for exact_true in [
         "p1_immutable",
-        "same_form",
+        "same_plot",
         "same_host",
         "same_boot",
         "stale_plan_refused",

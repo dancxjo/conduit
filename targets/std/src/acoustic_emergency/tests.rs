@@ -4,7 +4,7 @@ use crate::remote_emergency::{
 };
 use conduit_body::{Body, EmergencyMachineAction, EmergencyStepOutcome};
 use conduit_core::{
-    BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseProviderEntry, CheckedFormId,
+    BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseProviderEntry, CheckedPlotId,
     HostBaseId, HostBaseKindId, SignId, SourceDocumentId,
 };
 use conduit_emergency_keyword_spotter::{extract_features, FeatureVector, TEMPLATE_FRAMES};
@@ -57,7 +57,7 @@ fn configuration() -> DurableEmergencyConfiguration {
 fn body_id() -> BodyId {
     Body::born(
         SourceDocumentId::from("source/acoustic-emergency"),
-        CheckedFormId::from("checked/acoustic-emergency"),
+        CheckedPlotId::from("checked/acoustic-emergency"),
         1,
         SignId::from("sign/acoustic-emergency-born"),
     )

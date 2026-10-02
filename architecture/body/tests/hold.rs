@@ -5,9 +5,9 @@ use conduit_body::{
 };
 use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CheckedFormId, ExecutionProfileId, ExpandedFormId,
-    ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
-    KindId, KindIdentity, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId,
+    CapabilityId, CapabilityLimits, CheckedPlotId, ExecutionProfileId, ExpandedPlotId,
+    ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostId, ImplementationId, KindId,
+    KindIdentity, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlotIdentity,
     ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget, SourceDocumentId,
     TerminalPolicy,
 };
@@ -15,7 +15,7 @@ use conduit_core::{
 fn body() -> Body {
     Body::born(
         SourceDocumentId::from("source-a"),
-        CheckedFormId::from("checked-a"),
+        CheckedPlotId::from("checked-a"),
         1,
         SignId::from("born"),
     )
@@ -32,8 +32,8 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: SourceDocumentId::from("source-a"),
-        checked_form_id: CheckedFormId::from("checked-a"),
-        expanded_form_id: ExpandedFormId::from(label),
+        checked_plot_id: CheckedPlotId::from("checked-a"),
+        expanded_plot_id: ExpandedPlotId::from(label),
         realization_backs: Vec::new(),
         host_id: HostId::from(host),
         boot_id: BootId::from(format!("{host}-boot")),
@@ -95,10 +95,10 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         plan_fragments: vec![],
     };
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source-a"),
-            checked_form_id: CheckedFormId::from("checked-a"),
-            expanded_form_id: ExpandedFormId::from(label),
+            checked_plot_id: CheckedPlotId::from("checked-a"),
+            expanded_plot_id: ExpandedPlotId::from(label),
         },
         vec![fragment],
     )

@@ -95,16 +95,16 @@ fn capstone_source_is_canonical_and_contains_no_realization_facts() {
         assert!(!PETE_CAPSTONE_FORM.to_ascii_lowercase().contains(forbidden));
     }
     let (startup, profile) = crate::catalogs().unwrap();
-    let syntax = conduit_form::parse_syntax_document(PETE_CAPSTONE_FORM);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(PETE_CAPSTONE_FORM);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, PETE_CAPSTONE_FORM_NAME, &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, PETE_CAPSTONE_PLOT_NAME, &profile).unwrap();
     assert_eq!(expanded.gears.len(), 5);
     assert_eq!(expanded.connections.len(), 5);
 }
 
 #[test]
-fn same_form_seals_distinct_std_and_pico_plans_without_two_uarts() {
+fn same_plot_seals_distinct_std_and_pico_plans_without_two_uarts() {
     let std_evidence = evidence(CapstoneHostClass::Std);
     let pico_evidence = evidence(CapstoneHostClass::PicoW);
     let std_host = capstone_advertisement(&std_evidence, 105).unwrap();
@@ -145,8 +145,8 @@ fn same_form_seals_distinct_std_and_pico_plans_without_two_uarts() {
     let std_plan = capstone_plan(&std_evidence, 105).unwrap();
     let pico_plan = capstone_plan(&pico_evidence, 105).unwrap();
     assert_eq!(std_plan.source_document_id, pico_plan.source_document_id);
-    assert_eq!(std_plan.checked_form_id, pico_plan.checked_form_id);
-    assert_eq!(std_plan.expanded_form_id, pico_plan.expanded_form_id);
+    assert_eq!(std_plan.checked_plot_id, pico_plan.checked_plot_id);
+    assert_eq!(std_plan.expanded_plot_id, pico_plan.expanded_plot_id);
     assert_ne!(std_plan.plan_id, pico_plan.plan_id);
     assert_eq!(std_plan.fragments[0].placements.len(), 5);
     assert_eq!(pico_plan.fragments[0].placements.len(), 5);

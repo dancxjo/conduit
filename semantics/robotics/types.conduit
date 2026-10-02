@@ -10,7 +10,7 @@ type BeaconObservation = {
     where !(.kind is virtual_wall) || .code == 0
 }
 
-code robotics/beacon-kind = BeaconKind as u8
+form robotics/beacon-kind = BeaconKind as u8
 
 type ChargingState =
     not_charging
@@ -31,7 +31,7 @@ type ChargingObservation = {
     where .charge_mah <= .capacity_mah
 }
 
-code robotics/charging-state = ChargingState as u8
+form robotics/charging-state = ChargingState as u8
 
 type RoboticsSimulationAvailability =
     fresh

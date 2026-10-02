@@ -1,4 +1,4 @@
-use super::{workload, Body, BodyFormPlan, BodyPlan, ResidentForm, SignId};
+use super::{workload, Body, BodyPlan, BodyPlotPlan, ResidentPlot, SignId};
 use crate::{
     body_execution::BodyRunRequest,
     hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll},
@@ -41,17 +41,17 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
     let first = &plans[0];
     let mut body = Body::born(
         first.source_document_id.clone(),
-        first.checked_form_id.clone(),
+        first.checked_plot_id.clone(),
         1,
         SignId::from("sign/cancel-body"),
     )
     .unwrap();
     for (index, part) in plans.iter().enumerate().skip(1) {
         body = body
-            .admit_form(
-                ResidentForm::new(
+            .admit_plot(
+                ResidentPlot::new(
                     part.source_document_id.clone(),
-                    part.checked_form_id.clone(),
+                    part.checked_plot_id.clone(),
                 ),
                 SignId::from(format!("sign/cancel-admit-{index}")),
             )
@@ -62,10 +62,10 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
         &wake,
         plans
             .into_iter()
-            .map(|plan| BodyFormPlan {
-                form: ResidentForm::new(
+            .map(|plan| BodyPlotPlan {
+                plot: ResidentPlot::new(
                     plan.source_document_id.clone(),
-                    plan.checked_form_id.clone(),
+                    plan.checked_plot_id.clone(),
                 ),
                 plan,
             })

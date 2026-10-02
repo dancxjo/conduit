@@ -10,7 +10,7 @@ const STEPS: [(&str, &str, &str); 13] = [
     ("bootstrap.started", "bootstrap-started", "runtime-receipt"),
     ("body.born", "body-born", "body-biography"),
     ("body.awake", "body-awake", "body-biography"),
-    ("form.used", "standing-form-used", "runtime-receipt"),
+    ("plot.used", "standing-plot-used", "runtime-receipt"),
     ("body.inspected", "body-inspected", "semantic-face"),
     ("workload.revised", "workload-revised", "body-biography"),
     ("host.added", "host-added", "runtime-receipt"),
@@ -40,7 +40,7 @@ pub(crate) struct TrackSource {
     pub commit: String,
     pub track_id: &'static str,
     pub embodiment: &'static str,
-    pub mask_form_id: &'static str,
+    pub mask_plot_id: &'static str,
     pub construction: Vec<ConstructionTruth>,
     pub identities: TrackIdentities,
     pub facts: Vec<Value>,
@@ -123,7 +123,7 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
         let host_added = *step_id == "host.added";
         let plan = matches!(
             *step_id,
-            "form.used" | "workload.revised" | "host.added" | "body.repaired"
+            "plot.used" | "workload.revised" | "host.added" | "body.repaired"
         )
         .then(|| {
             if host_added {
@@ -138,7 +138,7 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
         });
         let play = matches!(
             *step_id,
-            "form.used" | "body.repaired" | "body.long-running"
+            "plot.used" | "body.repaired" | "body.long-running"
         )
         .then_some(&source.identities.play);
         let sign = source.identities.signs.get(step_id);
@@ -235,7 +235,7 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
             &["body.absent", "bootstrap.started"][..],
         ),
         ("journey.birth", &["body.born", "body.awake"][..]),
-        ("journey.useful-work", &["form.used"][..]),
+        ("journey.useful-work", &["plot.used"][..]),
         (
             "journey.break-recover",
             &["fault.observed", "body.repaired"][..],
@@ -289,7 +289,7 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
         "track_id": source.track_id,
         "embodiment": source.embodiment,
         "body_id": source.identities.body,
-        "mask_form_id": source.mask_form_id,
+        "mask_plot_id": source.mask_plot_id,
         "construction": source.construction,
         "hosts": hosts,
         "line_ids": source.identities.line.into_iter().collect::<Vec<_>>(),

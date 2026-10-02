@@ -1,6 +1,6 @@
 use super::*;
 use alloc::{format, string::ToString};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn oversized_command_refuses_without_changing_retained_slots() {

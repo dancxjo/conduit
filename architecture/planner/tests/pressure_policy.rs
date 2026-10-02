@@ -3,10 +3,10 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, ImplementationOffer, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
-use conduit_form::{
+use conduit_planner::{default_placements, plan_with_connection_limits};
+use conduit_plot::{
     KindProjection, KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
-use conduit_planner::{default_placements, plan_with_connection_limits};
 
 mod common;
 
@@ -97,8 +97,8 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
         })
         .unwrap();
 
-    let form = conduit_form::parse_with_startup(
-        "form coalesced_ticks {\n    clock: time/tick(count = 2, period-ms = 1)\n    latest: flow/coalesce-latest\n    sink: fixture/tick-current-sink\n    clock.tick >> latest.in\n    latest.out >> sink.in\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot coalesced_ticks {\n    clock: time/tick(count = 2, period-ms = 1)\n    latest: flow/coalesce-latest\n    sink: fixture/tick-current-sink\n    clock.tick >> latest.in\n    latest.out >> sink.in\n}\n",
         &startup,
         &profile,
     )
@@ -111,9 +111,9 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
         sink,
     ];
     let hosts = [host];
-    let placements = default_placements(&form, &hosts).unwrap();
+    let placements = default_placements(&plot, &hosts).unwrap();
     let plan = plan_with_connection_limits(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

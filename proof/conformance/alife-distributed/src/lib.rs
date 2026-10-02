@@ -218,7 +218,7 @@ fn host(host_id: &str, boot_id: &str) -> HostAdvertisement {
     }
 }
 
-fn capability(gear: &conduit_form::CheckedGear, host_index: usize) -> CapabilityOffer {
+fn capability(gear: &conduit_plot::CheckedGear, host_index: usize) -> CapabilityOffer {
     conduit_core::capability_offer_from_parts! {
         semantic_contract: gear.semantic_contract.clone(),
         startup_parameters: gear.startup_parameters.clone(),
@@ -247,7 +247,7 @@ fn capability(gear: &conduit_form::CheckedGear, host_index: usize) -> Capability
     }
 }
 
-fn capability_id(gear: &conduit_form::CheckedGear, host_index: usize) -> CapabilityId {
+fn capability_id(gear: &conduit_plot::CheckedGear, host_index: usize) -> CapabilityId {
     CapabilityId::from(format!("lenia/host-{host_index}/{}", gear.gear_id.as_str()))
 }
 

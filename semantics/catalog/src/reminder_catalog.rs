@@ -1,4 +1,4 @@
-//! Canonical Form catalog and exact effect seam for reminder delivery.
+//! Canonical Plot catalog and exact effect seam for reminder delivery.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 pub const REMINDER_OCCURRENCE_TYPE: &str = "ReminderOccurrence";
 pub const REMINDER_FIXTURE_KIND: &str = "notification/deterministic-reminder";
@@ -37,8 +37,8 @@ pub fn reminder_occurrence_type() -> StructuredInfoType {
 }
 
 pub fn install_reminder_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type(REMINDER_OCCURRENCE_TYPE, reminder_occurrence_type())
@@ -50,8 +50,8 @@ pub fn install_reminder_catalogs(
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: Kind,
 ) -> Result<(), String> {
     startup

@@ -347,7 +347,7 @@ function requireBodyConversationContext(value, bodyId) {
     || value.basis?.body_id !== value.body_id || value.basis?.wake_id !== value.wake_id
     || value.basis?.wake_sequence !== value.wake_sequence
     || !Number.isSafeInteger(value.basis?.revision) || value.basis.revision < 0
-    || !Array.isArray(value.hosts) || !Array.isArray(value.active_forms)
+    || !Array.isArray(value.hosts) || !Array.isArray(value.active_plots)
     || !Array.isArray(value.lines) || !Array.isArray(value.recent_sign_ids)) {
     refuse("BodyContext", "Body conversation context is malformed or belongs to another body");
   }

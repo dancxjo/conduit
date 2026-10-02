@@ -1,4 +1,4 @@
-//! Current form check, exact boot-scoped planning, and numeric lowering.
+//! Current plot check, exact boot-scoped planning, and numeric lowering.
 
 use alloc::{format, vec, vec::Vec};
 
@@ -19,7 +19,7 @@ use crate::{
     text_planned_kernel::TextPlannedKernel,
 };
 
-pub const ORDINARY_FORM_SOURCE: &str = "form conduitos-text-upper {\n    upper: text/upper\n    show: presentation/text\n    \"Hello, ConduitOS\" >> upper >> show\n}\n";
+pub const ORDINARY_PLOT_SOURCE: &str = "plot conduitos-text-upper {\n    upper: text/upper\n    show: presentation/text\n    \"Hello, ConduitOS\" >> upper >> show\n}\n";
 pub const TEXT_LITERAL: &str = "Hello, ConduitOS";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
@@ -31,8 +31,8 @@ pub struct PreparedOrdinaryPlay {
     pub advertisement: HostAdvertisement,
     pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
     pub plan_id: PlanId,
     pub fragment_id: conduit_core::FragmentId,
     pub active_play: ActivePlayIdentity,
@@ -43,7 +43,7 @@ pub struct PreparedOrdinaryPlay {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PreparationError {
     OfferMismatch,
-    FormRejected,
+    PlotRejected,
     PlacementRejected,
     PlanRejected,
     LoweringRejected,
@@ -54,7 +54,7 @@ impl PreparationError {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::OfferMismatch => "ordinary-offer-mismatch",
-            Self::FormRejected => "ordinary-form-rejected",
+            Self::PlotRejected => "ordinary-plot-rejected",
             Self::PlacementRejected => "ordinary-placement-rejected",
             Self::PlanRejected => "ordinary-plan-rejected",
             Self::LoweringRejected => "ordinary-lowering-rejected",
@@ -72,7 +72,7 @@ pub fn prepare(
         identities,
         fixed_offer,
         build_id,
-        ORDINARY_FORM_SOURCE,
+        ORDINARY_PLOT_SOURCE,
         "conduitos-text-upper",
         TEXT_LITERAL,
     )
@@ -83,17 +83,17 @@ pub fn prepare_source(
     fixed_offer: &HostOffer<'_>,
     build_id: &str,
     source: &str,
-    form_name: &str,
+    plot_name: &str,
     expected_literal: &str,
 ) -> Result<PreparedOrdinaryPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
-    let form = crate::ordinary_form::checked_expanded_text_form_named(source, form_name)?;
-    validate_text_capacity(&form, CORD_BYTES)?;
+    let plot = crate::ordinary_plot::checked_expanded_text_plot_named(source, plot_name)?;
+    validate_text_capacity(&plot, CORD_BYTES)?;
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(&form, &hosts)
+    let placements = default_expanded_placements(&plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -138,8 +138,8 @@ pub fn prepare_source(
         kernel,
         advertisement,
         source_document_id: plan.source_document_id.clone(),
-        checked_form_id: plan.checked_form_id.clone(),
-        expanded_form_id: plan.expanded_form_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
         plan_id: plan.plan_id.clone(),
         fragment_id: fragment.fragment_id.clone(),
         active_play,
@@ -377,10 +377,10 @@ pub(crate) fn advertisement(
 }
 
 fn validate_text_capacity(
-    form: &conduit_form::ExpandedCanonicalForm,
+    plot: &conduit_plot::ExpandedCanonicalPlot,
     cord_bytes: u32,
 ) -> Result<(), PreparationError> {
-    let literal = form
+    let literal = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
@@ -392,7 +392,7 @@ fn validate_text_capacity(
                     _ => None,
                 })
         })
-        .ok_or(PreparationError::FormRejected)?;
+        .ok_or(PreparationError::PlotRejected)?;
     if literal.len() > conduit_text::MAX_TEXT_BYTES as usize || literal.len() > cord_bytes as usize
     {
         return Err(PreparationError::PlanRejected);

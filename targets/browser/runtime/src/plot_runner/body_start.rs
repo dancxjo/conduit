@@ -1,0 +1,404 @@
+//! Exact local body preparation using the installed browser session and kernel.
+use super::*;
+use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
+use conduit_core::{
+    ResourceAdmissionItem, ResourceAdmissionOwner, ResourceAdmissionRequest, ResourceObservation,
+};
+use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetBounds};
+#[path = "body_startup.rs"]
+mod startup;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct BodyStartRequest {
+    pub wake: Wake,
+    pub plan: BodyPlan,
+    pub play_sequence: u64,
+    pub local_host_id: conduit_core::HostId,
+    pub local_boot_id: conduit_core::BootId,
+    /// Plot Plans prepared and driven by another exact page-Host owner. They
+    /// remain part of the immutable Body Plan and lifecycle identity, but are
+    /// deliberately absent from this local scheduler.
+    #[serde(default)]
+    pub externally_managed_plan_ids: Vec<conduit_core::PlanId>,
+    /// Supplied by the trusted page Host adapter, not inferred from offers.
+    pub observations: Vec<ResourceObservation>,
+    /// Exact retained history before this start. Required for lifecycle sources;
+    /// the host must durably record the returned start before dispatching effects.
+    #[serde(default)]
+    pub body_evidence: Option<conduit_body::BodyBiographyEvidence>,
+    pub source: String,
+    pub foreground_checked_plot_id: String,
+}
+
+#[derive(serde::Serialize)]
+pub(super) struct BodyStarted {
+    pub schema: &'static str,
+    pub play: BodyPlayIdentity,
+    pub wake_at_start: Wake,
+    pub progress: TourProgress,
+}
+
+#[derive(Debug)]
+pub(super) struct BodyStartRefusal {
+    pub message: String,
+    pub rejections: Vec<conduit_body::WakeRejectionEvidence>,
+}
+
+impl BodyStartRefusal {
+    #[cfg(test)]
+    fn contains(&self, pattern: &str) -> bool {
+        self.message.contains(pattern)
+    }
+}
+
+impl From<String> for BodyStartRefusal {
+    fn from(message: String) -> Self {
+        Self {
+            message,
+            rejections: Vec::new(),
+        }
+    }
+}
+impl From<&str> for BodyStartRefusal {
+    fn from(message: &str) -> Self {
+        message.to_owned().into()
+    }
+}
+
+pub(super) fn prepare(
+    request: BodyStartRequest,
+) -> Result<(TourSession, BodyStarted), BodyStartRefusal> {
+    use crate::installed_browser::*;
+    request
+        .plan
+        .validate_for(&request.wake)
+        .map_err(|error| format!("Body Plan: {error:?}"))?;
+    let external = request
+        .externally_managed_plan_ids
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    if external.len() != request.externally_managed_plan_ids.len() {
+        return Err("externally managed Body Plot Plan identity is duplicated".into());
+    }
+    let mut matched_external = std::collections::BTreeSet::new();
+    let mut fragments = Vec::with_capacity(request.plan.plots.len());
+    for part in &request.plan.plots {
+        if external.contains(&part.plan.plan_id) {
+            let local = part
+                .plan
+                .fragments
+                .iter()
+                .filter(|fragment| {
+                    fragment.host_id == request.local_host_id
+                        && fragment.boot_id == request.local_boot_id
+                })
+                .count();
+            if part.plan.fragments.len() < 2 || local != 1 {
+                return Err("external Body Plot does not name one exact local fragment".into());
+            }
+            matched_external.insert(part.plan.plan_id.clone());
+            continue;
+        }
+        if part.plan.fragments.len() != 1 {
+            return Err("unowned distributed Body Plot requires an external manager".into());
+        }
+        let fragment = &part.plan.fragments[0];
+        if fragment.host_id != request.local_host_id || fragment.boot_id != request.local_boot_id {
+            return Err("local body Plot differs from this browser Host and Boot".into());
+        }
+        fragments.push(fragment.clone());
+    }
+    if matched_external != external {
+        return Err("external Body Plot Plan is absent from the immutable Body Plan".into());
+    }
+    if fragments.is_empty() {
+        return Err("Body Play requires at least one locally managed Plot".into());
+    }
+    let mut host = crate::installed_browser::advertisement(
+        request.local_host_id.clone(),
+        request.local_boot_id.clone(),
+    );
+    if request.observations.len() > host.resources.len() {
+        return Err("Body resource observations exceed the installed resource bound".into());
+    }
+    let lowered = lower_local_fragment_set(
+        &fragments.iter().collect::<Vec<_>>(),
+        conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
+        FragmentSetBounds {
+            fragments: conduit_body::MAX_BODY_PLOTS as u16,
+            nodes: MAXIMUM_BROWSER_GEARS as u16,
+            cords: MAXIMUM_BROWSER_CORDS as u16,
+            queue_slots: BROWSER_QUEUE_SLOTS as u16,
+            value_bytes: BROWSER_TOTAL_VALUE_BYTES,
+            sign_items: BROWSER_SIGN_ITEMS,
+            sign_bytes: u32::from(BROWSER_SIGN_ITEMS)
+                * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
+        },
+    )
+    .map_err(|error| {
+        let message = format!("Body lowering: {error:?}");
+        let rejections = match error {
+            conduit_plan_lowering::fragment_set::FragmentSetError::Capacity(deficit) => {
+                vec![conduit_body::WakeRejectionEvidence {
+                    reason_code: "lowering.capacity".into(),
+                    category: "Capacity".into(),
+                    stage: "Body lowering".into(),
+                    resource: deficit.resource.into(),
+                    required: deficit.required,
+                    available: deficit.available,
+                    host_id: request.local_host_id.clone(),
+                    boot_id: request.local_boot_id.clone(),
+                    plan_id: Some(request.plan.plan_id.clone()),
+                    checked_plot_ids: fragments
+                        .iter()
+                        .map(|fragment| fragment.checked_plot_id.clone())
+                        .collect(),
+                }]
+            }
+            _ => Vec::new(),
+        };
+        BodyStartRefusal {
+            message,
+            rejections,
+        }
+    })?;
+    // Lowering has already bounded the placements. Dynamic selectors and pure
+    // expressions are installed realizations whose exact contracts are revalidated.
+    for gear in fragments.iter().flat_map(|fragment| &fragment.placements) {
+        if let Some(offer) =
+            crate::installed_browser::structured_selector::offer_for_placement(gear)?
+        {
+            if !host
+                .capabilities
+                .iter()
+                .any(|current| current.capability_id == offer.capability_id)
+            {
+                host.capabilities.push(offer);
+            }
+        }
+        if let Some(offer) = crate::installed_browser::pure_expression::offer_for_placement(gear)? {
+            if !host
+                .capabilities
+                .iter()
+                .any(|current| current.capability_id == offer.capability_id)
+            {
+                host.capabilities.push(offer);
+            }
+        }
+    }
+    let mut requests = Vec::new();
+    let mut instances = BTreeMap::<conduit_core::CapabilityId, usize>::new();
+    for fragment in &fragments {
+        if fragment.host_id != host.host_id
+            || fragment.boot_id != host.boot_id
+            || fragment.offer_generation != host.offer_generation
+        {
+            return Err("Body fragment differs from the current browser Host".into());
+        }
+        for gear in &fragment.placements {
+            let offer = host
+                .capabilities
+                .iter()
+                .find(|offer| offer.capability_id == gear.capability_id)
+                .ok_or("Body capability is not installed")?;
+            if gear.host_id != host.host_id
+                || gear.boot_id != host.boot_id
+                || gear.offer_generation != host.offer_generation
+                || gear.implementation_id != offer.implementation.implementation_id
+                || gear.kind_id != offer.kind_id
+                || !placement_authority_matches(gear, offer)
+            {
+                return Err(
+                    "Body placement does not match the current supported browser offer".into(),
+                );
+            }
+            let count = instances.entry(gear.capability_id.clone()).or_default();
+            *count += 1;
+            if *count > usize::from(offer.limits.max_active_instances) {
+                return Err("Body capability instance limit exceeded".into());
+            }
+            if gear.resources.len() != offer.resource_requirements.len() {
+                return Err("Body resource requirement count differs".into());
+            }
+            if offer.resource_requirements.iter().any(|requirement| {
+                gear.resources
+                    .iter()
+                    .filter(|binding| binding.class_id == requirement.class_id)
+                    .count()
+                    != 1
+            }) {
+                return Err("Body resource requirement is missing or duplicated".into());
+            }
+            if gear.resources.is_empty() {
+                continue;
+            }
+            let items = gear
+                .resources
+                .iter()
+                .map(|binding| {
+                    let requirement = offer
+                        .resource_requirements
+                        .iter()
+                        .find(|requirement| requirement.class_id == binding.class_id)
+                        .ok_or("Body resource is not required by its offer")?;
+                    Ok(ResourceAdmissionItem {
+                        requirement: requirement.clone(),
+                        binding: binding.clone(),
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            requests.push(ResourceAdmissionRequest {
+                plan_id: fragment.plan_id.clone(),
+                placement_id: gear.placement_id.clone(),
+                host_id: host.host_id.clone(),
+                boot_id: host.boot_id.clone(),
+                offer_generation: host.offer_generation,
+                items,
+            });
+        }
+    }
+    let mut resources = ResourceAdmissionOwner::new(host.clone());
+    if !requests.is_empty() {
+        resources
+            .admit_batch(requests, &request.observations)
+            .map_err(|error| error.to_string())?;
+    }
+    let play = BodyPlayIdentity::bind(&request.plan, request.play_sequence);
+    let sign = |sequence| {
+        bind_sign(
+            &host.host_id,
+            &host.boot_id,
+            Some(&play.active_play_id),
+            sequence,
+        )
+        .sign_id
+    };
+    let wake_at_start = request
+        .wake
+        .body_plan_ready(&request.plan, sign(0))
+        .and_then(|wake| wake.body_play_started(&request.plan, &play, sign(1)))
+        .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+    let started_evidence = startup::project_started_evidence(
+        request.body_evidence.as_ref(),
+        &request.wake,
+        &request.plan,
+        &wake_at_start,
+    )?;
+    let startup = startup::prepare(started_evidence.as_ref(), &request.plan, &play)?;
+    let scheduler = engine::preparation::prepare_body_scheduler(
+        &fragments
+            .iter()
+            .zip(&lowered.partitions)
+            .collect::<Vec<_>>(),
+        startup.as_ref(),
+        Some(engine::preparation::ApplicationPreparation {
+            plan: &request.plan,
+            active_play_id: &play.active_play_id,
+            body_evidence: started_evidence.as_ref(),
+            source: &request.source,
+            foreground_checked_plot_id: &request.foreground_checked_plot_id,
+        }),
+    )?;
+    let mut session = TourSession {
+        _resource_admissions: Some(resources),
+        cancellation: None,
+        scheduler,
+        pending: Vec::with_capacity(BROWSER_PENDING_REQUESTS),
+        host_outcomes: host_outcomes::HostOutcomes::new(),
+        active_play_id: play.active_play_id.clone(),
+        terminal_sign_sequence: 2,
+        latest_presentation: None,
+        host_id: host.host_id,
+        boot_id: host.boot_id,
+        realization: MorseRealization::Direct,
+        expanded_gears: fragments
+            .iter()
+            .map(|fragment| {
+                fragment
+                    .placements
+                    .iter()
+                    .map(|gear| TourGearEvidence {
+                        gear_id: gear.gear_id.as_str().into(),
+                        kind_id: gear.kind_id.as_str().into(),
+                        implementation_id: gear.implementation_id.as_str().into(),
+                    })
+                    .collect()
+            })
+            .collect(),
+        realization_backs: fragments
+            .iter()
+            .map(|fragment| {
+                fragment
+                    .realization_backs
+                    .iter()
+                    .map(|back| TourBackEvidence {
+                        invocation_path: back.invocation_path.clone(),
+                        kind_id: back.kind_id.as_str().into(),
+                        checked_plot_id: back.checked_plot_id.as_str().into(),
+                    })
+                    .collect()
+            })
+            .collect(),
+        fragments,
+        source_interaction: None,
+        timer_completions: 0,
+        manifestation_completions: 0,
+    };
+    let progress = session.poll_effect()?;
+    Ok((
+        session,
+        BodyStarted {
+            schema: "conduit.browser/body-started@1",
+            play,
+            wake_at_start,
+            progress,
+        },
+    ))
+}
+
+fn placement_authority_matches(
+    gear: &conduit_core::PlannedGear,
+    offer: &conduit_core::CapabilityOffer,
+) -> bool {
+    gear.authority.len() == offer.authority_requirements.len()
+        && gear.authority.iter().all(|binding| {
+            binding.host_id == gear.host_id
+                && binding.boot_id == gear.boot_id
+                && binding.capability_id == gear.capability_id
+                && offer
+                    .authority_requirements
+                    .iter()
+                    .filter(|requirement| {
+                        binding.contract_id == requirement.contract_id
+                            && binding.host_call_contract_id == requirement.host_call_contract_id
+                            && binding.subject_kind == requirement.subject_kind
+                    })
+                    .count()
+                    == 1
+        })
+        && offer.authority_requirements.iter().all(|requirement| {
+            gear.authority
+                .iter()
+                .filter(|binding| {
+                    binding.contract_id == requirement.contract_id
+                        && binding.host_call_contract_id == requirement.host_call_contract_id
+                        && binding.subject_kind == requirement.subject_kind
+                })
+                .count()
+                == 1
+        })
+}
+
+#[cfg(test)]
+#[path = "body_start_tests.rs"]
+pub(in crate::plot_runner) mod tests;
+
+#[cfg(test)]
+#[path = "little_seismograph_body_tests.rs"]
+mod little_seismograph_tests;
+
+#[cfg(test)]
+#[path = "body_startup_tests.rs"]
+mod startup_tests;

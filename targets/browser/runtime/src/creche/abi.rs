@@ -71,12 +71,12 @@ pub extern "C" fn conduit_creche_reviewed_inventory(source_length: usize) -> i32
     INPUT.with(|input| {
         let mut input = input.borrow_mut();
         let result = core::str::from_utf8(&input[..source_length])
-            .map_err(|_| "reviewed form inventory is not UTF-8".to_string())
-            .and_then(super::initial_forms::reviewed_inventory);
+            .map_err(|_| "reviewed plot inventory is not UTF-8".to_string())
+            .and_then(super::initial_plots::reviewed_inventory);
         let diagnostics = result.as_ref().err().map(|_| {
             core::str::from_utf8(&input[..source_length])
                 .ok()
-                .map(conduit_form::parse_syntax_document)
+                .map(conduit_plot::parse_syntax_document)
                 .map(|syntax| {
                     syntax
                         .diagnostics
@@ -107,12 +107,12 @@ pub extern "C" fn conduit_creche_reviewed_inventory(source_length: usize) -> i32
             Err(message) => {
                 let diagnostics = diagnostics.unwrap_or_default();
                 let code = if diagnostics.is_empty() {
-                    "FormCheckRefused"
+                    "PlotCheckRefused"
                 } else {
-                    "FormSyntaxInvalid"
+                    "PlotSyntaxInvalid"
                 };
                 if write_output(&serde_json::json!({
-                    "schema": "conduit.creche/form-check-refusal@1",
+                    "schema": "conduit.creche/plot-check-refusal@1",
                     "disposition": "refused",
                     "code": code,
                     "message": message,
@@ -133,22 +133,22 @@ pub extern "C" fn conduit_creche_reviewed_inventory(source_length: usize) -> i32
 pub extern "C" fn conduit_creche_review_initial_workload(
     host_length: usize,
     boot_length: usize,
-    initial_forms_length: usize,
+    initial_plots_length: usize,
     source_length: usize,
 ) -> i32 {
     clear_output();
     let Some(identity_length) = host_length.checked_add(boot_length) else {
         return ERROR_INPUT;
     };
-    let Some(forms_end) = identity_length.checked_add(initial_forms_length) else {
+    let Some(plots_end) = identity_length.checked_add(initial_plots_length) else {
         return ERROR_INPUT;
     };
-    let Some(total_length) = forms_end.checked_add(source_length) else {
+    let Some(total_length) = plots_end.checked_add(source_length) else {
         return ERROR_INPUT;
     };
     if host_length == 0
         || boot_length == 0
-        || initial_forms_length == 0
+        || initial_plots_length == 0
         || source_length == 0
         || total_length > INPUT_BYTES
     {
@@ -161,11 +161,11 @@ pub extern "C" fn conduit_creche_review_initial_workload(
                 .map_err(|_| "Host identity is not UTF-8".to_string())?;
             let boot = core::str::from_utf8(&input[host_length..identity_length])
                 .map_err(|_| "Boot identity is not UTF-8".to_string())?;
-            let selection = core::str::from_utf8(&input[identity_length..forms_end])
-                .map_err(|_| "initial Form selection is not UTF-8".to_string())?;
-            let source = core::str::from_utf8(&input[forms_end..total_length])
-                .map_err(|_| "reviewed form inventory is not UTF-8".to_string())?;
-            let hosts = [super::initial_forms::reviewed_browser_host(
+            let selection = core::str::from_utf8(&input[identity_length..plots_end])
+                .map_err(|_| "initial Plot selection is not UTF-8".to_string())?;
+            let source = core::str::from_utf8(&input[plots_end..total_length])
+                .map_err(|_| "reviewed plot inventory is not UTF-8".to_string())?;
+            let hosts = [super::initial_plots::reviewed_browser_host(
                 source,
                 conduit_core::HostId::from(host),
                 conduit_core::BootId::from(boot),
@@ -181,7 +181,7 @@ pub extern "C" fn conduit_creche_review_initial_workload(
         match result {
             Ok(review) => {
                 let receipt = serde_json::json!({
-                    "schema": "conduit.creche/form-workload-review@1",
+                    "schema": "conduit.creche/plot-workload-review@1",
                     "review": &review.review,
                     "requirements": {
                         "kinds": &review.review.required_kinds,
@@ -230,7 +230,7 @@ pub extern "C" fn conduit_creche_birth(
     host_length: usize,
     boot_length: usize,
     friendly_name_length: usize,
-    initial_forms_length: usize,
+    initial_plots_length: usize,
     source_length: usize,
     birth_sequence: u64,
 ) -> i32 {
@@ -241,7 +241,7 @@ pub extern "C" fn conduit_creche_birth(
     };
     let Some(metadata_length) = identity_length
         .checked_add(friendly_name_length)
-        .and_then(|length| length.checked_add(initial_forms_length))
+        .and_then(|length| length.checked_add(initial_plots_length))
     else {
         return ERROR_INPUT;
     };
@@ -251,7 +251,7 @@ pub extern "C" fn conduit_creche_birth(
     if host_length == 0
         || boot_length == 0
         || friendly_name_length == 0
-        || initial_forms_length == 0
+        || initial_plots_length == 0
         || source_length == 0
         || total_length > INPUT_BYTES
     {
@@ -271,18 +271,18 @@ pub extern "C" fn conduit_creche_birth(
             let boot = core::str::from_utf8(&input[host_length..identity_length])
                 .map_err(|_| "Boot identity is not UTF-8".to_string())?;
             let friendly_name_end = identity_length + friendly_name_length;
-            let forms_end = friendly_name_end + initial_forms_length;
+            let plots_end = friendly_name_end + initial_plots_length;
             let friendly_name = core::str::from_utf8(&input[identity_length..friendly_name_end])
                 .map_err(|_| "friendly name is not UTF-8".to_string())?;
-            let initial_forms = core::str::from_utf8(&input[friendly_name_end..forms_end])
-                .map_err(|_| "initial Form selection is not UTF-8".to_string())?;
-            let source = core::str::from_utf8(&input[forms_end..total_length])
-                .map_err(|_| "Body Form source is not UTF-8".to_string())?;
+            let initial_plots = core::str::from_utf8(&input[friendly_name_end..plots_end])
+                .map_err(|_| "initial Plot selection is not UTF-8".to_string())?;
+            let source = core::str::from_utf8(&input[plots_end..total_length])
+                .map_err(|_| "Body Plot source is not UTF-8".to_string())?;
             session::birth(
                 host,
                 boot,
                 friendly_name,
-                initial_forms,
+                initial_plots,
                 source,
                 birth_sequence,
                 interaction,
@@ -527,8 +527,8 @@ mod tests {
             output.borrow()[..length].to_vec()
         });
         let refusal: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(refusal["schema"], "conduit.creche/form-check-refusal@1");
-        assert_eq!(refusal["code"], "FormSyntaxInvalid");
+        assert_eq!(refusal["schema"], "conduit.creche/plot-check-refusal@1");
+        assert_eq!(refusal["code"], "PlotSyntaxInvalid");
         let span = &refusal["diagnostics"][0]["span"];
         assert!(span["start"].as_u64().is_some());
         assert_eq!(span["line"], 1);
@@ -537,15 +537,15 @@ mod tests {
 
     #[test]
     fn workload_review_exposes_requirements_without_mutating_the_durable_birth_receipt() {
-        let source = "form clock {\n    tick: time/every(1s)\n}";
-        let form = super::super::initial_forms::reviewed_inventory(source)
+        let source = "plot clock {\n    tick: time/every(1s)\n}";
+        let plot = super::super::initial_plots::reviewed_inventory(source)
             .unwrap()
-            .forms
+            .plots
             .remove(0);
-        let selection = serde_json::to_vec(&[super::super::initial_forms::InitialFormSelection {
-            name: form.name,
-            source_document_id: form.source_document_id,
-            checked_form_id: form.checked_form_id,
+        let selection = serde_json::to_vec(&[super::super::initial_plots::InitialPlotSelection {
+            name: plot.name,
+            source_document_id: plot.source_document_id,
+            checked_plot_id: plot.checked_plot_id,
         }])
         .unwrap();
         let host = b"host/review";
@@ -571,7 +571,7 @@ mod tests {
             let length = OUTPUT_LEN.with(|length| *length.borrow());
             serde_json::from_slice::<serde_json::Value>(&output.borrow()[..length]).unwrap()
         });
-        assert_eq!(response["schema"], "conduit.creche/form-workload-review@1");
+        assert_eq!(response["schema"], "conduit.creche/plot-workload-review@1");
         assert_eq!(
             response["requirements"]["kinds"][0],
             conduit_time::TIME_EVERY_KIND

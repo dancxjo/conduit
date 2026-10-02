@@ -28,7 +28,7 @@ impl ImageRegion {
         y: u16,
         width: u16,
         height: u16,
-    ) -> Result<Self, conduit_form::rust_binding::NativeBindingRefusal> {
+    ) -> Result<Self, conduit_plot::rust_binding::NativeBindingRefusal> {
         Self::new(height, width, x, y)
     }
 

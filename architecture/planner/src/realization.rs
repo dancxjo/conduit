@@ -7,24 +7,24 @@ use crate::{
 };
 use alloc::collections::BTreeMap;
 use conduit_core::{BaseImplementationId, GearId, HostAdvertisement, Plan, ResourceObservation};
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 
-/// Selects exact realizations for a whole checked form, sharing current finite
+/// Selects exact realizations for a whole checked plot, sharing current finite
 /// observed capacity across gears, then constructs the ordinary plan.
 pub fn plan_selected_realizations(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     observations: &[ResourceObservation],
     policies: &BTreeMap<GearId, RealizationPolicy>,
 ) -> Result<Plan, PlannerError> {
-    reject_unknown_operation_inputs(form, requirements, policies)?;
+    reject_unknown_operation_inputs(plot, requirements, policies)?;
     validate_resource_observations(hosts, observations)?;
     let mut remaining = observations.to_vec();
     let mut placements = BTreeMap::new();
 
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let requirement = requirements.get(&gear.gear_id).cloned().unwrap_or_default();
         let policy = policies.get(&gear.gear_id).cloned().unwrap_or_default();
         let choice = select_realization_matching(
@@ -45,7 +45,7 @@ pub fn plan_selected_realizations(
     }
 
     plan_with_hard_requirements(
-        form,
+        plot,
         hosts,
         &PlacementChoices {
             by_gear: placements,
@@ -56,12 +56,12 @@ pub fn plan_selected_realizations(
 }
 
 pub(crate) fn reject_unknown_operation_inputs(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     policies: &BTreeMap<GearId, RealizationPolicy>,
 ) -> Result<(), PlannerError> {
     for gear_id in requirements.keys().chain(policies.keys()) {
-        if !form.gears.iter().any(|gear| &gear.gear_id == gear_id) {
+        if !plot.gears.iter().any(|gear| &gear.gear_id == gear_id) {
             return Err(PlannerError::UnknownGear(gear_id.as_str().to_string()));
         }
     }

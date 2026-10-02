@@ -10,7 +10,7 @@ const MAXIMUM_TOTAL_BYTES = 192 * 1024 * 1024;
 const ROOT_ENTRIES = new Set([".nojekyll", "index.html", "gallery.json", "catalogue.json", "verticals", "current", "commits"]);
 const VERTICALS = new Set(["index.html", "field-station-clock", "durable-notebook", "bare-metal-to-show", "pocket-theremin", "two-ollamas", "three-bodies"]);
 const JOURNEYS = new Map([
-  ["one-form-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
+  ["one-plot-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
   ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
 ]);
 

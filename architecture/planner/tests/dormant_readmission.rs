@@ -9,12 +9,12 @@ use conduit_core::{
     ResourceObservation, ResourceOffer, ResourcePoolId, ResourceRequirement, SignId,
     PROTOCOL_VERSION,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_planner::{
     observe_dormant_candidate, plan_with_options, prove_dormant_readmission,
     DormantEquipmentHistory, DormantReadmissionRefusal, PlacementChoice, PlacementChoices,
     PlanningOptions, RequiredDormantLine,
 };
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 const SOURCE: &str = "test/dormant-source";
 const SINK: &str = "test/dormant-sink";
@@ -52,7 +52,7 @@ fn definition(kind: &str) -> KindProjection {
     }
 }
 
-fn form() -> conduit_form::CheckedForm {
+fn plot() -> conduit_plot::CheckedPlot {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     for kind in [SOURCE, SINK] {
@@ -64,8 +64,8 @@ fn form() -> conduit_form::CheckedForm {
             .unwrap();
         profile.insert(definition(kind)).unwrap();
     }
-    conduit_form::parse_with_startup(
-        &format!("form dormant {{\n source: {SOURCE}\n sink: {SINK}\n source >> sink\n}}\n"),
+    conduit_plot::parse_with_startup(
+        &format!("plot dormant {{\n source: {SOURCE}\n sink: {SINK}\n source >> sink\n}}\n"),
         &startup,
         &profile,
     )
@@ -214,7 +214,7 @@ struct OtherTruth<'a> {
 }
 
 fn plan(
-    checked: &conduit_form::CheckedForm,
+    checked: &conduit_plot::CheckedPlot,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
     line: &conduit_core::LineOffer,
@@ -286,7 +286,7 @@ fn history() -> DormantEquipmentHistory {
 
 #[test]
 fn unused_host_returns_only_through_fresh_truth_and_ordinary_plan() {
-    let checked = form();
+    let checked = plot();
     let source = host("host-source", "boot-source", 1, &[SOURCE]);
     let preferred = host("host-fast", "boot-fast", 1, &[SINK]);
     let dormant = host("host-slow", "boot-slow-fresh", 5, &[SINK]);
@@ -371,8 +371,8 @@ fn unused_host_returns_only_through_fresh_truth_and_ordinary_plan() {
     }));
     assert_ne!(preferred_plan.plan_id, returned_plan.plan_id);
     assert_eq!(
-        preferred_plan.checked_form_id,
-        returned_plan.checked_form_id
+        preferred_plan.checked_plot_id,
+        returned_plan.checked_plot_id
     );
     assert!(conduit_core::verify_plan(&preferred_plan));
     assert!(conduit_core::verify_plan(&returned_plan));
@@ -380,7 +380,7 @@ fn unused_host_returns_only_through_fresh_truth_and_ordinary_plan() {
 
 #[test]
 fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
-    let checked = form();
+    let checked = plot();
     let gear = checked
         .gears
         .iter()

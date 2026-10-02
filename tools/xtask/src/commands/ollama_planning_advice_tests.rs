@@ -1,13 +1,13 @@
 use super::*;
 
-const EXACT_PROPOSAL: &str = r#"{"proposal_id":"proposal/live","request_identity":"request/live","run_identity":"run/live","checked_form_id":"checked/live","placements":[{"gear_id":"advised/pulse","host_id":"advice/host-b","boot_id":"advice/boot-b","offer_generation":7,"capability_id":"advice/pulse-b"}]}"#;
+const EXACT_PROPOSAL: &str = r#"{"proposal_id":"proposal/live","request_identity":"request/live","run_identity":"run/live","checked_plot_id":"checked/live","placements":[{"gear_id":"advised/pulse","host_id":"advice/host-b","boot_id":"advice/boot-b","offer_generation":7,"capability_id":"advice/pulse-b"}]}"#;
 
 #[test]
 fn wire_schema_refuses_extra_plan_shaped_fields_and_empty_placements() {
-    let with_plan = r#"{"proposal_id":"p","request_identity":"r","run_identity":"x","checked_form_id":"c","placements":[],"plan_id":"forged"}"#;
+    let with_plan = r#"{"proposal_id":"p","request_identity":"r","run_identity":"x","checked_plot_id":"c","placements":[],"plan_id":"forged"}"#;
     assert!(serde_json::from_str::<WireProposal>(with_plan).is_err());
     let empty: WireProposal = serde_json::from_str(
-        r#"{"proposal_id":"p","request_identity":"r","run_identity":"x","checked_form_id":"c","placements":[]}"#,
+        r#"{"proposal_id":"p","request_identity":"r","run_identity":"x","checked_plot_id":"c","placements":[]}"#,
     )
     .unwrap();
     assert!(convert(empty).is_err());
@@ -38,7 +38,7 @@ fn validated_proposal_serializes_as_bounded_advisory_evidence() {
     assert_eq!(retained["proposal_id"], "proposal/live");
     assert_eq!(retained["request_identity"], "request/live");
     assert_eq!(retained["run_identity"], "run/live");
-    assert_eq!(retained["checked_form_id"], "checked/live");
+    assert_eq!(retained["checked_plot_id"], "checked/live");
     assert_eq!(retained["placements"][0]["host_id"], "advice/host-b");
     assert!(retained.get("plan_id").is_none());
     assert!(retained.get("lines").is_none());

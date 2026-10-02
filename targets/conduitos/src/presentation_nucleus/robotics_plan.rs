@@ -1,4 +1,4 @@
-//! Exact ordinary PREWAKE Form and Plan preparation for all robotics contracts.
+//! Exact ordinary PREWAKE Plot and Plan preparation for all robotics contracts.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
@@ -7,8 +7,8 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, kind_id,
     port_id,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_plot::{ProfileCatalog, StartupCatalog, parse};
 
 use super::robotics_play::RoboticsError;
 
@@ -37,7 +37,7 @@ pub fn prepare_robotics(
         .map_err(|_| RoboticsError::Catalog)?;
     for (kind, value_kind) in discard_kinds() {
         catalog
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from(SINK_REVISION),
                 inputs: discard_offer(kind, value_kind).inputs,
@@ -48,14 +48,14 @@ pub fn prepare_robotics(
     }
     let state = if bumper_pressed { "pressed" } else { "clear" };
     let source = format!(
-        "form prewake {{\n bump: robotics/observe-bump(state = \"{state}\")\n imu: robotics/observe-imu(roll-microradians = 10, pitch-microradians = -20, yaw-microradians = 30)\n range: robotics/observe-range(distance = {distance_mm}mm, age-ms = {age_ms})\n odometry: robotics/observe-odometry(forward-mm = 40, lateral-mm = -50, yaw-microradians = 60)\n battery: robotics/observe-battery(charge-permille = 750, millivolts = 12000)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n bump_sink: {BUMP_SINK_KIND}\n range_sink: {RANGE_SINK_KIND}\n imu_sink: {IMU_SINK_KIND}\n odometry_sink: {ODOMETRY_SINK_KIND}\n battery_sink: {BATTERY_SINK_KIND}\n bump.observation >> bump_sink.value\n range.range >> range_sink.value\n imu.orientation >> imu_sink.value\n odometry.odometry >> odometry_sink.value\n battery.battery >> battery_sink.value\n intent.linear >> drive.linear\n intent.angular >> drive.angular\n}}\n"
+        "plot prewake {{\n bump: robotics/observe-bump(state = \"{state}\")\n imu: robotics/observe-imu(roll-microradians = 10, pitch-microradians = -20, yaw-microradians = 30)\n range: robotics/observe-range(distance = {distance_mm}mm, age-ms = {age_ms})\n odometry: robotics/observe-odometry(forward-mm = 40, lateral-mm = -50, yaw-microradians = 60)\n battery: robotics/observe-battery(charge-permille = 750, millivolts = 12000)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n bump_sink: {BUMP_SINK_KIND}\n range_sink: {RANGE_SINK_KIND}\n imu_sink: {IMU_SINK_KIND}\n odometry_sink: {ODOMETRY_SINK_KIND}\n battery_sink: {BATTERY_SINK_KIND}\n bump.observation >> bump_sink.value\n range.range >> range_sink.value\n imu.orientation >> imu_sink.value\n odometry.odometry >> odometry_sink.value\n battery.battery >> battery_sink.value\n intent.linear >> drive.linear\n intent.angular >> drive.angular\n}}\n"
     );
-    let form = parse(&source, &catalog).map_err(|_| RoboticsError::Form)?;
+    let plot = parse(&source, &catalog).map_err(|_| RoboticsError::Plot)?;
     let advertisement = advertisement(host, boot);
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts).map_err(|_| RoboticsError::Placement)?;
+    let placements = default_placements(&plot, &hosts).map_err(|_| RoboticsError::Placement)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

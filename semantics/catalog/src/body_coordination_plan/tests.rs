@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn mechanism_free_form_plans_two_exact_directional_lines() {
+fn mechanism_free_plot_plans_two_exact_directional_lines() {
     for forbidden in [
         "forebrain",
         "motherbrain",

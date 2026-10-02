@@ -16,7 +16,7 @@ use conduit_core::{
     CharacteristicValue, GearId, HostAdvertisement, Plan, RealizationAdvertisement,
     ResourceObservation,
 };
-use conduit_form::{CheckedForm, CheckedGear};
+use conduit_plot::{CheckedGear, CheckedPlot};
 
 pub const MAXIMUM_PLANNER_POLICY_CLAUSES: usize = 64;
 
@@ -204,7 +204,7 @@ fn base_rejection(dimension: &'static str) -> RealizationRejection {
 }
 
 pub fn plan_selected_realizations_with_characteristics(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
@@ -213,7 +213,7 @@ pub fn plan_selected_realizations_with_characteristics(
     policies: &BTreeMap<GearId, RealizationPolicy>,
 ) -> Result<Plan, PlannerError> {
     plan_selected_realizations_with_characteristics_and_authority(
-        form,
+        plot,
         SelectedRealizationPlanning {
             hosts,
             bases,
@@ -243,7 +243,7 @@ pub struct SelectedRealizationPlanning<'a> {
 /// Selects against fresh resource observations and exact realization facts,
 /// then seals independently supplied authority grants into the ordinary plan.
 pub fn plan_selected_realizations_with_characteristics_and_authority(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     options: SelectedRealizationPlanning<'_>,
 ) -> Result<Plan, PlannerError> {
     let SelectedRealizationPlanning {
@@ -260,7 +260,7 @@ pub fn plan_selected_realizations_with_characteristics_and_authority(
     let connection_bases = BTreeMap::new();
     let line_candidates = BTreeMap::new();
     plan_selected_realizations_with_characteristics_and_options(
-        form,
+        plot,
         hosts,
         bases,
         requirements,
@@ -283,7 +283,7 @@ pub fn plan_selected_realizations_with_characteristics_and_authority(
 /// the ordinary Line, resource, and authority Plan machinery.
 #[allow(clippy::too_many_arguments)]
 pub fn plan_selected_realizations_with_characteristics_and_options(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
@@ -292,12 +292,12 @@ pub fn plan_selected_realizations_with_characteristics_and_options(
     policies: &BTreeMap<GearId, RealizationPolicy>,
     planning_options: crate::PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
-    reject_unknown_operation_inputs(form, requirements, policies)?;
+    reject_unknown_operation_inputs(plot, requirements, policies)?;
     validate_resource_observations(hosts, observations)?;
     validate_advertisements(hosts, advertisements)?;
     let mut remaining = observations.to_vec();
     let mut by_gear = BTreeMap::new();
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let choice = select_realization_with_characteristics(
             gear,
             hosts,
@@ -322,8 +322,8 @@ pub fn plan_selected_realizations_with_characteristics_and_options(
         requirement.required_characteristic_labels.clear();
     }
     let placements = PlacementChoices { by_gear };
-    crate::requirements::validate_hard_requirements(form, hosts, &placements, &plain_requirements)?;
-    let plan = crate::plan_with_options(form, hosts, &placements, bases, planning_options)?;
+    crate::requirements::validate_hard_requirements(plot, hosts, &placements, &plain_requirements)?;
+    let plan = crate::plan_with_options(plot, hosts, &placements, bases, planning_options)?;
     crate::characteristic_sealing::seal_characteristics(plan, advertisements)
 }
 

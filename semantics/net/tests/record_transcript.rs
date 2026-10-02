@@ -1,11 +1,11 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 use conduit_core::{kind_id, StructuredInfoType, StructuredInfoValue};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_net::*;
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_net::*;
 
 fn frame(text: &[u8]) -> Vec<u8> {
     let value = StructuredInfoValue::leaf(
@@ -162,15 +162,15 @@ fn terminal_events_have_exact_distinct_fixed_wire_encodings() {
 }
 
 #[test]
-fn transcript_is_an_ordinary_reusable_closing_flow_form() {
+fn transcript_is_an_ordinary_reusable_closing_flow_plot() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
     install_record_transcript_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/bounded-record-transcript/main.conduit");
+    let source = include_str!("../../../plots/bounded-record-transcript/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "bounded-record-transcript", &profile)
+        expand_canonical_plot_for_authoring(&checked, "bounded-record-transcript", &profile)
             .unwrap();
     assert_eq!(authored.input_bindings.len(), 3);
     assert_eq!(authored.output_bindings.len(), 3);

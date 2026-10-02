@@ -1,7 +1,7 @@
 use conduit_ai::{
     InterpretationInvalidity, TemporalEvidenceSelectionRefusal, TemporalInterpretationRefusal,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where

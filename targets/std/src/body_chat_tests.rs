@@ -1,11 +1,11 @@
 use crate::{StdHost, StdHostConfig};
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
-use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SignId, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SignId, SourceDocumentId};
 
 fn context() -> BodyConversationContext {
     let body = Body::born(
         SourceDocumentId::from("source/body-chat"),
-        CheckedFormId::from("checked/body-chat"),
+        CheckedPlotId::from("checked/body-chat"),
         1,
         SignId::from("sign/born"),
     )
@@ -24,7 +24,7 @@ fn context() -> BodyConversationContext {
             revision: 0,
         },
         hosts: vec![],
-        active_forms: vec!["Tour".into()],
+        active_plots: vec!["Tour".into()],
         current_plan_id: None,
         active_play_id: None,
         lines: vec![],
@@ -63,7 +63,7 @@ fn installed_supervisor_source_accepts_only_fresh_current_truth() {
     let source = host.body_conversation_context_source().unwrap();
     let mut replacement = initial.clone();
     replacement.basis.revision = 1;
-    replacement.active_forms.push("form/next".into());
+    replacement.active_plots.push("plot/next".into());
     assert_eq!(
         source.replace(&replacement),
         Ok(crate::BodyConversationContextReplacement::Published)

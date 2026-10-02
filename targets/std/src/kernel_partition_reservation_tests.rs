@@ -1,7 +1,7 @@
-//! Atomic combined pool admission for exact local form partitions.
+//! Atomic combined pool admission for exact local plot partitions.
 use super::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 
@@ -12,27 +12,27 @@ fn workload() -> (HostAdvertisement, [conduit_core::Plan; 3]) {
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
     let host = crate::StdHost::new();
-    let source = include_str!("../../../forms/clock/main.conduit");
+    let source = include_str!("../../../plots/clock/main.conduit");
     let plans = ["1s", "2s", "3s"].map(|period| {
         let checked = check_syntax_document(
             &parse_syntax_document(&source.replace("1s", period)),
             &startup,
         )
         .unwrap();
-        let expanded = expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
+        let expanded = expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
         host.plan_expanded_local(&expanded).unwrap()
     });
     let mut advertisement = host.advertisement().clone();
     for pool in &mut advertisement.resources {
-        let per_form: u32 = plans[0].fragments[0]
+        let per_plot: u32 = plans[0].fragments[0]
             .placements
             .iter()
             .flat_map(|placement| &placement.resources)
             .filter(|binding| binding.pool_id == pool.pool_id)
             .map(|binding| binding.units)
             .sum();
-        if per_form > 0 {
-            pool.capacity_units = per_form * 2;
+        if per_plot > 0 {
+            pool.capacity_units = per_plot * 2;
         }
     }
     (advertisement, plans)
@@ -95,7 +95,7 @@ fn late_capacity_and_invalid_partition_leave_existing_reservations_unchanged() {
 }
 
 #[test]
-fn combined_capability_limit_refuses_even_when_each_form_and_all_pools_fit() {
+fn combined_capability_limit_refuses_even_when_each_plot_and_all_pools_fit() {
     let (mut host, plans) = workload();
     let selected = plans[0].fragments[0].placements[0].capability_id.clone();
     host.capabilities
@@ -141,7 +141,7 @@ fn duplicate_empty_and_over_bound_sets_cannot_reserve() {
     for partitions in [
         vec![],
         vec![part, part],
-        vec![part; conduit_body::MAX_BODY_FORMS + 1],
+        vec![part; conduit_body::MAX_BODY_PLOTS + 1],
     ] {
         assert!(ledger
             .prepare_and_reserve_partitions(&host, &partitions)

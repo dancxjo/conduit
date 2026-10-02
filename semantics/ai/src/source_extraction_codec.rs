@@ -1,7 +1,7 @@
 //! Canonical bounded encoding for deterministic source-extraction results.
 
 use alloc::{string::String, vec::Vec};
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
     Chunk, ExtractedSourceValue, ExtractionLineage, RagIdentity, ResourceMetadataEntry,

@@ -1,6 +1,6 @@
 //! Canonical finite structured Info schemas and values.
 //!
-//! This module owns data shape only. It does not add Form syntax, temporal
+//! This module owns data shape only. It does not add Plot syntax, temporal
 //! semantics, selection, effects, or a provider-specific object model.
 
 use alloc::string::String;

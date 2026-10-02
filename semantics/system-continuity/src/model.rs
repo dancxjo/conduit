@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, ArtifactId, AuthorityBinding, AuthorityGrantId, BootId, CapabilityId,
-    CheckedFormId, CheckedFront, GearId, HostId, ImplementationId, KindIdentity, LineId,
+    CheckedFront, CheckedPlotId, GearId, HostId, ImplementationId, KindIdentity, LineId,
     PlacementId, PlanId,
 };
 use serde::{Deserialize, Serialize};
@@ -72,7 +72,7 @@ pub struct DelegatedTransitionGrant {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SystemRecord {
     pub system_id: DurableSystemId,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
     pub members: Vec<HostInstance>,
     pub requirements: Vec<RoleRequirement>,
     pub assignments: Vec<ExactAssignment>,
@@ -89,7 +89,7 @@ pub enum ContinuityError {
     InvalidSnapshot(String),
     MissingPlan,
     AmbiguousPlan,
-    CheckedFormMismatch,
+    CheckedPlotMismatch,
     MissingRole(String),
     AmbiguousRole(String),
     MissingMember(String),
@@ -107,7 +107,7 @@ pub enum ContinuityError {
     ReplacementBootReused,
     ReplacementUnavailable,
     ReplanStillUsesOldPlan,
-    ReplanChangedCheckedForm,
+    ReplanChangedCheckedPlot,
     ReplanChangedSystem,
     ReplanChangedRoles,
     ReplanMissingReplacement(String),

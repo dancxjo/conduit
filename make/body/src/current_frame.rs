@@ -8,7 +8,7 @@ use conduit_body::{
     BodyBiographyRecordKind, BodyGraduationChoice, BodyState, MembershipState, PartId, WakeId,
 };
 use conduit_core::{
-    BootId, CheckedFormId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
+    BootId, CheckedPlotId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
     SourceDocumentId,
 };
 use serde::Serialize;
@@ -22,7 +22,7 @@ pub struct CurrentBodyFrame {
     pub body_id: conduit_body::BodyId,
     pub friendly_name: String,
     pub workload_revision: u64,
-    pub active_forms: Vec<CurrentBodyForm>,
+    pub active_plots: Vec<CurrentBodyPlot>,
     pub lifecycle: CurrentBodyLifecycle,
     pub admitted_parts: usize,
     pub current_hosts: Vec<CurrentBodyHost>,
@@ -35,9 +35,9 @@ pub struct CurrentBodyFrame {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct CurrentBodyForm {
+pub struct CurrentBodyPlot {
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -168,14 +168,14 @@ impl CurrentBodyFrame {
             body_id: evidence.body_id.clone(),
             friendly_name: evidence.friendly_name.clone(),
             workload_revision: evidence.body.workload_revision,
-            active_forms: evidence
+            active_plots: evidence
                 .body
                 .workset
-                .forms()
+                .plots()
                 .iter()
-                .map(|form| CurrentBodyForm {
-                    source_document_id: form.source_document_id.clone(),
-                    checked_form_id: form.checked_form_id.clone(),
+                .map(|plot| CurrentBodyPlot {
+                    source_document_id: plot.source_document_id.clone(),
+                    checked_plot_id: plot.checked_plot_id.clone(),
                 })
                 .collect(),
             lifecycle,

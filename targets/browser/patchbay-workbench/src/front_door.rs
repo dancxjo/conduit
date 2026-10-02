@@ -7,7 +7,7 @@ use conduit_patchbay_workbench::{
     ZeroBodyFrontDoor,
 };
 use conduit_semantic_catalog::GearPalette;
-use patchbay_application::{ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID};
+use patchbay_application::{ONE_PLOT_TWO_FACES_BOOT_ID, ONE_PLOT_TWO_FACES_HOST_ID};
 
 use crate::transport_types::{
     BrowserAuthoring, BrowserPaletteConfiguration, BrowserPaletteEntry, BrowserPalettePort,
@@ -19,18 +19,18 @@ pub fn front_door_snapshot() -> Result<RendererSnapshot, String> {
     snapshot_for_zero_body_front_door(&session)
 }
 
-pub fn one_form_two_fronts_snapshot() -> Result<RendererSnapshot, String> {
+pub fn one_plot_two_fronts_snapshot() -> Result<RendererSnapshot, String> {
     let mut session = ZeroBodyFrontDoor::with_identity(
         std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
-        HostId::from(ONE_FORM_TWO_FACES_HOST_ID),
-        BootId::from(ONE_FORM_TWO_FACES_BOOT_ID),
+        HostId::from(ONE_PLOT_TWO_FACES_HOST_ID),
+        BootId::from(ONE_PLOT_TWO_FACES_BOOT_ID),
     )?;
-    let form = session
-        .form_ids()
+    let plot = session
+        .plot_ids()
         .into_iter()
         .next()
-        .ok_or("two-fronts entrance has no reviewed form")?;
-    session.open_form(&form, session.revision())?;
+        .ok_or("two-fronts entrance has no reviewed plot")?;
+    session.open_plot(&plot, session.revision())?;
     snapshot_for_zero_body_front_door(&session)
 }
 
@@ -55,7 +55,7 @@ pub(crate) fn snapshot_for_zero_body_front_door(
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
-    if let Some(document) = session.opened_form_document() {
+    if let Some(document) = session.opened_plot_document() {
         snapshot
             .attach_authoring(browser_authoring(&document)?)
             .map_err(|error| error.to_string())?;
@@ -91,19 +91,19 @@ pub(crate) fn snapshot_for_front_door(
 }
 
 fn browser_authoring(
-    document: &conduit_patchbay_workbench::FormDocumentView,
+    document: &conduit_patchbay_workbench::PlotDocumentView,
 ) -> Result<BrowserAuthoring, String> {
     let source_document_id = document
         .checked
         .source_document_id
         .as_ref()
-        .ok_or("opened Form source is unchecked")?;
-    let graph = conduit_patchbay_workbench::FormEditor::from_source(
+        .ok_or("opened Plot source is unchecked")?;
+    let graph = conduit_patchbay_workbench::PlotEditor::from_source(
         document.path.clone(),
         document.source.clone(),
     )
     .map_err(|error| error.to_string())?
-    .patchbay_graph_for_authoring(&document.open_form)
+    .patchbay_graph_for_authoring(&document.open_plot)
     .map_err(|error| error.to_string())?;
     let palette = GearPalette::standard()
         .map_err(|error| format!("Gear palette: {error:?}"))?
@@ -133,7 +133,7 @@ fn browser_authoring(
         source_document_id: source_document_id.as_str().into(),
         source_revision: document.revision,
         saved_revision: document.saved_revision,
-        expanded_form_id: graph.expanded_form_id.as_str().into(),
+        expanded_plot_id: graph.expanded_plot_id.as_str().into(),
         source_path: document.path.display().to_string(),
         palette,
     })
@@ -174,7 +174,7 @@ mod tests {
             .presentation
             .subjects
             .iter()
-            .any(|subject| subject.role == PresentationRole::Form));
+            .any(|subject| subject.role == PresentationRole::Plot));
         assert!(!snapshot
             .presentation
             .subjects
@@ -182,17 +182,17 @@ mod tests {
             .any(|subject| subject.role == PresentationRole::Body));
         assert_eq!(snapshot.presentation.actions.len(), 3);
         assert_eq!(snapshot.presentation.disclosures.len(), 2);
-        let form = snapshot
+        let plot = snapshot
             .presentation
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Form)
+            .find(|subject| subject.role == PresentationRole::Plot)
             .unwrap();
         let actions = snapshot
             .presentation
             .actions
             .iter()
-            .filter(|action| action.target == form.identity)
+            .filter(|action| action.target == plot.identity)
             .collect::<Vec<_>>();
         assert_eq!(actions.len(), 2);
         assert_eq!(actions[0].name, "Open");
@@ -209,7 +209,7 @@ mod tests {
             .iter()
             .find(|action| action.target == host.identity)
             .unwrap();
-        assert_eq!(creche_birth.name, "Name Body and choose Forms");
+        assert_eq!(creche_birth.name, "Name Body and choose Plots");
         assert!(creche_birth.availability.is_available());
     }
 }

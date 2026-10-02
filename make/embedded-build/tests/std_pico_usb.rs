@@ -6,7 +6,7 @@ use conduit_signal_conformance::{
     PICO_LOCAL_HOST_ID, STD_PICO_USB_SINK_HOST_ID,
 };
 
-const FORM: &str = include_str!("../../../proof/fixtures/forms/signal-demo.conduit");
+const PLOT: &str = include_str!("../../../proof/fixtures/plots/signal-demo.conduit");
 
 #[test]
 fn exact_planned_usb_sink_is_the_generated_remote_ingress() {
@@ -75,17 +75,17 @@ fn exact_planned_usb_sink_is_the_generated_remote_ingress() {
 
 #[test]
 fn local_image_cannot_masquerade_as_the_remote_usb_sink() {
-    let form = conduit_form::parse_with_startup(
-        FORM,
+    let plot = conduit_plot::parse_with_startup(
+        PLOT,
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
-    .expect("form checks");
+    .expect("plot checks");
     let host = pico_local_advertisement();
-    let placements = conduit_planner::default_placements(&form, core::slice::from_ref(&host))
+    let placements = conduit_planner::default_placements(&plot, core::slice::from_ref(&host))
         .expect("local placements");
     let plan = conduit_planner::plan_with_connection_limits(
-        &form,
+        &plot,
         core::slice::from_ref(&host),
         &placements,
         &[conduit_core::BaseImplementationId::from(

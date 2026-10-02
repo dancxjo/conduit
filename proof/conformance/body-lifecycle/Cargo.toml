@@ -6,9 +6,9 @@ publish = false
 
 [dependencies]
 conduit-body = { path = "../../../architecture/body", default-features = false, features = ["authenticated-admission"] }
-conduit-body-invitation-form = { path = "../../../semantics/body-invitation" }
+conduit-body-invitation-plot = { path = "../../../semantics/body-invitation" }
 conduit-core = { path = "../../../architecture/core" }
-conduit-form-library = { path = "../../../semantics/form-library" }
+conduit-plot-library = { path = "../../../semantics/plot-library" }
 conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
-conduit-tutorial-form = { path = "../../../semantics/tutorial" }
+conduit-tutorial-plot = { path = "../../../semantics/tutorial" }
 serde_json = "1"

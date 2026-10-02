@@ -21,8 +21,8 @@ A language rule changes when:
 Parser acceptance alone does not establish canonicality. An open proposal does
 not become implemented grammar because a learning page uses it. For example,
 [#4513](https://github.com/dancxjo/conduit/issues/4513) proposes executable
-`form` → `plot` and representation `code` → `form`; current source remains
-`form` and `code` until the coordinated migration lands.
+`plot` → `plot` and representation `code` → `plot`; current source remains
+`plot` and `code` until the coordinated migration lands.
 
 ## Review meaning and proof
 
@@ -32,7 +32,7 @@ not become implemented grammar because a learning page uses it. For example,
 - Preserve exact bounds, state, effects, terminals, and temporal relationships
 - Use `}.` only for intentional completion on structural drain; bare `}` remains live
 - Keep a fore's callable signature separate from a face's human meaning
-- Keep masks ordinary forms selected through ordinary planning; do not introduce a second UI graph or scheduler
+- Keep masks ordinary plots selected through ordinary planning; do not introduce a second UI graph or scheduler
 - Preserve historical evidence as evidence of its actual source and environment
 
 If a required rule lacks support, implement only the capability owned by the

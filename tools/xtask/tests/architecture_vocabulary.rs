@@ -18,7 +18,7 @@ const ALLOWLIST: &[(&str, &str, &str)] = &[
     (
         "proof/conformance/patchbay-workbench/src/lib.rs",
         "capstone",
-        "accepted canonical Form identity is preserved without migration",
+        "accepted canonical Plot identity is preserved without migration",
     ),
     (
         "semantics/audio/src/sound_info.rs",

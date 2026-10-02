@@ -96,7 +96,7 @@ mod tests {
         .plan;
         let body = Body::born(
             plan.source_document_id.clone(),
-            plan.checked_form_id.clone(),
+            plan.checked_plot_id.clone(),
             1,
             SignId::from("r1/test/born"),
         )

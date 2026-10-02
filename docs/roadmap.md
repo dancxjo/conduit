@@ -5,7 +5,7 @@ Follow the linked issue for its current state, dependencies, acceptance criteria
 and scope. An open issue is planned or unfinished work, not a claim that someone
 is actively implementing it. Paused work is marked below.
 
-Conduit's direction is one continuing body running ordinary reusable forms
+Conduit's direction is one continuing body running ordinary reusable plots
 across the machinery available to it. The near-term task is to make those
 capabilities understandable and useful through real product experiences.
 [Current status](../STATUS.md) describes the implementation; the
@@ -16,8 +16,8 @@ identities; this roadmap does not substitute planned work for any of those.
 
 ## Conduitese v1 completion
 
-The language can author payload-rich semantic Types, checked reusable Forms,
-behavioral parameters, concise pure Forms, compact codes, and generated
+The language can author payload-rich semantic Types, checked reusable Plots,
+behavioral parameters, concise pure Plots, compact Forms, and generated
 bindings. [#4375](https://github.com/dancxjo/conduit/issues/4375) now tracks the
 finite audited migration tail and current-truth reconciliation rather than a
 new edition. Bounded each/select/fold/scan and collection completed
@@ -27,9 +27,9 @@ runtime proof and an explicit embedded applicability limit in the
 
 Record `where` laws are enforced at construction boundaries.
 [#4639](https://github.com/dancxjo/conduit/issues/4639) remains open for carrying
-those laws into consuming-form arithmetic proofs. The executable `plot` and
-representation `form` rename in [#4513](https://github.com/dancxjo/conduit/issues/4513)
-remains proposed; current source uses executable `form` and encoding `code`.
+those laws into consuming-plot arithmetic proofs. Canonical source uses `plot`
+for executable authored units and `form` for portable type representations.
+The paired vocabulary is `type -> form` and `plot -> plan -> play`.
 
 ## ConduitOS shell
 
@@ -92,9 +92,9 @@ The laptop campaign progresses through [boot #2301](https://github.com/dancxjo/c
 Each physical result needs its own device evidence; the QEMU gallery does not
 complete these stages.
 
-## Reusable forms
+## Reusable plots
 
-forms can now act as gears through their checked fronts. The remaining work is
+plots can now act as gears through their checked fronts. The remaining work is
 to finish useful compositions and demonstrate reuse outside each namesake app:
 
 - [Pocket Theremin #2217](https://github.com/dancxjo/conduit/issues/2217): input mapping and parameter control.
@@ -114,7 +114,7 @@ robotics body. Its [memory #2231](https://github.com/dancxjo/conduit/issues/2231
 slices are **paused**. [Navigation #2232](https://github.com/dancxjo/conduit/issues/2232)
 is complete: [portable goal, path, trajectory, and local-control
 semantics](architecture/portable-navigation.md) now run as an ordinary bounded
-form through the std production kernel. Pete/Create attachment, attended
+plot through the std production kernel. Pete/Create attachment, attended
 movement and safe-stop proof, and the complete live Patchbay causal view remain
 owned by the continuous physical capstone; deterministic navigation proof does
 not finish that physical work.
@@ -136,8 +136,8 @@ helps you choose a place to start without taking on an entire campaign.
 
 The former roadmap, [R1 #361](https://github.com/dancxjo/conduit/issues/361), is
 closed. Its physical Pico and dual-line recovery evidence remains part of the
-[acceptance history](history/accepted-milestones.md). Multi-form body scheduling
-[#2062](https://github.com/dancxjo/conduit/issues/2062), forms-as-gears
+[acceptance history](history/accepted-milestones.md). Multi-plot body scheduling
+[#2062](https://github.com/dancxjo/conduit/issues/2062), plots-as-gears
 [#2291](https://github.com/dancxjo/conduit/issues/2291), and the QEMU visual journey
 [#2318](https://github.com/dancxjo/conduit/issues/2318) are also completed milestones,
 not instructions to restart those projects.

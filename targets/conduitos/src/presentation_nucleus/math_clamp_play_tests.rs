@@ -2,7 +2,7 @@ use super::math_clamp_play::{prepare_clamp, run_clamp};
 use conduit_core::{ArtifactId, Scalar};
 
 #[test]
-fn ordinary_clamp_form_handles_below_inside_and_above_boundaries() {
+fn ordinary_clamp_plot_handles_below_inside_and_above_boundaries() {
     for (input, expected) in [
         (
             Scalar::from_raw_microunits(-2_000_000),

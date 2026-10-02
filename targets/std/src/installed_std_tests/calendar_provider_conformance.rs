@@ -5,8 +5,8 @@ use conduit_core::{
     kind_id, BaseImplementationId, BootId, ConfigurationValue, HostId, OfferGeneration,
     PortDirection, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -60,12 +60,12 @@ fn read_and_free_busy_use_distinct_authority_through_plan_and_play() {
         ),
     ] {
         let source = format!(
-            "form proof {{\n provider: {kind}(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n provider.{output_port} >> sink.input\n}}\n",
+            "plot proof {{\n provider: {kind}(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n provider.{output_port} >> sink.input\n}}\n",
             hex(&result_value(result_type.clone(), &result))
         );
         let (startup, profile, sink) = catalogs(&result_type);
         let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-        let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
+        let expanded = expand_canonical_plot(&checked, "proof", &profile).unwrap();
         let mut host = calendar_host(RecordingCalendar {
             expected: vec![operation],
             results: vec![result],
@@ -106,13 +106,13 @@ fn authorized_create_update_and_cancel_chain_exact_receipts_through_plan_and_pla
         &cancelled,
     );
     let source = format!(
-        "form proof {{\n create: calendar/create-event(request = {{semantic_json: \"{{}}\"}})\n update: calendar/update-event(request = {{semantic_json: \"{{}}\"}})\n cancel: calendar/cancel-event(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n create.receipt >> update.prior\n update.receipt >> cancel.prior\n cancel.receipt >> sink.input\n}}\n",
+        "plot proof {{\n create: calendar/create-event(request = {{semantic_json: \"{{}}\"}})\n update: calendar/update-event(request = {{semantic_json: \"{{}}\"}})\n cancel: calendar/cancel-event(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n create.receipt >> update.prior\n update.receipt >> cancel.prior\n cancel.receipt >> sink.input\n}}\n",
         hex(&expected)
     );
     let result_type = conduit_semantic_catalog::calendar_cancel_receipt_type();
     let (startup, profile, sink) = catalogs(&result_type);
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "proof", &profile).unwrap();
     let mut host = calendar_host(RecordingCalendar {
         expected: vec![
             CalendarHostedOperation::Create,

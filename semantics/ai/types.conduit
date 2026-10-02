@@ -130,13 +130,13 @@ type ModelOperation =
     | evaluate
     | train
 
-code ai/model-operation = ModelOperation as u8
+form ai/model-operation = ModelOperation as u8
 
 type ModelPortPresence =
     required
     | optional
 
-code ai/model-port-presence = ModelPortPresence as u8
+form ai/model-port-presence = ModelPortPresence as u8
 
 type ModelDimensionConstraint =
     fixed {
@@ -999,7 +999,7 @@ type RetrieverIdentity = {
     mechanism: RetrievalMechanism
 }
 
-code ai/retrieval-mechanism = RetrievalMechanism as u8
+form ai/retrieval-mechanism = RetrievalMechanism as u8
 
 type RerankingProofClass =
     deterministic_conformance

@@ -9,12 +9,12 @@ use conduit_ai::{
 use conduit_core::{
     HostAdvertisement, ResourceAdmissionOwner, ResourceHealth, ResourceObservation, SignId,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog};
 use conduit_planner::{
     plan_with_hard_requirements, select_data_locality_candidate, CandidatePlacementDisposition,
     DataFlowObservation, LocalityCandidate, LocalityPlanningBasis, ObservationProvenance,
     PlacementChoice, PlacementChoices, RealizationWorkObservation,
 };
+use conduit_plot::{ProfileCatalog, StartupCatalog};
 
 use common::local_model::{dual_local_model_providers, local_model_provider};
 
@@ -27,19 +27,19 @@ fn provenance(id: &str) -> ObservationProvenance {
     }
 }
 
-fn checked_form() -> conduit_form::CheckedForm {
+fn checked_plot() -> conduit_plot::CheckedPlot {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     install_llm_semantic_catalog(&mut startup, &mut profiles).unwrap();
-    conduit_form::parse(
-        "form model-placement {\n model: llm/generate(4096, 1, 1024, 4096, 0)\n}\n",
+    conduit_plot::parse(
+        "plot model-placement {\n model: llm/generate(4096, 1, 1024, 4096, 0)\n}\n",
         &profiles,
     )
     .unwrap()
 }
 
 fn candidate(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     host: &HostAdvertisement,
     id: &str,
 ) -> LocalityCandidate {
@@ -47,7 +47,7 @@ fn candidate(
         candidate_id: id.into(),
         placements: PlacementChoices {
             by_gear: BTreeMap::from([(
-                form.gears[0].gear_id.clone(),
+                plot.gears[0].gear_id.clone(),
                 PlacementChoice {
                     host_id: host.host_id.clone(),
                     capability_id: host.capabilities[0].capability_id.clone(),
@@ -81,7 +81,7 @@ fn observations(hosts: &[HostAdvertisement]) -> Vec<ResourceObservation> {
 }
 
 fn basis(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[HostAdvertisement],
     resources: Vec<ResourceObservation>,
     costs: [u64; 2],
@@ -91,7 +91,7 @@ fn basis(
         horizon_seconds: 1,
         remote_bytes_per_second_ceiling: None,
         data_flow: DataFlowObservation {
-            source_gear_id: form.gears[0].gear_id.clone(),
+            source_gear_id: plot.gears[0].gear_id.clone(),
             items_per_second: 1,
             bytes_per_item: 1,
             provenance: provenance("sign/request-work"),
@@ -102,7 +102,7 @@ fn basis(
             .zip(costs)
             .enumerate()
             .map(|(index, (host, work_units))| RealizationWorkObservation {
-                gear_id: form.gears[0].gear_id.clone(),
+                gear_id: plot.gears[0].gear_id.clone(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
                 capability_id: host.capabilities[0].capability_id.clone(),
@@ -131,23 +131,23 @@ fn set_available(
 
 #[test]
 fn cross_host_local_models_separate_hard_admission_from_observed_cost_selection() {
-    let form = checked_form();
-    let form_identity = form.checked_form_id.clone();
+    let plot = checked_plot();
+    let plot_identity = plot.checked_plot_id.clone();
     let fixtures = dual_local_model_providers();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
     let candidates = [
-        candidate(&form, &hosts[0], "compact"),
-        candidate(&form, &hosts[1], "wide"),
+        candidate(&plot, &hosts[0], "compact"),
+        candidate(&plot, &hosts[1], "wide"),
     ];
 
     let first = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, observations(&hosts), [20, 80]),
+        &basis(&plot, &hosts, observations(&hosts), [20, 80]),
         &[],
     )
     .unwrap();
@@ -162,19 +162,19 @@ fn cross_host_local_models_separate_hard_admission_from_observed_cost_selection(
         .all(|item| !item.supporting_sign_ids.is_empty()));
 
     let second = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, observations(&hosts), [90, 10]),
+        &basis(&plot, &hosts, observations(&hosts), [90, 10]),
         &[],
     )
     .unwrap();
     assert_eq!(second.selected.candidate_id, "wide");
-    assert_eq!(second.checked_form_id, form_identity);
-    assert_eq!(first.checked_form_id, second.checked_form_id);
+    assert_eq!(second.checked_plot_id, plot_identity);
+    assert_eq!(first.checked_plot_id, second.checked_plot_id);
 
     let compact_plan = plan_with_hard_requirements(
-        &form,
+        &plot,
         &hosts,
         &first.selected.placements,
         &[],
@@ -182,7 +182,7 @@ fn cross_host_local_models_separate_hard_admission_from_observed_cost_selection(
     )
     .unwrap();
     let wide_plan = plan_with_hard_requirements(
-        &form,
+        &plot,
         &hosts,
         &second.selected.placements,
         &[],
@@ -191,7 +191,7 @@ fn cross_host_local_models_separate_hard_admission_from_observed_cost_selection(
     .unwrap();
     let compact = &compact_plan.fragments[0].placements[0];
     let wide = &wide_plan.fragments[0].placements[0];
-    assert_eq!(compact_plan.checked_form_id, wide_plan.checked_form_id);
+    assert_eq!(compact_plan.checked_plot_id, wide_plan.checked_plot_id);
     assert_ne!(compact_plan.plan_id, wide_plan.plan_id);
     assert_eq!(compact.kind_id, wide.kind_id);
     assert_ne!(compact.host_id, wide.host_id);
@@ -211,13 +211,13 @@ fn cross_host_local_models_separate_hard_admission_from_observed_cost_selection(
         );
         assert_eq!(planned.artifact_id, offered.implementation.artifact_id);
         assert_eq!(planned.kind_id, offered.kind_id);
-        assert_eq!(form.gears[0].checked_front(), offered.checked_front());
+        assert_eq!(plot.gears[0].checked_front(), offered.checked_front());
     }
 }
 
 #[test]
 fn non_equivalent_local_model_profile_is_not_a_generate_substitute() {
-    let form = checked_form();
+    let plot = checked_plot();
     let generate = dual_local_model_providers()[0].clone();
     let classify = local_model_provider(
         "classifier",
@@ -227,15 +227,15 @@ fn non_equivalent_local_model_profile_is_not_a_generate_substitute() {
     );
     let hosts = vec![generate.advertisement, classify.advertisement];
     let candidates = [
-        candidate(&form, &hosts[0], "generate"),
-        candidate(&form, &hosts[1], "classify"),
+        candidate(&plot, &hosts[0], "generate"),
+        candidate(&plot, &hosts[1], "classify"),
     ];
 
     let selection = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, observations(&hosts), [20, 1]),
+        &basis(&plot, &hosts, observations(&hosts), [20, 1]),
         &[],
     )
     .unwrap();
@@ -247,7 +247,7 @@ fn non_equivalent_local_model_profile_is_not_a_generate_substitute() {
     ));
     assert!(matches!(
         plan_with_hard_requirements(
-            &form,
+            &plot,
             &hosts,
             &candidates[1].placements,
             &[],
@@ -259,14 +259,14 @@ fn non_equivalent_local_model_profile_is_not_a_generate_substitute() {
 
 #[test]
 fn compute_slot_and_provider_pressure_are_hard_refusals_while_high_cost_is_not() {
-    let form = checked_form();
+    let plot = checked_plot();
     let hosts = dual_local_model_providers()
         .into_iter()
         .map(|fixture| fixture.advertisement)
         .collect::<Vec<_>>();
     let candidates = [
-        candidate(&form, &hosts[0], "compact"),
-        candidate(&form, &hosts[1], "wide"),
+        candidate(&plot, &hosts[0], "compact"),
+        candidate(&plot, &hosts[1], "wide"),
     ];
 
     let mut compute_full = observations(&hosts);
@@ -277,10 +277,10 @@ fn compute_slot_and_provider_pressure_are_hard_refusals_while_high_cost_is_not()
         1,
     );
     let selected = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, compute_full, [1, 100]),
+        &basis(&plot, &hosts, compute_full, [1, 100]),
         &[],
     )
     .unwrap();
@@ -298,10 +298,10 @@ fn compute_slot_and_provider_pressure_are_hard_refusals_while_high_cost_is_not()
         0,
     );
     let selected = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, slot_full, [1, 100]),
+        &basis(&plot, &hosts, slot_full, [1, 100]),
         &[],
     )
     .unwrap();
@@ -321,10 +321,10 @@ fn compute_slot_and_provider_pressure_are_hard_refusals_while_high_cost_is_not()
     slot.health = ResourceHealth::Unavailable;
     slot.unreserved_units = 0;
     let selected = select_data_locality_candidate(
-        &form,
+        &plot,
         &hosts,
         &candidates,
-        &basis(&form, &hosts, provider_lost, [1, 100]),
+        &basis(&plot, &hosts, provider_lost, [1, 100]),
         &[],
     )
     .unwrap();
@@ -337,11 +337,11 @@ fn compute_slot_and_provider_pressure_are_hard_refusals_while_high_cost_is_not()
 
 #[test]
 fn selected_need_becomes_exact_plan_binding_then_owner_admission() {
-    let form = checked_form();
+    let plot = checked_plot();
     let host = dual_local_model_providers()[0].advertisement.clone();
-    let placements = candidate(&form, &host, "compact").placements;
+    let placements = candidate(&plot, &host, "compact").placements;
     let plan = plan_with_hard_requirements(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[],

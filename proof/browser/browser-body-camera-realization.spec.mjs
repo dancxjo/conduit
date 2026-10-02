@@ -104,7 +104,7 @@ test("two browser Hosts realize camera-summary only after exact acquired resourc
     const loss = JSON.parse(body.output().match(/^host_loss=(\{.*\})$/m)[1]);
     expect(loss).toMatchObject({
       index: 0,
-      form: "camera-summary",
+      plot: "camera-summary",
       replacement: "unrealizable-without-new-camera-resource-truth",
     });
     await expect.poll(() => body.process.exitCode).toBe(0);

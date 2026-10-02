@@ -3,14 +3,14 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use super::{PlannedStateBoundary, StateContinuation, StateId};
-use crate::{bind_active_play, ActivePlayIdentity, FormIdentity, KindId};
+use crate::{bind_active_play, ActivePlayIdentity, KindId, PlotIdentity};
 
 /// Describes the exact value a replacement must obtain from a retired owner.
 /// This record does not prove retirement, authorize migration, convey grants,
 /// or allow a host to reconstruct a fresh cell and call it continuation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RetainedStateProvenance {
-    pub source_form: FormIdentity,
+    pub source_plot: PlotIdentity,
     pub source_play: ActivePlayIdentity,
     pub source_state: StateId,
     pub value_kind: KindId,
@@ -21,9 +21,9 @@ pub struct RetainedStateProvenance {
 impl RetainedStateProvenance {
     pub(super) fn valid_for(&self, state: &PlannedStateBoundary) -> bool {
         let play = &self.source_play;
-        !self.source_form.source_document_id.as_str().is_empty()
-            && !self.source_form.checked_form_id.as_str().is_empty()
-            && !self.source_form.expanded_form_id.as_str().is_empty()
+        !self.source_plot.source_document_id.as_str().is_empty()
+            && !self.source_plot.checked_plot_id.as_str().is_empty()
+            && !self.source_plot.expanded_plot_id.as_str().is_empty()
             && !play.plan_id.as_str().is_empty()
             && !play.host_id.as_str().is_empty()
             && !play.boot_id.as_str().is_empty()
@@ -46,9 +46,9 @@ impl RetainedStateProvenance {
     pub(super) fn push_canonical(&self, bytes: &mut Vec<u8>) {
         crate::push_string(bytes, "conduit/retained-state@1");
         for identity in [
-            self.source_form.source_document_id.as_str(),
-            self.source_form.checked_form_id.as_str(),
-            self.source_form.expanded_form_id.as_str(),
+            self.source_plot.source_document_id.as_str(),
+            self.source_plot.checked_plot_id.as_str(),
+            self.source_plot.expanded_plot_id.as_str(),
             self.source_play.active_play_id.as_str(),
             self.source_play.plan_id.as_str(),
             self.source_play.host_id.as_str(),

@@ -1,19 +1,19 @@
 //! Portable catalog meaning for bounded bitmap presentation.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::{string::ToString, vec, vec::Vec};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
-#[cfg(feature = "form-catalog")]
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+#[cfg(feature = "plot-catalog")]
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use crate::GRAY8_BITMAP_INFO_KIND;
 
 pub const BITMAP_PRESENTATION_KIND: &str = "presentation/bitmap";
 pub const BITMAP_PRESENTATION_REVISION: &str = "conduit.presentation/bitmap@1";
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn bitmap_presentation_definition() -> KindProjection {
     KindProjection {
         kind_id: kind_id(BITMAP_PRESENTATION_KIND),
@@ -30,7 +30,7 @@ pub fn bitmap_presentation_definition() -> KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_bitmap_presentation_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,

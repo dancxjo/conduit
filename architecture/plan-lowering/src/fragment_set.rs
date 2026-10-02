@@ -1,6 +1,6 @@
-//! Pre-Play numeric composition of exact local form partitions.
+//! Pre-Play numeric composition of exact local plot partitions.
 //! Original Plan/fragment identities remain on each partition. This creates
-//! neither an authored form nor a synthetic Plan and performs no scheduling.
+//! neither an authored plot nor a synthetic Plan and performs no scheduling.
 use crate::lowering::{
     lower_plan_fragment_for_profile, KernelStorageProfile, LoweredPlanFragment, LoweringError,
 };

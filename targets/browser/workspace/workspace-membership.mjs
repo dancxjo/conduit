@@ -77,12 +77,12 @@ export function createBodyInvitationReceiver({ location, onReceive }) {
   receiver.className = "body-invitation-receiver";
   receiver.innerHTML = `<h2>Join an existing Body</h2>
     <p>Paste an invitation link or portable code. Decoding it creates no membership; you will inspect and explicitly accept the same invitation next.</p>
-    <form><label>Body invitation link or code<input type="text" autocomplete="off" spellcheck="false" required></label>
-    <button type="submit">Inspect invitation</button></form><p role="status"></p>`;
-  const form = receiver.querySelector("form");
+    <plot><label>Body invitation link or code<input type="text" autocomplete="off" spellcheck="false" required></label>
+    <button type="submit">Inspect invitation</button></plot><p role="status"></p>`;
+  const plot = receiver.querySelector("plot");
   const input = receiver.querySelector("input");
   const status = receiver.querySelector('[role="status"]');
-  form.addEventListener("submit", event => {
+  plot.addEventListener("submit", event => {
     event.preventDefault();
     try {
       const decoded = readPastedBodyInvitation(input.value, location);
@@ -332,7 +332,7 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
       <p>On the computer that should help this body, open Conduit’s Host rendezvous and enter its one-use code here. The host’s exact identity and current offers are admitted only after its signed invitation proof returns.</p>
       <label>Running host rendezvous code<input type="text" autocomplete="off" spellcheck="false" data-running-host-code></label>
       <div class="membership-actions"><button type="button" data-connect-running-host>Connect Host</button><button type="button" data-cancel-running-host>Back to members</button></div>
-      <p class="transport-note">Available now: a loopback WebSocket Host on this computer, or an explicitly selected serial Host. A failed connection leaves this body and its current forms unchanged.</p>`;
+      <p class="transport-note">Available now: a loopback WebSocket Host on this computer, or an explicitly selected serial Host. A failed connection leaves this body and its current plots unchanged.</p>`;
     const input = content.querySelector("[data-running-host-code]");
     const connect = content.querySelector("[data-connect-running-host]");
     content.querySelector("[data-cancel-running-host]").addEventListener("click", () => { runningHost?.cancel(); runningHost = null; render(); });
@@ -449,7 +449,7 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
     try { session.inspectInvitation(artifact.claim); }
     catch (error) { onFailure(error); content.textContent = error.message; return; }
     content.innerHTML = `<p class="membership-kicker">Body invitation</p><h3>${escapeText(artifact.body_name ?? "Another body")}</h3>
-      <p>This invitation proposes a new Part for this exact browser Host. Joining records membership and authenticated presence separately. It grants no Form or effect authority.</p>
+      <p>This invitation proposes a new Part for this exact browser Host. Joining records membership and authenticated presence separately. It grants no Plot or effect authority.</p>
       <dl><dt>Body</dt><dd>${escapeText(artifact.claim.body_id)}</dd><dt>Offered by</dt><dd>${escapeText(artifact.offered_by?.host_id ?? "not disclosed")}</dd><dt>Expires</dt><dd>${new Date(artifact.claim.expires_at_millis).toLocaleString()}</dd></dl>
       <button type="button" data-join-body>Join this body</button><p class="transport-note">The inviting Workspace must remain open in this browser’s same-origin rendezvous.</p>`;
     content.querySelector("[data-join-body]").addEventListener("click", async event => {

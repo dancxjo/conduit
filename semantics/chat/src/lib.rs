@@ -12,7 +12,7 @@ mod generated {
 }
 
 pub use generated::{
-    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleForm,
     BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
     DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
     LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
@@ -45,9 +45,9 @@ mod messaging_reference;
 pub use messaging_reference::*;
 mod messaging_view;
 pub use messaging_view::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod messaging_catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use messaging_catalog::*;
 
 #[cfg(test)]
@@ -60,7 +60,7 @@ mod native_type_tests {
         BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
         ResourceSemanticIdentity, ResourceVersionIdentity,
     };
-    use conduit_form::rust_binding::NativeRustBinding;
+    use conduit_plot::rust_binding::NativeRustBinding;
 
     fn assert_round_trip<T>(value: T)
     where

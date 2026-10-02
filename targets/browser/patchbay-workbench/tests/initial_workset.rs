@@ -1,27 +1,27 @@
 use conduit_body::{
     Body, BodyBiographyEvidence, BodyGraduationChoice, BodyGraduationEvidence, BodyMembership,
-    BodyWorkset, ResidentForm,
+    BodyWorkset, ResidentPlot,
 };
 use conduit_browser_patchbay_workbench::{body_workbench_snapshot, BrowserBodyWorkbenchEntrance};
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 use conduit_presentation::PresentationRole;
 
-fn resident(name: &str) -> ResidentForm {
-    ResidentForm::new(
+fn resident(name: &str) -> ResidentPlot {
+    ResidentPlot::new(
         SourceDocumentId::from("source/reviewed-inventory"),
-        CheckedFormId::from(format!("checked/{name}")),
+        CheckedPlotId::from(format!("checked/{name}")),
     )
 }
 
 #[test]
-fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
+fn patchbay_handoff_projects_every_initial_plot_as_ordinary_active_work() {
     let initial = [
         resident("clock"),
         resident("lantern"),
         resident("telegraph"),
     ];
-    let body = Body::born_with_forms(
-        BodyWorkset::from_forms(initial.clone()).unwrap(),
+    let body = Body::born_with_plots(
+        BodyWorkset::from_plots(initial.clone()).unwrap(),
         1,
         SignId::from("sign/born"),
     )
@@ -45,7 +45,7 @@ fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
         body_workbench_snapshot(1, &encoded, BrowserBodyWorkbenchEntrance::ExternalReader).unwrap();
     let workbench = snapshot.body_workbench.unwrap();
     assert_eq!(
-        workbench.current["active_forms"].as_array().unwrap().len(),
+        workbench.current["active_plots"].as_array().unwrap().len(),
         3
     );
     assert_eq!(workbench.current["workload_revision"], 0);
@@ -54,22 +54,22 @@ fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
             && property.name == "workload-revision"
             && property.value == conduit_presentation::PresentationPropertyValue::Count(0)
     }));
-    let visible_forms = snapshot
+    let visible_plots = snapshot
         .presentation
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Form)
+        .filter(|subject| subject.role == PresentationRole::Plot)
         .map(|subject| subject.name.as_str())
         .collect::<Vec<_>>();
-    for form in initial {
-        assert!(visible_forms.contains(&form.checked_form_id.as_str()));
+    for plot in initial {
+        assert!(visible_plots.contains(&plot.checked_plot_id.as_str()));
         assert!(snapshot
             .presentation
             .relationships
             .iter()
             .any(|relationship| {
                 relationship.source == format!("body/{}", body.body_id.as_str())
-                    && relationship.target == format!("form/{}", form.checked_form_id.as_str())
+                    && relationship.target == format!("plot/{}", plot.checked_plot_id.as_str())
                     && relationship.kind
                         == conduit_presentation::PresentationRelationshipKind::Contains
             }));
@@ -81,7 +81,7 @@ fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
         .any(|relationship| {
             relationship.source == format!("body/{}", body.body_id.as_str())
                 && relationship.kind == conduit_presentation::PresentationRelationshipKind::Realizes
-                && relationship.target.starts_with("form/")
+                && relationship.target.starts_with("plot/")
         }));
     assert_eq!(snapshot.presentation.basis.body_id, Some(body.body_id));
 }

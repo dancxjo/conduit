@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::KeyModifiers;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn key_modifiers_own_the_full_native_bit_domain_and_legacy_const_api() {

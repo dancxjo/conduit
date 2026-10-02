@@ -55,7 +55,7 @@ trouble-host = { version = "0.6.0", default-features = false, features = ["defau
 conduit-alife-distributed-conformance = { path = "../../../../proof/conformance/alife-distributed" }
 conduit-core = { path = "../../../../architecture/core" }
 conduit-embedded-build = { path = "../../../../make/embedded-build" }
-conduit-form = { path = "../../../../architecture/form" }
+conduit-plot = { path = "../../../../architecture/plot" }
 conduit-host-make = { path = "../../../../make/host" }
 conduit-host-esp32-make = { path = "../../make" }
 conduit-planner = { path = "../../../../architecture/planner" }

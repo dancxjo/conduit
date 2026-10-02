@@ -12,7 +12,7 @@ conduit-data = { path = "../data" }
 conduit-education = { path = "../education" }
 conduit-human = { path = "../human" }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
-conduit-net = { path = "../net", default-features = false, features = ["form-catalog"] }
+conduit-net = { path = "../net", default-features = false, features = ["plot-catalog"] }
 conduit-presentation = { path = "../presentation" }
 conduit-process = { path = "../process" }
 conduit-purpose = { path = "../purpose" }
@@ -20,7 +20,7 @@ conduit-robotics = { path = "../robotics" }
 conduit-web = { path = "../web", default-features = false }
 conduit-text = { path = "../text", default-features = false }
 conduit-time = { path = "../time", default-features = false }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-planner = { path = "../../architecture/planner", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
@@ -29,7 +29,7 @@ conduit-planner = { path = "../../architecture/planner" }
 
 [features]
 kernel-step = ["dep:conduit-kernel"]
-default = ["form-catalog"]
-form-catalog = ["conduit-time/form-catalog", "conduit-web/form-catalog", "conduit-text/form-catalog"]
-text-lab-plan = ["form-catalog", "dep:conduit-planner"]
-body-coordination-plan = ["form-catalog", "dep:conduit-planner"]
+default = ["plot-catalog"]
+plot-catalog = ["conduit-time/plot-catalog", "conduit-web/plot-catalog", "conduit-text/plot-catalog"]
+text-lab-plan = ["plot-catalog", "dep:conduit-planner"]
+body-coordination-plan = ["plot-catalog", "dep:conduit-planner"]

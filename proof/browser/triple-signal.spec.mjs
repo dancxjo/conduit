@@ -40,17 +40,17 @@ function exitOutcome(child) {
   });
 }
 
-test("one unchanged form produces matching stdout, DOM, and physical Pico LED receipts", async ({
+test("one unchanged plot produces matching stdout, DOM, and physical Pico LED receipts", async ({
   page,
 }) => {
   test.skip(process.env.CONDUIT_THREE_HOST_FAILURE === "1", "running the failure proof only");
   test.setTimeout(60_000);
-  const form = readFileSync("proof/fixtures/forms/triple-signal.conduit", "utf8").toLowerCase();
+  const plot = readFileSync("proof/fixtures/plots/triple-signal.conduit", "utf8").toLowerCase();
   for (const forbidden of [
     "stdout", "dom", "gpio", "transport", "usb", "websocket", "browser", "pico",
     "firmware", "host", "address", "socket",
   ]) {
-    expect(form).not.toContain(forbidden);
+    expect(plot).not.toContain(forbidden);
   }
 
   const source = spawn(

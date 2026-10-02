@@ -5,16 +5,16 @@ use conduit_core::{
     OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan, PortDescriptor,
     PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
-use conduit_form::{
-    CanonicalBackCatalog, ProfileCatalog, StartupCatalog, check_syntax_document,
-    expand_canonical_form_with_backs, parse_syntax_document,
-};
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
+use conduit_plot::{
+    CanonicalBackCatalog, ProfileCatalog, StartupCatalog, check_syntax_document,
+    expand_canonical_plot_with_backs, parse_syntax_document,
+};
 
 use super::TEXT_SOURCE_KIND;
 
-pub const FORM_SOURCE: &str = "form conduitos-gear-front {\n source: conduitos/fixture-text-source\n front: patchbay/gear-front\n source >> front.subject\n}\n";
+pub const PLOT_SOURCE: &str = "plot conduitos-gear-front {\n source: conduitos/fixture-text-source\n front: patchbay/gear-front\n source >> front.subject\n}\n";
 
 pub struct PreparedPresentationPlay {
     pub advertisement: HostAdvertisement,
@@ -25,7 +25,7 @@ pub struct PreparedPresentationPlay {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PreparationError {
     Catalog,
-    Form,
+    Plot,
     Back,
     Placement,
     Plan,
@@ -36,7 +36,7 @@ impl PreparationError {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Catalog => "presentation-catalog-invalid",
-            Self::Form => "presentation-form-rejected",
+            Self::Plot => "presentation-plot-rejected",
             Self::Back => "presentation-back-rejected",
             Self::Placement => "presentation-placement-rejected",
             Self::Plan => "presentation-plan-rejected",
@@ -47,19 +47,19 @@ impl PreparationError {
 
 pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, PreparationError> {
     let (startup, profile) = catalogs()?;
-    let checked = check_syntax_document(&parse_syntax_document(FORM_SOURCE), &startup)
-        .map_err(|_| PreparationError::Form)?;
+    let checked = check_syntax_document(&parse_syntax_document(PLOT_SOURCE), &startup)
+        .map_err(|_| PreparationError::Plot)?;
     let mut backs = CanonicalBackCatalog::new();
     conduit_semantic_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
         .map_err(|_| PreparationError::Back)?;
-    let form = expand_canonical_form_with_backs(&checked, "conduitos-gear-front", &profile, &backs)
+    let plot = expand_canonical_plot_with_backs(&checked, "conduitos-gear-front", &profile, &backs)
         .map_err(|_| PreparationError::Back)?;
     let advertisement = advertisement(host, boot);
     let hosts = [advertisement.clone()];
     let placements =
-        default_expanded_placements(&form, &hosts).map_err(|_| PreparationError::Placement)?;
+        default_expanded_placements(&plot, &hosts).map_err(|_| PreparationError::Placement)?;
     let plan = plan_expanded_canonical(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -150,13 +150,13 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: TEXT_SOURCE_KIND.into(),
             startup_parameters: Vec::new(),
         })
         .map_err(|_| PreparationError::Catalog)?;
     profile
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(TEXT_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from("conduitos/fixture-text-source@1"),
             inputs: Vec::new(),
@@ -185,11 +185,11 @@ mod tests {
         assert_eq!(back.invocation_path, "conduitos-gear-front/front");
         assert_ne!(
             prepared.plan.source_document_id.as_str(),
-            prepared.plan.checked_form_id.as_str()
+            prepared.plan.checked_plot_id.as_str()
         );
         assert_ne!(
-            prepared.plan.checked_form_id.as_str(),
-            prepared.plan.expanded_form_id.as_str()
+            prepared.plan.checked_plot_id.as_str(),
+            prepared.plan.expanded_plot_id.as_str()
         );
         let fragment = &prepared.plan.fragments[0];
         assert_eq!(fragment.placements.len(), 11);
@@ -217,8 +217,8 @@ mod tests {
     #[test]
     fn missing_back_and_missing_terminal_leaf_are_distinct_failures() {
         let (startup, profile) = catalogs().unwrap();
-        let checked = check_syntax_document(&parse_syntax_document(FORM_SOURCE), &startup).unwrap();
-        let unexpanded = expand_canonical_form_with_backs(
+        let checked = check_syntax_document(&parse_syntax_document(PLOT_SOURCE), &startup).unwrap();
+        let unexpanded = expand_canonical_plot_with_backs(
             &checked,
             "conduitos-gear-front",
             &profile,
@@ -244,7 +244,7 @@ mod tests {
         )
         .unwrap();
         let expanded =
-            expand_canonical_form_with_backs(&checked, "conduitos-gear-front", &profile, &backs)
+            expand_canonical_plot_with_backs(&checked, "conduitos-gear-front", &profile, &backs)
                 .unwrap();
         let mut host = host_without_patchbay_direct;
         host.capabilities.retain(|offer| {

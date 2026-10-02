@@ -66,8 +66,8 @@ impl DistributedToggleSource {
         Self::prepare_exact(exact_distributed_toggle_plan()?)
     }
 
-    pub(super) fn prepare_form(form_source: &str) -> Result<Self, String> {
-        Self::prepare_exact(super::plan::exact_distributed_toggle_plan_for(form_source)?)
+    pub(super) fn prepare_plot(plot_source: &str) -> Result<Self, String> {
+        Self::prepare_exact(super::plan::exact_distributed_toggle_plan_for(plot_source)?)
     }
 
     fn prepare_exact(exact: super::plan::DistributedTogglePlan) -> Result<Self, String> {
@@ -107,7 +107,7 @@ impl DistributedToggleSource {
         let toggle_config = parse_toggle_configuration(&toggle_placement.configuration)
             .map_err(|error| error.to_string())?;
         if *trigger_config.count() != MAXIMUM_WAITS as u64 {
-            return Err("toggle form trigger count is not the S4 vector".to_string());
+            return Err("toggle plot trigger count is not the S4 vector".to_string());
         }
 
         let mut store = HostedValueStore::new(

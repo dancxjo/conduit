@@ -123,7 +123,7 @@ impl R1NewPlanRecovery {
         }
         let body = Body::born(
             plan_a.source_document_id.clone(),
-            plan_a.checked_form_id.clone(),
+            plan_a.checked_plot_id.clone(),
             birth_sequence,
             signs.birth,
         )?;

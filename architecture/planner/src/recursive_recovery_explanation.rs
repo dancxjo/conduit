@@ -10,7 +10,7 @@ pub struct RecursiveRecoveryExplanation {
     pub semantic_profile: String,
     pub lost_direct_plan_id: String,
     pub replacement_plan_id: String,
-    pub expanded_form_id: String,
+    pub expanded_plot_id: String,
     pub realization_backs: Vec<String>,
     pub hosts: Vec<String>,
     pub gears: Vec<String>,
@@ -66,11 +66,11 @@ pub fn explain_recursive_recovery(
     let realization_backs = replacement
         .realization_backs
         .iter()
-        .map(|back| format!("{}:{}", back.invocation_path, back.checked_form_id.as_str()))
+        .map(|back| format!("{}:{}", back.invocation_path, back.checked_plot_id.as_str()))
         .collect::<Vec<_>>();
     if lost_direct.plan_id == replacement.plan_id
         || lost_direct.source_document_id != replacement.source_document_id
-        || lost_direct.checked_form_id != replacement.checked_form_id
+        || lost_direct.checked_plot_id != replacement.checked_plot_id
         || hosts.len() != usize::from(evidence.host_count)
         || gears.len() != usize::from(evidence.expanded_gear_count)
         || lines.len() != usize::from(evidence.remote_connection_count)
@@ -97,7 +97,7 @@ pub fn explain_recursive_recovery(
         semantic_profile: evidence.semantic_profile.clone(),
         lost_direct_plan_id: lost_direct.plan_id.as_str().into(),
         replacement_plan_id: replacement.plan_id.as_str().into(),
-        expanded_form_id: replacement.expanded_form_id.as_str().into(),
+        expanded_plot_id: replacement.expanded_plot_id.as_str().into(),
         realization_backs,
         hosts,
         gears,

@@ -157,8 +157,8 @@ fn plan_seals_both_exact_inputs_pair_output_and_terminal_profiles() {
     let left_recovery = recovery("test/zip-left-recovery");
     let right_recovery = recovery("test/zip-right-recovery");
     let pair_recovery = recovery("test/zip-pair-recovery");
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     for kind in [
         &left,
         &right,
@@ -168,7 +168,7 @@ fn plan_seals_both_exact_inputs_pair_output_and_terminal_profiles() {
         &pair_recovery,
     ] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.kind_id.as_str().into(),
                 startup_parameters: Vec::new(),
             })
@@ -177,12 +177,12 @@ fn plan_seals_both_exact_inputs_pair_output_and_terminal_profiles() {
     }
     conduit_semantic_catalog::install_flow_zip_kind(&text, &count, &mut startup, &mut profile)
         .unwrap();
-    let syntax = conduit_form::parse_syntax_document(
-        "form zip-two-flows {\n left: test/zip-left-source\n right: test/zip-right-source\n zip: flow/zip\n sink: test/zip-pair-sink\n left-recovery: test/zip-left-recovery\n right-recovery: test/zip-right-recovery\n pair-recovery: test/zip-pair-recovery\n left.out >> zip.left\n right.out >> zip.right\n zip.paired >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n zip.paired! >> pair-recovery.terminal\n}\n",
+    let syntax = conduit_plot::parse_syntax_document(
+        "plot zip-two-flows {\n left: test/zip-left-source\n right: test/zip-right-source\n zip: flow/zip\n sink: test/zip-pair-sink\n left-recovery: test/zip-left-recovery\n right-recovery: test/zip-right-recovery\n pair-recovery: test/zip-pair-recovery\n left.out >> zip.left\n right.out >> zip.right\n zip.paired >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n zip.paired! >> pair-recovery.terminal\n}\n",
     );
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "zip-two-flows", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "zip-two-flows", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/flow-zip-proof"),
@@ -265,8 +265,8 @@ fn plan_seals_combine_latest_state_and_all_close_terminal_profiles() {
     let left_recovery = recovery("test/latest-left-recovery");
     let right_recovery = recovery("test/latest-right-recovery");
     let pair_recovery = recovery("test/latest-pair-recovery");
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     for kind in [
         &left,
         &right,
@@ -276,7 +276,7 @@ fn plan_seals_combine_latest_state_and_all_close_terminal_profiles() {
         &pair_recovery,
     ] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.kind_id.as_str().into(),
                 startup_parameters: Vec::new(),
             })
@@ -290,12 +290,12 @@ fn plan_seals_combine_latest_state_and_all_close_terminal_profiles() {
         &mut profile,
     )
     .unwrap();
-    let syntax = conduit_form::parse_syntax_document(
-        "form combine-two-flows {\n left: test/latest-left-source\n right: test/latest-right-source\n combine: state/combine-latest\n sink: test/latest-pair-sink\n left-recovery: test/latest-left-recovery\n right-recovery: test/latest-right-recovery\n pair-recovery: test/latest-pair-recovery\n left.out >> combine.left\n right.out >> combine.right\n combine.latest >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n combine.latest! >> pair-recovery.terminal\n}\n",
+    let syntax = conduit_plot::parse_syntax_document(
+        "plot combine-two-flows {\n left: test/latest-left-source\n right: test/latest-right-source\n combine: state/combine-latest\n sink: test/latest-pair-sink\n left-recovery: test/latest-left-recovery\n right-recovery: test/latest-right-recovery\n pair-recovery: test/latest-pair-recovery\n left.out >> combine.left\n right.out >> combine.right\n combine.latest >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n combine.latest! >> pair-recovery.terminal\n}\n",
     );
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "combine-two-flows", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "combine-two-flows", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/combine-latest-proof"),
@@ -388,8 +388,8 @@ fn plan_seals_keyed_join_types_capacity_policy_and_terminal_profiles() {
     let left_recovery = recovery("test/keyed-left-recovery");
     let right_recovery = recovery("test/keyed-right-recovery");
     let joined_recovery = recovery("test/keyed-joined-recovery");
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     for kind in [
         &left_source,
         &right_source,
@@ -399,7 +399,7 @@ fn plan_seals_keyed_join_types_capacity_policy_and_terminal_profiles() {
         &joined_recovery,
     ] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.kind_id.as_str().into(),
                 startup_parameters: Vec::new(),
             })
@@ -414,12 +414,12 @@ fn plan_seals_keyed_join_types_capacity_policy_and_terminal_profiles() {
         &mut profile,
     )
     .unwrap();
-    let syntax = conduit_form::parse_syntax_document(
-        "form join-keyed-flows {\n left: test/keyed-left-source\n right: test/keyed-right-source\n join: flow/join/by-key\n sink: test/keyed-joined-sink\n left-recovery: test/keyed-left-recovery\n right-recovery: test/keyed-right-recovery\n joined-recovery: test/keyed-joined-recovery\n left.out >> join.left\n right.out >> join.right\n join.joined >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n join.joined! >> joined-recovery.terminal\n}\n",
+    let syntax = conduit_plot::parse_syntax_document(
+        "plot join-keyed-flows {\n left: test/keyed-left-source\n right: test/keyed-right-source\n join: flow/join/by-key\n sink: test/keyed-joined-sink\n left-recovery: test/keyed-left-recovery\n right-recovery: test/keyed-right-recovery\n joined-recovery: test/keyed-joined-recovery\n left.out >> join.left\n right.out >> join.right\n join.joined >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n join.joined! >> joined-recovery.terminal\n}\n",
     );
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "join-keyed-flows", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "join-keyed-flows", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/keyed-join-proof"),

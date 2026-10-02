@@ -10,7 +10,7 @@ use conduit_body::{
     BodyGraduationChoice, BodyGraduationEvidence, BodyMembership, MembershipProofId, PartId,
 };
 use conduit_core::{
-    bind_sign, BootId, CheckedFormId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
+    bind_sign, BootId, CheckedPlotId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
     SourceDocumentId,
 };
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
@@ -23,7 +23,7 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
     let boot_id = BootId::from("boot/roseau-browser");
     let body = Body::born(
         SourceDocumentId::from("source/roseau-morse-network"),
-        CheckedFormId::from("checked/roseau-morse-network"),
+        CheckedPlotId::from("checked/roseau-morse-network"),
         1,
         bind_sign(&host_id, &boot_id, None, 1).sign_id,
     )
@@ -244,7 +244,7 @@ fn mismatched_body() -> Vec<u8> {
     let mut evidence = evidence(BodyGraduationChoice::ExternalReader);
     evidence.body_id = Body::born(
         SourceDocumentId::from("source/other"),
-        CheckedFormId::from("checked/other"),
+        CheckedPlotId::from("checked/other"),
         1,
         SignId::from("sign/other"),
     )

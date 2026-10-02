@@ -1,4 +1,4 @@
-//! Bounded execution of one ordinary Mask Form through its plan-sealed Fore.
+//! Bounded execution of one ordinary Mask Plot through its plan-sealed Fore.
 
 use alloc::{string::String, vec::Vec};
 use conduit_kernel::scheduler::{
@@ -12,7 +12,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment, lower_plan_fragment,
 };
-use conduit_presentation::{PlannedMaskForm, Presentation};
+use conduit_presentation::{PlannedMaskPlot, Presentation};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -182,7 +182,7 @@ struct ShowValue<'a> {
 }
 
 pub fn run(
-    planned: &PlannedMaskForm,
+    planned: &PlannedMaskPlot,
     presentation: &Presentation,
     play_sequence: u64,
 ) -> Result<NativeMaskPlayReceipt, NativeMaskPlayError> {
@@ -327,7 +327,7 @@ pub fn run(
 }
 
 fn show_value_id(
-    planned: &PlannedMaskForm,
+    planned: &PlannedMaskPlot,
     presentation: &Presentation,
     active: &conduit_core::ActivePlayIdentity,
 ) -> String {

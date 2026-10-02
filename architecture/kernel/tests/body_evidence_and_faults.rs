@@ -267,16 +267,16 @@ fn trace_preserves_branching_and_merging_without_timestamp_inference() {
 #[test]
 fn fault_scope_isolated_degraded_replaced_and_stale_completion_refused() {
     let isolated = FaultDisposition {
-        scope: FailureScope::Form(1),
+        scope: FailureScope::Plot(1),
         policy: PlannedFaultDisposition::TerminateScope,
     }
     .admit()
     .unwrap();
     assert_eq!(
-        isolated.accepts_completion(FailureScope::Form(1)),
+        isolated.accepts_completion(FailureScope::Plot(1)),
         Err(FaultDispositionRefusal::StaleCompletion)
     );
-    assert_eq!(isolated.accepts_completion(FailureScope::Form(2)), Ok(()));
+    assert_eq!(isolated.accepts_completion(FailureScope::Plot(2)), Ok(()));
     assert!(FaultDisposition {
         scope: FailureScope::Gear(NodeId(1)),
         policy: PlannedFaultDisposition::Degrade {

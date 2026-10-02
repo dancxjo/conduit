@@ -1,13 +1,13 @@
 use super::*;
-use crate::native_workset::{self, NativeForm};
-use crate::product_journey::WorkspaceForm;
+use crate::native_workset::{self, NativePlot};
+use crate::product_journey::WorkspacePlot;
 use alloc::vec;
 use conduit_body::{Body, BodyWorkset};
 use conduit_core::{BootId, HostId, OfferGeneration, SignId};
 
 fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
-    let resident = native_workset::resident(NativeForm::MemoryLantern).unwrap();
-    let body = Body::born_with_forms(
+    let resident = native_workset::resident(NativePlot::MemoryLantern).unwrap();
+    let body = Body::born_with_plots(
         BodyWorkset::one(resident.clone()).unwrap(),
         1,
         SignId::from("born"),
@@ -15,12 +15,12 @@ fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
     .unwrap();
     let mut journey = super::super::tests::born_projection(body.body_id.clone());
     journey.source_document_id = Some(resident.source_document_id.clone());
-    journey.checked_form_id = Some(resident.checked_form_id.clone());
+    journey.checked_plot_id = Some(resident.checked_plot_id.clone());
     let workspace = WorkspaceProjection {
         body_id: body.body_id,
         revision: journey.revision,
-        forms: vec![WorkspaceForm {
-            form: resident.clone(),
+        plots: vec![WorkspacePlot {
+            plot: resident.clone(),
             title: "Memory Lantern",
             foreground: true,
             input: None,
@@ -34,7 +34,7 @@ fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
         "build",
         "image",
         resident.source_document_id,
-        resident.checked_form_id,
+        resident.checked_plot_id,
         7,
         true,
     );
@@ -47,7 +47,7 @@ fn body_view_requires_exact_membership_foreground_and_current_host_revision() {
         .unwrap();
     let revision = door.revision();
     let mut duplicate = workspace.clone();
-    duplicate.forms.push(duplicate.forms[0].clone());
+    duplicate.plots.push(duplicate.plots[0].clone());
     assert!(door.observe_body(journey.clone(), duplicate).is_err());
     let mut wrong = journey.clone();
     wrong.boot_id = "other-boot".into();

@@ -96,12 +96,12 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_pool_chat_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindProjection, KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("ChatMessage", kind_id(CHAT_MESSAGE_KIND))?;
 

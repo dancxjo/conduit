@@ -1,13 +1,13 @@
-use super::timing_form_catalogs::install_catalogs;
+use super::timing_plot_catalogs::install_catalogs;
 use super::{host, installed_std};
 use crate::TimerAdapter;
-use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, BodyWorkset, ResidentForm};
+use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, BodyWorkset, ResidentPlot};
 use conduit_core::{
     BaseImplementationId, ConfigurationValue, ObservationKind, PortDirection, PortTemporal,
     ResourceClassId, ResourceOffer, ResourcePoolId, SignId, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document,
     structured_selector_definition, KindConfigurationField, KindConfigurationRule, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
@@ -94,18 +94,18 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let command_values = encoded_values(&commands);
     let source = format!(
         "{}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output >> knock.transitions\n    commands.output >> knock.template_commands\n}}\n",
-        include_str!("../../../../forms/secret-knock/main.conduit"),
+        include_str!("../../../../plots/secret-knock/main.conduit"),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let selectors = checked
-        .forms
+        .plots
         .iter()
-        .flat_map(|form| &form.cords)
+        .flat_map(|plot| &plot.cords)
         .flat_map(|cord| &cord.stages)
         .filter_map(|stage| match stage {
-            conduit_form::CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
+            conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -118,7 +118,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
             ))
             .unwrap();
     }
-    let expanded = expand_canonical_form(&checked, "secret-knock-proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "secret-knock-proof", &profile).unwrap();
     for kind in [
         conduit_semantic_catalog::TIMED_BUTTON_ATTEMPT_KIND,
         conduit_semantic_catalog::ORDERED_EVENT_INTERVALS_KIND,
@@ -212,12 +212,12 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         },
     )
     .unwrap();
-    let secret_knock_form = ResidentForm::new(
+    let secret_knock_plot = ResidentPlot::new(
         plan.source_document_id.clone(),
-        plan.checked_form_id.clone(),
+        plan.checked_plot_id.clone(),
     );
-    let unrelated = conduit_form::parse(
-        "form unrelated_status {\n clock: time/tick(count = 2, period-ms = 5)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
+    let unrelated = conduit_plot::parse(
+        "plot unrelated_status {\n clock: time/tick(count = 2, period-ms = 5)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .unwrap();
@@ -238,12 +238,12 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         },
     )
     .unwrap();
-    let unrelated_form = ResidentForm::new(
+    let unrelated_plot = ResidentPlot::new(
         unrelated_plan.source_document_id.clone(),
-        unrelated_plan.checked_form_id.clone(),
+        unrelated_plan.checked_plot_id.clone(),
     );
-    let body = Body::born_with_forms(
-        BodyWorkset::from_forms([secret_knock_form.clone(), unrelated_form.clone()]).unwrap(),
+    let body = Body::born_with_plots(
+        BodyWorkset::from_plots([secret_knock_plot.clone(), unrelated_plot.clone()]).unwrap(),
         1,
         SignId::from("sign/secret-knock-body-born"),
     )
@@ -255,12 +255,12 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let body_plan = BodyPlan::seal(
         &wake,
         vec![
-            BodyFormPlan {
-                form: secret_knock_form,
+            BodyPlotPlan {
+                plot: secret_knock_plot,
                 plan: plan.clone(),
             },
-            BodyFormPlan {
-                form: unrelated_form,
+            BodyPlotPlan {
+                plot: unrelated_plot,
                 plan: unrelated_plan.clone(),
             },
         ],
@@ -283,7 +283,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
             SignId::from("sign/secret-knock-body-playing"),
         )
         .unwrap();
-    assert_eq!(body_plan.forms.len(), 2);
+    assert_eq!(body_plan.plots.len(), 2);
     assert_eq!(
         playing.plans[0].active_play_id.as_ref(),
         Some(&body_play.active_play_id)
@@ -343,7 +343,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         &mut timer,
         &crate::RunControl::default(),
     )
-    .expect("unrelated Form executes under the same body-wide Play");
+    .expect("unrelated Plot executes under the same body-wide Play");
     assert_eq!(
         unrelated_report.kernel.unwrap().post_play_start_allocations,
         0

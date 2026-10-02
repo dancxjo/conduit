@@ -17,16 +17,16 @@ use conduit_planner::{
     SelectedRealizationPlanning,
 };
 
-/// Portable canonical Form. It names musical meaning only; Create, OI,
+/// Portable canonical Plot. It names musical meaning only; Create, OI,
 /// serial, song slots, and speaker resources enter solely through the plan.
-pub const SIMPLE_MELODY_FORM: &str = r#"form simple_melody {
+pub const SIMPLE_MELODY_FORM: &str = r#"plot simple_melody {
     performance: music/play
 }
 "#;
 
-/// Portable canonical Form for one bounded body-velocity realization. Exact
+/// Portable canonical Plot for one bounded body-velocity realization. Exact
 /// Host, safety class, authority, Create OI, and UART facts enter through Plan.
-pub const BOUNDED_DRIVE_FORM: &str = r#"form bounded_drive {
+pub const BOUNDED_DRIVE_FORM: &str = r#"plot bounded_drive {
     drive: robotics/drive-differential(ttl-ms = 250)
 }
 "#;
@@ -37,7 +37,7 @@ pub fn simple_melody_plan(
     authority_granted: bool,
 ) -> Result<conduit_core::Plan, PlannerError> {
     let (_, profile) = catalogs().expect("fixed Pete catalogs are valid");
-    let checked = conduit_form::parse(SIMPLE_MELODY_FORM, &profile)
+    let checked = conduit_plot::parse(SIMPLE_MELODY_FORM, &profile)
         .expect("portable melody checks without mechanism facts");
     let host = live_speaker_advertisement(observation)
         .expect("caller supplies one fresh usable Create speaker observation");
@@ -90,7 +90,7 @@ pub fn bounded_drive_plan(
     authority_granted: bool,
 ) -> Result<conduit_core::Plan, PlannerError> {
     let (_, profile) = catalogs().expect("fixed Pete catalogs are valid");
-    let checked = conduit_form::parse(BOUNDED_DRIVE_FORM, &profile)
+    let checked = conduit_plot::parse(BOUNDED_DRIVE_FORM, &profile)
         .expect("portable drive checks without mechanism facts");
     let host = live_create_drive_advertisement(observation, observation.safety.observed_at_tick)
         .expect("caller supplies fresh non-hazardous Create drive truth");
@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_drive_form_plans_the_exact_reduced_safety_realization() {
+    fn unchanged_drive_plot_plans_the_exact_reduced_safety_realization() {
         for forbidden in ["create", "uart", "serial", "watchdog", "std-host", "gpio"] {
             assert!(!BOUNDED_DRIVE_FORM.contains(forbidden));
         }
@@ -215,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_mechanism_free_form_plans_only_with_explicit_speaker_authority() {
+    fn unchanged_mechanism_free_plot_plans_only_with_explicit_speaker_authority() {
         for forbidden in ["create", "oi", "serial", "speaker", "song", "pete"] {
             assert!(!SIMPLE_MELODY_FORM.to_ascii_lowercase().contains(forbidden));
         }

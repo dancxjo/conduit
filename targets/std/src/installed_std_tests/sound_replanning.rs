@@ -41,15 +41,15 @@ fn host(
         .expect("selection is scoped to the exact host generation")
 }
 
-fn form() -> conduit_form::CheckedForm {
-    conduit_form::parse(
-        "form sound_replan {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio >> output.audio\n}\n",
+fn plot() -> conduit_plot::CheckedPlot {
+    conduit_plot::parse(
+        "plot sound_replan {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio >> output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
-    .expect("portable PCM Form is valid")
+    .expect("portable PCM Plot is valid")
 }
 
-fn plan(host: &StdHost, form: &conduit_form::CheckedForm) -> conduit_core::Plan {
+fn plan(host: &StdHost, plot: &conduit_plot::CheckedPlot) -> conduit_core::Plan {
     let hosts = [host.advertisement().clone()];
     let selection = host.playback.as_ref().expect("playback selection exists");
     let advertisements = [selection.realization_advertisement(hosts[0].host_id.clone())];
@@ -62,7 +62,7 @@ fn plan(host: &StdHost, form: &conduit_form::CheckedForm) -> conduit_core::Plan 
         .playback_authority_grant(&grant_id)
         .expect("exact playback authority grant")];
     conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
-        form,
+        plot,
         SelectedRealizationPlanning {
             hosts: &hosts,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],
@@ -80,14 +80,14 @@ fn plan(host: &StdHost, form: &conduit_form::CheckedForm) -> conduit_core::Plan 
 
 #[test]
 fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
-    let checked_form = form();
+    let checked_plot = plot();
     let mut host_a = host(
         "sound-boot-a",
         7,
         "usb-path-a",
         FakePlaybackBehavior::ProviderLossAfterFirstBlock,
     );
-    let plan_a = plan(&host_a, &checked_form);
+    let plan_a = plan(&host_a, &checked_plot);
     let immutable_plan_a = plan_a.clone();
     let fragment_a = &plan_a.fragments[0];
     let play_a = bind_active_play(&plan_a.plan_id, &fragment_a.host_id, &fragment_a.boot_id, 0);
@@ -144,7 +144,7 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
     let line_candidates = BTreeMap::new();
     let outcome = replan_selected_realizations_with_characteristics(
         &plan_a,
-        &checked_form,
+        &checked_plot,
         &hosts_b,
         &[BaseImplementationId::from("conduit.base/local@1")],
         &BTreeMap::new(),
@@ -174,8 +174,8 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
     assert_eq!(previous_plan_id, plan_a.plan_id);
     assert_ne!(plan_b.plan_id, plan_a.plan_id);
     assert_eq!(plan_b.source_document_id, plan_a.source_document_id);
-    assert_eq!(plan_b.checked_form_id, plan_a.checked_form_id);
-    assert_eq!(plan_b.expanded_form_id, plan_a.expanded_form_id);
+    assert_eq!(plan_b.checked_plot_id, plan_a.checked_plot_id);
+    assert_eq!(plan_b.expanded_plot_id, plan_a.expanded_plot_id);
     let playback_a = plan_a.fragments[0]
         .placements
         .iter()
@@ -233,14 +233,14 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
 
 #[test]
 fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
-    let checked_form = form();
+    let checked_plot = plot();
     let host_a = host(
         "sound-authority-boot-a",
         9,
         "authority-path-a",
         FakePlaybackBehavior::Success,
     );
-    let plan_a = plan(&host_a, &checked_form);
+    let plan_a = plan(&host_a, &checked_plot);
     let old_grant = host_a
         .playback_authority_grant("grant/device-a-only")
         .expect("device A authority");
@@ -263,7 +263,7 @@ fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
     for grants in [&[][..], std::slice::from_ref(&old_grant)] {
         let error = replan_selected_realizations_with_characteristics(
             &plan_a,
-            &checked_form,
+            &checked_plot,
             &hosts_b,
             &[BaseImplementationId::from("conduit.base/local@1")],
             &BTreeMap::new(),
@@ -296,7 +296,7 @@ fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
         "drain-loss-path",
         FakePlaybackBehavior::ProviderLossOnDrain,
     );
-    let drain_plan = plan(&drain_loss, &checked_form);
+    let drain_plan = plan(&drain_loss, &checked_plot);
     let error = drain_loss
         .run_fragment_to(
             drain_plan.fragments[0].clone(),

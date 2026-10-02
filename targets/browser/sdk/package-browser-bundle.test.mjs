@@ -64,7 +64,7 @@ try {
   assert.equal(packed.status, 0, packed.stderr);
   const listing = JSON.parse(packed.stdout)[0].files.map(({ path: file }) => file);
   assert(listing.includes("browser-sdk.mjs"));
-  assert(listing.includes("browser-sdk-forms.mjs"));
+  assert(listing.includes("browser-sdk-plots.mjs"));
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));

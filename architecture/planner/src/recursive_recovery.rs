@@ -75,7 +75,7 @@ pub fn prove_recursive_recovery(
         return Err(RecursiveRecoveryRefusal::DirectImplementationStillAvailable);
     }
     if old.source_document_id != replacement.source_document_id
-        || old.checked_form_id != replacement.checked_form_id
+        || old.checked_plot_id != replacement.checked_plot_id
     {
         return Err(RecursiveRecoveryRefusal::SemanticSubjectChanged);
     }

@@ -5,11 +5,11 @@ use conduit_core::{
     ConfigurationValue, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection,
 };
-use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId, ValueRef, ValueStorage,
 };
+use conduit_plot::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 
 pub(super) const TEST_TEXT_SOURCE_KIND: &str = "conduit-test/text-source";
 const TEST_TEXT_SOURCE_REVISION: &str = "conduit-test/text-source@1";

@@ -2,7 +2,7 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::TemporalRelation;
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
     ContextOmission, ContextOmissionReason, ContextOmissions, ContextOrderingPolicy,

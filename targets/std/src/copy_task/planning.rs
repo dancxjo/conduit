@@ -2,15 +2,15 @@ use crate::StdHost;
 use conduit_core::{
     AuthorityGrant, BaseImplementationId, Plan, PlanFragment, ProtectedResourceGrant,
 };
-use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
+use conduit_plot::CheckedPlot;
 use std::collections::BTreeMap;
 
-const COPY_FORM_SOURCE: &str = "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n";
+const COPY_PLOT_SOURCE: &str = "plot copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct PreparedCopyTask {
-    pub form: CheckedForm,
+    pub plot: CheckedPlot,
     pub plan: Plan,
     pub fragment: PlanFragment,
 }
@@ -36,15 +36,15 @@ fn prepare_copy_task_with_authority(
     grants: &[ProtectedResourceGrant; 2],
     authority_grants: &[AuthorityGrant],
 ) -> Result<PreparedCopyTask, String> {
-    let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_copy_file_catalog(&mut catalog)?;
-    let form =
-        conduit_form::parse(COPY_FORM_SOURCE, &catalog).map_err(|error| error.to_string())?;
-    let placements = default_placements(&form, std::slice::from_ref(host.advertisement()))
+    let plot =
+        conduit_plot::parse(COPY_PLOT_SOURCE, &catalog).map_err(|error| error.to_string())?;
+    let placements = default_placements(&plot, std::slice::from_ref(host.advertisement()))
         .map_err(|error| error.to_string())?;
     let overrides = BTreeMap::new();
     let plan = plan_with_options(
-        &form,
+        &plot,
         std::slice::from_ref(host.advertisement()),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -65,7 +65,7 @@ fn prepare_copy_task_with_authority(
         .cloned()
         .ok_or_else(|| "copy Plan has no local fragment".to_string())?;
     Ok(PreparedCopyTask {
-        form,
+        plot,
         plan,
         fragment,
     })

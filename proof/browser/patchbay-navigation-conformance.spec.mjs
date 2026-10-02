@@ -27,7 +27,7 @@ test("browser projection agrees exactly with the portable navigation observation
     const stale=structuredClone(initial);stale.navigation.cursor.revision+=1;
     await expect(page.evaluate(async value=>(await import("/assets/portable-navigation.js")).observeCurrent(value),stale)).rejects.toThrow("stale portable navigation identity");
 
-    await page.getByRole("button",{name:"Form",exact:true}).focus();
+    await page.getByRole("button",{name:"Plot",exact:true}).focus();
     await page.keyboard.press("Enter");
     await page.locator("#toggle-inspector").focus();
     await page.keyboard.press("Enter");

@@ -24,8 +24,8 @@ pub fn fragment() -> PlanFragment {
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: SourceDocumentId::from("source"),
-        checked_form_id: CheckedFormId::from("checked"),
-        expanded_form_id: ExpandedFormId::from("expanded"),
+        checked_plot_id: CheckedPlotId::from("checked"),
+        expanded_plot_id: ExpandedPlotId::from("expanded"),
         realization_backs: vec![],
         host_id: HostId::from("host"),
         boot_id: BootId::from("boot"),
@@ -81,10 +81,10 @@ pub fn fragment() -> PlanFragment {
 
 pub fn seal(fragment: PlanFragment) -> Plan {
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: fragment.source_document_id.clone(),
-            checked_form_id: fragment.checked_form_id.clone(),
-            expanded_form_id: fragment.expanded_form_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
         },
         vec![fragment],
     )
@@ -95,10 +95,10 @@ pub fn retained_fragment() -> PlanFragment {
     let mut destination = fragment();
     let source = seal(fragment());
     destination.states[0].retained = Some(RetainedStateProvenance {
-        source_form: FormIdentity {
+        source_plot: PlotIdentity {
             source_document_id: source.source_document_id.clone(),
-            checked_form_id: source.checked_form_id.clone(),
-            expanded_form_id: source.expanded_form_id.clone(),
+            checked_plot_id: source.checked_plot_id.clone(),
+            expanded_plot_id: source.expanded_plot_id.clone(),
         },
         source_play: bind_active_play(
             &source.plan_id,

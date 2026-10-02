@@ -8,7 +8,7 @@ fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
     let basis = &snapshot.presentation.basis;
     let born_body = Body::born(
         basis.source_document_id.clone().unwrap(),
-        basis.checked_form_id.clone().unwrap(),
+        basis.checked_plot_id.clone().unwrap(),
         1,
         SignId::from("patchbay/bornd"),
     )
@@ -17,10 +17,10 @@ fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
     let mut evidence =
         BodyBiographyEvidence::born(born_body.clone(), membership, "Roseau".into()).unwrap();
     let body = born_body
-        .admit_form(
-            conduit_body::ResidentForm::new(
+        .admit_plot(
+            conduit_body::ResidentPlot::new(
                 conduit_core::SourceDocumentId::from("source/recorder"),
-                conduit_core::CheckedFormId::from("checked/recorder"),
+                conduit_core::CheckedPlotId::from("checked/recorder"),
             ),
             SignId::from("patchbay/recorder-admitted"),
         )
@@ -70,22 +70,22 @@ fn attached_workbench_retains_exact_evidence_and_refuses_identity_drift() {
 
     let entrance =
         body_workbench_snapshot(1, &bytes, BrowserBodyWorkbenchEntrance::ExternalReader).unwrap();
-    let forms = entrance
+    let plots = entrance
         .presentation
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Form)
+        .filter(|subject| subject.role == PresentationRole::Plot)
         .collect::<Vec<_>>();
-    assert_eq!(forms.len(), 2);
+    assert_eq!(plots.len(), 2);
     let initial_checked = snapshot
         .presentation
         .basis
-        .checked_form_id
+        .checked_plot_id
         .as_ref()
         .unwrap()
         .as_str();
-    assert!(forms.iter().any(|subject| subject.name == initial_checked));
-    assert!(forms
+    assert!(plots.iter().any(|subject| subject.name == initial_checked));
+    assert!(plots
         .iter()
         .any(|subject| subject.name == "checked/recorder"));
     assert_eq!(

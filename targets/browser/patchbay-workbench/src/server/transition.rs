@@ -97,28 +97,28 @@ mod tests {
     }
 
     #[test]
-    fn html_open_form_is_inert_then_explicit_birth_establishes_body() {
-        let explicit = conduit_patchbay_workbench::FormCandidate::from_source(
+    fn html_open_plot_is_inert_then_explicit_birth_establishes_body() {
+        let explicit = conduit_patchbay_workbench::PlotCandidate::from_source(
             "Text Lab",
             "text-lab.conduit",
-            include_str!("../../../../../forms/text-lab/main.conduit"),
+            include_str!("../../../../../plots/text-lab/main.conduit"),
             "checked test source",
             conduit_core::SignId::from("test/text-lab/checked"),
             1,
         )
         .unwrap();
         let mut server =
-            PatchbayHtmlServer::bind_front_door_with_forms_ephemeral(vec![explicit]).unwrap();
-        let form = server
+            PatchbayHtmlServer::bind_front_door_with_plots_ephemeral(vec![explicit]).unwrap();
+        let plot = server
             .snapshot
             .presentation
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Form && subject.name == "Text Lab")
+            .find(|subject| subject.role == PresentationRole::Plot && subject.name == "Text Lab")
             .unwrap()
             .identity
             .clone();
-        let open = request(&server, "open", Some(&form));
+        let open = request(&server, "open", Some(&plot));
         let opened = server.apply_front_door_transition(&open).unwrap();
         let opened: crate::RendererSnapshot = serde_json::from_slice(&opened).unwrap();
         assert!(opened.presentation.basis.body_id.is_none());
@@ -127,7 +127,7 @@ mod tests {
             Some("Succeeded")
         );
         assert!(opened.presentation.properties.iter().any(|property| {
-            property.subject == form
+            property.subject == plot
                 && property.name == "opened"
                 && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
         }));
@@ -136,7 +136,7 @@ mod tests {
             "presentation_id": opened.presentation.identity.as_str(),
             "revision": opened.revision - 1,
             "action": "birth",
-            "subject": form,
+            "subject": plot,
         }))
         .unwrap();
         let stale: crate::RendererSnapshot =
@@ -156,7 +156,7 @@ mod tests {
             .presentation
             .actions
             .iter()
-            .find(|action| action.target == form && action.intent == "conduit.intent/birth@1")
+            .find(|action| action.target == plot && action.intent == "conduit.intent/birth@1")
             .unwrap();
         assert_eq!(
             birth.availability,

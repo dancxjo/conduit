@@ -84,14 +84,14 @@ pub fn replay_policy_from_configuration(
     }
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn replay_control_kind_projection() -> conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn replay_control_kind_projection() -> conduit_plot::KindProjection {
     use alloc::string::ToString;
     use conduit_core::{
         kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType,
     };
-    use conduit_form::{KindConfigurationField, KindConfigurationRule};
+    use conduit_plot::{KindConfigurationField, KindConfigurationRule};
     let port = |name, value_kind, direction, temporal| PortDescriptor {
         port_id: port_id(name),
         value_kind: StructuredInfoType::leaf(kind_id(value_kind))
@@ -104,7 +104,7 @@ pub fn replay_control_kind_projection() -> conduit_form::KindProjection {
         temporal,
         abnormal_kind: None,
     };
-    conduit_form::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: kind_id(crate::REPLAY_CONTROL_KIND),
         kind_contract_revision: KindIdentity::from(crate::REPLAY_CONTROL_CONTRACT_REVISION),
         inputs: alloc::vec![
@@ -181,7 +181,7 @@ pub fn replay_control_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn replay_control_semantic_contract() -> conduit_core::Kind {
     use conduit_core::{kind_id, CapabilityLimits, FrontStartupParameter};
 

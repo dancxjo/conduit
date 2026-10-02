@@ -187,26 +187,26 @@ impl PatchbayHtmlServer {
 mod tests {
     use super::*;
     use conduit_core::SignId;
-    use conduit_patchbay_workbench::FormCandidate;
+    use conduit_patchbay_workbench::PlotCandidate;
 
     fn server() -> PatchbayHtmlServer {
-        let form = FormCandidate::from_source(
+        let plot = PlotCandidate::from_source(
             "Text Lab",
             "text-lab.conduit",
-            include_str!("../../../../../forms/text-lab/main.conduit"),
+            include_str!("../../../../../plots/text-lab/main.conduit"),
             "navigation test",
-            SignId::from("test/navigation/form"),
+            SignId::from("test/navigation/plot"),
             1,
         )
         .unwrap();
         let mut server =
-            PatchbayHtmlServer::bind_front_door_with_forms_ephemeral(vec![form]).unwrap();
-        let form = server
+            PatchbayHtmlServer::bind_front_door_with_plots_ephemeral(vec![plot]).unwrap();
+        let plot = server
             .snapshot
             .presentation
             .subjects
             .iter()
-            .find(|subject| subject.role == conduit_presentation::PresentationRole::Form)
+            .find(|subject| subject.role == conduit_presentation::PresentationRole::Plot)
             .unwrap()
             .identity
             .clone();
@@ -215,7 +215,7 @@ mod tests {
             .presentation
             .actions
             .iter()
-            .find(|action| action.target == form && action.intent == "conduit.intent/open@1")
+            .find(|action| action.target == plot && action.intent == "conduit.intent/open@1")
             .unwrap();
         let request = serde_json::to_vec(&serde_json::json!({
             "presentation_id": server.snapshot.presentation.identity.as_str(),

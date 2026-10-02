@@ -38,7 +38,7 @@ struct TransitionReceipt {
 struct DemoReceipt {
     schema: &'static str,
     issue: u16,
-    form: &'static str,
+    plot: &'static str,
     initial_level: bool,
     transitions: Vec<TransitionReceipt>,
 }
@@ -59,7 +59,7 @@ pub fn run(args: LightSwitchDemoArgs) -> Result<(), Box<dyn std::error::Error>> 
     let mut receipt = DemoReceipt {
         schema: "conduit.demo/physical-light-switch@1",
         issue: 1904,
-        form: "proof/fixtures/forms/physical-light-switch.conduit",
+        plot: "proof/fixtures/plots/physical-light-switch.conduit",
         initial_level: false,
         transitions: Vec::with_capacity(usize::from(args.presses) + 1),
     };

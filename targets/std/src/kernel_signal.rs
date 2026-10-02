@@ -1,4 +1,4 @@
-//! Installed hosted-kernel profile for the exact two-node Signal form.
+//! Installed hosted-kernel profile for the exact two-node Signal plot.
 
 use super::{SignalReceipt, StdKernelExecutionReport, StdRunReport, TimerAdapter};
 use conduit_core::{

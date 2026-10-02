@@ -169,7 +169,7 @@ fn read_message(
         headers.push(
             HttpHeader::new(
                 name,
-                conduit_form::rust_binding::BoundedBytes::new(&value)
+                conduit_plot::rust_binding::BoundedBytes::new(&value)
                     .ok_or(HttpExchangeFailure::ResponseHeaderOverflow)?,
             )
             .map_err(|_| HttpExchangeFailure::ProviderLost)?,

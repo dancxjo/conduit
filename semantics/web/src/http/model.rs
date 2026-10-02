@@ -30,7 +30,7 @@ pub const HTTP_IMPLICIT_CACHING: bool = false;
 pub const HTTP_IMPLICIT_DECOMPRESSION: bool = false;
 
 pub type HttpHeaders =
-    conduit_form::rust_binding::BoundedSequence<HttpHeader, HTTP_MAXIMUM_HEADERS>;
+    conduit_plot::rust_binding::BoundedSequence<HttpHeader, HTTP_MAXIMUM_HEADERS>;
 
 pub fn http_headers(
     values: impl IntoIterator<Item = HttpHeader>,
@@ -39,12 +39,12 @@ pub fn http_headers(
 }
 
 pub fn http_request_type() -> conduit_core::StructuredInfoType {
-    <HttpRequest as conduit_form::rust_binding::NativeRustBinding>::semantic_type()
+    <HttpRequest as conduit_plot::rust_binding::NativeRustBinding>::semantic_type()
         .expect("checked HTTP request Type is finite")
 }
 
 pub fn http_response_type() -> conduit_core::StructuredInfoType {
-    <HttpResponse as conduit_form::rust_binding::NativeRustBinding>::semantic_type()
+    <HttpResponse as conduit_plot::rust_binding::NativeRustBinding>::semantic_type()
         .expect("checked HTTP response Type is finite")
 }
 
@@ -60,7 +60,7 @@ impl HttpScheme {
 impl HttpBody {
     pub fn inline(bytes: impl AsRef<[u8]>) -> Self {
         Self::InlineBytes(
-            conduit_form::rust_binding::BoundedBytes::new(bytes.as_ref())
+            conduit_plot::rust_binding::BoundedBytes::new(bytes.as_ref())
                 .expect("HTTP inline body must fit its semantic bound"),
         )
     }
@@ -186,7 +186,7 @@ mod native_type_tests {
         HttpBody, HttpExchangeFailure, HttpHeader, HttpMethod, HttpRequest, HttpResponse,
         HttpScheme, HttpServerResponseRefusal, HttpTarget, HttpTransactionId,
     };
-    use conduit_form::rust_binding::NativeRustBinding;
+    use conduit_plot::rust_binding::NativeRustBinding;
 
     fn assert_round_trip<T>(value: T)
     where
@@ -226,7 +226,7 @@ mod native_type_tests {
         );
         let header = HttpHeader::new(
             "content-type".into(),
-            conduit_form::rust_binding::BoundedBytes::new(b"application/json").unwrap(),
+            conduit_plot::rust_binding::BoundedBytes::new(b"application/json").unwrap(),
         )
         .unwrap();
         assert_round_trip(header.clone());

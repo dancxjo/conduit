@@ -45,7 +45,7 @@ birth
  -> new or reused planning truth
 ```
 
-A body can begin with zero, one, or many forms. No initial form remains permanently privileged.
+A body can begin with zero, one, or many plots. No initial plot remains permanently privileged.
 
 ## host source constructs machinery
 
@@ -130,17 +130,17 @@ See [bodies/pete/profiles/pete-r1.body.conduit](https://github.com/dancxjo/condu
 
 This is construction intent. Current membership, presence, offers, lines, plans, and plays remain runtime truth.
 
-## forms belong to the body; realizations belong to plans
+## plots belong to the body; realizations belong to plans
 
-A resident **form** is authored intent. It may survive changes in the machinery that currently realizes it.
+A resident **plot** is authored intent. It may survive changes in the machinery that currently realizes it.
 
-When a host disappears, Conduit does not need to rewrite the form into a new machine-specific program. It can ask a narrower question: **given the same form and the new current truth, is there another admissible plan?**
+When a host disappears, Conduit does not need to rewrite the plot into a new machine-specific program. It can ask a narrower question: **given the same plot and the new current truth, is there another admissible plan?**
 
 That separation is the architectural basis for recovery without semantic drift.
 
 ## Planning is where meaning meets reality
 
-The planner starts from a checked form and current realization truth.
+The planner starts from a checked plot and current realization truth.
 
 ```text
 checked semantic requirement

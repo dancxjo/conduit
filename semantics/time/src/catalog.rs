@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity,
     Quantity, QuantityUnit,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };

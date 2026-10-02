@@ -1,14 +1,14 @@
 //! Consuming handoff of typed State between exact prepared executions.
 use super::{StateValueValidator, TypedStateBack};
 use conduit_core::{
-    bind_active_play, verify_plan_fragment, ActivePlayIdentity, FormIdentity, PlanFragment,
-    PlannedGear, RetainedStateProvenance,
+    bind_active_play, verify_plan_fragment, ActivePlayIdentity, PlanFragment, PlannedGear,
+    PlotIdentity, RetainedStateProvenance,
 };
 use conduit_kernel::state_delay::{back::StateBack, StateDelay};
 use conduit_plan_lowering::lowering::LoweredState;
 
 pub(super) struct StateExecutionBinding {
-    form: FormIdentity,
+    plot: PlotIdentity,
     play: ActivePlayIdentity,
     state: conduit_core::StateId,
     value_kind: conduit_core::KindId,
@@ -66,7 +66,7 @@ impl TypedStateBack {
             .expect("binding checked before consuming State");
         let cell = self.back.into_state();
         let provenance = RetainedStateProvenance {
-            source_form: binding.form,
+            source_plot: binding.plot,
             source_play: binding.play,
             source_state: binding.state,
             value_kind: binding.value_kind,
@@ -96,7 +96,7 @@ impl TypedStateBack {
         source: &RetainedTypedState,
     ) -> Result<(StateExecutionBinding, StateValueValidator), String> {
         let (placement, binding) = bind(fragment, state, play)?;
-        if binding.form != source.provenance.source_form
+        if binding.plot != source.provenance.source_plot
             || state.contract.initial_value != source.initial_value
             || state.contract.retained.as_ref() != Some(&source.provenance)
             || source.provenance.source_play.active_play_id == play.active_play_id
@@ -179,10 +179,10 @@ pub(super) fn bind<'a>(
     Ok((
         placement,
         StateExecutionBinding {
-            form: FormIdentity {
+            plot: PlotIdentity {
                 source_document_id: fragment.source_document_id.clone(),
-                checked_form_id: fragment.checked_form_id.clone(),
-                expanded_form_id: fragment.expanded_form_id.clone(),
+                checked_plot_id: fragment.checked_plot_id.clone(),
+                expanded_plot_id: fragment.expanded_plot_id.clone(),
             },
             play: play.clone(),
             state: state.contract.state_id.clone(),

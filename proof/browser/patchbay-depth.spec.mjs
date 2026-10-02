@@ -14,7 +14,7 @@ test("Inspect and advanced evidence preserve portable identity and Back",async({
   const server=startServer();
   try {
     const url=await server.url;await page.goto(url);
-    await page.getByRole("button",{name:"Form",exact:true}).focus();await page.keyboard.press("Enter");
+    await page.getByRole("button",{name:"Plot",exact:true}).focus();await page.keyboard.press("Enter");
     const original=await(await fetch(`${url}/api/snapshot`)).json();
     await page.locator("#toggle-inspector").focus();await page.keyboard.press("Enter");
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});

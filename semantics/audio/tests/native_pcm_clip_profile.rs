@@ -1,5 +1,5 @@
 use conduit_audio::{PcmChannelLayout, PcmClipProfile, PcmSampleRepresentation};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn pcm_clip_profile_round_trips_exact_values() {

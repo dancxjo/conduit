@@ -43,7 +43,7 @@ fn bounded_collection_selects_latest_without_mutating_generations() {
 
 #[test]
 fn selection_refuses_ambiguity_and_work_beyond_admission() {
-    let mut collection = ResourceCollection::new(ResourceCollectionId("forms".into()), 3).unwrap();
+    let mut collection = ResourceCollection::new(ResourceCollectionId("plots".into()), 3).unwrap();
     collection
         .publish(generation("a", "ga", "reviewed", 4))
         .unwrap();

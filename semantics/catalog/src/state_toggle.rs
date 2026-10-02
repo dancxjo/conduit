@@ -1,7 +1,7 @@
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
@@ -81,16 +81,16 @@ pub fn state_toggle_semantic_contract() -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_state_toggle_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     let contract = state_toggle_contract();
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().to_string(),
-        startup_parameters: vec![conduit_form::StartupParameterSignature {
+        startup_parameters: vec![conduit_plot::StartupParameterSignature {
             name: "initial".to_string(),
             value_type: "Boolean".to_string(),
             default: Some("false".to_string()),

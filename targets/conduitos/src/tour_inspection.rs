@@ -84,7 +84,7 @@ impl TourProduct {
             .as_ref()
             .map_err(|_| "inspection-graph-refused")?;
         presentation.basis.source_document_id = Some(graph.source_document_id.clone());
-        presentation.basis.checked_form_id = Some(graph.checked_form_id.clone());
+        presentation.basis.checked_plot_id = Some(graph.checked_plot_id.clone());
         let gear = graph
             .gears
             .iter()
@@ -156,14 +156,14 @@ impl TourProduct {
             }
         }
         presentation.basis.source_document_id = Some(proof.source_document_id.clone());
-        presentation.basis.checked_form_id = Some(proof.checked_form_id.clone());
+        presentation.basis.checked_plot_id = Some(proof.checked_plot_id.clone());
         // A native Tour run has no Body identity in its receipt. Keep its
         // recorded realization as observed subjects, not an invented embodied basis.
         for (identity, role, label) in [
             (
-                proof.expanded_form_id.as_str(),
-                PresentationRole::Form,
-                "Recorded expanded Form",
+                proof.expanded_plot_id.as_str(),
+                PresentationRole::Plot,
+                "Recorded expanded Plot",
             ),
             (
                 proof.plan_id.as_str(),
@@ -243,8 +243,8 @@ mod tests {
             Some(&graph.source_document_id)
         );
         assert_eq!(
-            presentation.basis.checked_form_id.as_ref(),
-            Some(&graph.checked_form_id)
+            presentation.basis.checked_plot_id.as_ref(),
+            Some(&graph.checked_plot_id)
         );
         let identity = presentation.identity.clone();
         assert_eq!(validated(presentation).unwrap().unwrap().identity, identity);

@@ -6,17 +6,17 @@ use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
     CapabilityId, HostCallContractId,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 use std::collections::BTreeMap;
 
-pub const SPEECH_FORM: &str = r#"form tongues_text_to_speech {
+pub const SPEECH_FORM: &str = r#"plot tongues_text_to_speech {
     tts: speech/synthesize
     output: audio/play
     "Hello from Tongues." >> tts >> output
@@ -41,15 +41,15 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
     }
     let encoded = serde_json::to_string(text).map_err(|error| error.to_string())?;
     let source = format!(
-        "form tongues_text_to_speech {{\n    tts: speech/synthesize\n    output: audio/play\n    {encoded} >> tts >> output\n}}\n"
+        "plot tongues_text_to_speech {{\n    tts: speech/synthesize\n    output: audio/play\n    {encoded} >> tts >> output\n}}\n"
     );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_speech_catalogs(&mut startup, &mut profile)?;
     let literal = conduit_text::text_literal_semantics().into_semantic_contract();
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: literal.kind_id.as_str().into(),
-        startup_parameters: vec![conduit_form::StartupParameterSignature {
+        startup_parameters: vec![conduit_plot::StartupParameterSignature {
             name: "value".into(),
             value_type: "Text".into(),
             default: None,
@@ -61,7 +61,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
 
     let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).map_err(|error| format!("{error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "tongues_text_to_speech", &profile)
+    let expanded = expand_canonical_plot(&checked, "tongues_text_to_speech", &profile)
         .map_err(|error| error.to_string())?;
     let mut fixture = speech_host_fixture(condition);
     let literal_contract = conduit_text::text_literal_semantics().into_semantic_contract();
@@ -137,7 +137,7 @@ mod tests {
             OutputCondition::PrimaryPlayback,
             OutputCondition::DegradedWavArtifact,
         ] {
-            let planned = plan_speech(condition).expect("speech form plans and lowers");
+            let planned = plan_speech(condition).expect("speech plot plans and lowers");
             assert_eq!(planned.plan.fragments[0].placements.len(), 3);
             assert_eq!(planned.lowered.nodes.len(), 3);
             assert_eq!(planned.lowered.cords.len(), 2);

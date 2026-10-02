@@ -63,7 +63,7 @@ pub struct StdSpeakerArgs {
 struct Evidence {
     schema: &'static str,
     proof_class: &'static str,
-    portable_form: &'static str,
+    portable_plot: &'static str,
     plan_id: String,
     declared_host_id: String,
     declared_boot_id: String,
@@ -245,7 +245,7 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     Ok(Evidence {
         schema: EVIDENCE_SCHEMA,
         proof_class: "live_std_create_speaker_machine_evidence",
-        portable_form: SIMPLE_MELODY_FORM,
+        portable_plot: SIMPLE_MELODY_FORM,
         plan_id: plan.plan_id.as_str().to_string(),
         declared_host_id: args.host_id.clone(),
         declared_boot_id: args.boot_id.clone(),

@@ -1,4 +1,4 @@
-//! One guarded physical execution of an ordinary Conduit contact Form.
+//! One guarded physical execution of an ordinary Conduit contact Plot.
 
 use std::{
     fs::{self, File, OpenOptions},
@@ -80,7 +80,7 @@ pub(super) fn run(
     let root = workspace_root()?;
     if opts.dry_run {
         if !opts.quiet {
-            println!("would verify accepted receive-only proof, require one exact 2341:0036 Caterina bootloader, build and flash the Rust AVR Host, derive its Boot identity from 1b4f:9206 USB, plan the ordinary contact Form, and execute one bounded assigned Plan");
+            println!("would verify accepted receive-only proof, require one exact 2341:0036 Caterina bootloader, build and flash the Rust AVR Host, derive its Boot identity from 1b4f:9206 USB, plan the ordinary contact Plot, and execute one bounded assigned Plan");
         }
         return Ok(());
     }

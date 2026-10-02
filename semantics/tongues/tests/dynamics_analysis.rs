@@ -1,4 +1,4 @@
-use conduit_tongues::{check_research_forms, run_dynamics_analysis, ANALYSIS_FORM_SOURCE};
+use conduit_tongues::{check_research_plots, run_dynamics_analysis, ANALYSIS_PLOT_SOURCE};
 
 #[test]
 fn analysis_is_exact_bounded_and_tied_to_the_frozen_artifacts() {
@@ -39,10 +39,10 @@ fn analysis_is_exact_bounded_and_tied_to_the_frozen_artifacts() {
 
 #[test]
 fn labels_enter_only_the_post_freeze_analysis_surface() {
-    let forms = check_research_forms().expect("all research Forms check");
-    assert_eq!(forms.len(), 3);
-    assert_eq!(forms[2].gears.len(), 4);
-    assert!(!ANALYSIS_FORM_SOURCE.contains("phone"));
-    assert!(!ANALYSIS_FORM_SOURCE.contains("syllable"));
-    assert!(ANALYSIS_FORM_SOURCE.contains("post-freeze"));
+    let plots = check_research_plots().expect("all research Plots check");
+    assert_eq!(plots.len(), 3);
+    assert_eq!(plots[2].gears.len(), 4);
+    assert!(!ANALYSIS_PLOT_SOURCE.contains("phone"));
+    assert!(!ANALYSIS_PLOT_SOURCE.contains("syllable"));
+    assert!(ANALYSIS_PLOT_SOURCE.contains("post-freeze"));
 }

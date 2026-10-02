@@ -8,12 +8,12 @@ companion: creche-handoff
 
 A durable body needs a beginning. The Crèche owns that bootstrap path:
 
-choose zero, one, or many initial forms, birth the body, give it first machinery, add physical or virtual hosts, and graduate to ordinary operation.
+choose zero, one, or many initial plots, birth the body, give it first machinery, add physical or virtual hosts, and graduate to ordinary operation.
 
-The selected forms enter the same bounded workset used throughout the body lifecycle. None receives a privileged identity.
+The selected plots enter the same bounded workset used throughout the body lifecycle. None receives a privileged identity.
 
 ```conduit birth
-form morse-network {
+plot morse-network {
     message: text/literal("SOS")
     morse: text/morse(120)
     light: presentation/indicator
@@ -34,4 +34,4 @@ Writing or flashing an artifact, observing a boot, and admitting a host are dist
 
 <!-- conduit-graduation -->
 
-Graduation ends the temporary Crèche path, not the body. Later, Patchbay or another compatible reader can project birth history, current forms, one body-wide wake/plan/play, machinery, and resource use.
+Graduation ends the temporary Crèche path, not the body. Later, Patchbay or another compatible reader can project birth history, current plots, one body-wide wake/plan/play, machinery, and resource use.

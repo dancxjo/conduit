@@ -120,7 +120,7 @@ fn a_batched_release_cannot_erase_the_pending_press_repaint() {
 }
 
 #[test]
-fn held_release_after_selection_is_observed_without_repainting_the_new_form() {
+fn held_release_after_selection_is_observed_without_repainting_the_new_plot() {
     let (mut journey, mut door) = listening();
     let (mut presenter, mut display) = renderer(&journey);
     let mut pending = PendingInput::default();

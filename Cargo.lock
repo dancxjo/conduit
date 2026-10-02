@@ -561,7 +561,6 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-finance",
- "conduit-form",
  "conduit-host-make",
  "conduit-kernel",
  "conduit-language",
@@ -569,6 +568,7 @@ dependencies = [
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-protected-line",
  "conduit-semantic-catalog",
@@ -594,9 +594,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-data",
- "conduit-form",
  "conduit-kernel",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -615,8 +615,8 @@ name = "conduit-alife"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-time",
  "conduit-wire",
@@ -629,8 +629,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-core",
- "conduit-form",
  "conduit-planner",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -646,13 +646,13 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-data",
- "conduit-form",
+ "conduit-plot",
  "libm",
  "serde",
 ]
 
 [[package]]
-name = "conduit-birth-form"
+name = "conduit-birth-plot"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
@@ -686,11 +686,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-body-invitation-form"
+name = "conduit-body-invitation-plot"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
 ]
 
@@ -699,11 +699,11 @@ name = "conduit-body-lifecycle-conformance"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
- "conduit-body-invitation-form",
+ "conduit-body-invitation-plot",
  "conduit-core",
- "conduit-form-library",
+ "conduit-plot-library",
  "conduit-presentation",
- "conduit-tutorial-form",
+ "conduit-tutorial-plot",
  "serde_json",
 ]
 
@@ -713,10 +713,10 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-host-make",
  "conduit-patchbay-workbench-conformance",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-host",
@@ -766,16 +766,14 @@ version = "0.1.0"
 dependencies = [
  "conduit-ai",
  "conduit-audio",
- "conduit-birth-form",
+ "conduit-birth-plot",
  "conduit-body",
- "conduit-body-invitation-form",
+ "conduit-body-invitation-plot",
  "conduit-body-make",
  "conduit-chat",
  "conduit-composite",
  "conduit-core",
  "conduit-data",
- "conduit-form",
- "conduit-form-library",
  "conduit-host-avr-make",
  "conduit-host-browser-make",
  "conduit-host-conduitos-make",
@@ -793,6 +791,8 @@ dependencies = [
  "conduit-net",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
+ "conduit-plot-library",
  "conduit-presentation",
  "conduit-protected-line",
  "conduit-semantic-catalog",
@@ -804,7 +804,7 @@ dependencies = [
  "conduit-time",
  "conduit-tongues",
  "conduit-tour-model",
- "conduit-tutorial-form",
+ "conduit-tutorial-plot",
  "conduit-web",
  "conduit-wire",
  "ed25519-dalek",
@@ -822,9 +822,9 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-net",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-text",
@@ -839,10 +839,10 @@ name = "conduit-composite"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-signal",
 ]
@@ -868,9 +868,9 @@ name = "conduit-data"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
  "conduit-little-seismograph-fixture",
+ "conduit-plot",
  "conduit-time",
 ]
 
@@ -880,7 +880,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -888,11 +888,11 @@ name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
  "conduit-net",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-r1-network-conformance",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -907,28 +907,7 @@ name = "conduit-finance"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
-]
-
-[[package]]
-name = "conduit-form"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
- "serde",
- "serde_json",
- "sha2 0.10.9",
-]
-
-[[package]]
-name = "conduit-form-library"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-core",
- "conduit-form",
- "conduit-presentation",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -936,7 +915,7 @@ name = "conduit-home-model"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
 ]
 
@@ -987,7 +966,7 @@ name = "conduit-host-make"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-offers",
@@ -1023,7 +1002,7 @@ name = "conduit-human"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "postcard",
  "serde",
  "serde_json",
@@ -1043,7 +1022,7 @@ name = "conduit-language"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -1059,7 +1038,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-data",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -1079,8 +1058,8 @@ name = "conduit-net"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-planner",
+ "conduit-plot",
  "conduit-text",
  "postcard",
  "serde",
@@ -1092,9 +1071,9 @@ name = "conduit-observatory"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
  "conduit-planner",
+ "conduit-plot",
  "conduit-signal",
  "conduit-signal-conformance",
  "serde",
@@ -1106,14 +1085,13 @@ name = "conduit-patchbay-workbench"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
- "conduit-birth-form",
+ "conduit-birth-plot",
  "conduit-body",
  "conduit-body-make",
  "conduit-browser-runtime",
  "conduit-chat",
  "conduit-core",
  "conduit-data",
- "conduit-form",
  "conduit-human",
  "conduit-kernel",
  "conduit-little-seismograph-fixture",
@@ -1122,6 +1100,7 @@ dependencies = [
  "conduit-patchbay-workbench-conformance",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -1145,8 +1124,8 @@ name = "conduit-patchbay-workbench-conformance"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-offers",
@@ -1164,13 +1143,13 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-embedded-build",
- "conduit-form",
  "conduit-human",
  "conduit-kernel",
  "conduit-mpu6050",
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-robotics",
  "conduit-semantic-catalog",
@@ -1192,11 +1171,11 @@ dependencies = [
  "conduit-body",
  "conduit-composite",
  "conduit-core",
- "conduit-form",
  "conduit-human",
  "conduit-kernel",
  "conduit-pete",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-std-host",
 ]
@@ -1218,10 +1197,10 @@ dependencies = [
  "conduit-bluetooth",
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-host-make",
  "conduit-kernel",
  "conduit-plan-lowering",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -1234,14 +1213,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-plot-library"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-plot",
+ "conduit-presentation",
+]
+
+[[package]]
 name = "conduit-presentation"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-human",
  "conduit-planner",
+ "conduit-plot",
  "conduit-time",
  "postcard",
  "serde",
@@ -1254,7 +1254,7 @@ name = "conduit-process"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -1272,7 +1272,7 @@ name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -1281,9 +1281,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-net",
  "conduit-planner",
+ "conduit-plot",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-wire",
@@ -1296,7 +1296,7 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
 ]
 
@@ -1325,12 +1325,12 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-education",
- "conduit-form",
  "conduit-human",
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-process",
  "conduit-purpose",
@@ -1346,7 +1346,7 @@ name = "conduit-signal"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-time",
 ]
@@ -1357,8 +1357,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-bluetooth",
  "conduit-core",
- "conduit-form",
  "conduit-planner",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-std-offers",
@@ -1390,7 +1390,6 @@ dependencies = [
  "conduit-data",
  "conduit-emergency-keyword-spotter",
  "conduit-finance",
- "conduit-form",
  "conduit-host-make",
  "conduit-human",
  "conduit-kernel",
@@ -1400,6 +1399,7 @@ dependencies = [
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-protected-line",
  "conduit-r1-network-conformance",
@@ -1448,10 +1448,10 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-data",
- "conduit-form",
  "conduit-human",
  "conduit-midi",
  "conduit-net",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-robotics",
  "conduit-semantic-catalog",
@@ -1475,8 +1475,8 @@ name = "conduit-system-continuity"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-observatory",
+ "conduit-plot",
  "conduit-signal-conformance",
  "conduit-wire",
  "serde",
@@ -1488,7 +1488,7 @@ name = "conduit-text"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "serde",
  "serde_json",
 ]
@@ -1498,8 +1498,8 @@ name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
+ "conduit-plot",
  "serde",
  "serde_json",
 ]
@@ -1512,10 +1512,10 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-data",
- "conduit-form",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-text",
  "serde",
@@ -1530,19 +1530,19 @@ name = "conduit-tour-model"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
 ]
 
 [[package]]
-name = "conduit-tutorial-form"
+name = "conduit-tutorial-plot"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-presentation",
  "serde",
 ]
@@ -1552,7 +1552,7 @@ name = "conduit-web"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "serde",
 ]
 
@@ -1561,7 +1561,7 @@ name = "conduit-wire"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -1601,16 +1601,16 @@ name = "conduitos"
 version = "0.1.0"
 dependencies = [
  "conduit-audio",
- "conduit-birth-form",
+ "conduit-birth-plot",
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-home-model",
  "conduit-human",
  "conduit-kernel",
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-protected-line",
  "conduit-robotics",
@@ -3276,9 +3276,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
  "conduit-patchbay-workbench-conformance",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "patchbay-control",
@@ -3299,8 +3299,8 @@ name = "patchbay-graph"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-human",
+ "conduit-plot",
  "conduit-semantic-catalog",
 ]
 
@@ -3309,7 +3309,7 @@ name = "patchbay-hosted"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-std-host",
  "patchbay-workbench-host-contract",
 ]
@@ -3319,7 +3319,7 @@ name = "patchbay-svg-mask"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
+ "conduit-plot",
  "conduit-semantic-catalog",
 ]
 
@@ -3328,8 +3328,8 @@ name = "patchbay-workbench-host-contract"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -5522,7 +5522,6 @@ dependencies = [
  "conduit-data",
  "conduit-embedded-build",
  "conduit-finance",
- "conduit-form",
  "conduit-home-model",
  "conduit-host-avr-make",
  "conduit-host-browser-make",
@@ -5541,6 +5540,7 @@ dependencies = [
  "conduit-pete",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-r1-network-conformance",
  "conduit-robotics",
@@ -5554,7 +5554,7 @@ dependencies = [
  "conduit-text",
  "conduit-time",
  "conduit-tongues",
- "conduit-tutorial-form",
+ "conduit-tutorial-plot",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-make",

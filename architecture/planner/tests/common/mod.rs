@@ -1,5 +1,5 @@
 use conduit_core::{ArtifactId, CapabilityId, HostId, ImplementationId};
-use conduit_form::parse_with_startup;
+use conduit_plot::parse_with_startup;
 use conduit_signal::{signal_profile_catalog, PULSE_KIND};
 use conduit_signal_conformance::pico_local_advertisement;
 
@@ -35,25 +35,25 @@ pub fn standard_planning_fixture(
 }
 
 #[allow(dead_code)]
-pub fn llm_generate_form() -> conduit_form::CheckedForm {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+pub fn llm_generate_plot() -> conduit_plot::CheckedPlot {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).expect("catalog installs");
-    conduit_form::parse_with_startup(
-        "form answer {\n    generate: llm/generate\n}\n",
+    conduit_plot::parse_with_startup(
+        "plot answer {\n    generate: llm/generate\n}\n",
         &startup,
         &profile,
     )
-    .expect("form checks")
+    .expect("plot checks")
 }
 
 #[allow(dead_code)]
 pub fn generic_policy_facts() -> (
-    conduit_form::CheckedForm,
+    conduit_plot::CheckedPlot,
     Vec<conduit_core::HostAdvertisement>,
     Vec<conduit_core::RealizationAdvertisement>,
 ) {
-    let form = llm_generate_form();
+    let plot = llm_generate_plot();
     let fixtures = conduit_ai::llm_generate_base_fixtures();
     let advertisements = conduit_ai::llm_generate_realization_advertisements(&fixtures);
     let mut hosts = fixtures
@@ -79,7 +79,7 @@ pub fn generic_policy_facts() -> (
         performance_class: Some(conduit_core::ComputePerformanceClassId::from("performance")),
         nominal_clock_hz: Some(1_800_000_000),
     }];
-    (form, hosts, advertisements)
+    (plot, hosts, advertisements)
 }
 
 #[allow(dead_code)]
@@ -118,10 +118,10 @@ pub fn quantity(
 }
 
 #[allow(dead_code)]
-pub fn pulse_gear() -> conduit_form::CheckedGear {
+pub fn pulse_gear() -> conduit_plot::CheckedGear {
     parse_with_startup(
-        "form realization {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-    .expect("pulse form checks")
+        "plot realization {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+    .expect("pulse plot checks")
     .gears
     .remove(0)
 }

@@ -4,7 +4,7 @@ use crate::hosted_microphone::{AlsaMicrophoneAdapter, MicrophoneCaptureReceipt};
 use crate::hosted_speech_recognition::WhisperSpeechAdapter;
 use crate::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 use conduit_core::{BaseImplementationId, ObservationKind, TerminalDisposition};
-use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
+use conduit_plot::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
@@ -65,16 +65,16 @@ fn run_inner(
     conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles)?;
-    let source = "form microphone-whisper-proof {\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}\n";
+    let source = "plot microphone-whisper-proof {\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}\n";
     let checked =
         check_syntax_document(&parse_syntax_document(source), &startup).map_err(|error| {
             format!(
-                "microphone Whisper Form check: {} {}",
+                "microphone Whisper Plot check: {} {}",
                 error.code, error.message
             )
         })?;
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "microphone-whisper-proof", &profiles)
+        conduit_plot::expand_canonical_plot(&checked, "microphone-whisper-proof", &profiles)
             .map_err(|error| {
                 format!(
                     "microphone Whisper expansion: {} {}",

@@ -1,4 +1,4 @@
-//! Exact extraction and validation of the ordinary keyboard-text Form proof.
+//! Exact extraction and validation of the ordinary keyboard-text Plot proof.
 
 use super::{
     report::{GuestBootSign, GuestKeyboardSign, GuestKeyboardTextSign},
@@ -39,12 +39,12 @@ pub(super) fn validate(
         .filter_map(|line| line.strip_prefix("CONDUIT_KEYBOARD_UNICODE_PRESENT "))
         .collect();
     let expected = ["H", "E", "L", "L", "O", "Æ", "É", "Λ"];
-    if sign.schema != "conduit.conduitos.keyboard-text-form/v1"
+    if sign.schema != "conduit.conduitos.keyboard-text-plot/v1"
         || sign.status != "completed"
         || sign.proof_class != "freestanding-emulator"
         || sign.host_id != keyboard.host_id
         || sign.boot_id != boot.boot_id
-        || sign.form_machine_facts
+        || sign.plot_machine_facts
         || sign.keymap_configuration != "conduit-intl"
         || sign.physical_transition_count != 38
         || sign
@@ -58,8 +58,8 @@ pub(super) fn validate(
         || ascii != ["HELLO"]
         || unicode != ["ÆÉΛ"]
         || !is_identity(&sign.source_document_id)
-        || !is_identity(&sign.checked_form_id)
-        || !is_identity(&sign.expanded_form_id)
+        || !is_identity(&sign.checked_plot_id)
+        || !is_identity(&sign.expanded_plot_id)
         || !is_identity(&sign.plan_id)
         || !is_identity(&sign.active_play_id)
     {
@@ -95,8 +95,8 @@ fn validate_observatory(
         || snapshot.plays.len() != 1
         || plan.plan_id.as_str() != sign.plan_id
         || plan.source_document_id.as_str() != sign.source_document_id
-        || plan.checked_form_id.as_str() != sign.checked_form_id
-        || plan.expanded_form_id.as_str() != sign.expanded_form_id
+        || plan.checked_plot_id.as_str() != sign.checked_plot_id
+        || plan.expanded_plot_id.as_str() != sign.expanded_plot_id
         || snapshot.plays[0].active_play_id.as_str() != sign.active_play_id
         || snapshot.plays[0].terminal_disposition
             != Some(conduit_core::TerminalDisposition::Completed)

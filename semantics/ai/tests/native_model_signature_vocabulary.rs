@@ -1,10 +1,10 @@
 use conduit_ai::{
-    ModelAxisConstraint, ModelDimensionConstraint, ModelOperation, ModelOperationCode,
-    ModelPortConstraint, ModelPortPresence, ModelPortPresenceCode, ModelSignature,
+    ModelAxisConstraint, ModelDimensionConstraint, ModelOperation, ModelOperationForm,
+    ModelPortConstraint, ModelPortPresence, ModelPortPresenceForm, ModelSignature,
     ModelTensorConstraint, ModelValueConstraint,
 };
 use conduit_data::{TensorAxisRole, TensorElement};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where
@@ -30,20 +30,20 @@ fn model_signature_codes_preserve_the_established_digest_tags() {
         ModelOperation::Train,
     ];
     for (tag, operation) in (0_u8..).zip(operations) {
-        assert_eq!(ModelOperationCode::encode(operation), [tag]);
-        assert_eq!(ModelOperationCode::decode(&[tag]), Ok(operation));
+        assert_eq!(ModelOperationForm::encode(operation), [tag]);
+        assert_eq!(ModelOperationForm::decode(&[tag]), Ok(operation));
     }
-    assert!(ModelOperationCode::decode(&[7]).is_err());
+    assert!(ModelOperationForm::decode(&[7]).is_err());
 
     assert_eq!(
-        ModelPortPresenceCode::encode(ModelPortPresence::Required),
+        ModelPortPresenceForm::encode(ModelPortPresence::Required),
         [0]
     );
     assert_eq!(
-        ModelPortPresenceCode::encode(ModelPortPresence::Optional),
+        ModelPortPresenceForm::encode(ModelPortPresence::Optional),
         [1]
     );
-    assert!(ModelPortPresenceCode::decode(&[2]).is_err());
+    assert!(ModelPortPresenceForm::decode(&[2]).is_err());
 }
 
 #[test]

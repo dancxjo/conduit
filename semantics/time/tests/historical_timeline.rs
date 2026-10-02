@@ -275,20 +275,20 @@ fn remove_and_clear_are_explicit_without_rewinding_sequence() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn typed_history_is_an_ordinary_checked_form_with_explicit_policy() {
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+fn typed_history_is_an_ordinary_checked_plot_with_explicit_policy() {
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
         ProfileCatalog, StartupCatalog,
     };
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_historical_timeline_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/bounded-typed-history/main.conduit");
+    let source = include_str!("../../../plots/bounded-typed-history/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "bounded-typed-history", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "bounded-typed-history", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 1);
     let history = &authored.expanded.gears[0];

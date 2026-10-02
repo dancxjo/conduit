@@ -3,8 +3,8 @@ use conduit_ai::{
     TemporalEvidenceIdentities, TemporalEvidenceIdentity, TemporalEvidenceSelection,
     TemporalRetrievalIntent, TemporalRetrievalWindow,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     rust_binding::BoundedSequence,
 };
 
@@ -91,13 +91,13 @@ fn corrections_append_and_pressure_provider_loss_and_authority_are_explicit() {
 }
 
 #[test]
-fn canonical_memory_form_is_checked_and_host_neutral() {
-    let source = include_str!("../../../forms/pete-memory/main.conduit");
+fn canonical_memory_plot_is_checked_and_host_neutral() {
+    let source = include_str!("../../../plots/pete-memory/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_pete_memory_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let authored = expand_canonical_form_for_authoring(&checked, "pete-memory", &profile).unwrap();
+    let authored = expand_canonical_plot_for_authoring(&checked, "pete-memory", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 1);
     assert_eq!(

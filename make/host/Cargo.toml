@@ -6,7 +6,7 @@ description = "Bounded PROFILE validation and identity for Conduit Host make"
 
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-semantic-catalog = { path = "../../semantics/catalog" }
 serde = { version = "1", features = ["derive"] }

@@ -1,32 +1,32 @@
-//! Fail-closed admission of Mask Form routes already sealed by an ordinary Plan.
+//! Fail-closed admission of Mask Plot routes already sealed by an ordinary Plan.
 
 use alloc::vec::Vec;
 use conduit_body::BodyPlan;
 use conduit_core::{verify_plan, PlanId};
 
-use crate::{PlannedMaskForm, SealedMaskFormRoute};
+use crate::{PlannedMaskPlot, SealedMaskPlotRoute};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdmittedMaskFormRoutes {
+pub struct AdmittedMaskPlotRoutes {
     plan_id: PlanId,
-    routes: Vec<SealedMaskFormRoute>,
+    routes: Vec<SealedMaskPlotRoute>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MaskRouteAdmissionError {
     InvalidPlan,
     WrongPlan,
-    UnknownMaskForm,
-    UnsealedMaskForm,
+    UnknownMaskPlot,
+    UnsealedMaskPlot,
     MissingPlacement,
     MissingBoundary,
 }
 
-impl AdmittedMaskFormRoutes {
+impl AdmittedMaskPlotRoutes {
     pub fn new(
         body_plan: &BodyPlan,
-        masks: &[PlannedMaskForm],
-        routes: Vec<SealedMaskFormRoute>,
+        masks: &[PlannedMaskPlot],
+        routes: Vec<SealedMaskPlotRoute>,
     ) -> Result<Self, MaskRouteAdmissionError> {
         if body_plan.verify_seal().is_err() {
             return Err(MaskRouteAdmissionError::InvalidPlan);
@@ -37,17 +37,17 @@ impl AdmittedMaskFormRoutes {
             }
             let matching_masks = masks
                 .iter()
-                .filter(|planned| planned.mask.form_identity == route.mask_form)
+                .filter(|planned| planned.mask.plot_identity == route.mask_plot)
                 .collect::<Vec<_>>();
             if matching_masks.is_empty() {
-                return Err(MaskRouteAdmissionError::UnknownMaskForm);
+                return Err(MaskRouteAdmissionError::UnknownMaskPlot);
             }
             let planned = matching_masks
                 .into_iter()
                 .find(|planned| route_matches_plan(route, planned))
                 .ok_or(MaskRouteAdmissionError::MissingPlacement)?;
             if !verify_plan(&planned.plan)
-                || PlannedMaskForm::admit(&planned.mask, &planned.plan).is_err()
+                || PlannedMaskPlot::admit(&planned.mask, &planned.plan).is_err()
             {
                 return Err(MaskRouteAdmissionError::InvalidPlan);
             }
@@ -57,7 +57,7 @@ impl AdmittedMaskFormRoutes {
                 .flat_map(|topology| &topology.chains)
                 .any(|chain| chain.plan == planned.plan);
             if !sealed {
-                return Err(MaskRouteAdmissionError::UnsealedMaskForm);
+                return Err(MaskRouteAdmissionError::UnsealedMaskPlot);
             }
             let placements = planned
                 .plan
@@ -89,12 +89,12 @@ impl AdmittedMaskFormRoutes {
         &self.plan_id
     }
 
-    pub fn routes(&self) -> &[SealedMaskFormRoute] {
+    pub fn routes(&self) -> &[SealedMaskPlotRoute] {
         &self.routes
     }
 }
 
-fn route_matches_plan(route: &SealedMaskFormRoute, planned: &PlannedMaskForm) -> bool {
+fn route_matches_plan(route: &SealedMaskPlotRoute, planned: &PlannedMaskPlot) -> bool {
     let placements = planned
         .plan
         .fragments

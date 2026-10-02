@@ -1,26 +1,26 @@
-//! Exact bounded set of Forms currently intended by one body.
+//! Exact bounded set of Plots currently intended by one body.
 //!
 //! An entry is only the existing source/check identity pair. It deliberately
-//! does not introduce a `ProgramId` or another semantic object around Form.
+//! does not introduce a `ProgramId` or another semantic object around Plot.
 
 use alloc::vec::Vec;
-use conduit_core::{CheckedFormId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SourceDocumentId};
 use serde::{Deserialize, Serialize};
 
-pub const MAX_BODY_FORMS: usize = 16;
-pub const MAX_BODY_FORM_IDENTITY_BYTES: usize = 2_048;
+pub const MAX_BODY_PLOTS: usize = 16;
+pub const MAX_BODY_PLOT_IDENTITY_BYTES: usize = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct ResidentForm {
+pub struct ResidentPlot {
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
+    pub checked_plot_id: CheckedPlotId,
 }
 
-impl ResidentForm {
-    pub fn new(source_document_id: SourceDocumentId, checked_form_id: CheckedFormId) -> Self {
+impl ResidentPlot {
+    pub fn new(source_document_id: SourceDocumentId, checked_plot_id: CheckedPlotId) -> Self {
         Self {
             source_document_id,
-            checked_form_id,
+            checked_plot_id,
         }
     }
 
@@ -28,129 +28,129 @@ impl ResidentForm {
         self.source_document_id
             .as_str()
             .len()
-            .checked_add(self.checked_form_id.as_str().len())
+            .checked_add(self.checked_plot_id.as_str().len())
     }
 
     fn valid(&self) -> bool {
         !self.source_document_id.as_str().is_empty()
-            && !self.checked_form_id.as_str().is_empty()
+            && !self.checked_plot_id.as_str().is_empty()
             && self.identity_bytes().is_some()
     }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyWorkset {
-    forms: Vec<ResidentForm>,
+    plots: Vec<ResidentPlot>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BodyWorksetError {
-    InvalidFormIdentity,
-    DuplicateForm,
-    FormAbsent,
-    FormCapacityExhausted,
+    InvalidPlotIdentity,
+    DuplicatePlot,
+    PlotAbsent,
+    PlotCapacityExhausted,
     IdentityBytesExhausted,
 }
 
 impl BodyWorkset {
-    pub fn one(form: ResidentForm) -> Result<Self, BodyWorksetError> {
+    pub fn one(plot: ResidentPlot) -> Result<Self, BodyWorksetError> {
         let mut workset = Self::default();
-        workset.add(form)?;
+        workset.add(plot)?;
         Ok(workset)
     }
 
-    pub fn from_forms(
-        forms: impl IntoIterator<Item = ResidentForm>,
+    pub fn from_plots(
+        plots: impl IntoIterator<Item = ResidentPlot>,
     ) -> Result<Self, BodyWorksetError> {
         let mut workset = Self::default();
-        for form in forms {
-            workset.add(form)?;
+        for plot in plots {
+            workset.add(plot)?;
         }
         Ok(workset)
     }
 
-    pub fn forms(&self) -> &[ResidentForm] {
-        &self.forms
+    pub fn plots(&self) -> &[ResidentPlot] {
+        &self.plots
     }
 
     pub fn len(&self) -> usize {
-        self.forms.len()
+        self.plots.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.forms.is_empty()
+        self.plots.is_empty()
     }
 
     pub fn identity_bytes(&self) -> usize {
-        self.forms
+        self.plots
             .iter()
-            .map(|form| {
-                form.identity_bytes()
-                    .expect("validated Form identity bytes")
+            .map(|plot| {
+                plot.identity_bytes()
+                    .expect("validated Plot identity bytes")
             })
             .sum()
     }
 
-    pub fn contains(&self, form: &ResidentForm) -> bool {
-        self.forms.binary_search(form).is_ok()
+    pub fn contains(&self, plot: &ResidentPlot) -> bool {
+        self.plots.binary_search(plot).is_ok()
     }
 
-    pub fn add(&mut self, form: ResidentForm) -> Result<(), BodyWorksetError> {
+    pub fn add(&mut self, plot: ResidentPlot) -> Result<(), BodyWorksetError> {
         self.validate()?;
-        if !form.valid() {
-            return Err(BodyWorksetError::InvalidFormIdentity);
+        if !plot.valid() {
+            return Err(BodyWorksetError::InvalidPlotIdentity);
         }
-        let position = match self.forms.binary_search(&form) {
-            Ok(_) => return Err(BodyWorksetError::DuplicateForm),
+        let position = match self.plots.binary_search(&plot) {
+            Ok(_) => return Err(BodyWorksetError::DuplicatePlot),
             Err(position) => position,
         };
-        if self.forms.len() >= MAX_BODY_FORMS {
-            return Err(BodyWorksetError::FormCapacityExhausted);
+        if self.plots.len() >= MAX_BODY_PLOTS {
+            return Err(BodyWorksetError::PlotCapacityExhausted);
         }
         let next_bytes = self
             .identity_bytes()
             .checked_add(
-                form.identity_bytes()
+                plot.identity_bytes()
                     .ok_or(BodyWorksetError::IdentityBytesExhausted)?,
             )
             .ok_or(BodyWorksetError::IdentityBytesExhausted)?;
-        if next_bytes > MAX_BODY_FORM_IDENTITY_BYTES {
+        if next_bytes > MAX_BODY_PLOT_IDENTITY_BYTES {
             return Err(BodyWorksetError::IdentityBytesExhausted);
         }
-        self.forms.insert(position, form);
+        self.plots.insert(position, plot);
         Ok(())
     }
 
-    pub fn remove(&mut self, form: &ResidentForm) -> Result<(), BodyWorksetError> {
+    pub fn remove(&mut self, plot: &ResidentPlot) -> Result<(), BodyWorksetError> {
         self.validate()?;
         let position = self
-            .forms
-            .binary_search(form)
-            .map_err(|_| BodyWorksetError::FormAbsent)?;
-        self.forms.remove(position);
+            .plots
+            .binary_search(plot)
+            .map_err(|_| BodyWorksetError::PlotAbsent)?;
+        self.plots.remove(position);
         Ok(())
     }
 
     pub fn validate(&self) -> Result<(), BodyWorksetError> {
-        if self.forms.len() > MAX_BODY_FORMS {
-            return Err(BodyWorksetError::FormCapacityExhausted);
+        if self.plots.len() > MAX_BODY_PLOTS {
+            return Err(BodyWorksetError::PlotCapacityExhausted);
         }
         let mut bytes = 0usize;
-        for (index, form) in self.forms.iter().enumerate() {
-            if !form.valid() {
-                return Err(BodyWorksetError::InvalidFormIdentity);
+        for (index, plot) in self.plots.iter().enumerate() {
+            if !plot.valid() {
+                return Err(BodyWorksetError::InvalidPlotIdentity);
             }
-            if index > 0 && self.forms[index - 1] >= *form {
-                return Err(BodyWorksetError::DuplicateForm);
+            if index > 0 && self.plots[index - 1] >= *plot {
+                return Err(BodyWorksetError::DuplicatePlot);
             }
             bytes = bytes
                 .checked_add(
-                    form.identity_bytes()
+                    plot.identity_bytes()
                         .ok_or(BodyWorksetError::IdentityBytesExhausted)?,
                 )
                 .ok_or(BodyWorksetError::IdentityBytesExhausted)?;
         }
-        if bytes > MAX_BODY_FORM_IDENTITY_BYTES {
+        if bytes > MAX_BODY_PLOT_IDENTITY_BYTES {
             return Err(BodyWorksetError::IdentityBytesExhausted);
         }
         Ok(())

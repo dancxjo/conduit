@@ -4,13 +4,13 @@ import { createBodyInputRouting } from "../../targets/browser/host/assets/browse
 
 function setup() {
   let selected = "notes", waiting;
-  const forms = ["notes", "morse"].map(form => ({ form: { checked_form_id: form }, plan: { fragments: [{ placements: [{ placement_id: `${form}/keys`, kind_id: "input/keyboard" }] }] } }));
-  const routing = createBodyInputRouting({ forms, foreground: () => selected, maximumPlacements: 32 });
+  const plots = ["notes", "morse"].map(plot => ({ plot: { checked_plot_id: plot }, plan: { fragments: [{ placements: [{ placement_id: `${plot}/keys`, kind_id: "input/keyboard" }] }] } }));
+  const routing = createBodyInputRouting({ plots, foreground: () => selected, maximumPlacements: 32 });
   routing.attach({ nextKeyboard: () => new Promise((resolve, reject) => { waiting = { resolve, reject }; }) });
-  const next = (form, signal = new AbortController().signal) => routing.next("keyboard", `${form}/keys`, signal);
+  const next = (plot, signal = new AbortController().signal) => routing.next("keyboard", `${plot}/keys`, signal);
   const capture = (usage, phase = 0) => {
     const canonical_bytes = Uint8Array.of(usage, phase, 0);
-    return { canonical_bytes, delivery_form: routing.capture("keyboard", canonical_bytes) };
+    return { canonical_bytes, delivery_plot: routing.capture("keyboard", canonical_bytes) };
   };
   const send = async event => {
     assert.ok(waiting, "one acquired reader is armed");
@@ -18,7 +18,7 @@ function setup() {
     await Promise.resolve();
   };
   const close = () => { routing.close(); waiting?.reject(new Error("closed")); };
-  return { routing, next, capture, send, close, select(form) { selected = form; } };
+  return { routing, next, capture, send, close, select(plot) { selected = plot; } };
 }
 
 test("foreground changes route future keys while preserving background pending requests", async () => {
@@ -28,11 +28,11 @@ test("foreground changes route future keys while preserving background pending r
   const morse = f.next("morse");
   f.select("morse");
   await f.send(f.capture(4));
-  assert.equal((await morse).delivery_form, "morse");
+  assert.equal((await morse).delivery_plot, "morse");
   assert.equal(notesDone, false);
   f.select("notes");
   await f.send(f.capture(5));
-  assert.equal((await notes).delivery_form, "notes");
+  assert.equal((await notes).delivery_plot, "notes");
   f.close();
 });
 
@@ -42,16 +42,16 @@ test("queued keys retain capture focus and held-key releases stay with their pre
   const down = f.capture(4);
   f.select("morse");
   await f.send(down);
-  assert.equal((await first).delivery_form, "notes");
+  assert.equal((await first).delivery_plot, "notes");
   await f.send(f.capture(4, 1));
   assert.equal((await f.next("notes")).canonical_bytes[1], 1);
   const next = f.next("morse");
   await f.send(f.capture(4));
-  assert.equal((await next).delivery_form, "morse");
+  assert.equal((await next).delivery_plot, "morse");
   f.close();
 });
 
-test("cancelling one input request does not cancel another form's request", async () => {
+test("cancelling one input request does not cancel another plot's request", async () => {
   const f = setup();
   const controller = new AbortController();
   const cancelled = assert.rejects(f.next("notes", controller.signal), { code: "Cancelled" });
@@ -60,7 +60,7 @@ test("cancelling one input request does not cancel another form's request", asyn
   await cancelled;
   f.select("morse");
   await f.send(f.capture(4));
-  assert.equal((await morse).delivery_form, "morse");
+  assert.equal((await morse).delivery_plot, "morse");
   f.close();
 });
 
@@ -73,11 +73,11 @@ test("uninstalled identities and duplicate requests refuse without consuming inp
   assert.throws(() => f.capture(4), /outside the admitted/);
   f.select("notes");
   await f.send(f.capture(4));
-  assert.equal((await first).delivery_form, "notes");
+  assert.equal((await first).delivery_plot, "notes");
   f.close();
 });
 
-test("ordered pressure terminates only the affected Form stream", async () => {
+test("ordered pressure terminates only the affected Plot stream", async () => {
   const f = setup();
   const notes = f.next("notes");
   f.select("morse");
@@ -86,21 +86,21 @@ test("ordered pressure terminates only the affected Form stream", async () => {
   f.select("notes");
   await f.send(f.capture(20));
   assert.equal((await notes).canonical_bytes[0], 20);
-  assert.deepEqual(f.routing.pressure().map(({ form, occupancy, terminal }) => ({ form, occupancy, terminal })), [
-    { form: "morse", occupancy: 0, terminal: "Pressure" },
-    { form: "notes", occupancy: 0, terminal: null },
+  assert.deepEqual(f.routing.pressure().map(({ plot, occupancy, terminal }) => ({ plot, occupancy, terminal })), [
+    { plot: "morse", occupancy: 0, terminal: "Pressure" },
+    { plot: "notes", occupancy: 0, terminal: null },
   ]);
   f.close();
 });
 
-test('pointer delivery follows its captured Form and unrelated input cannot fill its queue', async () => {
+test('pointer delivery follows its captured Plot and unrelated input cannot fill its queue', async () => {
   let selected = 'pointer', consume, stopped = false;
-  const forms = ['pointer', 'notes'].map(form => ({ form: { checked_form_id: form }, plan: { fragments: [{ placements: [{ placement_id: `${form}/input`, kind_id: form === 'pointer' ? 'input/pointer-source' : 'input/keyboard' }] }] } }));
-  const routing = createBodyInputRouting({ forms, foreground: () => selected, maximumPlacements: 32 });
+  const plots = ['pointer', 'notes'].map(plot => ({ plot: { checked_plot_id: plot }, plan: { fragments: [{ placements: [{ placement_id: `${plot}/input`, kind_id: plot === 'pointer' ? 'input/pointer-source' : 'input/keyboard' }] }] } }));
+  const routing = createBodyInputRouting({ plots, foreground: () => selected, maximumPlacements: 32 });
   routing.attach({ observePointer(listener) { consume = listener; return () => { stopped = true; }; } });
   const signal = new AbortController().signal;
   const waiting = routing.next('pointer', 'pointer/input', signal);
-  const event = { position_x: 250000, delivery_form: routing.capture('pointer', null) };
+  const event = { position_x: 250000, delivery_plot: routing.capture('pointer', null) };
   selected = 'notes';
   for (let i = 0; i < 100; i++) assert.equal(routing.capture('pointer', null), null);
   assert.equal(routing.capture('button', { pressed: true }), null);
@@ -113,15 +113,15 @@ test('pointer delivery follows its captured Form and unrelated input cannot fill
 
 test("pointer pressure coalesces 100,000 observations through one reusable slot", async () => {
   let consume;
-  const forms = [{ form: { checked_form_id: "theremin" }, plan: { fragments: [{ placements: [{ placement_id: "theremin/pointer", kind_id: "input/pointer-source" }] }] } }];
-  const routing = createBodyInputRouting({ forms, foreground: () => "theremin", maximumPlacements: 1 });
+  const plots = [{ plot: { checked_plot_id: "theremin" }, plan: { fragments: [{ placements: [{ placement_id: "theremin/pointer", kind_id: "input/pointer-source" }] }] } }];
+  const routing = createBodyInputRouting({ plots, foreground: () => "theremin", maximumPlacements: 1 });
   routing.attach({ observePointer(listener) { consume = listener; return () => {}; } });
   const signal = new AbortController().signal;
   const first = routing.next("pointer", "theremin/pointer", signal);
   for (let sequence = 0; sequence < 100_000; sequence += 1) {
     consume(Object.freeze({
       schema: "input/pointer-event@1",
-      delivery_form: routing.capture("pointer", null),
+      delivery_plot: routing.capture("pointer", null),
       position_x: sequence,
       position_y: sequence * 2,
       delta_x: 1,
@@ -142,7 +142,7 @@ test("pointer pressure coalesces 100,000 observations through one reusable slot"
   assert.equal(latest.delta_y, -99_999);
   assert.equal(latest.coalesced, 99_998);
   assert.deepEqual(routing.pressure(), [{
-    kind: "pointer", form: "theremin", capacity: 1, occupancy: 0,
+    kind: "pointer", plot: "theremin", capacity: 1, occupancy: 0,
     accepted: 100_000, delivered: 2, coalesced: 99_998, dropped: 0,
     refusals: 0, terminal: null,
   }]);
@@ -159,7 +159,7 @@ test("ordered storage is reusable across repeated queue wraparound", async () =>
     assert.equal(value.canonical_bytes[1], sequence % 2);
   }
   assert.deepEqual(f.routing.pressure(), [{
-    kind: "keyboard", form: "notes", capacity: 8, occupancy: 0,
+    kind: "keyboard", plot: "notes", capacity: 8, occupancy: 0,
     accepted: 1_024, delivered: 1_024, coalesced: 0, dropped: 0,
     refusals: 0, terminal: null,
   }]);

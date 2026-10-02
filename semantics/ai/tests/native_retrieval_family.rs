@@ -5,7 +5,7 @@ use conduit_ai::{
     PortableGroundedAnswer, PortableModelDerivedResult, RetrievalContribution, RetrievalMechanism,
     RetrieverIdentity,
 };
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
 #[test]
 fn retrieval_contribution_is_native_and_exactly_bounded() {

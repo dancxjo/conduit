@@ -10,12 +10,12 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
     let initial =
         StructuredInfoValue::leaf(ty.clone(), InfoBool::new(false).encode().to_vec()).unwrap();
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
     install_state_value_kind("Cell", &ty, &initial, &mut startup, &mut profile).unwrap();
-    let form = conduit_form::parse_with_startup(
-        "form retained {\n cell: state/value(initial = true)\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot retained {\n cell: state/value(initial = true)\n}\n",
         &startup,
         &profile,
     )
@@ -33,9 +33,9 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
             conduit_std_offers::state_value_std_offer("Cell", &ty, &initial).unwrap(),
         ],
     }];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
-    let plan = conduit_planner::plan(&form, &hosts, &placements, &[]).unwrap();
-    let state = derive_state_boundary(&form, &GearId::from("retained/cell"), 64).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
+    let plan = conduit_planner::plan(&plot, &hosts, &placements, &[]).unwrap();
+    let state = derive_state_boundary(&plot, &GearId::from("retained/cell"), 64).unwrap();
     let mut back = conduit_std_host::state_value::TypedStateBack::prepare(
         &plan.fragments[0].placements[0],
         &state,

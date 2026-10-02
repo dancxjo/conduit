@@ -17,7 +17,7 @@ pub use generated::{
     EducationRhythmFeedback,
 };
 
-pub type EducationHints = conduit_form::rust_binding::BoundedSequence<EducationHint, 3>;
+pub type EducationHints = conduit_plot::rust_binding::BoundedSequence<EducationHint, 3>;
 
 pub const MAXIMUM_EDUCATION_HINTS: u16 = 3;
 
@@ -99,7 +99,7 @@ mod tests {
     use super::*;
     use alloc::{string::ToString, vec};
     use conduit_core::StructuredInfoTypeShape;
-    use conduit_form::rust_binding::NativeRustBinding;
+    use conduit_plot::rust_binding::NativeRustBinding;
 
     #[test]
     fn question_and_every_response_round_trip_through_generated_bindings() {

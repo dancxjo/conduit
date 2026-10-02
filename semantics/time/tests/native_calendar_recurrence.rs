@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 use conduit_time::{
     CalendarEventTime, LocalDate, LocalDateTime, LocalTime, NamedTimeZone, RecurrenceDefinition,
     RecurrenceRule, TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow,

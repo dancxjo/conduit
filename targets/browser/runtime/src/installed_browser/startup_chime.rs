@@ -1,4 +1,4 @@
-//! Optional audible embodiment. Lifecycle eligibility belongs to the upstream Form.
+//! Optional audible embodiment. Lifecycle eligibility belongs to the upstream Plot.
 use super::{
     factory::{validate_placement, BrowserInstallation},
     BrowserBack,

@@ -26,8 +26,8 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
         )
         .unwrap();
     let startup = profile.startup_catalog().unwrap();
-    let form = conduit_form::parse_with_startup(
-        "form retained {\n source: fixture/scalar-flow\n cell: state/latest\n source.value >> cell.in\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot retained {\n source: fixture/scalar-flow\n cell: state/latest\n source.value >> cell.in\n}\n",
         &startup,
         &profile,
     ).unwrap();
@@ -48,9 +48,9 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
             vec![],
         ));
     let hosts = [host];
-    let placements = default_placements(&form, &hosts).unwrap();
+    let placements = default_placements(&plot, &hosts).unwrap();
     let ordinary = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[conduit_core::BaseImplementationId::from(
@@ -77,10 +77,10 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
         maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
         continuation: StateContinuation::ExternallyBounded,
     };
-    let sealed = seal_state_plan(&form, &ordinary, vec![state.clone()]).unwrap();
+    let sealed = seal_state_plan(&plot, &ordinary, vec![state.clone()]).unwrap();
     assert!(conduit_core::verify_plan(&sealed));
     assert_ne!(sealed.plan_id, ordinary.plan_id);
-    assert_eq!(sealed.checked_form_id, ordinary.checked_form_id);
+    assert_eq!(sealed.checked_plot_id, ordinary.checked_plot_id);
     assert_eq!(sealed.fragments[0].states, vec![state.clone()]);
     assert_eq!(
         sealed.fragments[0].sign_storage_budget.item_capacity,
@@ -88,7 +88,7 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
     );
     assert!(ordinary.fragments[0].states.is_empty());
     assert_eq!(
-        seal_state_plan(&form, &sealed, vec![state]),
+        seal_state_plan(&plot, &sealed, vec![state]),
         Err(StateGraphError::StateAlreadySealed)
     );
     assert!(matches!(

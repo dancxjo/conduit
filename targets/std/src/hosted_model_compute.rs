@@ -5,7 +5,7 @@ use conduit_ai::{
     ModelComputeSession,
 };
 use conduit_data::{tensor_content_digest, TensorBacking, TensorElement, TensorValue};
-use conduit_form::rust_binding::BoundedBytes;
+use conduit_plot::rust_binding::BoundedBytes;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelComputeInvocation {

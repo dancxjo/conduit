@@ -1,4 +1,4 @@
-//! Typed, bounded authoring interaction for one editable inline Form.
+//! Typed, bounded authoring interaction for one editable inline Plot.
 
 use conduit_core::KindId;
 use conduit_human::{
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn accepted_evidence_retains_bounds_and_identities_but_not_plaintext() {
-        let source = b"form secret { value: text/literal(\"do not retain\") }";
+        let source = b"plot secret { value: text/literal(\"do not retain\") }";
         let evidence = admit_source(source, 7).unwrap();
         assert_eq!(evidence.disposition, "accepted");
         assert_eq!(evidence.sequence, 7);

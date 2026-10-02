@@ -2,7 +2,7 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoValue};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 pub use conduit_time::TemplateCollectionRefusal;
 
 pub const MAXIMUM_NAMED_TEMPLATES: u16 = 8;

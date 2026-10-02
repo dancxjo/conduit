@@ -145,7 +145,7 @@ impl<const RECORDS: usize> DebugObservationBuffer<RECORDS> {
             sequence,
             host_sequence: input.host_sequence,
             host: input.host,
-            form: input.form,
+            plot: input.plot,
             subject: input.subject,
             related_subject: input.related_subject,
             kind: input.kind,

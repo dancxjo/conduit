@@ -4,7 +4,7 @@ use conduit_finance::{
     FinanceCurrencyPair, FinanceFixedDecimal, FinanceMoney, FinanceMoneyComparison,
     FINANCE_MAXIMUM_DECIMAL_SCALE,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn native_currency_source_owns_catalog_identity_and_rust_round_trip() {

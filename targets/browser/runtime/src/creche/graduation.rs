@@ -10,7 +10,7 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-const PATCHBAY_SOURCE: &str = "form creche_graduation {\n    subject: text/literal(\"Body history\")\n    surface: presentation/patchbay\n    subject >> surface.subject\n}\n";
+const PATCHBAY_SOURCE: &str = "plot creche_graduation {\n    subject: text/literal(\"Body history\")\n    surface: presentation/patchbay\n    subject >> surface.subject\n}\n";
 
 pub(super) fn readiness() -> Result<GraduationReadiness, String> {
     let receipt =
@@ -27,7 +27,7 @@ pub(super) fn readiness() -> Result<GraduationReadiness, String> {
         durable_identity,
         birth_evidence,
         current_admitted_part,
-        active_form_count: receipt.raw_body.workset.len(),
+        active_plot_count: receipt.raw_body.workset.len(),
         ready: durable_identity
             && birth_evidence
             && current_admitted_part
@@ -121,20 +121,20 @@ pub(super) fn graduate(
 
 fn patchbay_plan(host: &str, boot: &str) -> Result<conduit_core::Plan, String> {
     let (startup, catalog) = crate::installed_browser::catalogs()?;
-    let syntax = conduit_form::parse_syntax_document(PATCHBAY_SOURCE);
+    let syntax = conduit_plot::parse_syntax_document(PATCHBAY_SOURCE);
     if let Some(diagnostic) = syntax.diagnostics.first() {
-        return Err(format!("parse Patchbay Form: {}", diagnostic.message));
+        return Err(format!("parse Patchbay Plot: {}", diagnostic.message));
     }
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check Patchbay Form: {error:?}"))?;
-    let expanded = conduit_form::expand_canonical_form(&checked, "creche_graduation", &catalog)
-        .map_err(|error| format!("expand Patchbay Form: {error:?}"))?;
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|error| format!("check Patchbay Plot: {error:?}"))?;
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "creche_graduation", &catalog)
+        .map_err(|error| format!("expand Patchbay Plot: {error:?}"))?;
     let hosts = [crate::installed_browser::advertisement(
         HostId::from(host),
         BootId::from(boot),
     )];
     let placements = default_expanded_placements(&expanded, &hosts)
-        .map_err(|error| format!("place Patchbay Form: {error:?}"))?;
+        .map_err(|error| format!("place Patchbay Plot: {error:?}"))?;
     plan_expanded_canonical_with_options(
         &expanded,
         &hosts,
@@ -150,5 +150,5 @@ fn patchbay_plan(host: &str, boot: &str) -> Result<conduit_core::Plan, String> {
             line_offers: &[],
         },
     )
-    .map_err(|error| format!("plan Patchbay Form: {error:?}"))
+    .map_err(|error| format!("plan Patchbay Plot: {error:?}"))
 }

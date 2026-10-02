@@ -1,4 +1,4 @@
-//! Acquired local LED peripheral. No Form evaluation or independent runtime.
+//! Acquired local LED peripheral. No Plot evaluation or independent runtime.
 mod protocol;
 
 use cyw43::Control;

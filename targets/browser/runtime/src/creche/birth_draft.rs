@@ -3,10 +3,10 @@
 
 use std::cell::RefCell;
 
-use conduit_birth_form::{
-    BirthActionOutcome, BirthActions, BirthDraft, BirthFormChoice, BirthPresentation,
+use conduit_birth_plot::{
+    BirthActionOutcome, BirthActions, BirthDraft, BirthPlotChoice, BirthPresentation,
 };
-use conduit_body::ResidentForm;
+use conduit_body::ResidentPlot;
 use conduit_presentation::ApplicationEventKind;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,7 @@ struct OpenRequest {
 struct Choice {
     title: String,
     search_text: String,
-    form: ResidentForm,
+    plot: ResidentPlot,
     selected: bool,
 }
 
@@ -58,7 +58,7 @@ struct Snapshot<'a> {
     revision: u32,
     friendly_name: &'a str,
     naming_system: &'a str,
-    selected: Vec<&'a ResidentForm>,
+    selected: Vec<&'a ResidentPlot>,
     birth_requested: bool,
 }
 
@@ -74,7 +74,7 @@ impl CurrentDraft {
                 .choices()
                 .iter()
                 .filter(|choice| choice.selected)
-                .map(|choice| &choice.form)
+                .map(|choice| &choice.plot)
                 .collect(),
             birth_requested,
         })
@@ -89,10 +89,10 @@ impl CurrentDraft {
         let choices = request
             .choices
             .into_iter()
-            .map(|choice| BirthFormChoice {
+            .map(|choice| BirthPlotChoice {
                 title: choice.title,
                 search_text: choice.search_text,
-                form: choice.form,
+                plot: choice.plot,
                 selected: choice.selected,
                 // This is the checked browser inventory. Combined realization is
                 // still reviewed by the authoritative lifecycle boundary at Birth.
@@ -115,7 +115,7 @@ impl CurrentDraft {
             revision: u32::MAX,
             friendly_name: &escaped_name,
             naming_system: &longest_system,
-            selected: draft.choices().iter().map(|choice| &choice.form).collect(),
+            selected: draft.choices().iter().map(|choice| &choice.plot).collect(),
             birth_requested: false,
         };
         let snapshot_bytes =

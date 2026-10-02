@@ -1,7 +1,7 @@
 use super::*;
 use conduit_core::{
     bind_active_play, bind_sign, seal_plan_with_realization_backs_and_completion,
-    ExternalEffectBehavior, FormIdentity, KindSemanticLaw, ReplayBehavior, SemanticDependence,
+    ExternalEffectBehavior, KindSemanticLaw, PlotIdentity, ReplayBehavior, SemanticDependence,
     SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
 };
 use conduit_planner::{
@@ -60,10 +60,10 @@ fn with_pure_http_contract(mut plan: conduit_core::Plan) -> conduit_core::Plan {
         placement.semantic_contract.laws = pure_laws();
     }
     seal_plan_with_realization_backs_and_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: plan.source_document_id,
-            checked_form_id: plan.checked_form_id,
-            expanded_form_id: plan.expanded_form_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
         },
         plan.completion_policy,
         plan.realization_backs,

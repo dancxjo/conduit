@@ -4,14 +4,14 @@ use conduit_core::{
     HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
     PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
-    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
-    StartupParameterSignature,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical, PlacementChoice, PlacementChoices,
     PlannerError,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+    StartupParameterSignature,
 };
 use std::collections::BTreeMap;
 use std::fs;
@@ -92,8 +92,8 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
-    let source = r#"form greet (
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
+    let source = r#"plot greet (
     prefix: Count = 1
     name: test/text >> text: test/text
 ) {
@@ -101,7 +101,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     name >> join >> text
 }
 
-form welcome {
+plot welcome {
     source: text/source
     hello: greet(2)
     show: presentation/text
@@ -111,7 +111,7 @@ form welcome {
     let (startup, profile) = catalogs();
     let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &startup).expect("canonical source checks");
-    expand_canonical_form(&checked, "welcome", &profile).expect("reusable form expands")
+    expand_canonical_plot(&checked, "welcome", &profile).expect("reusable plot expands")
 }
 
 fn offer(definition: &KindProjection) -> CapabilityOffer {
@@ -178,7 +178,7 @@ fn host() -> HostAdvertisement {
 }
 
 #[test]
-fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
+fn nested_plot_terminates_only_in_exact_planned_host_call_leaves() {
     let expanded = expanded();
     assert_eq!(
         expanded
@@ -191,7 +191,7 @@ fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
     assert!(expanded
         .provenance
         .iter()
-        .any(|row| row.source_form == "greet" && row.form_path == ["welcome", "hello"]));
+        .any(|row| row.source_plot == "greet" && row.plot_path == ["welcome", "hello"]));
     let join = expanded
         .gears
         .iter()
@@ -260,8 +260,8 @@ fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
 }
 
 #[test]
-fn explicit_form_completion_reaches_the_exact_plan() {
-    let source = r#"form finite {
+fn explicit_plot_completion_reaches_the_exact_plan() {
+    let source = r#"plot finite {
     source: text/source
     show: presentation/text
     source >> show
@@ -269,9 +269,9 @@ fn explicit_form_completion_reaches_the_exact_plan() {
 "#;
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup)
-        .expect("explicitly finite Form checks");
+        .expect("explicitly finite Plot checks");
     let expanded =
-        expand_canonical_form(&checked, "finite", &profile).expect("finite Form expands");
+        expand_canonical_plot(&checked, "finite", &profile).expect("finite Plot expands");
     let host = host();
     let placements = default_expanded_placements(&expanded, std::slice::from_ref(&host))
         .expect("finite leaves have exact offers");
@@ -281,7 +281,7 @@ fn explicit_form_completion_reaches_the_exact_plan() {
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
-    .expect("finite Form plans");
+    .expect("finite Plot plans");
 
     assert_eq!(
         plan.completion_policy,
@@ -405,10 +405,10 @@ fn same_name_with_a_different_front_is_incompatible() {
 fn two_gears_of_one_kind_can_select_different_equal_front_hosts() {
     let (startup, profile) = catalogs();
     let syntax =
-        parse_syntax_document("form split {\n    left: text/source\n    right: text/source\n}\n");
+        parse_syntax_document("plot split {\n    left: text/source\n    right: text/source\n}\n");
     let checked = check_syntax_document(&syntax, &startup).expect("two source gears check");
     let expanded =
-        expand_canonical_form(&checked, "split", &profile).expect("two source gears expand");
+        expand_canonical_plot(&checked, "split", &profile).expect("two source gears expand");
     assert_eq!(expanded.gears.len(), 2);
     assert!(expanded
         .gears
@@ -449,7 +449,7 @@ fn two_gears_of_one_kind_can_select_different_equal_front_hosts() {
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
-    .expect("one unchanged semantic form may place equal-front gears on peer hosts");
+    .expect("one unchanged semantic plot may place equal-front gears on peer hosts");
 
     assert_eq!(plan.fragments.len(), 2);
     assert_eq!(
@@ -484,11 +484,11 @@ fn two_gears_of_one_kind_can_select_different_equal_front_hosts() {
 #[test]
 fn uncatalogued_native_escape_fails_before_planning() {
     let (startup, profile) = catalogs();
-    let syntax = parse_syntax_document("form main {\n escape: native/callback(\"symbol\")\n}\n");
+    let syntax = parse_syntax_document("plot main {\n escape: native/callback(\"symbol\")\n}\n");
     let checked = check_syntax_document(&syntax, &startup).expect_err("unknown gear fails");
     assert!(checked.message.contains("native/callback"));
 
-    let syntax = parse_syntax_document("form main {\n escape: ffi/call\n}\n");
+    let syntax = parse_syntax_document("plot main {\n escape: ffi/call\n}\n");
     let mut startup = StartupCatalog::new();
     startup
         .insert(KindSignature {
@@ -498,7 +498,7 @@ fn uncatalogued_native_escape_fails_before_planning() {
         .unwrap();
     let checked = check_syntax_document(&syntax, &startup)
         .expect("a startup signature alone grants no executable realization");
-    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    let error = expand_canonical_plot(&checked, "main", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-037");
 }
 
@@ -506,8 +506,8 @@ fn uncatalogued_native_escape_fails_before_planning() {
 fn canonical_realization_sources_do_not_import_the_legacy_composite_or_callbacks() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     for relative in [
-        "../form/src/canonical_expansion.rs",
-        "../form/src/canonical_expansion/graph.rs",
+        "../plot/src/canonical_expansion.rs",
+        "../plot/src/canonical_expansion/graph.rs",
         "src/canonical.rs",
     ] {
         let source = fs::read_to_string(manifest.join(relative)).expect("production source reads");
@@ -519,7 +519,7 @@ fn canonical_realization_sources_do_not_import_the_legacy_composite_or_callbacks
         ] {
             assert!(
                 !source.contains(forbidden),
-                "{relative} must not realize form backs through {forbidden}"
+                "{relative} must not realize plot backs through {forbidden}"
             );
         }
     }

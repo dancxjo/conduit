@@ -14,12 +14,12 @@ fn planned() -> (Plan, Vec<u8>) {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
     let value =
         StructuredInfoValue::leaf(ty.clone(), InfoBool::new(false).encode().to_vec()).unwrap();
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
     install_state_value_kind("Cell", &ty, &value, &mut startup, &mut profile).unwrap();
-    let form = conduit_form::parse_with_startup(
-        "form retained {\n cell: state/value(initial = true)\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot retained {\n cell: state/value(initial = true)\n}\n",
         &startup,
         &profile,
     )
@@ -35,9 +35,9 @@ fn planned() -> (Plan, Vec<u8>) {
         planner_capabilities: vec![],
         capabilities: vec![conduit_std_offers::state_value_std_offer("Cell", &ty, &value).unwrap()],
     }];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
-    let ordinary = conduit_planner::plan(&form, &hosts, &placements, &[]).unwrap();
-    let state = derive_state_boundary(&form, &GearId::from("retained/cell"), 60).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
+    let ordinary = conduit_planner::plan(&plot, &hosts, &placements, &[]).unwrap();
+    let state = derive_state_boundary(&plot, &GearId::from("retained/cell"), 60).unwrap();
     let mut fragments = ordinary.fragments;
     fragments[0].states.push(state);
     fragments[0].sign_storage_budget.item_capacity += 2;
@@ -45,7 +45,7 @@ fn planned() -> (Plan, Vec<u8>) {
     // A standalone typed-operation fixture. Full graph execution is proved by
     // installed_std's conformance test; this test owns the consuming handoff.
     (
-        seal_plan(form.identity(), fragments),
+        seal_plan(plot.identity(), fragments),
         InfoBool::new(true).encode().to_vec(),
     )
 }
@@ -114,7 +114,7 @@ fn destination(source: &Plan, owned: &RetainedTypedState) -> Plan {
     fragments[0].boot_id = "replacement-boot".into();
     fragments[0].placements[0].boot_id = fragments[0].boot_id.clone();
     fragments[0].states[0].maximum_value_bytes = 64;
-    let candidate = seal_plan(owned.provenance().source_form.clone(), fragments);
+    let candidate = seal_plan(owned.provenance().source_plot.clone(), fragments);
     seal_state_continuity(
         source,
         &candidate,
@@ -168,7 +168,7 @@ fn forged_snapshot_refuses_and_returns_the_original_owned_cell() {
     let destination = destination(&source, &owned);
     let mut altered = destination.fragments.clone();
     altered[0].states[0].retained.as_mut().unwrap().generation += 1;
-    let forged = seal_plan(owned.provenance().source_form.clone(), altered);
+    let forged = seal_plan(owned.provenance().source_plot.clone(), altered);
     assert!(verify_plan(&forged)); // Structurally valid metadata is insufficient.
     let refused = TypedStateBack::prepare_continued(
         &forged.fragments[0],

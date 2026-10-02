@@ -35,7 +35,7 @@ impl NamedTimeZone {
 }
 
 impl TryFrom<conduit_core::LocalDate> for LocalDate {
-    type Error = conduit_form::rust_binding::NativeBindingRefusal;
+    type Error = conduit_plot::rust_binding::NativeBindingRefusal;
 
     fn try_from(value: conduit_core::LocalDate) -> Result<Self, Self::Error> {
         Self::new(value.year(), value.month(), value.day())
@@ -51,7 +51,7 @@ impl TryFrom<LocalDate> for conduit_core::LocalDate {
 }
 
 impl TryFrom<conduit_core::LocalTime> for LocalTime {
-    type Error = conduit_form::rust_binding::NativeBindingRefusal;
+    type Error = conduit_plot::rust_binding::NativeBindingRefusal;
 
     fn try_from(value: conduit_core::LocalTime) -> Result<Self, Self::Error> {
         Self::new(
@@ -77,7 +77,7 @@ impl TryFrom<LocalTime> for conduit_core::LocalTime {
 }
 
 impl TryFrom<conduit_core::LocalDateTime> for LocalDateTime {
-    type Error = conduit_form::rust_binding::NativeBindingRefusal;
+    type Error = conduit_plot::rust_binding::NativeBindingRefusal;
 
     fn try_from(value: conduit_core::LocalDateTime) -> Result<Self, Self::Error> {
         Self::new(value.date.try_into()?, value.time.try_into()?)
@@ -96,7 +96,7 @@ impl TryFrom<LocalDateTime> for conduit_core::LocalDateTime {
 }
 
 impl TryFrom<conduit_core::NamedTimeZone> for NamedTimeZone {
-    type Error = conduit_form::rust_binding::NativeBindingRefusal;
+    type Error = conduit_plot::rust_binding::NativeBindingRefusal;
 
     fn try_from(value: conduit_core::NamedTimeZone) -> Result<Self, Self::Error> {
         Self::new(value.identity().into(), value.rule_set().into())
@@ -130,7 +130,7 @@ impl MonotonicClockIdentity {
 }
 
 impl TryFrom<conduit_core::MonotonicClockIdentity> for MonotonicClockIdentity {
-    type Error = conduit_form::rust_binding::NativeBindingRefusal;
+    type Error = conduit_plot::rust_binding::NativeBindingRefusal;
 
     fn try_from(value: conduit_core::MonotonicClockIdentity) -> Result<Self, Self::Error> {
         Self::new(
@@ -145,7 +145,7 @@ impl TryFrom<conduit_core::MonotonicClockIdentity> for MonotonicClockIdentity {
 }
 
 impl TryFrom<conduit_core::MonotonicInstant> for MonotonicInstant {
-    type Error = conduit_form::rust_binding::NativeBindingRefusal;
+    type Error = conduit_plot::rust_binding::NativeBindingRefusal;
 
     fn try_from(value: conduit_core::MonotonicInstant) -> Result<Self, Self::Error> {
         Self::new(value.clock().clone().try_into()?, value.ticks())

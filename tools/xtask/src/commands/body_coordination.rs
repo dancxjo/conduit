@@ -242,7 +242,7 @@ fn body_truth(
 ) -> Result<BodyTruth, Box<dyn std::error::Error>> {
     let body = Body::born(
         exact.plan.source_document_id.clone(),
-        exact.plan.checked_form_id.clone(),
+        exact.plan.checked_plot_id.clone(),
         1,
         SignId::from("pete-orinthrop/body-born"),
     )

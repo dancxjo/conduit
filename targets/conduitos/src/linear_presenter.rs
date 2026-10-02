@@ -7,8 +7,8 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
-use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
+use conduit_plot::{ProfileCatalog, parse};
 use conduit_presentation::{
     LinearPresentation, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle,
     Presentation, PresentationRole, RendererRealizationOffer, render_linear_presentation,
@@ -20,7 +20,7 @@ pub const CAPABILITY: &str = "conduitos/presenter/linear-serial@1";
 pub const BASE_ID: &str = "conduitos/base/pl011-serial/0";
 const RESOURCE_CLASS: &str = "presentation/linear-slot";
 const RESOURCE_ID: &str = "conduitos/presentation/linear/0";
-const FORM: &str = "form front {\n    renderer: presentation/renderer\n}\n";
+const PLOT: &str = "plot front {\n    renderer: presentation/renderer\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct LinearReceipt {
@@ -84,7 +84,7 @@ impl LinearPresenter {
         catalog
             .insert(renderer_kind_projection())
             .map_err(|_| LinearPresenterError::Catalog)?;
-        let form = parse(FORM, &catalog).map_err(|_| LinearPresenterError::Catalog)?;
+        let plot = parse(PLOT, &catalog).map_err(|_| LinearPresenterError::Catalog)?;
         let implementation_id = ImplementationId::from(implementation);
         let host = HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
@@ -115,10 +115,10 @@ impl LinearPresenter {
             })],
             planner_capabilities: Vec::new(),
         };
-        let placements = default_placements(&form, core::slice::from_ref(&host))
+        let placements = default_placements(&plot, core::slice::from_ref(&host))
             .map_err(|_| LinearPresenterError::Plan)?;
         let plan =
-            plan(&form, &[host], &placements, &[]).map_err(|_| LinearPresenterError::Plan)?;
+            plan(&plot, &[host], &placements, &[]).map_err(|_| LinearPresenterError::Plan)?;
         let placement_id = plan.fragments[0].placements[0].placement_id.clone();
         Ok(Self {
             plan,
@@ -183,7 +183,7 @@ impl LinearPresenter {
 mod tests {
     use super::*;
     use crate::front_door::FrontDoor;
-    use conduit_core::{CheckedFormId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, SourceDocumentId};
 
     fn presentation() -> Presentation {
         FrontDoor::new(
@@ -194,7 +194,7 @@ mod tests {
             "build:one",
             "image:one",
             SourceDocumentId::from("source"),
-            CheckedFormId::from("checked"),
+            CheckedPlotId::from("checked"),
             5,
             false,
         )

@@ -1,7 +1,7 @@
 use alloc::collections::BTreeSet;
 use alloc::format;
 use alloc::vec::Vec;
-use conduit_core::{CapabilityId, CheckedFormId, PlanId};
+use conduit_core::{CapabilityId, CheckedPlotId, PlanId};
 use conduit_observatory::{
     validate_snapshot, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
     HostReport, ObservatorySnapshot, OfferFreshness, OperationalState,
@@ -15,7 +15,7 @@ use crate::{
 impl SystemRecord {
     pub fn from_snapshot(
         system_id: DurableSystemId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         member_hosts: Vec<HostInstance>,
         requirements: Vec<RoleRequirement>,
         plan_id: &PlanId,
@@ -34,8 +34,8 @@ impl SystemRecord {
         if plans.next().is_some() {
             return Err(ContinuityError::AmbiguousPlan);
         }
-        if plan.checked_form_id != checked_form_id {
-            return Err(ContinuityError::CheckedFormMismatch);
+        if plan.checked_plot_id != checked_plot_id {
+            return Err(ContinuityError::CheckedPlotMismatch);
         }
 
         let placements = plan
@@ -153,7 +153,7 @@ impl SystemRecord {
 
         Ok(Self {
             system_id,
-            checked_form_id,
+            checked_plot_id,
             members: member_hosts,
             requirements,
             assignments,

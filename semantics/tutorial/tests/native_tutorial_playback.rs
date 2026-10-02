@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::NativeRustBinding;
-use conduit_tutorial_form::TutorialPlayback;
+use conduit_plot::rust_binding::NativeRustBinding;
+use conduit_tutorial_plot::TutorialPlayback;
 
 #[test]
 fn every_tutorial_playback_phase_round_trips_through_its_native_type() {

@@ -119,9 +119,9 @@ pub extern "C" fn conduitos_loongarch64_a3_start() -> ! {
     arch::present(b"CONDUIT_LOONGARCH64_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
     #[cfg(feature = "loongarch64-a4")]
-    arch::present(b"\",\"wake_source\":\"loongarch-local-timer-interrupt\",\"wake_cause\":11,\"timer_mechanism\":\"TCFG/TICLR\",\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
+    arch::present(b"\",\"wake_source\":\"loongarch-local-timer-interrupt\",\"wake_cause\":11,\"timer_mechanism\":\"TCFG/TICLR\",\"a3_ordinary_plot_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
     #[cfg(not(feature = "loongarch64-a4"))]
-    arch::present(b"\",\"wake_source\":\"loongarch-local-timer-interrupt\",\"wake_cause\":11,\"timer_mechanism\":\"TCFG/TICLR\",\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":false}\n");
+    arch::present(b"\",\"wake_source\":\"loongarch-local-timer-interrupt\",\"wake_cause\":11,\"timer_mechanism\":\"TCFG/TICLR\",\"a3_ordinary_plot_claimed\":true,\"a4_observatory_patchbay_claimed\":false}\n");
     loop {
         core::hint::spin_loop();
     }

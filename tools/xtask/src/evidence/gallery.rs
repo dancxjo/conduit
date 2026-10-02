@@ -98,7 +98,7 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
                 root: root.clone(),
                 commit: request.commit.clone(),
                 result: ExpectedEvidenceResult::Complete,
-                proof_id: "journey-one-form-two-fronts".into(),
+                proof_id: "journey-one-plot-two-fronts".into(),
                 suite_id: "journey-gallery".into(),
             })
         })
@@ -171,7 +171,7 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
         write_two_fronts_commit(&site_root, root, evidence)?;
         write_two_fronts_current(&site_root, root, evidence)?;
     } else {
-        let current = site_root.join("current/one-form-two-fronts");
+        let current = site_root.join("current/one-plot-two-fronts");
         if current.exists() {
             fs::remove_dir_all(current)
                 .map_err(|error| format!("cannot clear stale Two Fronts evidence: {error}"))?;
@@ -347,11 +347,11 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             let two_fronts = if root
                 .join("commits")
                 .join(commit)
-                .join("one-form-two-fronts/index.html")
+                .join("one-plot-two-fronts/index.html")
                 .is_file()
             {
                 format!(
-                    " · <a href=\"commits/{commit}/one-form-two-fronts/\">One form, Two Fronts</a>"
+                    " · <a href=\"commits/{commit}/one-plot-two-fronts/\">One plot, Two Fronts</a>"
                 )
             } else {
                 String::new()
@@ -386,10 +386,10 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         ""
     };
     let two_fronts = if root
-        .join("current/one-form-two-fronts/index.html")
+        .join("current/one-plot-two-fronts/index.html")
         .is_file()
     {
-        "\n<p><a href=\"current/one-form-two-fronts/\">Current One form, Two Fronts journey</a></p>"
+        "\n<p><a href=\"current/one-plot-two-fronts/\">Current One plot, Two Fronts journey</a></p>"
     } else {
         ""
     };
@@ -404,10 +404,10 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         ""
     };
     let two_fronts_card = if root
-        .join("current/one-form-two-fronts/index.html")
+        .join("current/one-plot-two-fronts/index.html")
         .is_file()
     {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">Pinned Chromium + native software renderer</p><h2>One meaning, two fronts</h2><img src=\"current/one-form-two-fronts/browser.png\" alt=\"Morse Network manifested in a browser\"><p>The same semantic Presentation crossed two rendering boundaries without changing identity.</p><p class=\"card-boundary\">Boundary: software-rendered native pixels and pinned Chromium; not physical display proof.</p><p><a class=\"primary\" href=\"current/one-form-two-fronts/\">Follow the evidence</a></p></article>"
+        "<article class=\"journey-card\"><p class=\"eyebrow\">Pinned Chromium + native software renderer</p><h2>One meaning, two fronts</h2><img src=\"current/one-plot-two-fronts/browser.png\" alt=\"Morse Network manifested in a browser\"><p>The same semantic Presentation crossed two rendering boundaries without changing identity.</p><p class=\"card-boundary\">Boundary: software-rendered native pixels and pinned Chromium; not physical display proof.</p><p><a class=\"primary\" href=\"current/one-plot-two-fronts/\">Follow the evidence</a></p></article>"
     } else {
         ""
     };

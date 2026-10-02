@@ -4,7 +4,7 @@ use conduit_ai::{
     SimilarityScore, SimilarityThreshold, TemporalProvenance, TemporalRetrievalIntent,
     VectorMetadata, VectorRecord, VectorRefusal, MAXIMUM_SIMILARITY_TOP_K,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn profile(normalization: EmbeddingNormalization) -> EmbeddingProfile {
     EmbeddingProfile {

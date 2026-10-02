@@ -3,7 +3,7 @@
 //! Host-neutral, bounded UTF-8 text Kind semantics.
 //!
 //! This crate owns text Kind identity, exact typed fronts, semantic
-//! configuration, finite bounds, and canonical Form catalog installation. It
+//! configuration, finite bounds, and canonical Plot catalog installation. It
 //! owns no Host implementation, execution profile, Host Call, artifact,
 //! resource, authority, or manifestation claim.
 
@@ -23,7 +23,7 @@ pub use generated::{
 
 mod addressed_utterance;
 mod morse;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod morse_backs;
 mod morse_catalog;
 mod morse_key;
@@ -32,7 +32,7 @@ mod morse_values;
 mod morse_values_into;
 pub use addressed_utterance::*;
 pub use morse::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use morse_backs::*;
 pub use morse_catalog::*;
 pub use morse_key::*;
@@ -198,13 +198,13 @@ pub fn address_detect_semantics() -> TextKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_text_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("AddressSet", kind_id(ADDRESS_SET_VALUE_KIND))?;
     startup.insert_value_kind_alias("AddressDetection", kind_id(ADDRESS_DETECTION_VALUE_KIND))?;

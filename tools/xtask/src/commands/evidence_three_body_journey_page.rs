@@ -46,7 +46,7 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
                 &body.receipts,
                 &body.track_id,
                 &index.git_commit,
-                &body.mask_form_id,
+                &body.mask_plot_id,
             );
             let _ = write!(
                 html,
@@ -83,11 +83,11 @@ fn render_receipts(
     receipts: &[TrackStep],
     root: &str,
     git_commit: &str,
-    mask_form_id: &str,
+    mask_plot_id: &str,
 ) {
     for receipt in receipts {
         render_media(html, body, receipt, root);
-        render_evidence(html, body, receipt, root, git_commit, mask_form_id);
+        render_evidence(html, body, receipt, root, git_commit, mask_plot_id);
     }
 }
 
@@ -148,14 +148,14 @@ fn render_evidence(
     observed: &TrackStep,
     root: &str,
     git_commit: &str,
-    mask_form_id: &str,
+    mask_plot_id: &str,
 ) {
     html.push_str("<details class=\"evidence\"><summary>Evidence</summary><ul>");
     let _ = write!(
         html,
-        "<li>Recorded source: {} · Mask Form: {}</li>",
+        "<li>Recorded source: {} · Mask Plot: {}</li>",
         escape(git_commit),
-        escape(mask_form_id)
+        escape(mask_plot_id)
     );
     for construction in &body.construction {
         let _ = write!(

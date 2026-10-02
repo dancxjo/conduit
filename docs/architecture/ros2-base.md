@@ -6,7 +6,7 @@ ROS is realization, never Conduit meaning. `RosTopicBase` is configured with a
 finite list of directional mappings. Each mapping retains the exact ROS topic,
 interface type, QoS reliability/durability/history depth, payload/queue bounds,
 semantic kind, adapter/base identity, and authority requirement. Topic names,
-message packages, DDS details, and origin parameters do not enter forms.
+message packages, DDS details, and origin parameters do not enter plots.
 
 The first supported mapping is bounded `std_msgs/msg/String`. Its codec rejects
 wrong types, invalid lengths, invalid UTF-8, and payload overflow. Subscription
@@ -26,7 +26,7 @@ runs the same production base boundary against the pinned
 `ros:jazzy-ros-core` rclpy implementation with selected input/output topics and
 an independently observed sibling-output sentinel. The selected inbound value
 then becomes the literal input of an ordinary checked, ROS-independent text
-form, runs through the shared planner and std kernel, and returns through the
+plot, runs through the shared planner and std kernel, and returns through the
 selected native ROS publisher. Docker is an internal proof mechanism;
 `cargo xtask` remains the repository entrance.
 

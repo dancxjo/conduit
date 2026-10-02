@@ -6,13 +6,13 @@ use conduit_core::{
     process_owned_line_offer_with_limits, resource_offer, AuthorityContractId, AuthorityGrant,
     BaseImplementationId, HostAdvertisement, HostCallContractId, KindId, LinkLimits, Plan, PortId,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ExpandedCanonicalForm,
-    ProfileCatalog, StartupCatalog,
-};
 use conduit_human::AcquiredMediaResource;
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ExpandedCanonicalPlot,
+    ProfileCatalog, StartupCatalog,
 };
 use conduit_semantic_catalog::{
     install_human_media_catalogs, CAMERA_FRAME_KIND, CAMERA_SOURCE_KIND, MEDIA_USE_OPERATION,
@@ -20,7 +20,7 @@ use conduit_semantic_catalog::{
 use conduit_std_host::browser_admission::browser_webrtc_line_contract;
 use conduit_wire::SessionBinding;
 
-const SOURCE: &str = include_str!("../../../../../forms/camera-summary/main.conduit");
+const SOURCE: &str = include_str!("../../../../../plots/camera-summary/main.conduit");
 
 pub(super) struct CameraRealization {
     pub(super) plan: Plan,
@@ -28,17 +28,17 @@ pub(super) struct CameraRealization {
     pub(super) output_port: PortId,
 }
 
-fn expanded() -> Result<ExpandedCanonicalForm, String> {
+fn expanded() -> Result<ExpandedCanonicalPlot, String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_human_media_catalogs(&mut startup, &mut profile).map_err(debug("catalog"))?;
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
-        .map_err(debug("check form"))?;
-    expand_canonical_form(&checked, "camera-summary", &profile).map_err(debug("expand form"))
+        .map_err(debug("check plot"))?;
+    expand_canonical_plot(&checked, "camera-summary", &profile).map_err(debug("expand plot"))
 }
 
 fn placements(
-    expanded: &ExpandedCanonicalForm,
+    expanded: &ExpandedCanonicalPlot,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
 ) -> Result<PlacementChoices, String> {
@@ -115,7 +115,7 @@ pub(super) fn realize(
     let connection = expanded
         .connections
         .first()
-        .ok_or("camera form has no exact Cord")?;
+        .ok_or("camera plot has no exact Cord")?;
     let line_candidates = BTreeMap::from([(
         (
             connection.source_gear_id.clone(),
@@ -140,7 +140,7 @@ pub(super) fn realize(
             line_offers: &[line],
         },
     )
-    .map_err(debug("plan camera form"))?;
+    .map_err(debug("plan camera plot"))?;
     let source_fragment = plan
         .fragments
         .iter()

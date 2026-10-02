@@ -246,7 +246,7 @@ impl DistributedSource {
         let configuration = parse_pulse_configuration(&fragment.placements[0].configuration)
             .map_err(|error| error.to_string())?;
         if *configuration.count() != MAXIMUM_VALUES as u64 || *configuration.period_ms() != 250 {
-            return Err("unchanged Signal form configuration is not the S4 vector".to_string());
+            return Err("unchanged Signal plot configuration is not the S4 vector".to_string());
         }
 
         let mut values = HostedValueStore::new(

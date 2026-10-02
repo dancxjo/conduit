@@ -23,7 +23,7 @@ test("snapshot projection is the immutable exact Workspace response", () => {
 test("lifecycle events correlate the exact retained biography record and sign", () => {
   const evidence = snapshot([
     { sequence: 1, sign_id: "sign/1", kind: { Born: { workload_revision: 0 } } },
-    { sequence: 2, sign_id: "sign/2", kind: { FormAdmitted: { checked_form_id: "form/1", workload_revision: 1 } } },
+    { sequence: 2, sign_id: "sign/2", kind: { PlotAdmitted: { checked_plot_id: "plot/1", workload_revision: 1 } } },
     { sequence: 3, sign_id: "sign/3", kind: { WakeEvent: { wake_id: "wake/1", event_index: 0 } } },
   ]);
   evidence.evidence.wakes.push({ wake_id: "wake/1", body_id: "body/1", wake_sequence: 1, events: [{ Woke: { sign_id: "sign/3" } }] });
@@ -71,10 +71,10 @@ test("unrequested replay starts from current evidence and polling bounds are enf
 
 test("compaction is reported from its retained boundary before later biography records", async () => {
   const current = projectBodySnapshot(snapshot([
-    { sequence: 9, sign_id: "sign/9", kind: { FormAdmitted: {} } },
+    { sequence: 9, sign_id: "sign/9", kind: { PlotAdmitted: {} } },
   ], { evidence: {
     schema: "conduit.body/biography-evidence@2", body_id: "body/1", body: { workload_revision: 9 },
-    membership: { revision: 2 }, records: [{ sequence: 9, sign_id: "sign/9", kind: { FormAdmitted: {} } }],
+    membership: { revision: 2 }, records: [{ sequence: 9, sign_id: "sign/9", kind: { PlotAdmitted: {} } }],
     wakes: [], compaction: { through_sequence: 8, through_sign_id: "sign/8" },
   } }));
   const iterator = createBodyEventStream({ readSnapshot: async () => current, replay: true, pollIntervalMillis: 50 })[Symbol.asyncIterator]();

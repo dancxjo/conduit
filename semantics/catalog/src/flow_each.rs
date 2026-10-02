@@ -1,6 +1,6 @@
 //! Exact bounded temporal lifting of one reviewed Value transform over a closing Flow.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -18,7 +18,7 @@ pub const FLOW_EACH_OUTPUT_PORT: &str = "mapped";
 /// Specializes `flow/each` over the exact checked fronts of one reviewed
 /// Value-to-Value transform.
 ///
-/// The selected transform and its realization belong to checked Form and Plan
+/// The selected transform and its realization belong to checked Plot and Plan
 /// truth. This Kind records only the portable coordinator law: one input may be
 /// pending while one activation is active, every accepted value owes at most
 /// one output, and terminal truth propagates only after that finite work drains.
@@ -137,16 +137,16 @@ fn require_finite_envelope(
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_each_kind(
     input: &CheckedValueContract,
     output: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
     maximum_items: u16,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: FLOW_EACH_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;

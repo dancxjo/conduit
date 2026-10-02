@@ -83,7 +83,7 @@ fn validate_records(records: &[serde_json::Value], identity: &serde_json::Value)
         || identity["firmware_mode"] != "pete-capstone"
         || identity["usb_serial"] != "pete-capstone"
         || identity["robot_control_capable"] != true
-        || identity["form"] != "pete-capstone"
+        || identity["plot"] != "pete-capstone"
         || identity["kernel"] != "conduit-kernel"
         || identity["oi_exposed"] != false
     {
@@ -133,7 +133,7 @@ fn validate_records(records: &[serde_json::Value], identity: &serde_json::Value)
         || terminal["create_link_fresh"] != false
         || terminal["create_packets"] != 0
         || terminal["ready_cue_command_sent"] != false
-        || terminal["form"] != "pete-capstone"
+        || terminal["plot"] != "pete-capstone"
         || terminal["kernel"] != "conduit-kernel"
         || terminal["oi_exposed"] != false
     {
@@ -323,7 +323,7 @@ mod tests {
             "firmware_mode": "pete-capstone",
             "usb_serial": "pete-capstone",
             "robot_control_capable": true,
-            "form": "pete-capstone",
+            "plot": "pete-capstone",
             "kernel": "conduit-kernel",
             "oi_exposed": false
         })
@@ -357,7 +357,7 @@ mod tests {
                 "create_link_fresh": false,
                 "create_packets": 0,
                 "ready_cue_command_sent": false,
-                "form": "pete-capstone",
+                "plot": "pete-capstone",
                 "kernel": "conduit-kernel",
                 "oi_exposed": false
             }),

@@ -15,11 +15,11 @@ use conduit_core::{
     PlannedScanTerminalPolicy, PortDescriptor, PortDirection, SignStorageBudget, ValuePayload,
     PROTOCOL_VERSION,
 };
-use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{HostedValueStore, PortId as KernelPortId};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
+use conduit_plot::{parse, KindProjection, ProfileCatalog};
 use std::collections::BTreeMap;
 
 #[path = "support/allocation.rs"]
@@ -93,8 +93,8 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
 }
 
 fn definition() -> KernelCompositeDefinition {
-    let form = parse(
-        "form test/two-child-echo (\n >> input: value/bytes\n output: value/bytes >>\n) {\n first: test/kernel-composite-echo\n second: test/kernel-composite-echo\n input >> first.in\n first.out >> second.in\n second.out >> output\n}\n",
+    let plot = parse(
+        "plot test/two-child-echo (\n >> input: value/bytes\n output: value/bytes >>\n) {\n first: test/kernel-composite-echo\n second: test/kernel-composite-echo\n input >> first.in\n first.out >> second.in\n second.out >> output\n}\n",
         &catalog(),
     )
     .unwrap();
@@ -129,7 +129,7 @@ fn definition() -> KernelCompositeDefinition {
         16,
     );
     let internal_plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[first, second],
         &placements,
         &[
@@ -148,7 +148,7 @@ fn definition() -> KernelCompositeDefinition {
         HostProfileId::from("composite/kernel"),
         ImplementationId::from("composite/kernel-two-echo-v1"),
         ArtifactId::from("composite/kernel-two-echo-artifact-v1"),
-        &form,
+        &plot,
         &CapabilityId::from("run"),
         internal_plan,
         FailureReason::CompositeCapabilityFailed,
@@ -356,8 +356,8 @@ fn fold_definition_with_abnormal(
             configuration: vec![],
         })
         .unwrap();
-    let form = parse(
-        "form test/fold-combine (\n >> accumulator: value/bytes\n >> item: value/bytes\n combined: value/bytes >>\n) {\n combine: test/kernel-composite-combine\n accumulator >> combine.accumulator\n item >> combine.item\n combine.combined >> combined\n}\n",
+    let plot = parse(
+        "plot test/fold-combine (\n >> accumulator: value/bytes\n >> item: value/bytes\n combined: value/bytes >>\n) {\n combine: test/kernel-composite-combine\n accumulator >> combine.accumulator\n item >> combine.item\n combine.combined >> combined\n}\n",
         &catalog,
     )
     .unwrap();
@@ -379,7 +379,7 @@ fn fold_definition_with_abnormal(
         )]),
     };
     let internal_plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[host],
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -395,7 +395,7 @@ fn fold_definition_with_abnormal(
         HostProfileId::from("composite/kernel"),
         ImplementationId::from("composite/kernel-fold-v1"),
         ArtifactId::from("composite/kernel-fold-artifact-v1"),
-        &form,
+        &plot,
         &CapabilityId::from("run"),
         internal_plan,
         FailureReason::CompositeCapabilityFailed,
@@ -409,10 +409,10 @@ fn fold_definition_with_abnormal(
         }
         let plan = &definition.internal_plan;
         definition.internal_plan = conduit_core::seal_plan_with_activation_entries(
-            conduit_core::FormIdentity {
+            conduit_core::PlotIdentity {
                 source_document_id: plan.source_document_id.clone(),
-                checked_form_id: plan.checked_form_id.clone(),
-                expanded_form_id: plan.expanded_form_id.clone(),
+                checked_plot_id: plan.checked_plot_id.clone(),
+                expanded_plot_id: plan.expanded_plot_id.clone(),
             },
             plan.completion_policy,
             plan.realization_backs.clone(),

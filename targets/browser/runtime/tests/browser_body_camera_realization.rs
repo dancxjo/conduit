@@ -12,16 +12,16 @@ use conduit_core::{
     LineContinuation, LineContract, LineDuplex, LineOrdering, LineReliability, LineScope,
     LineSecurity, LineTrafficShape, LinkLimits, OfferGeneration, PROTOCOL_VERSION,
 };
-use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
+use conduit_plot::{check_syntax_document, expand_canonical_plot, parse_syntax_document};
 use conduit_semantic_catalog::{
     install_human_media_catalogs, CAMERA_FRAME_KIND, CAMERA_RESOURCE_CLASS, CAMERA_SOURCE_KIND,
     MEDIA_USE_AUTHORITY, MEDIA_USE_OPERATION,
 };
 
-const SOURCE: &str = include_str!("../../../../forms/camera-summary/main.conduit");
+const SOURCE: &str = include_str!("../../../../plots/camera-summary/main.conduit");
 
 fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     HostAdvertisement {
@@ -37,16 +37,16 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     }
 }
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_human_media_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
-    expand_canonical_form(&checked, "camera-summary", &profile).unwrap()
+    expand_canonical_plot(&checked, "camera-summary", &profile).unwrap()
 }
 
 fn choices(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
 ) -> PlacementChoices {

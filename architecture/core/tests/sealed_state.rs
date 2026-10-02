@@ -25,14 +25,14 @@ fn every_state_contract_field_is_an_immutable_plan_commitment() {
 }
 
 #[test]
-fn larger_state_capacity_requires_a_new_plan_but_not_new_form_identity() {
+fn larger_state_capacity_requires_a_new_plan_but_not_new_plot_identity() {
     let small = seal(fragment());
     let mut larger = fragment();
     larger.states[0].maximum_value_bytes = 4;
     let large = seal(larger);
     assert!(verify_plan(&large));
     assert_ne!(small.plan_id, large.plan_id);
-    assert_eq!(small.checked_form_id, large.checked_form_id);
+    assert_eq!(small.checked_plot_id, large.checked_plot_id);
     assert_eq!(small.source_document_id, large.source_document_id);
 }
 
@@ -86,10 +86,10 @@ fn state_identity_cannot_be_duplicated_across_host_fragments() {
     second.placements[0].placement_id = PlacementId::from("other-placement");
     second.startup_order = vec![second.placements[0].placement_id.clone()];
     second.states[0].gear_id = second.placements[0].gear_id.clone();
-    let identity = FormIdentity {
+    let identity = PlotIdentity {
         source_document_id: first.source_document_id.clone(),
-        checked_form_id: first.checked_form_id.clone(),
-        expanded_form_id: first.expanded_form_id.clone(),
+        checked_plot_id: first.checked_plot_id.clone(),
+        expanded_plot_id: first.expanded_plot_id.clone(),
     };
     let duplicated = seal_plan(identity.clone(), vec![first.clone(), second.clone()]);
     assert!(!verify_plan(&duplicated));
@@ -103,7 +103,7 @@ fn retained_provenance_changes_plan_without_replacing_authored_initialization() 
     let continued = seal(common::retained_fragment());
     assert!(verify_plan(&continued));
     assert_ne!(fresh.plan_id, continued.plan_id);
-    assert_eq!(fresh.checked_form_id, continued.checked_form_id);
+    assert_eq!(fresh.checked_plot_id, continued.checked_plot_id);
     assert_eq!(
         continued.fragments[0].states[0].initial_value,
         Some(vec![7])
@@ -115,9 +115,9 @@ fn retained_provenance_changes_plan_without_replacing_authored_initialization() 
     let mutations: [fn(&mut RetainedStateProvenance); 8] = [
         |r| r.generation += 1,
         |r| r.current_value[0] = 10,
-        |r| r.source_form.source_document_id = "other-source".into(),
-        |r| r.source_form.checked_form_id = "other-checked".into(),
-        |r| r.source_form.expanded_form_id = "other-expanded".into(),
+        |r| r.source_plot.source_document_id = "other-source".into(),
+        |r| r.source_plot.checked_plot_id = "other-checked".into(),
+        |r| r.source_plot.expanded_plot_id = "other-expanded".into(),
         |r| r.source_play.play_sequence += 1,
         |r| r.source_state = "other-state".into(),
         |r| r.value_kind = "other-kind".into(),
@@ -136,7 +136,7 @@ fn malformed_retained_identity_type_capacity_and_generation_refuse_even_after_re
         |s| s.retained.as_mut().unwrap().source_state = "other-state".into(),
         |s| s.retained.as_mut().unwrap().value_kind = "wrong-kind".into(),
         |s| s.retained.as_mut().unwrap().current_value = vec![1, 2],
-        |s| s.retained.as_mut().unwrap().source_form.checked_form_id = "".into(),
+        |s| s.retained.as_mut().unwrap().source_plot.checked_plot_id = "".into(),
         |s| s.continuation = StateContinuation::MaximumTransitions(16),
     ];
     for mutate in mutations {

@@ -26,13 +26,13 @@ mod generated {
 }
 
 pub use generated::{
-    AudioRenderDemand, AudioToneTerminal, AudioToneTerminalCode, BeatReference,
-    CancellationDisposition, Gate, GateCode, IncompatibilityReason, InstrumentAnalogEvent,
+    AudioRenderDemand, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
+    CancellationDisposition, Gate, GateForm, IncompatibilityReason, InstrumentAnalogEvent,
     InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
-    ModulationDestination, ModulationDestinationCode, MusicalControl, MusicalControlEvent,
+    ModulationDestination, ModulationDestinationForm, MusicalControl, MusicalControlEvent,
     MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, MusicalNoteEvent,
-    MusicalPitch, NoteOccurrenceId, PcmChannelLayout, PcmChannelLayoutCode, PcmClipProfile,
-    PcmCompatibilityProfile, PcmFrameHeader, PcmSampleRepresentation, PcmSampleRepresentationCode,
+    MusicalPitch, NoteOccurrenceId, PcmChannelLayout, PcmChannelLayoutForm, PcmClipProfile,
+    PcmCompatibilityProfile, PcmFrameHeader, PcmSampleRepresentation, PcmSampleRepresentationForm,
     PressureDisposition, RhythmRecoveryState, SoundSeam, SoundStreamState, SoundTerminalBehavior,
     TimingClassification, TimingFeedback, ToneIntent,
 };

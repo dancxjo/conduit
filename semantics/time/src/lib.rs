@@ -36,8 +36,8 @@ pub use generated::{
     AvailabilityBasis, AvailabilityInterval, AvailabilityState, CalendarEvent, CalendarEventTime,
     CalendarRefusal, CandidateConflict, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
     CivilResolutionPolicy, CivilTrigger, ClockChangeBehavior, ElapsedTrigger,
-    HistoricalEntryOrigin, HistoricalEntryOriginCode, HistoricalOverflowPolicy,
-    HistoricalOverflowPolicyCode, HistoricalReplayEntry, HistoricalRetentionGap,
+    HistoricalEntryOrigin, HistoricalEntryOriginForm, HistoricalOverflowPolicy,
+    HistoricalOverflowPolicyForm, HistoricalReplayEntry, HistoricalRetentionGap,
     HistoricalTimelineCommand, HistoricalTimelineCommandAppend, HistoricalTimelineCommandRemove,
     HistoricalTimelineEntry, HistoricalTimelineOutcome, HistoricalTimelineOutcomeAppended,
     HistoricalTimelineOutcomeCleared, IntervalSequence, InvitationEvidence, InvitationState,
@@ -126,9 +126,9 @@ pub use conduit_core::{
     MAXIMUM_TEMPORAL_IDENTITY_BYTES, UNIX_UTC_CLOCK_BASIS,
 };
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use catalog::*;
 
 #[cfg(feature = "kernel-step")]

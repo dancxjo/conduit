@@ -1,4 +1,4 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 mod common;
 
@@ -6,22 +6,22 @@ use conduit_core::{
     ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId, GearId,
     ImplementationId, ImplementationOffer,
 };
-use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
+use conduit_plot::{parse, ProfileCatalog};
 use conduit_presentation::{
     presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
     MaskTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
 };
 use std::collections::BTreeMap;
 
-const SOURCE: &str = "form spoken-front {\n normalize: presentation/presenter-stage\n speech: presentation/renderer\n normalize.presentation >> speech.presentation\n}\n";
+const SOURCE: &str = "plot spoken-front {\n normalize: presentation/presenter-stage\n speech: presentation/renderer\n normalize.presentation >> speech.presentation\n}\n";
 
 #[test]
 fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(presenter_stage_kind_projection()).unwrap();
     catalog.insert(renderer_kind_projection()).unwrap();
-    let form = parse(SOURCE, &catalog).unwrap();
+    let plot = parse(SOURCE, &catalog).unwrap();
     let mut host = common::host(
         "speech-host",
         "speech-boot",
@@ -66,7 +66,7 @@ fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
         ]),
     };
     let sealed = plan(
-        &form,
+        &plot,
         &[host],
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -94,8 +94,8 @@ fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
 fn two_renderer_placements_are_two_independently_admitted_chains() {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_projection()).unwrap();
-    let form = parse(
-        "form front {\n graphical: presentation/renderer\n speech: presentation/renderer\n}\n",
+    let plot = parse(
+        "plot front {\n graphical: presentation/renderer\n speech: presentation/renderer\n}\n",
         &catalog,
     )
     .unwrap();
@@ -135,7 +135,7 @@ fn two_renderer_placements_are_two_independently_admitted_chains() {
             ),
         ]),
     };
-    let sealed = plan(&form, &[graphical, speech], &placements, &[]).unwrap();
+    let sealed = plan(&plot, &[graphical, speech], &placements, &[]).unwrap();
     let topology = MaskTopologyAdmission::from_plan(&sealed).unwrap();
     assert_eq!(topology.chains.len(), 2);
     assert!(topology.chains.iter().all(|chain| chain.stages.len() == 1));

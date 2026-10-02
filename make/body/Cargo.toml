@@ -7,7 +7,7 @@ description = "Bounded Body construction and Spore binding above Conduit Host ma
 [dependencies]
 conduit-body = { path = "../../architecture/body" }
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-host-make = { path = "../host" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation" }

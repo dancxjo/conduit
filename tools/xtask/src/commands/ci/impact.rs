@@ -204,7 +204,7 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
 ];
 fn is_tongues_analysis_path(path: &str) -> bool {
     path.starts_with("semantics/tongues/")
-        || path == "forms/tongues-dynamics-analysis/main.conduit"
+        || path == "plots/tongues-dynamics-analysis/main.conduit"
         || path == "targets/browser/patchbay-workbench/src/learned_demo.rs"
         || path == "proof/browser/patchbay-debugger-watch.spec.mjs"
         || path == "tools/xtask/src/commands/ci/impact.rs"

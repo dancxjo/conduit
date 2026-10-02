@@ -4,13 +4,13 @@ use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     Quantity, QuantityDimension, QuantityUnit, StructuredInfoRefusal, StructuredInfoValue,
 };
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     GamepadState, InputAxisSlot, InputAxisSlots, InputButtonPhase, InputButtonSlot,
     InputButtonSlots, InputButtonTransition, InputPressure, InputPressurePolicy, InputSurfacePoint,
     InputSurfaceVector, PointerEvent, RotaryDirection, RotaryStep, TouchContactPhase,
     TouchContactSlot, TouchContacts, TouchFrame,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::{MAXIMUM_INPUT_AXES, MAXIMUM_INPUT_BUTTONS, MAXIMUM_TOUCH_CONTACTS};
 

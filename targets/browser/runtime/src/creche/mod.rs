@@ -6,17 +6,17 @@ mod browser_configuration;
 pub(crate) use browser_configuration::BrowserConfigurationSelection;
 mod durable;
 mod graduation;
-mod initial_forms;
+mod initial_plots;
 mod protocol;
 mod review;
 mod session;
-#[cfg(feature = "form-runner")]
+#[cfg(feature = "plot-runner")]
 mod workspace;
-#[cfg(feature = "form-runner")]
-pub(crate) use initial_forms::{expanded_inventory_form, inventory_form_title};
-#[cfg(feature = "form-runner")]
+#[cfg(feature = "plot-runner")]
+pub(crate) use initial_plots::{expanded_inventory_plot, inventory_plot_title};
+#[cfg(feature = "plot-runner")]
 pub(crate) use workspace::{
-    handoff_workspace, plan_workspace_forms, require_workspace_form, workspace_evidence,
+    handoff_workspace, plan_workspace_plots, require_workspace_plot, workspace_evidence,
     workspace_library,
 };
 #[derive(Clone, Debug, serde::Deserialize)]

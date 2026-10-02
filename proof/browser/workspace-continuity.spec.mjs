@@ -13,7 +13,7 @@ test.afterAll(async () => { if (root) await rm(root, { recursive: true }); });
 test.beforeEach(async () => { entrance = await startStaticProduct(root, "/conduit/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("Workspace returns a retained Body to its Forms without a parallel application", async ({ page, context }) => {
+test("Workspace returns a retained Body to its Plots without a parallel application", async ({ page, context }) => {
   await page.goto(new URL("workspace/", entrance.url).href);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
@@ -31,5 +31,5 @@ test("Workspace returns a retained Body to its Forms without a parallel applicat
   expect(returned.boot_id).not.toBe(first.boot_id);
   expect(returned.active_play_id).not.toBe(first.active_play_id);
   await returnedWorkspace.keyboard.press("r");
-  await expect(returnedWorkspace.locator("[data-form-output] output:visible")).toHaveText("r");
+  await expect(returnedWorkspace.locator("[data-plot-output] output:visible")).toHaveText("r");
 });

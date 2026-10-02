@@ -62,7 +62,7 @@ pub fn project_body_biography(
             BodyBiographyRecordKind::Born { initial_workset, workload_revision } => (
                 "Born",
                 format!(
-                    "{} became Body {} with {} initial active form(s) at workload revision {}.",
+                    "{} became Body {} with {} initial active plot(s) at workload revision {}.",
                     evidence.friendly_name,
                     evidence.body_id.as_str(),
                     initial_workset.len(),
@@ -106,27 +106,27 @@ pub fn project_body_biography(
                 "Part revoked",
                 format!("Part {} was removed from Body membership.", part_id.as_str()),
             ),
-            BodyBiographyRecordKind::FormAdmitted {
-                checked_form_id,
+            BodyBiographyRecordKind::PlotAdmitted {
+                checked_plot_id,
                 workload_revision,
                 ..
             } => (
-                "Form admitted",
+                "Plot admitted",
                 format!(
-                    "Form {} joined the body workset at revision {}.",
-                    checked_form_id.as_str(),
+                    "Plot {} joined the body workset at revision {}.",
+                    checked_plot_id.as_str(),
                     workload_revision
                 ),
             ),
-            BodyBiographyRecordKind::FormRemoved {
-                checked_form_id,
+            BodyBiographyRecordKind::PlotRemoved {
+                checked_plot_id,
                 workload_revision,
                 ..
             } => (
-                "Form stopped",
+                "Plot stopped",
                 format!(
-                    "Form {} left the body workset at revision {} without deleting the body.",
-                    checked_form_id.as_str(),
+                    "Plot {} left the body workset at revision {} without deleting the body.",
+                    checked_plot_id.as_str(),
                     workload_revision
                 ),
             ),
@@ -244,7 +244,7 @@ mod tests {
         Body, BodyBiographyEvidence, BodyMembership, DurableEmergencyConfiguration,
         EmergencyAcousticAvailability, EmergencyKey,
     };
-    use conduit_core::{bind_sign, BootId, CheckedFormId, HostId, SourceDocumentId};
+    use conduit_core::{bind_sign, BootId, CheckedPlotId, HostId, SourceDocumentId};
 
     #[test]
     fn projects_only_valid_durable_birth_evidence_after_roundtrip() {
@@ -253,7 +253,7 @@ mod tests {
         let sign = bind_sign(&host, &boot, None, 7);
         let body = Body::born(
             SourceDocumentId::from("source/biography-reader"),
-            CheckedFormId::from("checked/biography-reader"),
+            CheckedPlotId::from("checked/biography-reader"),
             7,
             sign.sign_id,
         )
@@ -288,7 +288,7 @@ mod tests {
     fn projects_the_exact_durable_emergency_phrase_and_detector_state() {
         let body = Body::born(
             SourceDocumentId::from("source/emergency-reader"),
-            CheckedFormId::from("checked/emergency-reader"),
+            CheckedPlotId::from("checked/emergency-reader"),
             1,
             SignId::from("sign/emergency-reader-born"),
         )

@@ -33,7 +33,7 @@ pub struct ExactStdPicoBluetoothPlan {
 
 /// Build the immutable capstone Plan from one exact, already-paired current
 /// observation. The Bluetooth address remains observation truth and is not an
-/// input to Form, Host, Boot, or Body identity.
+/// input to Plot, Host, Boot, or Body identity.
 pub fn exact_std_pico_bluetooth_plan(
     peer_address: [u8; 6],
 ) -> Result<ExactStdPicoBluetoothPlan, alloc::string::String> {
@@ -75,8 +75,8 @@ pub fn exact_std_pico_bluetooth_plan(
         SignId::from("bluetooth/line/pico-offer-ready"),
     )
     .map_err(|error| alloc::format!("Bluetooth Line offer: {error:?}"))?;
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../fixtures/plots/signal-demo.conduit"),
         &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -100,7 +100,7 @@ pub fn exact_std_pico_bluetooth_plan(
         ]),
     };
     let plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[source, sink],
         &placements,
         &[BaseImplementationId::from(

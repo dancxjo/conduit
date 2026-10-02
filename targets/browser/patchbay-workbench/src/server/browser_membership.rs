@@ -1,18 +1,18 @@
 //! Browser renderer delivery for the truthful zero-body public entrance.
 
 use super::{PatchbayHtmlServer, ServerError, MAX_BROWSER_WASM_BYTES};
-use conduit_patchbay_workbench::FormCandidate;
+use conduit_patchbay_workbench::PlotCandidate;
 use std::path::PathBuf;
 
 impl PatchbayHtmlServer {
     pub fn bind_browser_front_door_ephemeral() -> Result<Self, ServerError> {
-        Self::bind_browser_front_door_with_forms_ephemeral(Vec::new())
+        Self::bind_browser_front_door_with_plots_ephemeral(Vec::new())
     }
 
-    pub fn bind_browser_front_door_with_forms_ephemeral(
-        forms: Vec<FormCandidate>,
+    pub fn bind_browser_front_door_with_plots_ephemeral(
+        plots: Vec<PlotCandidate>,
     ) -> Result<Self, ServerError> {
-        let mut server = Self::bind_front_door_with_forms_ephemeral(forms)?;
+        let mut server = Self::bind_front_door_with_plots_ephemeral(plots)?;
         server.browser_wasm = Some(read_browser_runtime()?);
         // A browser renderer is not silently admitted into a body. The
         // admission endpoint remains absent until an explicit JOIN or BIRTH

@@ -41,7 +41,7 @@ pub(super) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
         target_minimum: number("target-minimum")?,
         target_maximum: number("target-maximum")?,
         target_granularity: number("target-granularity")?,
-        target_unit: QuantityUnit::from_form_suffix(text("unit")?)
+        target_unit: QuantityUnit::from_plot_suffix(text("unit")?)
             .map_err(|error| format!("quantity mapping unit: {error:?}"))?,
         range_policy: match text("range-policy")? {
             "refuse" => RangePolicy::Refuse,

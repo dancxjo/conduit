@@ -17,13 +17,13 @@ use crate::{
 pub struct TourPlayEvidence {
     pub specimen_id: &'static str,
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
     pub plan_id: conduit_core::PlanId,
     pub active_play_id: conduit_core::ActivePlayId,
     pub result: &'static str,
     pub manifestations: u8,
-    pub comparison_expanded_form_id: Option<conduit_core::ExpandedFormId>,
+    pub comparison_expanded_plot_id: Option<conduit_core::ExpandedPlotId>,
     pub comparison_plan_id: Option<conduit_core::PlanId>,
     pub multi_host: Option<conduit_tour_model::TourMultiHostProof>,
     pub terminal: conduit_tour_model::TourRunTerminal,
@@ -73,24 +73,24 @@ pub fn prepare_stage(
     let contract = TOUR_CHAPTERS
         .get(usize::from(chapter))
         .and_then(|chapter| chapter.stages.get(usize::from(stage)))
-        .ok_or(PreparationError::FormRejected)?;
+        .ok_or(PreparationError::PlotRejected)?;
     if contract.mode != TourStageMode::Run || chapter != 0 || stage > 1 {
-        return Err(PreparationError::FormRejected);
+        return Err(PreparationError::PlotRejected);
     }
-    let source = tour_stage_source(chapter, stage).map_err(|_| PreparationError::FormRejected)?;
-    let form_name = contract
+    let source = tour_stage_source(chapter, stage).map_err(|_| PreparationError::PlotRejected)?;
+    let plot_name = contract
         .identity
-        .strip_prefix("canonical-form:")
-        .ok_or(PreparationError::FormRejected)?;
+        .strip_prefix("canonical-plot:")
+        .ok_or(PreparationError::PlotRejected)?;
     let literal = match stage {
         0 => CANONICAL_LITERAL,
         1 => "make this loud",
-        _ => return Err(PreparationError::FormRejected),
+        _ => return Err(PreparationError::PlotRejected),
     };
     let expected = contract
         .expected_text
-        .ok_or(PreparationError::FormRejected)?;
-    crate::ordinary_plan::prepare_source(identities, offer, build_id, &source, form_name, literal)
+        .ok_or(PreparationError::PlotRejected)?;
+    crate::ordinary_plan::prepare_source(identities, offer, build_id, &source, plot_name, literal)
         .map(|prepared| (prepared, contract.identity, expected))
 }
 
@@ -158,13 +158,13 @@ where
     Ok(TourPlayEvidence {
         specimen_id,
         source_document_id: prepared.source_document_id.clone(),
-        checked_form_id: prepared.checked_form_id.clone(),
-        expanded_form_id: prepared.expanded_form_id.clone(),
+        checked_plot_id: prepared.checked_plot_id.clone(),
+        expanded_plot_id: prepared.expanded_plot_id.clone(),
         plan_id: prepared.plan_id.clone(),
         active_play_id: prepared.active_play.active_play_id.clone(),
         result: expected,
         manifestations: 1,
-        comparison_expanded_form_id: None,
+        comparison_expanded_plot_id: None,
         comparison_plan_id: None,
         multi_host: None,
         terminal: conduit_tour_model::TourRunTerminal::Completed,
@@ -197,15 +197,15 @@ where
     let run = crate::tour_morse_play::run(prepared, clock, serial, interrupts, idle)
         .map_err(TourPlayError::Machine)?;
     Ok(TourPlayEvidence {
-        specimen_id: "canonical-form:branch-a-cord",
+        specimen_id: "canonical-plot:branch-a-cord",
         source_document_id: prepared.source_document_id.clone(),
-        checked_form_id: prepared.checked_form_id.clone(),
-        expanded_form_id: prepared.expanded_form_id.clone(),
+        checked_plot_id: prepared.checked_plot_id.clone(),
+        expanded_plot_id: prepared.expanded_plot_id.clone(),
         plan_id: prepared.plan_id.clone(),
         active_play_id: prepared.active_play.active_play_id.clone(),
         result: "SOS",
         manifestations: 2,
-        comparison_expanded_form_id: None,
+        comparison_expanded_plot_id: None,
         comparison_plan_id: None,
         multi_host: None,
         terminal: conduit_tour_model::TourRunTerminal::Completed,
@@ -238,15 +238,15 @@ where
     let run = crate::tour_comparison_play::run(prepared, clock, serial, interrupts, idle)
         .map_err(TourPlayError::Machine)?;
     Ok(TourPlayEvidence {
-        specimen_id: "canonical-form:same-morse-caller",
+        specimen_id: "canonical-plot:same-morse-caller",
         source_document_id: prepared.direct.source_document_id.clone(),
-        checked_form_id: prepared.direct.checked_form_id.clone(),
-        expanded_form_id: prepared.direct.expanded_form_id.clone(),
+        checked_plot_id: prepared.direct.checked_plot_id.clone(),
+        expanded_plot_id: prepared.direct.expanded_plot_id.clone(),
         plan_id: prepared.direct.plan_id.clone(),
         active_play_id: prepared.direct_active.active_play_id.clone(),
         result: "Direct and recursive realizations agree",
         manifestations: 2,
-        comparison_expanded_form_id: Some(prepared.recursive.expanded_form_id.clone()),
+        comparison_expanded_plot_id: Some(prepared.recursive.expanded_plot_id.clone()),
         comparison_plan_id: Some(prepared.recursive.plan_id.clone()),
         multi_host: None,
         terminal: conduit_tour_model::TourRunTerminal::Completed,
@@ -281,15 +281,15 @@ where
     let run = crate::tour_timer_play::run(prepared, clock, timer, serial, interrupts, idle)
         .map_err(TourPlayError::Machine)?;
     Ok(TourPlayEvidence {
-        specimen_id: "canonical-form:count-over-time",
+        specimen_id: "canonical-plot:count-over-time",
         source_document_id: prepared.plan.source_document_id.clone(),
-        checked_form_id: prepared.plan.checked_form_id.clone(),
-        expanded_form_id: prepared.plan.expanded_form_id.clone(),
+        checked_plot_id: prepared.plan.checked_plot_id.clone(),
+        expanded_plot_id: prepared.plan.expanded_plot_id.clone(),
         plan_id: prepared.plan.plan_id.clone(),
         active_play_id: prepared.active_play.active_play_id.clone(),
         result: "1",
         manifestations: 2,
-        comparison_expanded_form_id: None,
+        comparison_expanded_plot_id: None,
         comparison_plan_id: None,
         multi_host: None,
         terminal: conduit_tour_model::TourRunTerminal::Stopped,
@@ -404,7 +404,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_tour_form_plans_and_runs_on_the_production_kernel() {
+    fn canonical_tour_plot_plans_and_runs_on_the_production_kernel() {
         let (identities, offer) = fixture();
         let mut prepared = prepare(&identities, &offer, "build").unwrap();
         assert!(conduit_core::verify_plan(&prepared.plan));
@@ -412,8 +412,8 @@ mod tests {
             prepared.plan.source_document_id,
             prepared.source_document_id
         );
-        assert_eq!(prepared.plan.checked_form_id, prepared.checked_form_id);
-        assert_eq!(prepared.plan.expanded_form_id, prepared.expanded_form_id);
+        assert_eq!(prepared.plan.checked_plot_id, prepared.checked_plot_id);
+        assert_eq!(prepared.plan.expanded_plot_id, prepared.expanded_plot_id);
         assert_eq!(
             prepared.plan.completion_policy,
             conduit_core::PlanCompletionPolicy::SemanticCompletion
@@ -436,8 +436,8 @@ mod tests {
             evidence.source_document_id,
             prepared.plan.source_document_id
         );
-        assert_eq!(evidence.checked_form_id, prepared.plan.checked_form_id);
-        assert_eq!(evidence.expanded_form_id, prepared.plan.expanded_form_id);
+        assert_eq!(evidence.checked_plot_id, prepared.plan.checked_plot_id);
+        assert_eq!(evidence.expanded_plot_id, prepared.plan.expanded_plot_id);
         assert_eq!(evidence.plan_id, prepared.plan.plan_id);
         assert_eq!(evidence.active_play_id, prepared.active_play.active_play_id);
         assert_eq!(evidence.result, CANONICAL_RESULT);

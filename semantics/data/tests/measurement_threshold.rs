@@ -1,8 +1,8 @@
 use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 use conduit_data::*;
-use conduit_form::{
-    ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_form_for_authoring,
-    parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
 };
 
 fn summary(value: i64, unit: QuantityUnit, ticks: u64) -> MeasurementSummary {
@@ -93,7 +93,7 @@ fn invalid_policy_and_summary_units_refuse_distinctly() {
 }
 
 #[test]
-fn threshold_is_a_reusable_form_independent_of_presentation() {
+fn threshold_is_a_reusable_plot_independent_of_presentation() {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
     install_measurement_window_catalog(&mut startup, &mut catalog).unwrap();
@@ -105,10 +105,10 @@ fn threshold_is_a_reusable_form_independent_of_presentation() {
         &mut catalog,
     )
     .unwrap();
-    let source = include_str!("../../../forms/little-seismograph/main.conduit");
+    let source = include_str!("../../../plots/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "measurement-threshold", &catalog).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "measurement-threshold", &catalog).unwrap();
     assert_eq!(authored.input_bindings.len(), 2);
     assert_eq!(authored.output_bindings.len(), 1);
     assert_eq!(

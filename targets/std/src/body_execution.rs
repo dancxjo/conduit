@@ -49,12 +49,12 @@ impl StdHost {
             .map_err(|error| format!("Body Plan validation: {error:?}"))?;
         let fragments = request
             .plan
-            .forms
+            .plots
             .iter()
             .map(|partition| {
                 if partition.plan.fragments.len() != 1 {
                     return Err(
-                        "local body execution requires one local fragment per Form".to_string()
+                        "local body execution requires one local fragment per Plot".to_string()
                     );
                 }
                 Ok(&partition.plan.fragments[0])

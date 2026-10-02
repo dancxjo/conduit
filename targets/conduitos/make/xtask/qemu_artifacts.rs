@@ -4,9 +4,9 @@ use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The complete seven-page Tour adds per-exercise and per-page evidence to the
-// ordinary resident-Form journey. Fifty retains the exact forty-nine
+// ordinary resident-Plot journey. Fifty retains the exact forty-nine
 // normal checkpoints, including workload revision/replanning and
-// Home/Prompt/Forms/return, plus one failure frame without coalescing distinct
+// Home/Prompt/Plots/return, plus one failure frame without coalescing distinct
 // proof checkpoints.
 const MAX_CHECKPOINTS: usize = 50;
 
@@ -165,13 +165,13 @@ impl Artifacts {
 fn journey_step_ids(checkpoint: &str) -> &'static [&'static str] {
     match checkpoint {
         "body-awake" => &[conduit_home_model::HOME_ARRIVED_STEP_ID],
-        "home-forms" => &[
-            conduit_home_model::FORMS_OPENED_STEP_ID,
-            conduit_home_model::FORM_SELECTED_STEP_ID,
+        "home-plots" => &[
+            conduit_home_model::PLOTS_OPENED_STEP_ID,
+            conduit_home_model::PLOT_SELECTED_STEP_ID,
         ],
         "home-prompt" => &[conduit_home_model::PROMPT_OPENED_STEP_ID],
         "home-play-observed" => &[
-            conduit_home_model::FORM_RUN_STEP_ID,
+            conduit_home_model::PLOT_RUN_STEP_ID,
             conduit_home_model::PLAY_OBSERVED_STEP_ID,
         ],
         "home-patchbay-open" => &[conduit_home_model::PATCHBAY_REQUESTED_STEP_ID],

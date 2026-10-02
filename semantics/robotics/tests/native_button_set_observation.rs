@@ -1,5 +1,5 @@
 use conduit_core::InfoDecodeError;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{ButtonSetObservation, ROBOTICS_BUTTONS_ENCODED_LEN};
 
 #[test]

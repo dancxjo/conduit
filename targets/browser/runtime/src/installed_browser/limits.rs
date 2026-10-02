@@ -2,8 +2,8 @@
 
 use serde::Serialize;
 
-pub(crate) const MAXIMUM_BROWSER_FORM_GEARS: usize = 16;
-pub(crate) const MAXIMUM_BROWSER_FORM_CORDS: usize = 24;
+pub(crate) const MAXIMUM_BROWSER_PLOT_GEARS: usize = 16;
+pub(crate) const MAXIMUM_BROWSER_PLOT_CORDS: usize = 24;
 pub(crate) const MAXIMUM_BROWSER_GEARS: usize = 32;
 pub(crate) const MAXIMUM_BROWSER_CORDS: usize = 48;
 pub(crate) const MAXIMUM_BROWSER_VALUE_BYTES: usize = 4_096;
@@ -19,7 +19,7 @@ pub(crate) const BROWSER_HOST_CALL_BINDINGS: usize =
 pub(crate) const BROWSER_PENDING_REQUESTS: usize = MAXIMUM_BROWSER_GEARS;
 pub(crate) const BROWSER_VALUE_ITEMS: u16 = 160;
 // The continuous-audio path retains several admitted 4 KiB PCM queue slots alongside the
-// ordinary resident workspace Forms. Keep the exact arena finite at the next 128 KiB tier.
+// ordinary resident workspace Plots. Keep the exact arena finite at the next 128 KiB tier.
 pub(crate) const BROWSER_TOTAL_VALUE_BYTES: u32 = 640 * 1_024;
 pub(crate) const BROWSER_SIGN_ITEMS: u16 = 256;
 

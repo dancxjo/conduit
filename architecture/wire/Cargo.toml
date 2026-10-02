@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../core" }
-conduit-form = { path = "../form" }
+conduit-plot = { path = "../plot" }
 
 [build-dependencies]
-conduit-form = { path = "../form" }
+conduit-plot = { path = "../plot" }
 
 [features]
 default = []

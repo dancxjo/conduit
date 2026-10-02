@@ -152,13 +152,13 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         || identity["image_id"] != format!("conduitos-image/{commit}/{}/v1", board.identity_slug())
         || identity["wake_source"] != "bcm2835-system-timer-compare-1"
         || identity["wake_irq"] != 1
-        || identity["a3_ordinary_form_claimed"] != true
+        || identity["a3_ordinary_plot_claimed"] != true
     {
         return Err(refusal("armv6-a3-sign-invalid", kernel));
     }
     let record = RunRecord {
         schema: "conduit.conduitos.armv6-rpi-emulator-run/v1",
-        proof_class: "freestanding-emulator-ordinary-form-plan-play",
+        proof_class: "freestanding-emulator-ordinary-plot-plan-play",
         base_commit: commit,
         architecture: "armv6",
         machine_target: "BCM2835/ARM1176JZF-S",

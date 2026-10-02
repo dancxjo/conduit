@@ -8,8 +8,8 @@ use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_host::hosted_messaging::{
@@ -188,7 +188,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
 }
 
 fn plan(config: &MessagingConfig) -> Result<conduit_core::Plan, StepError> {
-    let source = include_str!("../../../../forms/messaging-delivery/main.conduit");
+    let source = include_str!("../../../../plots/messaging-delivery/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)
@@ -196,7 +196,7 @@ fn plan(config: &MessagingConfig) -> Result<conduit_core::Plan, StepError> {
     let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &startup)
         .map_err(|error| StepError::prereq(PROOF_ID, error.message))?;
-    let authored = expand_canonical_form_for_authoring(&checked, "messaging-delivery", &profiles)
+    let authored = expand_canonical_plot_for_authoring(&checked, "messaging-delivery", &profiles)
         .map_err(|error| StepError::prereq(PROOF_ID, error.message))?;
     let host = host(config);
     let delivery_offer = host

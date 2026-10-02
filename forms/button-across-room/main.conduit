@@ -1,8 +1,0 @@
-# One ordered button transition controls one current indicator state.
-form button_across_room {
-    button: input/button
-    state: input/button-indicator-state
-    indicator: presentation/indicator-state
-
-    button >> state >> indicator
-}

@@ -7,7 +7,7 @@ use conduit_core::{
 use conduit_data::{
     prove_splits_disjoint, DatasetDescriptor, DatasetExampleIdentity, DatasetSplitMembership,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;

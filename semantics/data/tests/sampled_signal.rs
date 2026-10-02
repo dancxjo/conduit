@@ -1,6 +1,6 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::*;
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
     let payload = vec![0_u8; usize::try_from(count * channels * 4).unwrap()];

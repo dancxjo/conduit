@@ -8,12 +8,12 @@ import { expect, test } from "@playwright/test";
 async function startAuthoringEntrance() {
   const directory = await mkdtemp(join(tmpdir(), "conduit-browser-authoring-"));
   const source = join(directory, "making.conduit");
-  await writeFile(source, "form making {\n}\n");
+  await writeFile(source, "plot making {\n}\n");
   return { ...(await spawnEntrance(source)), directory, source };
 }
 
 async function spawnEntrance(source) {
-  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--form", "Empty Form", source], {
+  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--plot", "Empty Plot", source], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];
@@ -69,16 +69,16 @@ async function clickNavigation(page, locator) {
   return snapshot;
 }
 
-test("actual browser entrance authors, saves, plans, and plays one canonical Form", async ({ page }) => {
+test("actual browser entrance authors, saves, plans, and plays one canonical Plot", async ({ page }) => {
   test.setTimeout(45_000);
   const server = await startAuthoringEntrance();
   try {
     await page.goto(server.url);
-    await page.getByRole("button", { name: "Open Form Empty Form" }).click();
+    await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
     await expect(page.getByRole("heading", { name: "Gears · reusable Kinds" })).toBeVisible();
     await expect(page.locator("#gear-results-status")).toContainText("74 of 74 Gears");
 
-    const search = page.getByRole("searchbox", { name: "Find Forms, Gears, and Parts" });
+    const search = page.getByRole("searchbox", { name: "Find Plots, Gears, and Parts" });
     await search.fill("text literal");
     const literal = page.getByRole("button", { name: "Place Text literal Gear" });
     await clickEdit(page, literal);
@@ -93,7 +93,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     expect(snapshot.presentation.subjects.filter(subject => subject.role === "Port")).toHaveLength(3);
 
     await selectRole(page, "Gear", "making/literal Gear");
-    const configure = page.locator('#authoring-actions [data-application-component="form-field"]').filter({ hasText: "Configure value" });
+    const configure = page.locator('#authoring-actions [data-application-component="plot-field"]').filter({ hasText: "Configure value" });
     await configure.locator("input").fill("Browser-authored truth");
     await clickEdit(page, page.locator("#authoring-actions").getByRole("button", { name: "Apply" }));
 
@@ -118,7 +118,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await page.getByRole("button", { name: "Start Cord here" }).click();
     await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(1).click();
     await clickEdit(page, page.getByRole("button", { name: "Connect selected output here" }));
-    await selectRole(page, "Form");
+    await selectRole(page, "Plot");
     await page.getByRole("button", { name: "SAVE", exact: true }).click();
     await expect.poll(async () => {
       const authoring = (await current(page)).authoring;
@@ -135,14 +135,14 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
     await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
     await page.getByRole("button", { name: "Inspect", exact: true }).click();
-    await selectRole(page, "Form", "Empty Form");
+    await selectRole(page, "Plot", "Empty Plot");
     await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
     await expect.poll(async () => Boolean((await current(page)).presentation.basis.body_id)).toBe(true);
-    await selectRole(page, "Form", "Current checked and expanded Form");
+    await selectRole(page, "Plot", "Current checked and expanded Plot");
     await clickInteraction(page, page.getByRole("button", { name: "WAKE", exact: true }));
     await expect.poll(async () => Boolean((await current(page)).presentation.basis.wake_id)).toBe(true);
     await page.locator("#structured-navigator").evaluate(element => { element.closest("details").open = true; });
-    await clickInteraction(page, page.getByRole("button", { name: "Plan current form" }));
+    await clickInteraction(page, page.getByRole("button", { name: "Plan current plot" }));
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
     await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
     await expect(page.locator("#front-door-feedback")).toContainText("Play Succeeded");
@@ -157,7 +157,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     const reopened = await spawnEntrance(server.source);
     server.child = reopened.child;
     await page.goto(reopened.url);
-    await page.getByRole("button", { name: "Open Form Empty Form" }).click();
+    await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
     const restored = await current(page);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.name).sort()).toEqual(["Gear making/literal", "Gear making/text"]);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);

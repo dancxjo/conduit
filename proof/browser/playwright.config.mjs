@@ -42,7 +42,7 @@ export default defineConfig({
     "sdk-external-body-execution.spec.mjs",
     "browser-bundle-build.spec.mjs",
     "browser-boot-profile.spec.mjs",
-    "reviewed-form-conformance.spec.mjs",
+    "reviewed-plot-conformance.spec.mjs",
     "pages-front-door.spec.mjs",
     "web-accessibility.spec.mjs",
     "creche-avr.spec.mjs",

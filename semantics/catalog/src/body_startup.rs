@@ -1,6 +1,6 @@
 //! Startup events are Body semantics. They contain no Host or playback policy.
 use crate::{KindTerminalBehavior, StandardKindContract};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -80,17 +80,17 @@ fn limits() -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_body_startup_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in [
         (body_wake_contract(false), BODY_WAKE_REVISION),
         (body_wake_contract(true), BODY_FIRST_WAKE_REVISION),
         (startup_chime_contract(), STARTUP_CHIME_REVISION),
     ] {
-        startup.insert(conduit_form::KindSignature {
+        startup.insert(conduit_plot::KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: vec![],
         })?;

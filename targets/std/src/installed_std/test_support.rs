@@ -11,7 +11,7 @@ use conduit_core::{
     kind_id, present_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, KindIdentity, PortDescriptor, PortDirection,
 };
-use conduit_form::KindProjection;
+use conduit_plot::KindProjection;
 
 const TEST_OBSERVER_REVISION: &str = "conduit-test/tick-observer@1";
 const TEST_OBSERVER_PROFILE: &str = "conduit-test/tick-observer-kernel@1";
@@ -55,7 +55,7 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
     }
 }
 
-pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
+pub(crate) fn test_catalog() -> conduit_plot::ProfileCatalog {
     let mut catalog = contract::test_tick_catalog();
     catalog
         .insert(KindProjection {
@@ -78,7 +78,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     test_logic::install_catalog(&mut catalog);
     super::test_timing_sink::install_catalog(&mut catalog);
     super::test_json_codec::install_catalog(&mut catalog);
-    let mut startup = conduit_form::StartupCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
     conduit_web::install_json_catalogs(&mut startup, &mut catalog)
         .expect("JSON catalogs are exact and unique");
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)

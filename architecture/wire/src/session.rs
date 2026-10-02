@@ -7,7 +7,7 @@ use conduit_core::{
     PortId, SharedPoolId, PROTOCOL_VERSION,
 };
 
-use crate::{SessionTerminalDisposition, SessionTerminalDispositionCode, WireError, MAX_ID_BYTES};
+use crate::{SessionTerminalDisposition, SessionTerminalDispositionForm, WireError, MAX_ID_BYTES};
 
 const SESSION_MAGIC: [u8; 4] = *b"CNDS";
 const SESSION_WIRE_VERSION: u8 = 5;
@@ -782,7 +782,7 @@ fn message_kind(message: SessionMessage<'_>) -> u8 {
 }
 
 fn terminal_code(disposition: SessionTerminalDisposition) -> u8 {
-    SessionTerminalDispositionCode::encode(disposition)[0]
+    SessionTerminalDispositionForm::encode(disposition)[0]
 }
 
 fn supports_session_contract(contract: LineContract) -> bool {
@@ -863,7 +863,7 @@ fn decode_line_contract(cursor: &mut Cursor<'_>) -> Result<LineContract, WireErr
 }
 
 fn decode_terminal(code: u8) -> Result<SessionTerminalDisposition, WireError> {
-    SessionTerminalDispositionCode::decode(&[code]).map_err(|_| WireError::InvalidState)
+    SessionTerminalDispositionForm::decode(&[code]).map_err(|_| WireError::InvalidState)
 }
 
 fn hello_encoded_len(binding: &SessionBinding) -> Result<usize, WireError> {

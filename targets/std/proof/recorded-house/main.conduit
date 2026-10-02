@@ -1,7 +1,7 @@
 # Proof-only realizations around reviewed addressed-utterance and House meaning.
 # These fixture sources and sinks are deliberately absent from the canonical
-# live-conversation Form.
-form recorded-house-core (
+# live-conversation Plot.
+plot recorded-house-core (
     >> clip: PcmClip
     response: Text >>
 ) {
@@ -21,7 +21,7 @@ form recorded-house-core (
     house.response >> response
 }
 
-form recorded-house-proof {
+plot recorded-house-proof {
     audio: conduit-test/house-audio-clip-source
     conversation: recorded-house-core
     sink: conduit-test/house-text-sink
@@ -30,7 +30,7 @@ form recorded-house-proof {
     conversation.response >> sink.value
 }
 
-form recorded-house-spoken-proof {
+plot recorded-house-spoken-proof {
     audio: conduit-test/house-audio-clip-source
     conversation: recorded-house-core
     synthesize: speech/synthesize(maximum-output-bytes = 131072)
@@ -43,7 +43,7 @@ form recorded-house-spoken-proof {
     convert.converted >> output.audio
 }
 
-form microphone-house-proof {
+plot microphone-house-proof {
     audio: media/capture-microphone-clip
     conversation: recorded-house-core
     sink: conduit-test/house-text-sink
@@ -53,7 +53,7 @@ form microphone-house-proof {
     conversation.response >> sink.value
 }
 
-form microphone-house-spoken-proof {
+plot microphone-house-spoken-proof {
     audio: media/capture-microphone-clip
     conversation: recorded-house-core
     synthesize: speech/synthesize(maximum-output-bytes = 131072)

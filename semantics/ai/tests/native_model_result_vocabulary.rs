@@ -2,7 +2,7 @@ use conduit_ai::{
     GroundedAnswerRefusal, InterpretationDisposition, InterpretationProvenance, ModelFailure,
     ModelRefusal, ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where

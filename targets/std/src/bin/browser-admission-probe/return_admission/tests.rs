@@ -3,12 +3,12 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembershipRevision, HostPresenceClock,
     HostPresenceClockScale, HostPresenceState, MembershipProofId, PartId,
 };
-use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SourceDocumentId};
 
 fn empty_state() -> (AdmissionManager, BodyMembership, HostPresenceTable) {
     let body = Body::born(
         SourceDocumentId::from("source/atomic-return"),
-        CheckedFormId::from("checked/atomic-return"),
+        CheckedPlotId::from("checked/atomic-return"),
         1,
         SignId::from("sign/atomic-return/body-born"),
     )
@@ -35,7 +35,7 @@ fn current_state() -> (
 ) {
     let body = Body::born(
         SourceDocumentId::from("source/atomic-current"),
-        CheckedFormId::from("checked/atomic-current"),
+        CheckedPlotId::from("checked/atomic-current"),
         1,
         SignId::from("sign/atomic-current/body-born"),
     )
@@ -127,7 +127,7 @@ fn assert_failed_transaction_is_unchanged(
         |next_admission, next_membership| {
             let other = Body::born(
                 SourceDocumentId::from("source/mutated-clone"),
-                CheckedFormId::from("checked/mutated-clone"),
+                CheckedPlotId::from("checked/mutated-clone"),
                 1,
                 SignId::from("sign/mutated-clone/body-born"),
             )
@@ -222,7 +222,7 @@ fn available_presence_refuses_without_committing_any_store() {
         |next_admission, _| {
             let other = Body::born(
                 SourceDocumentId::from("source/available-clone"),
-                CheckedFormId::from("checked/available-clone"),
+                CheckedPlotId::from("checked/available-clone"),
                 1,
                 SignId::from("sign/available-clone/body-born"),
             )

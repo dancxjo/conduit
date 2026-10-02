@@ -7,7 +7,7 @@ use crate::{
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{HostAdvertisement, RealizationAdvertisement, ResourceObservation, SignId};
-use conduit_form::CheckedGear;
+use conduit_plot::CheckedGear;
 
 pub const MAXIMUM_POLICY_SOURCES: usize = 16;
 pub const MAXIMUM_RETAINED_POLICY_OBSERVATIONS: usize = 256;

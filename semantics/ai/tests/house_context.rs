@@ -3,7 +3,7 @@ use conduit_ai::{
     HouseContextRefusal, WiredHouseContextItem, MAXIMUM_HOUSE_CONTEXT_BYTES,
     MAXIMUM_HOUSE_CONTEXT_ITEMS,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn item(identity: &str, provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
     wired_house_context_item(
@@ -17,7 +17,7 @@ fn item(identity: &str, provenance: HouseContextProvenanceClass) -> WiredHouseCo
 }
 
 #[test]
-fn admits_only_the_context_explicitly_supplied_by_the_form() {
+fn admits_only_the_context_explicitly_supplied_by_the_plot() {
     let wired = item(
         "context/upstairs-temperature",
         HouseContextProvenanceClass::ObservedSign,

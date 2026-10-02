@@ -55,7 +55,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "docs/journeys/tour/",
         "targets/browser/workspace/",
         "targets/browser/patchbay-workbench/",
-        "forms/patchbay/workbench/model/",
+        "plots/patchbay/workbench/model/",
         "targets/browser/tools/stage-browser-workspace",
         "targets/browser/tools/stage-patchbay-workbench",
         "semantics/presentation/assets/",
@@ -199,7 +199,7 @@ mod product_source_tests {
             "targets/browser/host/assets/conduit.css",
             "docs/journeys/tour/chapter-1.md",
             "targets/browser/workspace/body-bootstrap.mjs",
-            "targets/browser/workspace/reviewed-form-selection.mjs",
+            "targets/browser/workspace/reviewed-plot-selection.mjs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"));
             assert!(!browser_presentation_proofs_for_path(path).is_empty());
@@ -224,9 +224,9 @@ mod product_source_tests {
     fn rust_test_sources_do_not_make_the_product_carrier() {
         for path in [
             "targets/browser/runtime/src/workspace_mask_tests.rs",
-            "targets/browser/runtime/src/form_runner/tests.rs",
+            "targets/browser/runtime/src/plot_runner/tests.rs",
             "targets/browser/runtime/tests/presentation_offer_ownership.rs",
-            "forms/patchbay/workbench/model/src/mask_control_tests.rs",
+            "plots/patchbay/workbench/model/src/mask_control_tests.rs",
             "targets/browser/patchbay-workbench/tests/server.rs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");

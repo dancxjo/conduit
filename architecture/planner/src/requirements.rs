@@ -5,7 +5,7 @@ use conduit_core::{
     AuthorityContractId, BaseImplementationId, CharacteristicId, CharacteristicQuantity, GearId,
     HostAdvertisement, HostCallContractId, Plan, ResourceClassId,
 };
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 
 /// Hard admissibility constraints for one semantic gear realization.
 ///
@@ -80,18 +80,18 @@ impl HardRealizationRequirements {
 }
 
 pub fn plan_with_hard_requirements(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
 ) -> Result<Plan, PlannerError> {
-    validate_hard_requirements(form, hosts, placements, requirements)?;
-    plan(form, hosts, placements, bases)
+    validate_hard_requirements(plot, hosts, placements, requirements)?;
+    plan(plot, hosts, placements, bases)
 }
 
 pub(crate) fn validate_hard_requirements(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
@@ -104,12 +104,12 @@ pub(crate) fn validate_hard_requirements(
         ));
     }
     for gear_id in requirements.keys() {
-        if !form.gears.iter().any(|gear| &gear.gear_id == gear_id) {
+        if !plot.gears.iter().any(|gear| &gear.gear_id == gear_id) {
             return Err(PlannerError::UnknownGear(gear_id.as_str().to_string()));
         }
     }
 
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let Some(requirement) = requirements.get(&gear.gear_id) else {
             continue;
         };
@@ -244,7 +244,7 @@ pub(crate) fn hard_requirement_failure(
     None
 }
 
-fn gear_id(gear: &conduit_form::CheckedGear) -> &GearId {
+fn gear_id(gear: &conduit_plot::CheckedGear) -> &GearId {
     &gear.gear_id
 }
 

@@ -142,7 +142,7 @@ impl RendererSnapshot {
     ) -> Result<(), SnapshotError> {
         if authoring.palette.len() > crate::transport_types::MAX_BROWSER_PALETTE_ENTRIES
             || authoring.source_document_id.is_empty()
-            || authoring.expanded_form_id.is_empty()
+            || authoring.expanded_plot_id.is_empty()
         {
             return Err(SnapshotError::InvalidIdentity);
         }
@@ -249,7 +249,7 @@ impl RendererSnapshot {
         let invalid_authoring = self.authoring.as_ref().is_some_and(|authoring| {
             authoring.palette.len() > crate::transport_types::MAX_BROWSER_PALETTE_ENTRIES
                 || authoring.source_document_id.is_empty()
-                || authoring.expanded_form_id.is_empty()
+                || authoring.expanded_plot_id.is_empty()
         });
         let invalid_temporal_context = project_model_temporal_context(&self.presentation)
             .map_or(true, |expected| expected != self.temporal_context);

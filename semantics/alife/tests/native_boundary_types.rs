@@ -1,5 +1,5 @@
 use conduit_alife::{LeniaBoundary, ReactionDiffusionBoundaryEdge};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where

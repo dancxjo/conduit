@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     rust_binding::NativeRustBinding, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

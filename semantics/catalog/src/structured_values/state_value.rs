@@ -86,13 +86,13 @@ pub fn state_value_semantic_contract(
     Ok(kind)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod catalog;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use catalog::{
     derive_state_boundary, install_state_value_kind, validate_state_placement,
     StateValueAdmissionError,
 };
 
-#[cfg(all(test, feature = "form-catalog"))]
+#[cfg(all(test, feature = "plot-catalog"))]
 mod tests;

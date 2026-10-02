@@ -1,6 +1,6 @@
 use conduit_ai::*;
 use conduit_core::StateContinuation;
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 #[path = "common/training_fixture.rs"]
 mod fixture;

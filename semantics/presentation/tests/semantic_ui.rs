@@ -151,23 +151,23 @@ fn choices_and_links_lower_from_meaning_without_host_manifestation_terms() {
             PresentationMechanism::Shell,
             vec![
                 node(
-                    "forms",
+                    "plots",
                     PresentationMechanism::ChoiceGroup {
-                        label: "Initial active forms".into(),
+                        label: "Initial active plots".into(),
                         multiplicity: ChoiceMultiplicity::Independent,
                         options: vec![
                             ChoiceOption {
                                 identity: "morse-network".into(),
                                 label: "Morse Network".into(),
                                 selected: false,
-                                change_action: change("form.morse.change", "Change Morse Network"),
+                                change_action: change("plot.morse.change", "Change Morse Network"),
                             },
                             ChoiceOption {
                                 identity: "memory-lantern".into(),
                                 label: "Memory Lantern".into(),
                                 selected: true,
                                 change_action: change(
-                                    "form.memory.change",
+                                    "plot.memory.change",
                                     "Change Memory Lantern",
                                 ),
                             },
@@ -200,7 +200,7 @@ fn choices_and_links_lower_from_meaning_without_host_manifestation_terms() {
         lowered.nodes[1].component,
         ApplicationComponent::ChoiceGroup
     );
-    assert_eq!(lowered.nodes[1].text, "forms");
+    assert_eq!(lowered.nodes[1].text, "plots");
     assert_eq!(
         lowered.nodes[2].component,
         ApplicationComponent::ChoiceGroupLabel
@@ -396,10 +396,10 @@ fn select_options_lower_as_finite_children_of_the_exact_field() {
 }
 
 #[test]
-fn forms_navigation_stepper_and_progress_keep_exact_shared_contracts() {
+fn plots_navigation_stepper_and_progress_keep_exact_shared_contracts() {
     let field = FormField {
         label: "Source".into(),
-        help: "Enter one bounded Form".into(),
+        help: "Enter one bounded Plot".into(),
         error: Some("Source is not checked".into()),
         value: "gear source".into(),
         value_capacity: 64,
@@ -493,7 +493,7 @@ fn forms_navigation_stepper_and_progress_keep_exact_shared_contracts() {
 }
 
 #[test]
-fn invalid_and_unbounded_form_choices_refuse_before_expansion() {
+fn invalid_and_unbounded_plot_choices_refuse_before_expansion() {
     let lower = |help: &str, value: &str, options: Vec<String>| {
         SemanticApplicationView {
             revision: 1,

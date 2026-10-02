@@ -1,4 +1,4 @@
-//! Exact native Plan preparation for the shared standing timer Tour Form.
+//! Exact native Plan preparation for the shared standing timer Tour Plot.
 
 use alloc::collections::BTreeMap;
 use conduit_core::{ActivePlayIdentity, BaseImplementationId, Plan, bind_active_play};
@@ -14,7 +14,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-const FORM_NAME: &str = "count-over-time";
+const PLOT_NAME: &str = "count-over-time";
 const CORD_BYTES: u32 = 64;
 
 pub struct PreparedTourTimerPlan {
@@ -31,14 +31,14 @@ pub fn prepare(
     build_id: &str,
 ) -> Result<PreparedTourTimerPlan, PreparationError> {
     let source =
-        conduit_tour_model::tour_stage_source(2, 0).map_err(|_| PreparationError::FormRejected)?;
-    let form = crate::ordinary_form::checked_expanded_tour_timer_form(&source, FORM_NAME)?;
+        conduit_tour_model::tour_stage_source(2, 0).map_err(|_| PreparationError::PlotRejected)?;
+    let plot = crate::ordinary_plot::checked_expanded_tour_timer_plot(&source, PLOT_NAME)?;
     let advertisement = crate::ordinary_plan::advertisement(identities, offer, build_id)?;
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(&form, &hosts)
+    let placements = default_expanded_placements(&plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -93,7 +93,7 @@ mod tests {
     use crate::offer::CpuFeatures;
 
     #[test]
-    fn shared_standing_timer_form_plans_exact_native_implementations() {
+    fn shared_standing_timer_plot_plans_exact_native_implementations() {
         let identities = BootIdentities {
             host: [1; 32],
             boot: [2; 32],

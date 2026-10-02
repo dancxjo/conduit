@@ -133,8 +133,8 @@ pub(super) fn empty_lifecycle_basis() -> PresentationBasis {
         body_id: None,
         wake_id: None,
         source_document_id: None,
-        checked_form_id: None,
-        expanded_form_id: None,
+        checked_plot_id: None,
+        expanded_plot_id: None,
         plan_id: None,
         active_play_id: None,
         sign_ids: vec![],
@@ -158,9 +158,9 @@ pub(super) fn basis_from_projection(lifecycle: &JourneyProjection) -> Presentati
         body_id: lifecycle.body_id.clone(),
         wake_id: embodied.then(|| lifecycle.wake_id.clone()).flatten(),
         source_document_id: lifecycle.source_document_id.clone(),
-        checked_form_id: lifecycle.checked_form_id.clone(),
-        expanded_form_id: embodied
-            .then(|| lifecycle.expanded_form_id.clone())
+        checked_plot_id: lifecycle.checked_plot_id.clone(),
+        expanded_plot_id: embodied
+            .then(|| lifecycle.expanded_plot_id.clone())
             .flatten(),
         plan_id: embodied.then(|| lifecycle.plan_id.clone()).flatten(),
         active_play_id: planned.then(|| lifecycle.active_play_id.clone()).flatten(),

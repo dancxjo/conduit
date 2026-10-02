@@ -15,8 +15,8 @@ conduit-std-host = { path = "../../../targets/std" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
 conduit-tongues = { path = "../../../semantics/tongues" }
 conduit-wire = { path = "../../../architecture/wire" }
-conduit-patchbay-workbench = { path = "../../../forms/patchbay/workbench/model" }
-patchbay-application = { path = "../../../forms/patchbay/application" }
+conduit-patchbay-workbench = { path = "../../../plots/patchbay/workbench/model" }
+patchbay-application = { path = "../../../plots/patchbay/application" }
 patchbay-hosted = { path = "../../../targets/std/patchbay-workbench" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -1,5 +1,5 @@
 use conduit_core::InfoDecodeError;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{
     ProximityObservation, BODY_SECTOR_FRONT_LEFT, BODY_SECTOR_MASK, ROBOTICS_PROXIMITY_ENCODED_LEN,
 };

@@ -1,4 +1,4 @@
-//! Fixed-storage production-kernel execution for the ordinary keyboard text Form.
+//! Fixed-storage production-kernel execution for the ordinary keyboard text Plot.
 
 mod preparation;
 #[cfg(test)]

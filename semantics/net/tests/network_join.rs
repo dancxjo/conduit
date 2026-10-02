@@ -250,26 +250,26 @@ fn malformed_trailing_invalid_utf8_and_small_output_fail_distinctly() {
 }
 
 #[test]
-#[cfg(feature = "form-catalog")]
-fn canonical_bootstrap_form_carries_no_credentials_or_platform_facts() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+#[cfg(feature = "plot-catalog")]
+fn canonical_bootstrap_plot_carries_no_credentials_or_platform_facts() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_net::install_network_bootstrap_catalogs(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/r1-network-bootstrap/main.conduit");
-    let document = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&document, &startup).unwrap();
-    assert_eq!(checked.forms.len(), 1);
-    let form =
-        conduit_form::expand_canonical_form(&checked, "r1-network-bootstrap", &profile).unwrap();
-    assert_eq!(form.gears.len(), 3);
-    assert_eq!(form.connections.len(), 2);
+    let source = include_str!("../../../plots/r1-network-bootstrap/main.conduit");
+    let document = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&document, &startup).unwrap();
+    assert_eq!(checked.plots.len(), 1);
+    let plot =
+        conduit_plot::expand_canonical_plot(&checked, "r1-network-bootstrap", &profile).unwrap();
+    assert_eq!(plot.gears.len(), 3);
+    assert_eq!(plot.connections.len(), 2);
     assert!(
-        form.connections
+        plot.connections
             .iter()
             .any(|connection| connection.value_kind.as_str()
                 == conduit_net::NETWORK_JOIN_REQUEST_KIND)
     );
-    assert!(form
+    assert!(plot
         .connections
         .iter()
         .any(|connection| connection.value_kind.as_str() == conduit_net::NETWORK_ATTACHMENT_KIND));

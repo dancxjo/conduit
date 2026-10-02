@@ -88,7 +88,7 @@ impl DocumentaryDebuggerRuntime {
         let observed = ObservedSignSink::<_, 1, PORTS, 8>::detached(
             signs,
             execution,
-            [DebugNodeBinding { form: 1, host: 1 }],
+            [DebugNodeBinding { plot: 1, host: 1 }],
             [[None]],
         );
         let scheduler = FixedScheduler::new(

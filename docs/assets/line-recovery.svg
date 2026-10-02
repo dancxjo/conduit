@@ -10,5 +10,5 @@
   <rect x="640" y="120" width="240" height="94" rx="16" class="p"/><text x="663" y="154" class="s">PLAN C · PLAY C</text><text x="663" y="184" class="t">WebSocket + USB admitted</text>
   <path d="M880 167h62" class="l"/><rect x="954" y="120" width="201" height="94" rx="16" class="bad"/><text x="975" y="154" class="x">WebSocket unavailable</text><text x="975" y="184" class="t">USB was admitted</text>
   <path d="M1054 214v53" class="l"/><rect x="954" y="279" width="201" height="94" rx="16" class="ok"/><text x="975" y="313" class="s">PLAN C · PLAY C</text><text x="975" y="343" class="t">USB CDC selected</text>
-  <rect x="45" y="423" width="1110" height="112" rx="18" class="b"/><text x="72" y="460" class="s">PRESERVED IN BOTH CASES</text><text x="72" y="494" class="t">Body · Wake · Form · Gear · Port · Cord · Pico Host and Boot identities</text><text x="72" y="520" class="t">Signs record the fault, planner decision, selected Line, reconciliation, and terminal result.</text>
+  <rect x="45" y="423" width="1110" height="112" rx="18" class="b"/><text x="72" y="460" class="s">PRESERVED IN BOTH CASES</text><text x="72" y="494" class="t">Body · Wake · Plot · Gear · Port · Cord · Pico Host and Boot identities</text><text x="72" y="520" class="t">Signs record the fault, planner decision, selected Line, reconciliation, and terminal result.</text>
 </svg>

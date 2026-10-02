@@ -97,17 +97,17 @@ pub fn execute(
         || kernel["timer_irq_wakes"] != 1
         || kernel["pending_host_calls"] != 0
         || identity["image_id"] != format!("conduitos-image/{commit}/{}/v1", board.identity_slug())
-        || identity["a3_ordinary_form_claimed"] != true
+        || identity["a3_ordinary_plot_claimed"] != true
     {
         return Err(refusal(
             "physical-a3-sign-invalid",
-            "UART Signs do not prove the exact current-head ordinary form/Plan/Play",
+            "UART Signs do not prove the exact current-head ordinary plot/Plan/Play",
         ));
     }
     let digest = format!("{:x}", Sha256::digest(&transcript));
     let record = PhysicalRecord {
         schema: "conduit.conduitos.armv6-rpi-physical-uart/v1",
-        proof_class: "physical-firmware-identified-uart-ordinary-form-plan-play",
+        proof_class: "physical-firmware-identified-uart-ordinary-plot-plan-play",
         base_commit: commit,
         architecture: "armv6",
         machine: "BCM2835/ARM1176JZF-S",

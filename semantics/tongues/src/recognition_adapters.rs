@@ -1,6 +1,6 @@
 //! Explicit adapters between bounded single-shot speech and streaming speech.
 //!
-//! These Gears make temporal conversion visible in the expanded Form and Plan.
+//! These Gears make temporal conversion visible in the expanded Plot and Plan.
 //! Provider mechanics such as Whisper process invocation and PCM resampling remain
 //! realization truth below these portable fronts.
 
@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
@@ -31,7 +31,7 @@ pub const SPEECH_WINDOW_TO_CLIP_KIND: &str = "speech/window-to-clip";
 pub const SPEECH_WINDOW_TO_CLIP_REVISION: &str = "conduit.speech/window-to-clip@1";
 pub const SPEECH_RESULT_TO_EVENT_STREAM_KIND: &str = "speech/result-to-event-stream";
 pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str = "conduit.speech/result-to-event-stream@1";
-const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
+const STREAMING_RECOGNITION_BACK: &str = r#"plot speech/recognize-stream (
     audio: audio/pcm-frames@1...| >> events: speech/recognition-event@1...|
 ) {
     window: speech/window-to-clip
@@ -398,10 +398,10 @@ mod tests {
         let checked =
             check_syntax_document(&parse_syntax_document(STREAMING_RECOGNITION_BACK), &startup)
                 .unwrap();
-        let form = checked
-            .forms
+        let plot = checked
+            .plots
             .iter()
-            .find(|form| form.name == STREAMING_SPEECH_RECOGNIZE_KIND)
+            .find(|plot| plot.name == STREAMING_SPEECH_RECOGNIZE_KIND)
             .unwrap();
         let definition = profile
             .get(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
@@ -415,7 +415,7 @@ mod tests {
                 definition.outputs[0].port_id.clone(),
             )),
         );
-        assert_eq!(form.checked_front(), expected);
+        assert_eq!(plot.checked_front(), expected);
     }
 
     #[test]
@@ -425,14 +425,14 @@ mod tests {
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "form main (\n    >> audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >>\n) {\n    recognize: speech/recognize-stream\n    audio >> recognize.audio\n    recognize.events >> events\n}",
+                "plot main (\n    >> audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >>\n) {\n    recognize: speech/recognize-stream\n    audio >> recognize.audio\n    recognize.events >> events\n}",
             ),
             &startup,
         )
         .unwrap();
         let mut backs = CanonicalBackCatalog::new();
         install_single_shot_streaming_recognition_back(&startup, &profile, &mut backs).unwrap();
-        let expanded = conduit_form::expand_canonical_form_for_authoring_with_backs(
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
             &checked, "main", &profile, &backs,
         )
         .unwrap()

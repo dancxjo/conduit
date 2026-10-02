@@ -8,15 +8,15 @@ use conduit_core::{
 
 pub const PURE_EXPRESSION_STD_PROFILE: &str = "std/pure-expression-kernel-hosted@1";
 pub const PURE_EXPRESSION_STD_IMPLEMENTATION: &str = "std/kernel-pure-expression@1";
-pub const PURE_EXPRESSION_STD_ARTIFACT: &str = "conduit-form/pure-expression@1";
+pub const PURE_EXPRESSION_STD_ARTIFACT: &str = "conduit-plot/pure-expression@1";
 pub const PURE_EXPRESSION_HOST_CALL: &str = "conduit.host/pure-expression@1";
 pub const PURE_FILTER_STD_PROFILE: &str = "std/pure-filter-kernel-hosted@1";
 pub const PURE_FILTER_STD_IMPLEMENTATION: &str = "std/kernel-pure-filter@1";
-pub const PURE_FILTER_STD_ARTIFACT: &str = "conduit-form/pure-filter@1";
+pub const PURE_FILTER_STD_ARTIFACT: &str = "conduit-plot/pure-filter@1";
 pub const PURE_FILTER_HOST_CALL: &str = "conduit.host/pure-filter@1";
 
 pub fn pure_expression_std_offer(
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<CapabilityOffer, conduit_core::StructuredInfoRefusal> {
     let contract = conduit_semantic_catalog::pure_expression_contract(program, temporal)?;
@@ -43,7 +43,7 @@ pub fn pure_expression_std_offer(
 }
 
 pub fn pure_filter_std_offer(
-    program: &conduit_form::PortableExpressionProgram,
+    program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<CapabilityOffer, conduit_core::StructuredInfoRefusal> {
     let contract = conduit_semantic_catalog::pure_filter_contract(program, temporal)?;

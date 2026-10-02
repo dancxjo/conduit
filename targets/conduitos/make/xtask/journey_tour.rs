@@ -122,7 +122,7 @@ pub(super) fn validate(records: &[Value], opened: &Value) -> Result<(), Conduito
     let tour_opened = by_status["tour-opened"];
     let tour_result = by_status["result-visible"];
     let tour_patchbay = by_status["patchbay-open"];
-    if text(tour_opened, "specimen_id")? != "canonical-form:meet-one-gear"
+    if text(tour_opened, "specimen_id")? != "canonical-plot:meet-one-gear"
         || tour_opened.get("plan_id") != Some(&Value::Null)
         || text(tour_result, "result")? != "HELLO"
         || tour_result.get("plan_id") == Some(&Value::Null)
@@ -213,7 +213,7 @@ pub(super) fn validate_complete_tour(records: &[Value]) -> Result<(), ConduitosE
         }
     }
     let comparison = exact_result(&results, 1, 0)?;
-    if comparison.get("comparison_expanded_form_id") == Some(&Value::Null)
+    if comparison.get("comparison_expanded_plot_id") == Some(&Value::Null)
         || comparison.get("comparison_plan_id") == Some(&Value::Null)
         || comparison.get("comparison_plan_id") == comparison.get("plan_id")
     {
@@ -318,9 +318,9 @@ mod tests {
 
     #[test]
     fn distinct_simultaneous_shell_manifestations_are_required() {
-        let opened = identity_record("form-opened");
+        let opened = identity_record("plot-opened");
         let mut tour_opened = shell_record("tour-opened");
-        tour_opened["specimen_id"] = json!("canonical-form:meet-one-gear");
+        tour_opened["specimen_id"] = json!("canonical-plot:meet-one-gear");
         tour_opened["plan_id"] = Value::Null;
         let mut result = shell_record("result-visible");
         result["result"] = json!("HELLO");

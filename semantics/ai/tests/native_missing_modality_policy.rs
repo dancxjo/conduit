@@ -1,5 +1,5 @@
 use conduit_ai::{MissingModality, MissingModalityPolicy};
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn modality(value: &str) -> MissingModality {
     MissingModality::new(value.into()).unwrap()

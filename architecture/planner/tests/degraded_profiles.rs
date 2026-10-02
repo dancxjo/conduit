@@ -45,10 +45,10 @@ fn policy() -> SurvivalPolicy {
 
 #[test]
 fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let all_observations = observations(&hosts);
     let full = select_reviewed_service_profile(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &all_observations,
@@ -61,7 +61,7 @@ fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
     assert_eq!(full.choice.host_id.as_str(), "ai-large-local");
     assert!(full.policy_id.is_none());
     let plan_a = seal_reviewed_service_profile_plan(
-        &form,
+        &plot,
         &hosts,
         &[BaseImplementationId::from("conduit.base/local@1")],
         &advertisements,
@@ -81,7 +81,7 @@ fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
         .cloned()
         .collect::<Vec<_>>();
     let degraded = select_reviewed_service_profile(
-        &form.gears[0],
+        &plot.gears[0],
         &surviving_hosts,
         &surviving_advertisements,
         &observations(&surviving_hosts),
@@ -106,7 +106,7 @@ fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
     );
     assert!(!degraded.observation_signs.is_empty());
     let plan_b = seal_reviewed_service_profile_plan(
-        &form,
+        &plot,
         &surviving_hosts,
         &[BaseImplementationId::from("conduit.base/local@1")],
         &surviving_advertisements,
@@ -116,13 +116,13 @@ fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
     assert_eq!(plan_a, plan_a_snapshot);
     assert_ne!(plan_a.plan_id, plan_b.plan_id);
     assert_eq!(plan_a.source_document_id, plan_b.source_document_id);
-    assert_eq!(plan_a.checked_form_id, plan_b.checked_form_id);
-    assert_eq!(plan_a.expanded_form_id, plan_b.expanded_form_id);
+    assert_eq!(plan_a.checked_plot_id, plan_b.checked_plot_id);
+    assert_eq!(plan_a.expanded_plot_id, plan_b.expanded_plot_id);
 }
 
 #[test]
 fn hard_policy_staleness_and_unreviewed_relaxation_refuse_distinctly() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let small_hosts = hosts
         .iter()
         .filter(|host| host.host_id.as_str() == "ai-small-local")
@@ -137,7 +137,7 @@ fn hard_policy_staleness_and_unreviewed_relaxation_refuse_distinctly() {
     let select =
         |profile: &ReviewedServiceProfile, policy: Option<&SurvivalPolicy>, observations| {
             select_reviewed_service_profile(
-                &form.gears[0],
+                &plot.gears[0],
                 &small_hosts,
                 &small_ads,
                 observations,
@@ -183,7 +183,7 @@ fn hard_policy_staleness_and_unreviewed_relaxation_refuse_distinctly() {
 
 #[test]
 fn semantic_units_evidence_and_absent_weaker_profiles_never_launder() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let small_hosts = hosts
         .iter()
         .filter(|host| host.host_id.as_str() == "ai-small-local")
@@ -200,7 +200,7 @@ fn semantic_units_evidence_and_absent_weaker_profiles_never_launder() {
         quantity(8_192, CharacteristicUnit::Bytes);
     assert_eq!(
         select_reviewed_service_profile(
-            &form.gears[0],
+            &plot.gears[0],
             &small_hosts,
             &small_ads,
             &observed,
@@ -227,7 +227,7 @@ fn semantic_units_evidence_and_absent_weaker_profiles_never_launder() {
     ));
     assert_eq!(
         select_reviewed_service_profile(
-            &form.gears[0],
+            &plot.gears[0],
             &small_hosts,
             &small_ads,
             &observed,
@@ -242,7 +242,7 @@ fn semantic_units_evidence_and_absent_weaker_profiles_never_launder() {
         quantity(9, CharacteristicUnit::Items);
     assert_eq!(
         select_reviewed_service_profile(
-            &form.gears[0],
+            &plot.gears[0],
             &small_hosts,
             &small_ads,
             &observed,

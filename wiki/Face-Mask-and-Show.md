@@ -40,12 +40,12 @@ face is not a widget tree. It does not mean HTML, windows, panes, pixels, speech
 
 ## mask
 
-A **mask** is an ordinary form serving the user-agent realization role.
+A **mask** is an ordinary plot serving the user-agent realization role.
 
 Current tree graphical mask:
 
 ```conduit
-form native-graphical (
+plot native-graphical (
     >> face: Presentation
     interaction: FaceInteraction...| >>
     show: Show >>
@@ -65,7 +65,7 @@ form native-graphical (
 
 The spoken mask has the same semantic role but may be realized through speech/audio machinery.
 
-There is no special `mask` declaration. mask is a role played by an ordinary checked form.
+There is no special `mask` declaration. mask is a role played by an ordinary checked plot.
 
 ## show
 

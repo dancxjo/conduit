@@ -52,7 +52,7 @@ pub fn run(args: &PicoArgs, wheels_off_floor: bool) -> PicoResult<()> {
         || record["build_id"] != expected_build
         || record["success"] != true
         || record["state"] != "completed"
-        || record["form"] != CAPSTONE_FORM
+        || record["plot"] != CAPSTONE_FORM
         || record["kernel"] != "conduit-kernel"
         || record["oi_exposed"] != false
         || record["selected_linear_microunits"] != 100_000

@@ -424,11 +424,11 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
     assert!(stage.contains("cargo +1.98.1 xtask make host release-catalog"));
-    assert!(stage.contains("Build the reviewed Form bundles before release payload assembly"));
-    assert!(stage.contains("cargo +1.98.1 xtask check forms bundle-initial-body"));
-    assert!(stage.contains("cargo +1.98.1 xtask check forms bundle-workspace-catalog"));
-    assert!(stage.contains("target/reviewed-form-bundles/initial-body.conduit"));
-    assert!(stage.contains("target/reviewed-form-bundles/workspace-catalog.json"));
+    assert!(stage.contains("Build the reviewed Plot bundles before release payload assembly"));
+    assert!(stage.contains("cargo +1.98.1 xtask check plots bundle-initial-body"));
+    assert!(stage.contains("cargo +1.98.1 xtask check plots bundle-workspace-catalog"));
+    assert!(stage.contains("target/reviewed-plot-bundles/initial-body.conduit"));
+    assert!(stage.contains("target/reviewed-plot-bundles/workspace-catalog.json"));
     assert!(stage.contains("targets/browser/tools/stage-browser-workspace.sh"));
     assert!(!stage.contains("stage-creche-product"));
     assert!(!stage.contains("target/creche-product"));
@@ -542,8 +542,8 @@ fn gallery_only_evidence_is_pinned_to_the_accepted_commit_downstream() {
     assert!(!products.contains("JOURNEY_RESULT"));
     assert!(!products.contains("LITTLE_LIFE_RESULT"));
     assert!(journey.contains("CONDUIT_CHECKOUT_SHA: ${{ steps.context.outputs.source_commit }}"));
-    assert!(journey.contains("cargo xtask prove one-form-two-fronts --locked"));
-    assert!(journey.contains("--proof journey-one-form-two-fronts --suite journey-gallery"));
+    assert!(journey.contains("cargo xtask prove one-plot-two-fronts --locked"));
+    assert!(journey.contains("--proof journey-one-plot-two-fronts --suite journey-gallery"));
     assert!(journey.contains("cargo xtask prove little-life --locked"));
     assert!(journey.contains("--proof journey-little-life --suite journey-gallery"));
     assert!(
@@ -564,7 +564,7 @@ fn sibling_gallery_is_rendered_only_after_release_admission() {
 
     assert!(!products.contains("\n  journey-gallery:\n"));
     assert!(!products.contains("JOURNEY_GALLERY_RESULT"));
-    assert!(gallery.contains("cargo xtask prove one-form-two-fronts --locked"));
+    assert!(gallery.contains("cargo xtask prove one-plot-two-fronts --locked"));
     assert!(gallery.contains("cargo xtask prove little-life --locked"));
     assert!(gallery.contains("--two-fronts-evidence-root"));
     assert!(gallery.contains("--little-life-evidence-root"));
@@ -691,7 +691,8 @@ fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
 
     assert!(workflow.contains("cargo xtask ci pages-resolver-proof --locked"));
     assert!(!workflow.contains("node --test proof/ci/"));
-    for proof in ["proof/ci/pages-product-run-selection.spec.mjs"] {
+    {
+        let proof = "proof/ci/pages-product-run-selection.spec.mjs";
         assert_eq!(
             dispatcher.matches(proof).count(),
             1,

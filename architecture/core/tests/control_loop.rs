@@ -184,18 +184,18 @@ fn a_non_change_and_empty_sign_fail_closed() {
 #[test]
 fn unavailable_host_must_be_exactly_sealed_by_the_same_plan() {
     let plan = conduit_core::seal_plan(
-        conduit_core::FormIdentity {
+        conduit_core::PlotIdentity {
             source_document_id: conduit_core::SourceDocumentId::from("source"),
-            checked_form_id: conduit_core::CheckedFormId::from("checked"),
-            expanded_form_id: conduit_core::ExpandedFormId::from("expanded"),
+            checked_plot_id: conduit_core::CheckedPlotId::from("checked"),
+            expanded_plot_id: conduit_core::ExpandedPlotId::from("expanded"),
         },
         vec![conduit_core::PlanFragment {
             completion_policy: conduit_core::PlanCompletionPolicy::Live,
             plan_id: PlanId::from(""),
             fragment_id: conduit_core::FragmentId::from(""),
             source_document_id: conduit_core::SourceDocumentId::from("source"),
-            checked_form_id: conduit_core::CheckedFormId::from("checked"),
-            expanded_form_id: conduit_core::ExpandedFormId::from("expanded"),
+            checked_plot_id: conduit_core::CheckedPlotId::from("checked"),
+            expanded_plot_id: conduit_core::ExpandedPlotId::from("expanded"),
             realization_backs: vec![],
             host_id: HostId::from("host-a"),
             boot_id: conduit_core::BootId::from("boot-a"),

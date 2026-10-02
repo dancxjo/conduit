@@ -93,8 +93,8 @@ pub fn project_replay_source(timeline: &BoundedHistoricalTimeline) -> ReplaySour
     }
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn replay_source_kind_projection() -> conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn replay_source_kind_projection() -> conduit_plot::KindProjection {
     use conduit_core::{
         kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType,
@@ -112,7 +112,7 @@ pub fn replay_source_kind_projection() -> conduit_form::KindProjection {
         temporal: PortTemporal::Value,
         abnormal_kind: None,
     };
-    conduit_form::KindProjection {
+    conduit_plot::KindProjection {
         kind_id: kind_id(REPLAY_SOURCE_KIND),
         kind_contract_revision: KindIdentity::from(REPLAY_SOURCE_CONTRACT_REVISION),
         inputs: alloc::vec![port(
@@ -128,7 +128,7 @@ pub fn replay_source_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn replay_source_semantic_contract() -> conduit_core::Kind {
     let definition = replay_source_kind_projection();
     conduit_core::Kind {

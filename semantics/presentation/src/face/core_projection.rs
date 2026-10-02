@@ -111,8 +111,8 @@ pub(super) fn append_operator_actions(
         ),
         (
             "open-library",
-            "conduit.intent/open-form-library@1",
-            "Open Forms library",
+            "conduit.intent/open-plot-library@1",
+            "Open Plots library",
             FaceOperatorActionKind::OpenLibrary,
         ),
     ] {
@@ -128,33 +128,33 @@ pub(super) fn append_operator_actions(
             routing,
         );
     }
-    for form in body.workset.forms() {
-        let checked = &form.checked_form_id;
-        let form_target = format!("form/{}", checked.as_str());
+    for plot in body.workset.plots() {
+        let checked = &plot.checked_plot_id;
+        let plot_target = format!("plot/{}", checked.as_str());
         let foreground = contributions.iter().any(|item| {
-            item.role == FaceContributionRole::Foreground && item.checked_form_id == *checked
+            item.role == FaceContributionRole::Foreground && item.checked_plot_id == *checked
         });
         let inspection = contributions.iter().any(|item| {
-            item.role == FaceContributionRole::Inspection && item.checked_form_id == *checked
+            item.role == FaceContributionRole::Inspection && item.checked_plot_id == *checked
         });
         push_action(
             body,
-            &form_target,
-            &format!("open-form/{}", checked.as_str()),
-            "conduit.intent/open-resident-form@1",
-            "Open resident Form",
+            &plot_target,
+            &format!("open-plot/{}", checked.as_str()),
+            "conduit.intent/open-resident-plot@1",
+            "Open resident Plot",
             availability(
                 foreground,
-                "form-not-playing",
-                "The resident Form is not currently presenting.",
+                "plot-not-playing",
+                "The resident Plot is not currently presenting.",
             ),
-            FaceOperatorActionKind::OpenResidentForm(checked.clone()),
+            FaceOperatorActionKind::OpenResidentPlot(checked.clone()),
             actions,
             routing,
         );
         push_action(
             body,
-            &form_target,
+            &plot_target,
             &format!("open-inspection/{}", checked.as_str()),
             "conduit.intent/open-inspection@1",
             "Open inspection",

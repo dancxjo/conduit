@@ -202,13 +202,13 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_source_extraction_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
 
     let contract = source_extraction_contract();
     startup.insert(KindSignature {
@@ -232,11 +232,11 @@ pub fn install_source_extraction_catalog(
         .map_err(|error| error.to_string())
 }
 
-#[cfg(feature = "form-catalog")]
-fn count_parameter(name: &str, maximum: u32) -> conduit_form::StartupParameterSignature {
+#[cfg(feature = "plot-catalog")]
+fn count_parameter(name: &str, maximum: u32) -> conduit_plot::StartupParameterSignature {
     use alloc::string::ToString;
 
-    conduit_form::StartupParameterSignature {
+    conduit_plot::StartupParameterSignature {
         name: name.into(),
         value_type: "Count".into(),
         default: Some(maximum.to_string()),

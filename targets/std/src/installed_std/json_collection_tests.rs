@@ -1,12 +1,12 @@
 use super::super::test_json_codec::with_source_text;
 use crate::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 use conduit_core::{BootId, HostId, ObservationKind, OfferGeneration, TerminalDisposition};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindSignature,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindSignature,
     ProfileCatalog, StartupCatalog,
 };
 
-const TODO: &str = include_str!("../../../../forms/todo/main.conduit");
+const TODO: &str = include_str!("../../../../plots/todo/main.conduit");
 
 fn execute(request: &str) -> (String, Result<crate::StdRunReport, String>) {
     execute_entry(request, "todo/command-snapshot")
@@ -41,18 +41,18 @@ pub(super) fn execute_entry(
     let parsed = parse_syntax_document(&source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "todo-fixture", &profile).unwrap();
-    assert!(expanded.provenance.iter().any(|row| row.source_form
+    let expanded = expand_canonical_plot(&checked, "todo-fixture", &profile).unwrap();
+    assert!(expanded.provenance.iter().any(|row| row.source_plot
         == if restoring {
             "todo/restore"
         } else {
             "todo/state-step"
         }
-        && row.form_path.len() == 3));
+        && row.plot_path.len() == 3));
     assert!(expanded
         .provenance
         .iter()
-        .any(|row| row.source_form == "todo/snapshot" && row.form_path.len() == 3));
+        .any(|row| row.source_plot == "todo/snapshot" && row.plot_path.len() == 3));
     let mut host = StdHost::new_with_composition(
         StdHostConfig {
             host_id: HostId::from("todo-fixture-host"),
@@ -92,7 +92,7 @@ pub(super) fn execute_entry(
 }
 
 #[test]
-fn todo_add_toggle_remove_execute_composed_forms_through_production_kernel() {
+fn todo_add_toggle_remove_execute_composed_plots_through_production_kernel() {
     let cases = [
         (
             r#"{"op":"append","value":{"complete":false,"text":"Buy milk"}}"#,

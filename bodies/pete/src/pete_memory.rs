@@ -10,7 +10,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     rust_binding::BoundedSequence, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use serde::{Deserialize, Serialize};

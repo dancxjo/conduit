@@ -288,7 +288,7 @@ pub enum ProveCommand {
     BodyCoordination(BodyCoordinationArgs),
     /// Exercise explicit Pete hardware proof entrances.
     Pete(PeteArgs),
-    /// Exercise one reviewed Form or journey through its exact repository proof path.
+    /// Exercise one reviewed Plot or journey through its exact repository proof path.
     Journey(DemoArgs),
     /// Produce, verify, or publish bounded proof evidence.
     #[command(flatten)]
@@ -395,11 +395,11 @@ mod tests {
             .expect("catalog gap command parses");
         assert!(matches!(gap.command, Command::Check(_)));
 
-        let forms = Cli::try_parse_from(["xtask", "check", "forms", "check"])
-            .expect("reviewed forms check parses beneath check");
-        assert!(matches!(forms.command, Command::Check(_)));
+        let plots = Cli::try_parse_from(["xtask", "check", "plots", "check"])
+            .expect("reviewed plots check parses beneath check");
+        assert!(matches!(plots.command, Command::Check(_)));
         assert!(Cli::try_parse_from(["xtask", "catalog", "matrix"]).is_err());
-        assert!(Cli::try_parse_from(["xtask", "forms", "check"]).is_err());
+        assert!(Cli::try_parse_from(["xtask", "plots", "check"]).is_err());
 
         let doctor = Cli::try_parse_from(["xtask", "--dry-run", "doctor", "pico"])
             .expect("doctor command parses");

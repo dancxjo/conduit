@@ -4,11 +4,11 @@ use conduit_core::{
     CapabilityOffer, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
+use conduit_plot::{KindProjection, ProfileCatalog};
 
 const SOURCE_KIND: &str = "conduit-test/json-text-source";
 const SOURCE_REVISION: &str = "conduit-test/json-text-source@1";

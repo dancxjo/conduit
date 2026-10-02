@@ -1,4 +1,4 @@
-//! Exact form-facing contracts for explicit Text publication and loading.
+//! Exact plot-facing contracts for explicit Text publication and loading.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
@@ -6,7 +6,7 @@ use conduit_core::{
     FrontValueContract, FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor,
     PortDirection, PortTemporal,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub const DATA_SAVE_TEXT_KIND: &str = "data/save/text";
 pub const DATA_LOAD_TEXT_KIND: &str = "data/load/text";

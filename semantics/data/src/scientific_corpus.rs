@@ -6,7 +6,7 @@ use crate::{
     duplicate, nonzero, text, DatasetDescriptor, DatasetExampleIdentity, DatasetExamplePage,
     DatasetSplitMembership, ScientificCorpusRefusal, ScientificObservationRefusal,
 };
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 pub const CORPUS_MANIFEST_PROFILE: &str = "data/corpus-manifest@1";
 pub const MAXIMUM_CORPUS_SHARDS: usize = 64;

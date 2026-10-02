@@ -75,8 +75,8 @@ the resulting directory but does not define its meaning.
 The manifest contract originated in #821; the first Patchbay captures were
 added through #822.
 
-The One form, Two fronts sibling uses a separate four-output manifest. Its
-supported entrance is `cargo xtask prove one-form-two-fronts`, which feeds
+The One plot, Two fronts sibling uses a separate four-output manifest. Its
+supported entrance is `cargo xtask prove one-plot-two-fronts`, which feeds
 one deterministic front-door presentation into the native software renderer
 and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
 `native.json`, `browser.png`, and `browser.json`; complete verification requires
@@ -88,7 +88,7 @@ The gallery accepts that sibling only through
 `--two-fronts-evidence-root <directory>` bound to the same accepted commit as
 the other inputs. Its side-by-side page states that neither pixel equality,
 physical-display output, nor human perception is established. Omitting the
-input clears stale `current/one-form-two-fronts/` content.
+input clears stale `current/one-plot-two-fronts/` content.
 
 Little Life uses a separate six-output manifest rather than consuming a
 ConduitOS capture slot. `cargo xtask prove little-life` retains PNGs at
@@ -127,7 +127,7 @@ new exact commit. Each image links to its provenance page. The prose states the
 same essential result because the images document a rendering; they do not
 define semantic success.
 
-The overview correlates the checked form graph with the same authoritative
+The overview correlates the checked plot graph with the same authoritative
 structure exposed by Patchbay.
 
 [![Current accepted Conduit Patchbay overview](https://dancxjo.github.io/conduit/current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)
@@ -182,7 +182,7 @@ only after the accepted software carrier has deployed. The successful Pages run
 retains one normalized exact base carrier for the downstream workflow regardless
 of whether those bytes were inherited or freshly made. The publisher
 consumes immutable native/browser claim evidence from promotion, creates the
-gallery-only One Form, Two Fronts and Little Life evidence against the accepted
+gallery-only One Plot, Two Fronts and Little Life evidence against the accepted
 source, and refuses to replace Pages if `main` has advanced. Its failure leaves
 both the release and the base software publication intact.
 

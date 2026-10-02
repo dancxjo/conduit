@@ -1,4 +1,4 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 use std::collections::BTreeMap;
 
@@ -11,12 +11,12 @@ use conduit_core::{
     verify_plan, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
 };
 
 fn plan(source: &str) -> conduit_core::Plan {
@@ -24,7 +24,7 @@ fn plan(source: &str) -> conduit_core::Plan {
     let mut profile = ProfileCatalog::new();
     install_hybrid_retrieval_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "hybrid", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "hybrid", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/hybrid"),
@@ -55,9 +55,9 @@ fn plan(source: &str) -> conduit_core::Plan {
     .unwrap()
 }
 
-fn form(policy: &str, temporal: &str) -> String {
+fn plot(policy: &str, temporal: &str) -> String {
     format!(
-        "form hybrid {{\n fusion: retrieval/hybrid-fuse(\"{policy}\", \"reciprocal-rank\", 60, \"{temporal}\", 8, 8, 32)\n}}\n"
+        "plot hybrid {{\n fusion: retrieval/hybrid-fuse(\"{policy}\", \"reciprocal-rank\", 60, \"{temporal}\", 8, 8, 32)\n}}\n"
     )
 }
 
@@ -81,8 +81,8 @@ fn portable_front_names_four_explicit_paths_and_no_realization_facts() {
 
 #[test]
 fn fusion_policy_and_temporal_behavior_are_exact_plan_configuration() {
-    let ordinary = plan(&form("fusion/reciprocal-rank@1", "none"));
-    let origin = plan(&form("fusion/reciprocal-rank-origin@1", "created-duration"));
+    let ordinary = plan(&plot("fusion/reciprocal-rank@1", "none"));
+    let origin = plan(&plot("fusion/reciprocal-rank-origin@1", "created-duration"));
     assert!(verify_plan(&ordinary));
     assert!(verify_plan(&origin));
     assert_ne!(ordinary.plan_id, origin.plan_id);
@@ -109,7 +109,7 @@ fn unreviewed_policy_refuses_during_canonical_expansion() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_hybrid_retrieval_catalog(&mut startup, &mut profile).unwrap();
-    let source = form("provider/opaque-score@1", "none");
+    let source = plot("provider/opaque-score@1", "none");
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    assert!(expand_canonical_form(&checked, "hybrid", &profile).is_err());
+    assert!(expand_canonical_plot(&checked, "hybrid", &profile).is_err());
 }

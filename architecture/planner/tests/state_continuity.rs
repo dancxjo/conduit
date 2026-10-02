@@ -25,13 +25,13 @@ fn candidates() -> (Plan, Plan, RetainedStateProvenance, StateContinuityApproval
 }
 
 #[test]
-fn explicit_capacity_upgrade_seals_same_form_and_preserves_fresh_boot_bindings() {
+fn explicit_capacity_upgrade_seals_same_plot_and_preserves_fresh_boot_bindings() {
     let (source, destination, retained, approval) = candidates();
     let replacement =
         seal_state_continuity(&source, &destination, retained.clone(), &approval).unwrap();
     assert!(verify_plan(&replacement));
     assert_ne!(replacement.plan_id, destination.plan_id);
-    assert_eq!(replacement.checked_form_id, source.checked_form_id);
+    assert_eq!(replacement.checked_plot_id, source.checked_plot_id);
     assert_eq!(
         replacement.fragments[0].boot_id,
         destination.fragments[0].boot_id
@@ -75,7 +75,7 @@ fn invented_source_bytes_generation_and_identity_refuse() {
         |r| r.current_value = vec![1, 2], // Fits destination but never fit source.
         |r| r.generation = 0,             // A fresh cell cannot contain a noninitial value.
         |r| r.source_play.boot_id = "other-boot".into(),
-        |r| r.source_form.checked_form_id = "other-form".into(),
+        |r| r.source_plot.checked_plot_id = "other-plot".into(),
         |r| r.source_play.plan_id = "other-plan".into(),
     ];
     for mutate in mutations {
@@ -97,12 +97,12 @@ fn incompatible_initialization_and_specialization_are_not_capacity_upgrades() {
         Err(StateContinuityRefusal::ContractMismatch)
     );
     let mut fragment = destination.fragments[0].clone();
-    fragment.checked_form_id = "other-specialization".into();
+    fragment.checked_plot_id = "other-specialization".into();
     let changed = common::seal(fragment);
     approval.destination_plan = changed.plan_id.clone();
     assert_eq!(
         seal_state_continuity(&source, &changed, retained, &approval),
-        Err(StateContinuityRefusal::FormMismatch)
+        Err(StateContinuityRefusal::PlotMismatch)
     );
 }
 

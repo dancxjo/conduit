@@ -5,7 +5,7 @@ use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CapabilityOffer, HostAdvertisement, ResourceHealth, ResourceObservation, ResourcePoolId,
 };
-use conduit_form::CheckedGear;
+use conduit_plot::CheckedGear;
 
 pub fn select_realization_with_observations(
     gear: &CheckedGear,
@@ -112,7 +112,7 @@ pub(crate) fn observations_admit(
             .get_mut(&pool.pool_id)
             .expect("selected observed pool has remaining capacity");
         // Observation admission reserves the requirement minimum. Preferred
-        // lanes are distributed only after the whole form's minima are known.
+        // lanes are distributed only after the whole plot's minima are known.
         let selected = requirement.units;
         *available -= selected;
     }

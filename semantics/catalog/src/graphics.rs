@@ -191,12 +191,12 @@ fn format_example(kind: &str) -> alloc::string::String {
     alloc::format!("leaf: {kind}(x = 8, y = 8, width = 120, height = 40, clip-x = 0, clip-y = 0, clip-width = 960, clip-height = 540)")
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_graphics_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     for contract in [
         graphics_rect_contract(),
         graphics_text_contract(),

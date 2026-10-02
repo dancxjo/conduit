@@ -1,10 +1,10 @@
-use conduit_form::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 use conduit_language::{
     annotation_bundle_four_type, dependency_edge_type, linguistic_annotation_type,
     linguistic_segment_type, linguistic_token_type, linguistic_tokens_four_type, text_span_type,
     AnnotationBundleFour, LinguisticAnnotation, LinguisticDependencyEdge, LinguisticOffsetBasis,
     LinguisticSegment, LinguisticToken, LinguisticTokensFour, TextSpan,
 };
+use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
 #[test]
 fn complete_linguistic_family_is_owned_by_native_types() {

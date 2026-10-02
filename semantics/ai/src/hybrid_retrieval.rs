@@ -1,7 +1,7 @@
 //! Finite explicit fusion of independently produced retrieval candidates.
 
 use alloc::{string::String, vec::Vec};
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
     Chunk, FusionStrategy, HybridFusionPolicy, HybridRequiredMechanisms, MechanismScore,

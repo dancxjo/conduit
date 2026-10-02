@@ -3,7 +3,7 @@
 type HomeDestination =
     tour
     | patchbay
-    | forms
+    | plots
     | body
     | creche
     | prompt

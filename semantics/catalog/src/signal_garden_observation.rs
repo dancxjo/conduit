@@ -1,7 +1,7 @@
 //! Exact structured values for reusable Signal Garden observation composition.
 
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::{GardenClockObservation, GardenContactObservation, GardenEvolutionRefusal};
 pub use conduit_alife::GardenEnrichedObservation;

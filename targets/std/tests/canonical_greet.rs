@@ -1,12 +1,12 @@
 use conduit_core::{ConfigurationValue, ObservationKind, TerminalDisposition};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, CheckedSyntaxDocument,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, CheckedSyntaxDocument,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_host::{StdHost, ThreadTimer};
 
-const GREET_PROGRAM: &str = include_str!("../../../forms/greet/main.conduit");
-const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+const GREET_PROGRAM: &str = include_str!("../../../plots/greet/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
 fn checked_and_profile() -> (CheckedSyntaxDocument, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
@@ -21,13 +21,13 @@ fn checked_and_profile() -> (CheckedSyntaxDocument, ProfileCatalog) {
 fn run(
     root: &str,
 ) -> (
-    conduit_form::ExpandedCanonicalForm,
+    conduit_plot::ExpandedCanonicalPlot,
     String,
     conduit_core::PlanId,
     conduit_core::ActivePlayId,
 ) {
     let (checked, profile) = checked_and_profile();
-    let expanded = expand_canonical_form(&checked, root, &profile).expect("greet expands");
+    let expanded = expand_canonical_plot(&checked, root, &profile).expect("greet expands");
     let mut host = StdHost::new();
     let plan = host
         .plan_expanded_local(&expanded)
@@ -62,13 +62,13 @@ fn run(
 fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
     let (checked, _) = checked_and_profile();
     let welcome = checked
-        .forms
+        .plots
         .iter()
-        .find(|form| form.name == "welcome")
+        .find(|plot| plot.name == "welcome")
         .unwrap();
     assert!(welcome.gears.iter().any(|gear| gear.kind == "greet"
         && gear.startup_bindings[0].value
-            == conduit_form::CanonicalStartupValue::Literal("\"Welcome\"".to_string())));
+            == conduit_plot::CanonicalStartupValue::Literal("\"Welcome\"".to_string())));
 
     let (expanded, output, plan_id, play_id) = run("welcome");
     assert!(output.contains("WelcomeTravis\n"), "{output}");
@@ -90,8 +90,8 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
         }]
     );
     assert!(expanded.provenance.iter().any(|row| {
-        row.source_form == "greet"
-            && row.form_path == ["welcome", "hello"]
+        row.source_plot == "greet"
+            && row.plot_path == ["welcome", "hello"]
             && row.source_gear == "join"
     }));
     println!(
@@ -102,12 +102,12 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
 }
 
 #[test]
-fn omitted_argument_uses_the_checked_front_default_without_mutating_the_form() {
+fn omitted_argument_uses_the_checked_front_default_without_mutating_the_plot() {
     let (explicit, explicit_output, explicit_plan, _) = run("welcome");
     let (defaulted, default_output, default_plan, _) = run("default-welcome");
     assert!(explicit_output.contains("WelcomeTravis\n"));
     assert!(default_output.contains("HelloTravis\n"));
-    assert_ne!(explicit.expanded_form_id, defaulted.expanded_form_id);
+    assert_ne!(explicit.expanded_plot_id, defaulted.expanded_plot_id);
     assert_ne!(explicit_plan, default_plan);
 }
 
@@ -115,14 +115,14 @@ fn omitted_argument_uses_the_checked_front_default_without_mutating_the_form() {
 fn join_output_bound_and_selected_realization_identity_fail_before_presentation() {
     let oversized_prefix = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize);
     let source = format!(
-        "form bad {{\n    join: text/join(\"{oversized_prefix}\")\n    \"y\" >> join >> presentation/text\n}}\n"
+        "plot bad {{\n    join: text/join(\"{oversized_prefix}\")\n    \"y\" >> join >> presentation/text\n}}\n"
     );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "bad", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "bad", &profile).unwrap();
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&expanded).unwrap();
     let mut output = Vec::with_capacity(4_096);
@@ -134,7 +134,7 @@ fn join_output_bound_and_selected_realization_identity_fail_before_presentation(
     assert!(!String::from_utf8_lossy(&output).contains(&oversized_prefix));
 
     let (checked, profile) = checked_and_profile();
-    let expanded = expand_canonical_form(&checked, "welcome", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "welcome", &profile).unwrap();
     let mut host = StdHost::new();
     let mut mutated = host.plan_expanded_local(&expanded).unwrap();
     let join = mutated.fragments[0]

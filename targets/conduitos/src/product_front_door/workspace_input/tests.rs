@@ -6,7 +6,7 @@ use crate::{
         test_support::{fixture, invoke, key},
     },
 };
-use conduit_birth_form::BirthSelection;
+use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
 use conduit_presentation::PresentationPropertyValue;
 
@@ -16,10 +16,10 @@ pub(super) fn listening() -> (ProductJourney, FrontDoor) {
         .birth_from_creche(BirthSelection {
             revision: 3,
             friendly_name: "Roseau".into(),
-            workset: BodyWorkset::from_forms(
+            workset: BodyWorkset::from_plots(
                 native_workset::inventory()
                     .into_iter()
-                    .map(|form| native_workset::resident(form).unwrap()),
+                    .map(|plot| native_workset::resident(plot).unwrap()),
             )
             .unwrap(),
         })
@@ -40,7 +40,7 @@ pub(super) fn listening() -> (ProductJourney, FrontDoor) {
         "build",
         "image",
         projection.source_document_id.unwrap(),
-        projection.checked_form_id.unwrap(),
+        projection.checked_plot_id.unwrap(),
         7,
         true,
     );
@@ -80,7 +80,7 @@ fn accepted_release_preserves_presentation_without_requesting_a_repaint() {
 }
 
 #[test]
-fn tab_and_captured_release_preserve_two_form_state_and_the_same_play() {
+fn tab_and_captured_release_preserve_two_plot_state_and_the_same_play() {
     let (mut journey, mut door) = listening();
     let before = journey.projection();
     let press = key(4, KeyTransition::Pressed);
@@ -95,7 +95,7 @@ fn tab_and_captured_release_preserve_two_form_state_and_the_same_play() {
         Ok(Some(true))
     );
     let selected = journey.projection();
-    assert_ne!(selected.checked_form_id, before.checked_form_id);
+    assert_ne!(selected.checked_plot_id, before.checked_plot_id);
     assert_eq!(
         select(key(43, KeyTransition::Released), &mut journey),
         Ok(Some(false))
@@ -109,7 +109,7 @@ fn tab_and_captured_release_preserve_two_form_state_and_the_same_play() {
     assert!(!journey.owns_key_release(release));
     assert_eq!(journey.projection().input_count, 2);
     assert!(journey.projection().result.is_none());
-    for _ in 1..native_workset::NATIVE_FORM_CAPACITY {
+    for _ in 1..native_workset::NATIVE_PLOT_CAPACITY {
         select(key(43, KeyTransition::Pressed), &mut journey).unwrap();
     }
     let after = journey.projection();
@@ -123,8 +123,8 @@ fn tab_and_captured_release_preserve_two_form_state_and_the_same_play() {
 fn actual_memory_bound_stops_play_and_keeps_the_body_refusal_inspectable() {
     let (mut journey, mut door) = listening();
     journey
-        .select_form(
-            &native_workset::resident(native_workset::NativeForm::MemoryLantern).unwrap(),
+        .select_plot(
+            &native_workset::resident(native_workset::NativePlot::MemoryLantern).unwrap(),
             journey.revision(),
         )
         .unwrap();

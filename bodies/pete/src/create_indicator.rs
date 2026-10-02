@@ -28,7 +28,7 @@ pub const INDICATOR_ARTIFACT: &str = "conduit-pete/create1-oi-indicator@1";
 pub const INDICATOR_RESOURCE: &str = "pete.resource/create1-indicator@1";
 pub const INDICATOR_GRANT: &str = "grant/pete-create1-indicator-present";
 
-pub const CREATE_INDICATOR_FORM: &str = include_str!("../../../forms/signal-demo/main.conduit");
+pub const CREATE_INDICATOR_FORM: &str = include_str!("../../../plots/signal-demo/main.conduit");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CreateIndicatorObservation {
@@ -159,11 +159,11 @@ pub fn create_indicator_plan(
     observation: &CreateIndicatorObservation,
     authority_granted: bool,
 ) -> Result<conduit_core::Plan, PlannerError> {
-    let form = conduit_form::parse(
+    let plot = conduit_plot::parse(
         CREATE_INDICATOR_FORM,
         &conduit_signal::signal_profile_catalog(),
     )
-    .expect("canonical Signal Form checks independently of Create facts");
+    .expect("canonical Signal Plot checks independently of Create facts");
     let host = live_indicator_advertisement(observation)
         .expect("caller supplies one fresh usable indicator observation");
     let pulse_capability = host
@@ -201,7 +201,7 @@ pub fn create_indicator_plan(
         )
     });
     plan_with_options(
-        &form,
+        &plot,
         &[host],
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_signal_form_plans_only_with_present_authority() {
+    fn unchanged_signal_plot_plans_only_with_present_authority() {
         for forbidden in ["create", "uart", "serial", "robot", "led", "opcode"] {
             assert!(!CREATE_INDICATOR_FORM
                 .to_ascii_lowercase()

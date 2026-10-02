@@ -10,14 +10,14 @@ conduit-alife = { path = "../../semantics/alife" }
 conduit-core = { path = "../../architecture/core" }
 conduit-body = { path = "../../architecture/body" }
 conduit-body-make = { path = "../../make/body" }
-conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
-conduit-form = { path = "../../architecture/form" }
+conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-host-make = { path = "../../make/host" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }
 conduit-finance = { path = "../../semantics/finance" }
-conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
+conduit-net = { path = "../../semantics/net", features = ["plot-catalog"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation" }
@@ -26,13 +26,13 @@ conduit-protected-line = { path = "../../architecture/protected-line" }
 conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
 conduit-std-host = { path = "../../targets/std" }
 conduit-std-offers = { path = "../../targets/std/offers" }
-conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }
+conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["plot-catalog"] }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text" }
 conduit-wire = { path = "../../architecture/wire" }
-conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }
+conduit-web = { path = "../../semantics/web", default-features = false, features = ["plot-catalog"] }
 conduit-workspace-make = { path = "../../make/workspace" }
-patchbay-svg-mask = { path = "../../forms/patchbay/workbench/svg-mask" }
+patchbay-svg-mask = { path = "../../plots/patchbay/workbench/svg-mask" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 getrandom = "0.3"

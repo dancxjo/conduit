@@ -1,14 +1,14 @@
-//! Deterministic direct and recursive realization proof for the Patchbay Form.
+//! Deterministic direct and recursive realization proof for the Patchbay Plot.
 //!
 //! This crate owns proof construction only. Patchbay meaning remains in the
-//! resident Form and graph crates, while concrete offers remain target-owned.
+//! resident Plot and graph crates, while concrete offers remain target-owned.
 
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, Plan, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, expand_canonical_plot_with_backs,
     parse_syntax_document, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
 };
 
@@ -17,12 +17,12 @@ mod tests;
 
 pub use conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND;
 
-const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n";
+const USER_SOURCE: &str = "plot patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayMaskPlans {
-    pub direct_expanded: conduit_form::ExpandedCanonicalForm,
-    pub recursive_expanded: conduit_form::ExpandedCanonicalForm,
+    pub direct_expanded: conduit_plot::ExpandedCanonicalPlot,
+    pub recursive_expanded: conduit_plot::ExpandedCanonicalPlot,
     pub direct_host: HostAdvertisement,
     pub recursive_host: HostAdvertisement,
     pub direct: Plan,
@@ -33,11 +33,11 @@ pub fn patchbay_mask_plans() -> Result<PatchbayMaskPlans, String> {
     let (startup, profile) = patchbay_catalogs()?;
     let checked = check_syntax_document(&parse_syntax_document(USER_SOURCE), &startup)
         .map_err(|error| format!("check Patchbay specimen: {error:?}"))?;
-    let direct_expanded = expand_canonical_form(&checked, "patchbay-capstone", &profile)
+    let direct_expanded = expand_canonical_plot(&checked, "patchbay-capstone", &profile)
         .map_err(|error| error.to_string())?;
     let backs = backs(&startup, &profile)?;
     let recursive_expanded =
-        expand_canonical_form_with_backs(&checked, "patchbay-capstone", &profile, &backs)
+        expand_canonical_plot_with_backs(&checked, "patchbay-capstone", &profile, &backs)
             .map_err(|error| error.to_string())?;
     let direct_host = direct_host();
     let recursive_host = recursive_host();
@@ -70,7 +70,7 @@ pub fn patchbay_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
 }
 
 pub fn reviewed_patchbay_back_front(
-    back: &conduit_core::FormBack,
+    back: &conduit_core::PlotBack,
     startup: &StartupCatalog,
 ) -> Result<conduit_core::CheckedFront, String> {
     for source in [
@@ -84,12 +84,12 @@ pub fn reviewed_patchbay_back_front(
         if document.source_document_id != back.source_document_id {
             continue;
         }
-        if let Some(form) = document
-            .forms
+        if let Some(plot) = document
+            .plots
             .iter()
-            .find(|form| form.checked_form_id == back.checked_form_id)
+            .find(|plot| plot.checked_plot_id == back.checked_plot_id)
         {
-            return Ok(form.checked_front());
+            return Ok(plot.checked_front());
         }
     }
     Err(format!(
@@ -99,13 +99,13 @@ pub fn reviewed_patchbay_back_front(
 }
 
 fn plan(
-    form: &conduit_form::ExpandedCanonicalForm,
+    plot: &conduit_plot::ExpandedCanonicalPlot,
     host: &HostAdvertisement,
 ) -> Result<Plan, String> {
     let placements =
-        conduit_planner::default_expanded_placements(form, core::slice::from_ref(host)).map_err(
+        conduit_planner::default_expanded_placements(plot, core::slice::from_ref(host)).map_err(
             |error| {
-                let unmatched = form
+                let unmatched = plot
                     .gears
                     .iter()
                     .filter(|gear| {
@@ -120,7 +120,7 @@ fn plan(
             },
         )?;
     conduit_planner::plan_expanded_canonical(
-        form,
+        plot,
         core::slice::from_ref(host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

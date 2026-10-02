@@ -6,7 +6,7 @@
 import { createWebchatRuntime } from "./webchat-runtime.mjs";
 
 const url = new URLSearchParams(location.search).get("ws");
-const form = new URLSearchParams(location.search).get("form") ?? "chat/browser-client";
+const plot = new URLSearchParams(location.search).get("plot") ?? "chat/browser-client";
 if (!url) throw new Error("webchat requires ?ws=ws://127.0.0.1:port");
 const fragment = new URLSearchParams(location.hash.slice(1));
 const bodyUrl = new URLSearchParams(location.search).get("body") ?? fragment.get("body");
@@ -33,7 +33,7 @@ const wasmBytes = await fetch(
 globalThis.__webchat = await createWebchatRuntime({
   wasmBytes,
   url,
-  form,
+  plot,
   bodyUrl,
   spawn,
   root: document.querySelector("#conduit-host"),

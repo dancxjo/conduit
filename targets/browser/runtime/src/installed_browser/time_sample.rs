@@ -19,7 +19,7 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) fn offer_for_expanded(
-    gear: &conduit_form::CheckedGear,
+    gear: &conduit_plot::CheckedGear,
 ) -> Result<CapabilityOffer, String> {
     offer(exact_value(&gear.semantic_contract)?)
 }
@@ -104,7 +104,7 @@ mod tests {
         let value =
             CheckedValueContract::new(conduit_core::kind_id("value/text"), 73, vec![]).unwrap();
         let kind = conduit_semantic_catalog::time_sample_semantic_contract(&value).unwrap();
-        let gear = conduit_form::checked_gear_from_parts! {
+        let gear = conduit_plot::checked_gear_from_parts! {
             gear_id: conduit_core::GearId::from("sample"),
             kind_id: kind.kind_id.clone(),
             kind_contract_revision: kind.kind_contract_revision.clone(),

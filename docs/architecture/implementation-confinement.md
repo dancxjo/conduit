@@ -12,7 +12,7 @@ Related: [#2682](https://github.com/dancxjo/conduit/issues/2682),
 ## Required property
 
 An implementation must not possess materially more effect authority than its
-exact admitted realization. forms describe meaning; hosts offer realizations;
+exact admitted realization. plots describe meaning; hosts offer realizations;
 plans select exact current offers, resources, and authority. None of source,
 availability, selection, membership, or successful communication grants an
 effect permission. General-purpose computation and continuous lifetime do not change
@@ -85,7 +85,7 @@ trusted until an isolation mechanism establishes a narrower class.
 
 ## Required executable proof
 
-For the first consequential effect family, run the ordinary checked form and
+For the first consequential effect family, run the ordinary checked plot and
 plan through the selected implementation and actual effect provider. The
 positive case must produce the exact authorized effect. The negative case must
 use an adversarial implementation which attempts an unauthorized sibling

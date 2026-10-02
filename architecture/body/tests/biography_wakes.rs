@@ -1,13 +1,13 @@
 use conduit_body::{
     Body, BodyBiographyError, BodyBiographyEvidence, BodyBiographyRecordKind, BodyMembership,
-    ResidentForm,
+    ResidentPlot,
 };
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 
 fn born() -> BodyBiographyEvidence {
     let body = Body::born(
         SourceDocumentId::from("source/button"),
-        CheckedFormId::from("checked/button"),
+        CheckedPlotId::from("checked/button"),
         1,
         SignId::from("sign/born"),
     )
@@ -22,14 +22,14 @@ fn born() -> BodyBiographyEvidence {
 
 #[test]
 fn retains_exact_play_and_workload_change_before_explicit_lull() {
-    use conduit_core::{bind_active_play, seal_plan, ExpandedFormId, FormIdentity};
+    use conduit_core::{bind_active_play, seal_plan, ExpandedPlotId, PlotIdentity};
     let mut history = born();
     let (body, wake) = history.body.wake(1, SignId::from("sign/woke")).unwrap();
     let plan = seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source/button"),
-            checked_form_id: CheckedFormId::from("checked/button"),
-            expanded_form_id: ExpandedFormId::from("expanded/button"),
+            checked_plot_id: CheckedPlotId::from("checked/button"),
+            expanded_plot_id: ExpandedPlotId::from("expanded/button"),
         },
         vec![],
     );
@@ -47,10 +47,10 @@ fn retains_exact_play_and_workload_change_before_explicit_lull() {
         Some(play.active_play_id)
     );
     let changed = body
-        .admit_form(
-            ResidentForm::new(
+        .admit_plot(
+            ResidentPlot::new(
                 SourceDocumentId::from("source/clock"),
-                CheckedFormId::from("checked/clock"),
+                CheckedPlotId::from("checked/clock"),
             ),
             SignId::from("sign/add"),
         )
@@ -97,10 +97,10 @@ fn retains_closed_wakes_across_workload_changes_and_roundtrip() {
         .append_wake(retained.clone(), lulled.clone(), 4)
         .unwrap();
     let changed = retained
-        .admit_form(
-            ResidentForm::new(
+        .admit_plot(
+            ResidentPlot::new(
                 SourceDocumentId::from("source/clock"),
-                CheckedFormId::from("checked/clock"),
+                CheckedPlotId::from("checked/clock"),
             ),
             SignId::from("sign/add"),
         )

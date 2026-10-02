@@ -7,7 +7,7 @@ use crate::{
 };
 use alloc::{vec, vec::Vec};
 use conduit_core::StructuredInfoType;
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 pub const NETWORK_ENDPOINT_TYPE: &str = "NetworkEndpoint";
 pub const DNS_QUERY_TYPE: &str = "DnsQuery";

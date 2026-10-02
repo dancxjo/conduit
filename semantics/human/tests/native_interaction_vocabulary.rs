@@ -1,10 +1,10 @@
 use conduit_core::{KindId, QuantityUnit};
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     BoundKind, InteractionApplicationOutcome, InteractionFamily, InteractionProposalPayload,
     InteractionRefusal, InteractionTypeDigest, InteractionValue, InteractionValueKind,
     OptionAvailability, RealizationRangePolicy, ScalarQuantization,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where

@@ -73,7 +73,7 @@ pub enum DiversityRefusal {
     SharedCriticalDependency,
     CosmeticAlternative,
     PlanIdentityUnchanged,
-    FormIdentityChanged,
+    PlotIdentityChanged,
     PlanDoesNotSealCandidate,
     NoSurvivingCandidate,
 }
@@ -165,10 +165,10 @@ pub fn prove_diverse_replacement(
         return Err(DiversityRefusal::PlanIdentityUnchanged);
     }
     if previous_plan.source_document_id != replacement_plan.source_document_id
-        || previous_plan.checked_form_id != replacement_plan.checked_form_id
-        || previous_plan.expanded_form_id != replacement_plan.expanded_form_id
+        || previous_plan.checked_plot_id != replacement_plan.checked_plot_id
+        || previous_plan.expanded_plot_id != replacement_plan.expanded_plot_id
     {
-        return Err(DiversityRefusal::FormIdentityChanged);
+        return Err(DiversityRefusal::PlotIdentityChanged);
     }
     if !plan_seals(previous_plan, previous) || !plan_seals(replacement_plan, replacement) {
         return Err(DiversityRefusal::PlanDoesNotSealCandidate);

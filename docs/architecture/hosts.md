@@ -2,7 +2,7 @@
 
 A host is a software environment that can offer and execute bounded Conduit
 work. A machine can contain several hosts; a host can be headless. The authored
-form describes meaning, while the selected host supplies its implementation.
+plot describes meaning, while the selected host supplies its implementation.
 Read the [canon](../conduit-canon.md) for the architectural rules and
 [STATUS.md](../../STATUS.md) for current implementation and proof limits.
 
@@ -10,8 +10,8 @@ Read the [canon](../conduit-canon.md) for the architectural rules and
 
 ```text
 canonical .conduit source
-    -> checked form and checked fores
-    -> expanded form, including selected reusable backs
+    -> checked plot and checked fores
+    -> expanded plot, including selected reusable backs
     -> plan over current host offers, resources, authority and lines
     -> prepared host-assigned fragments and numeric kernel tables
     -> play through the shared execution kernel
@@ -59,10 +59,10 @@ A protected effect also needs current authority at its trusted provider.
 are different guarantees. A plan or serialized grant identity is not by itself
 an isolation mechanism.
 
-## bodies, forms, and connections
+## bodies, plots, and connections
 
 A [body](body-lifecycle-waists.md) is a durable logical computer with a bounded
-workset of zero, one, or many forms. A part is an admitted membership relationship;
+workset of zero, one, or many plots. A part is an admitted membership relationship;
 a host and boot describe current machinery. Membership, reachability, capability,
 and authority do not imply one another.
 
@@ -70,7 +70,7 @@ One body-wide plan covers the workset; one active play realizes it during a wake
 Workload replacement follows the bounded lifecycle transaction, retaining the
 body and exact evidence. body continuity is not represented by recursively
 pretending that a set of hosts is another host. Reusable composition belongs to
-forms and their fores/backs.
+plots and their fores/backs.
 
 A cord is a typed semantic connection. A remote cord uses an exact planned
 [line](route-candidates.md), with a separate [session and attachment](session-route-attachment.md).
@@ -84,7 +84,7 @@ creates fresh immutable realization truth.
 | --- | --- |
 | Shared architecture vocabulary | [`architecture/core`](../../architecture/core) |
 | Assigned-plan schema and validation | [`architecture/assigned-plan`](../../architecture/assigned-plan) |
-| Source, checking and expansion | [`architecture/form`](../../architecture/form) |
+| Source, checking and expansion | [`architecture/plot`](../../architecture/plot) |
 | Planning and admission | [`architecture/planner`](../../architecture/planner) |
 | Numeric lowering | [`architecture/plan-lowering`](../../architecture/plan-lowering) |
 | Shared execution kernel | [`architecture/kernel`](../../architecture/kernel) |

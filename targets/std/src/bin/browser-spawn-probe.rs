@@ -4,7 +4,7 @@ use conduit_body::{
     AdmissionManager, AdmissionRefusal, AdmissionSigns, Body, BodyMembership, SpawnAdmissionProof,
     SpawnInvitationSecret,
 };
-use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BROWSER_ADMISSION_PROTOCOL,
@@ -14,7 +14,7 @@ use serde_json::json;
 fn main() -> Result<(), String> {
     let body = Body::born(
         SourceDocumentId::from("source/browser-spawn-probe"),
-        CheckedFormId::from("checked/browser-spawn-probe"),
+        CheckedPlotId::from("checked/browser-spawn-probe"),
         1,
         SignId::from("sign/browser-spawn-probe/body-born"),
     )

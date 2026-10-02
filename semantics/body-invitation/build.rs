@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::{RustBindingOptions, generate_rust_bindings};
-use conduit_form::{StartupCatalog, check_syntax_document, parse_syntax_document};
+use conduit_plot::rust_binding::{RustBindingOptions, generate_rust_bindings};
+use conduit_plot::{StartupCatalog, check_syntax_document, parse_syntax_document};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
