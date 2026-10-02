@@ -9,6 +9,7 @@ use crate::commands::ci::CiArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::esp32_firmware::Esp32FirmwareArgs;
 use crate::commands::evidence::EvidenceCommand;
+use crate::commands::handbook::{HandbookArgs, PagesRootArgs};
 use crate::commands::host::HostArgs;
 use crate::commands::pete_std_observe::PeteArgs;
 use crate::commands::pico::PicoArgs;
@@ -85,6 +86,10 @@ pub enum MakeTarget {
     PicoLocal(PicoArgs),
     /// Build and prove the freestanding ConduitOS reference Host.
     Conduitos(ConduitosArgs),
+    /// Render the versioned wiki source as the static website handbook.
+    Handbook(HandbookArgs),
+    /// Stage the complete public Pages root, including the handbook.
+    PagesRoot(PagesRootArgs),
     /// Generate the shared bounded GNU Unifont subset.
     UnifontSubset(UnifontSubsetArgs),
     /// Generate the bounded native masks for canonical palette icons.

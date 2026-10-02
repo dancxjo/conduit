@@ -20,6 +20,7 @@ pub mod esp32_firmware;
 pub mod evidence;
 pub mod evidence_little_life;
 pub mod forms;
+pub mod handbook;
 pub mod host;
 mod host_configuration_prompt;
 pub mod integrate;

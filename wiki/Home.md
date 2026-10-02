@@ -1,5 +1,10 @@
 # Conduit handbook
 
+The website build renders this handbook at `/conduit/handbook/` with guided
+navigation, canonical syntax highlighting, and the generated Form diagrams.
+This repository-owned Markdown remains the single authored source and the
+GitHub Wiki remains its lightweight mirror.
+
 **One continuing computer, made from the computers you have.**
 
 Conduit separates portable meaning from the machinery that realizes it.
