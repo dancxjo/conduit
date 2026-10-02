@@ -197,6 +197,16 @@ type ValidatedExtraction = {
     fields: ExtractionFields
 }
 
+type ConfidencePermille = U16 in 0..=1000
+
+type ModelWorkAccounting = {
+    input_bytes: U64
+    context_items: U64
+    output_bytes: U64
+    work_units: U64
+    history_items: U64
+}
+
 type TemporalSource =
     event
     | valid_from

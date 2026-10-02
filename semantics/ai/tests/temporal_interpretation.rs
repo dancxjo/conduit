@@ -312,7 +312,7 @@ fn model_result(implementation: &str) -> ModelDerivedResult {
         implementation_identity: implementation.into(),
         request_identity: "request/temporal/1".into(),
         run_identity: "run/temporal/1".into(),
-        confidence: Some(ConfidencePermille(800)),
+        confidence: Some(ConfidencePermille::new(800).unwrap()),
         disposition: ModelResultDisposition::Produced,
         determinism: LlmDeterminismProfile::ProviderNondeterministic,
         accounting: ModelWorkAccounting {

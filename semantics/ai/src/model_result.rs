@@ -2,12 +2,10 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    ConfidencePermille, ModelWorkAccounting,
     LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome, ModelResultDisposition,
     ModelResultInvalidity, ModelResultProvenance,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ConfidencePermille(pub u16);
 
 impl ModelResultDisposition {
     pub const fn terminal_outcome(self) -> LlmTerminalOutcome {
@@ -20,15 +18,6 @@ impl ModelResultDisposition {
             Self::ProviderLost => LlmTerminalOutcome::ProviderLost,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ModelWorkAccounting {
-    pub input_bytes: u64,
-    pub context_items: u64,
-    pub output_bytes: u64,
-    pub work_units: u64,
-    pub history_items: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,12 +44,6 @@ impl ModelDerivedResult {
         }
         if self.payload_kind != contract.result_payload_kind.as_str() {
             return Err(ModelResultInvalidity::UnsupportedPayloadKind);
-        }
-        if self
-            .confidence
-            .is_some_and(|confidence| confidence.0 > 1_000)
-        {
-            return Err(ModelResultInvalidity::InvalidConfidence);
         }
         if self.accounting.input_bytes > contract.bounds.maximum_input_bytes {
             return Err(ModelResultInvalidity::InputBoundExceeded);

@@ -10,6 +10,7 @@ use conduit_ai::{
 };
 use conduit_core::PortDirection;
 use conduit_core::PortTemporal;
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn produced(kind: &str) -> ModelDerivedResult {
     let contract = llm_contract(kind).unwrap();
@@ -28,10 +29,39 @@ fn produced(kind: &str) -> ModelDerivedResult {
         implementation_identity: "fixture/model-implementation@sha256:01".to_string(),
         request_identity: "request/0001@sha256:02".to_string(),
         run_identity: "run/0001@sha256:03".to_string(),
-        confidence: Some(ConfidencePermille(850)),
+        confidence: Some(ConfidencePermille::new(850).unwrap()),
         disposition: ModelResultDisposition::Produced,
         determinism: LlmDeterminismProfile::DeterministicValidationFixture,
     }
+}
+
+#[test]
+fn confidence_and_work_accounting_are_native_values() {
+    for value in [0, 1_000] {
+        let confidence = ConfidencePermille::new(value).unwrap();
+        assert_eq!(*confidence.get(), value);
+        assert_eq!(
+            ConfidencePermille::from_structured(confidence.into_structured().unwrap()).unwrap(),
+            confidence
+        );
+    }
+    assert!(ConfidencePermille::new(1_001).is_err());
+
+    let accounting = ModelWorkAccounting {
+        input_bytes: 1,
+        context_items: 2,
+        output_bytes: 3,
+        work_units: 4,
+        history_items: 5,
+    };
+    assert_eq!(
+        ModelWorkAccounting::from_structured(accounting.into_structured().unwrap()).unwrap(),
+        accounting
+    );
+
+    let source = include_str!("../src/model_result.rs");
+    assert!(!source.contains("pub struct ConfidencePermille"));
+    assert!(!source.contains("pub struct ModelWorkAccounting"));
 }
 
 #[test]
@@ -162,13 +192,6 @@ fn malformed_oversized_and_unsupported_results_fail_distinctly() {
     assert_eq!(
         result.validate(&contract),
         Err(ModelResultInvalidity::UnsupportedPayloadKind)
-    );
-
-    let mut result = produced(LLM_EXTRACT_KIND);
-    result.confidence = Some(ConfidencePermille(1_001));
-    assert_eq!(
-        result.validate(&contract),
-        Err(ModelResultInvalidity::InvalidConfidence)
     );
 
     let mut result = produced(LLM_EXTRACT_KIND);
