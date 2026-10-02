@@ -114,7 +114,7 @@ pub(super) fn capture(
         || checkpoint.len() > 64
         || !checkpoint
             .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte == b'-')
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
     {
         return Err(ConduitosError::refusal(
             "qemu-display-checkpoint-invalid",
