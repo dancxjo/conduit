@@ -502,6 +502,7 @@ type DrawRelationship =
     }
 
 type ProbabilityDigest = collection U8 = 32
+type ChunkIdentity = collection U8 = 32
 
 type StochasticProvenance = {
     model_artifact_identity: ProbabilityDigest
