@@ -16,8 +16,12 @@ export function exposePath(directory) {
 }
 export function rustInstalled(kind, requested, selected = toolchain(), run = command) {
   const installed = run('rustup', [kind, 'list', '--installed', '--toolchain', selected], output).stdout.trim().split(/\s+/);
-  // Component lists include the host triple, while target lists are exact.
-  return requested.filter(name => !installed.some(item => item === name || (kind === 'component' && item.startsWith(`${name}-`))));
+  // rustup accepts the historical llvm-tools-preview install alias but lists
+  // its canonical llvm-tools name. Target names still require exact matches.
+  return requested.filter(name => {
+    const names = kind === 'component' && name === 'llvm-tools-preview' ? [name, 'llvm-tools'] : [name];
+    return !installed.some(item => names.some(candidate => item === candidate || (kind === 'component' && item.startsWith(`${candidate}-`))));
+  });
 }
 export function ensureRust(kind, requested, selected = toolchain(), run = command, install = acquire) {
   const start = performance.now();

@@ -35,6 +35,12 @@ test('Rust installed checks use selected toolchain and exact targets', () => {
   assert.deepEqual(calls[0], ['rustup', 'component', 'list', '--installed', '--toolchain', '1.98.1']);
   assert.deepEqual(rustInstalled('target', ['x86_64-unknown-none'], '1.98.1', () => ({ stdout: 'x86_64-unknown-none-other' })), ['x86_64-unknown-none']);
 });
+test('LLVM tools install alias recognizes rustup canonical installed component', () => {
+  const run = () => ({ stdout: 'rust-src\nllvm-tools-x86_64-unknown-linux-gnu\n' });
+  assert.deepEqual(rustInstalled('component', ['rust-src', 'llvm-tools-preview'], '1.98.1', run), []);
+  ensureRust('component', ['llvm-tools-preview'], '1.98.1', run, () => assert.fail('installed LLVM tools must not be downloaded again'));
+  assert.deepEqual(rustInstalled('target', ['llvm-tools-preview'], '1.98.1', run), ['llvm-tools-preview']);
+});
 const receipt = (version = '0.16.0') => ({ installs: { [`espup ${version} (registry+https://github.com/rust-lang/crates.io-index)`]: { bins: ['espup'] } } });
 test('Cargo receipt rejects wrong version, source and executable', () => {
   assert.ok(cargoReceiptValid(receipt(), 'espup', '0.16.0', 'espup'));
