@@ -82,7 +82,7 @@ pub fn project_live_conversation_flow(
         .generation
         .map_or(LiveConversationStageState::Awaiting, |flow| {
             use conduit_ai::GeneratedTextFlowTerminal::*;
-            match flow.terminal {
+            match *flow.terminal() {
                 Completed => LiveConversationStageState::Completed,
                 Cancelled => LiveConversationStageState::Cancelled,
                 OutputBoundExhausted | Backpressured | ProviderLost | NonMonotonic => {
@@ -162,8 +162,8 @@ pub fn project_live_conversation_flow(
                 LiveConversationStageKind::GeneratedTextFlow,
                 generation_state,
                 None,
-                truth.generation.map_or(0, |flow| flow.chunks),
-                truth.generation.map_or(0, |flow| flow.generated_bytes),
+                truth.generation.map_or(0, |flow| *flow.chunks()),
+                truth.generation.map_or(0, |flow| *flow.generated_bytes()),
             ),
             stage(
                 LiveConversationStageKind::CommittedSpeech,
@@ -235,12 +235,13 @@ mod tests {
             false,
         )
         .unwrap();
-        let generation = GeneratedTextFlowEvidence {
-            chunks: 3,
-            generated_bytes: 42,
-            terminal: GeneratedTextFlowTerminal::Completed,
-            retained_private_text: false,
-        };
+        let generation = GeneratedTextFlowEvidence::new(
+            3,
+            42,
+            GeneratedTextFlowTerminal::Completed,
+            false,
+        )
+        .unwrap();
         let speech = SpeechCommitEvidenceView {
             stream_identity: "speech/live-1".into(),
             segment_count: 2,

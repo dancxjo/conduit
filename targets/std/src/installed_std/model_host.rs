@@ -95,7 +95,7 @@ pub(super) fn execute(
                     Err(_) => ModelHostCompletion::InvalidStructuredResult,
                 }
             }
-            LocalModelStreamStep::Terminal(evidence) => match evidence.terminal {
+            LocalModelStreamStep::Terminal(evidence) => match *evidence.terminal() {
                 conduit_ai::GeneratedTextFlowTerminal::Completed => {
                     ModelHostCompletion::StreamComplete
                 }

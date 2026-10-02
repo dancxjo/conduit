@@ -1,8 +1,10 @@
 //! Portable bounded accounting for monotonic generated-text deltas.
 
-use crate::{GeneratedTextChunk, GeneratedTextFlowRefusal, GeneratedTextFlowTerminal};
+use crate::{
+    GeneratedTextChunk, GeneratedTextFlowEvidence, GeneratedTextFlowRefusal,
+    GeneratedTextFlowTerminal,
+};
 use alloc::string::String;
-use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_GENERATED_TEXT_CHUNK_BYTES: usize = 4 * 1024;
 const GENERATED_TEXT_CHUNK_MAGIC: &[u8; 8] = b"CDTGTC01";
@@ -12,14 +14,6 @@ pub const MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES: usize =
     GENERATED_TEXT_CHUNK_HEADER_BYTES + MAXIMUM_GENERATED_TEXT_CHUNK_BYTES;
 pub const MAXIMUM_GENERATED_TEXT_CHUNKS: u64 = 4_096;
 pub const MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS: u16 = 8;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GeneratedTextFlowEvidence {
-    pub chunks: u64,
-    pub generated_bytes: u64,
-    pub terminal: GeneratedTextFlowTerminal,
-    pub retained_private_text: bool,
-}
 
 pub fn encode_generated_text_chunk(
     chunk: &GeneratedTextChunk,
@@ -119,12 +113,13 @@ impl BoundedGeneratedTextFlow {
 
     pub fn finish(&mut self, terminal: GeneratedTextFlowTerminal) -> GeneratedTextFlowEvidence {
         self.terminal.get_or_insert(terminal);
-        GeneratedTextFlowEvidence {
-            chunks: self.next_sequence,
-            generated_bytes: self.generated_bytes,
-            terminal: self.terminal.expect("terminal was inserted"),
-            retained_private_text: false,
-        }
+        GeneratedTextFlowEvidence::new(
+            self.next_sequence,
+            self.generated_bytes,
+            self.terminal.expect("terminal was inserted"),
+            false,
+        )
+        .expect("bounded generated-text flow preserves native evidence invariants")
     }
 }
 
@@ -163,6 +158,64 @@ mod tests {
     }
 
     #[test]
+    fn generated_text_flow_evidence_is_native_bounded_and_coherent() {
+        for evidence in [
+            GeneratedTextFlowEvidence::new(
+                0,
+                0,
+                GeneratedTextFlowTerminal::ProviderLost,
+                false,
+            )
+            .unwrap(),
+            GeneratedTextFlowEvidence::new(
+                MAXIMUM_GENERATED_TEXT_CHUNKS,
+                super::super::MAXIMUM_LLM_OUTPUT_BYTES,
+                GeneratedTextFlowTerminal::Completed,
+                false,
+            )
+            .unwrap(),
+        ] {
+            assert_eq!(
+                GeneratedTextFlowEvidence::from_structured(
+                    evidence.into_structured().unwrap(),
+                )
+                .unwrap(),
+                evidence
+            );
+        }
+        assert!(GeneratedTextFlowEvidence::new(
+            MAXIMUM_GENERATED_TEXT_CHUNKS + 1,
+            1,
+            GeneratedTextFlowTerminal::Completed,
+            false,
+        )
+        .is_err());
+        assert!(GeneratedTextFlowEvidence::new(
+            1,
+            super::super::MAXIMUM_LLM_OUTPUT_BYTES + 1,
+            GeneratedTextFlowTerminal::Completed,
+            false,
+        )
+        .is_err());
+        assert!(GeneratedTextFlowEvidence::new(
+            0,
+            1,
+            GeneratedTextFlowTerminal::Completed,
+            false,
+        )
+        .is_err());
+        assert!(GeneratedTextFlowEvidence::new(
+            1,
+            0,
+            GeneratedTextFlowTerminal::Completed,
+            false,
+        )
+        .is_err());
+        assert!(!include_str!("streaming_generation.rs")
+            .contains(concat!("pub struct ", "GeneratedTextFlowEvidence")));
+    }
+
+    #[test]
     fn ordered_deltas_reconstruct_exactly_without_runtime_retention() {
         let mut flow = BoundedGeneratedTextFlow::new(32).unwrap();
         let chunks = [
@@ -179,12 +232,13 @@ mod tests {
         assert_eq!(reconstructed, "Hello world.");
         assert_eq!(
             flow.finish(GeneratedTextFlowTerminal::Completed),
-            GeneratedTextFlowEvidence {
-                chunks: 2,
-                generated_bytes: 12,
-                terminal: GeneratedTextFlowTerminal::Completed,
-                retained_private_text: false,
-            }
+            GeneratedTextFlowEvidence::new(
+                2,
+                12,
+                GeneratedTextFlowTerminal::Completed,
+                false,
+            )
+            .unwrap()
         );
     }
 

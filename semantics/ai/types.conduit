@@ -212,6 +212,14 @@ type GeneratedTextChunk = {
     text: Text <= 4096B not in [""]
 }
 
+type GeneratedTextFlowEvidence = {
+    chunks: U64 in 0..=4096
+    generated_bytes: U64 in 0..=65536
+    terminal: GeneratedTextFlowTerminal
+    retained_private_text: Boolean
+    where (.chunks == 0) == (.generated_bytes == 0)
+}
+
 type TemporalSource =
     event
     | valid_from
