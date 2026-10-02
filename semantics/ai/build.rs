@@ -111,6 +111,7 @@ fn main() {
                 "ExtractionFields".into(),
                 "ExtractionKey".into(),
                 "ExtractionValue".into(),
+                "EmbeddingProfileIdentity".into(),
                 "FiniteF32".into(),
                 "NonnegativeFiniteF32".into(),
                 "TemporalEvidenceCandidates".into(),

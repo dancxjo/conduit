@@ -89,23 +89,55 @@ fn classification_and_extraction_round_trip_through_native_owners() {
 
 #[test]
 fn embedding_requires_exact_finite_dimensions_and_finite_values() {
-    let valid = FiniteEmbedding {
-        profile_identity: "fixture/embedding-3@1".into(),
-        dimensions: 3,
-        values: vec![0.25, -0.5, 1.0],
-    };
+    let valid = FiniteEmbedding::from_values("fixture/embedding-3@1".into(), vec![0.25, -0.5, 1.0])
+        .unwrap();
     assert_eq!(valid.validate(), Ok(()));
-
-    let mut invalid = valid.clone();
-    invalid.dimensions = 2;
+    assert_eq!(valid.values_f32(), vec![0.25, -0.5, 1.0]);
     assert_eq!(
-        invalid.validate(),
-        Err(StructuredResultInvalidity::DimensionMismatch)
+        FiniteEmbedding::from_structured(valid.clone().into_structured().unwrap()).unwrap(),
+        valid
     );
-    invalid.dimensions = 3;
-    invalid.values[1] = f32::NAN;
     assert_eq!(
-        invalid.validate(),
+        serde_json::to_value(&valid).unwrap(),
+        serde_json::json!({
+            "profile_identity": "fixture/embedding-3@1",
+            "dimensions": 3,
+            "values": [0.25, -0.5, 1.0]
+        })
+    );
+    assert_eq!(
+        serde_json::from_value::<FiniteEmbedding>(serde_json::json!({
+            "profile_identity": "fixture/embedding-3@1",
+            "dimensions": 3,
+            "values": [0.25, -0.5, 1.0]
+        }))
+        .unwrap(),
+        valid
+    );
+
+    assert_eq!(
+        FiniteEmbedding::from_values("fixture/embedding@1".into(), vec![]),
+        Err(StructuredResultInvalidity::Empty)
+    );
+    assert_eq!(
+        FiniteEmbedding::from_values("fixture/embedding@1".into(), vec![f32::NAN]),
         Err(StructuredResultInvalidity::NonFiniteValue)
     );
+    let maximum = FiniteEmbedding::from_values("fixture/embedding-4096@1".into(), vec![0.0; 4_096]);
+    assert!(maximum.is_ok(), "{maximum:?}");
+    assert_eq!(
+        FiniteEmbedding::from_values("fixture/embedding-4097@1".into(), vec![0.0; 4_097]),
+        Err(StructuredResultInvalidity::MemberTooLarge)
+    );
+    assert!(
+        serde_json::from_value::<FiniteEmbedding>(serde_json::json!({
+            "profile_identity": "fixture/embedding-3@1",
+            "dimensions": 2,
+            "values": [0.25, -0.5, 1.0]
+        }))
+        .is_err()
+    );
+
+    let source = include_str!("../src/structured_result.rs");
+    assert!(!source.contains("pub struct FiniteEmbedding"));
 }

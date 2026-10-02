@@ -61,7 +61,7 @@ pub fn invoke_hosted_model(
     artifact
         .validate(signature)
         .map_err(HostedModelRefusal::Compatibility)?;
-    if !signature.operations.contains(&operation) {
+    if !signature.operations().get().contains(&operation) {
         return Err(HostedModelRefusal::UnsupportedOperation);
     }
     if input_identity == [0; 32] {

@@ -2,8 +2,10 @@ use alloc::{string::String, vec::Vec};
 use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    ClassificationLabel, ClassificationLabels, ExtractedField, ExtractionFields, ExtractionKey,
-    ExtractionValue, FiniteClassification, StructuredResultInvalidity, ValidatedExtraction,
+    ClassificationLabel, ClassificationLabels, EmbeddingProfileIdentity, ExtractedField,
+    ExtractionFields, ExtractionKey, ExtractionValue, FiniteClassification, FiniteEmbedding,
+    FiniteEmbeddingValuePage, FiniteEmbeddingValuePages, FiniteF32, StructuredResultInvalidity,
+    ValidatedExtraction,
 };
 
 pub const MAXIMUM_CLASSIFICATION_LABELS: usize = 32;
@@ -13,13 +15,6 @@ pub const MAXIMUM_EXTRACTION_KEY_BYTES: usize = 64;
 pub const MAXIMUM_EXTRACTION_VALUE_BYTES: usize = 1_024;
 pub const MAXIMUM_EMBEDDING_PROFILE_BYTES: usize = 128;
 pub const MAXIMUM_EMBEDDING_DIMENSIONS: usize = 4_096;
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct FiniteEmbedding {
-    pub profile_identity: String,
-    pub dimensions: u32,
-    pub values: Vec<f32>,
-}
 
 impl FiniteClassification {
     pub fn from_strings(
@@ -125,22 +120,111 @@ impl ValidatedExtraction {
 }
 
 impl FiniteEmbedding {
-    pub fn validate(&self) -> Result<(), StructuredResultInvalidity> {
-        if self.profile_identity.is_empty() || self.values.is_empty() {
+    pub fn values_f32(&self) -> Vec<f32> {
+        self.values()
+            .get()
+            .iter()
+            .flat_map(|page| page.get().iter())
+            .map(|value| value.get().value())
+            .collect()
+    }
+
+    pub fn from_values(
+        profile_identity: String,
+        values: Vec<f32>,
+    ) -> Result<Self, StructuredResultInvalidity> {
+        if profile_identity.is_empty() || values.is_empty() {
             return Err(StructuredResultInvalidity::Empty);
         }
-        if self.profile_identity.len() > MAXIMUM_EMBEDDING_PROFILE_BYTES
-            || self.values.len() > MAXIMUM_EMBEDDING_DIMENSIONS
+        if profile_identity.len() > MAXIMUM_EMBEDDING_PROFILE_BYTES
+            || values.len() > MAXIMUM_EMBEDDING_DIMENSIONS
         {
             return Err(StructuredResultInvalidity::MemberTooLarge);
         }
-        if self.dimensions as usize != self.values.len() {
+        let dimensions =
+            u32::try_from(values.len()).map_err(|_| StructuredResultInvalidity::MemberTooLarge)?;
+        let values = values
+            .into_iter()
+            .map(|value| {
+                FiniteF32::new(conduit_core::IeeeF32::from(value))
+                    .map_err(|_| StructuredResultInvalidity::NonFiniteValue)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let pages = values
+            .chunks(1_024)
+            .map(|page| {
+                let page = BoundedSequence::try_from_iter(page.iter().copied())
+                    .map_err(|_| StructuredResultInvalidity::MemberTooLarge)?;
+                FiniteEmbeddingValuePage::new(page)
+                    .map_err(|_| StructuredResultInvalidity::MemberTooLarge)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let pages = BoundedSequence::try_from_iter(pages)
+            .map_err(|_| StructuredResultInvalidity::MemberTooLarge)?;
+        Self::new(
+            dimensions,
+            EmbeddingProfileIdentity::new(profile_identity)
+                .map_err(|_| StructuredResultInvalidity::MemberTooLarge)?,
+            FiniteEmbeddingValuePages::new(pages)
+                .map_err(|_| StructuredResultInvalidity::MemberTooLarge)?,
+        )
+        .map_err(|_| StructuredResultInvalidity::MemberTooLarge)
+    }
+
+    pub fn validate(&self) -> Result<(), StructuredResultInvalidity> {
+        let value_count = self
+            .values()
+            .get()
+            .iter()
+            .map(|page| page.get().len())
+            .sum::<usize>();
+        if *self.dimensions() as usize != value_count {
             return Err(StructuredResultInvalidity::DimensionMismatch);
         }
-        if self.values.iter().any(|value| !value.is_finite()) {
-            return Err(StructuredResultInvalidity::NonFiniteValue);
-        }
         Ok(())
+    }
+}
+
+impl serde::Serialize for FiniteEmbedding {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let values = self
+            .values()
+            .get()
+            .iter()
+            .flat_map(|page| page.get().iter())
+            .map(|value| value.get().value())
+            .collect::<Vec<_>>();
+        let mut state = serializer.serialize_struct("FiniteEmbedding", 3)?;
+        state.serialize_field("profile_identity", self.profile_identity().get())?;
+        state.serialize_field("dimensions", self.dimensions())?;
+        state.serialize_field("values", &values)?;
+        state.end()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for FiniteEmbedding {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        struct WireEmbedding {
+            profile_identity: String,
+            dimensions: u32,
+            values: Vec<f32>,
+        }
+
+        let wire = WireEmbedding::deserialize(deserializer)?;
+        let embedding = Self::from_values(wire.profile_identity, wire.values)
+            .map_err(|_| serde::de::Error::custom("invalid finite embedding"))?;
+        if *embedding.dimensions() != wire.dimensions {
+            return Err(serde::de::Error::custom("embedding dimension mismatch"));
+        }
+        Ok(embedding)
     }
 }
 

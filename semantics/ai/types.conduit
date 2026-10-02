@@ -231,6 +231,16 @@ type FiniteClassification = {
     allowed_labels: ClassificationLabels
 }
 
+type EmbeddingProfileIdentity = Text <= 128B not in [""]
+type FiniteEmbeddingValuePage = sequence FiniteF32 in 1..=1024
+type FiniteEmbeddingValuePages = sequence FiniteEmbeddingValuePage in 1..=4
+
+type FiniteEmbedding = {
+    profile_identity: EmbeddingProfileIdentity
+    dimensions: U32 in 1..=4096
+    values: FiniteEmbeddingValuePages
+}
+
 type ExtractionKey = Text <= 64B not in [""]
 type ExtractionValue = Text <= 1024B not in [""]
 

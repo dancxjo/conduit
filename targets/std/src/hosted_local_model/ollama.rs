@@ -491,13 +491,15 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                 let Some(values) = embedded.embeddings.into_iter().next() else {
                     return LocalModelAdapterTerminal::InvalidStructuredResult;
                 };
-                let result = FiniteEmbedding {
-                    profile_identity: format!(
+                let result = match FiniteEmbedding::from_values(
+                    format!(
                         "{}/{}",
                         self.offer.identity.model_name, self.offer.identity.model_content_identity
                     ),
-                    dimensions: values.len() as u32,
                     values,
+                ) {
+                    Ok(result) => result,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
                 if result.validate().is_err() {
                     return LocalModelAdapterTerminal::InvalidStructuredResult;

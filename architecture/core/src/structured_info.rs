@@ -32,7 +32,13 @@ pub use tuple::*;
 pub use validation::PreparedStructuredValueValidator;
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 16;
-pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 1_024;
+/// Aggregate-node ceiling for one structured type or value.
+///
+/// A single collection remains capped at 1,024 items. Larger finite semantic
+/// families compose bounded pages, so their total node budget must accommodate
+/// the established 4,096-item AI limits plus nominal and record framing. The
+/// canonical 256 KiB envelope remains the tighter byte bound.
+pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 16_384;
 pub const MAXIMUM_STRUCTURED_COLLECTION_ITEMS: usize = 1_024;
 pub const MAXIMUM_STRUCTURED_RECORD_FIELDS: usize = 64;
 pub const MAXIMUM_STRUCTURED_VARIANT_CASES: usize = 64;
