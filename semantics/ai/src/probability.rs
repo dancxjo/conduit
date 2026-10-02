@@ -4,8 +4,8 @@ use alloc::vec::Vec;
 use conduit_data::{SampledSignal, TensorElement, TensorValue};
 
 use crate::{
-    LogScoreKind, ProbabilisticDisposition, ProbabilityClaimProfile, ProbabilityRefusal,
-    ProbabilitySummary, StochasticProvenance,
+    LogProbability, LogScoreKind, ProbabilisticDisposition, ProbabilityClaimProfile,
+    ProbabilityRefusal, ProbabilitySummary, StochasticProvenance,
 };
 
 pub const MAXIMUM_PROBABILITY_SAMPLES: usize = 64;
@@ -48,16 +48,6 @@ pub struct MeanVariance {
 pub struct MeanCovariance {
     pub mean: TensorValue,
     pub covariance: TensorValue,
-    pub provenance: StochasticProvenance,
-    pub disposition: ProbabilisticDisposition,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LogProbability {
-    /// Natural logarithm of probability/density, in exact millionths.
-    pub natural_log_millionths: i64,
-    pub score_kind: LogScoreKind,
-    pub support_identity: [u8; 32],
     pub provenance: StochasticProvenance,
     pub disposition: ProbabilisticDisposition,
 }
@@ -206,12 +196,14 @@ impl MeanCovariance {
 
 impl LogProbability {
     pub fn validate(&self) -> Result<(), ProbabilityRefusal> {
-        nonzero(self.support_identity).map_err(|_| ProbabilityRefusal::InvalidLogProbability)?;
-        if self.score_kind == LogScoreKind::ProbabilityMass && self.natural_log_millionths > 0 {
+        nonzero(*self.support_identity().get())
+            .map_err(|_| ProbabilityRefusal::InvalidLogProbability)?;
+        if self.score_kind() == &LogScoreKind::ProbabilityMass && *self.natural_log_millionths() > 0
+        {
             return Err(ProbabilityRefusal::InvalidLogProbability);
         }
-        self.provenance.validate()?;
-        self.disposition.validate(None)
+        self.provenance().validate()?;
+        self.disposition().validate(None)
     }
 }
 

@@ -1,7 +1,7 @@
 use conduit_ai::{
-    DrawRelationship, LogScoreKind, ProbabilisticDisposition, ProbabilityClaimProfile,
-    ProbabilityDigest, ProbabilityRefusal, ProbabilitySummary, RandomnessProfile,
-    StochasticProvenance,
+    DrawRelationship, LogProbability, LogScoreKind, ProbabilisticDisposition,
+    ProbabilityClaimProfile, ProbabilityDigest, ProbabilityRefusal, ProbabilitySummary,
+    RandomnessProfile, StochasticProvenance,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -33,6 +33,24 @@ fn probability_vocabulary_has_native_identity_and_exact_round_trips() {
     ] {
         round_trip(value);
     }
+
+    round_trip(
+        LogProbability::new(
+            -250_000,
+            LogScoreKind::ProbabilityMass,
+            ProbabilityDigest::new([4; 32]).unwrap(),
+            StochasticProvenance::new(
+                ProbabilityDigest::new([1; 32]).unwrap(),
+                None,
+                ProbabilityDigest::new([3; 32]).unwrap(),
+                RandomnessProfile::Deterministic,
+                DrawRelationship::Independent,
+            )
+            .unwrap(),
+            ProbabilisticDisposition::Exact,
+        )
+        .unwrap(),
+    );
 
     for value in [
         ProbabilityRefusal::MissingIdentity,
@@ -83,6 +101,9 @@ fn probability_vocabulary_has_native_identity_and_exact_round_trips() {
         .contains(concat!("pub struct ", "StochasticProvenance")));
     assert!(!include_str!("../src/probability.rs")
         .contains(concat!("pub struct ", "ProbabilitySummary")));
+    assert!(
+        !include_str!("../src/probability.rs").contains(concat!("pub struct ", "LogProbability"))
+    );
 }
 
 #[test]

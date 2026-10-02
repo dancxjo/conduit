@@ -160,6 +160,16 @@ fn main() {
                     ],
                 ),
                 (
+                    "LogProbability".into(),
+                    vec![
+                        "natural_log_millionths".into(),
+                        "score_kind".into(),
+                        "support_identity".into(),
+                        "provenance".into(),
+                        "disposition".into(),
+                    ],
+                ),
+                (
                     "ProbabilitySummary".into(),
                     vec![
                         "claim_profile".into(),
