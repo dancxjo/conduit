@@ -1,4 +1,4 @@
-use conduit_ai::{AnswerSpan, SourceSpan, SourceSpanUnit};
+use conduit_ai::{AnswerSpan, ContextBudgetCost, RetrievalScore, SourceSpan, SourceSpanUnit};
 use conduit_form::rust_binding::NativeRustBinding;
 
 fn round_trip<T>(value: T)
@@ -23,4 +23,17 @@ fn rag_spans_are_native_nonempty_intervals() {
     let rust = include_str!("../src/rag_semantics.rs");
     assert!(!rust.contains(concat!("pub struct ", "SourceSpan")));
     assert!(!rust.contains(concat!("pub struct ", "AnswerSpan")));
+}
+
+#[test]
+fn retrieval_score_and_context_budget_are_native_values() {
+    round_trip(RetrievalScore::new(i64::MIN).unwrap());
+    round_trip(RetrievalScore::new(i64::MAX).unwrap());
+    round_trip(ContextBudgetCost::new(1, 0).unwrap());
+    round_trip(ContextBudgetCost::new(0, u32::MAX).unwrap());
+    assert!(ContextBudgetCost::new(0, 0).is_err());
+
+    let rust = include_str!("../src/rag_semantics.rs");
+    assert!(!rust.contains(concat!("pub struct ", "RetrievalScore")));
+    assert!(!rust.contains(concat!("pub struct ", "ContextBudgetCost")));
 }

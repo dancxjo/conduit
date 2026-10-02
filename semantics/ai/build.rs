@@ -65,9 +65,11 @@ fn main() {
                 "AnswerSpan".into(),
                 "CompatibleMetrics".into(),
                 "ContextOmission".into(),
+                "ContextBudgetCost".into(),
                 "IntegrationAccuracy".into(),
                 "IntegrationResourceEnvelope".into(),
                 "RerankObservation".into(),
+                "RetrievalScore".into(),
                 "SelectedContextCost".into(),
                 "SourceSpan".into(),
                 "GeneratedTextFlowEvidence".into(),
@@ -82,9 +84,11 @@ fn main() {
             copy_record_value_getters: [
                 "AnswerSpan".into(),
                 "ContextOmission".into(),
+                "ContextBudgetCost".into(),
                 "IntegrationAccuracy".into(),
                 "IntegrationResourceEnvelope".into(),
                 "RerankObservation".into(),
+                "RetrievalScore".into(),
                 "SelectedContextCost".into(),
                 "SourceSpan".into(),
                 "LlmWorkBounds".into(),
@@ -111,6 +115,10 @@ fn main() {
             .into(),
             record_constructor_orders: [
                 ("AnswerSpan".into(), vec!["start".into(), "end".into()]),
+                (
+                    "ContextBudgetCost".into(),
+                    vec!["bytes".into(), "tokens".into()],
+                ),
                 (
                     "ContextSelectionPolicy".into(),
                     vec![
@@ -143,6 +151,7 @@ fn main() {
                         "maximum_work_units".into(),
                     ],
                 ),
+                ("RetrievalScore".into(), vec!["value_micros".into()]),
                 (
                     "SourceSpan".into(),
                     vec!["unit".into(), "start".into(), "end".into()],
