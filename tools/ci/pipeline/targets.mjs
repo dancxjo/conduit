@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { cargo, command, copyFile, digest, xtask } from './targets/common.mjs';
 import { setup } from './targets/setup.mjs';
@@ -69,6 +69,7 @@ function conduitos(id, directory) {
   const profile = arch === 'x86_64' ? 'conduitos-native' : `conduitos-${arch}-${arch === 'ia32' ? 'pc' : 'virt'}`;
   xtask('make', 'host', 'build', `targets/conduitos/profiles/${profile}.host.conduit`, '--output', directory);
   xtask('make', 'host', 'verify', directory, '--boot');
+  if (arch === 'x86_64') xtask('make', 'host', 'verify', directory, '--journey');
   xtask('make', 'host', 'verify', directory);
   const evidence = path.join(process.env.CONDUIT_CONDUITOS_TARGET_ROOT || 'target/conduitos', arch);
   mkdirSync(path.join(directory, 'evidence'));
@@ -79,5 +80,12 @@ function conduitos(id, directory) {
   }
   if (!readdirSync(path.join(directory, 'evidence')).some(name => name.endsWith('-product-proof.json'))) {
     throw new Error(`${id} omitted its exact product boot proof`);
+  }
+  if (arch === 'x86_64') {
+    for (const name of ['workspace-proof.json', 'workspace-serial.log', 'workspace-qmp.log']) {
+      copyFile(path.join(evidence, name), path.join(directory, 'evidence', name));
+    }
+    cpSync(path.join(evidence, 'workspace-frames'), path.join(directory, 'evidence/workspace-frames'),
+      { recursive: true, errorOnExist: true, force: false });
   }
 }

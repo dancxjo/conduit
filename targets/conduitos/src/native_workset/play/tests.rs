@@ -8,7 +8,15 @@ fn kernel() -> (PreparedNativeWorkset, NativeWorksetPlay) {
     let (ids, offer) = native_workset::tests::fixture();
     let wake = native_workset::tests::wake(&native_workset::inventory());
     let prepared = native_workset::prepare(&wake, &ids, &offer, "build").unwrap();
-    let mut play = NativeWorksetPlay::prepare(&prepared).unwrap();
+    let born =
+        conduit_body::Body::born_with_plots(wake.workset.clone(), 1, "sign/born".into()).unwrap();
+    let membership = conduit_body::BodyMembership::new(born.body_id.clone()).unwrap();
+    let mut evidence =
+        conduit_body::BodyBiographyEvidence::born(born.clone(), membership, "Test Body".into())
+            .unwrap();
+    let (body, exact_wake) = born.wake(2, "sign/woke".into()).unwrap();
+    evidence.append_wake(body, exact_wake, 2).unwrap();
+    let mut play = NativeWorksetPlay::prepare_with_biography(&prepared, &evidence).unwrap();
     play.start().unwrap();
     (prepared, play)
 }
@@ -34,23 +42,30 @@ fn index(prepared: &PreparedNativeWorkset, plot: NativePlot) -> usize {
 }
 
 #[test]
-fn tour_initial_view_and_event_cross_the_same_production_kernel() {
+fn tutorial_initial_view_and_event_cross_the_same_production_kernel() {
     let (prepared, mut play) = kernel();
-    let tour = index(&prepared, NativePlot::Tour);
-    let initial = play.take_application_view(tour).unwrap();
+    let tutorial = index(&prepared, NativePlot::Tour);
+    let initial = play.take_application_view(tutorial).unwrap();
+    let action = initial
+        .actions
+        .iter()
+        .find(|action| action.id == "body.use-current")
+        .unwrap();
     let event = conduit_presentation::ApplicationEvent {
         revision: initial.revision,
-        action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
-        kind: conduit_presentation::ApplicationEventKind::Activate,
-        value: alloc::vec::Vec::new(),
+        action: action.id.clone(),
+        kind: action.event,
+        value: alloc::vec![],
     };
-    play.application_event(tour, &event.encode(&initial).unwrap())
+    play.application_event(tutorial, &event.encode(&initial).unwrap())
         .unwrap();
-    let current = play.take_application_view(tour).unwrap();
-    assert_eq!(current.revision, initial.revision + 1);
-    assert!(current.nodes.iter().any(|node| {
-        node.component == conduit_presentation::ApplicationComponent::PatchbayCanvas
-    }));
+    assert_eq!(play.take_application_view(tutorial).unwrap(), initial);
+    assert_eq!(
+        play.take_application_request(tutorial),
+        Some(native_workset::NativeApplicationRequest::Tutorial(
+            native_workset::TutorialAction::UseCurrent
+        ))
+    );
 }
 
 #[test]

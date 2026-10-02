@@ -29,7 +29,13 @@ impl FrontDoor {
             property(
                 &host,
                 "current-body",
-                PresentationPropertyValue::Text("none".into()),
+                self.journey
+                    .as_ref()
+                    .and_then(|journey| journey.body_id.as_ref())
+                    .map_or_else(
+                        || PresentationPropertyValue::Text("none".into()),
+                        |body| identity(body.as_str()),
+                    ),
             ),
             property(&host, "host-id", identity(self.host_id.as_str())),
             property(&host, "boot-id", identity(self.boot_id.as_str())),
@@ -248,7 +254,9 @@ impl FrontDoor {
                     }
                 } else {
                     PresentationBasis {
-                        body_id: None,
+                        // Rest retires execution, not the Body whose actions
+                        // this Face offers. Keep its authoritative identity.
+                        body_id: journey.body_id.clone(),
                         wake_id: None,
                         source_document_id: None,
                         checked_plot_id: None,

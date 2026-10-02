@@ -11,6 +11,7 @@ use conduit_kernel::{
 
 pub(super) fn prepare(
     prepared: &PreparedNativeWorkset,
+    evidence: Option<&conduit_body::BodyBiographyEvidence>,
 ) -> Result<NativeWorksetPlay, WorksetRefusal> {
     let parts = &prepared.lowered.partitions;
     let count = parts.len();
@@ -205,11 +206,26 @@ pub(super) fn prepare(
         {
             continue;
         }
-        *application = Some(match super::super::resolve(&planned.plot)? {
-            super::super::NativePlot::Tour => NativeApplication::Tour(Box::new(
+        let placement = planned.plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| {
+                placement.implementation_id.as_str()
+                    == super::super::application_delivery::STATE_IMPLEMENTATION
+            })
+            .ok_or(WorksetRefusal::Plan)?;
+        let selected = super::super::tutorial_application::selected_application(placement)?;
+        *application = Some(match selected {
+            "tutorial" => NativeApplication::Tutorial(
+                super::super::tutorial_application::TutorialApplication::prepare(
+                    evidence.ok_or(WorksetRefusal::Plan)?,
+                    conduit_tutorial_plot::TutorialPlayback::Playing,
+                )?,
+            ),
+            "tour" => NativeApplication::Tour(Box::new(
                 conduit_tour_model::TourApplicationPort::canonical(),
             )),
-            super::super::NativePlot::Patchbay => NativeApplication::Patchbay(
+            "patchbay" => NativeApplication::Patchbay(
                 super::super::application_delivery::PatchbayTargets::prepare(prepared, plot)?,
             ),
             _ => return Err(WorksetRefusal::Plan),

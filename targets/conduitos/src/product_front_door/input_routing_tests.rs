@@ -6,6 +6,7 @@ use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourPointerOutcome};
 
 use super::*;
+use crate::tour_product::TourProduct;
 use crate::{
     display::{DisplayError, DisplayFormat, PixelTarget},
     machine::{BaseError, IdleBase, InterruptBase, InterruptState, MonotonicClockBase, SerialBase},

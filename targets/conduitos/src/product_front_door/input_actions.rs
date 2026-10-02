@@ -149,11 +149,21 @@ pub(super) fn resident_application_action(
         super::F1 => Some(CHANGE_MASKS_ACTION_ID),
         _ => None,
     };
-    tour_action(usage)
-        .and_then(|action_id| view.actions.iter().find(|action| action.id == action_id))
+    (usage == super::F10)
+        .then(|| {
+            view.actions
+                .iter()
+                .find(|action| action.id.starts_with("body."))
+        })
+        .flatten()
         .or_else(|| {
-            patchbay_action
+            tour_action(usage)
                 .and_then(|action_id| view.actions.iter().find(|action| action.id == action_id))
+                .or_else(|| {
+                    patchbay_action.and_then(|action_id| {
+                        view.actions.iter().find(|action| action.id == action_id)
+                    })
+                })
         })
 }
 

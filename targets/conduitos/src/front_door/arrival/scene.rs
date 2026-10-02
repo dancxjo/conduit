@@ -195,7 +195,7 @@ impl Arrival {
         }
         line(
             416,
-            "Tab moves  ·  Arrows choose  ·  F9 visits Tour",
+            "Tab moves  ·  Arrows choose",
             false,
             GraphicsTextRole::Muted,
         )?;
