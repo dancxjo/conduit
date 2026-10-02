@@ -270,7 +270,11 @@ fn proposal_for_configuration(
         &interaction.contract,
         &interaction.state,
         interaction.state.revision.saturating_add(1),
-        InteractionProposalPayload::Values(vec![typed]),
+        InteractionProposalPayload::selected(vec![typed]).map_err(|refusal| {
+            FormEditorError::InvalidConfiguration(format!(
+                "common interaction payload refused: {refusal:?}"
+            ))
+        })?,
     )
     .map_err(|refusal| {
         FormEditorError::InvalidConfiguration(format!(
@@ -289,19 +293,19 @@ fn configuration_from_proposal(
             "configuration requires an absolute typed value".into(),
         ));
     };
-    let [value] = values.as_slice() else {
+    let [value] = values.get().as_slice() else {
         return Err(FormEditorError::InvalidConfiguration(
             "configuration requires exactly one typed value".into(),
         ));
     };
     match family {
-        InteractionFamily::Boolean if value.value_kind.as_str() == BOOL_INFO_ID => {
-            InfoBool::decode(&value.canonical_bytes)
+        InteractionFamily::Boolean if value.kind() == BOOL_INFO_ID => {
+            InfoBool::decode(value.bytes())
                 .map(|decoded| ConfigurationValue::Bool(decoded == InfoBool::TRUE))
                 .map_err(|_| FormEditorError::InvalidConfiguration("malformed Boolean".into()))
         }
-        InteractionFamily::Scalar(family) if value.value_kind.as_str() == QUANTITY_INFO_ID => {
-            let decoded = Quantity::decode(&value.canonical_bytes).map_err(|_| {
+        InteractionFamily::Scalar(family) if value.kind() == QUANTITY_INFO_ID => {
+            let decoded = Quantity::decode(value.bytes()).map_err(|_| {
                 FormEditorError::InvalidConfiguration("malformed scalar quantity".into())
             })?;
             if *family.unit() == conduit_core::QuantityUnit::Millionth {
@@ -341,15 +345,13 @@ fn configuration_from_proposal(
             }
         }
         InteractionFamily::ChooseOne(_) | InteractionFamily::Text(_) => {
-            core::str::from_utf8(&value.canonical_bytes)
+            core::str::from_utf8(value.bytes())
                 .map(|text| ConfigurationValue::Text(text.into()))
                 .map_err(|_| FormEditorError::InvalidConfiguration("malformed text".into()))
         }
-        _ if value.value_kind.as_str() == TEXT_INFO_ID => {
-            core::str::from_utf8(&value.canonical_bytes)
-                .map(|text| ConfigurationValue::Text(text.into()))
-                .map_err(|_| FormEditorError::InvalidConfiguration("malformed text".into()))
-        }
+        _ if value.kind() == TEXT_INFO_ID => core::str::from_utf8(value.bytes())
+            .map(|text| ConfigurationValue::Text(text.into()))
+            .map_err(|_| FormEditorError::InvalidConfiguration("malformed text".into())),
         _ => Err(FormEditorError::InvalidConfiguration(
             "unsupported configuration interaction family".into(),
         )),

@@ -293,6 +293,21 @@ type VisualExperienceRelationKind =
 
 type InteractionValueKind = Text <= 128B not in [""]
 type InteractionTypeDigest = collection U8 = 32
+type InteractionCanonicalBytes = Bytes <= 65536B
+
+type InteractionValue = {
+    value-kind: InteractionValueKind
+    canonical-bytes: InteractionCanonicalBytes
+}
+
+type InteractionValues = sequence InteractionValue <= 64
+
+type InteractionProposalPayload =
+    activate
+    | values InteractionValues
+    | relative {
+        value: InteractionValue
+    }
 
 type InteractionFamily =
     activate

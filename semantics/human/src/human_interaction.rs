@@ -4,8 +4,9 @@
 //! manifestation, application acceptance, and resulting state remain separate identities.
 
 use crate::{
-    BoundKind, InteractionApplicationOutcome, InteractionFamily, InteractionRefusal,
-    InteractionTypeDigest, InteractionValueKind, OptionAvailability,
+    BoundKind, InteractionApplicationOutcome, InteractionCanonicalBytes, InteractionFamily,
+    InteractionProposalPayload, InteractionRefusal, InteractionTypeDigest, InteractionValue,
+    InteractionValueKind, InteractionValues, OptionAvailability,
 };
 use alloc::{collections::VecDeque, string::String, vec::Vec};
 use conduit_core::{KindId, QuantityUnit, StructuredInfoValue};
@@ -100,22 +101,30 @@ impl InteractionFamily {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct InteractionValue {
-    pub value_kind: KindId,
-    pub canonical_bytes: Vec<u8>,
-}
-
 impl InteractionValue {
     pub fn new(value_kind: KindId, canonical_bytes: Vec<u8>) -> Result<Self, InteractionRefusal> {
         validate_identity(value_kind.as_str())?;
         if canonical_bytes.len() > MAXIMUM_INTERACTION_VALUE_BYTES {
             return Err(InteractionRefusal::ValueBoundExceeded);
         }
-        Ok(Self {
-            value_kind,
-            canonical_bytes,
-        })
+        Self::new_native(
+            InteractionCanonicalBytes::new(
+                conduit_form::rust_binding::BoundedBytes::new(&canonical_bytes)
+                    .ok_or(InteractionRefusal::ValueBoundExceeded)?,
+            )
+            .map_err(|_| InteractionRefusal::ValueBoundExceeded)?,
+            InteractionValueKind::new(value_kind.as_str().into())
+                .map_err(|_| InteractionRefusal::MalformedValue)?,
+        )
+        .map_err(|_| InteractionRefusal::MalformedValue)
+    }
+
+    pub fn kind(&self) -> &str {
+        self.value_kind().get().as_str()
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        self.canonical_bytes().get().as_slice()
     }
 
     pub fn structured(value: &StructuredInfoValue) -> Result<Self, InteractionRefusal> {
@@ -129,6 +138,18 @@ impl InteractionValue {
                 .canonical_bytes()
                 .map_err(|_| InteractionRefusal::MalformedValue)?,
         )
+    }
+}
+
+impl PartialOrd for InteractionValue {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for InteractionValue {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        (self.kind(), self.bytes()).cmp(&(other.kind(), other.bytes()))
     }
 }
 
@@ -224,11 +245,21 @@ impl InteractionCurrentState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum InteractionProposalPayload {
-    Activate,
-    Values(Vec<InteractionValue>),
-    Relative(InteractionValue),
+impl InteractionProposalPayload {
+    pub fn selected(values: Vec<InteractionValue>) -> Result<Self, InteractionRefusal> {
+        Self::values(
+            InteractionValues::new(
+                conduit_form::rust_binding::BoundedSequence::try_from_iter(values)
+                    .map_err(|_| InteractionRefusal::InvalidCardinality)?,
+            )
+            .map_err(|_| InteractionRefusal::InvalidCardinality)?,
+        )
+        .map_err(|_| InteractionRefusal::InvalidCardinality)
+    }
+
+    pub fn relative_value(value: InteractionValue) -> Result<Self, InteractionRefusal> {
+        Self::relative(value).map_err(|_| InteractionRefusal::MalformedValue)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -250,8 +281,10 @@ impl HumanInteractionProposal {
     ) -> Result<Self, InteractionRefusal> {
         validate_proposal(contract, state, &payload)?;
         if matches!(&contract.family, InteractionFamily::ChooseMany(_)) {
-            if let InteractionProposalPayload::Values(items) = &mut payload {
-                items.sort();
+            if let InteractionProposalPayload::Values(items) = &payload {
+                let mut sorted = items.get().as_slice().to_vec();
+                sorted.sort();
+                payload = InteractionProposalPayload::selected(sorted)?;
             }
         }
         let mut value = Self {
@@ -294,11 +327,11 @@ impl HumanInteractionProposal {
             InteractionProposalPayload::Activate => output.push(0),
             InteractionProposalPayload::Values(items) => {
                 output.push(1);
-                values(&mut output, items);
+                values(&mut output, items.get().as_slice());
             }
             InteractionProposalPayload::Relative(value) => {
                 output.push(2);
-                encode_value(&mut output, value);
+                encode_value(&mut output, value.value());
             }
         }
         output

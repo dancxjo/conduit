@@ -126,48 +126,51 @@ pub(super) fn validate_proposal(
     match (&contract.family, payload) {
         (InteractionFamily::Activate, InteractionProposalPayload::Activate) => Ok(()),
         (InteractionFamily::RelativeAdjustment(_), InteractionProposalPayload::Relative(value)) => {
-            validate_quantity(&contract.family, value)
+            validate_quantity(&contract.family, value.value())
         }
-        (_, InteractionProposalPayload::Values(values)) => match &contract.family {
-            InteractionFamily::Boolean => {
-                require_count(values, 1, 1)?;
-                validate_bool(&values[0])
+        (_, InteractionProposalPayload::Values(values)) => {
+            let values = values.get().as_slice();
+            match &contract.family {
+                InteractionFamily::Boolean => {
+                    require_count(values, 1, 1)?;
+                    validate_bool(&values[0])
+                }
+                InteractionFamily::ChooseOne(family) => {
+                    require_count(values, 1, 1)?;
+                    require_value_kind(values, family.value_kind().get())?;
+                    validate_selected(
+                        state
+                            .domain
+                            .as_ref()
+                            .ok_or(InteractionRefusal::InvalidDomain)?,
+                        values,
+                    )
+                }
+                InteractionFamily::ChooseMany(family) => {
+                    require_count(
+                        values,
+                        usize::from(*family.minimum_selections()),
+                        usize::from(*family.maximum_selections()),
+                    )?;
+                    reject_duplicate_values(values)?;
+                    require_value_kind(values, family.value_kind().get())?;
+                    validate_selected(
+                        state
+                            .domain
+                            .as_ref()
+                            .ok_or(InteractionRefusal::InvalidDomain)?,
+                        values,
+                    )
+                }
+                InteractionFamily::Scalar(_)
+                | InteractionFamily::Text(_)
+                | InteractionFamily::Structured(_) => {
+                    require_count(values, 1, 1)?;
+                    validate_value(&contract.family, &values[0])
+                }
+                _ => Err(InteractionRefusal::WrongValueKind),
             }
-            InteractionFamily::ChooseOne(family) => {
-                require_count(values, 1, 1)?;
-                require_value_kind(values, family.value_kind().get())?;
-                validate_selected(
-                    state
-                        .domain
-                        .as_ref()
-                        .ok_or(InteractionRefusal::InvalidDomain)?,
-                    values,
-                )
-            }
-            InteractionFamily::ChooseMany(family) => {
-                require_count(
-                    values,
-                    usize::from(*family.minimum_selections()),
-                    usize::from(*family.maximum_selections()),
-                )?;
-                reject_duplicate_values(values)?;
-                require_value_kind(values, family.value_kind().get())?;
-                validate_selected(
-                    state
-                        .domain
-                        .as_ref()
-                        .ok_or(InteractionRefusal::InvalidDomain)?,
-                    values,
-                )
-            }
-            InteractionFamily::Scalar(_)
-            | InteractionFamily::Text(_)
-            | InteractionFamily::Structured(_) => {
-                require_count(values, 1, 1)?;
-                validate_value(&contract.family, &values[0])
-            }
-            _ => Err(InteractionRefusal::WrongValueKind),
-        },
+        }
         _ => Err(InteractionRefusal::WrongValueKind),
     }
 }
@@ -181,27 +184,27 @@ fn validate_value(
             validate_quantity(family, value)
         }
         InteractionFamily::Text(family) => {
-            if value.value_kind.as_str() != TEXT_INFO_ID {
+            if value.kind() != TEXT_INFO_ID {
                 return Err(InteractionRefusal::WrongValueKind);
             }
-            if value.canonical_bytes.len() > *family.maximum_bytes() as usize {
+            if value.bytes().len() > *family.maximum_bytes() as usize {
                 return Err(InteractionRefusal::ValueBoundExceeded);
             }
-            if value.canonical_bytes.is_empty() && !family.allow_empty() {
+            if value.bytes().is_empty() && !family.allow_empty() {
                 return Err(InteractionRefusal::MalformedValue);
             }
-            core::str::from_utf8(&value.canonical_bytes)
+            core::str::from_utf8(value.bytes())
                 .map(|_| ())
                 .map_err(|_| InteractionRefusal::MalformedValue)
         }
         InteractionFamily::Structured(family) => {
-            if value.value_kind.as_str() != family.value_kind().get() {
+            if value.kind() != family.value_kind().get() {
                 return Err(InteractionRefusal::WrongValueKind);
             }
-            if value.canonical_bytes.len() > *family.maximum_bytes() as usize {
+            if value.bytes().len() > *family.maximum_bytes() as usize {
                 return Err(InteractionRefusal::ValueBoundExceeded);
             }
-            let structured = StructuredInfoValue::from_canonical_bytes(&value.canonical_bytes)
+            let structured = StructuredInfoValue::from_canonical_bytes(value.bytes())
                 .map_err(|_| InteractionRefusal::MalformedValue)?;
             let actual = structured
                 .value_type()
@@ -217,10 +220,10 @@ fn validate_value(
 }
 
 fn validate_bool(value: &InteractionValue) -> Result<(), InteractionRefusal> {
-    if value.value_kind.as_str() != BOOL_INFO_ID {
+    if value.kind() != BOOL_INFO_ID {
         return Err(InteractionRefusal::WrongValueKind);
     }
-    InfoBool::decode(&value.canonical_bytes)
+    InfoBool::decode(value.bytes())
         .map(|_| ())
         .map_err(|_| InteractionRefusal::MalformedValue)
 }
@@ -229,11 +232,11 @@ fn validate_quantity(
     family: &InteractionFamily,
     value: &InteractionValue,
 ) -> Result<(), InteractionRefusal> {
-    if value.value_kind.as_str() != QUANTITY_INFO_ID {
+    if value.kind() != QUANTITY_INFO_ID {
         return Err(InteractionRefusal::WrongValueKind);
     }
     let quantity =
-        Quantity::decode(&value.canonical_bytes).map_err(|_| InteractionRefusal::MalformedValue)?;
+        Quantity::decode(value.bytes()).map_err(|_| InteractionRefusal::MalformedValue)?;
     let (unit, minimum, minimum_bound, maximum, maximum_bound, granularity) = match family {
         InteractionFamily::Scalar(family) => (
             *family.unit(),
@@ -281,8 +284,8 @@ fn validate_domain<'a>(
     }
     for (index, option) in domain.options.iter().enumerate() {
         validate_identity(&option.identity)?;
-        if option.value.value_kind.as_str() != value_kind.get()
-            || option.value.canonical_bytes.len() > MAXIMUM_INTERACTION_VALUE_BYTES
+        if option.value.kind() != value_kind.get()
+            || option.value.bytes().len() > MAXIMUM_INTERACTION_VALUE_BYTES
             || domain.options[index + 1..].iter().any(|candidate| {
                 candidate.identity == option.identity || candidate.value == option.value
             })
@@ -343,10 +346,7 @@ fn require_value_kind(
     values: &[InteractionValue],
     expected: &str,
 ) -> Result<(), InteractionRefusal> {
-    if values
-        .iter()
-        .any(|value| value.value_kind.as_str() != expected)
-    {
+    if values.iter().any(|value| value.kind() != expected) {
         Err(InteractionRefusal::WrongValueKind)
     } else {
         Ok(())

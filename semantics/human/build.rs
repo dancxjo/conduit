@@ -32,6 +32,7 @@ fn main() {
                 "ExperienceSourceRefusal".into(),
                 "ExperienceUpdateRefusal".into(),
                 "InteractionFamily".into(),
+                "InteractionProposalPayload".into(),
                 "KeymapDisposition".into(),
                 "VisualExperienceRefusal".into(),
                 "VisualImpressionRefusal".into(),
@@ -72,6 +73,7 @@ fn main() {
             record_constructor_names: BTreeMap::from([
                 ("KeyEvent".into(), "new_native".into()),
                 ("ImageObservationReference".into(), "new_native".into()),
+                ("InteractionValue".into(), "new_native".into()),
             ]),
             serde_variant_orders: BTreeMap::from([
                 (

@@ -167,11 +167,12 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
         &interaction.contract,
         &interaction.state,
         1,
-        InteractionProposalPayload::Values(vec![InteractionValue::new(
+        InteractionProposalPayload::selected(vec![InteractionValue::new(
             KindId::from("configuration/text-choice@1"),
             b"triangle".to_vec(),
         )
-        .unwrap()]),
+        .unwrap()])
+        .unwrap(),
     )
     .unwrap();
     editor
