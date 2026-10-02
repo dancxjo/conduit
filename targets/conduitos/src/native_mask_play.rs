@@ -1,18 +1,17 @@
 //! Bounded execution of one ordinary Mask Plot through its plan-sealed Fore.
 
+mod backs;
+mod interaction;
 mod prepared;
 #[cfg(test)]
 mod tests;
+use backs::MaskBack;
+pub use interaction::NativeMaskInteractionSession;
 pub use prepared::PreparedNativeMaskPlay;
 
 use alloc::{string::String, vec::Vec};
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, StepBack, StepInputBytes, StepIo, StepOutcome,
-};
-use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallId, PortId, RequestId,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler};
+use conduit_kernel::{FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedValueStore};
 use conduit_plan_lowering::lowering::{
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment, lower_plan_fragment,
 };
@@ -26,13 +25,15 @@ const NODES: usize = 4;
 const CORDS: usize = 6;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = 4;
-const VALUES: usize = 10;
+// One value per fixed Cord queue slot plus one result per pending Host Call.
+const VALUES: usize = CORDS + NODES;
+const STORAGE_VALUE_BYTES: usize = conduit_presentation::MAX_FACE_INTERACTION_BYTES;
 const VALUE_BYTES: usize = VALUES * MAX_MASK_VALUE_BYTES;
 const SIGNS: usize = 96;
 
 type Scheduler = FixedScheduler<
     MaskBack,
-    FixedValueStore<VALUES, MAX_MASK_VALUE_BYTES>,
+    HostedValueStore,
     FixedSignLog<SIGNS>,
     NODES,
     CORDS,
@@ -74,112 +75,9 @@ pub enum NativeMaskPlayError {
     PendingRenderer,
     RendererMismatch,
     RendererFailed,
-}
-
-enum MaskBack {
-    ResourceSource,
-    Tee,
-    Renderer { pending: bool, emitted: bool },
-    Interaction { seen: u8 },
-}
-
-impl StepBack<PORTS> for MaskBack {
-    fn step(
-        &mut self,
-        io: &mut StepIo<PORTS>,
-        _input_bytes: &StepInputBytes<'_, PORTS>,
-    ) -> StepOutcome {
-        match self {
-            Self::ResourceSource => StepOutcome::Complete,
-            Self::Tee => pass_one(io),
-            Self::Renderer { pending, emitted } => render(pending, emitted, io),
-            Self::Interaction { seen } => correlate(seen, io),
-        }
-    }
-}
-
-fn pass_one(io: &mut StepIo<PORTS>) -> StepOutcome {
-    if let Some(value) = io.input(PortId(0)) {
-        if !io.output_ready(PortId(0)) {
-            return StepOutcome::Await;
-        }
-        if io.consume(PortId(0)).is_err() || io.send(PortId(0), value).is_err() {
-            return failure();
-        }
-        return StepOutcome::Progress;
-    }
-    if io.input_closed(PortId(0)) {
-        if io.consume_closed(PortId(0)).is_err() {
-            return failure();
-        }
-        return StepOutcome::Complete;
-    }
-    StepOutcome::Await
-}
-
-fn render(pending: &mut bool, emitted: &mut bool, io: &mut StepIo<PORTS>) -> StepOutcome {
-    if *pending {
-        let Some((request, outcome)) = io.host_completion() else {
-            return StepOutcome::Await;
-        };
-        let Some(output) = outcome.output else {
-            return failure();
-        };
-        if request != RequestId(0)
-            || outcome.disposition != HostCallDisposition::Completed
-            || outcome.failure.is_some()
-            || !io.output_ready(PortId(0))
-            || io.consume_host_completion().is_err()
-            || io.send(PortId(0), output.value).is_err()
-        {
-            return failure();
-        }
-        *pending = false;
-        *emitted = true;
-        return StepOutcome::Progress;
-    }
-    if !*emitted && let Some(value) = io.input(PortId(0)) {
-        let Ok(value) = BoundedValueRef::new(value, MAX_MASK_VALUE_BYTES as u32) else {
-            return failure();
-        };
-        if io.consume(PortId(0)).is_err()
-            || io
-                .request_host_call(RequestId(0), HostCallId(0), value)
-                .is_err()
-        {
-            return failure();
-        }
-        *pending = true;
-        return StepOutcome::Progress;
-    }
-    if *emitted {
-        return StepOutcome::Complete;
-    }
-    StepOutcome::Await
-}
-
-fn correlate(seen: &mut u8, io: &mut StepIo<PORTS>) -> StepOutcome {
-    for port in 0..2 {
-        let port = PortId(port);
-        if *seen & (1 << port.0) == 0 && io.input(port).is_some() {
-            if io.consume(port).is_err() {
-                return failure();
-            }
-            *seen |= 1 << port.0;
-            return StepOutcome::Progress;
-        }
-    }
-    if *seen == 0b11 {
-        return StepOutcome::Complete;
-    }
-    StepOutcome::Await
-}
-
-fn failure() -> StepOutcome {
-    StepOutcome::Fail(conduit_kernel::Failure {
-        code: conduit_kernel::FailureCode::InvalidLifecycle,
-        detail: 1,
-    })
+    Interaction(conduit_presentation::FaceInteractionRefusal),
+    Pressure,
+    Cancelled,
 }
 
 #[derive(Serialize)]
@@ -231,6 +129,7 @@ fn scheduler(
     if !matches!(lowered.nodes.len(), 3 | NODES) || lowered.cords.len() != CORDS {
         return Err(NativeMaskPlayError::Shape);
     }
+    let value_bytes = admitted_value_bytes(lowered)?;
     let mut node_specs = lowered.node_specs.clone();
     if node_specs.len() == 3 {
         node_specs.push(conduit_kernel::scheduler::NodeSpec {
@@ -280,7 +179,10 @@ fn scheduler(
                     emitted: false,
                 })
             }
-            conduit_presentation::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction { seen: 0 }),
+            conduit_presentation::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction {
+                seen_face: false,
+                pending: false,
+            }),
             _ => Err(NativeMaskPlayError::Shape),
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -288,7 +190,7 @@ fn scheduler(
         drivers.push(MaskBack::ResourceSource);
     }
     let drivers = drivers.try_into().map_err(|_| NativeMaskPlayError::Shape)?;
-    let values = FixedValueStore::<VALUES, MAX_MASK_VALUE_BYTES>::new(VALUE_BYTES as u32)
+    let values = HostedValueStore::new(VALUES as u16, STORAGE_VALUE_BYTES as u32, value_bytes)
         .map_err(|_| NativeMaskPlayError::Value)?;
     let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
         lowered
@@ -300,4 +202,32 @@ fn scheduler(
     .map_err(|_| NativeMaskPlayError::Kernel)?;
     FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|_| NativeMaskPlayError::SchedulerCreate)
+}
+
+/// The preallocated store reserves 10 slots of 8192 bytes at preparation; its live
+/// byte budget follows the admitted Cord queues plus the two bounded Host Call
+/// results. Native rendering narrows its larger semantic offer to 4096 bytes;
+/// interaction retains its declared 8192-byte bound. No budget grows during Play.
+fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMaskPlayError> {
+    if usize::from(lowered.cord_value_slots) > CORDS || lowered.host_calls.len() != 2 {
+        return Err(NativeMaskPlayError::Shape);
+    }
+    let mut bytes = lowered.cord_value_bytes;
+    for call in &lowered.host_calls {
+        if call.maximum_in_flight != 1 {
+            return Err(NativeMaskPlayError::Shape);
+        }
+        let bound = match call.contract_id.as_str() {
+            "conduit.host/present@1" => MAX_MASK_VALUE_BYTES,
+            "conduit.host/presentation-interaction@1" => STORAGE_VALUE_BYTES,
+            _ => return Err(NativeMaskPlayError::Shape),
+        } as u32;
+        bytes = bytes
+            .checked_add(call.binding.maximum_output_bytes.min(bound))
+            .ok_or(NativeMaskPlayError::Pressure)?;
+    }
+    if bytes as usize > VALUE_BYTES {
+        return Err(NativeMaskPlayError::Pressure);
+    }
+    Ok(bytes)
 }
