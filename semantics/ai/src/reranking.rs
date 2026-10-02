@@ -3,20 +3,12 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankScore, RerankingProofClass,
-    RerankingRefusal, RerankingStrategy, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
-    MAXIMUM_RAG_IDENTITY_BYTES,
+    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankScore, RerankingPolicy,
+    RerankingProofClass, RerankingRefusal, RerankingStrategy,
+    MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
 };
 
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RerankingPolicy {
-    pub identity: String,
-    pub strategy: RerankingStrategy,
-    pub maximum_candidates: u16,
-    pub maximum_work_units: u32,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RerankObservation {
@@ -48,12 +40,8 @@ impl RerankingPolicy {
         candidates: &[HybridCandidate<ExtractedSourceValue>],
         observations: &[RerankObservation],
     ) -> Result<RerankingReceipt, RerankingRefusal> {
-        validate_identity(&self.identity)?;
-        validate_candidates(candidates, self.maximum_candidates)?;
-        if self.maximum_work_units == 0 || self.maximum_work_units > MAXIMUM_RERANKING_WORK_UNITS {
-            return Err(RerankingRefusal::InvalidBound);
-        }
-        let (proof_class, mut work_units) = match &self.strategy {
+        validate_candidates(candidates, *self.maximum_candidates())?;
+        let (proof_class, mut work_units) = match self.strategy() {
             RerankingStrategy::PreserveHybridFusion => {
                 if !observations.is_empty() {
                     return Err(RerankingRefusal::UnexpectedObservation);
@@ -79,12 +67,12 @@ impl RerankingPolicy {
                     .map_err(|_| RerankingRefusal::ArithmeticOverflow)?,
             )
             .ok_or(RerankingRefusal::ArithmeticOverflow)?;
-        if work_units > self.maximum_work_units {
+        if work_units > *self.maximum_work_units() {
             return Err(RerankingRefusal::WorkBoundExceeded);
         }
         let mut reranked = Vec::with_capacity(candidates.len());
         for candidate in candidates {
-            let score = match &self.strategy {
+            let score = match self.strategy() {
                 RerankingStrategy::PreserveHybridFusion => {
                     RerankScore::HybridFusion(candidate.fusion_score_micros)
                 }
@@ -109,7 +97,7 @@ impl RerankingPolicy {
                 u16::try_from(index + 1).map_err(|_| RerankingRefusal::ArithmeticOverflow)?;
         }
         Ok(RerankingReceipt {
-            policy_identity: self.identity.clone(),
+            policy_identity: self.identity().clone(),
             proof_class,
             candidates: reranked,
             work_units,
@@ -190,14 +178,4 @@ fn compare_reranked(left: &RerankedCandidate, right: &RerankedCandidate) -> core
             .identity
             .cmp(&right.candidate.chunk.identity)
     })
-}
-
-fn validate_identity(identity: &str) -> Result<(), RerankingRefusal> {
-    if identity.is_empty() {
-        return Err(RerankingRefusal::EmptyIdentity);
-    }
-    if identity.len() > MAXIMUM_RAG_IDENTITY_BYTES {
-        return Err(RerankingRefusal::IdentityTooLarge);
-    }
-    Ok(())
 }

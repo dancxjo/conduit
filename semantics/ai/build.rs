@@ -71,6 +71,15 @@ fn main() {
                     ],
                 ),
                 (
+                    "RerankingPolicy".into(),
+                    vec![
+                        "identity".into(),
+                        "strategy".into(),
+                        "maximum_candidates".into(),
+                        "maximum_work_units".into(),
+                    ],
+                ),
+                (
                     "ValidatedExtraction".into(),
                     vec!["schema_identity".into(), "fields".into()],
                 ),

@@ -38,7 +38,7 @@ pub use generated::{
     PromotionDecision, PromotionTerminal, R3OfferInvalidity, RagAnswerOfferInvalidity,
     RandomnessProfile, RandomnessProfileExplicitSeed, RandomnessProfileProviderChosen,
     RelationQueryMode, RelationRefusal, RelationResultProfile, RelationResultProfileProbabilistic,
-    RelationTerminal, RerankScore, RerankingProofClass, RerankingRefusal, RerankingStrategy,
+    RelationTerminal, RerankScore, RerankingPolicy, RerankingProofClass, RerankingRefusal, RerankingStrategy,
     RerankingStrategyObservedScores, RetrievalMechanism, RetrievalMechanismCode, RollbackTerminal,
     SelectedContextRationale, ShadowTerminal, SimilarityMetric, SimilarityScore,
     SimilarityThreshold, SourceExtractionOfferInvalidity, SourceExtractionProfile,
