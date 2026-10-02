@@ -307,7 +307,7 @@ fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     assert!(view.nodes.iter().any(|node| node.text == "Wake this body"));
     assert!(view.actions.iter().any(|action| action.id == "body.wake"));
     assert!(view.nodes.iter().any(|node| {
-        node.text.contains("Purpose · exact readiness") && node.text.contains("not ready")
+        node.text.contains("Lifecycle evidence") && node.text.contains("Not yet fulfilled.")
     }));
 }
 

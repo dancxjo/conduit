@@ -48,12 +48,11 @@ fn placement(adapter: &EspeakSpeechAdapter) -> PlannedGear {
     let offer = adapter.offer();
     let resource = adapter.resource_offer();
     let grant = adapter.authority_grant();
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
         placement_id: "placement/speech".into(),
         gear_id: "speech".into(),
         kind_id: offer.kind_id,
         kind_contract_revision: offer.kind_contract_revision,
-        source_span: None,
         execution_profile_id: offer.implementation.execution_profile_id,
         configuration: vec![ConfigurationEntry {
             key: "maximum-output-bytes".into(),
