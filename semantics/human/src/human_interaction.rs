@@ -1,7 +1,10 @@
-//! Portable finite human-interaction semantics.
+//! Native human-interaction meaning with bounded construction and state machinery.
 //!
-//! These contracts describe semantic state and proposals. Presentation, renderer-local focus,
-//! manifestation, application acceptance, and resulting state remain separate identities.
+//! Conduitese owns every portable family, value, proposal, availability,
+//! outcome and refusal. The remaining Rust contracts validate relationships,
+//! retain canonical structured views, and advance bounded proposal state
+//! (classes C/M). Presentation, renderer-local focus, manifestation,
+//! application acceptance, and resulting state remain separate identities.
 
 use crate::{
     BoundKind, InteractionApplicationOutcome, InteractionCanonicalBytes, InteractionFamily,

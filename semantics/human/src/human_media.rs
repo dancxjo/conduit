@@ -1,8 +1,11 @@
-//! Portable, finite contracts for permission-gated human media.
+//! Finite realization contracts for permission-gated human media.
 //!
 //! Acquisition and semantic use are deliberately separate planning events.
 //! Browser device identifiers and permission APIs are host-adapter truth and
-//! therefore never appear in these contracts.
+//! therefore never appear in these contracts. Offers, initialized
+//! implementations, authority, reservations, plans, resource availability and
+//! active instances are realization or runtime truth (classes R/M); the
+//! portable media-kind vocabulary alone is owned by Human Conduitese.
 
 use crate::HumanMediaKind;
 use conduit_core::{

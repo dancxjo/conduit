@@ -1,4 +1,8 @@
 //! Bounded, revision-exact evolution of a [`CurrentExperience`](crate::CurrentExperience).
+//!
+//! Revisions, pending operations and retained snapshots are internal state
+//! transitions (class M). Portable outcomes are the native refusal and current
+//! projection Types; this queue is not a second semantic protocol.
 
 use alloc::{boxed::Box, vec::Vec};
 

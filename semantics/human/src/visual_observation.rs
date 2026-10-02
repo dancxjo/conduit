@@ -1,4 +1,10 @@
-//! Bounded typed visual observations over an exact image resource generation.
+//! Validated construction views over an exact image resource generation.
+//!
+//! Portable visual meaning is owned by the native Types in
+//! `semantics/presentation/types.conduit`. This module keeps the Human-facing
+//! assembly view over core execution identities; the Catalog bridge converts
+//! it losslessly into that native family. It is construction machinery (C),
+//! not a second portable schema.
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
