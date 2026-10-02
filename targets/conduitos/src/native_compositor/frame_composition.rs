@@ -10,6 +10,9 @@ impl NativeCompositor {
         &mut self,
         target: &mut impl PixelTarget,
     ) -> Result<FrameReceipt, NativeCompositorError> {
+        // Invalidate before the first fallible operation: partial writes cannot
+        // preserve acknowledgement of a prior successful frame.
+        self.scanout_pixels = [0; super::MAX_COMPOSITOR_SURFACES];
         let format = target.format().validate()?;
         let mut damage_rects = [DamageRect::default(); MAX_DAMAGE_RECTS];
         let mut damage_count = 0_usize;
@@ -19,7 +22,7 @@ impl NativeCompositor {
                 damage_count += 1;
             }
         }
-        let (pixels_written, surfaces_composed) = compose_damage(
+        let (pixels_written, surfaces_composed, scanout_pixels) = compose_damage(
             target,
             format,
             &self.surfaces,
@@ -43,6 +46,7 @@ impl NativeCompositor {
             cursor_visible: self.cursor.is_some(),
             focus_visible: self.focused_surface.is_some(),
         };
+        self.scanout_pixels = scanout_pixels;
         self.damage.clear();
         Ok(receipt)
     }
@@ -56,9 +60,10 @@ pub(super) fn compose_damage(
     focused_surface: Option<&str>,
     cursor: Option<(u32, u32)>,
     cursor_hover: bool,
-) -> Result<(u32, u8), NativeCompositorError> {
+) -> Result<(u32, u8, [u32; super::MAX_COMPOSITOR_SURFACES]), NativeCompositorError> {
     let mut count = 0_u32;
-    let mut composed = [false; super::MAX_COMPOSITOR_SURFACES];
+    let mut selected_surfaces = [false; super::MAX_COMPOSITOR_SURFACES];
+    let mut composed = [0_u32; super::MAX_COMPOSITOR_SURFACES];
     for rect in damage {
         let bottom = rect
             .y
@@ -80,29 +85,44 @@ pub(super) fn compose_damage(
                     .filter(|(_, surface)| contains(surface, x, y))
                     .max_by_key(|(index, surface)| (surface.z, *index));
                 let mut pixel = if let Some((index, surface)) = selected {
-                    composed[index] = true;
+                    selected_surfaces[index] = true;
                     surface_pixel(surface, x, y)?
                 } else {
                     0
                 };
-                if focused_surface.is_some_and(|id| focus_pixel(surfaces, id, x, y)) {
+                let focus = focused_surface.is_some_and(|id| focus_pixel(surfaces, id, x, y));
+                let cursor_pixel =
+                    cursor.and_then(|position| cursor_color(position, x, y, cursor_hover));
+                if focus {
                     pixel = crate::display::profile::FOCUS;
                 }
-                if let Some(cursor_pixel) =
-                    cursor.and_then(|position| cursor_color(position, x, y, cursor_hover))
-                {
+                if let Some(cursor_pixel) = cursor_pixel {
                     pixel = cursor_pixel;
                 }
                 target.write_pixel(x, y, pixel)?;
+                // Overlay-only pixels do not demonstrate the surface itself.
+                if !focus
+                    && cursor_pixel.is_none()
+                    && let Some((index, _)) = selected
+                {
+                    composed[index] = composed[index]
+                        .checked_add(1)
+                        .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
+                }
                 count = count
                     .checked_add(1)
                     .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
             }
         }
     }
-    let surfaces_composed = u8::try_from(composed.into_iter().filter(|value| *value).count())
-        .map_err(|_| NativeCompositorError::SurfaceCapacityExceeded)?;
-    Ok((count, surfaces_composed))
+    Ok((
+        count,
+        selected_surfaces
+            .into_iter()
+            .filter(|selected| *selected)
+            .count() as u8,
+        composed,
+    ))
 }
 
 fn focus_pixel(surfaces: &[CompositorSurface], id: &str, x: u32, y: u32) -> bool {

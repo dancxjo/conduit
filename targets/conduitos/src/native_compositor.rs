@@ -4,8 +4,10 @@ mod damage;
 mod frame_composition;
 mod input_routing;
 mod interaction_affordance;
+mod scanout_acknowledgement;
 mod surface_buffer;
 mod surface_lifecycle;
+pub use scanout_acknowledgement::ScanoutAcknowledgement;
 
 #[cfg(not(feature = "native-compositor"))]
 use crate::display::render_scene;
@@ -219,6 +221,7 @@ pub struct NativeCompositor {
     cursor: Option<(u32, u32)>,
     cursor_hover: bool,
     frame_sequence: u64,
+    scanout_pixels: [u32; MAX_COMPOSITOR_SURFACES],
     admitted_pixels: usize,
     buffer_pool: SurfaceBufferPool,
     damage: DamageState,
@@ -233,6 +236,7 @@ impl NativeCompositor {
             cursor: None,
             cursor_hover: false,
             frame_sequence: 0,
+            scanout_pixels: [0; MAX_COMPOSITOR_SURFACES],
             admitted_pixels: 0,
             buffer_pool: SurfaceBufferPool::new(),
             damage: DamageState::new(),
@@ -280,6 +284,7 @@ impl NativeCompositor {
             return Err(NativeCompositorError::SurfaceCapacityExceeded);
         }
         let buffer = self.buffer_pool.take(bounds)?;
+        self.scanout_pixels = [0; MAX_COMPOSITOR_SURFACES];
         self.surfaces.push(CompositorSurface {
             surface_id: surface_id.into(),
             bounds,
@@ -325,6 +330,9 @@ impl NativeCompositor {
                 return Err(NativeCompositorError::StaleSurfaceRevision);
             }
         }
+        // A failed raster update must not leave the old revision routable.
+        surface.receipt = None;
+        self.scanout_pixels = [0; MAX_COMPOSITOR_SURFACES];
         surface.buffer.clear();
         #[cfg(feature = "native-compositor")]
         let display =
