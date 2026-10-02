@@ -13,7 +13,7 @@ use conduit_core::{
 use crate::{
     llm_contract, GeneratedTextChunk, ModelDerivedResult, ModelResultDisposition, ModelTextRefusal,
     GENERATED_RESULT_VALUE_KIND, GENERATED_TEXT_CHUNK_VALUE_KIND, LLM_GENERATE_KIND,
-    MAXIMUM_GENERATED_TEXT_CHUNK_BYTES, MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS, TEXT_VALUE_KIND,
+    MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS, TEXT_VALUE_KIND,
 };
 
 pub const MODEL_RESULT_TO_TEXT_KIND: &str = "llm/result-to-text";
@@ -97,13 +97,7 @@ pub fn project_encoded_generated_chunk_text(encoded: &[u8]) -> Result<Vec<u8>, M
 }
 
 pub fn project_generated_chunk_text(chunk: &GeneratedTextChunk) -> Result<&str, ModelTextRefusal> {
-    if chunk.text.is_empty() {
-        return Err(ModelTextRefusal::EmptyText);
-    }
-    if chunk.text.len() > MAXIMUM_GENERATED_TEXT_CHUNK_BYTES {
-        return Err(ModelTextRefusal::TextBoundExceeded);
-    }
-    Ok(&chunk.text)
+    Ok(chunk.text())
 }
 
 fn model_text_contract(kind: &str, revision: &str, temporal: PortTemporal) -> ModelTextContract {
@@ -248,17 +242,8 @@ mod tests {
 
     #[test]
     fn generated_chunks_project_as_incremental_text_without_batching() {
-        let chunk = GeneratedTextChunk {
-            sequence: 3,
-            text: "incremental".into(),
-        };
+        let chunk = GeneratedTextChunk::new(3, "incremental".into()).unwrap();
         assert_eq!(project_generated_chunk_text(&chunk), Ok("incremental"));
-        assert_eq!(
-            project_generated_chunk_text(&GeneratedTextChunk {
-                sequence: 4,
-                text: String::new(),
-            }),
-            Err(ModelTextRefusal::EmptyText)
-        );
+        assert!(GeneratedTextChunk::new(4, String::new()).is_err());
     }
 }

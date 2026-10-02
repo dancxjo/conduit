@@ -46,13 +46,10 @@ fn context() -> BodyConversationContext {
 #[test]
 fn committed_external_barge_in_cancels_generation_and_pending_speech_exactly() {
     let mut generation = BoundedGeneratedTextFlow::new(256).unwrap();
-    let first = GeneratedTextChunk {
-        sequence: 0,
-        text: "Already audible. unfinished".into(),
-    };
+    let first = GeneratedTextChunk::new(0, "Already audible. unfinished".into()).unwrap();
     generation.admit(&first).unwrap();
     let mut speech = StreamingSpeechCommitter::new("answer/barge-in").unwrap();
-    let committed_segments = speech.push(&first.text).unwrap();
+    let committed_segments = speech.push(first.text()).unwrap();
     assert_eq!(committed_segments.len(), 1);
     let committed_pcm = fake_tts(&committed_segments[0].text);
     assert!(!committed_pcm.is_empty());
@@ -190,14 +187,8 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
         .any(|window| window == user_text.as_bytes()));
 
     let chunks = [
-        GeneratedTextChunk {
-            sequence: 0,
-            text: "The body is awake. ".into(),
-        },
-        GeneratedTextChunk {
-            sequence: 1,
-            text: "Its current context is bounded.".into(),
-        },
+        GeneratedTextChunk::new(0, "The body is awake. ".into()).unwrap(),
+        GeneratedTextChunk::new(1, "Its current context is bounded.".into()).unwrap(),
     ];
     let mut generation = BoundedGeneratedTextFlow::new(256).unwrap();
     let mut speech = StreamingSpeechCommitter::new("answer/fake-one").unwrap();
@@ -222,7 +213,7 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     let generation_evidence = generation.finish(GeneratedTextFlowTerminal::Completed);
     let expected = chunks
         .iter()
-        .map(|chunk| chunk.text.as_str())
+        .map(|chunk| chunk.text().as_str())
         .collect::<String>();
     assert_eq!(submitted_text, expected);
     assert!(first_audio_before_generation_closed);

@@ -175,9 +175,13 @@ impl Session {
                 );
             };
             if !response.response.is_empty() {
-                let chunk = conduit_ai::GeneratedTextChunk {
-                    sequence: self.flow.next_sequence(),
-                    text: response.response,
+                let Ok(chunk) = conduit_ai::GeneratedTextChunk::new(
+                    self.flow.next_sequence(),
+                    response.response,
+                ) else {
+                    return Step::Terminal(
+                        self.finish(conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted),
+                    );
                 };
                 if self.flow.admit(&chunk).is_err() {
                     return Step::Terminal(
@@ -255,9 +259,13 @@ fn decode(
             return flow.finish(conduit_ai::GeneratedTextFlowTerminal::ProviderLost);
         };
         if !response.response.is_empty() {
-            let chunk = conduit_ai::GeneratedTextChunk {
-                sequence: flow.next_sequence(),
-                text: response.response,
+            let Ok(chunk) = conduit_ai::GeneratedTextChunk::new(
+                flow.next_sequence(),
+                response.response,
+            ) else {
+                return flow.finish(
+                    conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted,
+                );
             };
             if flow.admit(&chunk).is_err() {
                 return flow.finish(conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted);
@@ -305,7 +313,7 @@ mod tests {
         assert_eq!(
             chunks
                 .iter()
-                .map(|chunk| chunk.text.as_str())
+                .map(|chunk| chunk.text().as_str())
                 .collect::<String>(),
             "First sentence. Later text."
         );

@@ -39,6 +39,7 @@ fn main() {
                 "CompatibleMetrics".into(),
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
+                "GeneratedTextChunk".into(),
                 "ValidatedExtraction".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
@@ -90,6 +91,10 @@ fn main() {
                         "maximum_citations".into(),
                         "maximum_work_units".into(),
                     ],
+                ),
+                (
+                    "GeneratedTextChunk".into(),
+                    vec!["sequence".into(), "text".into()],
                 ),
                 (
                     "IntegrationAccuracy".into(),
