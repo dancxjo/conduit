@@ -384,6 +384,17 @@ type GroundedClaim = {
     citation_indices: CitationIndices
 }
 
+type GroundingLimitation = Text <= 2048B not in [""]
+
+type GroundingInputAssessment =
+    sufficient
+    | insufficient_evidence {
+        limitation: GroundingLimitation
+    }
+    | conflicting_evidence {
+        limitation: GroundingLimitation
+    }
+
 type RetrievalScore = {
     value_micros: I64
 }

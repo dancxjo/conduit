@@ -3,10 +3,10 @@ use conduit_ai::{
     ContextOmissionReason, ContextOmissions, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionDisposition, ExtractedSourceValue, ExtractionLineage,
     GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedAnswerRequest,
-    GroundedClaimSupport, GroundingInputAssessment, HybridCandidate, LlmDeterminismProfile,
-    MechanismScore, ModelDerivedResult, ModelResultDisposition, ModelResultProvenance,
-    ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim, RerankScore,
-    RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
+    GroundedClaimSupport, GroundingInputAssessment, GroundingLimitation, HybridCandidate,
+    LlmDeterminismProfile, MechanismScore, ModelDerivedResult, ModelResultDisposition,
+    ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim,
+    RerankScore, RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
     RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrieverIdentity,
     SelectedContextCost, SelectedContextItem, SelectedContextRationale, SourceRef, SourceSpan,
     SourceSpanUnit, StructuredContext, TemporalProvenance, TemporalRetrievalIntent,
@@ -316,9 +316,13 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
     let insufficient = policy()
         .assemble(
             &truncated_request,
-            &GroundingInputAssessment::InsufficientEvidence {
-                limitation: "selected context does not establish an origin boundary".into(),
-            },
+            &GroundingInputAssessment::insufficient_evidence(
+                GroundingLimitation::new(
+                    "selected context does not establish an origin boundary".into(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
             &model(
                 ModelResultDisposition::Produced,
                 truncated_request.context.items.len(),
@@ -358,9 +362,13 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
     let conflicting = policy()
         .assemble(
             &conflict_request,
-            &GroundingInputAssessment::ConflictingEvidence {
-                limitation: "duplicate source versions disagree about the origin".into(),
-            },
+            &GroundingInputAssessment::conflicting_evidence(
+                GroundingLimitation::new(
+                    "duplicate source versions disagree about the origin".into(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
             &model(
                 ModelResultDisposition::Produced,
                 conflict_request.context.items.len(),

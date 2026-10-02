@@ -2,9 +2,9 @@
 
 use crate::{
     llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, GroundedAnswerPolicy,
-    GroundedAnswerRefusal, ModelDerivedResult, ModelResultDisposition, ModelResultProvenance,
-    RetrievalIntent, StructuredContext, LLM_GENERATE_KIND, MAXIMUM_RAG_IDENTITY_BYTES,
-    MAXIMUM_RAG_TEXT_BYTES,
+    GroundedAnswerRefusal, GroundingInputAssessment, ModelDerivedResult, ModelResultDisposition,
+    ModelResultProvenance, RetrievalIntent, StructuredContext, LLM_GENERATE_KIND,
+    MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
 };
 use alloc::{string::String, vec::Vec};
 
@@ -15,13 +15,6 @@ pub struct GroundedAnswerRequest {
     pub identity: String,
     pub retrieval_intent: RetrievalIntent,
     pub context: StructuredContext,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GroundingInputAssessment {
-    Sufficient,
-    InsufficientEvidence { limitation: String },
-    ConflictingEvidence { limitation: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -161,20 +154,14 @@ impl GroundedAnswerPolicy {
                 },
                 Vec::new(),
             ),
-            GroundingInputAssessment::InsufficientEvidence { limitation } => {
-                validate_limitation(limitation)?;
-                (
-                    GroundedAnswerDisposition::InsufficientEvidence,
-                    alloc::vec![limitation.clone()],
-                )
-            }
-            GroundingInputAssessment::ConflictingEvidence { limitation } => {
-                validate_limitation(limitation)?;
-                (
-                    GroundedAnswerDisposition::ConflictingEvidence,
-                    alloc::vec![limitation.clone()],
-                )
-            }
+            GroundingInputAssessment::InsufficientEvidence(payload) => (
+                GroundedAnswerDisposition::InsufficientEvidence,
+                alloc::vec![payload.limitation().get().clone()],
+            ),
+            GroundingInputAssessment::ConflictingEvidence(payload) => (
+                GroundedAnswerDisposition::ConflictingEvidence,
+                alloc::vec![payload.limitation().get().clone()],
+            ),
         };
         Ok(GroundedAnswer {
             provenance: ModelResultProvenance::ModelDerived,
