@@ -37,6 +37,13 @@ fn main() {
             )]
             .into(),
             serde_record_types: ["ConversationRequestEvidence".into()].into(),
+            public_record_fields: [
+                "LiveConversationFlowProjection".into(),
+                "LiveConversationStage".into(),
+                "RecognitionEvidenceView".into(),
+                "SpeechCommitEvidenceView".into(),
+            ]
+            .into(),
             serde_variant_exclusions: BTreeSet::from(["MessageAttachmentSlot".into()]),
             ..RustBindingOptions::default()
         },
