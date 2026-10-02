@@ -67,6 +67,12 @@ export class BrowserHost {
   get bootId() { return this.#state.boot.boot_id; }
   get profileId() { return this.#state.boot.profile_id; }
   get imageId() { return this.#state.boot.image_id; }
+
+  /** Public proof identity for explicit first-admission authorization; never a secret key. */
+  admissionIdentity() {
+    return Object.freeze({ hostId: this.id, bootId: this.bootId,
+      verifyingKey: Object.freeze([...this.#state.membership.verifyingKey]) });
+  }
   get offers() { return this.#state.offers; }
   get state() { return Object.freeze({ schema: "conduit.browser/boot-truth@1", generation: this.#state.boot.offer_generation }); }
 
