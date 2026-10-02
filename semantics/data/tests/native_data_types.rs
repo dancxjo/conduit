@@ -6,8 +6,8 @@ use conduit_data::{
     MeasurementSummaryRefusal, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
     MeasurementThresholdState, MeasurementThresholdTransition, MeasurementWindowRefusal,
     NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScalarComparison, SignalContinuity, SignalStart, TensorAxisRole,
-    TensorElement,
+    SampledSignalRefusal, ScalarComparison, SignalContinuity, SignalStart, SignalWindow,
+    TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
@@ -68,6 +68,12 @@ fn sampled_signal_start_uses_the_native_temporal_instant() {
     )
     .unwrap();
     assert_owned_round_trip(SignalStart::instant(instant).unwrap());
+    assert_owned_round_trip(SignalWindow {
+        source_signal: [7; 32],
+        source_offset: 9,
+        sample_count: 3,
+        start: SignalStart::at_sample(9),
+    });
 }
 
 #[test]

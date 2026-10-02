@@ -3,7 +3,9 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{semantic_digest, Quantity, QuantityUnit, TemporalScale};
 
-use crate::{SampledSignalRefusal, SignalContinuity, SignalStart, TensorAxisRole, TensorValue};
+use crate::{
+    SampledSignalRefusal, SignalContinuity, SignalStart, SignalWindow, TensorAxisRole, TensorValue,
+};
 
 pub const SAMPLED_SIGNAL_INFO_ID: &str = "data/sampled-signal@1";
 pub const MAXIMUM_SIGNAL_IDENTITY_BYTES: usize = 128;
@@ -41,14 +43,6 @@ pub struct SampledSignal {
     pub continuity: SignalContinuity,
     /// Shape is `sample × channel...`; backing may be inline or referenced.
     pub samples: TensorValue,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignalWindow {
-    pub source_signal: [u8; 32],
-    pub source_offset: u64,
-    pub sample_count: u64,
-    pub start: SignalStart,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
