@@ -903,7 +903,6 @@ type RerankingRefusal =
     | missing_observation
     | duplicate_observation
     | unexpected_observation
-    | zero_observation_work
     | work_bound_exceeded
     | arithmetic_overflow
 
@@ -1172,6 +1171,12 @@ type EmbodimentStage =
 type RerankScore =
     hybrid_fusion U64
     | model_derived I64
+
+type RerankObservation = {
+    chunk_identity: ChunkIdentity
+    score_micros: I64
+    work_units: U32 in 1..=1048576
+}
 
 type MechanismScore =
     similarity_micros I64

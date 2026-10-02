@@ -3,20 +3,11 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankScore, RerankingPolicy,
-    RerankingProofClass, RerankingRefusal, RerankingStrategy,
-    MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
+    ExtractedSourceValue, HybridCandidate, RerankObservation, RerankScore, RerankingPolicy,
+    RerankingProofClass, RerankingRefusal, RerankingStrategy, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
 };
 
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RerankObservation {
-    pub chunk_identity: ChunkIdentity,
-    /// Scorer-local ordering value; never evidence confidence.
-    pub score_micros: i64,
-    pub work_units: u32,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RerankedCandidate {
@@ -55,7 +46,7 @@ impl RerankingPolicy {
                 validate_observations(candidates, observations)?;
                 let work = observations.iter().try_fold(0_u32, |total, observation| {
                     total
-                        .checked_add(observation.work_units)
+                        .checked_add(observation.work_units())
                         .ok_or(RerankingRefusal::ArithmeticOverflow)
                 })?;
                 (*observed.proof_class(), work)
@@ -79,9 +70,9 @@ impl RerankingPolicy {
                 RerankingStrategy::ObservedScores(_) => RerankScore::ModelDerived(
                     observations
                         .iter()
-                        .find(|item| item.chunk_identity == candidate.chunk.identity)
+                        .find(|item| item.chunk_identity() == candidate.chunk.identity)
                         .ok_or(RerankingRefusal::MissingObservation)?
-                        .score_micros,
+                        .score_micros(),
                 ),
             };
             reranked.push(RerankedCandidate {
@@ -147,18 +138,15 @@ fn validate_observations(
         return Err(RerankingRefusal::MissingObservation);
     }
     for (index, observation) in observations.iter().enumerate() {
-        if observation.work_units == 0 {
-            return Err(RerankingRefusal::ZeroObservationWork);
-        }
         if observations[index + 1..]
             .iter()
-            .any(|other| other.chunk_identity == observation.chunk_identity)
+            .any(|other| other.chunk_identity() == observation.chunk_identity())
         {
             return Err(RerankingRefusal::DuplicateObservation);
         }
         if !candidates
             .iter()
-            .any(|candidate| candidate.chunk.identity == observation.chunk_identity)
+            .any(|candidate| candidate.chunk.identity == observation.chunk_identity())
         {
             return Err(RerankingRefusal::MissingObservation);
         }

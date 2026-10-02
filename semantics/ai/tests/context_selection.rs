@@ -220,10 +220,8 @@ fn deterministic_and_model_reranking_keep_exact_evidence_but_distinct_proof() {
 
     let observations: Vec<_> = candidates
         .iter()
-        .map(|candidate| RerankObservation {
-            chunk_identity: candidate.chunk.identity,
-            score_micros: i64::from(candidate.rank),
-            work_units: 2,
+        .map(|candidate| {
+            RerankObservation::new(candidate.chunk.identity, i64::from(candidate.rank), 2).unwrap()
         })
         .collect();
     let model_policy = RerankingPolicy::new(
@@ -393,32 +391,20 @@ fn scorer_observations_are_exact_finite_and_cannot_invent_candidates() {
         32,
     )
     .unwrap();
-    let missing = [RerankObservation {
-        chunk_identity: candidates[0].chunk.identity,
-        score_micros: 7,
-        work_units: 1,
-    }];
+    let missing = [RerankObservation::new(candidates[0].chunk.identity, 7, 1).unwrap()];
     assert_eq!(
         policy.rerank(&candidates, &missing),
         Err(RerankingRefusal::MissingObservation)
     );
-    let mut overwork: Vec<_> = candidates
+    let overwork: Vec<_> = candidates
         .iter()
-        .map(|candidate| RerankObservation {
-            chunk_identity: candidate.chunk.identity,
-            score_micros: 1,
-            work_units: 16,
-        })
+        .map(|candidate| RerankObservation::new(candidate.chunk.identity, 1, 16).unwrap())
         .collect();
     assert_eq!(
         policy.rerank(&candidates, &overwork),
         Err(RerankingRefusal::WorkBoundExceeded)
     );
-    overwork[0].work_units = 0;
-    assert_eq!(
-        policy.rerank(&candidates, &overwork),
-        Err(RerankingRefusal::ZeroObservationWork)
-    );
+    assert!(RerankObservation::new(candidates[0].chunk.identity, 1, 0).is_err());
     let policy = RerankingPolicy::new(
         "rerank/invalid-proof@1".into(),
         RerankingStrategy::observed_scores(
