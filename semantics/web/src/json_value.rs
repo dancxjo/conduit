@@ -1,4 +1,8 @@
-//! One finite, canonical JSON semantic value and whole-document codec.
+//! One finite, canonical JSON syntax tree and whole-document codec.
+//!
+//! Ports carry the canonical bounded `value/json@1` byte value. `JsonValue`
+//! is the checked construction/parser tree used to produce and inspect that
+//! value (C); it is not a second portable wire or Fore representation.
 
 use alloc::string::String;
 use alloc::vec::Vec;
