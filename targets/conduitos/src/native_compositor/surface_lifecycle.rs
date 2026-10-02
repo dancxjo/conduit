@@ -148,6 +148,7 @@ impl NativeCompositor {
             .iter()
             .position(|surface| surface.surface_id == surface_id)
             .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
+        self.scanout_pixels = [0; super::MAX_COMPOSITOR_SURFACES];
         let removed = self.surfaces.remove(index);
         if removed.visible && removed.binding.is_some() {
             self.damage.add_layout(removed.bounds)?;
