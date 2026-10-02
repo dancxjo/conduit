@@ -41,6 +41,8 @@ fn main() {
                 "FiniteClassification".into(),
                 "GeneratedTextChunk".into(),
                 "GeneratedTextFlowEvidence".into(),
+                "HouseModelRequest".into(),
+                "WiredHouseContextItem".into(),
                 "ValidatedExtraction".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
@@ -116,6 +118,15 @@ fn main() {
                     ],
                 ),
                 (
+                    "HouseModelRequest".into(),
+                    vec![
+                        "request_identity".into(),
+                        "addressed_utterance".into(),
+                        "context".into(),
+                        "maximum_output_bytes".into(),
+                    ],
+                ),
+                (
                     "RerankingPolicy".into(),
                     vec![
                         "identity".into(),
@@ -131,6 +142,16 @@ fn main() {
                 (
                     "ValidatedExtraction".into(),
                     vec!["schema_identity".into(), "fields".into()],
+                ),
+                (
+                    "WiredHouseContextItem".into(),
+                    vec![
+                        "item_identity".into(),
+                        "value_kind".into(),
+                        "canonical_value".into(),
+                        "provenance".into(),
+                        "source_identity".into(),
+                    ],
                 ),
             ]
             .into(),

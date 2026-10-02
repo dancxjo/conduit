@@ -1,4 +1,4 @@
-use conduit_ai::{HouseContextProvenanceClass, WiredHouseContextItem};
+use conduit_ai::{wired_house_context_item, HouseContextProvenanceClass, WiredHouseContextItem};
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
@@ -12,13 +12,14 @@ use conduit_tongues::{
 };
 
 fn context(provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
-    WiredHouseContextItem {
-        item_identity: "context/upstairs-temperature".into(),
-        value_kind: "temperature/summary@1".into(),
-        canonical_value: b"21 degrees Celsius, observed 18 seconds ago".to_vec(),
+    wired_house_context_item(
+        "context/upstairs-temperature",
+        "temperature/summary@1",
+        b"21 degrees Celsius, observed 18 seconds ago",
         provenance,
-        source_identity: "sign/temperature/42".into(),
-    }
+        "sign/temperature/42",
+    )
+    .unwrap()
 }
 
 #[test]

@@ -608,13 +608,14 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     } else if placement.outputs[0].value_kind.as_str()
         == conduit_tongues::WIRED_HOUSE_CONTEXT_VALUE_KIND
     {
-        conduit_tongues::encode_wired_house_context(&[conduit_ai::WiredHouseContextItem {
-            item_identity: "context/upstairs-temperature".into(),
-            value_kind: "temperature/summary@1".into(),
-            canonical_value: b"21 degrees Celsius, observed 18 seconds ago".to_vec(),
-            provenance: conduit_ai::HouseContextProvenanceClass::ObservedSign,
-            source_identity: "sign/temperature/42".into(),
-        }])
+        conduit_tongues::encode_wired_house_context(&[conduit_ai::wired_house_context_item(
+            "context/upstairs-temperature",
+            "temperature/summary@1",
+            b"21 degrees Celsius, observed 18 seconds ago",
+            conduit_ai::HouseContextProvenanceClass::ObservedSign,
+            "sign/temperature/42",
+        )
+        .map_err(|error| format!("build House context: {error:?}"))?])
         .map_err(|error| format!("encode House context: {error:?}"))?
     } else if placement.outputs[0].value_kind.as_str() == conduit_ai::SIMILARITY_QUERY_VALUE_KIND {
         serde_json::to_vec(&conduit_ai::SimilarityQuery {

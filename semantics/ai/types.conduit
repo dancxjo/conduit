@@ -400,6 +400,21 @@ type HouseContextProvenanceClass =
     | declared_configuration
     | model_derived_history
 
+type WiredHouseContextItem = {
+    item_identity: Text <= 256B not in [""]
+    value_kind: Text <= 256B not in [""]
+    canonical_value: Bytes <= 16384B
+    provenance: HouseContextProvenanceClass
+    source_identity: Text <= 256B not in [""]
+}
+
+type HouseModelRequest = {
+    request_identity: Text <= 84B not in [""]
+    addressed_utterance: Text <= 4096B not in [""]
+    context: sequence WiredHouseContextItem <= 16
+    maximum_output_bytes: U64 in 1..=65536
+}
+
 type RetrievalMechanism =
     vector_similarity
     | lexical

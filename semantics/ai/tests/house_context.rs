@@ -1,16 +1,19 @@
 use conduit_ai::{
-    build_house_model_request, HouseContextProvenanceClass, HouseContextRefusal,
-    WiredHouseContextItem, MAXIMUM_HOUSE_CONTEXT_BYTES, MAXIMUM_HOUSE_CONTEXT_ITEMS,
+    build_house_model_request, wired_house_context_item, HouseContextProvenanceClass,
+    HouseContextRefusal, WiredHouseContextItem, MAXIMUM_HOUSE_CONTEXT_BYTES,
+    MAXIMUM_HOUSE_CONTEXT_ITEMS,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn item(identity: &str, provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
-    WiredHouseContextItem {
-        item_identity: identity.into(),
-        value_kind: "temperature/summary@1".into(),
-        canonical_value: b"upstairs: 21 C".to_vec(),
+    wired_house_context_item(
+        identity,
+        "temperature/summary@1",
+        b"upstairs: 21 C",
         provenance,
-        source_identity: "sign/temperature-reading/42".into(),
-    }
+        "sign/temperature-reading/42",
+    )
+    .unwrap()
 }
 
 #[test]
@@ -26,21 +29,48 @@ fn admits_only_the_context_explicitly_supplied_by_the_form() {
     )
     .expect("one wired fact is finite");
 
-    assert_eq!(request.context, vec![wired]);
-    assert_eq!(request.maximum_output_bytes, 1024);
-    assert!(request.request_identity.starts_with("house-model-request/"));
-    assert!(!request.request_identity.contains("ollama"));
+    assert_eq!(request.context().as_slice(), &[wired]);
+    assert_eq!(*request.maximum_output_bytes(), 1024);
+    assert!(request
+        .request_identity()
+        .starts_with("house-model-request/"));
+    assert!(!request.request_identity().contains("ollama"));
 }
 
 #[test]
 fn provenance_classes_remain_distinct_and_affect_exact_identity() {
     let observed = item("context/fact", HouseContextProvenanceClass::ObservedSign);
-    let mut history = observed.clone();
-    history.provenance = HouseContextProvenanceClass::ModelDerivedHistory;
+    let history = item(
+        "context/fact",
+        HouseContextProvenanceClass::ModelDerivedHistory,
+    );
 
     let first = build_house_model_request("status?", &[observed], 512).unwrap();
     let second = build_house_model_request("status?", &[history], 512).unwrap();
-    assert_ne!(first.request_identity, second.request_identity);
+    assert_ne!(first.request_identity(), second.request_identity());
+}
+
+#[test]
+fn complete_house_request_round_trips_through_its_native_owner() {
+    let request = build_house_model_request(
+        "status?",
+        &[item(
+            "context/fact",
+            HouseContextProvenanceClass::DeclaredConfiguration,
+        )],
+        512,
+    )
+    .unwrap();
+
+    let structured = request.clone().into_structured().unwrap();
+    assert_eq!(
+        conduit_ai::HouseModelRequest::from_structured(structured).unwrap(),
+        request
+    );
+    assert!(!include_str!("../src/house_context.rs")
+        .contains(concat!("pub struct ", "WiredHouseContextItem")));
+    assert!(!include_str!("../src/house_context.rs")
+        .contains(concat!("pub struct ", "HouseModelRequest")));
 }
 
 #[test]
@@ -63,10 +93,38 @@ fn refuses_missing_implicit_or_unbounded_context() {
         Err(HouseContextRefusal::ContextItemLimitExceeded)
     );
 
-    let mut oversized = item("context/large", HouseContextProvenanceClass::ObservedSign);
-    oversized.canonical_value = vec![b'x'; MAXIMUM_HOUSE_CONTEXT_BYTES + 1];
     assert_eq!(
-        build_house_model_request("status?", &[oversized], 512),
+        wired_house_context_item(
+            "context/large",
+            "temperature/summary@1",
+            &vec![b'x'; MAXIMUM_HOUSE_CONTEXT_BYTES + 1],
+            HouseContextProvenanceClass::ObservedSign,
+            "sign/temperature/42",
+        ),
+        Err(HouseContextRefusal::ContextByteLimitExceeded)
+    );
+
+    let half = vec![b'x'; MAXIMUM_HOUSE_CONTEXT_BYTES / 2 + 1];
+    let aggregate = [
+        wired_house_context_item(
+            "context/large-a",
+            "temperature/summary@1",
+            &half,
+            HouseContextProvenanceClass::ObservedSign,
+            "sign/temperature/42",
+        )
+        .unwrap(),
+        wired_house_context_item(
+            "context/large-b",
+            "temperature/summary@1",
+            &half,
+            HouseContextProvenanceClass::ObservedSign,
+            "sign/temperature/43",
+        )
+        .unwrap(),
+    ];
+    assert_eq!(
+        build_house_model_request("status?", &aggregate, 512),
         Err(HouseContextRefusal::ContextByteLimitExceeded)
     );
 

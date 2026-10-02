@@ -216,24 +216,24 @@ pub fn prepare_house_generation_request(
     }
     let request = build_house_model_request(utterance, explicitly_wired, maximum_output_bytes)
         .map_err(HousePromptRefusal::Context)?;
-    let mut context = Vec::with_capacity(request.context.len());
-    for item in &request.context {
-        let value = core::str::from_utf8(&item.canonical_value)
+    let mut context = Vec::with_capacity(request.context().len());
+    for item in request.context() {
+        let value = core::str::from_utf8(item.canonical_value().as_slice())
             .map_err(|_| HousePromptRefusal::ContextValueIsNotText)?;
         context.push(PromptContextItem {
-            item_identity: &item.item_identity,
-            value_kind: &item.value_kind,
+            item_identity: item.item_identity(),
+            value_kind: item.value_kind(),
             value,
-            provenance: provenance_name(item.provenance),
-            source_identity: &item.source_identity,
+            provenance: provenance_name(*item.provenance()),
+            source_identity: item.source_identity(),
         });
     }
     let prompt = serde_json::to_string(&PromptProjection {
         schema: "conduit.house/model-context-presentation@1",
-        request_identity: &request.request_identity,
+        request_identity: request.request_identity(),
         response_instruction:
             "Answer briefly using only the wired context. Say temperature units in full, including degrees Celsius.",
-        addressed_utterance: &request.addressed_utterance,
+        addressed_utterance: request.addressed_utterance(),
         context,
     })
     .map_err(|_| HousePromptRefusal::PromptEncoding)?;
@@ -241,9 +241,9 @@ pub fn prepare_house_generation_request(
         return Err(HousePromptRefusal::PromptBoundExceeded);
     }
     Ok(HouseGenerationRequest {
-        request_identity: request.request_identity,
+        request_identity: request.request_identity().clone(),
         encoded_request: prompt,
-        maximum_output_bytes: request.maximum_output_bytes,
+        maximum_output_bytes: *request.maximum_output_bytes(),
     })
 }
 
