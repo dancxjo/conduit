@@ -45,6 +45,8 @@ fn main() {
         }],
         &RustBindingOptions {
             boxed_variant_payloads: [
+                "ObservationValue.sampled-signal".into(),
+                "ObservationValue.tensor".into(),
                 "SignalCadence.irregular".into(),
                 "TabularQueryOutcomeFour.inline".into(),
             ]
@@ -76,9 +78,12 @@ fn main() {
             .into(),
             copy_record_value_getters: ["DataGenerationNamespace".into()].into(),
             public_record_fields: [
+                "AlignedTrainingView".into(),
+                "CalibrationTransform".into(),
+                "CoordinateFrame".into(),
+                "ConcatenatedSignal".into(),
                 "DatasetDescriptor".into(),
                 "DatasetSplitMembership".into(),
-                "ConcatenatedSignal".into(),
                 "MeasurementHysteresisProfile".into(),
                 "MeasurementPlotProfile".into(),
                 "MeasurementRange".into(),
@@ -86,9 +91,12 @@ fn main() {
                 "MeasurementSummary".into(),
                 "MeasurementThresholdDecision".into(),
                 "MeasurementWindowProfile".into(),
+                "MissingDataMask".into(),
+                "ObservationSet".into(),
                 "SignalWindow".into(),
                 "SignalSummary".into(),
                 "SampledSignal".into(),
+                "ScientificObservation".into(),
                 "TensorAxis".into(),
                 "TensorSummary".into(),
                 "TensorValue".into(),
