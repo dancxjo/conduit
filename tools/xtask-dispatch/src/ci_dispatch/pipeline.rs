@@ -35,7 +35,12 @@ fn unit(name: &str) -> Result<(), String> {
     let steps = shard
         .package_test_step()
         .into_iter()
-        .chain(WORKSPACE_STEPS.iter().filter(|step| shard.owns(step)));
+        // Formatting is already required by preflight on this exact source.
+        .chain(
+            WORKSPACE_STEPS
+                .iter()
+                .filter(|step| shard.owns(step) && step.id != "check.fmt"),
+        );
     for step in steps {
         eprintln!("UNIT {name}: {}", step.description);
         let mut command = Command::new(step.program);

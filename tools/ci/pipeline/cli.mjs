@@ -75,6 +75,7 @@ try {
       if (existsSync(directory)) throw new Error(`refusing stale target output: ${directory}`);
       mkdirSync(directory, { recursive: true });
       await runTarget(item.id, directory);
+      if (run('git', ['rev-parse', 'HEAD'], true) !== sha) throw new Error('target checkout changed during proof');
       run('git', ['diff', '--exit-code', 'HEAD', '--']);
       await sealTarget({ directory, target: item.id, sha, proofClass: item.proofClass });
       console.log(`PASS: ${item.id} (${item.proofClass}) at ${sha}`);
