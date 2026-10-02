@@ -2,8 +2,9 @@ use conduit_ai::{
     AnswerSpan, Candidate, Chunk, ChunkIdentity, CitationIndices, ContextBudgetCost, ContextItem,
     ContextSelection, ContextSelectionOutcome, ContextSelectionRationale, ContextTruncationReason,
     ExtractionLineage, GroundedClaim, GroundedResult, GroundingDisposition, ModelResultProvenance,
-    RagSemanticRefusal, RetrievalIntent, RetrievalIntentIdentity, RetrievalMode, RetrievalModes,
-    SourceRef, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
+    RagIdentity, RagSemanticRefusal, RetrievalIntent, RetrievalIntentIdentity, RetrievalMode,
+    RetrievalModes, SourceRef, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
+    TransformProfiles, MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_TRANSFORM_LINEAGE,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -40,6 +41,25 @@ fn chunk_identity_is_one_native_fixed_digest() {
     );
     assert!(!include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "SourceRef")));
     assert!(!include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "Citation")));
+
+    let lineage = lineage(3, 10, 40);
+    let structured = lineage.clone().into_structured().unwrap();
+    assert_eq!(
+        ExtractionLineage::from_structured(structured).unwrap(),
+        lineage
+    );
+    assert!(RagIdentity::new(String::new()).is_err());
+    assert!(RagIdentity::new("x".repeat(MAXIMUM_RAG_IDENTITY_BYTES)).is_ok());
+    assert!(RagIdentity::new("x".repeat(MAXIMUM_RAG_IDENTITY_BYTES + 1)).is_err());
+    assert!(
+        BoundedSequence::<RagIdentity, MAXIMUM_TRANSFORM_LINEAGE>::try_from_iter(
+            (0..=MAXIMUM_TRANSFORM_LINEAGE)
+                .map(|index| RagIdentity::new(format!("transform/{index}")).unwrap())
+        )
+        .is_err()
+    );
+    assert!(!include_str!("../src/rag_semantics.rs")
+        .contains(concat!("pub struct ", "ExtractionLineage")));
 }
 
 fn source(version: u8) -> SourceRef {
@@ -80,8 +100,15 @@ fn lineage(version: u8, start: u64, end: u64) -> ExtractionLineage {
     ExtractionLineage {
         source: source(version),
         span: SourceSpan::new(SourceSpanUnit::Bytes, start, end).unwrap(),
-        extraction_profile: "extract/markdown-blocks@1".into(),
-        transform_profiles: vec!["transform/normalize-newlines@1".into()],
+        extraction_profile: RagIdentity::new("extract/markdown-blocks@1".into()).unwrap(),
+        transform_profiles: TransformProfiles::new(
+            BoundedSequence::try_from_iter([RagIdentity::new(
+                "transform/normalize-newlines@1".into(),
+            )
+            .unwrap()])
+            .unwrap(),
+        )
+        .unwrap(),
         parent_chunk: None,
     }
 }
@@ -116,9 +143,18 @@ fn exact_source_version_span_and_transform_lineage_derive_chunk_identity() {
         SourceSpan::new(changed_span.span.unit(), changed_span.span.start(), 41).unwrap();
     assert_ne!(changed_span.identity().unwrap(), identity);
     let mut changed_transform = base;
-    changed_transform
-        .transform_profiles
-        .push("transform/remove-front-matter@1".into());
+    changed_transform.transform_profiles = TransformProfiles::new(
+        BoundedSequence::try_from_iter(
+            changed_transform
+                .transform_profiles
+                .get()
+                .iter()
+                .cloned()
+                .chain([RagIdentity::new("transform/remove-front-matter@1".into()).unwrap()]),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     assert_ne!(changed_transform.identity().unwrap(), identity);
 }
 

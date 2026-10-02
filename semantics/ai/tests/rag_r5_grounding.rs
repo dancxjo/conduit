@@ -6,11 +6,11 @@ use conduit_ai::{
     GroundedClaimSupport, GroundingInputAssessment, GroundingLimitation, HybridCandidate,
     LlmDeterminismProfile, MechanismScore, ModelDerivedResult, ModelResultDisposition,
     ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim,
-    RerankScore, RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
-    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrieverIdentity,
-    SelectedContextCost, SelectedContextItem, SelectedContextRationale, SourceRef, SourceSpan,
-    SourceSpanUnit, StructuredContext, TemporalProvenance, TemporalRetrievalIntent,
-    TemporalRetrievalWindow, TemporalSource,
+    RagIdentity, RerankScore, RerankedCandidate, RerankingProofClass, RetrievalContribution,
+    RetrievalIntent, RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes,
+    RetrieverIdentity, SelectedContextCost, SelectedContextItem, SelectedContextRationale,
+    SourceRef, SourceSpan, SourceSpanUnit, StructuredContext, TemporalProvenance,
+    TemporalRetrievalIntent, TemporalRetrievalWindow, TemporalSource, TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -56,8 +56,8 @@ fn selected(version: u8, rank: u16, text: &str) -> SelectedContextItem {
                 u64::from(rank) * 64 + text.len() as u64,
             )
             .unwrap(),
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(text.as_bytes().to_vec()),

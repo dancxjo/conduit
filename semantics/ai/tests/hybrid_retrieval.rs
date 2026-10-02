@@ -1,15 +1,16 @@
 use conduit_ai::{
     Chunk, ClockBasis, EntityBoundary, ExtractionLineage, FusionStrategy, HybridFusionPolicy,
-    HybridRetrievalOutcome, HybridRetrievalRefusal, MechanismScore, RetrievalMechanism,
-    RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate,
-    TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalProvenance, TemporalReference,
-    TemporalRetrievalIntent, TemporalSource, TemporalValidity,
+    HybridRetrievalOutcome, HybridRetrievalRefusal, MechanismScore, RagIdentity,
+    RetrievalMechanism, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit,
+    StageCandidate, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalProvenance,
+    TemporalReference, TemporalRetrievalIntent, TemporalSource, TemporalValidity,
+    TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn chunk(source_identity: u8, version: u8, start: u64, value: &str) -> Chunk<String> {
     Chunk::new(
@@ -30,8 +31,8 @@ fn chunk(source_identity: u8, version: u8, start: u64, value: &str) -> Chunk<Str
                 },
             },
             span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + 20).unwrap(),
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         value.into(),

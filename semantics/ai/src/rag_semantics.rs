@@ -11,8 +11,8 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     ChunkIdentity, Citation, ContextBudgetCost, ContextSelectionOutcome, ContextSelectionRationale,
-    GroundedClaim, GroundingDisposition, ModelResultProvenance, RetrievalIntent, RetrievalMode,
-    RetrievalScore, SourceRef, SourceSpan, SourceSpanUnit,
+    ExtractionLineage, GroundedClaim, GroundingDisposition, ModelResultProvenance, RetrievalIntent,
+    RetrievalMode, RetrievalScore, SourceRef, SourceSpan, SourceSpanUnit,
 };
 
 pub const MAXIMUM_TRANSFORM_LINEAGE: usize = 16;
@@ -24,14 +24,6 @@ pub const MAXIMUM_GROUNDING_LIMITATIONS: usize = 32;
 pub const MAXIMUM_RAG_IDENTITY_BYTES: usize = 256;
 pub const MAXIMUM_RAG_TEXT_BYTES: usize = 2_048;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExtractionLineage {
-    pub source: SourceRef,
-    pub span: SourceSpan,
-    pub extraction_profile: String,
-    pub transform_profiles: Vec<String>,
-    pub parent_chunk: Option<ChunkIdentity>,
-}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Chunk<T> {
     pub identity: ChunkIdentity,
@@ -179,13 +171,14 @@ impl Ord for ChunkIdentity {
 impl ExtractionLineage {
     pub fn validate(&self) -> Result<(), RagSemanticRefusal> {
         self.span.validate_against(&self.source)?;
-        validate_identity(&self.extraction_profile)?;
-        if self.transform_profiles.len() > MAXIMUM_TRANSFORM_LINEAGE {
+        validate_identity(self.extraction_profile.get())?;
+        let transform_profiles = self.transform_profiles.get();
+        if transform_profiles.len() > MAXIMUM_TRANSFORM_LINEAGE {
             return Err(RagSemanticRefusal::TooMuchTransformLineage);
         }
-        for (index, transform) in self.transform_profiles.iter().enumerate() {
-            validate_identity(transform)?;
-            if self.transform_profiles[index + 1..].contains(transform) {
+        for (index, transform) in transform_profiles.iter().enumerate() {
+            validate_identity(transform.get())?;
+            if transform_profiles.as_slice()[index + 1..].contains(transform) {
                 return Err(RagSemanticRefusal::DuplicateTransform);
             }
         }
@@ -205,10 +198,10 @@ impl ExtractionLineage {
         }]);
         digest.update(self.span.start().to_le_bytes());
         digest.update(self.span.end().to_le_bytes());
-        update_string(&mut digest, &self.extraction_profile);
-        digest.update((self.transform_profiles.len() as u16).to_le_bytes());
-        for transform in &self.transform_profiles {
-            update_string(&mut digest, transform);
+        update_string(&mut digest, self.extraction_profile.get());
+        digest.update((self.transform_profiles.get().len() as u16).to_le_bytes());
+        for transform in self.transform_profiles.get() {
+            update_string(&mut digest, transform.get());
         }
         match self.parent_chunk {
             None => digest.update([0]),

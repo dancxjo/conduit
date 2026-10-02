@@ -631,6 +631,17 @@ type SourceRef = {
     resource: ResourceRef
 }
 
+type RagIdentity = Text <= 256B not in [""]
+type TransformProfiles = sequence RagIdentity <= 16
+
+type ExtractionLineage = {
+    source: SourceRef
+    span: SourceSpan
+    extraction_profile: RagIdentity
+    transform_profiles: TransformProfiles
+    parent_chunk: ChunkIdentity?
+}
+
 type Citation = {
     source: SourceRef
     span: SourceSpan

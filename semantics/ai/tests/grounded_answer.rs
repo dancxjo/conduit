@@ -5,10 +5,11 @@ use conduit_ai::{
     GroundedClaimSupport, GroundingInputAssessment, GroundingLimitation, HybridCandidate,
     LlmDeterminismProfile, MechanismScore, ModelDerivedResult, ModelRefusal,
     ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport,
-    ProposedGroundedClaim, RerankScore, RerankedCandidate, RerankingProofClass,
+    ProposedGroundedClaim, RagIdentity, RerankScore, RerankedCandidate, RerankingProofClass,
     RetrievalContribution, RetrievalIntent, RetrievalIntentIdentity, RetrievalMechanism,
     RetrievalMode, RetrievalModes, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
     SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
+    TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -39,8 +40,8 @@ fn selected_item(version: u8, rank: u16, start: u64, text: &str) -> SelectedCont
         ExtractionLineage {
             source: source(version),
             span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + text.len() as u64).unwrap(),
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(text.as_bytes().to_vec()),

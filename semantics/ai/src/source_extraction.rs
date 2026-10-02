@@ -4,10 +4,11 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{
     ResourceDereferenceRequirement, ResourceReferenceAccessRefusal, ResourceReferenceBinding,
 };
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    Chunk, ExtractionLineage, SourceExtractionLimits, SourceExtractionProfile, SourceRef,
-    SourceSpan, SourceSpanUnit,
+    Chunk, ExtractionLineage, RagIdentity, SourceExtractionLimits, SourceExtractionProfile,
+    SourceRef, SourceSpan, SourceSpanUnit, TransformProfiles,
 };
 
 pub const TEXT_UTF8_EXTRACTION_PROFILE: &str = "extract/text-utf8@1";
@@ -316,8 +317,10 @@ fn push_chunk(
         source: source.clone(),
         span: SourceSpan::new(unit, start as u64, end as u64)
             .expect("source extraction emits only nonempty chunks"),
-        extraction_profile: extraction_profile.into(),
-        transform_profiles: Vec::new(),
+        extraction_profile: RagIdentity::new(extraction_profile.into())
+            .expect("source extraction profiles are fixed valid identities"),
+        transform_profiles: TransformProfiles::new(BoundedSequence::new())
+            .expect("an empty transform lineage is valid"),
         parent_chunk: None,
     };
     receipt
