@@ -81,6 +81,7 @@ try {
   const app = path.join(scratch, "application");
   await mkdir(app);
   await writeFile(path.join(app, "index.html"), "<!doctype html><html><head><title>Local body</title></head><body></body></html>");
+  await writeFile(path.join(app, "navigation.html"), "<nav>Local navigation</nav>");
   await writeFile(path.join(app, "app.mjs"), "export async function startApplication(context) {}\n");
   await writeFile(path.join(app, "birth.json"), JSON.stringify({ name: "My body", initialPlotNames: ["hello"] }));
   const template = {
@@ -90,6 +91,7 @@ try {
       { role: "shell", kind: "content", path: "index.html", maximum_bytes: 1024, dependencies: [] },
       { role: "application-module", kind: "module", path: "app.mjs", maximum_bytes: 1024, dependencies: [] },
       { role: "birth-specification", kind: "content", path: "birth.json", maximum_bytes: 1024, dependencies: [] },
+      { role: "navigation", kind: "content", path: "navigation.html", maximum_bytes: 1024, dependencies: [] },
     ],
   };
   const templatePath = path.join(app, "application.template.json");
@@ -100,6 +102,8 @@ try {
   assert.equal(staticResult.status, 0, staticResult.stderr);
   const appManifest = JSON.parse(await readFile(path.join(staticOutput, "application.application.json"), "utf8"));
   assert.equal(appManifest.application_id, template.application_id);
+  assert.match(await readFile(path.join(staticOutput, "index.html"), "utf8"), /Content-Security-Policy/);
+  assert.equal(await readFile(path.join(staticOutput, "navigation.html"), "utf8"), "<nav>Local navigation</nav>");
   assert.equal(appManifest.resources.filter(resource => resource.role === "runtime").length, 1);
   assert(appManifest.resources.find(resource => resource.role === "browser-sdk").dependencies.length > 0);
   for (const resource of appManifest.resources) {

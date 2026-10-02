@@ -84,7 +84,13 @@ try {
       const file = path.join(directory, entry.name);
       if (entry.isDirectory()) await secureDocuments(file);
       else if (/\.html?$/i.test(entry.name)) {
-        const secured = applyStaticApplicationCsp(await readFile(file, 'utf8'));
+        const html = await readFile(file, 'utf8');
+        const resource = template.resources.find(resource => resource.path === path.relative(staging, file));
+        // Admitted content can be an HTML fragment, such as shared navigation.
+        // Its containing document owns policy; a fragment has no document head.
+        if (resource?.kind === 'content' && resource.path !== 'index.html'
+          && !/<(?:!doctype|html|head|body)\b/i.test(html)) continue;
+        const secured = applyStaticApplicationCsp(html);
         if (Buffer.byteLength(secured) > 16 * 1024 * 1024) throw new Error('Static HTML exceeds its finite file bound');
         await writeFile(file, secured);
       }
