@@ -74,10 +74,10 @@ impl StdHost {
                 .checked_add(1)
                 .ok_or_else(|| "Body Play sequence exhausted".to_string())?;
             let play = BodyPlayIdentity::bind(request.plan, sequence);
-            let first_sign = self.next_kernel_sign_sequence;
-            self.next_kernel_sign_sequence = first_sign
-                .checked_add(3)
-                .ok_or_else(|| "Body Sign sequence exhausted".to_string())?;
+            // Body lifecycle signs are scoped by this unique admitted Play.
+            // The shared lifecycle session and browser producer use 0/1/2;
+            // reusing the Host-wide cursor would make a second genuine start
+            // impossible for BodyLifecycleSession::started to accept.
             let sign = |sequence| {
                 bind_sign(
                     &self.advertisement.host_id,
@@ -88,12 +88,10 @@ impl StdHost {
             };
             let wake_at_start = request
                 .wake
-                .body_plan_ready(request.plan, sign(first_sign).sign_id)
-                .and_then(|wake| {
-                    wake.body_play_started(request.plan, &play, sign(first_sign + 1).sign_id)
-                })
+                .body_plan_ready(request.plan, sign(0).sign_id)
+                .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
-            let terminal_sign = sign(first_sign + 2);
+            let terminal_sign = sign(2);
             let result = kernel.run(output, timer, request.keyboard, request.control);
             Ok(BodyRunReport {
                 play,

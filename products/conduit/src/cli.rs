@@ -273,6 +273,9 @@ pub(crate) enum HostServiceCommand {
         manifest: PathBuf,
         #[arg(long)]
         state_dir: PathBuf,
+        /// Install without activating the service, for foreground Body ownership.
+        #[arg(long)]
+        no_start: bool,
     },
     /// Run the durable host in the foreground for a platform service manager.
     Run {
@@ -300,6 +303,18 @@ pub(crate) enum HostServiceCommand {
 pub(crate) enum BodyCommand {
     /// Enter the birth encounter for a Host that does not yet belong to a Body.
     Birth,
+    /// Own a retained Body on an installed Linux Host in the foreground.
+    ///
+    /// Run the installed product executable with its service stopped. Standard
+    /// input/output carry bounded internal JSON control, not a terminal Mask.
+    Own {
+        /// Checked canonical Plot source; must match retained source on recovery.
+        source: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, default_value = "My Body")]
+        name: String,
+    },
     /// Inspect the body retained by this installed host.
     #[command(hide = true)]
     Status {
@@ -535,5 +550,24 @@ mod public_surface_tests {
                 command: Some(HostCommand::Install { dry_run: true, .. })
             })
         ));
+    }
+    #[test]
+    fn service_install_only_skips_start_when_explicitly_requested() {
+        for (extra, expected) in [(None, false), (Some("--no-start"), true)] {
+            let mut args = vec![
+                "conduit",
+                "host",
+                "service",
+                "install",
+                "release.json",
+                "--state-dir",
+                "state",
+            ];
+            args.extend(extra);
+            assert!(matches!(Cli::try_parse_from(args).unwrap().command,
+                Some(Command::Host { command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install { no_start, .. }
+                }) }) if no_start == expected));
+        }
     }
 }
