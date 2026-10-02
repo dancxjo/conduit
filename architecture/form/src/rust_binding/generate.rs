@@ -145,7 +145,7 @@ pub(super) fn validate_external_bindings(
         .collect::<BTreeSet<_>>();
     let mut available = BTreeSet::new();
     for value_type in external_types {
-        collect_schema_identities(value_type, &mut available);
+        collect_root_schema_identity(value_type, &mut available);
     }
     let mut required = BTreeSet::new();
     for value_type in types {
@@ -195,32 +195,19 @@ pub(super) fn validate_external_bindings(
     Ok(external_names)
 }
 
-fn collect_schema_identities(value_type: &StructuredInfoType, identities: &mut BTreeSet<String>) {
+fn collect_root_schema_identity(
+    value_type: &StructuredInfoType,
+    identities: &mut BTreeSet<String>,
+) {
     match value_type.shape() {
-        StructuredInfoTypeShape::Nominal {
-            schema,
-            representation,
-        } => {
+        StructuredInfoTypeShape::Nominal { schema, .. }
+        | StructuredInfoTypeShape::Record { schema, .. }
+        | StructuredInfoTypeShape::Variant { schema, .. } => {
             identities.insert(schema.as_str().into());
-            collect_schema_identities(representation, identities);
         }
-        StructuredInfoTypeShape::Record { schema, fields } => {
-            identities.insert(schema.as_str().into());
-            for field in fields {
-                collect_schema_identities(field.value_type(), identities);
-            }
-        }
-        StructuredInfoTypeShape::Variant { schema, cases } => {
-            identities.insert(schema.as_str().into());
-            for case in cases {
-                collect_schema_identities(case.payload_type(), identities);
-            }
-        }
-        StructuredInfoTypeShape::Sequence { element, .. }
-        | StructuredInfoTypeShape::Collection { element, .. } => {
-            collect_schema_identities(element, identities);
-        }
-        StructuredInfoTypeShape::Leaf(_) => {}
+        StructuredInfoTypeShape::Sequence { .. }
+        | StructuredInfoTypeShape::Collection { .. }
+        | StructuredInfoTypeShape::Leaf(_) => {}
     }
 }
 

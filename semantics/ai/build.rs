@@ -1,17 +1,53 @@
-use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
+use conduit_form::rust_binding::{
+    generate_rust_bindings_with_codes_and_external_bindings, ExternalNativeRustBinding,
+    RustBindingOptions,
+};
 use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    let tensor_value =
+        conduit_data::TensorValue::semantic_type().expect("TensorValue semantic Type checks");
+    let sampled_signal =
+        conduit_data::SampledSignal::semantic_type().expect("SampledSignal semantic Type checks");
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert_structured_type("TensorValue", tensor_value.clone())
+        .expect("TensorValue installs once");
+    catalog
+        .insert_structured_type("SampledSignal", sampled_signal.clone())
+        .expect("SampledSignal installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
-        &StartupCatalog::new(),
+        &catalog,
     )
     .expect("AI semantic Types must check");
-    let generated = generate_rust_bindings_with_codes(
+    let external_types = [tensor_value, sampled_signal];
+    let external_identities =
+        external_types
+            .each_ref()
+            .map(|value_type| match value_type.shape() {
+                conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
+                    schema,
+                    ..
+                } => schema.as_str().to_owned(),
+                _ => panic!("external native Type has a named record identity"),
+            });
+    let generated = generate_rust_bindings_with_codes_and_external_bindings(
         &checked.native_types,
         &checked.codes,
+        &external_types,
+        &[
+            ExternalNativeRustBinding {
+                semantic_identity: &external_identities[0],
+                rust_type_path: "conduit_data::TensorValue",
+            },
+            ExternalNativeRustBinding {
+                semantic_identity: &external_identities[1],
+                rust_type_path: "conduit_data::SampledSignal",
+            },
+        ],
         &RustBindingOptions {
             boxed_variant_payloads: ["TrainingLifecyclePhase.active_step".into()].into(),
             derive_serde_for_variants: true,
@@ -120,6 +156,54 @@ fn main() {
             .into(),
             record_constructor_orders: [
                 ("AnswerSpan".into(), vec!["start".into(), "end".into()]),
+                (
+                    "MeanCovariance".into(),
+                    vec![
+                        "mean".into(),
+                        "covariance".into(),
+                        "provenance".into(),
+                        "disposition".into(),
+                    ],
+                ),
+                (
+                    "MeanVariance".into(),
+                    vec![
+                        "mean".into(),
+                        "variance".into(),
+                        "provenance".into(),
+                        "disposition".into(),
+                    ],
+                ),
+                (
+                    "ProbabilitySample".into(),
+                    vec!["value".into(), "provenance".into(), "disposition".into()],
+                ),
+                (
+                    "ProbabilitySampleSet".into(),
+                    vec![
+                        "alternatives".into(),
+                        "provenance".into(),
+                        "disposition".into(),
+                    ],
+                ),
+                (
+                    "TrajectoryAlternatives".into(),
+                    vec![
+                        "observation_identity".into(),
+                        "plausible_alternatives".into(),
+                        "provenance".into(),
+                        "disposition".into(),
+                    ],
+                ),
+                (
+                    "WeightedSamples".into(),
+                    vec![
+                        "alternatives".into(),
+                        "weights".into(),
+                        "provenance".into(),
+                        "disposition".into(),
+                    ],
+                ),
                 (
                     "AnswerClaimSupport".into(),
                     vec!["answer_span".into(), "support".into()],

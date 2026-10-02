@@ -672,6 +672,46 @@ type LogProbability = {
     disposition: ProbabilisticDisposition
 }
 
+type ProbabilitySample = {
+    value: TensorValue
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type ProbabilitySampleSet = {
+    alternatives: sequence TensorValue in 1..=64
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type WeightedSamples = {
+    alternatives: sequence TensorValue in 1..=64
+    weights: sequence U64 in 1..=64
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type MeanVariance = {
+    mean: TensorValue
+    variance: TensorValue
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type MeanCovariance = {
+    mean: TensorValue
+    covariance: TensorValue
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
+type TrajectoryAlternatives = {
+    observation_identity: ProbabilityDigest
+    plausible_alternatives: sequence SampledSignal in 1..=32
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
 type ProbabilityRefusal =
     missing_identity
     | invalid_disposition

@@ -1,7 +1,15 @@
 use conduit_ai::*;
 use conduit_core::{semantic_digest, Quantity, QuantityUnit};
 use conduit_data::*;
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+
+fn assert_native_round_trip<T>(value: &T)
+where
+    T: NativeRustBinding + Clone + core::fmt::Debug + PartialEq,
+{
+    let structured = value.clone().into_structured().unwrap();
+    assert_eq!(&T::from_structured(structured).unwrap(), value);
+}
 
 fn tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) -> TensorValue {
     let payload = values
@@ -52,37 +60,60 @@ fn trajectory(value: f32) -> SampledSignal {
 fn weighted_alternatives_are_finite_normalized_and_seeded() {
     let first = tensor(&[1.0, 2.0], vec![2], vec![TensorAxisRole::Feature]);
     let second = tensor(&[1.2, 1.8], vec![2], vec![TensorAxisRole::Feature]);
-    let weighted = WeightedSamples {
-        alternatives: vec![first.clone(), second.clone()],
-        weights: vec![600_000_000, 400_000_000],
-        provenance: provenance(),
-        disposition: ProbabilisticDisposition::approximate("empirical-posterior@1".into()).unwrap(),
-    };
+    let weighted = WeightedSamples::new(
+        BoundedSequence::try_from_iter([first.clone(), second.clone()]).unwrap(),
+        BoundedSequence::try_from_iter([600_000_000, 400_000_000]).unwrap(),
+        provenance(),
+        ProbabilisticDisposition::approximate("empirical-posterior@1".into()).unwrap(),
+    )
+    .unwrap();
     weighted.validate().unwrap();
+    assert_native_round_trip(&weighted);
+    assert_native_round_trip(
+        &ProbabilitySample::new(first.clone(), provenance(), ProbabilisticDisposition::Exact)
+            .unwrap(),
+    );
+    assert_native_round_trip(
+        &ProbabilitySampleSet::new(
+            BoundedSequence::try_from_iter([first.clone(), second]).unwrap(),
+            provenance(),
+            ProbabilisticDisposition::Exact,
+        )
+        .unwrap(),
+    );
     assert_ne!(weighted.semantic_digest().unwrap(), [0; 32]);
     assert_eq!(*weighted.summary().unwrap().result_count(), 2);
 
-    let mut malformed = weighted.clone();
-    malformed.weights[1] = 399_999_999;
+    let malformed = WeightedSamples::new(
+        weighted.alternatives().clone(),
+        BoundedSequence::try_from_iter([600_000_000, 399_999_999]).unwrap(),
+        weighted.provenance().clone(),
+        weighted.disposition().clone(),
+    )
+    .unwrap();
     assert_eq!(
         malformed.validate(),
         Err(ProbabilityRefusal::InvalidWeightSum)
     );
-    malformed = weighted;
-    malformed.weights.pop();
+    let malformed = WeightedSamples::new(
+        weighted.alternatives().clone(),
+        BoundedSequence::try_from_iter([600_000_000]).unwrap(),
+        weighted.provenance().clone(),
+        weighted.disposition().clone(),
+    )
+    .unwrap();
     assert_eq!(
         malformed.validate(),
         Err(ProbabilityRefusal::WeightCountMismatch)
     );
 
-    let overflow = ProbabilitySampleSet {
-        alternatives: vec![first; MAXIMUM_PROBABILITY_SAMPLES + 1],
-        provenance: provenance(),
-        disposition: ProbabilisticDisposition::Exact,
-    };
-    assert_eq!(
-        overflow.validate(),
-        Err(ProbabilityRefusal::SampleCountOverflow)
+    assert!(
+        BoundedSequence::<_, MAXIMUM_PROBABILITY_SAMPLES>::try_from_iter(vec![
+            first;
+            MAXIMUM_PROBABILITY_SAMPLES
+                + 1
+        ])
+        .is_err()
     );
 }
 
@@ -90,27 +121,35 @@ fn weighted_alternatives_are_finite_normalized_and_seeded() {
 fn moments_covariance_log_scores_and_truncation_refuse_malformed_claims() {
     let mean = tensor(&[0.0, 1.0], vec![2], vec![TensorAxisRole::Feature]);
     let variance = tensor(&[0.1, 0.2], vec![2], vec![TensorAxisRole::Feature]);
-    MeanVariance {
-        mean: mean.clone(),
+    let mean_variance = MeanVariance::new(
+        mean.clone(),
         variance,
-        provenance: provenance(),
-        disposition: ProbabilisticDisposition::Exact,
-    }
-    .validate()
+        provenance(),
+        ProbabilisticDisposition::Exact,
+    )
     .unwrap();
-    let mut covariance = MeanCovariance {
-        mean,
-        covariance: tensor(
+    mean_variance.validate().unwrap();
+    assert_native_round_trip(&mean_variance);
+    let covariance = MeanCovariance::new(
+        mean.clone(),
+        tensor(
             &[1.0, 0.2, 0.2, 1.0],
             vec![2, 2],
             vec![TensorAxisRole::Feature, TensorAxisRole::Feature],
         ),
-        provenance: provenance(),
-        disposition: ProbabilisticDisposition::approximate("finite-sample-covariance@1".into())
-            .unwrap(),
-    };
+        provenance(),
+        ProbabilisticDisposition::approximate("finite-sample-covariance@1".into()).unwrap(),
+    )
+    .unwrap();
     covariance.validate().unwrap();
-    covariance.covariance = tensor(&[1.0, 0.2], vec![2], vec![TensorAxisRole::Feature]);
+    assert_native_round_trip(&covariance);
+    let covariance = MeanCovariance::new(
+        mean,
+        tensor(&[1.0, 0.2], vec![2], vec![TensorAxisRole::Feature]),
+        covariance.provenance().clone(),
+        covariance.disposition().clone(),
+    )
+    .unwrap();
     assert_eq!(
         covariance.validate(),
         Err(ProbabilityRefusal::InvalidCovariance)
@@ -129,11 +168,13 @@ fn moments_covariance_log_scores_and_truncation_refuse_malformed_claims() {
         Err(ProbabilityRefusal::InvalidLogProbability)
     );
 
-    let truncated = ProbabilitySampleSet {
-        alternatives: vec![tensor(&[1.0], vec![1], vec![TensorAxisRole::Feature])],
-        provenance: provenance(),
-        disposition: ProbabilisticDisposition::truncated(3, 2).unwrap(),
-    };
+    let truncated = ProbabilitySampleSet::new(
+        BoundedSequence::try_from_iter([tensor(&[1.0], vec![1], vec![TensorAxisRole::Feature])])
+            .unwrap(),
+        provenance(),
+        ProbabilisticDisposition::truncated(3, 2).unwrap(),
+    )
+    .unwrap();
     assert_eq!(
         truncated.validate(),
         Err(ProbabilityRefusal::InvalidDisposition)
@@ -142,23 +183,33 @@ fn moments_covariance_log_scores_and_truncation_refuse_malformed_claims() {
 
 #[test]
 fn one_observation_yields_multiple_plausible_articulations_not_one_truth() {
-    let alternatives = TrajectoryAlternatives {
-        observation_identity: semantic_digest("test/synthetic-audio@1", b"observation"),
-        plausible_alternatives: vec![trajectory(-0.4), trajectory(0.0), trajectory(0.4)],
-        provenance: provenance(),
-        disposition: ProbabilisticDisposition::approximate("conditional-sampler@1".into()).unwrap(),
-    };
+    let alternatives = TrajectoryAlternatives::new(
+        ProbabilityDigest::new(semantic_digest("test/synthetic-audio@1", b"observation")).unwrap(),
+        BoundedSequence::try_from_iter([trajectory(-0.4), trajectory(0.0), trajectory(0.4)])
+            .unwrap(),
+        provenance(),
+        ProbabilisticDisposition::approximate("conditional-sampler@1".into()).unwrap(),
+    )
+    .unwrap();
     alternatives.validate().unwrap();
-    assert_eq!(alternatives.plausible_alternatives.len(), 3);
+    assert_native_round_trip(&alternatives);
+    assert_eq!(alternatives.plausible_alternatives().len(), 3);
     assert_eq!(*alternatives.summary().unwrap().result_count(), 3);
     assert_eq!(
-        alternatives.provenance.randomness(),
+        alternatives.provenance().randomness(),
         &RandomnessProfile::explicit_seed(42).unwrap()
     );
     assert_ne!(alternatives.semantic_digest().unwrap(), [0; 32]);
 
-    let mut misaligned = alternatives;
-    misaligned.plausible_alternatives[2].start = SignalStart::at_sample(1);
+    let mut plausible_alternatives = alternatives.plausible_alternatives().clone();
+    plausible_alternatives[2].start = SignalStart::at_sample(1);
+    let misaligned = TrajectoryAlternatives::new(
+        alternatives.observation_identity().clone(),
+        plausible_alternatives,
+        alternatives.provenance().clone(),
+        alternatives.disposition().clone(),
+    )
+    .unwrap();
     assert_eq!(
         misaligned.validate(),
         Err(ProbabilityRefusal::ShapeMismatch)
