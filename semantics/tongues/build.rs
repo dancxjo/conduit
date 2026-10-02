@@ -12,9 +12,24 @@ fn main() {
     let generated = generate_rust_bindings(
         &checked.native_types,
         &RustBindingOptions {
+            derive_serde_for_variants: true,
+            serde_variant_exclusions: [
+                "RecognitionTextRefusal".into(),
+                "SpeechCommitReason".into(),
+                "SpeechCommitRefusal".into(),
+                "SpeechRecognitionAttempt".into(),
+                "SpeechRecognitionDisposition".into(),
+                "SpeechRecognitionRefusal".into(),
+                "SpeechRecognitionResult".into(),
+                "SpeechRecognitionValueError".into(),
+                "StreamingRecognitionRefusal".into(),
+            ]
+            .into(),
             serde_record_types: ["CommittedUserMessage".into(), "SpeakableSegment".into()].into(),
             copy_record_types: ["LiveConversationSpeechRequirements".into()].into(),
             copy_record_value_getters: ["LiveConversationSpeechRequirements".into()].into(),
+            copy_nominal_types: ["SpeechOutputCondition".into()].into(),
+            serde_nominal_types: ["SpeechDigest".into(), "SpeechSignReason".into()].into(),
             public_record_fields: [
                 "CommittedUserMessage".into(),
                 "HouseGenerationRequest".into(),

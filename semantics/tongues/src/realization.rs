@@ -10,6 +10,8 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
+pub use crate::SpeechOutputCondition as OutputCondition;
+
 pub const SYNTHESIZE_OPERATION: &str = "conduit.host/speech-synthesize@1";
 pub const PLAY_AUDIO_OPERATION: &str = "conduit.host/audio-playback@1";
 pub const WRITE_WAV_OPERATION: &str = "conduit.host/audio-wav-write@1";
@@ -19,12 +21,6 @@ pub const CPU_RESOURCE: &str = "conduit.resource/compute/cpu@1";
 pub const PCM_BUFFER_RESOURCE: &str = "conduit.resource/audio/pcm-buffer@1";
 pub const AUDIO_DEVICE_RESOURCE: &str = "conduit.resource/audio/output-device@1";
 pub const ARTIFACT_RESOURCE: &str = "conduit.resource/storage/artifact@1";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OutputCondition {
-    PrimaryPlayback,
-    DegradedWavArtifact,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpeechRealizationFacts {

@@ -8,10 +8,13 @@ mod generated {
 pub use generated::{
     CommittedUserMessage, HouseGenerationRequest, LiveConversationSpeechRequirements,
     RecognitionTextRefusal, RecognizedSpeechText, SpeakableSegment, SpeechCommitReason,
-    SpeechCommitRefusal, SpeechRecognitionAttempt, SpeechRecognitionAudioDigest,
-    SpeechRecognitionDisposition, SpeechRecognitionProviderIdentity, SpeechRecognitionRefusal,
-    SpeechRecognitionResult, SpeechRecognitionResultNoSpeech, SpeechRecognitionResultRecognized,
-    SpeechRecognitionValueError, StreamingRecognitionRefusal,
+    SpeechCommitRefusal, SpeechDigest, SpeechOutcome, SpeechOutcomePlayed,
+    SpeechOutcomeWavArtifact, SpeechOutputCondition, SpeechRecognitionAttempt,
+    SpeechRecognitionAudioDigest, SpeechRecognitionDisposition, SpeechRecognitionProviderIdentity,
+    SpeechRecognitionRefusal, SpeechRecognitionResult, SpeechRecognitionResultNoSpeech,
+    SpeechRecognitionResultRecognized, SpeechRecognitionValueError, SpeechSign, SpeechSignDegraded,
+    SpeechSignFailed, SpeechSignPresented, SpeechSignReason, SpeechSignRefused,
+    SpeechSignSynthesized, StreamingRecognitionRefusal,
 };
 
 mod analysis;
@@ -58,8 +61,6 @@ pub use research_data::*;
 pub use research_form::*;
 pub use research_model::*;
 pub use research_report::*;
-#[cfg(feature = "speech")]
-pub use signs::*;
 #[cfg(feature = "speech")]
 pub use specimen::*;
 pub use speech_commit::*;
