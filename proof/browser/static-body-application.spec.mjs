@@ -172,14 +172,14 @@ test("static Handbook applications retain independent local Bodies through use, 
     await second.reload();
     renewed(independent, await ready(second));
 
-    await page.getByText("Your body and browser", { exact: true }).click();
+    await page.locator('.handbook-application').getByText("Your body and browser", { exact: true }).click();
     await page.getByRole("button", { name: "Start my Handbook over", exact: true }).click();
     await expect.poll(async () => { try { return (await current(page)).bodyId; } catch { return first.bodyId; } }).not.toBe(first.bodyId);
     const reset = await ready(page);
     expect(reset.hostId).toBe(first.hostId);
     expect(reset.bodyId).not.toBe(first.bodyId);
     expect((await current(second)).bodyId).toBe(independent.bodyId);
-    await page.getByText("Your body and browser", { exact: true }).click();
+    await page.locator('.handbook-application').getByText("Your body and browser", { exact: true }).click();
     await page.getByRole("button", { name: "Release this tab", exact: true }).click();
     await expect(page.locator("[data-session-status]")).toContainText("released your Handbook");
     await competitor.getByRole("button", { name: "Try again", exact: true }).click();
