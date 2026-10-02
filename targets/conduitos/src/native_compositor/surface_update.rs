@@ -25,6 +25,7 @@ impl NativeCompositor {
             display_base_id,
             scene,
             true,
+            false,
         )
     }
     /// Stage a still-pending ordinary Mask renderer, without granting input ownership.
@@ -49,6 +50,33 @@ impl NativeCompositor {
             display_base_id,
             scene,
             false,
+            false,
+        )
+    }
+    /// Repaint Mask-local focus, pagination, or uncommitted input under the
+    /// same acknowledged Show. The semantic Face revision must be identical;
+    /// this operation cannot mint a new Show or advance application truth.
+    pub fn repaint_mask_surface(
+        &mut self,
+        presentation: &Presentation,
+        show: &conduit_presentation::MaskShow,
+        display_base_id: &HostBaseId,
+        scene: &GraphicsScene,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        show.validate(presentation)
+            .map_err(|_| NativeCompositorError::ManifestationInvalid)?;
+        if show.show.lifecycle != ManifestationLifecycle::Available {
+            return Err(NativeCompositorError::StaleIdentity);
+        }
+        self.validate_surface_binding(&show.show, &show.show.target_subject, display_base_id)?;
+        self.raster_surface(
+            presentation,
+            &show.show,
+            &show.show.target_subject,
+            display_base_id,
+            scene,
+            false,
+            true,
         )
     }
     fn raster_surface(
@@ -59,6 +87,7 @@ impl NativeCompositor {
         display_base_id: &HostBaseId,
         scene: &GraphicsScene,
         input_ready: bool,
+        same_revision: bool,
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
         let surface = self
             .surfaces
@@ -72,7 +101,11 @@ impl NativeCompositor {
             {
                 return Err(NativeCompositorError::SurfaceAlreadyBound);
             }
-            if presentation.revision <= binding.last_revision {
+            if (same_revision
+                && (presentation.revision != binding.last_revision
+                    || manifestation.manifestation_id != binding.manifestation_id))
+                || (!same_revision && presentation.revision <= binding.last_revision)
+            {
                 return Err(NativeCompositorError::StaleSurfaceRevision);
             }
         }
