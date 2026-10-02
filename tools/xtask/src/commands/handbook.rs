@@ -372,13 +372,13 @@ fn page_shell(
     let mut escaped_title = String::new();
     escape_html_into(title, &mut escaped_title);
     let progress = progress.map_or_else(String::new, |(current, total)| {
-        format!("<p class=\"handbook-progress\">Journey {current} of {total}</p>")
+        format!("<p class=\"handbook-progress\">Section {current} of {total}</p>")
     });
     let continuation = next.map_or_else(String::new, |(next_stem, markdown)| {
         let next_title = page_title(markdown).unwrap_or_else(|| readable_name(next_stem));
         let mut escaped_next = String::new();
         escape_html_into(&next_title, &mut escaped_next);
-        format!("<nav class=\"handbook-continue\" aria-label=\"Continue reading\"><span>Continue the journey</span><a href=\"{next_stem}.html\">{escaped_next}<b aria-hidden=\"true\">→</b></a></nav>")
+        format!("<nav class=\"handbook-continue\" aria-label=\"Continue reading\"><span>Continue reading</span><a href=\"{next_stem}.html\">{escaped_next}<b aria-hidden=\"true\">→</b></a></nav>")
     });
     format!(
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark light\"><title>{escaped_title} · Conduit handbook</title><link rel=\"stylesheet\" href=\"../conduit.css\"><link rel=\"stylesheet\" href=\"handbook.css\"><link rel=\"stylesheet\" href=\"svg-viewport.css\"><script type=\"module\" src=\"handbook.mjs\"></script></head><body class=\"handbook-page handbook-page-{stem}\" data-application-theme=\"conduit.presentation/phosphor@1\"><a class=\"conduit-skip-link\" href=\"#handbook-content\">Skip to content</a><header class=\"handbook-masthead\"><a href=\"../\">Conduit</a><span>Handbook</span><a href=\"https://github.com/dancxjo/conduit\">Source</a></header><div class=\"handbook-layout\"><aside class=\"handbook-sidebar\" aria-label=\"Handbook navigation\">{sidebar}</aside><main id=\"handbook-content\" class=\"handbook-article\" tabindex=\"-1\">{progress}{article}{continuation}</main></div></body></html>"

@@ -583,7 +583,9 @@ fn gallery_publishes_current_history_and_provenance() {
     let scenario =
         fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
     assert!(index.contains(&commit));
-    assert!(index.contains("latest 32 published main commits"));
+    assert!(index.contains("latest 32 published source commits"));
+    assert!(index.contains("Publication source:"));
+    assert!(!index.contains("Current accepted main:"));
     assert!(index.contains("One Journey.<br><em>Three Bodies.</em>"));
     assert!(index.contains("Evidence not yet admitted for this commit"));
     assert!(index.contains("The evidence library"));
@@ -595,7 +597,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(!index.contains("presentation Host"));
     assert!(index.contains("journey-card"));
     assert!(index.contains("Follow the evidence"));
-    assert!(index.contains("Browse every closed and upcoming vertical"));
+    assert!(index.contains("Browse the completed vertical journeys"));
     let catalogue: serde_json::Value =
         serde_json::from_slice(&fs::read(site_root.join("catalogue.json")).unwrap()).unwrap();
     assert_eq!(catalogue["schema"], "conduit.vertical-journey-catalogue/v1");
@@ -609,7 +611,7 @@ fn gallery_publishes_current_history_and_provenance() {
             .filter(|vertical| vertical["state"] == "accepted"
                 && vertical["accepted_source"].is_string())
             .count(),
-        3
+        6
     );
     assert_eq!(
         catalogue["verticals"]
@@ -619,7 +621,7 @@ fn gallery_publishes_current_history_and_provenance() {
             .filter(|vertical| vertical["state"] == "planned"
                 && vertical.get("accepted_source").is_none())
             .count(),
-        3
+        0
     );
     for slug in [
         "field-station-clock",

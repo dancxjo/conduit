@@ -43,7 +43,7 @@ fn duplicate_headings_receive_stable_suffixes() {
 }
 
 #[test]
-fn sidebar_order_drives_the_reading_journey() {
+fn sidebar_order_drives_the_reading_sequence() {
     let sidebar = "### Learn\n- [[Home]]\n- [[Why Conduit|Why-Conduit]]\n";
     assert_eq!(wiki_link_order(sidebar), ["Home", "Why-Conduit"]);
     let rendered = render_markdown(sidebar).unwrap();
@@ -56,4 +56,21 @@ fn handbook_shell_loads_the_diagram_viewport_enhancement() {
     let shell = page_shell("Form-diagrams", "Form diagrams", "", "", None, None);
     assert!(shell.contains("<script type=\"module\" src=\"handbook.mjs\"></script>"));
     assert!(shell.contains("<link rel=\"stylesheet\" href=\"svg-viewport.css\">"));
+}
+
+#[test]
+fn handbook_shell_calls_its_sequence_sections_not_journeys() {
+    let next = ("Why-Conduit".to_owned(), "# Why Conduit\n".to_owned());
+    let shell = page_shell(
+        "Home",
+        "Home",
+        "",
+        "",
+        Some((1, 2)),
+        Some((&next.0, &next.1)),
+    );
+    assert!(shell.contains("Section 1 of 2"));
+    assert!(shell.contains("<span>Continue reading</span>"));
+    assert!(!shell.contains("Journey 1 of 2"));
+    assert!(!shell.contains("Continue the journey"));
 }

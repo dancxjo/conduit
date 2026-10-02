@@ -129,7 +129,7 @@ pub(crate) struct EvidenceGalleryArgs {
     #[arg(long)]
     site_root: PathBuf,
 
-    /// Exact 40-character accepted main commit to publish.
+    /// Exact 40-character source commit to publish.
     #[arg(long)]
     commit: String,
 }
