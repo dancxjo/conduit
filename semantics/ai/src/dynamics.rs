@@ -7,7 +7,10 @@ use conduit_data::{
     TensorValue,
 };
 
-use crate::{DynamicsRefusal, IntegrationAccuracy, IntegrationTerminal, RandomnessProfile};
+use crate::{
+    DynamicsRefusal, IntegrationAccuracy, IntegrationResourceEnvelope, IntegrationTerminal,
+    RandomnessProfile,
+};
 
 pub const MAXIMUM_DYNAMICS_CONTEXTS: usize = 32;
 pub const MAXIMUM_DYNAMICS_SAMPLES: usize = 65_536;
@@ -34,18 +37,6 @@ pub struct OutputSamplingGrid {
     /// Exact requested observation coordinates. These are independent of
     /// solver-internal adaptive steps.
     pub coordinates: Vec<i64>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct IntegrationResourceEnvelope {
-    pub maximum_state_bytes: u64,
-    pub maximum_context_bytes: u64,
-    pub maximum_output_samples: u32,
-    pub maximum_output_bytes: u64,
-    pub maximum_internal_steps: u64,
-    pub maximum_function_evaluations: u64,
-    pub maximum_work_units: u64,
-    pub memory_ceiling_bytes: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,8 +133,7 @@ impl IntegrateContract {
         if !matches!(self.profile, DynamicsProfile::DeterministicOde) {
             return Err(DynamicsRefusal::UnsupportedStochasticProfile);
         }
-        self.accuracy.validate()?;
-        self.resources.validate()
+        self.accuracy.validate()
     }
 
     pub fn planned_state_boundary(
@@ -151,8 +141,8 @@ impl IntegrateContract {
         state: &DynamicsState,
     ) -> Result<PlannedStateBoundary, DynamicsRefusal> {
         self.validate()?;
-        state.validate(self.resources.maximum_state_bytes)?;
-        let maximum_value_bytes = u32::try_from(self.resources.maximum_state_bytes)
+        state.validate(self.resources.maximum_state_bytes())?;
+        let maximum_value_bytes = u32::try_from(self.resources.maximum_state_bytes())
             .map_err(|_| DynamicsRefusal::InvalidResources)?;
         Ok(PlannedStateBoundary {
             state_id: state.identity.clone().into(),
@@ -241,7 +231,7 @@ impl OutputSamplingGrid {
         text(&self.clock_identity)?;
         if self.coordinates.len() < 2
             || self.coordinates.len() > MAXIMUM_DYNAMICS_SAMPLES
-            || self.coordinates.len() > resources.maximum_output_samples as usize
+            || self.coordinates.len() > resources.maximum_output_samples() as usize
             || self.coordinates.first() != Some(&interval.start)
             || self.coordinates.last() != Some(&interval.end)
             || self.coordinates.windows(2).any(|pair| pair[0] >= pair[1])
@@ -258,25 +248,6 @@ impl IntegrationAccuracy {
             || self.maximum_estimated_error_millionths == 0
         {
             Err(DynamicsRefusal::InvalidAccuracy)
-        } else {
-            Ok(())
-        }
-    }
-}
-
-impl IntegrationResourceEnvelope {
-    fn validate(self) -> Result<(), DynamicsRefusal> {
-        if self.maximum_state_bytes == 0
-            || self.maximum_context_bytes == 0
-            || self.maximum_output_samples < 2
-            || self.maximum_output_samples as usize > MAXIMUM_DYNAMICS_SAMPLES
-            || self.maximum_output_bytes == 0
-            || self.maximum_internal_steps == 0
-            || self.maximum_function_evaluations == 0
-            || self.maximum_work_units == 0
-            || self.memory_ceiling_bytes == 0
-        {
-            Err(DynamicsRefusal::InvalidResources)
         } else {
             Ok(())
         }
@@ -305,7 +276,7 @@ impl DynamicsState {
 impl IntegrateRequest {
     fn validate_for(&self, contract: &IntegrateContract) -> Result<(), DynamicsRefusal> {
         self.initial_state
-            .validate(contract.resources.maximum_state_bytes)?;
+            .validate(contract.resources.maximum_state_bytes())?;
         if self.expected_generation != self.initial_state.generation {
             return Err(DynamicsRefusal::StaleState);
         }
@@ -325,7 +296,7 @@ impl IntegrateRequest {
                 )
                 .ok_or(DynamicsRefusal::ResourceBoundExceeded)?;
         }
-        if bytes > contract.resources.maximum_context_bytes {
+        if bytes > contract.resources.maximum_context_bytes() {
             return Err(DynamicsRefusal::ResourceBoundExceeded);
         }
         Ok(())
@@ -380,7 +351,7 @@ impl IntegrationCandidate {
                 != request.initial_state.value.axes.as_slice()[..]
             || sample_bytes
                 .checked_add(coordinate_bytes)
-                .is_none_or(|bytes| bytes > contract.resources.maximum_output_bytes)
+                .is_none_or(|bytes| bytes > contract.resources.maximum_output_bytes())
         {
             return Err(DynamicsRefusal::InvalidTrajectory);
         }
@@ -394,16 +365,16 @@ impl IntegrationCandidate {
                 .final_state
                 .byte_count()
                 .map_err(|_| DynamicsRefusal::InvalidFinalState)?
-                > contract.resources.maximum_state_bytes
+                > contract.resources.maximum_state_bytes()
         {
             return Err(DynamicsRefusal::InvalidFinalState);
         }
         if self.internal_steps == 0
-            || self.internal_steps > contract.resources.maximum_internal_steps
+            || self.internal_steps > contract.resources.maximum_internal_steps()
             || self.function_evaluations == 0
-            || self.function_evaluations > contract.resources.maximum_function_evaluations
+            || self.function_evaluations > contract.resources.maximum_function_evaluations()
             || self.consumed_work_units == 0
-            || self.consumed_work_units > contract.resources.maximum_work_units
+            || self.consumed_work_units > contract.resources.maximum_work_units()
             || self.estimated_error_millionths
                 > contract.accuracy.maximum_estimated_error_millionths
         {

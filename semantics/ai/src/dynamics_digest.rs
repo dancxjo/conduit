@@ -29,14 +29,14 @@ impl IntegrateContract {
                 .maximum_estimated_error_millionths
                 .to_le_bytes(),
         );
-        bytes.extend_from_slice(&self.resources.maximum_state_bytes.to_le_bytes());
-        bytes.extend_from_slice(&self.resources.maximum_context_bytes.to_le_bytes());
-        bytes.extend_from_slice(&self.resources.maximum_output_samples.to_le_bytes());
-        bytes.extend_from_slice(&self.resources.maximum_output_bytes.to_le_bytes());
-        bytes.extend_from_slice(&self.resources.maximum_internal_steps.to_le_bytes());
-        bytes.extend_from_slice(&self.resources.maximum_function_evaluations.to_le_bytes());
-        bytes.extend_from_slice(&self.resources.maximum_work_units.to_le_bytes());
-        bytes.extend_from_slice(&self.resources.memory_ceiling_bytes.to_le_bytes());
+        bytes.extend_from_slice(&self.resources.maximum_state_bytes().to_le_bytes());
+        bytes.extend_from_slice(&self.resources.maximum_context_bytes().to_le_bytes());
+        bytes.extend_from_slice(&self.resources.maximum_output_samples().to_le_bytes());
+        bytes.extend_from_slice(&self.resources.maximum_output_bytes().to_le_bytes());
+        bytes.extend_from_slice(&self.resources.maximum_internal_steps().to_le_bytes());
+        bytes.extend_from_slice(&self.resources.maximum_function_evaluations().to_le_bytes());
+        bytes.extend_from_slice(&self.resources.maximum_work_units().to_le_bytes());
+        bytes.extend_from_slice(&self.resources.memory_ceiling_bytes().to_le_bytes());
         Ok(semantic_digest("ai/integrate-contract@1", &bytes))
     }
 }

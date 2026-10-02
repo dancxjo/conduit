@@ -1073,6 +1073,26 @@ type IntegrationAccuracy = {
     where .maximum-estimated-error-millionths > 0
 }
 
+type IntegrationResourceEnvelope = {
+    maximum_state_bytes: U64
+    maximum_context_bytes: U64
+    maximum_output_samples: U32
+    maximum_output_bytes: U64
+    maximum_internal_steps: U64
+    maximum_function_evaluations: U64
+    maximum_work_units: U64
+    memory_ceiling_bytes: U64
+    where .maximum_state_bytes > 0
+    where .maximum_context_bytes > 0
+    where .maximum_output_samples >= 2
+    where .maximum_output_samples <= 65536
+    where .maximum_output_bytes > 0
+    where .maximum_internal_steps > 0
+    where .maximum_function_evaluations > 0
+    where .maximum_work_units > 0
+    where .memory_ceiling_bytes > 0
+}
+
 type EmbodimentStage =
     perception_only
     | expressive
