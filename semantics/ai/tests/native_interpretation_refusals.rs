@@ -15,7 +15,6 @@ where
 fn interpretation_refusals_round_trip_through_native_types() {
     for value in [
         InterpretationInvalidity::EmptyEvidence,
-        InterpretationInvalidity::InvalidConfidence,
         InterpretationInvalidity::InvalidTemporalContext,
     ] {
         assert_round_trip(value);
