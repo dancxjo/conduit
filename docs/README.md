@@ -12,3 +12,5 @@ and beside the code it describes; old checkpoints have a separate history index.
 
 The [handbook source](../wiki/Home.md) is rendered by the website build as the
 [handbook](https://dancxjo.github.io/conduit/handbook/).
+
+For runtime-produced audio, see [the hosted speech guide](proof/runtime-speech.md).

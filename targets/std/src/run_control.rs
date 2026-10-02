@@ -68,6 +68,13 @@ impl RunControl {
         Ok(())
     }
 
+    /// Observe cancellation during a Host effect without consuming the exact
+    /// request that the runner must acknowledge in its lifecycle evidence.
+    pub(crate) fn stop_requested(&self) -> bool {
+        let state = self.state.0.lock().expect("run control lock poisoned");
+        state.requested.is_some() || state.accepted
+    }
+
     pub(crate) fn requested_stop(&self) -> Option<RunControlRequestId> {
         let mut state = self.state.0.lock().expect("run control lock poisoned");
         let requested = state.requested.take();
@@ -109,7 +116,13 @@ mod tests {
             .request_stop(RunControlRequestId::new("first").unwrap())
             .unwrap();
 
+        assert!(control.stop_requested());
+        assert!(
+            control.stop_requested(),
+            "Host observation must not consume the request"
+        );
         assert_eq!(control.requested_stop().unwrap().as_str(), "first");
+        assert!(control.stop_requested());
         assert_eq!(control.requested_stop(), None);
         assert_eq!(
             control

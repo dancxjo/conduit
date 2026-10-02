@@ -59,7 +59,7 @@ impl NativePackageInstaller for LocalNativeInstaller {
         let prepared = prepare(source, artifact, &self.state_dir)?;
         #[cfg(test)]
         let result = if self.suppress_service_manager {
-            crate::durable_host::install_for_activation_test(&prepared.manifest, &self.state_dir)
+            crate::durable_host::install_without_start(&prepared.manifest, &self.state_dir)
         } else {
             crate::durable_host::install_and_activate(&prepared.manifest, &self.state_dir)
         };

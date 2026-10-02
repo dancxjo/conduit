@@ -23,7 +23,7 @@ test("the first body runs and can remove its resident Tutorial Plot without losi
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const resident = tutorial.locator("[data-body-tutorial-resident] > output");
-  await expect(resident).toContainText("finite Body may remain awake");
+  await expect(resident).toContainText("Try a Plot, inspect what happened, then try again.");
   await expect(resident).toHaveAttribute("data-active-play-id", (await current(page)).active_play_id);
   await expect(tutorial.locator("[data-body-tutorial-core]")).toBeHidden();
   await page.getByRole("button", { name: "+ Plots", exact: true }).click();

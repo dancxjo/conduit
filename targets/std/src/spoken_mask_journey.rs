@@ -6,7 +6,13 @@
 
 use serde::{Deserialize, Serialize};
 
+mod replay;
+mod retained_artifact;
 mod routes;
+#[cfg(test)]
+mod tests;
+use replay::{offer, Replay};
+pub use retained_artifact::{RetainedSpokenMaskExecution, RetainedWavArtifact};
 pub use routes::*;
 
 /// One exact ordinary spoken Mask execution retained for producer evidence.
@@ -28,6 +34,43 @@ pub fn execute_retained_manifestation_mask(
     presentation: conduit_presentation::Presentation,
     retained: conduit_presentation::GeneratedManifestationCandidate,
 ) -> Result<SpokenMaskExecution, String> {
+    execute_mask(plot_name, execution_id, presentation, retained, None).map(|result| result.0)
+}
+
+/// Run a retained Presenter result through real, explicitly selected eSpeak and
+/// retain its acknowledged WAV. This does not run Presenter inference or prove
+/// playback, human hearing, or inward audio capture.
+pub fn execute_retained_manifestation_mask_with_espeak(
+    plot_name: &str,
+    execution_id: &str,
+    presentation: conduit_presentation::Presentation,
+    retained: conduit_presentation::GeneratedManifestationCandidate,
+    discovery: crate::hosted_speech_synthesis::EspeakDiscovery,
+    destination: &std::path::Path,
+) -> Result<RetainedSpokenMaskExecution, String> {
+    let (execution, artifact) = execute_mask(
+        plot_name,
+        execution_id,
+        presentation,
+        retained,
+        Some((discovery, destination)),
+    )?;
+    Ok(RetainedSpokenMaskExecution {
+        execution,
+        artifact: artifact.ok_or("real speech omitted retained artifact metadata")?,
+    })
+}
+
+fn execute_mask(
+    plot_name: &str,
+    execution_id: &str,
+    presentation: conduit_presentation::Presentation,
+    retained: conduit_presentation::GeneratedManifestationCandidate,
+    real: Option<(
+        crate::hosted_speech_synthesis::EspeakDiscovery,
+        &std::path::Path,
+    )>,
+) -> Result<(SpokenMaskExecution, Option<RetainedWavArtifact>), String> {
     use conduit_core::{
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
         SignId,
@@ -46,89 +89,6 @@ pub fn execute_retained_manifestation_mask(
     };
     use std::collections::BTreeMap;
 
-    struct Replay {
-        offer: conduit_ai::LocalModelOffer,
-        retained: conduit_presentation::GeneratedManifestationCandidate,
-    }
-    impl crate::hosted_local_model::HostedLocalModelAdapter for Replay {
-        fn offer(&self) -> &conduit_ai::LocalModelOffer {
-            &self.offer
-        }
-        fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
-            conduit_core::PoolRealizationHealth::Ready
-        }
-        fn execute(
-            &mut self,
-            placement: &conduit_core::PlannedGear,
-            input: &[u8],
-            output: &mut Vec<u8>,
-        ) -> crate::hosted_local_model::LocalModelAdapterTerminal {
-            use crate::hosted_local_model::LocalModelAdapterTerminal;
-            if placement.kind_id.as_str() != conduit_ai::LLM_PRESENT_KIND {
-                return LocalModelAdapterTerminal::Refused;
-            }
-            let Ok(request) = serde_json::from_slice::<GenerativePresenterRequest>(input) else {
-                return LocalModelAdapterTerminal::Failed;
-            };
-            let mut manifestation = self.retained.clone();
-            manifestation.request_identity = request.request_identity;
-            manifestation.source_presentation_identity =
-                request.semantic_data.source_presentation_identity;
-            manifestation.source_presentation_revision =
-                request.semantic_data.source_presentation_revision;
-            manifestation.template_contract_revision = request.policy.template_contract_revision;
-            manifestation.candidate_identity = manifestation.digest();
-            match serde_json::to_vec(&manifestation) {
-                Ok(bytes) => {
-                    output.clear();
-                    output.extend(bytes);
-                    LocalModelAdapterTerminal::Produced
-                }
-                Err(_) => LocalModelAdapterTerminal::Failed,
-            }
-        }
-    }
-    fn offer(
-        retained: &conduit_presentation::GeneratedManifestationCandidate,
-    ) -> conduit_ai::LocalModelOffer {
-        use conduit_ai::{
-            LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelComputeNeed,
-            LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits,
-            LocalModelOffer,
-        };
-        LocalModelOffer {
-            identity: LocalModelIdentity {
-                runtime_name: retained.provider_identity.clone(),
-                runtime_version: "retained-producer-result".into(),
-                runtime_build_identity: retained.presenter_implementation_identity.clone(),
-                model_name: retained.model_identity.clone(),
-                model_content_identity: retained.generation_run_identity.clone(),
-                architecture: "retained-manifestation".into(),
-                parameter_profile: "exact-result".into(),
-                quantization: "producer-owned".into(),
-            },
-            limits: LocalModelLimits {
-                work: LlmWorkBounds::reviewed_default(),
-                model_bytes: 1,
-                admitted_memory_mib: 1,
-                compute: LocalModelComputeNeed {
-                    minimum_lanes: 1,
-                    preferred_lanes: 1,
-                    maximum_lanes: 1,
-                    minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
-                },
-                maximum_in_flight: 1,
-                maximum_queue_items: 1,
-                maximum_queue_bytes: 262_144,
-                cancellation_supported: true,
-                cache_policy: LocalModelCachePolicy::OneLoadedModelUntilShutdown,
-            },
-            supported_profiles: vec![LocalModelKindProfile::PresentSemanticFront],
-            initialized: true,
-            lifecycle: LocalModelLifecycleState::Ready,
-            determinism: LlmDeterminismProfile::ProviderNondeterministic,
-        }
-    }
     #[derive(Default)]
     struct Collector(Vec<crate::ExternalForeDelivery>);
     impl crate::ExternalForeOutputAdapter for Collector {
@@ -156,18 +116,42 @@ pub fn execute_retained_manifestation_mask(
             retained,
         }),
     )?;
-    let destination = std::env::temp_dir().join(format!(
-        "conduit-spoken-mask-{}-{safe_id}.wav",
-        std::process::id()
-    ));
-    let _ = std::fs::remove_file(&destination);
-    host.attach_deterministic_speech_and_wav_artifact(
-        crate::hosted_wav_artifact::WavArtifactSelection::new(
-            &destination,
-            config.boot_id.clone(),
-            config.offer_generation,
-        )?,
+    let real_speech = real.is_some();
+    let destination = real
+        .as_ref()
+        .map(|(_, path)| path.to_path_buf())
+        .unwrap_or_else(|| {
+            std::env::temp_dir().join(format!(
+                "conduit-spoken-mask-{}-{safe_id}.wav",
+                std::process::id()
+            ))
+        });
+    if real_speech && destination.exists() {
+        return Err("retained WAV destination already exists".into());
+    }
+    if !real_speech {
+        let _ = std::fs::remove_file(&destination);
+    }
+    let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
+        &destination,
+        config.boot_id.clone(),
+        config.offer_generation,
     )?;
+    if let Some((discovery, _)) = real {
+        let adapter = discovery
+            .initialize(
+                config.host_id.clone(),
+                config.boot_id.clone(),
+                config.offer_generation,
+                conduit_core::AuthorityGrantId::from(format!("grant/{execution_id}/speech")),
+                std::time::Duration::from_secs(10),
+            )
+            .map_err(|error| error.to_string())?;
+        host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
+    } else {
+        host.attach_deterministic_speech_and_wav_artifact(artifact)?;
+    }
+    let maximum_output_bytes = if real_speech { 131_072 } else { 32_768 };
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
@@ -187,7 +171,7 @@ pub fn execute_retained_manifestation_mask(
  validator: presentation/generated-semantic-validator
  accepted: presentation/retain-generated-validation
  speech: presentation/generated-manifestation-speech
- voice: speech/synthesize(maximum-output-bytes = 32768)
+ voice: speech/synthesize(maximum-output-bytes = {maximum_output_bytes})
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
  artifact: presentation/spoken-artifact
  shown: presentation/artifact-acknowledged-show
@@ -247,7 +231,10 @@ pub fn execute_retained_manifestation_mask(
     let connection_bases = BTreeMap::new();
     let line_candidates = BTreeMap::new();
     let grant_id = format!("grant/{execution_id}");
-    let authority = host.spoken_mask_artifact_authority_grant(&grant_id)?;
+    let mut authority = vec![host.spoken_mask_artifact_authority_grant(&grant_id)?];
+    if real_speech {
+        authority.push(host.speech_synthesis_authority_grant()?);
+    }
     let plan = plan_expanded_authoring_with_options(
         &authoring,
         &hosts,
@@ -258,7 +245,7 @@ pub fn execute_retained_manifestation_mask(
             line_candidates: &line_candidates,
             connection_item_capacity: 1,
             connection_byte_capacity: 16_384,
-            authority_grants: std::slice::from_ref(&authority),
+            authority_grants: &authority,
             protected_resource_grants: &[],
             line_offers: &[],
         },
@@ -318,8 +305,13 @@ pub fn execute_retained_manifestation_mask(
     if shown.show.show.lifecycle != ManifestationLifecycle::Available || !destination.is_file() {
         return Err("spoken Mask did not retain an available artifact Show".into());
     }
-    let _ = std::fs::remove_file(destination);
-    Ok(SpokenMaskExecution { shown, plan, mask })
+    let artifact = if real_speech {
+        Some(retained_artifact::inspect(&destination, &shown.artifact)?)
+    } else {
+        let _ = std::fs::remove_file(destination);
+        None
+    };
+    Ok((SpokenMaskExecution { shown, plan, mask }, artifact))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

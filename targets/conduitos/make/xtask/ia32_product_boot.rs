@@ -276,9 +276,11 @@ fn boot_once(
     let deadline = Instant::now() + Duration::from_secs(60);
     loop {
         let transcript = fs::read_to_string(&transcript_path).unwrap_or_default();
-        if let (Some(json), Some(observatory_json)) = (
+        if let (Some(json), Some(observatory_json), true) = (
             complete_line(&transcript, PREFIX),
             complete_line(&transcript, OBSERVATORY_PREFIX),
+            matches!(firmware_mode, FirmwareMode::Uefi32)
+                || super::ia32_vga_receipt::completed_boot(&transcript).is_some(),
         ) {
             let value: serde_json::Value = serde_json::from_str(json)
                 .map_err(|error| refusal("malformed-ia32-product-sign", error.to_string()))?;
@@ -292,9 +294,13 @@ fn boot_once(
                 .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
             validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
             if matches!(firmware_mode, FirmwareMode::LegacyBios) {
-                if let Err(error) =
+                if let Err(error) = super::ia32_vga_receipt::validate_completion(
+                    &transcript,
+                    &value,
+                )
+                .and_then(|()| {
                     super::ia32_vga_receipt::capture_and_validate(&monitor_path, &vga_path, &value)
-                {
+                }) {
                     let _ = child.kill();
                     let _ = child.wait();
                     return Err(error);

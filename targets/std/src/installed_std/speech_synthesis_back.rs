@@ -8,6 +8,12 @@ use conduit_kernel::{
     ValueRef, ValueStorage,
 };
 
+pub(super) static ESPEAK_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
 pub(super) static DETERMINISTIC_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION,
     budget,
@@ -151,7 +157,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
 
 impl SpeechSynthesisBack {}
 
-fn maximum_output_bytes(placement: &PlannedGear) -> Result<u32, String> {
+pub(super) fn maximum_output_bytes(placement: &PlannedGear) -> Result<u32, String> {
     let value = placement
         .configuration
         .iter()
@@ -179,13 +185,23 @@ fn maximum_blocks(placement: &PlannedGear) -> Result<u16, String> {
     Ok(blocks)
 }
 
-fn validate(placement: &PlannedGear) -> Result<(), String> {
+pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = match placement.implementation_id.as_str() {
         conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION => {
             conduit_std_offers::deterministic_speech_offer()
         }
         conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION => {
             conduit_std_offers::deterministic_streaming_speech_offer()
+        }
+        conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION => {
+            let [resource] = placement.resources.as_slice() else {
+                return Err("planned speech provider resource is missing".into());
+            };
+            let content = resource
+                .content
+                .as_ref()
+                .ok_or("planned speech provider content is missing")?;
+            conduit_std_offers::espeak_speech_offer(content.contract.clone())
         }
         _ => return Err("planned speech implementation is not installed".into()),
     };
@@ -197,13 +213,20 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
-        || !placement.authority.is_empty()
         || placement.configuration.len() != 1
     {
-        return Err("planned deterministic speech identity does not match its installation".into());
+        return Err("planned speech identity does not match its installation".into());
     }
-    if !placement.resources.is_empty() {
-        return Err("deterministic speech proof requires no Host resource".into());
+    if placement.implementation_id.as_str() == conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION {
+        let resource = &placement.resources[0];
+        if resource.class_id.as_str() != conduit_std_offers::ESPEAK_SPEECH_RESOURCE_CLASS
+            || resource.units != 1
+            || placement.authority.len() != 1
+        {
+            return Err("planned speech provider requires its exact resource and authority".into());
+        }
+    } else if !placement.resources.is_empty() || !placement.authority.is_empty() {
+        return Err("deterministic speech proof requires no Host resource or authority".into());
     }
     maximum_output_bytes(placement)?;
     Ok(())

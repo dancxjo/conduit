@@ -113,8 +113,13 @@ impl WavArtifactBack {}
 fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
     Ok(BackBudget {
-        value_items: 1,
-        value_bytes: DRAIN_MARKER.len() as u32,
+        // A consumed PCM input remains pinned until its Host Call completion is
+        // consumed. Upstream can refill its queues during that lifetime, so this
+        // back owns the retained input in addition to its prepared drain marker.
+        value_items: 2,
+        value_bytes: DRAIN_MARKER.len() as u32
+            + conduit_std_offers::audio_write_wav_artifact_offer().host_calls[0]
+                .maximum_input_bytes,
         host_requests: usize::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) + 1,
         sign_items: 64,
         maximum_value_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
@@ -223,3 +228,7 @@ pub(super) fn execute(
         },
     }
 }
+
+#[cfg(all(test, unix))]
+#[path = "wav_artifact_budget_tests.rs"]
+mod budget_tests;
