@@ -41,6 +41,7 @@ pub struct VectorSearchContract {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `VectorSearchValue<T>` Type family.
 pub struct VectorSearchValue<T> {
     pub proof_class: VectorSearchExecutionProofClass,
     pub index_generation: u64,

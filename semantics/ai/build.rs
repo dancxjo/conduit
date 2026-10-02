@@ -223,6 +223,8 @@ fn main() {
                 "TrainingBatch".into(),
                 "TrainingSession".into(),
                 "TrainStepRequest".into(),
+                "RetrievalContribution".into(),
+                "HybridFusionPolicy".into(),
                 "EmbeddingProfile".into(),
                 "VectorMetadata".into(),
                 "SimilarityQuery".into(),

@@ -15,6 +15,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `ExactVectorSearchCandidate<T>` Type family.
 pub struct ExactVectorSearchCandidate<T> {
     pub record: VectorRecord<T>,
     pub temporal_source: TemporalSource,
@@ -24,6 +25,7 @@ pub struct ExactVectorSearchCandidate<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Rust's generic carrier for the authored `ExactVectorSearchResult<T>` Type family.
 pub struct ExactVectorSearchResult<T> {
     pub proof_class: VectorSearchProofClass,
     pub index_generation: u64,

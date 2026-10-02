@@ -92,20 +92,21 @@ fn stages() -> Vec<RetrievalStage<ExtractedSourceValue>> {
 }
 
 fn policy() -> HybridFusionPolicy {
-    HybridFusionPolicy {
-        identity: "fusion/reciprocal-rank@1".into(),
-        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
-        required_mechanisms: vec![
+    HybridFusionPolicy::from_parts(
+        "fusion/reciprocal-rank@1".into(),
+        FusionStrategy::reciprocal_rank(60).unwrap(),
+        vec![
             RetrievalMechanism::VectorSimilarity,
             RetrievalMechanism::Lexical,
             RetrievalMechanism::Metadata,
             RetrievalMechanism::Temporal,
         ],
-        temporal_hard_filter: None,
-        maximum_candidates_per_stage: 8,
-        maximum_output_candidates: 8,
-        maximum_total_work_units: 32,
-    }
+        None,
+        8,
+        8,
+        32,
+    )
+    .unwrap()
 }
 
 #[test]

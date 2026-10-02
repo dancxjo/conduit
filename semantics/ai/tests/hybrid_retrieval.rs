@@ -1,10 +1,10 @@
 use conduit_ai::{
     Chunk, ClockBasis, EntityBoundary, ExtractionLineage, FusionStrategy, HybridFusionPolicy,
-    HybridRetrievalOutcome, HybridRetrievalRefusal, MechanismScore, RagIdentity,
-    RetrievalMechanism, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit,
-    StageCandidate, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceCandidates,
-    TemporalEvidenceIdentity, TemporalProvenance, TemporalReference, TemporalRetrievalIntent,
-    TemporalSource, TemporalValidity, TransformProfiles,
+    HybridRequiredMechanisms, HybridRetrievalOutcome, HybridRetrievalRefusal, MechanismScore,
+    RagIdentity, RetrievalMechanism, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan,
+    SourceSpanUnit, StageCandidate, TemporalEvidenceBatch, TemporalEvidenceCandidate,
+    TemporalEvidenceCandidates, TemporalEvidenceIdentity, TemporalProvenance, TemporalReference,
+    TemporalRetrievalIntent, TemporalSource, TemporalValidity, TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -67,26 +67,30 @@ fn stage(
 }
 
 fn policy(temporal: bool) -> HybridFusionPolicy {
-    HybridFusionPolicy {
-        identity: if temporal {
+    HybridFusionPolicy::from_parts(
+        if temporal {
             "fusion/rrf-with-hard-origin@1"
         } else {
             "fusion/rrf@1"
         }
         .into(),
-        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
-        required_mechanisms: vec![
+        FusionStrategy::reciprocal_rank(60).unwrap(),
+        vec![
             RetrievalMechanism::VectorSimilarity,
             RetrievalMechanism::Lexical,
             RetrievalMechanism::Metadata,
             RetrievalMechanism::Temporal,
         ],
-        temporal_hard_filter: temporal
-            .then(|| TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap()),
-        maximum_candidates_per_stage: 8,
-        maximum_output_candidates: 8,
-        maximum_total_work_units: 32,
-    }
+        temporal.then(|| TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap()),
+        8,
+        8,
+        32,
+    )
+    .unwrap()
+}
+
+fn required(values: impl IntoIterator<Item = RetrievalMechanism>) -> HybridRequiredMechanisms {
+    HybridRequiredMechanisms::new(BoundedSequence::try_from_iter(values).unwrap()).unwrap()
 }
 
 fn provenance(event_at: u64) -> TemporalProvenance {
@@ -243,10 +247,10 @@ fn recent_semantic_page_cannot_masquerade_as_historical_origin() {
 #[test]
 fn provider_scores_remain_local_and_do_not_define_fusion_order() {
     let mut policy = policy(false);
-    policy.required_mechanisms = vec![
+    policy.required_mechanisms = required([
         RetrievalMechanism::VectorSimilarity,
         RetrievalMechanism::Lexical,
-    ];
+    ]);
     let stages = &combined_stages()[..2];
     let first = policy.fuse(stages, None).unwrap();
     let second = policy.fuse(stages, None).unwrap();
@@ -285,10 +289,10 @@ fn deduplication_preserves_changed_source_versions_as_distinct_truth() {
         ),
     ];
     let mut policy = policy(false);
-    policy.required_mechanisms = vec![
+    policy.required_mechanisms = required([
         RetrievalMechanism::VectorSimilarity,
         RetrievalMechanism::Lexical,
-    ];
+    ]);
     let HybridRetrievalOutcome::Candidates(candidates) = policy.fuse(&stages, None).unwrap() else {
         panic!("fusion must produce candidates");
     };
@@ -303,9 +307,13 @@ fn deduplication_preserves_changed_source_versions_as_distinct_truth() {
 fn required_mechanisms_stage_bounds_and_work_pressure_fail_closed() {
     let stages = combined_stages();
     let mut missing = policy(false);
-    missing
-        .required_mechanisms
-        .push(RetrievalMechanism::DomainExact);
+    missing.required_mechanisms = required([
+        RetrievalMechanism::VectorSimilarity,
+        RetrievalMechanism::Lexical,
+        RetrievalMechanism::Metadata,
+        RetrievalMechanism::Temporal,
+        RetrievalMechanism::DomainExact,
+    ]);
     assert_eq!(
         missing.fuse(&stages, None),
         Err(HybridRetrievalRefusal::MissingRequiredMechanism)
@@ -345,7 +353,7 @@ fn malformed_ranks_duplicate_stage_chunks_and_temporal_identity_leaks_refuse() {
         ],
     )];
     let mut one = policy(false);
-    one.required_mechanisms = vec![RetrievalMechanism::VectorSimilarity];
+    one.required_mechanisms = required([RetrievalMechanism::VectorSimilarity]);
     assert_eq!(
         one.fuse(&duplicate, None),
         Err(HybridRetrievalRefusal::DuplicateChunkInStage)
