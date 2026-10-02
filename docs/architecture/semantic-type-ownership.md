@@ -378,6 +378,7 @@ are satisfied.
 | AI training metric | `semantics/ai/types.conduit` | generated at build time | yes | yes | native source owns the bounded objective-output identity and exact signed-millionths value; Rust retains receipt-level uniqueness and objective-membership laws |
 | AI retrieval chunk identity | `semantics/ai/types.conduit` | generated at build time with retained Copy, order and hash behavior | yes | yes | native source owns the exact 32-byte digest shape; established lineage hashing, source-extraction codec bytes, retrieval ordering and grounding consumers retain their behavior |
 | AI rerank observation | `semantics/ai/types.conduit` | generated at build time with retained Copy behavior | yes | yes | native source owns the exact chunk identity, signed scorer-local ordering value and positive work bounded at 1,048,576; the obsolete zero-work runtime refusal is gone while candidate membership, uniqueness and aggregate-work laws remain Rust-owned |
+| AI selected-context cost and omission | `semantics/ai/types.conduit` | generated at build time with retained Copy behavior | yes | yes | native source owns exact byte/token/work accounting and chunk-specific omission reason records; selection policy, accumulation and budget comparisons remain Rust-owned |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a

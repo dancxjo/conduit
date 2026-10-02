@@ -1,5 +1,6 @@
 use conduit_ai::{
-    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy, SelectedContextRationale,
+    ChunkIdentity, ContextOmission, ContextOmissionReason, ContextOrderingPolicy,
+    ContextRedundancyPolicy, SelectedContextCost, SelectedContextRationale,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -13,6 +14,19 @@ where
 
 #[test]
 fn context_selection_vocabularies_round_trip_through_their_native_types() {
+    assert_round_trip(SelectedContextCost::new(1024, 256, 8).unwrap());
+    assert_round_trip(
+        ContextOmission::new(
+            ChunkIdentity::from_digest([7; 32]),
+            ContextOmissionReason::TokenBudget,
+        )
+        .unwrap(),
+    );
+    assert!(!include_str!("../src/context_selection.rs")
+        .contains(concat!("pub struct ", "SelectedContextCost")));
+    assert!(!include_str!("../src/context_selection.rs")
+        .contains(concat!("pub struct ", "ContextOmission")));
+
     for policy in [
         ContextRedundancyPolicy::KeepAll,
         ContextRedundancyPolicy::OnePerReviewedGroup,

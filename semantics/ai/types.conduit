@@ -298,6 +298,17 @@ type ContextOmissionReason =
     | token_budget
     | work_budget
 
+type SelectedContextCost = {
+    bytes: U32
+    tokens: U32
+    work_units: U32
+}
+
+type ContextOmission = {
+    chunk_identity: ChunkIdentity
+    reason: ContextOmissionReason
+}
+
 type SourceSpanUnit =
     bytes
     | items
