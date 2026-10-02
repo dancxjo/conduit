@@ -246,3 +246,24 @@ fn connectivity_refuses_an_absent_or_different_body() {
     door.observe_journey(born_projection(body_id(2))).unwrap();
     assert_eq!(door.observe_connectivity(line), Err(Error::Presentation));
 }
+
+#[test]
+fn resting_and_fulfilled_faces_keep_body_identity_without_live_execution() {
+    let mut door = door();
+    let body = body_id(3);
+    let mut projection = born_projection(body.clone());
+    for status in [JourneyStatus::Lulled, JourneyStatus::Fulfilled] {
+        projection.status = status;
+        door.observe_journey(projection.clone()).unwrap();
+        let face = door.presentation().unwrap();
+        face.validate().unwrap();
+        assert_eq!(face.basis.body_id.as_ref(), Some(&body));
+        assert!(face.properties.iter().any(|property| {
+            property.name == "current-body"
+                && property.value == PresentationPropertyValue::Identity(body.as_str().into())
+        }));
+        assert!(face.basis.wake_id.is_none());
+        assert!(face.basis.plan_id.is_none());
+        assert!(face.basis.active_play_id.is_none());
+    }
+}
