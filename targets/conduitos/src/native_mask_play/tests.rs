@@ -353,7 +353,7 @@ fn storage_preparation_checks_the_exact_plan_queue_and_host_result_budgets() {
     assert_eq!(lowered.cord_value_slots, CORDS as u16);
     assert_eq!(
         lowered.cord_value_bytes,
-        5 * MAX_MASK_VALUE_BYTES as u32 + STORAGE_VALUE_BYTES as u32
+        5 * MAX_MASK_VALUE_BYTES as u32 + INTERACTION_VALUE_BYTES as u32
     );
     assert_eq!(admitted_value_bytes(&lowered), Ok(VALUE_BYTES as u32));
     lowered.cord_value_bytes += 1;
@@ -373,6 +373,62 @@ fn storage_preparation_checks_the_exact_plan_queue_and_host_result_budgets() {
         admitted_value_bytes(&lowered),
         Err(NativeMaskPlayError::Shape)
     );
+}
+
+#[test]
+fn complete_large_faces_cross_the_fore_and_oversized_faces_are_refused() {
+    let (fixture, _) = fixture_scanout(1);
+    let request = fixture.renderer_request();
+    let original = request.presentation();
+    let make_face = |paragraphs: usize| {
+        let mut subjects = original.subjects.clone();
+        let mut text = original.text.clone();
+        for index in 0..paragraphs {
+            let subject = alloc::format!("document/paragraph/{index}");
+            subjects.push(PresentationSubject {
+                identity: subject.clone(),
+                role: PresentationRole::Document,
+                name: alloc::format!("Paragraph {index}"),
+            });
+            text.push(conduit_presentation::PresentationText {
+                subject,
+                text: "x".repeat(1024),
+            });
+        }
+        Presentation::new_with_semantics(
+            original.revision,
+            original.basis.clone(),
+            subjects,
+            original.relationships.clone(),
+            original.properties.clone(),
+            text,
+            original.actions.clone(),
+            original.disclosures.clone(),
+        )
+        .unwrap()
+    };
+    let prepare = |face: &Presentation| {
+        PreparedNativeMaskPlay::prepare(
+            &request.prepared_show().planned_mask,
+            face,
+            2,
+            "front/native-mask",
+            "surface/native-mask",
+            request.display_base_id().clone(),
+        )
+    };
+    let face = make_face(10);
+    let bytes = serde_json::to_vec(&face).unwrap();
+    assert!(bytes.len() >= 11_550 && bytes.len() <= MAX_MASK_VALUE_BYTES);
+    let pending = prepare(&face).unwrap();
+    assert_eq!(pending.renderer_request().presentation(), &face);
+    pending.cancel().unwrap();
+    let oversized = make_face(20);
+    assert!(serde_json::to_vec(&oversized).unwrap().len() > MAX_MASK_VALUE_BYTES);
+    assert!(matches!(
+        prepare(&oversized),
+        Err(NativeMaskPlayError::Value)
+    ));
 }
 
 #[test]
