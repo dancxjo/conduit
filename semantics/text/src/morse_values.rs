@@ -145,17 +145,13 @@ pub fn morse_symbols_to_pattern(input: &[u8], unit_millis: u16) -> Result<Vec<u8
         };
         segments.push(segment);
     }
-    MorsePattern {
-        unit_millis,
-        segments,
-    }
-    .encode()
+    MorsePattern::from_segments(unit_millis, segments)?.encode()
 }
 
 pub fn morse_pattern_to_symbols(input: &[u8]) -> Result<Vec<u8>, MorseError> {
     let pattern = MorsePattern::decode(input)?;
     let mut tokens = Vec::with_capacity(pattern.segments.len());
-    for segment in pattern.segments {
+    for segment in &pattern.segments {
         tokens.push(match (*segment.level(), *segment.units()) {
             (true, 1) => DOT,
             (true, 3) => DASH,

@@ -56,6 +56,10 @@ impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
         self.values.iter()
     }
 
+    pub fn last(&self) -> Option<&T> {
+        self.values.last()
+    }
+
     pub fn binary_search(&self, value: &T) -> Result<usize, usize>
     where
         T: Ord,

@@ -275,7 +275,7 @@ fn native_sequence_type_requires_one_explicit_finite_cardinality_bound() {
     for source in [
         "type Notes = sequence Note\n",
         "type Notes = sequence Note <= 0\n",
-        "type Notes = sequence Note <= 257\n",
+        "type Notes = sequence Note <= 1025\n",
     ] {
         let document = parse_syntax_document(source);
         assert!(!document.diagnostics.is_empty(), "accepted {source}");
@@ -296,10 +296,16 @@ fn native_sequence_can_state_exact_nonzero_cardinality_bounds() {
     ));
     for source in [
         "type Notes = sequence U8 in 4..=2\n",
-        "type Notes = sequence U8 in 1..=257\n",
+        "type Notes = sequence U8 in 1..=1025\n",
     ] {
         assert!(!parse_syntax_document(source).diagnostics.is_empty());
     }
+}
+
+#[test]
+fn native_sequence_supports_large_but_finite_semantic_families() {
+    let document = parse_syntax_document("type Segments = sequence U8 in 1..=320\n");
+    assert!(document.diagnostics.is_empty());
 }
 
 #[test]

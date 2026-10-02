@@ -13,6 +13,7 @@ fn main() {
         &checked.native_types,
         &RustBindingOptions {
             record_constructor_names: [("AddressSet".into(), "new_native".into())].into(),
+            public_record_fields: ["MorsePattern".into()].into(),
             ..RustBindingOptions::default()
         },
     )
