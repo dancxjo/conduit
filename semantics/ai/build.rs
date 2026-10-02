@@ -160,6 +160,17 @@ fn main() {
                     ],
                 ),
                 (
+                    "ProbabilitySummary".into(),
+                    vec![
+                        "claim_profile".into(),
+                        "result_count".into(),
+                        "model_artifact_identity".into(),
+                        "query_identity".into(),
+                        "randomness".into(),
+                        "disposition".into(),
+                    ],
+                ),
+                (
                     "RetrieverIdentity".into(),
                     vec!["identity".into(), "mechanism".into()],
                 ),
