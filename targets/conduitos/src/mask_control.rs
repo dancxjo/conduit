@@ -463,10 +463,15 @@ impl MaskControl {
 }
 
 pub(super) fn patchbay_selector(plan: &BodyPlan) -> Result<BodyFaceSelector, ()> {
+    patchbay_partition_selector(&plan.plots)
+}
+
+pub(super) fn patchbay_partition_selector(
+    partitions: &[conduit_body::BodyPlotPlan],
+) -> Result<BodyFaceSelector, ()> {
     let resident = crate::native_workset::resident(crate::native_workset::NativePlot::Patchbay)
         .map_err(|_| ())?;
-    let partition = plan
-        .plots
+    let partition = partitions
         .iter()
         .find(|partition| partition.plot == resident)
         .ok_or(())?;

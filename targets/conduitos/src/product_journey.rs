@@ -3,9 +3,8 @@
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 
 use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyFulfillment, BodyMembership, BodyPlan,
-    BodyPlayIdentity, BodyState, FulfillmentObligation, MembershipProofId, PartId, Wake,
-    WakeLifecycleEvent,
+    Body, BodyLifecycleSession, BodyLifecycleSessionError, BodyMembership, BodyPlan,
+    BodyPlayIdentity, BodyState, MembershipProofId, PartId, Wake, WakeLifecycleEvent,
 };
 use conduit_core::{AuthorityGrantId, BootId, ExpandedPlotId, HostId, OfferGeneration, SignId};
 
@@ -19,6 +18,8 @@ use crate::{
 
 mod biography;
 mod birth;
+mod projection;
+mod proposal;
 mod tutorial;
 pub use tutorial::{TutorialRefusal, TutorialSurface};
 mod result_window;
@@ -97,6 +98,8 @@ pub enum JourneyError {
     InvalidTransition,
     Biography(conduit_body::BodyBiographyError),
     Membership,
+    AdmissionUnsupported,
+    Lifecycle(BodyLifecycleSessionError),
     Plan(PreparationError),
     Workset(native_workset::WorksetRefusal),
     Play(native_workset::PlayRefusal),
@@ -120,6 +123,11 @@ impl JourneyError {
                 "product-biography-capacity-exhausted"
             }
             Self::Biography(_) => "product-biography-evidence-refused",
+            Self::AdmissionUnsupported => "product-peer-authenticated-admission-unsupported",
+            Self::Lifecycle(BodyLifecycleSessionError::ArchivePersistenceRequired) => {
+                "product-biography-archive-persistence-required"
+            }
+            Self::Lifecycle(_) => "product-canonical-lifecycle-refused",
             Self::Membership => "product-birth-membership-refused",
             Self::Plan(error) => error.as_str(),
             Self::Workset(error) => error.as_str(),
@@ -181,18 +189,8 @@ pub struct ProductJourney {
     status: JourneyStatus,
     revision: u64,
     request_sequence: u64,
-    body: Option<Body>,
-    biography: Option<conduit_body::BodyBiographyEvidence>,
-    friendly_name: Option<String>,
-    born_sign_id: Option<SignId>,
-    membership: Option<BodyMembership>,
-    part_id: Option<PartId>,
-    wake: Option<Wake>,
-    plan: Option<BodyPlan>,
-    planned_play: Option<BodyPlayIdentity>,
-    play: Option<BodyPlayIdentity>,
+    session: Option<BodyLifecycleSession>,
     kernel: Option<Box<NativeWorksetPlay>>,
-    foreground: usize,
     last_working_plot: Option<conduit_body::ResidentPlot>,
     plots: [Option<NativePlot>; native_workset::NATIVE_PLOT_CAPACITY],
     input_owners: [Option<native_workset::AdmittedPlotInput>; native_workset::NATIVE_PLOT_CAPACITY],
@@ -209,73 +207,73 @@ pub struct ProductJourney {
 }
 
 impl ProductJourney {
-    /// Admit the reviewed peer behind the current product Line as a distinct
-    /// Body Part after its bounded session handshake has completed.
+    /// A proof identifier is not an authenticated admission. The native Line
+    /// adapter must supply the canonical invitation exchange before joining.
     pub fn admit_line_peer(
         &mut self,
-        host_id: HostId,
-        boot_id: BootId,
-        proof_id: MembershipProofId,
+        _host_id: HostId,
+        _boot_id: BootId,
+        _proof_id: MembershipProofId,
     ) -> Result<PartId, JourneyError> {
-        let body_id = self
-            .body
-            .as_ref()
-            .ok_or(JourneyError::BodyAbsent)?
-            .body_id
-            .clone();
-        let membership = self.membership.as_mut().ok_or(JourneyError::Membership)?;
-        let part = PartId::bind(&body_id, host_id.as_str(), membership.revision.0)
-            .map_err(|_| JourneyError::Membership)?;
-        membership
-            .admit(
-                &body_id,
-                membership.revision,
-                part.clone(),
-                proof_id.clone(),
-                SignId::from(format!("conduitos/product/peer-admitted/{}", self.revision)),
-            )
-            .map_err(|_| JourneyError::Membership)?;
-        membership
-            .observe_present(
-                &body_id,
-                membership.revision,
-                &part,
-                AuthenticatedHostObservation {
-                    host_id,
-                    boot_id,
-                    offer_generation: OfferGeneration(1),
-                    proof_id,
-                    sequence: 0,
-                },
-                SignId::from(format!("conduitos/product/peer-attached/{}", self.revision)),
-            )
-            .map_err(|_| JourneyError::Membership)?;
-        self.advance()?;
-        Ok(part)
+        Err(JourneyError::AdmissionUnsupported)
     }
 
     pub fn observe_line_peer_offline(
         &mut self,
         part: &PartId,
-        boot_id: &BootId,
+        boot: &BootId,
     ) -> Result<(), JourneyError> {
-        let body_id = self
-            .body
-            .as_ref()
+        let host = self
+            .biography()
             .ok_or(JourneyError::BodyAbsent)?
-            .body_id
-            .clone();
-        let membership = self.membership.as_mut().ok_or(JourneyError::Membership)?;
-        membership
-            .observe_offline(
-                &body_id,
-                membership.revision,
-                part,
-                boot_id,
-                SignId::from(format!("conduitos/product/peer-offline/{}", self.revision)),
-            )
-            .map_err(|_| JourneyError::Membership)?;
+            .membership
+            .parts
+            .iter()
+            .find(|member| &member.part_id == part)
+            .and_then(|member| member.current.as_ref())
+            .filter(|current| &current.boot_id == boot)
+            .map(|current| current.host_id.clone())
+            .ok_or(JourneyError::Membership)?;
+        self.session
+            .as_mut()
+            .ok_or(JourneyError::BodyAbsent)?
+            .observe_host_lost(&host, boot, &self.host_id, &self.boot_id)
+            .map_err(JourneyError::Lifecycle)?;
+        self.refresh_tutorial()?;
         self.advance()
+    }
+
+    fn body(&self) -> Option<&Body> {
+        self.biography().map(|evidence| &evidence.body)
+    }
+    fn current_wake(&self) -> Option<&Wake> {
+        self.session
+            .as_ref()?
+            .realization()
+            .map(|current| &current.wake)
+    }
+    fn current_plan(&self) -> Option<&BodyPlan> {
+        self.session
+            .as_ref()?
+            .realization()
+            .map(|current| &current.plan)
+    }
+    fn current_play(&self) -> Option<&BodyPlayIdentity> {
+        self.session.as_ref()?.realization()?.play.as_ref()
+    }
+    fn foreground_index(&self) -> usize {
+        self.session
+            .as_ref()
+            .and_then(|session| {
+                session
+                    .evidence()
+                    .body
+                    .workset
+                    .plots()
+                    .iter()
+                    .position(|plot| Some(plot) == session.foreground())
+            })
+            .unwrap_or(0)
     }
 
     pub fn new(
@@ -291,18 +289,8 @@ impl ProductJourney {
             status: JourneyStatus::World,
             revision: 1,
             request_sequence: 0,
-            body: None,
-            biography: None,
-            friendly_name: None,
-            born_sign_id: None,
-            membership: None,
-            part_id: None,
-            wake: None,
-            plan: None,
-            planned_play: None,
-            play: None,
+            session: None,
             kernel: None,
-            foreground: 0,
             last_working_plot: None,
             plots: [None; native_workset::NATIVE_PLOT_CAPACITY],
             input_owners: core::array::from_fn(|_| None),
@@ -374,160 +362,17 @@ impl ProductJourney {
         match request.action {
             JourneyAction::OpenBack => self.open_plot()?,
             JourneyAction::Birth => self.birth()?,
-            JourneyAction::Wake => self.wake()?,
+            JourneyAction::Wake => self.wake(identities, offer, build_id)?,
             JourneyAction::Plan => self.plan(identities, offer, build_id)?,
             JourneyAction::Play => self.play()?,
             JourneyAction::Stop => self.stop()?,
             JourneyAction::Lull => self.lull()?,
             JourneyAction::Fulfill => self.fulfill()?,
-            JourneyAction::AdmitPlot => self.admit_next_plot()?,
+            JourneyAction::AdmitPlot => self.admit_next_plot(identities, offer, build_id)?,
             _ => return Err(JourneyError::WrongTarget),
         }
         self.last_request_id = Some(request.request_id);
         self.advance()
-    }
-
-    pub fn projection(&self) -> JourneyProjection {
-        let wake_sign_id = self.wake.as_ref().and_then(|wake| {
-            wake.events.iter().find_map(|event| match event {
-                WakeLifecycleEvent::Woke { sign_id } => Some(sign_id.clone()),
-                _ => None,
-            })
-        });
-        let plan_sign_id = self.wake.as_ref().and_then(|wake| {
-            wake.events.iter().rev().find_map(|event| match event {
-                WakeLifecycleEvent::PlanReady { plan_id, sign_id }
-                    if Some(plan_id) == self.plan.as_ref().map(|plan| &plan.plan_id) =>
-                {
-                    Some(sign_id.clone())
-                }
-                WakeLifecycleEvent::Replanned {
-                    replacement_plan_id,
-                    sign_id,
-                    ..
-                } if Some(replacement_plan_id) == self.plan.as_ref().map(|plan| &plan.plan_id) => {
-                    Some(sign_id.clone())
-                }
-                _ => None,
-            })
-        });
-        let play_sign_id = self.wake.as_ref().and_then(|wake| {
-            wake.events.iter().rev().find_map(|event| match event {
-                WakeLifecycleEvent::PlayStarted {
-                    active_play_id,
-                    sign_id,
-                    ..
-                } if Some(active_play_id)
-                    == self.play.as_ref().map(|play| &play.active_play_id) =>
-                {
-                    Some(sign_id.clone())
-                }
-                _ => None,
-            })
-        });
-        JourneyProjection {
-            status: self.status,
-            revision: self.revision,
-            source_document_id: self
-                .plot
-                .as_ref()
-                .map(|plot| plot.source_document_id.clone()),
-            checked_plot_id: self.plot.as_ref().map(|plot| plot.checked_plot_id.clone()),
-            expanded_plot_id: self.plot.as_ref().map(|plot| plot.expanded_plot_id.clone()),
-            host_id: self.host_id.clone(),
-            boot_id: self.boot_id.clone(),
-            offer_generation: self.offer_generation,
-            body_id: self.body.as_ref().map(|body| body.body_id.clone()),
-            born_sign_id: self.born_sign_id.clone(),
-            fulfilled_sign_id: self.body.as_ref().and_then(|body| match &body.state {
-                BodyState::Fulfilled { sign_id } => Some(sign_id.clone()),
-                _ => None,
-            }),
-            workload_revision: self.body.as_ref().map(|body| body.workload_revision),
-            workload_sign_id: self.body.as_ref().and_then(|body| {
-                body.events.iter().rev().find_map(|event| match event {
-                    conduit_body::BodyLifecycleEvent::PlotAdmitted { sign_id, .. } => {
-                        Some(sign_id.clone())
-                    }
-                    _ => None,
-                })
-            }),
-            lull_sign_id: self.body.as_ref().and_then(|body| {
-                body.events.iter().rev().find_map(|event| match event {
-                    conduit_body::BodyLifecycleEvent::LullRetained { sign_id, .. } => {
-                        Some(sign_id.clone())
-                    }
-                    _ => None,
-                })
-            }),
-            workload_capacity_available: self
-                .body
-                .as_ref()
-                .is_some_and(|body| body.workset.len() < native_workset::NATIVE_PLOT_CAPACITY),
-            friendly_name: self.friendly_name.clone(),
-            part_id: self.part_id.clone(),
-            wake_id: self.wake.as_ref().map(|wake| wake.wake_id.clone()),
-            wake_sign_id,
-            plan_id: self.plan.as_ref().map(|plan| plan.plan_id.clone()),
-            plan_sign_id,
-            active_play_id: self.play.as_ref().map(|play| play.active_play_id.clone()),
-            play_sign_id,
-            gear_ids: self
-                .plan
-                .iter()
-                .flat_map(|plan| &plan.plots)
-                .flat_map(|plot| &plot.plan.fragments)
-                .flat_map(|fragment| &fragment.placements)
-                .map(|placement| placement.gear_id.as_str().to_owned())
-                .collect(),
-            port_ids: self
-                .plan
-                .iter()
-                .flat_map(|plan| &plan.plots)
-                .flat_map(|plot| &plot.plan.fragments)
-                .flat_map(|fragment| &fragment.connections)
-                .flat_map(|connection| {
-                    [
-                        format!(
-                            "{}.{}",
-                            connection.source_placement_id.as_str(),
-                            connection.source_port_id.as_str()
-                        ),
-                        format!(
-                            "{}.{}",
-                            connection.sink_placement_id.as_str(),
-                            connection.sink_port_id.as_str()
-                        ),
-                    ]
-                })
-                .collect(),
-            cord_ids: self
-                .plan
-                .iter()
-                .flat_map(|plan| &plan.plots)
-                .flat_map(|plot| &plot.plan.fragments)
-                .flat_map(|fragment| &fragment.connections)
-                .map(|connection| connection.connection_id.as_str().to_owned())
-                .collect(),
-            input_sign_id: self.input_sign_id.clone(),
-            loss_kind: self.loss_kind,
-            loss_sign_id: self.loss_sign_id.clone(),
-            result_sign_id: self.results[self.foreground].sign.clone(),
-            result: self.foreground_result().map(|text| text.into()),
-            result_omitted_bytes: self.results[self.foreground]
-                .omitted_bytes(self.plots[self.foreground]),
-            input_count: self.input_count,
-            kernel_sign_gap: self
-                .kernel
-                .as_ref()
-                .and_then(|kernel| kernel.sign_retention_gap())
-                .or(self.retained_kernel_sign_gap),
-            last_request_id: self.last_request_id.clone(),
-            mask: self
-                .mask_control
-                .as_ref()
-                .and_then(|control| control.mask_evidence().cloned()),
-        }
     }
 
     fn validate_target(&self, request: &JourneyRequest) -> Result<(), JourneyError> {
@@ -554,8 +399,7 @@ impl ProductJourney {
             | JourneyAction::Lull
             | JourneyAction::Fulfill
             | JourneyAction::AdmitPlot => self
-                .body
-                .as_ref()
+                .body()
                 .map(|body| format!("body/{}", body.body_id.as_str()))
                 .ok_or(JourneyError::BodyAbsent)?,
             _ => return Err(JourneyError::WrongTarget),
@@ -567,7 +411,7 @@ impl ProductJourney {
     }
 
     fn open_plot(&mut self) -> Result<(), JourneyError> {
-        if self.body.is_some() {
+        if self.body().is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
         self.plot = Some(keyboard_text_plan::checked_plot_identity().map_err(JourneyError::Plan)?);
@@ -575,33 +419,7 @@ impl ProductJourney {
         Ok(())
     }
 
-    fn wake(&mut self) -> Result<(), JourneyError> {
-        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        if body.state != BodyState::Lulled {
-            return Err(JourneyError::InvalidTransition);
-        }
-        let (body, wake) = body
-            .wake(
-                self.revision,
-                SignId::from(format!("conduitos/product/woke/{}", self.revision)),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        self.prepare_biography(
-            &body,
-            Some(&wake),
-            self.membership.as_ref().ok_or(JourneyError::Membership)?,
-        )?;
-        self.body = Some(body);
-        self.wake = Some(wake);
-        self.plan = None;
-        self.planned_play = None;
-        self.play = None;
-        self.status = JourneyStatus::Awake;
-        Ok(())
-    }
-
     fn advance(&mut self) -> Result<(), JourneyError> {
-        self.retain_biography()?;
         self.revision = self
             .revision
             .checked_add(1)
@@ -613,30 +431,17 @@ impl ProductJourney {
         if self.status != JourneyStatus::Lulled || self.kernel.is_some() {
             return Err(JourneyError::InvalidTransition);
         }
-        let sign_id = SignId::from(format!("conduitos/product/fulfilled/{}", self.revision));
-        let final_wake_id = self.wake.as_ref().map(|wake| wake.wake_id.clone());
-        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        let fulfilled = body
+        let mut session = self.session.clone().ok_or(JourneyError::BodyAbsent)?;
+        session
             .fulfill(
-                BodyFulfillment {
-                    final_wake_id,
-                    authority_grant_id: AuthorityGrantId::from("grant/conduitos/operator-fulfill"),
-                    attribution: "operator/conduitos-local-input".into(),
-                    settled_obligations: alloc::vec![FulfillmentObligation {
-                        obligation_id: "obligation/conduitos-runtime-empty".into(),
-                        settlement_sign_id: sign_id.clone(),
-                    }],
-                },
-                sign_id,
+                &self.host_id,
+                &self.boot_id,
+                AuthorityGrantId::from("grant/conduitos/operator-fulfill"),
+                "operator/conduitos-local-input".into(),
             )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        let mut membership = self.membership.clone().ok_or(JourneyError::Membership)?;
-        membership
-            .seal_fulfilled(&fulfilled)
-            .map_err(|_| JourneyError::Membership)?;
-        self.prepare_biography(&fulfilled, self.wake.as_ref(), &membership)?;
-        self.body = Some(fulfilled);
-        self.membership = Some(membership);
+            .map_err(JourneyError::Lifecycle)?;
+        Self::require_archive_storage(&session)?;
+        self.session = Some(session);
         self.status = JourneyStatus::Fulfilled;
         Ok(())
     }
@@ -652,3 +457,6 @@ pub(crate) mod test_support;
 
 #[cfg(test)]
 mod tutorial_tests;
+
+#[cfg(test)]
+mod lifecycle_tests;

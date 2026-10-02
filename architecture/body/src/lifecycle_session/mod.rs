@@ -2,9 +2,8 @@
 use crate::AdmissionRefusal;
 use crate::{
     BodyBiographyArchiveSegment, BodyBiographyError, BodyBiographyEvidence, BodyFulfillment,
-    BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity,
-    BodyPlotPlan, BodyState, FulfillmentObligation, MembershipRefusal, MembershipState,
-    ResidentPlot, Wake,
+    BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
+    FulfillmentObligation, MembershipRefusal, MembershipState, ResidentPlot, Wake,
 };
 use alloc::{vec, vec::Vec};
 use conduit_core::{bind_sign, AuthorityGrantId, BootId, HostId, SignId};
@@ -13,6 +12,7 @@ use serde::{Deserialize, Serialize};
 mod continuity;
 mod flow;
 mod membership;
+mod proposal;
 mod workload;
 
 /// An exact current proposal and its optional admitted play, never a scheduler.
@@ -122,48 +122,6 @@ impl BodyLifecycleSession {
         }
         self.foreground = Some(plot.clone());
         Ok(())
-    }
-
-    /// Seal the complete workset before publishing a wake. Planning refusal
-    /// therefore preserves the prior Body exactly. The host still acquires and
-    /// admits resources before starting the returned proposal.
-    pub fn propose(
-        &mut self,
-        plots: Vec<BodyPlotPlan>,
-        host: &HostId,
-        boot: &BootId,
-    ) -> Result<&BodyLifecycleRealization, BodyLifecycleSessionError> {
-        self.require_mutable()?;
-        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
-            return Err(BodyLifecycleSessionError::NotLulled);
-        }
-        self.require_host(host, boot)?;
-        for partition in &plots {
-            for fragment in &partition.plan.fragments {
-                self.require_host(&fragment.host_id, &fragment.boot_id)?;
-            }
-        }
-        // Reserve the whole Wake boundary up front: Woke now and the eventual
-        // retained lull. A proposal must not publish a wake that cannot close.
-        self.make_lifecycle_room(2, 1)?;
-        let sequence = self.next_sequence()?;
-        let (body, wake) = self
-            .evidence
-            .body
-            .wake(sequence, sign(host, boot, sequence))
-            .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let plan = BodyPlan::seal(&wake, plots).map_err(BodyLifecycleSessionError::Plan)?;
-        let mut evidence = self.evidence.clone();
-        evidence
-            .append_wake(body, wake.clone(), sequence)
-            .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
-        self.realization = Some(BodyLifecycleRealization {
-            wake,
-            plan,
-            play: None,
-        });
-        Ok(self.realization.as_ref().expect("published realization"))
     }
 
     /// Accept only the exact lifecycle returned by an admitted host start.

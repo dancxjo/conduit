@@ -12,6 +12,7 @@ pub use catalog::{
     NATIVE_PLOT_CAPACITY, NativePlot, NativePlotProfile, checked, inventory, profile, resident,
     resolve,
 };
+pub(crate) use planning::{prepare_exact, propose_partitions};
 pub use planning::{AdmittedPlotInput, PreparedNativeWorkset, prepare, review};
 pub use play::{NativePresentation, NativeWorksetPlay, PlayRefusal};
 pub use tutorial_application::TutorialAction;

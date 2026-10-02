@@ -69,11 +69,16 @@ impl PlotResult {
 }
 
 impl ProductJourney {
-    pub(super) fn admit_next_plot(&mut self) -> Result<(), JourneyError> {
+    pub(super) fn admit_next_plot(
+        &mut self,
+        identities: &BootIdentities,
+        offer: &HostOffer<'_>,
+        build_id: &str,
+    ) -> Result<(), JourneyError> {
         if self.status != JourneyStatus::QuiescentAwaitingInput {
             return Err(JourneyError::InvalidTransition);
         }
-        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
+        let body = self.body().ok_or(JourneyError::BodyAbsent)?;
         let plot = native_workset::profile()
             .installed()
             .iter()
@@ -84,73 +89,47 @@ impl ProductJourney {
             })
             .ok_or(JourneyError::InvalidTransition)?;
         let resident = native_workset::resident(plot).map_err(JourneyError::Workset)?;
-        let next_body = body
+        let previous_len = body.workset.len();
+        if previous_len >= self.plots.len() {
+            return Err(JourneyError::InvalidTransition);
+        }
+        self.retire_realization()?;
+        let mut session = self.session.clone().ok_or(JourneyError::BodyAbsent)?;
+        session
             .admit_plot(
+                session.evidence().body.workload_revision,
                 resident.clone(),
-                SignId::from(format!("conduitos/product/plot-admitted/{}", self.revision)),
+                &self.host_id,
+                &self.boot_id,
             )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        let next_wake = self
-            .wake
-            .as_ref()
-            .ok_or(JourneyError::BodyAbsent)?
-            .workload_changed(
-                &next_body,
-                SignId::from(format!(
-                    "conduitos/product/workload-changed/{}",
-                    self.revision
-                )),
-            )
-            .map_err(|_| JourneyError::InvalidTransition)?;
-        let insertion = next_body
+            .map_err(JourneyError::Lifecycle)?;
+        Self::require_archive_storage(&session)?;
+        let insertion = session
+            .evidence()
+            .body
             .workset
             .plots()
             .iter()
             .position(|entry| entry == &resident)
             .ok_or(JourneyError::InvalidTransition)?;
-        let previous_len = body.workset.len();
-        if previous_len >= self.plots.len() || insertion > previous_len {
-            return Err(JourneyError::InvalidTransition);
-        }
-        self.prepare_biography(
-            &next_body,
-            Some(&next_wake),
-            self.membership.as_ref().ok_or(JourneyError::Membership)?,
-        )?;
-        if let Some(kernel) = self.kernel.as_mut() {
-            kernel.cancel().map_err(JourneyError::Play)?;
-            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
-        }
-        // BodyWorkset is canonically sorted, so admission can insert anywhere.
-        // Keep semantic identities, retained results and foreground selection aligned.
+        // BodyWorkset sorts by identity; align only adapter-owned input/results.
         self.plots[insertion..=previous_len].rotate_right(1);
         self.plots[insertion] = Some(plot);
         self.results[insertion..=previous_len].rotate_right(1);
         self.results[insertion] = PlotResult::new();
-        if self.foreground >= insertion {
-            self.foreground += 1;
-        }
-        self.body = Some(next_body);
-        self.wake = Some(next_wake);
-        self.plan = None;
-        self.planned_play = None;
-        self.play = None;
-        self.kernel = None;
+        self.session = Some(session);
         self.input_owners = core::array::from_fn(|_| None);
-        self.application_request = None;
-        self.mask_control = None;
-        self.status = JourneyStatus::Awake;
-        Ok(())
+        self.propose(identities, offer, build_id, None)
     }
 
     /// The accepted input sequence that last produced foreground Presentation.
     /// Releases consumed without output leave this value unchanged.
     pub fn foreground_presentation_sequence(&self) -> Option<u32> {
-        self.results[self.foreground].input_sequence
+        self.results[self.foreground_index()].input_sequence
     }
 
     pub fn workspace_projection(&self) -> Option<WorkspaceProjection> {
-        let body = self.body.as_ref()?;
+        let body = self.body()?;
         Some(WorkspaceProjection {
             body_id: body.body_id.clone(),
             revision: self.revision,
@@ -162,7 +141,7 @@ impl ProductJourney {
                 .map(|(index, plot)| WorkspacePlot {
                     plot: plot.clone(),
                     title: self.plots[index].expect("admitted workset").title(),
-                    foreground: index == self.foreground,
+                    foreground: index == self.foreground_index(),
                     input: self.input_owners[index].clone(),
                 })
                 .collect(),
@@ -173,17 +152,19 @@ impl ProductJourney {
         if revision != self.revision {
             return Err(JourneyError::StalePresentation);
         }
-        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
+        let body = self.body().ok_or(JourneyError::BodyAbsent)?;
         let index = body
             .workset
             .plots()
             .iter()
             .position(|candidate| candidate == plot)
             .ok_or(JourneyError::WrongTarget)?;
-        if index == self.foreground {
+        if index == self.foreground_index() {
             return Ok(());
         }
-        let previous = self.foreground;
+        let previous = self.foreground_index();
+        let previous_plot = body.workset.plots()[previous].clone();
+        let resident = body.workset.plots()[index].clone();
         if self.plots[index] == Some(NativePlot::Patchbay) {
             self.kernel
                 .as_mut()
@@ -194,12 +175,11 @@ impl ProductJourney {
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
-        let identity = if let Some(plan) = &self.plan {
-            let resident = &body.workset.plots()[index];
+        let identity = if let Some(plan) = self.current_plan() {
             let plot = &plan
                 .plots
                 .iter()
-                .find(|planned| &planned.plot == resident)
+                .find(|planned| planned.plot == resident)
                 .ok_or(JourneyError::WrongTarget)?
                 .plan;
             KeyboardTextPlotIdentity {
@@ -223,21 +203,25 @@ impl ProductJourney {
             self.plots[previous],
             Some(NativePlot::KeyboardCanvas | NativePlot::MemoryLantern)
         ) {
-            self.last_working_plot = Some(body.workset.plots()[previous].clone());
+            self.last_working_plot = Some(previous_plot);
         }
         self.plot = Some(identity);
-        self.foreground = index;
+        self.session
+            .as_mut()
+            .ok_or(JourneyError::BodyAbsent)?
+            .select_plot(plot)
+            .map_err(JourneyError::Lifecycle)?;
         self.advance()
     }
 
     pub fn select_next_plot(&mut self, revision: u64) -> Result<(), JourneyError> {
-        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        let plot = body.workset.plots()[(self.foreground + 1) % body.workset.len()].clone();
+        let body = self.body().ok_or(JourneyError::BodyAbsent)?;
+        let plot = body.workset.plots()[(self.foreground_index() + 1) % body.workset.len()].clone();
         self.select_plot(&plot, revision)
     }
 
     pub(super) fn foreground_result(&self) -> Option<&str> {
-        self.results[self.foreground].text(self.plots[self.foreground])
+        self.results[self.foreground_index()].text(self.plots[self.foreground_index()])
     }
 }
 
