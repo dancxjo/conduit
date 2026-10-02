@@ -33,8 +33,11 @@ impl PresentationContentId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationBasis {
+    /// Represented Body, absent for Host-owned pre-birth presentation.
     pub body_id: Option<BodyId>,
     pub wake_id: Option<WakeId>,
+    /// Exact producing execution; it can exist before a Body is born.
+    /// This provenance grants no authority and does not invent a Body Wake.
     pub source_document_id: Option<SourceDocumentId>,
     pub checked_plot_id: Option<CheckedPlotId>,
     pub expanded_plot_id: Option<ExpandedPlotId>,
@@ -329,10 +332,6 @@ impl Presentation {
             || self.basis.source_document_id.is_some() != self.basis.checked_plot_id.is_some()
             || (self.basis.plan_id.is_some() && self.basis.expanded_plot_id.is_none())
             || (self.basis.active_play_id.is_some() && self.basis.plan_id.is_none())
-            || (!embodied
-                && (self.basis.expanded_plot_id.is_some()
-                    || self.basis.plan_id.is_some()
-                    || self.basis.active_play_id.is_some()))
         {
             return Err(PresentationError::InvalidBasis);
         }
