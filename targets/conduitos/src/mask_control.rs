@@ -7,8 +7,8 @@ use conduit_body::{
 use conduit_core::{
     ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId,
     HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, SignId,
-    authority_grant, kind_id, present_authority_requirement, resource_offer, resource_requirement,
+    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, authority_grant,
+    kind_id, present_authority_requirement, resource_offer, resource_requirement,
 };
 use conduit_planner::{
     ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
@@ -19,9 +19,8 @@ use conduit_plot::{
     expand_canonical_plot_for_authoring, parse_syntax_document,
 };
 use conduit_presentation::{
-    BodyMaskWardrobe, FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES,
-    ManifestationLifecycle, MaskPlot, MaskShow, MaskWardrobe, MaskWardrobeLifetime,
-    PlannedMaskPlot, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
+    BodyMaskWardrobe, FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, MaskPlot,
+    MaskShow, MaskWardrobe, MaskWardrobeLifetime, PlannedMaskPlot, Presentation,
     RendererRealizationOffer, ResourceRendererRealizationOffer, ShowResourceSourceOffer,
     face_interaction_kind_projection, face_interaction_offer, install_mask_plot_value_aliases,
     presentation_tee_kind_projection, presentation_tee_offer, renderer_kind_projection,
@@ -187,101 +186,20 @@ impl MaskControl {
         body_plan: &BodyPlan,
         play: &BodyPlayIdentity,
     ) -> Result<PatchbayMaskTopology, ()> {
-        let topology = body_plan.mask_topologies.first().ok_or(())?;
-        let plot = topology.face.plot.as_ref();
-        let expanded_plot_id = plot.and_then(|selected| {
-            body_plan
-                .plots
+        let selected = body_plan.mask_topologies.first().ok_or(())?;
+        if body_plan.mask_topologies.len() != 1
+            || selected.chains.len() != self.graphical.iter().chain(self.speech.iter()).count()
+        {
+            return Err(());
+        }
+        for stage in self.graphical.iter().chain(self.speech.iter()) {
+            if !selected
+                .chains
                 .iter()
-                .find(|candidate| &candidate.plot == selected)
-                .map(|candidate| candidate.plan.expanded_plot_id.clone())
-        });
-        let presentation = Presentation::new(
-            self.sequence,
-            PresentationBasis {
-                body_id: Some(body_plan.body_id.clone()),
-                wake_id: Some(body_plan.wake_id.clone()),
-                source_document_id: plot.map(|plot| plot.source_document_id.clone()),
-                checked_plot_id: plot.map(|plot| plot.checked_plot_id.clone()),
-                expanded_plot_id,
-                plan_id: Some(body_plan.plan_id.clone()),
-                active_play_id: Some(play.active_play_id.clone()),
-                sign_ids: vec![SignId::from(format!(
-                    "conduitos/mask/{}/presentation",
-                    self.sequence
-                ))],
-            },
-            vec![PresentationSubject {
-                identity: "conduitos/patchbay/self".into(),
-                role: PresentationRole::Document,
-                name: "Patchbay controlling its own Mask topology".into(),
-            }],
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-        )
-        .map_err(|_| ())?;
-        let mut shows = Vec::new();
-        let mut execution_receipts = Vec::new();
-        let mut surface_receipts = Vec::new();
-        for (index, stage) in self.graphical.iter().chain(self.speech.iter()).enumerate() {
-            let fragment = stage.planned_mask.plan.fragments.first().ok_or(())?;
-            let active = conduit_core::bind_active_play(
-                &stage.planned_mask.plan.plan_id,
-                &fragment.host_id,
-                &fragment.boot_id,
-                play.play_sequence,
-            );
-            let mut surface = if stage
-                .planned_mask
-                .plan
-                .fragments
-                .iter()
-                .flat_map(|fragment| &fragment.connections)
-                .any(|connection| connection.resource.is_some())
+                .any(|chain| chain.plan.plan_id == stage.planned_mask.plan.plan_id)
             {
-                let mut possession =
-                    crate::native_surface_possession::ActiveNativeSurfacePossession::begin(
-                        self.surface_provider.as_ref().ok_or(())?,
-                        &stage.planned_mask.plan,
-                        active.active_play_id.clone(),
-                    )?;
-                possession.authorize()?;
-                Some(possession)
-            } else {
-                None
-            };
-            let execution = crate::native_mask_play::run(
-                &stage.planned_mask,
-                &presentation,
-                play.play_sequence,
-            )
-            .map_err(|_| ())?;
-            if execution.active_play_id != active.active_play_id {
                 return Err(());
             }
-            surface_receipts.push(match surface.take() {
-                Some(possession) => Some(possession.complete_and_retire()?),
-                None => None,
-            });
-            let prepared = MaskShow::prepared(
-                &stage.planned_mask,
-                &presentation,
-                active,
-                "conduitos/patchbay/self".into(),
-                stage.target.clone(),
-                SignId::from(format!("conduitos/mask/{index}/prepared")),
-            )
-            .map_err(|_| ())?;
-            shows.push(
-                prepared
-                    .transition(
-                        ManifestationLifecycle::Available,
-                        SignId::from(format!("conduitos/mask/{index}/available")),
-                    )
-                    .map_err(|_| ())?,
-            );
-            execution_receipts.push(execution);
         }
         let mode = match (self.graphical.is_some(), self.speech.is_some()) {
             (true, false) => PatchbayMaskMode::Graphical,
@@ -289,66 +207,6 @@ impl MaskControl {
             (false, true) => PatchbayMaskMode::Speech,
             (false, false) => return Err(()),
         };
-        let mut stages = Vec::with_capacity(shows.len());
-        for show in &shows {
-            let manifestation = &show.show;
-            let planned = self
-                .graphical
-                .iter()
-                .chain(self.speech.iter())
-                .find(|stage| {
-                    stage.planned_mask.show_placement().placement_id == manifestation.placement_id
-                })
-                .and_then(|stage| {
-                    stage
-                        .planned_mask
-                        .plan
-                        .fragments
-                        .iter()
-                        .flat_map(|fragment| &fragment.placements)
-                        .find(|placement| placement.placement_id == manifestation.placement_id)
-                })
-                .ok_or(())?;
-            let resource = planned
-                .resources
-                .first()
-                .or_else(|| {
-                    self.graphical
-                        .iter()
-                        .chain(self.speech.iter())
-                        .flat_map(|stage| &stage.planned_mask.plan.fragments)
-                        .flat_map(|fragment| &fragment.connections)
-                        .find_map(|connection| connection.resource.as_ref())
-                        .map(|resource| &resource.source_binding)
-                })
-                .ok_or(())?;
-            stages.push(PatchbayMaskStage {
-                manifestation_id: manifestation.manifestation_id.as_str().into(),
-                implementation_id: manifestation.presenter_implementation_id.as_str().into(),
-                host_id: manifestation.host_id.as_str().into(),
-                boot_id: manifestation.boot_id.as_str().into(),
-                resource_pool_id: resource.pool_id.as_str().into(),
-                resource_class_id: resource.class_id.as_str().into(),
-                reserved_units: resource.units,
-                maximum_active_instances: planned.limits.max_active_instances,
-                maximum_queue_items: planned.limits.max_queue_items,
-                maximum_queue_bytes: planned.limits.max_queue_bytes,
-                available: manifestation.lifecycle == ManifestationLifecycle::Available,
-            });
-        }
-        let view = PatchbayMaskTopology {
-            presentation_id: presentation.identity.as_str().into(),
-            body_plan_id: body_plan.plan_id.clone(),
-            active_play_id: play.active_play_id.as_str().into(),
-            mode,
-            stages,
-        };
-        self.sequence = self.sequence.checked_add(1).ok_or(())?;
-        self.presentation = Some(presentation.clone());
-        self.shows = shows;
-        if execution_receipts.len() != self.shows.len() {
-            return Err(());
-        }
         let available_masks = self
             .graphical
             .iter()
@@ -370,8 +228,6 @@ impl MaskControl {
                 .map_err(|_| ())?;
             actions.push("wear");
         }
-        // Speech-only is reached by an actual doff of the previously eligible
-        // native graphical Plot, not by rewriting Body meaning.
         if mode == PatchbayMaskMode::Speech {
             let native = prepare_stage(
                 Adapter::Native,
@@ -398,63 +254,68 @@ impl MaskControl {
         actions.push("prefer");
         let scoped =
             BodyMaskWardrobe::new(body_plan.body_id.clone(), None, wardrobe).map_err(|_| ())?;
+        let mut stages = Vec::new();
+        for stage in self.graphical.iter().chain(self.speech.iter()) {
+            let planned = stage.planned_mask.show_placement();
+            let resource = planned
+                .resources
+                .first()
+                .or_else(|| {
+                    stage
+                        .planned_mask
+                        .plan
+                        .fragments
+                        .iter()
+                        .flat_map(|fragment| &fragment.connections)
+                        .find_map(|connection| connection.resource.as_ref())
+                        .map(|resource| &resource.source_binding)
+                })
+                .ok_or(())?;
+            stages.push(PatchbayMaskStage {
+                manifestation_id: "not-shown".into(),
+                implementation_id: planned.implementation_id.as_str().into(),
+                host_id: planned.host_id.as_str().into(),
+                boot_id: planned.boot_id.as_str().into(),
+                resource_pool_id: resource.pool_id.as_str().into(),
+                resource_class_id: resource.class_id.as_str().into(),
+                reserved_units: resource.units,
+                maximum_active_instances: planned.limits.max_active_instances,
+                maximum_queue_items: planned.limits.max_queue_items,
+                maximum_queue_bytes: planned.limits.max_queue_bytes,
+                available: false,
+            });
+        }
+        self.sequence = self.sequence.checked_add(1).ok_or(())?;
+        self.presentation = None;
+        self.shows.clear();
         self.evidence = Some(NativeMaskEvidence {
             schema: "conduit.conduitos/native-mask-control@1",
             body_id: body_plan.body_id.as_str().into(),
-            wake_id: body_plan.wake_id.as_str().into(),
+            wake_id: wake.wake_id.as_str().into(),
             actions,
-            mask_actions: crate::native_mask_journey::actualize(
-                wake,
-                body_plan,
-                &self.host_id,
-                &self.boot_id,
-                &presentation,
-                self.graphical.as_ref().or(self.speech.as_ref()).ok_or(())?,
-                self.sequence,
-                self.shows.first().ok_or(())?,
-                execution_receipts.first().ok_or(())?,
-            )?,
+            mask_actions: Vec::new(),
             wardrobe_revision: scoped.wardrobe.revision,
-            preference: scoped.wardrobe.preference.clone(),
             worn_mask_plots: scoped.wardrobe.worn.clone(),
+            preference: scoped.wardrobe.preference.clone(),
             application_plan_id: body_plan.plan_id.clone(),
             mask_plan_ids,
-            route_disposition: "selected-executed-route",
+            route_disposition: "planned-route-awaiting-show",
             planning_disposition: "not-required",
-            show_id: self.shows.first().map(|show| show.show_id.as_str().into()),
-            manifestation_id: self
-                .shows
-                .first()
-                .map(|show| show.show.manifestation_id.as_str().into()),
-            presentation_id: Some(presentation.identity.as_str().into()),
-            presentation_revision: Some(presentation.revision),
-            shows: execution_receipts
-                .iter()
-                .zip(&self.shows)
-                .zip(&surface_receipts)
-                .map(
-                    |((receipt, show), surface_possession)| NativeMaskShowCorrelation {
-                        mask_plan_id: receipt.mask_plan_id.clone(),
-                        mask_active_play_id: receipt.active_play_id.as_str().into(),
-                        presentation_id: receipt.presentation_id.clone(),
-                        presentation_revision: receipt.presentation_revision,
-                        show_value_id: receipt.show_value_id.clone(),
-                        mask_show_id: show.show_id.as_str().into(),
-                        manifestation_id: show.show.manifestation_id.as_str().into(),
-                        surface_possession: surface_possession.clone(),
-                    },
-                )
-                .collect(),
-            kernel_signs: execution_receipts
-                .iter()
-                .map(|receipt| receipt.kernel_signs)
-                .sum(),
-            fore_endpoints: execution_receipts
-                .iter()
-                .map(|receipt| receipt.fore_endpoints)
-                .sum(),
+            show_id: None,
+            manifestation_id: None,
+            presentation_id: None,
+            presentation_revision: None,
+            shows: Vec::new(),
+            kernel_signs: 0,
+            fore_endpoints: 0,
         });
-        Ok(view)
+        Ok(PatchbayMaskTopology {
+            presentation_id: "none".into(),
+            body_plan_id: body_plan.plan_id.clone(),
+            active_play_id: play.active_play_id.as_str().into(),
+            mode,
+            stages,
+        })
     }
 
     pub(super) fn mask_evidence(&self) -> Option<&NativeMaskEvidence> {

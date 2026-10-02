@@ -17,7 +17,7 @@ use conduit_presentation::{
     install_mask_plot_value_aliases, presentation_tee_kind_projection, presentation_tee_offer,
 };
 
-const SOURCE: &str = "plot host-face-snapshot (\n >> snapshot: Presentation\n face: Presentation >>\n) {\n forward: presentation/tee\n snapshot >> forward.source\n forward.presentation >> face\n}\n";
+const SOURCE: &str = include_str!("../../../../plots/face-snapshot/main.conduit");
 pub(super) const IMPLEMENTATION: &str = "conduitos/presentation-snapshot-forward@1";
 
 impl NativeFaceSnapshotProducer {
