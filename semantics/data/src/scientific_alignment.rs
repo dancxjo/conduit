@@ -1,45 +1,17 @@
 //! Explicit clock relations, coordinate frames, and derived alignment views.
 
-use alloc::{string::String, vec::Vec};
-use conduit_core::QuantityUnit;
+use conduit_core::QuantityDimension;
 use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    nonzero, text, ClockRelation, ClockRelationQuality, ObservationProvenance, ObservationSet,
-    ObservationValue, ScientificAlignmentRefusal, ScientificObservation,
-    ScientificObservationIdentity, ScientificObservationRefusal, TensorElement, TensorValue,
+    nonzero, text, AlignedTrainingView, CalibrationTransform, ClockRelation, ClockRelationQuality,
+    CoordinateFrame, ObservationProvenance, ObservationSet, ObservationValue,
+    ScientificAlignmentRefusal, ScientificObservation, ScientificObservationIdentity,
+    ScientificObservationRefusal, TensorElement,
 };
 
 pub const MAXIMUM_COORDINATE_DIMENSIONS: usize = 4;
 pub const MAXIMUM_ALIGNMENT_SOURCES: usize = 16;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CoordinateFrame {
-    pub identity: String,
-    pub axes: Vec<String>,
-    pub unit: QuantityUnit,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CalibrationTransform {
-    pub identity: String,
-    pub source_frame: String,
-    pub target_frame: String,
-    pub linear: TensorValue,
-    pub translation: TensorValue,
-    pub calibration_sources: Vec<[u8; 32]>,
-    pub method_profile: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AlignedTrainingView {
-    pub source_set_identity: [u8; 32],
-    pub source_observation_identity: [u8; 32],
-    pub clock_relation_identity: String,
-    pub calibration_identity: Option<String>,
-    pub target_clock: String,
-    pub derived_observation: ScientificObservation,
-}
 
 pub struct AlignmentDerivation<'a> {
     pub set: &'a ObservationSet,
@@ -75,15 +47,7 @@ impl ClockRelation {
         }
         if let ClockRelationQuality::Estimated(estimated) = self.quality() {
             let maximum_error = estimated.maximum_error();
-            if maximum_error.value() <= 0
-                || !matches!(
-                    maximum_error.unit(),
-                    QuantityUnit::Second
-                        | QuantityUnit::Millisecond
-                        | QuantityUnit::Microsecond
-                        | QuantityUnit::Nanosecond
-                )
-            {
+            if maximum_error.value() <= 0 || maximum_error.dimension() != QuantityDimension::Time {
                 return Err(ScientificAlignmentRefusal::InvalidRelation);
             }
         }
@@ -98,20 +62,14 @@ impl CoordinateFrame {
             return Err(ScientificAlignmentRefusal::InvalidCoordinateFrame);
         }
         for axis in &self.axes {
-            text(axis).map_err(ScientificAlignmentRefusal::from)?;
+            text(axis.get()).map_err(ScientificAlignmentRefusal::from)?;
         }
         if self
             .axes
             .iter()
             .enumerate()
-            .any(|(index, axis)| self.axes[index + 1..].contains(axis))
-            || !matches!(
-                self.unit,
-                QuantityUnit::Micrometer
-                    | QuantityUnit::Millimeter
-                    | QuantityUnit::Centimeter
-                    | QuantityUnit::Meter
-            )
+            .any(|(index, axis)| self.axes.as_slice()[index + 1..].contains(axis))
+            || self.unit.dimension() != QuantityDimension::Length
         {
             return Err(ScientificAlignmentRefusal::InvalidCoordinateFrame);
         }
@@ -148,7 +106,10 @@ impl CalibrationTransform {
         }
         if self.calibration_sources.is_empty()
             || self.calibration_sources.len() > MAXIMUM_ALIGNMENT_SOURCES
-            || self.calibration_sources.contains(&[0; 32])
+            || self
+                .calibration_sources
+                .iter()
+                .any(|identity| identity.get() == &[0; 32])
         {
             return Err(ScientificAlignmentRefusal::MissingCalibrationSource);
         }

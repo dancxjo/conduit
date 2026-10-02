@@ -8,7 +8,8 @@ mod generated {
 }
 
 pub use generated::{
-    ClockRelation, ClockRelationQuality, ClockRelationQualityEstimated, ConcatenatedSignal,
+    AlignedTrainingView, CalibrationTransform, ClockRelation, ClockRelationQuality,
+    ClockRelationQualityEstimated, ConcatenatedSignal, CoordinateAxisName, CoordinateFrame,
     DataGenerationDigest, DataGenerationNamespace, DataGenerationNamespaceRefusal,
     DataGenerationTextValue, DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal,
     DataSaveTextTerminal, DataSaveTextTerminalCode, DatasetDescriptor, DatasetExampleIdentity,
@@ -19,11 +20,12 @@ pub use generated::{
     MeasurementSummary, MeasurementSummaryRefusal, MeasurementThresholdDecision,
     MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
     MeasurementThresholdStateCode, MeasurementThresholdTransition, MeasurementWindowProfile,
-    MeasurementWindowRefusal, NormalizedQuantityRefusal, ObservationProvenance,
-    ObservationProvenanceDerived, ObservationProvenanceMeasured, QuantityMappingRefusal,
+    MeasurementWindowRefusal, MissingDataMask, NormalizedQuantityRefusal, ObservationProvenance,
+    ObservationProvenanceDerived, ObservationProvenanceMeasured, ObservationSet, ObservationValue,
+    ObservationValueSampledSignal, ObservationValueTensor, QuantityMappingRefusal,
     QuantizationPolicy, RangePolicy, SampledSignal, SampledSignalRefusal, ScalarComparison,
     ScientificAlignmentRefusal, ScientificAlignmentRefusalObservation, ScientificCorpusRefusal,
-    ScientificCorpusRefusalObservation, ScientificObservationIdentity,
+    ScientificCorpusRefusalObservation, ScientificObservation, ScientificObservationIdentity,
     ScientificObservationRefusal, SignalCadence, SignalCadenceIrregular, SignalCadenceRegular,
     SignalContinuity, SignalContinuityClockReset, SignalContinuityDiscontinuous, SignalIdentity,
     SignalStart, SignalStartInstant, SignalStartSampleIndex, SignalSummary, SignalWindow,

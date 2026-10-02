@@ -265,6 +265,63 @@ type ConcatenatedSignal = {
     source-parts: sequence SignalIdentity in 1..=64
 }
 
+type ObservationValue =
+    tensor {
+        value: TensorValue
+    }
+    | sampled-signal {
+        value: SampledSignal
+    }
+
+type ScientificObservation = {
+    identity: collection U8 = 32
+    semantic-kind: Text <= 128B not in [""]
+    clock-identity: Text <= 128B not in [""]?
+    coordinate-frame: Text <= 128B not in [""]?
+    value: ObservationValue
+    provenance: ObservationProvenance
+}
+
+type MissingDataMask = {
+    observation-identity: collection U8 = 32
+    mask: TensorValue
+}
+
+type ObservationSet = {
+    identity: collection U8 = 32
+    session-identity: Text <= 128B not in [""]
+    subject-identity: Text <= 128B not in [""]?
+    observations: sequence ScientificObservation in 1..=64
+    missing-data: sequence MissingDataMask <= 64
+}
+
+type CoordinateAxisName = Text <= 128B not in [""]
+
+type CoordinateFrame = {
+    identity: Text <= 128B not in [""]
+    axes: sequence CoordinateAxisName in 1..=4
+    unit: QuantityUnit
+}
+
+type CalibrationTransform = {
+    identity: Text <= 128B not in [""]
+    source-frame: Text <= 128B not in [""]
+    target-frame: Text <= 128B not in [""]
+    linear: TensorValue
+    translation: TensorValue
+    calibration-sources: sequence ScientificObservationIdentity in 1..=16
+    method-profile: Text <= 128B not in [""]
+}
+
+type AlignedTrainingView = {
+    source-set-identity: collection U8 = 32
+    source-observation-identity: collection U8 = 32
+    clock-relation-identity: Text <= 128B not in [""]
+    calibration-identity: Text <= 128B not in [""]?
+    target-clock: Text <= 128B not in [""]
+    derived-observation: ScientificObservation
+}
+
 type RangePolicy =
     refuse
     | clamp

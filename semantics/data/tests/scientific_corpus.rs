@@ -112,7 +112,7 @@ fn measured(
         semantic_kind: kind.into(),
         clock_identity: Some(clock.into()),
         coordinate_frame: frame.map(Into::into),
-        value: ObservationValue::SampledSignal(Box::new(signal(clock, channels, identity as f32))),
+        value: ObservationValue::sampled_signal(signal(clock, channels, identity as f32)).unwrap(),
         provenance: ObservationProvenance::measured(
             "scientific/instrument-capture@1".into(),
             resource(identity, "data/observation-block@1", 128),
@@ -135,8 +135,8 @@ fn observation_set() -> ObservationSet {
         identity: semantic_digest("test/example@1", b"paired-example"),
         session_identity: "session/synthetic-1".into(),
         subject_identity: Some("subject/pseudonymous-1".into()),
-        observations: vec![audio, ema],
-        missing_data: vec![MissingDataMask {
+        observations: BoundedSequence::try_from_iter([audio, ema]).unwrap(),
+        missing_data: BoundedSequence::try_from_iter([MissingDataMask {
             observation_identity: [2; 32],
             mask: TensorValue {
                 element: TensorElement::U8,
@@ -157,7 +157,8 @@ fn observation_set() -> ObservationSet {
                 content_digest: tensor_content_digest(&mask_bytes),
                 backing: TensorBacking::Inline(BoundedBytes::new(&mask_bytes).unwrap()),
             },
-        }],
+        }])
+        .unwrap(),
     }
 }
 
@@ -165,12 +166,20 @@ fn frames() -> (CoordinateFrame, CoordinateFrame) {
     (
         CoordinateFrame {
             identity: "frame/ema-head".into(),
-            axes: vec!["anterior-posterior".into(), "inferior-superior".into()],
+            axes: BoundedSequence::try_from_iter([
+                CoordinateAxisName::new("anterior-posterior".into()).unwrap(),
+                CoordinateAxisName::new("inferior-superior".into()).unwrap(),
+            ])
+            .unwrap(),
             unit: QuantityUnit::Millimeter,
         },
         CoordinateFrame {
             identity: "frame/head-normalized".into(),
-            axes: vec!["x".into(), "y".into()],
+            axes: BoundedSequence::try_from_iter([
+                CoordinateAxisName::new("x".into()).unwrap(),
+                CoordinateAxisName::new("y".into()).unwrap(),
+            ])
+            .unwrap(),
             unit: QuantityUnit::Millimeter,
         },
     )
@@ -194,7 +203,11 @@ fn calibration() -> CalibrationTransform {
             vec![2],
             vec![TensorAxisRole::SpatialCoordinate],
         ),
-        calibration_sources: vec![[9; 32]],
+        calibration_sources: BoundedSequence::try_from_iter([ScientificObservationIdentity::new(
+            [9; 32],
+        )
+        .unwrap()])
+        .unwrap(),
         method_profile: "science/rigid-head-correction@1".into(),
     }
 }
@@ -203,6 +216,8 @@ fn calibration() -> CalibrationTransform {
 fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view() {
     let set = observation_set();
     set.validate().unwrap();
+    let structured = set.clone().into_structured().unwrap();
+    assert_eq!(ObservationSet::from_structured(structured).unwrap(), set);
     assert_ne!(set.semantic_digest().unwrap(), [0; 32]);
     let relation = ClockRelation::new(
         "clock-relation/ema-to-audio@1".into(),
@@ -240,6 +255,15 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     let (source_frame, target_frame) = frames();
     let calibration = calibration();
     calibration.validate(&source_frame, &target_frame).unwrap();
+    for frame in [source_frame.clone(), target_frame.clone()] {
+        let structured = frame.clone().into_structured().unwrap();
+        assert_eq!(CoordinateFrame::from_structured(structured).unwrap(), frame);
+    }
+    let structured = calibration.clone().into_structured().unwrap();
+    assert_eq!(
+        CalibrationTransform::from_structured(structured).unwrap(),
+        calibration
+    );
     let aligned = AlignedTrainingView::derive(AlignmentDerivation {
         set: &set,
         source_observation_identity: [2; 32],
@@ -247,10 +271,15 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
         calibration: Some((&calibration, &source_frame, &target_frame)),
         target_clock: "clock/audio",
         derived_identity: [7; 32],
-        derived_value: ObservationValue::SampledSignal(Box::new(signal("clock/audio", 2, 7.0))),
+        derived_value: ObservationValue::sampled_signal(signal("clock/audio", 2, 7.0)).unwrap(),
         resampling_profile: "science/windowed-linear-resample@1",
     })
     .unwrap();
+    let structured = aligned.clone().into_structured().unwrap();
+    assert_eq!(
+        AlignedTrainingView::from_structured(structured).unwrap(),
+        aligned
+    );
     assert_eq!(
         set.observations[0].clock_identity.as_deref(),
         Some("clock/audio")
