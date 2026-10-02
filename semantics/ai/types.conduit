@@ -1559,6 +1559,48 @@ type TrainingMetric = {
     value_millionths: I64
 }
 
+type TrainingExampleIdentityPage = Bytes <= 32768B
+type TrainingExampleIdentityPages = sequence TrainingExampleIdentityPage in 1..=4
+type TrainingModality = Text <= 128B not in [""]
+type TrainingModalities = sequence TrainingModality in 1..=32
+type TrainingObjectives = sequence TrainingObjective in 1..=32
+type TrainingCheckpointIdentity = collection U8 = 32
+
+type TrainingBatch = {
+    identity: collection U8 = 32
+    dataset_identity: collection U8 = 32
+    split_identity: Text <= 128B not in [""]
+    example_identities: TrainingExampleIdentityPages
+    present_modalities: TrainingModalities
+    encoded_bytes: U64 in 1..=18446744073709551615
+    order: BatchOrder
+    stochastic_seed: U64?
+}
+
+type TrainingSession = {
+    identity: collection U8 = 32
+    base_artifact_identity: collection U8 = 32
+    base_checkpoint_identity: TrainingCheckpointIdentity?
+    dataset_manifest_identity: collection U8 = 32
+    split_membership_identity: collection U8 = 32
+    objective_profile: Text <= 128B not in [""]
+    objectives: TrainingObjectives
+    randomness: RandomnessProfile
+    precision_profile: Text <= 128B not in [""]
+    model_modalities: TrainingModalities
+    missing_modality_policy: MissingModalityPolicy
+    resources: TrainingResourceEnvelope
+    checkpoint_policy: CheckpointPolicy
+    evaluation_policy: EvaluationPolicy
+}
+
+type TrainStepRequest = {
+    step: U64 in 1..=18446744073709551615
+    expected_generation: U64
+    batch: TrainingBatch
+    admitted_work_units: U64 in 1..=18446744073709551615
+}
+
 type EmbodimentStage =
     perception_only
     | expressive

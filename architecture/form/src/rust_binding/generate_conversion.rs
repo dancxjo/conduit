@@ -248,13 +248,13 @@ pub(super) fn encode_expression(
         StructuredInfoTypeShape::Sequence { element, .. } => {
             let inner = encode_expression(element, "item", "element_type.clone()", names)?;
             Ok(format!(
-                "{{ let element_type = conduit_form::rust_binding::sequence_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::sequence({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
+                "{{ let sequence_type = {expected}; let element_type = conduit_form::rust_binding::sequence_element_type(&sequence_type)?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::sequence(sequence_type, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
             ))
         }
         StructuredInfoTypeShape::Collection { element, .. } => {
             let inner = encode_expression(element, "item", "element_type.clone()", names)?;
             Ok(format!(
-                "{{ let element_type = conduit_form::rust_binding::collection_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::collection({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
+                "{{ let collection_type = {expected}; let element_type = conduit_form::rust_binding::collection_element_type(&collection_type)?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::collection(collection_type, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
             ))
         }
         StructuredInfoTypeShape::Variant { schema, cases }

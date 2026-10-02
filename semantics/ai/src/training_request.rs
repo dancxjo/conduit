@@ -4,10 +4,9 @@ use alloc::vec::Vec;
 use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
 use super::{
-    HostStepTerminal, HostTrainingRealization, TrainStepRequest, TrainingBatch, TrainingMetric,
-    TrainingState,
+    HostStepTerminal, HostTrainingRealization, TrainingBatch, TrainingMetric, TrainingState,
 };
-use crate::{ModelArtifact, ModelCheckpoint};
+use crate::{ModelArtifact, ModelCheckpoint, TrainStepRequest};
 
 pub struct TrainStepCommit<'a> {
     pub artifact: &'a ModelArtifact,

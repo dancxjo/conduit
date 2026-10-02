@@ -163,10 +163,14 @@ pub fn session(
         dataset_manifest_identity: dataset.manifest.identity.digest(),
         split_membership_identity: split.semantic_digest().unwrap(),
         objective_profile: "tongues/shared-latent-objectives@1".into(),
-        objectives: objectives(),
+        objectives: conduit_ai::TrainingObjectives::from_values(objectives()).unwrap(),
         randomness: RandomnessProfile::explicit_seed(42).unwrap(),
         precision_profile: artifact.precision_profile.clone(),
-        model_modalities: vec!["audio".into(), "ema".into()],
+        model_modalities: conduit_ai::TrainingModalities::from_strings(vec![
+            "audio".into(),
+            "ema".into(),
+        ])
+        .unwrap(),
         missing_modality_policy: MissingModalityPolicy::permit_declared(optional_modalities)
             .unwrap(),
         resources: TrainingResourceEnvelope::new(
@@ -196,8 +200,14 @@ pub fn batch(step: u8, modalities: &[&str]) -> TrainingBatch {
         identity: [20 + step; 32],
         dataset_identity: [2; 32],
         split_identity: "train".into(),
-        example_identities: vec![[10 + step; 32]],
-        present_modalities: modalities.iter().map(|value| (*value).into()).collect(),
+        example_identities: conduit_ai::TrainingExampleIdentityPages::from_values(vec![
+            [10 + step; 32],
+        ])
+        .unwrap(),
+        present_modalities: conduit_ai::TrainingModalities::from_strings(
+            modalities.iter().map(|value| (*value).into()).collect(),
+        )
+        .unwrap(),
         encoded_bytes: 4096,
         order: BatchOrder::Shuffled,
         stochastic_seed: Some(100 + u64::from(step)),
