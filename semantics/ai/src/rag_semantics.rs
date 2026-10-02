@@ -10,7 +10,7 @@ use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    ContextSelectionRationale, ContextTruncationReason, GroundingDisposition,
+    ChunkIdentity, ContextSelectionRationale, ContextTruncationReason, GroundingDisposition,
     ModelResultProvenance, SourceSpanUnit, TemporalRetrievalIntent,
 };
 
@@ -50,8 +50,6 @@ pub struct SourceSpan {
     pub start: u64,
     pub end: u64,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ChunkIdentity([u8; 32]);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExtractionLineage {
     pub source: SourceRef,
@@ -241,12 +239,24 @@ impl SourceSpan {
 }
 
 impl ChunkIdentity {
-    pub const fn from_digest(digest: [u8; 32]) -> Self {
-        Self(digest)
+    pub fn from_digest(digest: [u8; 32]) -> Self {
+        Self::new(digest).expect("a fixed digest has exactly 32 bytes")
     }
 
     pub const fn digest(self) -> [u8; 32] {
-        self.0
+        *self.get()
+    }
+}
+
+impl PartialOrd for ChunkIdentity {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ChunkIdentity {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.get().cmp(other.get())
     }
 }
 

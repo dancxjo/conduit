@@ -8,6 +8,21 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_form::rust_binding::NativeRustBinding;
+
+#[test]
+fn chunk_identity_is_one_native_fixed_digest() {
+    let identity = ChunkIdentity::from_digest([7; 32]);
+    assert_eq!(identity.digest(), [7; 32]);
+    let structured = identity.into_structured().unwrap();
+    assert_eq!(
+        ChunkIdentity::from_structured(structured).unwrap(),
+        identity
+    );
+    assert!(
+        !include_str!("../src/rag_semantics.rs").contains(concat!("pub struct ", "ChunkIdentity"))
+    );
+}
 
 fn source(version: u8) -> SourceRef {
     SourceRef {

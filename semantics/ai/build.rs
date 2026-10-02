@@ -17,11 +17,17 @@ fn main() {
             derive_serde_for_variants: true,
             copy_nominal_types: [
                 "ConfidencePermille".into(),
+                "ChunkIdentity".into(),
                 "FiniteF32".into(),
                 "NonnegativeFiniteF32".into(),
             ]
             .into(),
-            hash_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
+            hash_nominal_types: [
+                "ChunkIdentity".into(),
+                "FiniteF32".into(),
+                "NonnegativeFiniteF32".into(),
+            ]
+            .into(),
             serde_nominal_types: [
                 "ClassificationLabel".into(),
                 "ClassificationLabels".into(),
