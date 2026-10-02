@@ -394,6 +394,24 @@ type ReplayState =
         code: U16
     }
 
+type HistoricalReplayEntry = {
+    sequence: U64
+    identity: Text <= 128B not in [""]
+    event-time: TemporalInstant
+    origin: HistoricalEntryOrigin
+    value: ResourceRef
+}
+
+type OwnedReplayEvent = {
+    ordinal: U16 in 0..=63
+    historical-sequence: U64
+    historical-identity: Text <= 128B not in [""]
+    historical-event-time: TemporalInstant
+    historical-origin: HistoricalEntryOrigin
+    value: ResourceRef
+    playback-ticks: U64
+}
+
 type TemporalBoundary =
     inclusive
     | exclusive

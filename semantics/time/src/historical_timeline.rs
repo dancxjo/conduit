@@ -305,7 +305,11 @@ impl BoundedHistoricalTimeline {
             replay.push(crate::HistoricalReplayEntry {
                 sequence: entry.sequence,
                 identity: entry.identity.clone(),
-                event_time: entry.event_time.clone(),
+                event_time: entry
+                    .event_time
+                    .clone()
+                    .try_into()
+                    .expect("validated history time has one native projection"),
                 origin: entry.origin,
                 value: entry.value.clone(),
             });

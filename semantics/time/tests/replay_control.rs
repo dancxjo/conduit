@@ -12,7 +12,9 @@ fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
             clock_basis: "history-clock".into(),
             resolution_ticks: 1,
             uncertainty_ticks: 0,
-        },
+        }
+        .try_into()
+        .unwrap(),
         origin: HistoricalEntryOrigin::MachineObservation,
         value: common::replay_value(1, "bench/record@1"),
     }
@@ -129,7 +131,7 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
         Err(ReplayRefusal::InvalidHistoricalTime)
     ));
     let mut incomparable = vec![entry("a", 1), entry("b", 2)];
-    incomparable[1].event_time.scale = TemporalScale::Seconds;
+    incomparable[1].event_time.scale = TemporalScale::Seconds.into();
     assert!(matches!(
         BoundedReplayController::new(&incomparable, ReplayPolicy::Step),
         Err(ReplayRefusal::IncomparableHistoricalTime)

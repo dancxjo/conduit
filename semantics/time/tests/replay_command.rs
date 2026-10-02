@@ -11,7 +11,9 @@ fn entry(identity: &str, ticks: u64) -> HistoricalReplayEntry {
             clock_basis: "history-clock".into(),
             resolution_ticks: 1,
             uncertainty_ticks: 0,
-        },
+        }
+        .try_into()
+        .unwrap(),
         origin: HistoricalEntryOrigin::MachineObservation,
         value: common::replay_value(1, "bench/record@1"),
     }

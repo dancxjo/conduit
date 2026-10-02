@@ -23,14 +23,14 @@ fn timeline() -> Vec<u8> {
         HistoricalReplayEntry {
             sequence: 41,
             identity: "memory-lantern/amber".into(),
-            event_time: historical_time(1_000),
+            event_time: historical_time(1_000).try_into().unwrap(),
             origin: conduit_time::HistoricalEntryOrigin::MachineObservation,
             value: common::replay_value(1, "memory-lantern/color@1"),
         },
         HistoricalReplayEntry {
             sequence: 42,
             identity: "memory-lantern/blue".into(),
-            event_time: historical_time(1_250),
+            event_time: historical_time(1_250).try_into().unwrap(),
             origin: conduit_time::HistoricalEntryOrigin::OperatorAuthored,
             value: common::replay_value(3, "memory-lantern/color@1"),
         },
@@ -79,7 +79,10 @@ fn ordinary_values_drive_original_timing_without_merging_time_domains() {
     let first_event = decode_replay_event(&event[..first.event_bytes.unwrap()]).unwrap();
     assert_eq!(first_event.historical_identity, "memory-lantern/amber");
     assert_eq!(first_event.historical_sequence, 41);
-    assert_eq!(first_event.historical_event_time, historical_time(1_000));
+    assert_eq!(
+        first_event.historical_event_time,
+        historical_time(1_000).try_into().unwrap()
+    );
     assert_eq!(
         first_event.historical_origin,
         conduit_time::HistoricalEntryOrigin::MachineObservation
@@ -105,7 +108,10 @@ fn ordinary_values_drive_original_timing_without_merging_time_domains() {
     let second_event = decode_replay_event(&event[..second.event_bytes.unwrap()]).unwrap();
     assert_eq!(second_event.historical_identity, "memory-lantern/blue");
     assert_eq!(second_event.historical_sequence, 42);
-    assert_eq!(second_event.historical_event_time, historical_time(1_250));
+    assert_eq!(
+        second_event.historical_event_time,
+        historical_time(1_250).try_into().unwrap()
+    );
     assert_eq!(
         second_event.historical_origin,
         conduit_time::HistoricalEntryOrigin::OperatorAuthored

@@ -55,13 +55,11 @@ impl<'a> BoundedReplaySourceOperation<'a> {
         if gap_output.len() < HISTORICAL_RETENTION_GAP_BYTES {
             return Err(ReplaySourceRefusal::GapOutputTooSmall);
         }
+        let replay_entries = self.timeline.replay_metadata();
         let replay_bytes = encode_replay_timeline_fields_into(
-            self.timeline.len(),
+            replay_entries.len(),
             |index| {
-                let entry = self
-                    .timeline
-                    .entry(index)
-                    .expect("a retained replay-source index names one entry");
+                let entry = &replay_entries[index];
                 ReplayEntryFields {
                     sequence: entry.sequence,
                     identity: entry.identity.as_str(),

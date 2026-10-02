@@ -2,13 +2,12 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
-    BoundedResourceRef, TemporalInstant, TemporalScale, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES,
-    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    BoundedResourceRef, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 use crate::{
-    HistoricalEntryOrigin, HistoricalEntryOriginCode, HistoricalReplayEntry,
-    MAXIMUM_REPLAY_ENTRIES, MAXIMUM_REPLAY_IDENTITY_BYTES,
+    HistoricalEntryOrigin, HistoricalEntryOriginCode, HistoricalReplayEntry, TemporalInstant,
+    TemporalScale, MAXIMUM_REPLAY_ENTRIES, MAXIMUM_REPLAY_IDENTITY_BYTES,
 };
 
 pub const REPLAY_TIMELINE_WIRE_VERSION: u8 = 1;
