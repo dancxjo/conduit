@@ -169,11 +169,7 @@ fn chunk() -> Chunk<ExtractedSourceValue> {
                     },
                 },
             },
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start: 0,
-                end: 14,
-            },
+            span: SourceSpan::new(SourceSpanUnit::Bytes, 0, 14).unwrap(),
             extraction_profile: "extract/text-utf8@1".into(),
             transform_profiles: vec![],
             parent_chunk: None,

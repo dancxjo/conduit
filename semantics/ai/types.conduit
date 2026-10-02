@@ -321,6 +321,19 @@ type SourceSpanUnit =
     bytes
     | items
 
+type SourceSpan = {
+    unit: SourceSpanUnit
+    start: U64
+    end: U64
+    where .start < .end
+}
+
+type AnswerSpan = {
+    start: U32
+    end: U32
+    where .start < .end
+}
+
 type SourceExtractionProfile =
     text_utf8 {
         overlap_bytes: U32

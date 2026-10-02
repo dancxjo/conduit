@@ -314,11 +314,8 @@ fn push_chunk(
     }
     let lineage = ExtractionLineage {
         source: source.clone(),
-        span: SourceSpan {
-            unit,
-            start: start as u64,
-            end: end as u64,
-        },
+        span: SourceSpan::new(unit, start as u64, end as u64)
+            .expect("source extraction emits only nonempty chunks"),
         extraction_profile: extraction_profile.into(),
         transform_profiles: Vec::new(),
         parent_chunk: None,

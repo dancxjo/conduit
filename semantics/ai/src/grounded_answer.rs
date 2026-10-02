@@ -2,8 +2,9 @@
 
 use crate::{
     llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, GroundedAnswerPolicy,
-    GroundedAnswerRefusal, ModelDerivedResult, ModelResultDisposition, ModelResultProvenance, RetrievalIntent,
-    StructuredContext, LLM_GENERATE_KIND, MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
+    GroundedAnswerRefusal, ModelDerivedResult, ModelResultDisposition, ModelResultProvenance,
+    RetrievalIntent, StructuredContext, LLM_GENERATE_KIND, MAXIMUM_RAG_IDENTITY_BYTES,
+    MAXIMUM_RAG_TEXT_BYTES,
 };
 use alloc::{string::String, vec::Vec};
 
@@ -190,7 +191,6 @@ impl GroundedAnswerPolicy {
             limitations,
         })
     }
-
 }
 
 fn validate_request(request: &GroundedAnswerRequest) -> Result<(), GroundedAnswerRefusal> {
@@ -255,7 +255,7 @@ fn validate_citation(
 }
 
 fn validate_span(span: AnswerSpan, answer_bytes: usize) -> Result<(), GroundedAnswerRefusal> {
-    if span.start >= span.end || span.end as usize > answer_bytes {
+    if span.end() as usize > answer_bytes {
         Err(GroundedAnswerRefusal::InvalidAnswerSpan)
     } else {
         Ok(())

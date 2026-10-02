@@ -140,7 +140,7 @@ fn utf8_text_extraction_is_deterministic_bounded_and_lineage_exact() {
         chunk.validate().unwrap();
         assert_eq!(chunk.lineage.source, source);
         assert_eq!(chunk.lineage.extraction_profile, "extract/text-utf8@1");
-        assert!(chunk.lineage.span.end - chunk.lineage.span.start <= 8);
+        assert!(chunk.lineage.span.end() - chunk.lineage.span.start() <= 8);
         let ExtractedSourceValue::Text(value) = &chunk.value else {
             panic!("text profile emitted another value family");
         };
@@ -193,10 +193,10 @@ fn structured_and_non_text_metadata_profiles_preserve_item_ranges() {
     )
     .unwrap();
     assert_eq!(structured.chunks.len(), 2);
-    assert_eq!(structured.chunks[0].lineage.span.start, 0);
-    assert_eq!(structured.chunks[0].lineage.span.end, 2);
-    assert_eq!(structured.chunks[1].lineage.span.start, 1);
-    assert_eq!(structured.chunks[1].lineage.span.end, 3);
+    assert_eq!(structured.chunks[0].lineage.span.start(), 0);
+    assert_eq!(structured.chunks[0].lineage.span.end(), 2);
+    assert_eq!(structured.chunks[1].lineage.span.start(), 1);
+    assert_eq!(structured.chunks[1].lineage.span.end(), 3);
 
     let metadata = vec![
         ResourceMetadataEntry {

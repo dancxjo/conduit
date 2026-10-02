@@ -9,8 +9,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, ClassificationLabel,
-    ClassificationLabels, ClockBasis, ClockBasisMonotonicMilliseconds, ClockIdentity,
+    AnswerSpan, BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy,
+    ClassificationLabel, ClassificationLabels, ClockBasis, ClockBasisMonotonicMilliseconds,
+    ClockIdentity,
     ChunkIdentity, CompatibleMetrics, ConfidencePermille, ContextOmission, ContextOmissionReason,
     ContextOrderingPolicy, ContextRedundancyPolicy, ContextSelectionDisposition,
     ContextSelectionDispositionOmitted, ContextSelectionPolicy, ContextSelectionRationale,
@@ -54,7 +55,8 @@ pub use generated::{
     ShadowTerminal, SimilarityMetric, SimilarityScore,
     SimilarityThreshold, SourceExtractionLimits, SourceExtractionOfferInvalidity,
     SourceExtractionProfile, SourceExtractionProfileResourceMetadata,
-    SourceExtractionProfileStructuredItems, SourceExtractionProfileTextUtf8, SourceSpanUnit,
+    SourceExtractionProfileStructuredItems, SourceExtractionProfileTextUtf8, SourceSpan,
+    SourceSpanUnit,
     StochasticProvenance, StructuredResultInvalidity, SupportedRelationQuery,
     RelationVariableIdentities, RelationVariableIdentity,
     TemporalContextRefusal, TemporalEvidenceSelectionRefusal, TemporalInterpretationRefusal,

@@ -27,11 +27,7 @@ fn chunk(version: u8, start: u64, text: &str) -> Chunk<ExtractedSourceValue> {
                     },
                 },
             },
-            span: SourceSpan {
-                unit: SourceSpanUnit::Bytes,
-                start,
-                end: start + text.len() as u64,
-            },
+            span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + text.len() as u64).unwrap(),
             extraction_profile: "extract/text-utf8@1".into(),
             transform_profiles: vec![],
             parent_chunk: None,
