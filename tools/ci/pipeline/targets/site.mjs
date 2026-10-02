@@ -27,9 +27,11 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     command('tar', ['-xzf', archive, '-C', temporary]);
     cpSync(path.join(temporary, `conduit-${HISTORY}`, 'journeys'), path.join(directory, 'journeys'), { recursive: true });
   } finally { rmSync(temporary, { recursive: true, force: true }); }
-  renderFieldStation('target/journeys/field-station-clock', path.join(directory, 'journeys/verticals/field-station-clock'), sourceCommit);
   renderFieldStation('target/journeys/handbook', path.join(directory, 'journeys/verticals/handbook'), sourceCommit, true);
   xtask('prove', 'refresh-gallery', path.join(directory, 'journeys'));
+  // The catalogue refresh writes the historical Field Station introduction.
+  // Replace it with this build's complete captured walkthrough afterwards.
+  renderFieldStation('target/journeys/field-station-clock', path.join(directory, 'journeys/verticals/field-station-clock'), sourceCommit);
   xtask('prove', 'render-recorded-three-body', path.join(directory, 'journeys/current/three-bodies'));
   // Keep technical examples in the same shell without changing their evidence.
   const littleLife = path.join(directory, 'journeys/current/little-life/index.html');
