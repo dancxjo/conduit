@@ -9,7 +9,7 @@ import { assembleSite } from './site.mjs';
 const SPECS = [
   'workspace-arrival', 'workspace-birth-naming', 'sdk-external-body-execution',
   'workspace-membership', 'workspace-library', 'workspace-resident-applications',
-  'workspace-continuity',
+  'workspace-continuity', 'workspace-shared-journey',
   'field-station-clock',
   'sdk-body-participation',
   'static-body-application',
