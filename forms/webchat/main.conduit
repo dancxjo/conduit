@@ -40,13 +40,13 @@ form chat/browser-client (
     outgoing: chat/to-websocket
     connection: chat/connection-from-websocket
 
-    socket.recv >> incoming.value
+    socket.recv >> incoming.source
     incoming.value >> state.message
-    socket.live >> connection.value
+    socket.live >> connection.source
     connection.value >> state.live
     state.presentation >> face
     interaction >> submit.interaction
-    submit.message >> outgoing.value
+    submit.message >> outgoing.source
     outgoing.value >> socket.send
 }
 
@@ -61,12 +61,12 @@ form chat/browser-client-label-oracle (
     outgoing: chat/to-websocket
     connection: chat/connection-from-websocket
 
-    socket.recv >> incoming.value
+    socket.recv >> incoming.source
     incoming.value >> state.message
-    socket.live >> connection.value
+    socket.live >> connection.source
     connection.value >> state.live
     state.presentation >> face
     interaction >> submit.interaction
-    submit.message >> outgoing.value
+    submit.message >> outgoing.source
     outgoing.value >> socket.send
 }

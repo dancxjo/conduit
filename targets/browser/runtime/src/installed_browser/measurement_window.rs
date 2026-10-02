@@ -469,15 +469,8 @@ mod tests {
             prepared.execute(OPERATIONS[1], &out_of_range),
             Err(failure(19))
         );
-        let wrong_clock = MeasurementSample {
-            observed_at: TemporalInstant {
-                clock_basis: "other-clock".into(),
-                ..sample(1, 1).observed_at
-            }
-            .try_into()
-            .unwrap(),
-            ..sample(1, 1)
-        };
+        let mut wrong_clock = sample(1, 1);
+        wrong_clock.observed_at.clock_basis = "other-clock".into();
         let wrong_clock = leaf(
             conduit_data::measurement_sample_type(),
             conduit_data::encode_measurement_sample(&wrong_clock).unwrap(),

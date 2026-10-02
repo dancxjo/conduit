@@ -3,18 +3,18 @@
 use alloc::{collections::BTreeMap, format, vec};
 
 use conduit_core::{
-    ActivePlayIdentity, ArtifactId, BaseImplementationId, CapabilityId, ExecutionProfileId,
-    HostAdvertisement, ImplementationId, Plan, bind_active_play, resource_requirement,
+    bind_active_play, resource_requirement, ActivePlayIdentity, ArtifactId, BaseImplementationId,
+    CapabilityId, ExecutionProfileId, HostAdvertisement, ImplementationId, Plan,
 };
 use conduit_planner::{
-    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
+    default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
 
 use crate::{
     identity::BootIdentities,
     keyboard_offer::{KEYBOARD_IMPLEMENTATION, PS2_KEYBOARD_IMPLEMENTATION},
     offer::HostOffer,
-    ordinary_plan::{PreparationError, advertisement},
+    ordinary_plan::{advertisement, PreparationError},
 };
 
 pub const FORM_SOURCE: &str = "form conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: presentation/text\n    keyboard.key >> keymap.key\n    keymap.text >> upper.source\n    upper.text >> show.text\n}\n";
@@ -179,7 +179,7 @@ pub fn validate(
             "keymap",
             "text",
             "upper",
-            "text",
+            "source",
             conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
         ),
         (
@@ -305,14 +305,10 @@ mod tests {
         keyboard.operation_slots = 1;
         keyboard.report_buffers = 1;
         let prepared = prepare(&identities, &offer, "build").unwrap();
-        assert!(
-            prepared.plan.fragments[0]
-                .placements
-                .iter()
-                .any(
-                    |placement| placement.implementation_id.as_str() == PS2_KEYBOARD_IMPLEMENTATION
-                )
-        );
+        assert!(prepared.plan.fragments[0]
+            .placements
+            .iter()
+            .any(|placement| placement.implementation_id.as_str() == PS2_KEYBOARD_IMPLEMENTATION));
         let keymap = prepared.plan.fragments[0]
             .placements
             .iter()
@@ -354,10 +350,12 @@ mod tests {
         conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
             .unwrap();
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        assert!(
-            conduit_form::expand_canonical_form(&checked, "conduitos-keyboard-upper", &profile,)
-                .is_err()
-        );
+        assert!(conduit_form::expand_canonical_form(
+            &checked,
+            "conduitos-keyboard-upper",
+            &profile,
+        )
+        .is_err());
     }
 
     #[test]

@@ -531,8 +531,9 @@ function outputError(api, label, code) {
 }
 
 function refuse(profile, mode, operation, code, message, cause, detail = {}) {
-  const error = new Error(message, cause ? { cause } : undefined);
+  const exactMessage = cause instanceof Error && cause.message ? `${message}: ${cause.message}` : message;
+  const error = new Error(exactMessage, cause ? { cause } : undefined);
   error.code = code;
-  error.evidence = Object.freeze({ schema: "conduit.creche/existing-computer-failure@1", target_id: profile.target_id, mode, operation, terminal: code, message, ...detail });
+  error.evidence = Object.freeze({ schema: "conduit.creche/existing-computer-failure@1", target_id: profile.target_id, mode, operation, terminal: code, message: exactMessage, ...detail });
   throw error;
 }

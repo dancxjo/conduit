@@ -222,8 +222,7 @@ pub fn run(context: Context) -> ! {
         &keyboard_text_events,
         Some(&framebuffer_basis),
     ) {
-        let _ = reason;
-        emit_machine_refusal("keyboard-proof-sequence-mismatch");
+        emit_machine_refusal(reason);
     }
     if cfg!(feature = "hotplug-proof") {
         conduitos::hotplug_guest::run(conduitos::hotplug_guest::HotplugProofInputs {

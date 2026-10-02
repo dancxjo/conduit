@@ -128,7 +128,7 @@ fn chat_transport_adapter_contract(
         shorthand: None,
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from("conduit.chat/transport-text-adapter@1"),
-        inputs: vec![port("value", input, PortDirection::Input, input_temporal)],
+        inputs: vec![port("source", input, PortDirection::Input, input_temporal)],
         outputs: vec![port(
             "value",
             output,

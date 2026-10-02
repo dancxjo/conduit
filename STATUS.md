@@ -87,7 +87,7 @@ Their presence is not an additional physical or release acceptance claim:
   [language reference](wiki/Current-language-surface.md).
 
 - **Three-Body semantic journey (#3529):** ConduitOS, pinned Chromium/WASM,
-  and a hosted generative Mask currently produce independent 13-step tracks for
+  and a hosted generative Tongues Mask produce independent 15-action tracks for
   one shared tutorial contract. Each track carries its own exact Body, Host,
   Boot, Plan, Play, Face revision, Show, and lifecycle signs; the
   ConduitOS track additionally proves an admitted two-host Line and distributed
@@ -181,8 +181,6 @@ proof, as well as specific architectural work:
   including insufficient-durability refusal, hard-loss recovery, and exact
   disk-residence proof. Typed immutable save/load alone does not prove those
   lifecycle promises.
-- Repair Three Bodies as one ordered action journey across three materially
-  different embodiments with honest, comparable Face/Show evidence.
 - Make the graphical ConduitOS shell a usable set of independently retained
   surfaces with inspection, transients, resizing, scrolling, and clear focus.
 - boot and qualify a real old laptop, then implement its storage, network,

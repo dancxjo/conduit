@@ -581,6 +581,7 @@ dependencies = [
  "conduit-wire",
  "conduit-workspace-make",
  "getrandom 0.3.4",
+ "patchbay-svg-mask",
  "rcgen",
  "serde",
  "serde_json",
@@ -3314,6 +3315,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "patchbay-svg-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-semantic-catalog",
+]
+
+[[package]]
 name = "patchbay-workbench-host-contract"
 version = "0.1.0"
 dependencies = [
@@ -5526,6 +5536,7 @@ dependencies = [
  "conduit-midi",
  "conduit-net",
  "conduit-observatory",
+ "conduit-patchbay-workbench",
  "conduit-patchbay-workbench-conformance",
  "conduit-pete",
  "conduit-plan-lowering",

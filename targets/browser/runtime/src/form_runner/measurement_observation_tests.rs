@@ -180,7 +180,7 @@ fn deterministic_control_runs_the_authored_measurement_form_in_the_production_ke
     let sample = decode_sample(&manifestation.canonical_value);
     assert_eq!(sample.value, Quantity::new(25, QuantityUnit::Millivolt));
     assert_eq!(sample.observed_at.ticks, 1);
-    assert_eq!(sample.observed_at.scale, TemporalScale::Milliseconds);
+    assert_eq!(sample.observed_at.scale, TemporalScale::Milliseconds.into());
     assert_eq!(sample.observed_at.clock_basis, "control-occurrence");
     assert_eq!(sample.uncertainty, None);
     complete_host_effect(&mut scheduler, &effect).unwrap();

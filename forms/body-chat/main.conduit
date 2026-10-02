@@ -12,7 +12,7 @@ form body-chat (
     model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)
     text: llm/result-flow-to-text
 
-    available.value >> availability.value
+    available.value >> availability.source
     availability.value >> ui.live
     ui.presentation >> face
     interaction >> submit.interaction

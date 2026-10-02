@@ -229,26 +229,20 @@ fn emit_console_evidence(
 }
 
 fn prove_native_patchbay(paths: &Paths, proof: &ProofRecord) -> Result<usize, ConduitosError> {
-    let snapshot_path = paths
-        .observatory_snapshot
-        .to_str()
-        .ok_or_else(|| ConduitosError::refusal("patchbay-rejected-report", "non-UTF-8 path"))?;
-    let output = super::profile::command(
-        "cargo",
-        &[
-            "run",
-            "--quiet",
-            "-p",
-            "patchbay-native",
-            "--",
-            "--linear-observatory-snapshot",
-            snapshot_path,
-        ],
-        &paths.root,
-        "patchbay-rejected-report",
-    )?;
-    let linear = String::from_utf8(output.stdout)
+    let encoded = std::fs::read(&paths.observatory_snapshot)
         .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    let snapshot = serde_json::from_slice(&encoded)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    let mut topology = conduit_patchbay_workbench::PatchbayTopology::new(1)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    topology
+        .ingest(&snapshot)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    let linear = topology
+        .document(None)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?
+        .lines()
+        .join("\n");
     let exact_base_count = format!("BASES {}", proof.first_observatory.bases.len());
     for required in [
         proof.first_boot.host_id.as_str(),

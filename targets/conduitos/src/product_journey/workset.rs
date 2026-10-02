@@ -173,7 +173,13 @@ impl ProductJourney {
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
         let identity = if let Some(plan) = &self.plan {
-            let form = &plan.forms[index].plan;
+            let resident = &body.workset.forms()[index];
+            let form = &plan
+                .forms
+                .iter()
+                .find(|planned| &planned.form == resident)
+                .ok_or(JourneyError::WrongTarget)?
+                .plan;
             KeyboardTextFormIdentity {
                 source_document_id: form.source_document_id.clone(),
                 checked_form_id: form.checked_form_id.clone(),

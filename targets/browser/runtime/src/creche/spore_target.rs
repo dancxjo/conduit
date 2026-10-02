@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use conduit_body_make::{
     check_body_description, BodyBindingTarget, BodyDescription, BodyHostDescription,
-    DeploymentDescription, SporeDescription, SporeJoinMode,
+    DeploymentDescription, SporeDescription, SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
 };
 use conduit_host_avr_make::{
     AvrProMicroMakePackage, MAKE_DESCRIPTOR as AVR_DESCRIPTOR, PACKAGE_ID as AVR_PACKAGE_ID,
@@ -101,7 +101,7 @@ fn prepare_with_checked_configuration(
     let catalog = MakeCatalog::canonical().with_packages(&target.packages);
     let body = check_body_description(
         BodyDescription {
-            schema: 1,
+            schema: BODY_DESCRIPTION_SCHEMA,
             name: "Crèche physical Host".into(),
             body: BodyBindingTarget { id: body_id.into() },
             hosts: vec![BodyHostDescription {
