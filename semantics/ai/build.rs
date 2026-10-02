@@ -112,6 +112,8 @@ fn main() {
                 "ExtractionKey".into(),
                 "ExtractionValue".into(),
                 "EmbeddingProfileIdentity".into(),
+                "VectorMetadataEntries".into(),
+                "MetadataFilters".into(),
                 "FiniteF32".into(),
                 "NonnegativeFiniteF32".into(),
                 "TemporalEvidenceCandidates".into(),
@@ -148,6 +150,9 @@ fn main() {
                 "TemporalEvidenceBatch".into(),
                 "TemporalEvidenceCandidate".into(),
                 "TemporalRetrievalWindow".into(),
+                "EmbeddingProfile".into(),
+                "VectorMetadata".into(),
+                "SimilarityQuery".into(),
             ]
             .into(),
             copy_record_types: [
@@ -214,6 +219,10 @@ fn main() {
                 "TemporalEvidenceBatch".into(),
                 "TemporalEvidenceCandidate".into(),
                 "ValidatedExtraction".into(),
+                "Embedding".into(),
+                "EmbeddingProfile".into(),
+                "VectorMetadata".into(),
+                "SimilarityQuery".into(),
             ]
             .into(),
             record_constructor_orders: [

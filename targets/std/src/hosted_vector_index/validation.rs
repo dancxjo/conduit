@@ -29,7 +29,7 @@ pub(super) fn validate_records<T>(
             return Err(HostedHnswRefusal::DimensionLimitExceeded);
         }
         if profile.metric == SimilarityMetric::CosineSimilarity
-            && is_zero_vector(&record.embedding.values)
+            && is_zero_vector(&record.embedding.values_f32())
         {
             return Err(HostedHnswRefusal::Vector(
                 conduit_ai::VectorRefusal::ZeroVector,

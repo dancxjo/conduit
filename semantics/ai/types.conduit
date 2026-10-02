@@ -241,6 +241,67 @@ type FiniteEmbedding = {
     values: FiniteEmbeddingValuePages
 }
 
+type EmbeddingProfile = {
+    identity: Text <= 256B not in [""]
+    semantic_space_identity: Text <= 256B not in [""]
+    model_identity: Text <= 256B not in [""]
+    provider_identity: Text <= 256B not in [""]
+    dimensions: U32 in 1..=4096
+    normalization: EmbeddingNormalization
+    compatible_metrics: CompatibleMetrics
+}
+
+type Embedding = {
+    profile: EmbeddingProfile
+    values: FiniteEmbedding
+}
+
+type VectorMetadata = {
+    key: Text <= 64B not in [""]
+    value: Text <= 1024B not in [""]
+}
+
+type VectorMetadataEntries = sequence VectorMetadata in 0..=32
+
+type MetadataFilter =
+    equal {
+        key: Text <= 64B not in [""]
+        value: Text <= 1024B not in [""]
+    }
+    | present {
+        key: Text <= 64B not in [""]
+    }
+
+type MetadataFilters = sequence MetadataFilter in 0..=32
+
+type VectorRecord<T> = {
+    value: T
+    embedding: Embedding
+    source_identity: Text <= 256B not in [""]
+    resource_identity: Text <= 256B not in [""]
+    metadata: VectorMetadataEntries
+    temporal_provenance: TemporalProvenance?
+}
+
+type SimilarityQuery = {
+    embedding: Embedding
+    metric: SimilarityMetric
+    top_k: U32 in 1..=1024
+    threshold: SimilarityThreshold?
+    filters: MetadataFilters
+    temporal_intent: TemporalRetrievalIntent?
+}
+
+type SimilarityHit<T> = {
+    value: T
+    score: SimilarityScore
+    rank: U32 in 1..=1024
+    index_generation: U64
+    source_identity: Text <= 256B not in [""]
+    resource_identity: Text <= 256B not in [""]
+    temporal_provenance: TemporalProvenance?
+}
+
 type ExtractionKey = Text <= 64B not in [""]
 type ExtractionValue = Text <= 1024B not in [""]
 

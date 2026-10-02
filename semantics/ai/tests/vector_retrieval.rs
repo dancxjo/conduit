@@ -4,6 +4,7 @@ use conduit_ai::{
     SimilarityScore, SimilarityThreshold, TemporalProvenance, TemporalRetrievalIntent,
     VectorMetadata, VectorRecord, VectorRefusal, MAXIMUM_SIMILARITY_TOP_K,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn profile(normalization: EmbeddingNormalization) -> EmbeddingProfile {
     EmbeddingProfile {
@@ -18,10 +19,11 @@ fn profile(normalization: EmbeddingNormalization) -> EmbeddingProfile {
 }
 
 fn embedding(values: [f32; 3]) -> Embedding {
-    Embedding {
-        profile: profile(EmbeddingNormalization::None),
-        values: values.into(),
-    }
+    Embedding::from_values(
+        profile(EmbeddingNormalization::None),
+        values.into_iter().collect(),
+    )
+    .unwrap()
 }
 
 fn query(metric: SimilarityMetric) -> SimilarityQuery {
@@ -30,10 +32,12 @@ fn query(metric: SimilarityMetric) -> SimilarityQuery {
         metric,
         top_k: 4,
         threshold: None,
-        filters: vec![MetadataFilter::Equal {
-            key: "language".into(),
-            value: "en".into(),
-        }],
+        filters: conduit_ai::MetadataFilters::from_values(vec![MetadataFilter::equal(
+            "language".into(),
+            "en".into(),
+        )
+        .unwrap()])
+        .unwrap(),
         temporal_intent: Some(TemporalRetrievalIntent::LatestEvidence),
     }
 }
@@ -122,11 +126,12 @@ fn dimensions_and_metric_admission_are_exact_profile_compatibility() {
 
 #[test]
 fn normalization_and_zero_vector_laws_fail_closed() {
-    let unit = Embedding {
-        profile: profile(EmbeddingNormalization::UnitLength),
-        values: vec![1.0, 1.0, 0.0],
-    };
-    assert_eq!(unit.validate(), Err(VectorRefusal::NormalizationMismatch));
+    let unit = Embedding::from_values(
+        profile(EmbeddingNormalization::UnitLength),
+        vec![1.0, 1.0, 0.0],
+    )
+    .unwrap_err();
+    assert_eq!(unit, VectorRefusal::NormalizationMismatch);
     assert_eq!(
         query(SimilarityMetric::CosineSimilarity).score(&embedding([0.0, 0.0, 0.0])),
         Err(VectorRefusal::ZeroVector)
@@ -230,5 +235,86 @@ fn canonical_serialization_is_stable_and_contains_no_storage_engine_detail() {
     assert_eq!(first, second);
     for forbidden in ["database", "hnsw", "ivf", "postgres", "sqlite"] {
         assert!(!first.contains(forbidden));
+    }
+}
+
+#[test]
+fn vector_vocabulary_round_trips_through_native_conduitese_owners() {
+    let profile = profile(EmbeddingNormalization::None);
+    assert_eq!(
+        EmbeddingProfile::from_structured(profile.clone().into_structured().unwrap()).unwrap(),
+        profile
+    );
+    assert!(EmbeddingProfile::new(
+        CompatibleMetrics::new(true, false, false).unwrap(),
+        3,
+        String::new(),
+        "model/fixture".into(),
+        EmbeddingNormalization::None,
+        "provider/fixture".into(),
+        "space/fixture".into(),
+    )
+    .is_err());
+
+    let embedding = Embedding::from_values(profile, vec![0.25, -0.5, 1.0]).unwrap();
+    assert_eq!(
+        Embedding::from_structured(embedding.clone().into_structured().unwrap()).unwrap(),
+        embedding
+    );
+    assert_eq!(
+        serde_json::to_value(&embedding).unwrap(),
+        serde_json::json!({
+            "profile": {
+                "identity": "embedding/profile-1",
+                "semantic_space_identity": "space/document-meaning-v1",
+                "model_identity": "model/fixture-3d-v1",
+                "provider_identity": "provider/reviewed-fixture-v1",
+                "dimensions": 3,
+                "normalization": "None",
+                "compatible_metrics": {
+                    "cosine_similarity": true,
+                    "dot_product_similarity": true,
+                    "squared_euclidean_distance": true
+                }
+            },
+            "values": [0.25, -0.5, 1.0]
+        })
+    );
+
+    let metadata = VectorMetadata::new("language".into(), "en".into()).unwrap();
+    assert_eq!(
+        VectorMetadata::from_structured(metadata.clone().into_structured().unwrap()).unwrap(),
+        metadata
+    );
+    let filter = MetadataFilter::equal("language".into(), "en".into()).unwrap();
+    assert_eq!(
+        MetadataFilter::from_structured(filter.clone().into_structured().unwrap()).unwrap(),
+        filter
+    );
+
+    let query = query(SimilarityMetric::CosineSimilarity);
+    assert_eq!(
+        SimilarityQuery::from_structured(query.clone().into_structured().unwrap()).unwrap(),
+        query
+    );
+    assert!(SimilarityQuery::new(
+        query.embedding.clone(),
+        query.filters.clone(),
+        query.metric,
+        query.temporal_intent.clone(),
+        query.threshold,
+        0,
+    )
+    .is_err());
+
+    let source = include_str!("../src/vector_retrieval.rs");
+    for removed in [
+        "pub struct EmbeddingProfile",
+        "pub struct Embedding",
+        "pub struct VectorMetadata",
+        "pub enum MetadataFilter",
+        "pub struct SimilarityQuery",
+    ] {
+        assert!(!source.contains(removed));
     }
 }

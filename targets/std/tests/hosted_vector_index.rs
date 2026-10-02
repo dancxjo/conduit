@@ -1,10 +1,10 @@
 use conduit_ai::{
     exact_vector_search, ClockBasis, CompatibleMetrics, Embedding, EmbeddingNormalization,
-    EmbeddingProfile, ExactVectorSearchCandidate, MetadataFilter, SimilarityMetric,
-    SimilarityQuery, TemporalProvenance, TemporalRetrievalIntent, TemporalSource, TemporalValidity,
-    VectorIndexAuthority, VectorIndexAuthorization, VectorIndexBounds, VectorIndexContract,
-    VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState, VectorMetadata,
-    VectorRecord, VECTOR_INDEX_RESOURCE_CLASS,
+    EmbeddingProfile, ExactVectorSearchCandidate, MetadataFilter, MetadataFilters,
+    SimilarityMetric, SimilarityQuery, TemporalProvenance, TemporalRetrievalIntent, TemporalSource,
+    TemporalValidity, VectorIndexAuthority, VectorIndexAuthorization, VectorIndexBounds,
+    VectorIndexContract, VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState,
+    VectorMetadata, VectorRecord, VECTOR_INDEX_RESOURCE_CLASS,
 };
 use conduit_core::{ResourceBinding, ResourceClassId, ResourcePoolId};
 use conduit_std_host::hosted_vector_index::{
@@ -76,10 +76,11 @@ fn records() -> Vec<HostedHnswRecord<String>> {
             HostedHnswRecord {
                 record: VectorRecord {
                     value: format!("value/{index:02}"),
-                    embedding: Embedding {
-                        profile: embedding_profile(),
-                        values: vec![angle.cos(), angle.sin(), 0.25],
-                    },
+                    embedding: Embedding::from_values(
+                        embedding_profile(),
+                        vec![angle.cos(), angle.sin(), 0.25],
+                    )
+                    .unwrap(),
                     source_identity: format!("source/{index:02}"),
                     resource_identity: format!("resource/{index:02}"),
                     metadata: vec![],
@@ -110,14 +111,11 @@ fn provider(process: &str) -> HostedHnswProviderIdentity {
 
 fn query(metric: SimilarityMetric, top_k: u32) -> SimilarityQuery {
     SimilarityQuery {
-        embedding: Embedding {
-            profile: embedding_profile(),
-            values: vec![0.99, 0.12, 0.25],
-        },
+        embedding: Embedding::from_values(embedding_profile(), vec![0.99, 0.12, 0.25]).unwrap(),
         metric,
         top_k,
         threshold: None,
-        filters: vec![],
+        filters: MetadataFilters::from_values(vec![]).unwrap(),
         temporal_intent: None,
     }
 }
@@ -350,9 +348,9 @@ fn work_authority_binding_and_empty_portable_filter_are_exact() {
     );
 
     let mut filtered = query(SimilarityMetric::DotProductSimilarity, 8);
-    filtered.filters.push(MetadataFilter::Present {
-        key: "language".into(),
-    });
+    filtered.filters =
+        MetadataFilters::from_values(vec![MetadataFilter::present("language".into()).unwrap()])
+            .unwrap();
     assert!(backend
         .query(
             &state,
@@ -407,10 +405,11 @@ fn portable_metadata_and_latest_temporal_intent_filter_real_hnsw_candidates() {
     let work = hosted_query_work(64, 3).unwrap();
 
     let mut filtered = query(SimilarityMetric::CosineSimilarity, 8);
-    filtered.filters.push(MetadataFilter::Equal {
-        key: "language".into(),
-        value: "en".into(),
-    });
+    filtered.filters =
+        MetadataFilters::from_values(vec![
+            MetadataFilter::equal("language".into(), "en".into()).unwrap()
+        ])
+        .unwrap();
     let filtered = backend
         .query(
             &state,
@@ -493,7 +492,8 @@ fn construction_bounds_and_zero_cosine_vectors_refuse_before_lifecycle_change() 
     ));
 
     let mut zero = records();
-    zero[0].record.embedding.values = vec![0.0, 0.0, 0.0];
+    zero[0].record.embedding =
+        Embedding::from_values(embedding_profile(), vec![0.0, 0.0, 0.0]).unwrap();
     assert!(matches!(
         HostedHnswVectorIndex::rebuild(
             &mut state,

@@ -51,7 +51,7 @@ pub fn exact_vector_search<T: Clone>(
     state
         .contract
         .embedding_profile
-        .compatibility(&query.embedding.profile, query.metric)
+        .compatibility(query.embedding.profile(), query.metric)
         .map_err(ExactVectorSearchRefusal::Vector)?;
     state
         .admit_query(handle, admission, binding)
@@ -62,7 +62,7 @@ pub fn exact_vector_search<T: Clone>(
     let candidate_count =
         u32::try_from(candidates.len()).map_err(|_| ExactVectorSearchRefusal::TooManyCandidates)?;
     let required_work = candidate_count
-        .checked_mul(query.embedding.profile.dimensions)
+        .checked_mul(query.embedding.profile().dimensions)
         .ok_or(ExactVectorSearchRefusal::WorkAccountingOverflow)?;
     if required_work > admission.work_units {
         return Err(ExactVectorSearchRefusal::Resource(
@@ -82,8 +82,8 @@ pub fn exact_vector_search<T: Clone>(
             .map_err(ExactVectorSearchRefusal::Vector)?;
         query
             .embedding
-            .profile
-            .compatibility(&candidate.record.embedding.profile, query.metric)
+            .profile()
+            .compatibility(candidate.record.embedding.profile(), query.metric)
             .map_err(ExactVectorSearchRefusal::Vector)?;
     }
     let candidate_sources: BTreeSet<_> = candidates
@@ -104,7 +104,7 @@ pub fn exact_vector_search<T: Clone>(
 
     let mut eligible: Vec<_> = candidates
         .iter()
-        .filter(|candidate| metadata_matches(&candidate.record, &query.filters))
+        .filter(|candidate| metadata_matches(&candidate.record, query.filters.get().as_slice()))
         .collect();
     if let Some(intent) = &query.temporal_intent {
         eligible = temporal_matches(eligible, intent, earliest_history_complete)?;
@@ -148,11 +148,14 @@ pub fn exact_vector_search<T: Clone>(
 
 fn metadata_matches<T>(record: &VectorRecord<T>, filters: &[MetadataFilter]) -> bool {
     filters.iter().all(|filter| match filter {
-        MetadataFilter::Equal { key, value } => record
+        MetadataFilter::Equal(filter) => record
             .metadata
             .iter()
-            .any(|member| member.key == *key && member.value == *value),
-        MetadataFilter::Present { key } => record.metadata.iter().any(|member| member.key == *key),
+            .any(|member| member.key == *filter.key() && member.value == *filter.value()),
+        MetadataFilter::Present(filter) => record
+            .metadata
+            .iter()
+            .any(|member| member.key == *filter.key()),
     })
 }
 

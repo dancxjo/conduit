@@ -246,7 +246,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
             .iter()
             .map(|entry| HostedPoint {
                 metric: profile.metric,
-                values: entry.record.embedding.values.clone(),
+                values: entry.record.embedding.values_f32(),
             })
             .collect();
         let values = (0..records.len()).collect();
@@ -349,7 +349,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
         }
         query.validate().map_err(HostedHnswRefusal::Vector)?;
         if self.profile.metric == SimilarityMetric::CosineSimilarity
-            && is_zero_vector(&query.embedding.values)
+            && is_zero_vector(&query.embedding.values_f32())
         {
             return Err(HostedHnswRefusal::Vector(VectorRefusal::ZeroVector));
         }
@@ -367,7 +367,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
         validate_membership(state, &self.records)?;
         let eligible = eligible_sources(
             &self.records,
-            &query.filters,
+            query.filters.get().as_slice(),
             query.temporal_intent.as_ref(),
             self.earliest_history_complete,
         )?;
@@ -379,7 +379,7 @@ impl<T: Clone> HostedHnswVectorIndex<T> {
 
         let point = HostedPoint {
             metric: self.profile.metric,
-            values: query.embedding.values.clone(),
+            values: query.embedding.values_f32(),
         };
         let mut approximate = self
             .map
@@ -507,11 +507,14 @@ fn eligible_sources<T>(
 
 fn metadata_matches<T>(record: &VectorRecord<T>, filters: &[MetadataFilter]) -> bool {
     filters.iter().all(|filter| match filter {
-        MetadataFilter::Equal { key, value } => record
+        MetadataFilter::Equal(filter) => record
             .metadata
             .iter()
-            .any(|member| member.key == *key && member.value == *value),
-        MetadataFilter::Present { key } => record.metadata.iter().any(|member| member.key == *key),
+            .any(|member| member.key == *filter.key() && member.value == *filter.value()),
+        MetadataFilter::Present(filter) => record
+            .metadata
+            .iter()
+            .any(|member| member.key == *filter.key()),
     })
 }
 

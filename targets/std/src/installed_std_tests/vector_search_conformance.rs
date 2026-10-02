@@ -90,10 +90,7 @@ fn candidates() -> Vec<ExactVectorSearchCandidate<String>> {
     .map(|(name, values)| ExactVectorSearchCandidate {
         record: VectorRecord {
             value: format!("value/{name}"),
-            embedding: Embedding {
-                profile: profile(),
-                values: values.into(),
-            },
+            embedding: Embedding::from_values(profile(), values.into_iter().collect()).unwrap(),
             source_identity: format!("source/{name}"),
             resource_identity: format!("resource/{name}"),
             metadata: Vec::new(),
@@ -260,14 +257,11 @@ fn adapters_expose_equal_hit_semantics_but_distinct_proof_classes() {
     let exact_plan = plan(&exact_host);
     let hnsw_plan = plan(&hnsw_host);
     let query = serde_json::to_vec(&conduit_ai::SimilarityQuery {
-        embedding: Embedding {
-            profile: profile(),
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(profile(), vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 2,
         threshold: None,
-        filters: Vec::new(),
+        filters: conduit_ai::MetadataFilters::from_values(Vec::new()).unwrap(),
         temporal_intent: None,
     })
     .unwrap();
@@ -329,14 +323,11 @@ fn provider_loss_is_terminal_and_emits_no_retrieval_value() {
         .find(|placement| placement.kind_id.as_str() == conduit_ai::VECTOR_SEARCH_KIND)
         .unwrap();
     let query = serde_json::to_vec(&conduit_ai::SimilarityQuery {
-        embedding: Embedding {
-            profile: profile(),
-            values: vec![1.0, 0.0, 0.0],
-        },
+        embedding: Embedding::from_values(profile(), vec![1.0, 0.0, 0.0]).unwrap(),
         metric: SimilarityMetric::CosineSimilarity,
         top_k: 2,
         threshold: None,
-        filters: Vec::new(),
+        filters: conduit_ai::MetadataFilters::from_values(Vec::new()).unwrap(),
         temporal_intent: None,
     })
     .unwrap();
