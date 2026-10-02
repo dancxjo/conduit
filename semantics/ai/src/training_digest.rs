@@ -27,11 +27,11 @@ impl TrainingSession {
         push_text(&mut bytes, &self.objective_profile);
         push_len(&mut bytes, self.objectives.len());
         for objective in &self.objectives {
-            push_text(&mut bytes, &objective.role);
-            bytes.extend_from_slice(&objective.weight_millionths.to_le_bytes());
-            push_text(&mut bytes, &objective.configuration_identity);
-            push_text(&mut bytes, &objective.output_identity);
-            bytes.push(match objective.participation {
+            push_text(&mut bytes, objective.role().get());
+            bytes.extend_from_slice(&objective.weight_millionths().to_le_bytes());
+            push_text(&mut bytes, objective.configuration_identity().get());
+            push_text(&mut bytes, objective.output_identity().get());
+            bytes.push(match objective.participation() {
                 ObjectiveParticipation::Optimize => 0,
                 ObjectiveParticipation::ObserveOnly => 1,
             });

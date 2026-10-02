@@ -189,19 +189,13 @@ pub(super) fn validate_objectives(values: &[TrainingObjective]) -> Result<(), Tr
     }
     let mut optimization = false;
     for value in values {
-        text(&value.role)?;
-        text(&value.configuration_identity)?;
-        text(&value.output_identity)?;
-        if value.participation == ObjectiveParticipation::Optimize {
+        if value.participation() == &ObjectiveParticipation::Optimize {
             optimization = true;
-            if value.weight_millionths == 0 {
-                return Err(TrainingRefusal::InvalidObjective);
-            }
         }
     }
     let outputs = values
         .iter()
-        .map(|value| value.output_identity.clone())
+        .map(|value| value.output_identity().get().clone())
         .collect::<Vec<_>>();
     if has_duplicate_text(&outputs) {
         return Err(TrainingRefusal::InvalidObjective);
@@ -223,7 +217,7 @@ pub(super) fn validate_metrics(
         text(&value.output_identity)?;
         if !objectives
             .iter()
-            .any(|objective| objective.output_identity == value.output_identity)
+            .any(|objective| objective.output_identity().get() == &value.output_identity)
         {
             return Err(TrainingRefusal::InvalidMetric);
         }

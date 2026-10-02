@@ -123,16 +123,19 @@ fn objectives() -> Vec<TrainingObjective> {
         ("held-out-log-score", 0, "metric/log-score", false),
     ]
     .into_iter()
-    .map(|(role, weight, output, optimize)| TrainingObjective {
-        role: role.into(),
-        weight_millionths: weight,
-        configuration_identity: format!("tongues/{role}@1"),
-        output_identity: output.into(),
-        participation: if optimize {
-            ObjectiveParticipation::Optimize
-        } else {
-            ObjectiveParticipation::ObserveOnly
-        },
+    .map(|(role, weight, output, optimize)| {
+        TrainingObjective::new(
+            TrainingObjectiveIdentity::new(role.into()).unwrap(),
+            weight,
+            TrainingObjectiveIdentity::new(format!("tongues/{role}@1")).unwrap(),
+            TrainingObjectiveIdentity::new(output.into()).unwrap(),
+            if optimize {
+                ObjectiveParticipation::Optimize
+            } else {
+                ObjectiveParticipation::ObserveOnly
+            },
+        )
+        .unwrap()
     })
     .collect()
 }

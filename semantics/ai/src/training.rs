@@ -7,7 +7,7 @@ use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 use crate::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, MissingModalityPolicy, ModelArtifact,
     MutableModelState, ObjectiveParticipation, RandomnessProfile, TrainStepFailure,
-    TrainingRefusal, TrainingResourceEnvelope,
+    TrainingObjective, TrainingRefusal, TrainingResourceEnvelope,
 };
 
 #[path = "training_request.rs"]
@@ -30,16 +30,6 @@ pub const MAXIMUM_TRAINING_OBJECTIVES: usize = 32;
 pub const MAXIMUM_BATCH_EXAMPLES: usize = 4096;
 pub const MAXIMUM_BATCH_MODALITIES: usize = 32;
 pub const MAXIMUM_METRICS: usize = 64;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrainingObjective {
-    pub role: String,
-    /// Fixed-point weight in millionths. Observe-only metrics may use zero.
-    pub weight_millionths: u64,
-    pub configuration_identity: String,
-    pub output_identity: String,
-    pub participation: ObjectiveParticipation,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingBatch {
