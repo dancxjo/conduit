@@ -240,7 +240,7 @@ fn stale_half_steps_bad_splits_and_resource_overruns_refuse() {
     let signature = signature();
     let artifact = artifact(&signature);
     let (dataset, split) = corpus();
-    let mut session = session(&artifact, &dataset, &split);
+    let session = session(&artifact, &dataset, &split);
     let state = TrainingState {
         session_identity: session.identity,
         model: MutableModelState {
@@ -347,9 +347,8 @@ fn stale_half_steps_bad_splits_and_resource_overruns_refuse() {
         }),
         Err(TrainingRefusal::CheckpointNotScheduled)
     );
-    session.resources.maximum_in_flight_steps = 2;
-    assert_eq!(
-        session.validate(&artifact, &dataset, &split),
-        Err(TrainingRefusal::InvalidResourceEnvelope)
+    assert!(
+        TrainingResourceEnvelope::new(4096, 1_048_576, 2, 2, 65_536, 3, 10_000, 16_384, 2,)
+            .is_err()
     );
 }

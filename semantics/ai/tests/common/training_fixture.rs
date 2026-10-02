@@ -162,17 +162,10 @@ pub fn session(
         model_modalities: vec!["audio".into(), "ema".into()],
         missing_modality_policy: MissingModalityPolicy::permit_declared(optional_modalities)
             .unwrap(),
-        resources: TrainingResourceEnvelope {
-            model_bytes: 4096,
-            working_memory_bytes: 1_048_576,
-            compute_lanes: 2,
-            maximum_batch_items: 2,
-            maximum_batch_bytes: 65_536,
-            maximum_steps: 3,
-            maximum_work_units: 10_000,
-            maximum_checkpoint_bytes: 16_384,
-            maximum_in_flight_steps: 1,
-        },
+        resources: TrainingResourceEnvelope::new(
+            4096, 1_048_576, 2, 2, 65_536, 3, 10_000, 16_384, 1,
+        )
+        .unwrap(),
         checkpoint_policy: CheckpointPolicy::AtCompletion,
         evaluation_policy: EvaluationPolicy::EverySteps(1),
     }

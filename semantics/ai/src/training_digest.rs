@@ -44,15 +44,15 @@ impl TrainingSession {
         }
         push_missing_modality_policy(&mut bytes, &self.missing_modality_policy);
         let resources = self.resources;
-        bytes.extend_from_slice(&resources.model_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.working_memory_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.compute_lanes.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_batch_items.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_batch_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_steps.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_work_units.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_checkpoint_bytes.to_le_bytes());
-        bytes.extend_from_slice(&resources.maximum_in_flight_steps.to_le_bytes());
+        bytes.extend_from_slice(&resources.model_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.working_memory_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.compute_lanes().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_batch_items().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_batch_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_steps().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_work_units().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_checkpoint_bytes().to_le_bytes());
+        bytes.extend_from_slice(&resources.maximum_in_flight_steps().to_le_bytes());
         push_checkpoint_policy(&mut bytes, self.checkpoint_policy);
         push_evaluation_policy(&mut bytes, self.evaluation_policy);
         Ok(semantic_digest("ai/training-session@1", &bytes))
