@@ -35,6 +35,12 @@ impl crate::StdHost {
             .ok_or_else(|| "std Host has no initialized real speech provider".into())
     }
 
+    pub fn streaming_speech_authority_grant(&self) -> Result<conduit_core::AuthorityGrant, String> {
+        self.speech_synthesis
+            .as_ref()
+            .map(|adapter| adapter.streaming_authority_grant())
+            .ok_or_else(|| "std Host has no initialized real speech provider".into())
+    }
     fn attach_spoken_output(
         &mut self,
         artifact: crate::hosted_wav_artifact::WavArtifactSelection,
@@ -55,6 +61,16 @@ impl crate::StdHost {
         ));
         let speech = if let Some(adapter) = &adapter {
             advertisement.resources.push(adapter.resource_offer());
+            let commit = conduit_std_offers::generated_speech_commit_offer();
+            advertisement
+                .capabilities
+                .retain(|offer| offer.kind_id != commit.kind_id);
+            advertisement.capabilities.push(commit);
+            let streaming = adapter.streaming_offer();
+            advertisement
+                .capabilities
+                .retain(|offer| offer.kind_id != streaming.kind_id);
+            advertisement.capabilities.push(streaming);
             let selected = adapter.offer();
             // Explicit provider attachment replaces the default realization of
             // this kind, including the deterministic test-composition offer.
@@ -72,6 +88,13 @@ impl crate::StdHost {
         advertisement
             .capabilities
             .extend(conduit_std_offers::spoken_mask_offers());
+        if adapter.is_some() {
+            let projection = conduit_std_offers::generated_stream_speech_offer();
+            advertisement
+                .capabilities
+                .retain(|offer| offer.kind_id != projection.kind_id);
+            advertisement.capabilities.push(projection);
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::audio_write_wav_artifact_offer());

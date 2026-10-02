@@ -28,6 +28,19 @@ pub fn install_sound_catalogs(
     Ok(())
 }
 
+/// Install the canonical playback signature and exact configuration together.
+pub fn install_audio_play_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    install_contract(
+        startup,
+        profile,
+        super::audio_play_contract(),
+        super::AUDIO_PLAY_REVISION,
+    )
+}
+
 /// Install only the portable `audio/tone` transform contract.
 ///
 /// Hosts that cannot realize tone synthesis still need this semantic contract

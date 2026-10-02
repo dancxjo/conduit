@@ -16,6 +16,10 @@ pub(super) static FACTORY: BackFactory = BackFactory {
 };
 
 pub(super) struct GeneratedSpeechCommitBack {
+    maximum_input: u32,
+    push_call: HostCallId,
+    drain_call: HostCallId,
+    close_call: HostCallId,
     pending: Option<RequestId>,
     next_request: u32,
     trigger: Option<ValueRef>,
@@ -40,16 +44,15 @@ impl<const PORTS: usize> StepBack<PORTS> for GeneratedSpeechCommitBack {
                     let Some((next_request, next)) = self.next_request() else {
                         return step_fail(FailureCode::StorageExhausted, 3);
                     };
-                    let input =
-                        match BoundedValueRef::new(trigger, conduit_tongues::MAXIMUM_TEXT_BYTES) {
-                            Ok(input) => input,
-                            Err(_) => return step_fail(FailureCode::InvalidInput, 4),
-                        };
+                    let input = match BoundedValueRef::new(trigger, self.maximum_input) {
+                        Ok(input) => input,
+                        Err(_) => return step_fail(FailureCode::InvalidInput, 4),
+                    };
                     io.consume_host_completion()
                         .expect("observed generated-speech completion");
                     io.send(PortId(0), output.value)
                         .expect("ready generated speech segment output");
-                    io.request_host_call(next_request, HostCallId(1), input)
+                    io.request_host_call(next_request, self.drain_call, input)
                         .expect("generated-speech drain Host Call");
                     self.next_request = next;
                     self.pending = Some(next_request);
@@ -60,7 +63,9 @@ impl<const PORTS: usize> StepBack<PORTS> for GeneratedSpeechCommitBack {
                         .expect("observed empty generated-speech completion");
                     self.pending = None;
                     if self.closing {
-                        if let Some(trigger) = self.trigger.take() {
+                        // Keep the retention identity through this staged completion:
+                        // the explicit discard owns its single release.
+                        if let Some(trigger) = self.trigger {
                             io.discard(trigger)
                                 .expect("finished generated-speech trigger");
                         }
@@ -82,7 +87,7 @@ impl<const PORTS: usize> StepBack<PORTS> for GeneratedSpeechCommitBack {
             if self.pending.is_some() || self.closing {
                 return step_fail(FailureCode::InvalidLifecycle, 2);
             }
-            let input = match BoundedValueRef::new(value, conduit_tongues::MAXIMUM_TEXT_BYTES) {
+            let input = match BoundedValueRef::new(value, self.maximum_input) {
                 Ok(input) => input,
                 Err(_) => return step_fail(FailureCode::InvalidInput, 4),
             };
@@ -102,7 +107,7 @@ impl<const PORTS: usize> StepBack<PORTS> for GeneratedSpeechCommitBack {
                         .expect("present generated text delta"),
                 );
             }
-            io.request_host_call(request, HostCallId(0), input)
+            io.request_host_call(request, self.push_call, input)
                 .expect("generated-speech push Host Call");
             self.next_request = next;
             self.pending = Some(request);
@@ -116,14 +121,14 @@ impl<const PORTS: usize> StepBack<PORTS> for GeneratedSpeechCommitBack {
             let Some(trigger) = self.trigger else {
                 return StepOutcome::Complete;
             };
-            let input = match BoundedValueRef::new(trigger, conduit_tongues::MAXIMUM_TEXT_BYTES) {
+            let input = match BoundedValueRef::new(trigger, self.maximum_input) {
                 Ok(input) => input,
                 Err(_) => return step_fail(FailureCode::InvalidInput, 4),
             };
             let Some((request, next)) = self.next_request() else {
                 return step_fail(FailureCode::StorageExhausted, 3);
             };
-            io.request_host_call(request, HostCallId(2), input)
+            io.request_host_call(request, self.close_call, input)
                 .expect("generated-speech close Host Call");
             self.next_request = next;
             self.pending = Some(request);
@@ -201,7 +206,7 @@ impl GeneratedSpeechCommitHost {
         }
         self.output.clear();
         if let Some(segment) = self.queued.pop_front() {
-            self.output = serde_json::to_vec(&segment)
+            serde_json::to_writer(&mut self.output, &segment)
                 .map_err(|error| format!("encode speakable segment: {error}"))?;
             Ok(Some(&self.output))
         } else {
@@ -255,6 +260,8 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.implementation_id != offer.implementation.implementation_id
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.host_calls != offer.host_calls
+        || placement.semantic_contract != offer.semantic_contract
+        || placement.limits != offer.limits
         || !placement.configuration.is_empty()
     {
         return Err("planned generated-speech commit differs from installed realization".into());
@@ -269,6 +276,19 @@ fn prepare(
     validate(placement)?;
     Ok(InstalledBack::GeneratedSpeechCommit(
         GeneratedSpeechCommitBack {
+            maximum_input: placement.host_calls[0].maximum_input_bytes,
+            push_call: operation_index(
+                placement,
+                conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION,
+            )?,
+            drain_call: operation_index(
+                placement,
+                conduit_std_offers::GENERATED_SPEECH_DRAIN_OPERATION,
+            )?,
+            close_call: operation_index(
+                placement,
+                conduit_std_offers::GENERATED_SPEECH_CLOSE_OPERATION,
+            )?,
             pending: None,
             next_request: 0,
             trigger: None,
@@ -278,12 +298,64 @@ fn prepare(
     ))
 }
 
+fn operation_index(placement: &PlannedGear, operation: &str) -> Result<HostCallId, String> {
+    let index = placement
+        .host_calls
+        .iter()
+        .position(|call| call.contract_id.as_str() == operation)
+        .ok_or_else(|| format!("missing generated-speech operation {operation}"))?;
+    Ok(HostCallId(index as u16))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn decode(encoded: &[u8]) -> conduit_tongues::SpeakableSegment {
         serde_json::from_slice(encoded).expect("decode segment")
+    }
+
+    #[test]
+    fn closing_completion_retains_input_until_its_explicit_discard_commits() {
+        let value = ValueRef {
+            slot: 1,
+            generation: 1,
+            byte_len: 5,
+        };
+        let mut back = GeneratedSpeechCommitBack {
+            maximum_input: 1024,
+            push_call: HostCallId(2),
+            drain_call: HostCallId(1),
+            close_call: HostCallId(0),
+            pending: Some(RequestId(3)),
+            next_request: 4,
+            trigger: Some(value),
+            closing: true,
+            drain_after_emit: false,
+        };
+        let mut io = StepIo::<1>::test_frame(
+            [None],
+            [false],
+            [None],
+            Some((
+                RequestId(3),
+                conduit_kernel::HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: None,
+                    failure: None,
+                },
+            )),
+            8,
+        );
+        assert_eq!(
+            back.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        );
+        assert!(StepBack::<1>::retains_host_call_input(
+            &back,
+            RequestId(3),
+            value
+        ));
     }
 
     #[test]

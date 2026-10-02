@@ -14,7 +14,7 @@ pub(super) fn produce(
 ) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
     let stem = format!("{step_id}-spoken");
     let path = format!("artifacts/{stem}.wav");
-    let retained = spoken_mask_journey::execute_retained_manifestation_mask_with_espeak(
+    let retained = spoken_mask_journey::execute_retained_manifestation_mask_with_streaming_espeak(
         "documentary-spoken",
         &format!("documentary/{stem}"),
         face.clone(),
@@ -26,7 +26,7 @@ pub(super) fn produce(
     let receipt = serde_json::to_vec_pretty(&json!({
         "schema": "conduit.documentary/runtime-speech@1",
         "presenter_candidate": manifestation.candidate_identity,
-        "mechanism": "Retained current Presenter result through an ordinary eSpeak speech Mask Plan and Play",
+        "mechanism": "Retained current Presenter result through an ordinary streaming eSpeak speech Mask Plan and Play",
         "provider_sha256": discovery.provider_sha256,
         "plan": retained.execution.plan,
         "show": retained.execution.shown,

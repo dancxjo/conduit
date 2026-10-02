@@ -19,6 +19,7 @@ pub(super) static FACTORY: BackFactory = BackFactory {
 };
 
 pub(super) struct PcmProfileConversionBack {
+    work: super::audio_stream_budget::AudioStreamBudget,
     pending: Option<RequestId>,
     next_request: u32,
     emitted: bool,
@@ -26,7 +27,11 @@ pub(super) struct PcmProfileConversionBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for PcmProfileConversionBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         if self.emitted {
             self.emitted = false;
         }
@@ -66,6 +71,15 @@ impl<const PORTS: usize> StepBack<PORTS> for PcmProfileConversionBack {
             else {
                 return step_failure(FailureCode::InvalidInput, 1);
             };
+            if self.next_request >= self.work.blocks {
+                return step_failure(FailureCode::WorkBudgetExhausted, 15);
+            }
+            let Some(encoded) = input_bytes.input(PortId(0)) else {
+                return step_failure(FailureCode::InvalidInput, 15);
+            };
+            if let Err(failure) = self.work.frame(encoded) {
+                return StepOutcome::Fail(failure);
+            }
             let request = RequestId(self.next_request);
             let Some(next) = self.next_request.checked_add(1) else {
                 return step_failure(FailureCode::WorkBudgetExhausted, 1);
@@ -210,7 +224,8 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         value_items: 2,
         value_bytes: conduit_std_offers::SPEECH_PCM_BLOCK_BYTES
             + conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
-        host_requests: usize::from(conduit_std_offers::SPEECH_MAXIMUM_BLOCKS),
+        host_requests: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?
+            .blocks as usize,
         sign_items: 64,
         maximum_value_bytes: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
     })
@@ -223,6 +238,7 @@ fn prepare(
     validate(placement)?;
     Ok(InstalledBack::PcmProfileConversion(
         PcmProfileConversionBack {
+            work: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?,
             pending: None,
             next_request: 0,
             emitted: false,
@@ -252,7 +268,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.outputs.len() != 1
         || placement.inputs[0].direction != PortDirection::Input
         || placement.outputs[0].direction != PortDirection::Output
-        || placement.configuration.len() != 2
+        || placement.configuration.len() != 4
         || !exact_configuration
     {
         return Err("planned PCM conversion does not match the exact installed profile".into());

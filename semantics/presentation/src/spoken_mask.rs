@@ -19,6 +19,8 @@ pub const RETAIN_GENERATED_VALIDATION_KIND: &str = "presentation/retain-generate
 pub const GENERATED_MANIFESTATION_TO_SPEECH_KIND: &str =
     "presentation/generated-manifestation-speech";
 pub const SPOKEN_ARTIFACT_KIND: &str = "presentation/spoken-artifact";
+pub const GENERATED_MANIFESTATION_TO_SPEECH_STREAM_KIND: &str =
+    "presentation/generated-manifestation-speech-stream";
 pub const ARTIFACT_ACKNOWLEDGED_SHOW_KIND: &str = "presentation/artifact-acknowledged-show";
 pub const CLOSING_NO_INTERACTION_KIND: &str = "presentation/no-interaction";
 pub const SPOKEN_MASK_CONTRACT_REVISION: &str = "conduit.presentation/spoken-mask-stage@1";
@@ -112,7 +114,18 @@ pub fn install_spoken_mask_catalog(
         startup
             .insert(conduit_plot::KindSignature {
                 kind: kind.kind_id.as_str().into(),
-                startup_parameters: alloc::vec::Vec::new(),
+                startup_parameters: kind
+                    .configuration
+                    .iter()
+                    .map(|field| conduit_plot::StartupParameterSignature {
+                        name: field.key.clone(),
+                        value_type: "Count".into(),
+                        default: match field.default_value {
+                            conduit_core::ConfigurationValue::U64(v) => Some(alloc::format!("{v}")),
+                            _ => None,
+                        },
+                    })
+                    .collect(),
             })
             .map_err(|error| alloc::format!("install spoken Mask signature: {error:?}"))?;
         profiles
@@ -157,7 +170,7 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
             max_queue_bytes: (crate::MAX_GENERATIVE_PRESENTER_INPUT_BYTES * 2) as u32,
         },
     };
-    alloc::vec![
+    let mut kinds = alloc::vec![
         kind(
             GENERATED_VALIDATION_ENVELOPE_KIND,
             alloc::vec![
@@ -297,5 +310,66 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
                 PortTemporal::Flow { closes: true },
             )],
         ),
-    ]
+    ];
+    // A closing Flow is explicit semantic meaning, not an implicit Value lift.
+    // Keep the existing single-shot Value projection and its 256-byte contract.
+    let mut stream = kind(
+        GENERATED_MANIFESTATION_TO_SPEECH_STREAM_KIND,
+        alloc::vec![port(
+            "manifestation",
+            crate::GENERATED_MANIFESTATION_KIND,
+            PortDirection::Input,
+            PortTemporal::Value
+        )],
+        alloc::vec![port(
+            "speech",
+            "value/text",
+            PortDirection::Output,
+            PortTemporal::Flow { closes: true }
+        )],
+    );
+    stream.kind_contract_revision =
+        KindIdentity::from("conduit.presentation/generated-manifestation-speech-stream@1");
+    stream
+        .semantic_laws
+        .push(conduit_core::KindSemanticLaw::ValueContracts(alloc::vec![
+            conduit_core::FrontValueContract {
+                location: conduit_core::FrontValueLocation::Output(port_id("speech")),
+                contract: conduit_core::CheckedValueContract::new(
+                    kind_id("value/text"),
+                    1024,
+                    alloc::vec::Vec::new()
+                )
+                .expect("finite speech stream item"),
+            },
+        ]));
+    kinds.push(stream);
+    let artifact = kinds
+        .iter_mut()
+        .find(|kind| kind.kind_id.as_str() == SPOKEN_ARTIFACT_KIND)
+        .expect("artifact Kind");
+    artifact.kind_contract_revision = KindIdentity::from("conduit.presentation/spoken-artifact@2");
+    for (key, default, maximum) in [
+        ("maximum-blocks", 3_072, 32_768),
+        ("maximum-audio-millis", 16_384, 30_000),
+    ] {
+        artifact
+            .startup_parameters
+            .push(conduit_core::FrontStartupParameter {
+                name: key.into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            });
+        artifact
+            .configuration
+            .push(conduit_core::KindConfigurationField {
+                key: key.into(),
+                default_value: conduit_core::ConfigurationValue::U64(default),
+                rule: conduit_core::KindConfigurationRule::U64Range {
+                    minimum: 1,
+                    maximum,
+                },
+            });
+    }
+    kinds
 }
