@@ -218,9 +218,9 @@ fn one_observation_yields_multiple_plausible_articulations_not_one_truth() {
 
 #[test]
 fn model_signature_declares_a_bounded_probabilistic_signal_output() {
-    let constraint = ModelTensorConstraint {
-        elements: vec![TensorElement::F32],
-        axes: vec![
+    let constraint = ModelTensorConstraint::from_parts(
+        vec![TensorElement::F32],
+        vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
                 dimension: ModelDimensionConstraint::bounded(100, 1).unwrap(),
@@ -230,25 +230,29 @@ fn model_signature_declares_a_bounded_probabilistic_signal_output() {
                 dimension: ModelDimensionConstraint::fixed(2).unwrap(),
             },
         ],
-        maximum_bytes: 800,
-    };
-    let signature = ModelSignature {
-        identity: "tongues/inverse-articulation@1".into(),
-        compatibility_version: 1,
-        operations: vec![ModelOperation::Sample, ModelOperation::LogProbability],
-        inputs: vec![ModelPortConstraint {
-            identity: "audio".into(),
-            semantic_kind: "data/sampled-signal@1".into(),
-            presence: ModelPortPresence::Required,
-            value: ModelValueConstraint::SampledSignal(constraint.clone()),
-        }],
-        outputs: vec![ModelPortConstraint {
-            identity: "articulation-alternatives".into(),
-            semantic_kind: "probability/trajectory-alternatives@1".into(),
-            presence: ModelPortPresence::Required,
-            value: ModelValueConstraint::ProbabilisticSignal(constraint),
-        }],
-    };
+        800,
+    )
+    .unwrap();
+    let signature = ModelSignature::from_parts(
+        "tongues/inverse-articulation@1".into(),
+        1,
+        vec![ModelOperation::Sample, ModelOperation::LogProbability],
+        vec![ModelPortConstraint::from_parts(
+            "audio".into(),
+            "data/sampled-signal@1".into(),
+            ModelPortPresence::Required,
+            ModelValueConstraint::sampled_signal(constraint.clone()).unwrap(),
+        )
+        .unwrap()],
+        vec![ModelPortConstraint::from_parts(
+            "articulation-alternatives".into(),
+            "probability/trajectory-alternatives@1".into(),
+            ModelPortPresence::Required,
+            ModelValueConstraint::probabilistic_signal(constraint).unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap();
     signature.validate().unwrap();
     assert_ne!(signature.semantic_digest().unwrap(), [0; 32]);
 }

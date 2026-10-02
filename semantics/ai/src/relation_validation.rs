@@ -2,10 +2,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_data::TensorValue;
 
 use super::*;
-use crate::{
-    ModelArtifact, ModelDimensionConstraint, ModelOperation, ModelPortConstraint,
-    ModelPortPresence, ModelSignature, ProbabilisticDisposition,
-};
+use crate::{ModelArtifact, ModelDimensionConstraint, ModelSignature, ProbabilisticDisposition};
 
 impl ModelRelationSignature {
     pub fn validate(&self) -> Result<(), RelationRefusal> {
@@ -20,24 +17,22 @@ impl ModelRelationSignature {
         for variable in &self.variables {
             text(&variable.identity)?;
             text(&variable.semantic_role)?;
-            validate_constraint(&variable.value)?;
         }
-        ModelSignature {
-            identity: self.identity.clone(),
-            compatibility_version: self.compatibility_version,
-            operations: alloc::vec![ModelOperation::Infer],
-            inputs: self
-                .variables
+        ModelSignature::inference_only(
+            self.identity.clone(),
+            self.compatibility_version,
+            self.variables
                 .iter()
-                .map(|variable| ModelPortConstraint {
-                    identity: variable.identity.clone(),
-                    semantic_kind: variable.semantic_role.clone(),
-                    presence: ModelPortPresence::Optional,
-                    value: variable.value.clone(),
+                .map(|variable| {
+                    (
+                        variable.identity.clone(),
+                        variable.semantic_role.clone(),
+                        variable.value.clone(),
+                    )
                 })
                 .collect(),
-            outputs: Vec::new(),
-        }
+        )
+        .map_err(|_| RelationRefusal::InvalidSignature)?
         .validate()
         .map_err(|_| RelationRefusal::InvalidSignature)?;
         if duplicate(self.variables.iter().map(|value| &value.identity)) {
@@ -287,13 +282,13 @@ impl RelationValue {
     fn validate_against(&self, constraint: &ModelValueConstraint) -> Result<(), RelationRefusal> {
         match (self, constraint) {
             (Self::Tensor(value), ModelValueConstraint::Tensor(constraint)) => {
-                validate_tensor(value, constraint)
+                validate_tensor(value, constraint.constraint())
             }
             (Self::SampledSignal(value), ModelValueConstraint::SampledSignal(constraint)) => {
                 value
                     .validate()
                     .map_err(|_| RelationRefusal::InvalidValue)?;
-                validate_tensor(&value.samples, constraint)
+                validate_tensor(&value.samples, constraint.constraint())
             }
             _ => Err(RelationRefusal::ShapeMismatch),
         }
@@ -307,8 +302,8 @@ fn validate_tensor(
     value
         .validate()
         .map_err(|_| RelationRefusal::InvalidValue)?;
-    if !constraint.elements.contains(&value.element)
-        || value.dimensions.len() != constraint.axes.len()
+    if !constraint.elements.get().contains(&value.element)
+        || value.dimensions.len() != constraint.axes.get().len()
         || value
             .byte_count()
             .map_err(|_| RelationRefusal::InvalidValue)?
@@ -320,7 +315,7 @@ fn validate_tensor(
         .dimensions
         .iter()
         .zip(&value.axes)
-        .zip(&constraint.axes)
+        .zip(constraint.axes.get())
     {
         let valid = match &expected.dimension {
             ModelDimensionConstraint::Fixed(value) => dimension == value.value(),
@@ -333,21 +328,6 @@ fn validate_tensor(
         }
     }
     Ok(())
-}
-
-fn validate_constraint(value: &ModelValueConstraint) -> Result<(), RelationRefusal> {
-    let constraint = match value {
-        ModelValueConstraint::Tensor(value)
-        | ModelValueConstraint::SampledSignal(value)
-        | ModelValueConstraint::ProbabilisticTensor(value)
-        | ModelValueConstraint::ProbabilisticSignal(value) => value,
-    };
-    if constraint.elements.is_empty() || constraint.axes.is_empty() || constraint.maximum_bytes == 0
-    {
-        Err(RelationRefusal::InvalidSignature)
-    } else {
-        Ok(())
-    }
 }
 
 fn same_set(left: &[String], right: &[String]) -> bool {
