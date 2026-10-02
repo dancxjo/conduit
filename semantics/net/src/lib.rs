@@ -11,9 +11,17 @@ pub use generated::{
     ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsResolution, DnsResult, DnsResultStale,
     DnsTtl, NetworkAddress, NetworkAttachmentId, NetworkConnectionState,
     NetworkConnectionStateConnected, NetworkEndpoint, NetworkJoinError, NetworkReason,
-    NetworkTransport, RecordTranscriptDirection, RecordTranscriptTerminal,
-    RecordTranscriptTerminalFailed, RecordTranscriptTerminalRefused, ResolvedNetworkAddress,
-    ResolvedNetworkEndpoint,
+    NetworkTransport, RecordCorrelation, RecordDeliveryEvent, RecordDeliveryEventDisconnected,
+    RecordDeliveryEventFailed, RecordDeliveryEventFramedQueued,
+    RecordDeliveryEventPartiallySent, RecordDeliveryEventRefused,
+    RecordDeliveryEventTimedOut, RecordDeliveryEventTransportUnavailable,
+    RecordDeliveryObservation, RecordDeliveryState, RecordDeliveryStateDisconnected,
+    RecordDeliveryStateFailed, RecordDeliveryStateFramedQueued,
+    RecordDeliveryStatePartiallySent, RecordDeliveryStateRefused, RecordDeliveryStateTimedOut,
+    RecordDeliveryStateTransportUnavailable, RecordReceipt, RecordTranscriptDirection,
+    RecordTranscriptEntry, RecordTranscriptEvent, RecordTranscriptEventRecord,
+    RecordTranscriptTerminal, RecordTranscriptTerminalFailed, RecordTranscriptTerminalRefused,
+    ResolvedNetworkAddress, ResolvedNetworkEndpoint, TypedRecordFrame,
 };
 
 #[cfg(feature = "form-catalog")]

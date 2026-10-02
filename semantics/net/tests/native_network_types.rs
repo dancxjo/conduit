@@ -1,9 +1,10 @@
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_net::{
     ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsResult, DnsTtl, NetworkAddress,
     NetworkAttachmentId, NetworkConnectionState, NetworkEndpoint, NetworkJoinError, NetworkReason,
-    NetworkTransport, RecordTranscriptDirection, RecordTranscriptTerminal, ResolvedNetworkAddress,
-    ResolvedNetworkEndpoint,
+    NetworkTransport, RecordCorrelation, RecordDeliveryEvent, RecordDeliveryObservation,
+    RecordReceipt, RecordTranscriptDirection, RecordTranscriptEntry, RecordTranscriptEvent,
+    RecordTranscriptTerminal, ResolvedNetworkAddress, ResolvedNetworkEndpoint, TypedRecordFrame,
 };
 
 fn round_trip<T>(value: T)
@@ -12,6 +13,34 @@ where
 {
     let encoded = value.encode().unwrap();
     assert_eq!(T::decode(&encoded).unwrap(), value);
+}
+
+#[test]
+fn record_delivery_and_transcript_values_are_native_semantic_types() {
+    let correlation =
+        RecordCorrelation::new(BoundedBytes::new(b"delivery-7").unwrap()).unwrap();
+    let observation = RecordDeliveryObservation::new(
+        correlation,
+        RecordDeliveryEvent::framed_queued(41).unwrap(),
+        512,
+    )
+    .unwrap();
+    round_trip_owned(observation);
+
+    let receipt = RecordReceipt::new(BoundedBytes::new(b"accepted").unwrap()).unwrap();
+    round_trip_owned(RecordDeliveryEvent::remote_accepted(receipt).unwrap());
+
+    let frame = TypedRecordFrame::new(BoundedBytes::new(&[1, 2, 3]).unwrap()).unwrap();
+    let event = RecordTranscriptEvent::record(RecordTranscriptDirection::Sent, frame).unwrap();
+    round_trip_owned(RecordTranscriptEntry::new(event, 9).unwrap());
+
+    assert!(RecordDeliveryObservation::new(
+        RecordCorrelation::new(BoundedBytes::new(&[1]).unwrap()).unwrap(),
+        RecordDeliveryEvent::locally_accepted(),
+        0,
+    )
+    .is_err());
+    assert!(RecordCorrelation::new(BoundedBytes::new(&[0; 129]).unwrap()).is_err());
 }
 
 #[test]
@@ -202,8 +231,5 @@ fn application_network_graph_owns_address_result_and_observation_bounds() {
     round_trip_owned(
         NetworkConnectionState::refused(NetworkReason::new("policy".into()).unwrap()).unwrap(),
     );
-    assert!(NetworkReason::new("x".repeat(4097))
-        .unwrap()
-        .into_structured()
-        .is_err());
+    assert!(NetworkReason::new("x".repeat(4097)).is_err());
 }
