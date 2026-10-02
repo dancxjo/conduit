@@ -12,7 +12,7 @@ use conduit_signal_conformance::{
 };
 
 fn main() {
-    println!("cargo:rerun-if-changed=../../../../proof/fixtures/forms/signal-demo.conduit");
+    println!("cargo:rerun-if-changed=../../../../proof/fixtures/plots/signal-demo.conduit");
     println!("cargo:rerun-if-changed=board-descriptor.json");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rustc-link-arg=-Tlinkall.x");

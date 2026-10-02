@@ -4,14 +4,14 @@ fn records() -> Vec<Value> {
     let mut records = vec![serde_json::json!({
         "status": "world",
         "source_document_id": null,
-        "checked_form_id": null,
-        "expanded_form_id": null
+        "checked_plot_id": null,
+        "expanded_plot_id": null
     })];
     records.extend(expected()
         .into_iter()
         .enumerate()
         .map(|(index, expected)| {
-            let form = identity(expected.form).unwrap();
+            let plot = identity(expected.plot).unwrap();
             let (plan_id, active_play_id) = if index < 14 {
                 ("plan", "play")
             } else {
@@ -21,9 +21,9 @@ fn records() -> Vec<Value> {
                 "status": "quiescent-awaiting-input", "revision": index + 10,
                 "workload_revision": 1,
                 "body_id": "body", "wake_id": "wake", "plan_id": plan_id, "active_play_id": active_play_id,
-                "source_document_id": form.source_document_id,
-                "checked_form_id": form.checked_form_id,
-                "expanded_form_id": form.expanded_form_id,
+                "source_document_id": plot.source_document_id,
+                "checked_plot_id": plot.checked_plot_id,
+                "expanded_plot_id": plot.expanded_plot_id,
                 "input_count": expected.count, "result": expected.result,
                 "result_omitted_bytes": 0, "kernel_sign_gap": null
             })
@@ -38,11 +38,11 @@ fn records() -> Vec<Value> {
 }
 
 #[test]
-fn resident_form_proof_rejects_restarts_identity_substitution_input_loss_and_state_loss() {
+fn resident_plot_proof_rejects_restarts_identity_substitution_input_loss_and_state_loss() {
     let valid = records();
     let (initial, proof) = validate(&valid).unwrap();
     assert_eq!(initial["result"], "HELLO");
-    assert_eq!(proof.forms.len(), 4);
+    assert_eq!(proof.plots.len(), 4);
     assert_eq!(proof.switches, 12);
     assert!(proof.patchbay_presenters_replanned);
     for field in [
@@ -51,8 +51,8 @@ fn resident_form_proof_rejects_restarts_identity_substitution_input_loss_and_sta
         "plan_id",
         "active_play_id",
         "source_document_id",
-        "checked_form_id",
-        "expanded_form_id",
+        "checked_plot_id",
+        "expanded_plot_id",
     ] {
         for index in [23, 41, 42] {
             let mut changed = valid.clone();
@@ -86,6 +86,6 @@ fn resident_form_proof_rejects_restarts_identity_substitution_input_loss_and_sta
     validate(&coalesced).unwrap();
 
     let mut bootstrapped = records();
-    bootstrapped[0]["checked_form_id"] = "pre-birth-form".into();
+    bootstrapped[0]["checked_plot_id"] = "pre-birth-plot".into();
     assert!(validate(&bootstrapped).is_err());
 }

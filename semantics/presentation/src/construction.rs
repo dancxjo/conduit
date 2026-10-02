@@ -9,7 +9,7 @@ use crate::{
 };
 
 impl Presentation {
-    /// Replace provenance with an exact producing Body/Form/Plan basis and
+    /// Replace provenance with an exact producing Body/Plot/Plan basis and
     /// derive a new immutable Face identity.
     pub fn with_basis(mut self, basis: PresentationBasis) -> Result<Self, PresentationError> {
         self.basis = basis;

@@ -64,8 +64,8 @@ fn plan_fragment(
     host: &StdHost,
     observe_render_clock: bool,
 ) -> Result<conduit_core::PlanFragment, conduit_planner::PlannerError> {
-    let form = conduit_form::parse(
-        "form instrument {\n input: music/input(a4-reference-millihertz = 442000, transpose-semitones = 12)\n render: audio/render-demand\n synth: music/synth(maximum-voices = 8, oscillator = \"saw\")\n output: audio/play\n input.notes >> synth.notes\n input.controls >> synth.controls\n render.demand >> synth.render\n synth.audio >> output.audio\n}\n",
+    let plot = conduit_plot::parse(
+        "plot instrument {\n input: music/input(a4-reference-millihertz = 442000, transpose-semitones = 12)\n render: audio/render-demand\n synth: music/synth(maximum-voices = 8, oscillator = \"saw\")\n output: audio/play\n input.notes >> synth.notes\n input.controls >> synth.controls\n render.demand >> synth.render\n synth.audio >> output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .unwrap();
@@ -110,7 +110,7 @@ fn plan_fragment(
     ];
     let hosts = [host.advertisement().clone()];
     conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
-        &form,
+        &plot,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &hosts,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],
@@ -152,7 +152,7 @@ impl TimerAdapter for StopAfterFourBlocks {
 }
 
 #[test]
-fn ordinary_form_runs_midi_synth_and_playback_through_one_kernel() {
+fn ordinary_plot_runs_midi_synth_and_playback_through_one_kernel() {
     let mut host = host();
     let fragment = fragment(&host);
     assert_eq!(fragment.placements.len(), 4);

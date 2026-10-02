@@ -232,7 +232,7 @@ fn push_text(output: &mut Vec<u8>, value: &str) {
 mod tests {
     use super::*;
     use crate::MissingModality;
-    use conduit_form::rust_binding::BoundedSequence;
+    use conduit_plot::rust_binding::BoundedSequence;
 
     #[test]
     fn missing_modality_policy_retains_the_v1_manual_digest_bytes() {

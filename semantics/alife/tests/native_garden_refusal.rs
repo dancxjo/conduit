@@ -1,5 +1,5 @@
 use conduit_alife::GardenEvolutionRefusal;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn garden_refusals_round_trip_through_their_exact_native_type() {

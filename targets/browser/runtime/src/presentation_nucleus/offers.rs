@@ -170,7 +170,7 @@ fn fixture_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> Capability
     }
 }
 
-pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> {
+pub(super) fn fixture_catalog() -> Result<conduit_plot::ProfileCatalog, String> {
     let mut catalog = conduit_semantic_catalog::standard_profile_catalog();
     for (kind, value_kind) in [
         (
@@ -180,7 +180,7 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
         (FIXTURE_LAYOUT_KIND, conduit_presentation::LAYOUT_FRAME_KIND),
     ] {
         catalog
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from("browser.fixture/presentation-sink@1"),
                 inputs: vec![PortDescriptor {
@@ -198,9 +198,9 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
     Ok(catalog)
 }
 
-pub(super) fn fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, String> {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profiles = conduit_form::ProfileCatalog::new();
+pub(super) fn fixture_startup_catalog() -> Result<conduit_plot::StartupCatalog, String> {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_presentation_composition_catalogs(
         &mut startup,
@@ -209,7 +209,7 @@ pub(super) fn fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, 
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
     for kind in [FIXTURE_GRAPHICS_KIND, FIXTURE_LAYOUT_KIND] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.to_string(),
                 startup_parameters: Vec::new(),
             })
@@ -218,12 +218,12 @@ pub(super) fn fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, 
     Ok(startup)
 }
 
-pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> {
-    let mut catalog = conduit_form::ProfileCatalog::new();
-    let mut startup = conduit_form::StartupCatalog::new();
+pub(super) fn text_fixture_catalog() -> Result<conduit_plot::ProfileCatalog, String> {
+    let mut catalog = conduit_plot::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)?;
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(FIXTURE_TEXT_KIND),
             kind_contract_revision: KindIdentity::from("browser.fixture/text-source@1"),
             inputs: Vec::new(),
@@ -234,12 +234,12 @@ pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, Str
     Ok(catalog)
 }
 
-pub(super) fn text_fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, String> {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profiles = conduit_form::ProfileCatalog::new();
+pub(super) fn text_fixture_startup_catalog() -> Result<conduit_plot::StartupCatalog, String> {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: FIXTURE_TEXT_KIND.to_string(),
             startup_parameters: Vec::new(),
         })

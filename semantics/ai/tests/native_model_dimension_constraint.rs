@@ -1,5 +1,5 @@
 use conduit_ai::ModelDimensionConstraint;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_native_round_trip(value: ModelDimensionConstraint) {
     let structured = value.clone().into_structured().unwrap();

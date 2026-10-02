@@ -1,7 +1,7 @@
 use super::*;
 
-pub(super) const MASK_SOURCE: &str = "form browser-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
-pub(super) const ALTERNATE_MASK_SOURCE: &str = "form browser-graphical-alternate (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+pub(super) const MASK_SOURCE: &str = "plot browser-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+pub(super) const ALTERNATE_MASK_SOURCE: &str = "plot browser-graphical-alternate (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 
 fn port(
     name: &str,
@@ -23,7 +23,7 @@ pub(super) fn planned_mask(
     boot_id: BootId,
     source: &str,
     name: &str,
-) -> Result<PlannedMaskForm, String> {
+) -> Result<PlannedMaskPlot, String> {
     let definition = Kind {
         startup_parameters: vec![],
         shorthand: None,
@@ -58,7 +58,7 @@ pub(super) fn planned_mask(
         },
     };
     let mut startup = StartupCatalog::new();
-    install_mask_form_value_aliases(&mut startup).map_err(|error| format!("{error:?}"))?;
+    install_mask_plot_value_aliases(&mut startup).map_err(|error| format!("{error:?}"))?;
     startup
         .insert(KindSignature {
             kind: definition.kind_id.as_str().into(),
@@ -69,7 +69,7 @@ pub(super) fn planned_mask(
     profiles
         .insert_kind(definition.clone())
         .map_err(|error| format!("{error:?}"))?;
-    let (mask, authoring) = mask_form(source, name, &startup, &profiles)?;
+    let (mask, authoring) = mask_plot(source, name, &startup, &profiles)?;
     let syntax = parse_syntax_document(source);
     if !syntax.diagnostics.is_empty() {
         return Err(format!("{:?}", syntax.diagnostics));
@@ -145,34 +145,34 @@ pub(super) fn planned_mask(
         &boundary_limits,
     )
     .map_err(|error| format!("{error:?}"))?;
-    let planned = PlannedMaskForm::admit(&mask, &plan).map_err(|error| format!("{error:?}"))?;
+    let planned = PlannedMaskPlot::admit(&mask, &plan).map_err(|error| format!("{error:?}"))?;
     Ok(planned)
 }
 
-fn mask_form(
+fn mask_plot(
     source: &str,
     name: &str,
     startup: &StartupCatalog,
     profiles: &ProfileCatalog,
-) -> Result<(MaskForm, conduit_form::ExpandedAuthoringForm), String> {
+) -> Result<(MaskPlot, conduit_plot::ExpandedAuthoringPlot), String> {
     let syntax = parse_syntax_document(source);
     if !syntax.diagnostics.is_empty() {
         return Err(format!("{:?}", syntax.diagnostics));
     }
     let checked = check_syntax_document(&syntax, startup).map_err(|error| format!("{error:?}"))?;
-    let authoring = expand_canonical_form_for_authoring(&checked, name, profiles)
+    let authoring = expand_canonical_plot_for_authoring(&checked, name, profiles)
         .map_err(|error| format!("{error:?}"))?;
-    let mask = MaskForm::admit(&authoring).map_err(|error| format!("{error:?}"))?;
+    let mask = MaskPlot::admit(&authoring).map_err(|error| format!("{error:?}"))?;
     Ok((mask, authoring))
 }
 
 pub(super) fn admitted_routes(
     body_plan: &conduit_body::BodyPlan,
-    mask: &PlannedMaskForm,
-    alternate: &PlannedMaskForm,
+    mask: &PlannedMaskPlot,
+    alternate: &PlannedMaskPlot,
     initial_available: bool,
     alternate_available: bool,
-) -> Result<AdmittedMaskFormRoutes, String> {
+) -> Result<AdmittedMaskPlotRoutes, String> {
     let initial_placements = mask
         .plan
         .fragments
@@ -187,20 +187,20 @@ pub(super) fn admitted_routes(
         .flat_map(|f| &f.placements)
         .map(|p| p.placement_id.clone())
         .collect();
-    AdmittedMaskFormRoutes::new(
+    AdmittedMaskPlotRoutes::new(
         body_plan,
         &[mask.clone(), alternate.clone()],
         vec![
-            SealedMaskFormRoute {
+            SealedMaskPlotRoute {
                 route_id: "route/browser-graphical".into(),
-                mask_form: mask.mask.form_identity.clone(),
+                mask_plot: mask.mask.plot_identity.clone(),
                 plan_id: body_plan.plan_id.clone(),
                 placement_ids: initial_placements,
                 currently_available: initial_available,
             },
-            SealedMaskFormRoute {
+            SealedMaskPlotRoute {
                 route_id: "route/browser-graphical-fallback".into(),
-                mask_form: alternate.mask.form_identity.clone(),
+                mask_plot: alternate.mask.plot_identity.clone(),
                 plan_id: body_plan.plan_id.clone(),
                 placement_ids: alternate_placements,
                 currently_available: alternate_available,

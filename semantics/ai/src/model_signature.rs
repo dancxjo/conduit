@@ -3,11 +3,11 @@
 use alloc::vec::Vec;
 use conduit_core::semantic_digest;
 use conduit_data::TensorAxisRole;
-use conduit_form::rust_binding::{BoundedSequence, NativeBindingRefusal};
+use conduit_plot::rust_binding::{BoundedSequence, NativeBindingRefusal};
 
 use crate::{
-    ModelDimensionConstraint, ModelOperation, ModelOperationCode, ModelOperations,
-    ModelPortConstraint, ModelPortIdentity, ModelPortPresence, ModelPortPresenceCode, ModelPorts,
+    ModelDimensionConstraint, ModelOperation, ModelOperationForm, ModelOperations,
+    ModelPortConstraint, ModelPortIdentity, ModelPortPresence, ModelPortPresenceForm, ModelPorts,
     ModelSemanticKind, ModelSignature, ModelSignatureRefusal, ModelTensorAxes,
     ModelTensorConstraint, ModelTensorElements, ModelValueConstraint,
 };
@@ -112,7 +112,7 @@ impl ModelSignature {
         let operations = self.operations.get().as_slice();
         push_len(&mut bytes, operations.len());
         for operation in operations {
-            bytes.push(ModelOperationCode::encode(*operation)[0]);
+            bytes.push(ModelOperationForm::encode(*operation)[0]);
         }
         encode_ports(&mut bytes, self.inputs.get().as_slice(), 0);
         encode_ports(&mut bytes, self.outputs.get().as_slice(), 1);
@@ -213,7 +213,7 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
     for port in ports {
         push_text(output, port.identity.get());
         push_text(output, port.semantic_kind.get());
-        output.push(ModelPortPresenceCode::encode(port.presence)[0]);
+        output.push(ModelPortPresenceForm::encode(port.presence)[0]);
         let tensor = match &port.value {
             ModelValueConstraint::Tensor(value) => {
                 output.push(0);

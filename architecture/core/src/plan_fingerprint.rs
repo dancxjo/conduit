@@ -6,9 +6,9 @@
 use crate::{
     characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
     push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
-    ConfigurationValue, ExpectedSign, ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment,
-    FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
-    PlannedActivationEntry, PlannedActivationPreparationBinding, PortDescriptor, PortDirection,
+    ConfigurationValue, ExpectedSign, ExpectedTerminal, FragmentCommitment, FragmentId,
+    LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId, PlannedActivationEntry,
+    PlannedActivationPreparationBinding, PlotBack, PlotIdentity, PortDescriptor, PortDirection,
     PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
@@ -27,8 +27,8 @@ fn push_optional_string(canonical: &mut Vec<u8>, value: Option<&str>) {
 pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     let mut canonical = Vec::new();
     push_string(&mut canonical, fragment.source_document_id.as_str());
-    push_string(&mut canonical, fragment.checked_form_id.as_str());
-    push_string(&mut canonical, fragment.expanded_form_id.as_str());
+    push_string(&mut canonical, fragment.checked_plot_id.as_str());
+    push_string(&mut canonical, fragment.expanded_plot_id.as_str());
     canonical.push(fragment.completion_policy as u8);
     if !fragment.realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, &fragment.realization_backs);
@@ -876,16 +876,16 @@ fn push_admitted_line(canonical: &mut Vec<u8>, line: &AdmittedLine) {
 }
 
 pub(crate) fn compute_plan_id(
-    form_identity: &FormIdentity,
-    realization_backs: &[FormBack],
+    plot_identity: &PlotIdentity,
+    realization_backs: &[PlotBack],
     activations: &[PlannedActivationEntry],
     commitments: &[FragmentCommitment],
     activation_preparations: &[PlannedActivationPreparationBinding],
 ) -> PlanId {
     let mut canonical = Vec::new();
-    push_string(&mut canonical, form_identity.source_document_id.as_str());
-    push_string(&mut canonical, form_identity.checked_form_id.as_str());
-    push_string(&mut canonical, form_identity.expanded_form_id.as_str());
+    push_string(&mut canonical, plot_identity.source_document_id.as_str());
+    push_string(&mut canonical, plot_identity.checked_plot_id.as_str());
+    push_string(&mut canonical, plot_identity.expanded_plot_id.as_str());
     if !realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, realization_backs);
     }

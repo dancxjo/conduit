@@ -42,15 +42,15 @@ fn y() -> StructuredSelector {
 }
 
 pub(super) fn install_types(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     startup
         .insert_structured_type("Point2", position().output_type().clone())
         .map_err(debug)?;
     for selector in [position(), x(), y()] {
         profile
-            .insert(conduit_form::structured_selector_definition(
+            .insert(conduit_plot::structured_selector_definition(
                 &selector,
                 PortTemporal::Value,
             ))

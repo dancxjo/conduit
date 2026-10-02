@@ -23,16 +23,16 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             body_id: None,
             wake_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: vec![],
         },
         vec![
             subject("entrance", PresentationRole::Document),
-            subject("form/text-lab", PresentationRole::Form),
-            subject("program", PresentationRole::Form),
+            subject("plot/text-lab", PresentationRole::Plot),
+            subject("program", PresentationRole::Plot),
             subject("gear/upper", PresentationRole::Gear),
             subject("cord/text", PresentationRole::Cord),
             subject("body", PresentationRole::Body),
@@ -64,7 +64,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             },
         ],
         vec![PresentationText {
-            subject: "form/text-lab".into(),
+            subject: "plot/text-lab".into(),
             text: "Keyboard to uppercase text".into(),
         }],
         vec![PresentationAction {
@@ -89,7 +89,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
                 name: "Entrance".into(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Structure,
-                    focusable_subjects: vec!["entrance".into(), "form/text-lab".into()],
+                    focusable_subjects: vec!["entrance".into(), "plot/text-lab".into()],
                 }],
             },
             NavigationPlace {
@@ -182,7 +182,7 @@ fn memberships() -> Vec<ProjectionMembership> {
         membership(
             Entrance,
             Structure,
-            ProjectionItem::Subject("form/text-lab".into()),
+            ProjectionItem::Subject("plot/text-lab".into()),
             Primary,
         ),
         membership(Entrance, Structure, ProjectionItem::Text(0), Detail),

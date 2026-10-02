@@ -786,9 +786,9 @@
     "presentation": {
       "subjects": [
         {
-          "identity": "form",
+          "identity": "plot",
           "name": "Text transform",
-          "role": "conduit/form"
+          "role": "conduit/plot"
         },
         {
           "identity": "input",
@@ -808,12 +808,12 @@
       ],
       "relationships": [
         {
-          "source": "form",
+          "source": "plot",
           "kind": "Contains",
           "target": "input"
         },
         {
-          "source": "form",
+          "source": "plot",
           "kind": "Contains",
           "target": "output"
         },

@@ -1,8 +1,8 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal};
-use conduit_form::rust_binding::BoundedSequence;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::rust_binding::BoundedSequence;
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -41,9 +41,9 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
     let (startup, profile, sink_offer) = catalogs();
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-    let checked = check_syntax_document(&syntax, &startup).expect("calendar Form checks");
+    let checked = check_syntax_document(&syntax, &startup).expect("calendar Plot checks");
     let expanded =
-        expand_canonical_form(&checked, "calendar-proof", &profile).expect("calendar Form expands");
+        expand_canonical_plot(&checked, "calendar-proof", &profile).expect("calendar Plot expands");
 
     let mut advertisement = host("calendar-proposal-host").advertisement().clone();
     advertisement.capabilities.push(sink_offer);
@@ -67,7 +67,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
             line_offers: &[],
         },
     )
-    .expect("calendar Form plans without authority or resource grants");
+    .expect("calendar Plot plans without authority or resource grants");
     let planned = plan.fragments[0]
         .placements
         .iter()
@@ -145,7 +145,7 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
             syntax.diagnostics
         );
         let checked = check_syntax_document(&syntax, &startup).unwrap();
-        let expanded = expand_canonical_form(&checked, "calendar-proof", &profile).unwrap();
+        let expanded = expand_canonical_plot(&checked, "calendar-proof", &profile).unwrap();
         let mut advertisement = host(&format!("calendar-refusal-{maximum_results}"))
             .advertisement()
             .clone();
@@ -358,7 +358,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
         conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
     );
     format!(
-        "form calendar-proof {{\n  propose: calendar/propose-meeting({{ availability: [{availability}], candidates: [{candidates}], identity: \"{}\", maximum_results: {}, participant_identities: [{participants}], reference_at: {} }})\n  sink: {SINK}(value = \"{expected_hex}\")\n  propose.proposal >> sink.input\n}}\n",
+        "plot calendar-proof {{\n  propose: calendar/propose-meeting({{ availability: [{availability}], candidates: [{candidates}], identity: \"{}\", maximum_results: {}, participant_identities: [{participants}], reference_at: {} }})\n  sink: {SINK}(value = \"{expected_hex}\")\n  propose.proposal >> sink.input\n}}\n",
         fixture.request.identity,
         fixture.request.maximum_results,
         instant_source(&fixture.request.reference_at),

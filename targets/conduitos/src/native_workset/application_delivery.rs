@@ -1,4 +1,4 @@
-//! Admitted native implementations for the portable application Form seam.
+//! Admitted native implementations for the portable application Plot seam.
 
 use alloc::{boxed::Box, format, vec};
 use conduit_core::{CapabilityOffer, HostCallRequirement, resource_requirement};
@@ -17,7 +17,7 @@ pub enum NativeApplicationRequest {
 
 pub(super) struct PatchbayTargets {
     ports:
-        [Option<Box<patchbay_application::PatchbayApplicationPort>>; super::NATIVE_FORM_CAPACITY],
+        [Option<Box<patchbay_application::PatchbayApplicationPort>>; super::NATIVE_PLOT_CAPACITY],
     selected: usize,
 }
 
@@ -31,11 +31,11 @@ impl PatchbayTargets {
             selected = 1;
         }
         let mut ports = core::array::from_fn(|_| None);
-        for (index, planned) in prepared.plan.forms.iter().enumerate() {
+        for (index, planned) in prepared.plan.plots.iter().enumerate() {
             if index == patchbay {
                 continue;
             }
-            let native = super::resolve(&planned.form)?;
+            let native = super::resolve(&planned.plot)?;
             let expanded = super::checked(native)?;
             ports[index] = Some(Box::new(
                 patchbay_application::PatchbayApplicationPort::open(

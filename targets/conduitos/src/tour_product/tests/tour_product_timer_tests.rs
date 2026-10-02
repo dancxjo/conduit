@@ -71,7 +71,7 @@ fn standing_timer_stage_presents_zero_then_one_and_stops_with_next_wait_pending(
         )
         .unwrap();
     let evidence = update.play.unwrap();
-    assert_eq!(evidence.specimen_id, "canonical-form:count-over-time");
+    assert_eq!(evidence.specimen_id, "canonical-plot:count-over-time");
     assert_eq!(evidence.result, "1");
     assert_eq!(
         evidence.terminal,

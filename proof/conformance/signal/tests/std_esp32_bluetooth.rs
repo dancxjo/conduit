@@ -11,7 +11,7 @@ use conduit_signal_conformance::{
 };
 
 #[test]
-fn unchanged_signal_form_seals_one_exact_esp32_bluetooth_fragment() {
+fn unchanged_signal_plot_seals_one_exact_esp32_bluetooth_fragment() {
     let exact = exact_std_esp32_bluetooth_plan([1, 2, 3, 4, 5, 6]).unwrap();
     let source = exact
         .plan

@@ -5,12 +5,12 @@ use crate::{
 };
 use alloc::collections::BTreeSet;
 use conduit_core::{BaseImplementationId, FusionId, GearId, HostAdvertisement, PlannedFusion};
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 mod model;
 pub use model::*;
 
 pub fn select_fusion_candidate(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     candidates: &[FusionCandidate],
     locality_basis: &LocalityPlanningBasis,
@@ -25,7 +25,7 @@ pub fn select_fusion_candidate(
     let mut considered = Vec::with_capacity(candidates.len());
     for candidate in candidates {
         let locality = match select_data_locality_candidate(
-            form,
+            plot,
             hosts,
             core::slice::from_ref(&candidate.realization),
             locality_basis,
@@ -52,7 +52,7 @@ pub fn select_fusion_candidate(
             supporting_sign_ids: locality.supporting_sign_ids,
         };
         if let Err(reason) = apply_fusions(
-            form,
+            plot,
             hosts,
             candidate,
             locality_basis,
@@ -77,7 +77,7 @@ pub fn select_fusion_candidate(
     considered[selected_index].disposition = CandidatePlacementDisposition::Selected;
     let selected = &candidates[selected_index];
     Ok(FusionSelection {
-        checked_form_id: form.checked_form_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
         selected_candidate_id: selected.candidate_id.clone(),
         selected_realization: selected.realization.clone(),
         selected_fusion_groups: considered[selected_index].fusion_groups.clone(),
@@ -88,19 +88,19 @@ pub fn select_fusion_candidate(
 }
 
 pub fn plan_selected_optimization(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     selection: &FusionSelection,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<OptimizedPlan, PlannerError> {
-    if selection.checked_form_id != form.checked_form_id {
-        return Err(PlannerError::InvalidFormIdentity(
-            "fusion selection belongs to a different checked form".to_string(),
+    if selection.checked_plot_id != plot.checked_plot_id {
+        return Err(PlannerError::InvalidPlotIdentity(
+            "fusion selection belongs to a different checked plot".to_string(),
         ));
     }
     let mut plan = plan_with_options(
-        form,
+        plot,
         hosts,
         &selection.selected_realization.placements,
         bases,
@@ -176,7 +176,7 @@ pub fn plan_selected_optimization(
             .sort_by(|left, right| left.fusion_id.cmp(&right.fusion_id));
     }
     plan = conduit_core::seal_plan_with_realization_backs_and_completion(
-        form.identity(),
+        plot.identity(),
         plan.completion_policy,
         plan.realization_backs.clone(),
         plan.fragments,
@@ -194,7 +194,7 @@ pub fn plan_selected_optimization(
 }
 
 fn apply_fusions(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     candidate: &FusionCandidate,
     basis: &LocalityPlanningBasis,
@@ -214,7 +214,7 @@ fn apply_fusions(
             .find(|item| &item.fusion_id == fusion_id)
             .ok_or_else(|| "selected fusion lacks current work evidence".to_string())?;
         validate_fusion_offer(
-            form,
+            plot,
             hosts,
             candidate,
             offer,
@@ -292,7 +292,7 @@ fn apply_fusions(
 }
 
 fn validate_fusion_offer(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     candidate: &FusionCandidate,
     offer: &FusionRealizationOffer,
@@ -330,7 +330,7 @@ fn validate_fusion_offer(
             .get(gear_id)
             .ok_or_else(|| "fusion omits an authored gear placement".to_string())?;
         if placement.host_id != offer.host_id
-            || !form.gears.iter().any(|gear| gear.gear_id == *gear_id)
+            || !plot.gears.iter().any(|gear| gear.gear_id == *gear_id)
         {
             return Err("fusion Gears are not all local on the offered Host".to_string());
         }
@@ -339,7 +339,7 @@ fn validate_fusion_offer(
             .iter()
             .find(|capability| capability.capability_id == placement.capability_id)
             .ok_or_else(|| "fusion member capability is not installed".to_string())?;
-        let gear = form
+        let gear = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id == *gear_id)
@@ -373,7 +373,7 @@ fn validate_fusion_offer(
             .map_err(|refusal| format!("fusion is not semantically eligible: {refusal:?}"))?;
     }
     let gear_set = offer.gear_ids.iter().collect::<BTreeSet<_>>();
-    let expected_cords = form
+    let expected_cords = plot
         .connections
         .iter()
         .filter(|connection| {
@@ -399,10 +399,10 @@ fn validate_fusion_offer(
         return Err("fusion must preserve every exact internal authored Cord".to_string());
     }
     for cord in &offer.internal_cords {
-        if !form.connections.iter().any(|connection| {
+        if !plot.connections.iter().any(|connection| {
             connection.source_gear_id == cord.0 && connection.sink_gear_id == cord.1
         }) {
-            return Err("fusion names a Cord absent from the authored form".to_string());
+            return Err("fusion names a Cord absent from the authored plot".to_string());
         }
         if boundaries.iter().any(|boundary| {
             boundary.source_gear_id == cord.0

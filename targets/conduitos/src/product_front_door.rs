@@ -100,7 +100,7 @@ pub fn run(
     );
     surface_issuer_key.fill(0);
     // The embedded defaults are Crèche inventory, not ProductJourney state.
-    let form = keyboard_text_plan::checked_form_identity().map_err(|error| error.as_str())?;
+    let plot = keyboard_text_plan::checked_plot_identity().map_err(|error| error.as_str())?;
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -108,8 +108,8 @@ pub fn run(
         make.profile_id,
         make.build_id,
         make.image_binding,
-        form.source_document_id,
-        form.checked_form_id,
+        plot.source_document_id,
+        plot.checked_plot_id,
         u64::try_from(CAPABILITY_COUNT).unwrap_or(u64::MAX)
             + u64::from(offer.keyboard.is_some())
             + u64::from(offer.pointer.is_some())
@@ -193,7 +193,7 @@ pub fn run(
                 }
                 return Ok(ProductInputControl::Continue);
             }
-            // A held key keeps its original Form owner across surface changes,
+            // A held key keeps its original Plot owner across surface changes,
             // including when the compositor currently has no keyboard target.
             if journey.owns_key_release(event) {
                 workspace_updates.accept(event, &mut journey, &mut front_door)?;
@@ -381,18 +381,18 @@ pub fn run(
                         arch::early_write(b"CONDUIT_HOME_CHECKPOINT tour-opened\n");
                     }
                     crate::front_door::HomeInput::OpenPatchbay => {
-                        for _ in 0..crate::native_workset::NATIVE_FORM_CAPACITY {
+                        for _ in 0..crate::native_workset::NATIVE_PLOT_CAPACITY {
                             if journey
                                 .workspace_projection()
                                 .and_then(|workspace| {
-                                    workspace.forms.into_iter().find(|form| form.foreground)
+                                    workspace.plots.into_iter().find(|plot| plot.foreground)
                                 })
-                                .is_some_and(|form| form.title == "Patchbay")
+                                .is_some_and(|plot| plot.title == "Patchbay")
                             {
                                 break;
                             }
                             journey
-                                .select_next_form(journey.revision())
+                                .select_next_plot(journey.revision())
                                 .map_err(|error| error.as_str())?;
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
@@ -408,54 +408,54 @@ pub fn run(
                             .present(&front_door, display)
                             .map_err(|error| error.as_str())?;
                     }
-                    crate::front_door::HomeInput::OpenForm(index) => {
+                    crate::front_door::HomeInput::OpenPlot(index) => {
                         let inventory = crate::native_workset::inventory();
                         let requested =
-                            inventory.get(index).ok_or("home-form-selection-invalid")?;
-                        for _ in 0..crate::native_workset::NATIVE_FORM_CAPACITY {
+                            inventory.get(index).ok_or("home-plot-selection-invalid")?;
+                        for _ in 0..crate::native_workset::NATIVE_PLOT_CAPACITY {
                             if journey
                                 .workspace_projection()
                                 .and_then(|workspace| {
-                                    workspace.forms.into_iter().find(|form| form.foreground)
+                                    workspace.plots.into_iter().find(|plot| plot.foreground)
                                 })
-                                .is_some_and(|form| form.title == requested.title())
+                                .is_some_and(|plot| plot.title == requested.title())
                             {
                                 break;
                             }
                             journey
-                                .select_next_form(journey.revision())
+                                .select_next_plot(journey.revision())
                                 .map_err(|error| error.as_str())?;
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
-                            format!("CONDUIT_HOME_CHECKPOINT form-opened {}\n", requested.name())
+                            format!("CONDUIT_HOME_CHECKPOINT plot-opened {}\n", requested.name())
                                 .as_bytes(),
                         );
                     }
-                    crate::front_door::HomeInput::RunForm(index) => {
+                    crate::front_door::HomeInput::RunPlot(index) => {
                         let inventory = crate::native_workset::inventory();
                         let requested = inventory.get(index).ok_or("home-run-selection-invalid")?;
-                        for _ in 0..crate::native_workset::NATIVE_FORM_CAPACITY {
+                        for _ in 0..crate::native_workset::NATIVE_PLOT_CAPACITY {
                             if journey
                                 .workspace_projection()
                                 .and_then(|workspace| {
-                                    workspace.forms.into_iter().find(|form| form.foreground)
+                                    workspace.plots.into_iter().find(|plot| plot.foreground)
                                 })
-                                .is_some_and(|form| form.title == requested.title())
+                                .is_some_and(|plot| plot.title == requested.title())
                             {
                                 break;
                             }
                             journey
-                                .select_next_form(journey.revision())
+                                .select_next_plot(journey.revision())
                                 .map_err(|error| error.as_str())?;
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
-                            format!("CONDUIT_HOME_CHECKPOINT form-run {}\n", requested.name())
+                            format!("CONDUIT_HOME_CHECKPOINT plot-run {}\n", requested.name())
                                 .as_bytes(),
                         );
                     }
@@ -614,7 +614,7 @@ pub fn run(
                     workspace_updates.accept(event, &mut journey, &mut front_door)?;
                     return Ok(ProductInputControl::Continue);
                 }
-                if product_control(event.usage()) == Some(ProductControl::SelectNextForm) {
+                if product_control(event.usage()) == Some(ProductControl::SelectNextPlot) {
                     return Ok(ProductInputControl::Continue);
                 }
             }

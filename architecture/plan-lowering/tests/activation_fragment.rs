@@ -74,10 +74,10 @@ fn plan() -> Plan {
         },
     };
     seal_plan_with_activations(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         PlanCompletionPolicy::Live,
         vec![],
@@ -174,10 +174,10 @@ fn unary_for(owner: &str, id: &str) -> PlannedActivationEntry {
     child.fragments[0].placements[0].host_id = HostId::from(host);
     child.fragments[0].placements[0].boot_id = BootId::from(format!("{host}-boot"));
     child = seal_plan_with_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: child.source_document_id,
-            checked_form_id: child.checked_form_id,
-            expanded_form_id: child.expanded_form_id,
+            checked_plot_id: child.checked_plot_id,
+            expanded_plot_id: child.expanded_plot_id,
         },
         child.completion_policy,
         child.fragments,
@@ -206,10 +206,10 @@ fn progression_for(owner: &str, id: &str, scan: bool) -> PlannedActivationEntry 
     child.fragments[0].placements[0].host_id = HostId::from(host);
     child.fragments[0].placements[0].boot_id = BootId::from(format!("{host}-boot"));
     child = seal_plan_with_completion(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: child.source_document_id,
-            checked_form_id: child.checked_form_id,
-            expanded_form_id: child.expanded_form_id,
+            checked_plot_id: child.checked_plot_id,
+            expanded_plot_id: child.expanded_plot_id,
         },
         child.completion_policy,
         child.fragments,
@@ -282,10 +282,10 @@ fn verified_two_fragment_projection_filters_in_plan_order_and_keeps_progression_
     left.startup_order.push(PlacementId::from("left-scan"));
     let right = named_fragment("right", "right-fold");
     let plan = seal_plan_with_activation_entries(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: left.source_document_id.clone(),
-            checked_form_id: left.checked_form_id.clone(),
-            expanded_form_id: left.expanded_form_id.clone(),
+            checked_plot_id: left.checked_plot_id.clone(),
+            expanded_plot_id: left.expanded_plot_id.clone(),
         },
         PlanCompletionPolicy::Live,
         vec![],

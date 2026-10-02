@@ -1,16 +1,16 @@
 use super::*;
 
-const FORM: &str = "form typed_gate {\n script: conduit-test/gate-script\n latest: state/latest\n split: flow/tee\n gate: flow/gate(maximum-enable-updates = 3)\n gated: conduit-test/scalar-sink(expected = 1)\n slow: conduit-test/slow-scalar-sink\n script.scalar >> latest.in\n latest.out >> split.in\n split.left >> gate.in\n script.enable >> gate.enable\n gate.out >> gated.in\n split.right >> slow.in\n}\n";
+const PLOT: &str = "plot typed_gate {\n script: conduit-test/gate-script\n latest: state/latest\n split: flow/tee\n gate: flow/gate(maximum-enable-updates = 3)\n gated: conduit-test/scalar-sink(expected = 1)\n slow: conduit-test/slow-scalar-sink\n script.scalar >> latest.in\n latest.out >> split.in\n split.left >> gate.in\n script.enable >> gate.enable\n gate.out >> gated.in\n split.right >> slow.in\n}\n";
 
 #[test]
 fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure() {
     let mut host = host("typed-gate-host");
-    let form = parse(FORM, &installed_std::test_catalog()).expect("typed gate Form parses");
+    let plot = parse(PLOT, &installed_std::test_catalog()).expect("typed gate Plot parses");
     let hosts = [host.advertisement().clone()];
-    assert_gate_front_is_advertised(&form, &hosts[0]);
-    let placements = default_placements(&form, &hosts).expect("typed gate placements resolve");
+    assert_gate_front_is_advertised(&plot, &hosts[0]);
+    let placements = default_placements(&plot, &hosts).expect("typed gate placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -85,12 +85,12 @@ fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure(
 #[test]
 fn gate_zero_capacity_and_mutated_decoder_identity_fail_before_play() {
     let baseline_host = host("gate-negative-host");
-    let form = parse(FORM, &installed_std::test_catalog()).expect("typed gate Form parses");
+    let plot = parse(PLOT, &installed_std::test_catalog()).expect("typed gate Plot parses");
     let hosts = [baseline_host.advertisement().clone()];
-    assert_gate_front_is_advertised(&form, &hosts[0]);
-    let placements = default_placements(&form, &hosts).expect("typed gate placements resolve");
+    assert_gate_front_is_advertised(&plot, &hosts[0]);
+    let placements = default_placements(&plot, &hosts).expect("typed gate placements resolve");
     assert!(plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -107,7 +107,7 @@ fn gate_zero_capacity_and_mutated_decoder_identity_fail_before_play() {
     .is_err());
 
     let mut fragment = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -143,10 +143,10 @@ fn gate_zero_capacity_and_mutated_decoder_identity_fail_before_play() {
 }
 
 fn assert_gate_front_is_advertised(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     host: &conduit_core::HostAdvertisement,
 ) {
-    let gear = form
+    let gear = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::GATE_KIND)

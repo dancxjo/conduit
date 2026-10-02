@@ -1,9 +1,9 @@
 import { attachConduitSyntaxEditor } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
 import {
-  encodedFormSelection,
+  encodedPlotSelection,
   reviewInitialWorkload,
   selectedReviewedSource,
-} from "./reviewed-form-selection.mjs";
+} from "./reviewed-plot-selection.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -20,8 +20,8 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     <div class="result body-birth-result" hidden>
       <div data-application-slot="birth-next"></div>
       <details class="birth-details"><summary>Body details and evidence</summary>
-      <div class="body-chain" aria-label="Forms to Body lifecycle">
-        <article><span>initial active forms</span><code class="initial-forms">not born</code></article>
+      <div class="body-chain" aria-label="Plots to Body lifecycle">
+        <article><span>initial active plots</span><code class="initial-plots">not born</code></article>
         <b aria-hidden="true">BIRTH →</b>
         <article><span>durable body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
       </div>
@@ -29,17 +29,17 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
       </details>
     </div>`;
   const presentation = presentationFor(runner);
-  const selectionNotice = initialFormSelectionNotice(initialSelection);
+  const selectionNotice = initialPlotSelectionNotice(initialSelection);
   const state = {
     revision: 0,
     friendlyName: "Choosing a persona…",
     namingSystem: "surprise",
     personaUuid: crypto.randomUUID(),
     pending: true,
-    initialForms: [...initialSelection.selected],
+    initialPlots: [...initialSelection.selected],
     inventorySource: source,
     review: null,
-    status: selectionNotice ?? "Browse the reviewed forms, compose a bounded workload, then review it before birth.",
+    status: selectionNotice ?? "Browse the reviewed plots, compose a bounded workload, then review it before birth.",
     outcome: initialSelection.refusals.length === 0 ? "status" : "warning-status",
     terminal: false,
     selectionNotice,
@@ -58,11 +58,11 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     try {
       applyDraftSnapshot(state, controls, draftCall(host.runtime, "conduit_creche_birth_draft_open", {
         persona_uuid: state.personaUuid,
-        choices: inventory.forms.map((form) => ({
-          title: form.title,
-          search_text: `${form.name} ${form.required_kinds.join(" ")}`,
-          form: { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id },
-          selected: state.initialForms.some((selected) => selected.checked_form_id === form.checked_form_id),
+        choices: inventory.plots.map((plot) => ({
+          title: plot.title,
+          search_text: `${plot.name} ${plot.required_kinds.join(" ")}`,
+          plot: { source_document_id: plot.source_document_id, checked_plot_id: plot.checked_plot_id },
+          selected: state.initialPlots.some((selected) => selected.checked_plot_id === plot.checked_plot_id),
         })),
       }));
       state.pending = false;
@@ -78,16 +78,16 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
   return runner;
 }
 
-export function initialFormSelectionNotice(initialSelection) {
+export function initialPlotSelectionNotice(initialSelection) {
   if (initialSelection.refusals.some((refusal) => refusal.origin === "gallery-handoff")) {
-    return "The Gallery Form handoff was stale or substituted and was not selected.";
+    return "The Gallery Plot handoff was stale or substituted and was not selected.";
   }
   const notices = [];
   if (initialSelection.refusals.length > 0) {
-    notices.push(`${initialSelection.refusals.length} stale or over-capacity restored Form selection(s) were refused.`);
+    notices.push(`${initialSelection.refusals.length} stale or over-capacity restored Plot selection(s) were refused.`);
   }
   if (initialSelection.acceptedHandoff) {
-    notices.push(`${initialSelection.acceptedHandoff.title} was revalidated and preselected from Gallery. Add more ordinary forms or review this workload; no Body has been born.`);
+    notices.push(`${initialSelection.acceptedHandoff.title} was revalidated and preselected from Gallery. Add more ordinary plots or review this workload; no Body has been born.`);
   }
   return notices.length === 0 ? null : notices.join(" ");
 }
@@ -107,11 +107,11 @@ function applyDraftSnapshot(state, controls, snapshot) {
   state.draft = snapshot;
   state.friendlyName = snapshot.friendly_name;
   state.namingSystem = snapshot.naming_system;
-  state.initialForms = snapshot.selected.map((identity) => {
-    const form = controls.inventory.forms.find((candidate) => candidate.source_document_id === identity.source_document_id
-      && candidate.checked_form_id === identity.checked_form_id);
-    if (!form) throw new Error("Crèche draft returned an unknown Form identity");
-    return form;
+  state.initialPlots = snapshot.selected.map((identity) => {
+    const plot = controls.inventory.plots.find((candidate) => candidate.source_document_id === identity.source_document_id
+      && candidate.checked_plot_id === identity.checked_plot_id);
+    if (!plot) throw new Error("Crèche draft returned an unknown Plot identity");
+    return plot;
   });
 }
 
@@ -133,9 +133,9 @@ function presentBirthControls(runner, state, controls) {
             value: decoder.decode(event.value),
           });
           applyDraftSnapshot(state, controls, snapshot);
-          if (event.action.startsWith("creche.form.")) {
+          if (event.action.startsWith("creche.plot.")) {
             state.review = null;
-            onSelection(state.initialForms);
+            onSelection(state.initialPlots);
           }
           if (snapshot.birth_requested) { onBirth(); return; }
           state.status = "Give it a name. Choose what it wakes with.";
@@ -159,10 +159,10 @@ function presentBirthControls(runner, state, controls) {
     actions: [{ id: "workload.review", event: "activate" }],
     nodes: [
       { parent: null, component: "stack", action: null, key: "birth-source", text: "" },
-      { parent: 0, component: "form-field", action: null, key: "form-source-field", text: "" },
-      { parent: 1, component: "field-label", action: null, key: "form-source-label", text: "Selected Conduit Form source" },
-      { parent: 1, component: "textarea", action: null, key: listingId, text: "Selected Conduit Form source", value: selectedCanonicalSource(state.initialForms), valueCapacity: 65_536 },
-      { parent: 1, component: "field-help", action: null, key: "form-source-help", text: "The exact source of the selected forms." },
+      { parent: 0, component: "form-field", action: null, key: "plot-source-field", text: "" },
+      { parent: 1, component: "field-label", action: null, key: "plot-source-label", text: "Selected Conduit Plot source" },
+      { parent: 1, component: "textarea", action: null, key: listingId, text: "Selected Conduit Plot source", value: selectedCanonicalSource(state.initialPlots), valueCapacity: 65_536 },
+      { parent: 1, component: "field-help", action: null, key: "plot-source-help", text: "The exact source of the selected plots." },
       { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
       { parent: 5, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
       { parent: 5, component: "definition", action: null, key: "review-basis", text: "Review basis", value: state.review
@@ -193,12 +193,12 @@ export function birthFeedbackNodes(message, outcome) {
   ];
 }
 
-export function selectedCanonicalSource(forms) {
-  return forms.map((form) => form.source.trimEnd()).join("\n\n");
+export function selectedCanonicalSource(plots) {
+  return plots.map((plot) => plot.source.trimEnd()).join("\n\n");
 }
 
 function combinedKinds(state) {
-  const kinds = [...new Set(state.initialForms.flatMap((form) => form.required_kinds))].sort();
+  const kinds = [...new Set(state.initialPlots.flatMap((plot) => plot.required_kinds))].sort();
   return kinds.join(", ") || "none (idle Body)";
 }
 
@@ -208,10 +208,10 @@ function review(runner, host, state, controls) {
       host.runtime,
       host.hostId,
       host.bootId,
-      selectedReviewedSource(state.inventorySource, state.initialForms),
-      state.initialForms,
+      selectedReviewedSource(state.inventorySource, state.initialPlots),
+      state.initialPlots,
     );
-    state.status = `Ready to birth with ${state.initialForms.length} Form(s).`;
+    state.status = `Ready to birth with ${state.initialPlots.length} Plot(s).`;
     state.outcome = "success-status";
   } catch (error) {
     state.review = null;
@@ -223,14 +223,14 @@ function review(runner, host, state, controls) {
 
 function birth(runner, host, state, sequence, onBodyChanged, presentationOptions) {
   const api = host.runtime;
-  const sourceBytes = encoder.encode(selectedReviewedSource(state.inventorySource, state.initialForms));
+  const sourceBytes = encoder.encode(selectedReviewedSource(state.inventorySource, state.initialPlots));
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
   const nameBytes = encoder.encode(state.friendlyName.trim());
-  const formsBytes = encoder.encode(encodedFormSelection(state.initialForms));
+  const formsBytes = encoder.encode(encodedPlotSelection(state.initialPlots));
   const total = hostBytes.length + bootBytes.length + nameBytes.length + formsBytes.length + sourceBytes.length;
   if (total > api.conduit_creche_input_capacity()) {
-    state.status = "The form selection and exact host identities exceed the admitted BIRTH input bound.";
+    state.status = "The plot selection and exact host identities exceed the admitted BIRTH input bound.";
     state.outcome = "failure-status";
     presentBirthControls(runner, state, presentationOptions);
     return;
@@ -289,19 +289,19 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   runner.dataset.birthSignId = receipt.birth_sign_id;
   state.terminal = true;
   state.friendlyName = receipt.friendly_name;
-  state.initialForms = receipt.initial_forms.map((form) => {
-    const current = presentationOptions.inventory.forms.find((candidate) => candidate.name === form.name
-      && candidate.source_document_id === form.source_document_id
-      && candidate.checked_form_id === form.checked_form_id);
-    if (!current) throw new Error(`Body receipt carries stale initial Form identity ${JSON.stringify(form.name)}`);
+  state.initialPlots = receipt.initial_plots.map((plot) => {
+    const current = presentationOptions.inventory.plots.find((candidate) => candidate.name === plot.name
+      && candidate.source_document_id === plot.source_document_id
+      && candidate.checked_plot_id === plot.checked_plot_id);
+    if (!current) throw new Error(`Body receipt carries stale initial Plot identity ${JSON.stringify(plot.name)}`);
     return current;
   });
-  runner.querySelector(".initial-forms").textContent = `${receipt.initial_forms.length} active`;
+  runner.querySelector(".initial-plots").textContent = `${receipt.initial_plots.length} active`;
   runner.querySelector(".body-id").textContent = receipt.body_id;
   runner.querySelector(".body-state").textContent = receipt.state;
   state.status = retained
     ? "Same LULLED Body retained — Crèche presentation controls did not recreate it."
-    : `Born — ${receipt.initial_forms.length} checked form(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
+    : `Born — ${receipt.initial_plots.length} checked plot(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
   state.outcome = "success-status";
   if (!retained) presentationOptions.onSelection(null);
   presentBirthControls(runner, state, presentationOptions);
@@ -311,10 +311,10 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     nodes: [
       { parent: null, component: "stack", action: null, key: "born", text: "" },
       { parent: 0, component: "heading", action: null, key: "born-heading", text: `${receipt.friendly_name} is born` },
-      { parent: 0, component: "paragraph", action: null, key: "born-forms", text: state.initialForms.length
-        ? `${state.initialForms.length} Form${state.initialForms.length === 1 ? "" : "s"} included.`
-        : "Your body is ready for Forms whenever you are." },
-      ...state.initialForms.map((form, index) => ({ parent: 0, component: "paragraph", action: null, key: `born-form-${index}`, text: form.title })),
+      { parent: 0, component: "paragraph", action: null, key: "born-plots", text: state.initialPlots.length
+        ? `${state.initialPlots.length} Plot${state.initialPlots.length === 1 ? "" : "s"} included.`
+        : "Your body is ready for Plots whenever you are." },
+      ...state.initialPlots.map((plot, index) => ({ parent: 0, component: "paragraph", action: null, key: `born-plot-${index}`, text: plot.title })),
       { parent: 0, component: "paragraph", action: null, key: "born-state", text: receipt.here_part_id
         ? "This body has a host. Continue to its host options." : "Give it a host to continue." },
       { parent: 0, component: "button", action: 0, key: "born-continue", text: "Continue on this host" },
@@ -330,7 +330,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   }
   const identities = [
     ["Friendly name", receipt.friendly_name],
-    ["Initial Forms", receipt.initial_forms.map((form) => form.name).join(", ") || "none"],
+    ["Initial Plots", receipt.initial_plots.map((plot) => plot.name).join(", ") || "none"],
     ["BIRTH Sign", receipt.birth_sign_id],
     ["Body", receipt.body_id],
     ["Here Part", receipt.here_part_id ?? "none yet"],

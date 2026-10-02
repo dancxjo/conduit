@@ -4,11 +4,11 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal, BOOL_INFO_ID, UNIT_INFO_ID,
 };
-use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
+use conduit_plot::{KindProjection, ProfileCatalog};
 
 const KIND: &str = "test/timing-bool-sink";
 const REVISION: &str = "conduit-test/timing-bool-sink@1";

@@ -84,7 +84,7 @@ pub enum AcousticEmergencyDecision {
 
 /// Fixed-lifetime, one-shot acoustic authority path.
 ///
-/// This type has no Form, Plan, Play, transcript, model, Wake, grant, or resume
+/// This type has no Plot, Plan, Play, transcript, model, Wake, grant, or resume
 /// input. Replacing the microphone provider requires constructing a fresh
 /// adapter against current host truth.
 pub struct AcousticEmergencyAdapter {

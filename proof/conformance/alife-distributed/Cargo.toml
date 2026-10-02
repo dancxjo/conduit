@@ -7,5 +7,5 @@ publish = false
 [dependencies]
 conduit-alife = { path = "../../../semantics/alife" }
 conduit-core = { path = "../../../architecture/core" }
-conduit-form = { path = "../../../architecture/form" }
+conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }

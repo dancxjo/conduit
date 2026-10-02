@@ -5,7 +5,7 @@ use conduit_body::{
     MAX_CANDIDATE_TOTAL_BYTES, MAX_INGRESS_REFUSALS,
 };
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
+    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedPlotId,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
     KindIdentity, LinkBindingId, OfferGeneration, SignId, SourceDocumentId, PROTOCOL_VERSION,
 };
@@ -13,7 +13,7 @@ use conduit_core::{
 fn body() -> Body {
     Body::born(
         SourceDocumentId::from("source/candidates"),
-        CheckedFormId::from("checked/candidates"),
+        CheckedPlotId::from("checked/candidates"),
         1,
         SignId::from("sign/body-born"),
     )

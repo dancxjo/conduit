@@ -8,7 +8,7 @@ The boundary is:
 
 ```text
 portable planning inputs
-  checked form + target host advertisements + placement/policy
+  checked plot + target host advertisements + placement/policy
   + base availability + authority grants + observed link bindings
                               |
                               v

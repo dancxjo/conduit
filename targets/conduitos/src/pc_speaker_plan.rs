@@ -25,7 +25,7 @@ const TONE_SOURCE_REVISION: &str = "conduitos.fixture/tone-source@1";
 const TONE_SOURCE_PROFILE: &str = "conduitos/proof-tone-source@1";
 const TONE_SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/tone-source@1";
 pub const TONE_SOURCE_HOST_CALL: &str = "conduitos.fixture/tone-sequence-step@1";
-pub const PC_SPEAKER_FORM_SOURCE: &str = "form conduitos-tone {\n    source: conduitos-fixture/tone-source\n    speaker: sound/tone-play\n    source >> speaker.tone\n}\n";
+pub const PC_SPEAKER_PLOT_SOURCE: &str = "plot conduitos-tone {\n    source: conduitos-fixture/tone-source\n    speaker: sound/tone-play\n    source >> speaker.tone\n}\n";
 
 pub struct PreparedPcSpeakerPlay {
     pub advertisement: HostAdvertisement,
@@ -43,12 +43,12 @@ pub fn prepare(
     }
     let mut advertisement = advertisement(identities, offer, build_id)?;
     advertisement.capabilities.push(tone_source_offer(build_id));
-    let form = checked_expanded_form()?;
+    let plot = checked_expanded_plot()?;
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(&form, &hosts)
+    let placements = default_expanded_placements(&plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -172,38 +172,38 @@ pub fn validate(
     Ok(())
 }
 
-fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
-    checked_expanded(PC_SPEAKER_FORM_SOURCE, "conduitos-tone")
+fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, PreparationError> {
+    checked_expanded(PC_SPEAKER_PLOT_SOURCE, "conduitos-tone")
 }
 
 fn checked_expanded(
     source: &str,
-    form_name: &str,
-) -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
-    let syntax = conduit_form::parse_syntax_document(source);
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    plot_name: &str,
+) -> Result<conduit_plot::ExpandedCanonicalPlot, PreparationError> {
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: TONE_SOURCE_KIND.into(),
             startup_parameters: Vec::new(),
         })
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     profile
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: kind_id(TONE_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(TONE_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: tone_source_offer("catalog").outputs,
             configuration: Default::default(),
         })
-        .map_err(|_| PreparationError::FormRejected)?;
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|_| PreparationError::FormRejected)?;
-    conduit_form::expand_canonical_form(&checked, form_name, &profile)
-        .map_err(|_| PreparationError::FormRejected)
+        .map_err(|_| PreparationError::PlotRejected)?;
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|_| PreparationError::PlotRejected)?;
+    conduit_plot::expand_canonical_plot(&checked, plot_name, &profile)
+        .map_err(|_| PreparationError::PlotRejected)
 }
 
 fn tone_source_offer(build_id: &str) -> CapabilityOffer {
@@ -331,14 +331,14 @@ pub(crate) mod tests {
             Err(PreparationError::OfferMismatch)
         );
 
-        let syntax = conduit_form::parse_syntax_document(
-            "form invalid (\n >> audio: audio/pcm-frame@1\n) {\n speaker: sound/tone-play\n audio >> speaker.tone\n}\n",
+        let syntax = conduit_plot::parse_syntax_document(
+            "plot invalid (\n >> audio: audio/pcm-frame@1\n) {\n speaker: sound/tone-play\n audio >> speaker.tone\n}\n",
         );
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile).unwrap();
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        assert!(conduit_form::expand_canonical_form(&checked, "invalid", &profile).is_err());
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        assert!(conduit_plot::expand_canonical_plot(&checked, "invalid", &profile).is_err());
         assert!(
             prepared
                 .advertisement
@@ -353,8 +353,8 @@ pub(crate) mod tests {
     #[test]
     fn exclusive_base_and_operation_resources_refuse_a_second_tone_sink() {
         let (identities, offer) = fixture();
-        let form = checked_expanded(
-            "form conflict {\n left-source: conduitos-fixture/tone-source\n right-source: conduitos-fixture/tone-source\n left: sound/tone-play\n right: sound/tone-play\n left-source >> left.tone\n right-source >> right.tone\n}\n",
+        let plot = checked_expanded(
+            "plot conflict {\n left-source: conduitos-fixture/tone-source\n right-source: conduitos-fixture/tone-source\n left: sound/tone-play\n right: sound/tone-play\n left-source >> left.tone\n right-source >> right.tone\n}\n",
             "conflict",
         )
         .unwrap();
@@ -362,13 +362,13 @@ pub(crate) mod tests {
         let mut source = tone_source_offer("build");
         source.limits.max_active_instances = 2;
         host.capabilities.push(source);
-        assert!(default_expanded_placements(&form, &[host]).is_err());
+        assert!(default_expanded_placements(&plot, &[host]).is_err());
     }
 
     #[test]
     fn event_capacity_exhaustion_refuses_before_play() {
         let (identities, offer) = fixture();
-        let form = checked_expanded_form().unwrap();
+        let plot = checked_expanded_plot().unwrap();
         let mut host = advertisement(&identities, &offer, "build").unwrap();
         host.capabilities.push(tone_source_offer("build"));
         let event_pool = host
@@ -378,10 +378,10 @@ pub(crate) mod tests {
             .unwrap();
         event_pool.capacity_units = 7;
         let hosts = [host];
-        let placements = default_expanded_placements(&form, &hosts).unwrap();
+        let placements = default_expanded_placements(&plot, &hosts).unwrap();
         assert!(
             plan_expanded_canonical_with_options(
-                &form,
+                &plot,
                 &hosts,
                 &placements,
                 &[BaseImplementationId::from("conduit.base/local@1")],

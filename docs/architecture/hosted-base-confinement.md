@@ -72,7 +72,7 @@ The `isolated-file-base` feature builds the separately installable
 `conduit-isolated-copy-base` provider. A target must explicitly construct an
 `IsolatedFileHost` with that executable, base instance identity, and nonzero
 provider generation; `StdHostComposition::minimal()` and the ordinary host do
-not install it. Planning keeps the canonical `file/copy` form and kind while
+not install it. Planning keeps the canonical `file/copy` plot and kind while
 selecting `std/isolated-file-copy@1`.
 
 The provider receives only the exact admitted source and destination paths at

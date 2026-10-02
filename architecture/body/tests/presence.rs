@@ -5,7 +5,7 @@ use conduit_body::{
 };
 
 use conduit_core::{
-    BootId, CheckedFormId, HostId, LinkBindingId, OfferGeneration, SignId, SourceDocumentId,
+    BootId, CheckedPlotId, HostId, LinkBindingId, OfferGeneration, SignId, SourceDocumentId,
 };
 
 fn clock(label: &str) -> HostPresenceClock {
@@ -21,7 +21,7 @@ fn clock(label: &str) -> HostPresenceClock {
 fn admitted() -> (BodyMembership, PartId) {
     let body = Body::born(
         SourceDocumentId::from("source/presence"),
-        CheckedFormId::from("checked/presence"),
+        CheckedPlotId::from("checked/presence"),
         1,
         SignId::from("sign/body-born"),
     )

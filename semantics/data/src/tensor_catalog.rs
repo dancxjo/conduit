@@ -1,11 +1,11 @@
-//! Ordinary form-facing tensor port contracts.
+//! Ordinary plot-facing tensor port contracts.
 
 use alloc::{
     string::{String, ToString},
     vec,
 };
 use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::TENSOR_INFO_ID;
 

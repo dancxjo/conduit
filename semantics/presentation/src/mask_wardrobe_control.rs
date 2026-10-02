@@ -1,20 +1,20 @@
-//! One Body-scoped semantic action seam for ordinary Forms worn as Masks.
+//! One Body-scoped semantic action seam for ordinary Plots worn as Masks.
 
 use alloc::vec::Vec;
 use conduit_body::{BodyId, BodyPlan, WakeId};
-use conduit_core::{FormIdentity, PlanId};
+use conduit_core::{PlanId, PlotIdentity};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AdmittedMaskFormRoutes, BodyMaskWardrobe, MaskReconciliation, MaskShowDisposition,
-    MaskWardrobe, MaskWardrobeError, SelectedMaskFormRoute,
+    AdmittedMaskPlotRoutes, BodyMaskWardrobe, MaskReconciliation, MaskShowDisposition,
+    MaskWardrobe, MaskWardrobeError, SelectedMaskPlotRoute,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaskWardrobeAction {
-    Wear(FormIdentity),
-    Doff(FormIdentity),
-    Prefer(Vec<FormIdentity>),
+    Wear(PlotIdentity),
+    Doff(PlotIdentity),
+    Prefer(Vec<PlotIdentity>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,7 +32,7 @@ pub struct MaskWardrobeControlEvidence {
 pub struct MaskWardrobeControl {
     pub scoped_wardrobe: BodyMaskWardrobe,
     pub active_plan_id: PlanId,
-    pub selected: Option<SelectedMaskFormRoute>,
+    pub selected: Option<SelectedMaskPlotRoute>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,8 +48,8 @@ impl MaskWardrobeControl {
         body_id: &BodyId,
         scoped_wardrobe: BodyMaskWardrobe,
         active_plan: &BodyPlan,
-        routes: &AdmittedMaskFormRoutes,
-        selected: Option<SelectedMaskFormRoute>,
+        routes: &AdmittedMaskPlotRoutes,
+        selected: Option<SelectedMaskPlotRoute>,
     ) -> Result<Self, MaskWardrobeControlError> {
         if scoped_wardrobe.body_id != *body_id || active_plan.body_id != *body_id {
             return Err(MaskWardrobeControlError::WrongBody);
@@ -72,7 +72,7 @@ impl MaskWardrobeControl {
         &mut self,
         basis_revision: u64,
         action: MaskWardrobeAction,
-        routes: &AdmittedMaskFormRoutes,
+        routes: &AdmittedMaskPlotRoutes,
     ) -> Result<MaskWardrobeControlEvidence, MaskWardrobeControlError> {
         if routes.plan_id() != &self.active_plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
@@ -114,7 +114,7 @@ impl MaskWardrobeControl {
     /// Reconcile current route availability without changing wardrobe policy.
     pub fn reconcile_routes(
         &mut self,
-        routes: &AdmittedMaskFormRoutes,
+        routes: &AdmittedMaskPlotRoutes,
     ) -> Result<MaskReconciliation, MaskWardrobeControlError> {
         if routes.plan_id() != &self.active_plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
@@ -136,7 +136,7 @@ impl MaskWardrobeControl {
         &mut self,
         basis_plan_id: &PlanId,
         replacement_plan: &BodyPlan,
-        routes: &AdmittedMaskFormRoutes,
+        routes: &AdmittedMaskPlotRoutes,
     ) -> Result<MaskReconciliation, MaskWardrobeControlError> {
         if basis_plan_id != &self.active_plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
@@ -161,7 +161,7 @@ impl MaskWardrobeControl {
     }
 }
 
-fn selection(disposition: &MaskShowDisposition) -> Option<SelectedMaskFormRoute> {
+fn selection(disposition: &MaskShowDisposition) -> Option<SelectedMaskPlotRoute> {
     match disposition {
         MaskShowDisposition::Retain(selected)
         | MaskShowDisposition::SelectSealed { selected, .. } => Some(selected.clone()),

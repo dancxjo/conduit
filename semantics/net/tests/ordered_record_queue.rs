@@ -1,11 +1,11 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 use conduit_core::{kind_id, StructuredInfoType, StructuredInfoValue};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_net::*;
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_net::*;
 
 fn frame(text: &[u8]) -> Vec<u8> {
     let value = StructuredInfoValue::leaf(
@@ -115,15 +115,15 @@ fn closing_preserves_queued_records_until_fifo_drain_then_becomes_terminal() {
 }
 
 #[test]
-fn ordinary_queue_is_reapplied_under_a_reusable_closing_flow_form() {
+fn ordinary_queue_is_reapplied_under_a_reusable_closing_flow_plot() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
     install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/ordered-record-send-queue/main.conduit");
+    let source = include_str!("../../../plots/ordered-record-send-queue/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "ordered-record-send-queue", &profile)
+        expand_canonical_plot_for_authoring(&checked, "ordered-record-send-queue", &profile)
             .unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 1);

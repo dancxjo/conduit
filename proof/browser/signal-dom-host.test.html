@@ -31,8 +31,8 @@ const encodeSignal = (sequence, level) => {
 const effect = (host, sequence) => ({
   kind: 2,
   sourceDocumentId: `source/${host}`,
-  checkedFormId: `checked/${host}`,
-  expandedFormId: `expanded/${host}`,
+  checkedPlotId: `checked/${host}`,
+  expandedPlotId: `expanded/${host}`,
   planId: `plan/${host}`,
   fragmentId: `fragment/${host}`,
   hostId: `browser-host-${host}`,
@@ -103,8 +103,8 @@ try {
   const hostBFirst = runtimeResults[1].presentations[0];
   assert(
     hostAFirst.sourceDocumentId === hostBFirst.sourceDocumentId &&
-      hostAFirst.checkedFormId === hostBFirst.checkedFormId &&
-      hostAFirst.expandedFormId === hostBFirst.expandedFormId,
+      hostAFirst.checkedPlotId === hostBFirst.checkedPlotId &&
+      hostAFirst.expandedPlotId === hostBFirst.expandedPlotId,
     "unchanged source, checked, and expanded identities agree across hosts",
   );
   assert(

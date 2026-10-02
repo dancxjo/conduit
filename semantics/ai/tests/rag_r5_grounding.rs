@@ -16,7 +16,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalRelation,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 const ANSWER: &[u8] = b"Recent summary is unsafe; project origin is April.";
 

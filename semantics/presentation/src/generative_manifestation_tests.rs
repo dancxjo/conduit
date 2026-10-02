@@ -15,8 +15,8 @@ use conduit_core::{
     OfferGeneration, PlacementId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, PROTOCOL_VERSION,
 };
-use conduit_form::ProfileCatalog;
 use conduit_planner::{default_placements, plan};
+use conduit_plot::ProfileCatalog;
 
 fn request() -> GenerativePresenterRequest {
     let reference = BoundedResourceRef {
@@ -40,8 +40,8 @@ fn request() -> GenerativePresenterRequest {
             body_id: None,
             wake_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: vec![],
@@ -232,8 +232,8 @@ fn plan_for_kind(kind_identity: &str) -> (conduit_core::Plan, PlacementId) {
         .unwrap();
     let mut profiles = ProfileCatalog::new();
     profiles.insert_kind(validator.clone()).unwrap();
-    let source = alloc::format!("form validation {{\n    validator: {kind_identity}\n}}\n");
-    let checked = conduit_form::parse(&source, &profiles).unwrap();
+    let source = alloc::format!("plot validation {{\n    validator: {kind_identity}\n}}\n");
+    let checked = conduit_plot::parse(&source, &profiles).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/validator"),
@@ -591,8 +591,8 @@ fn temporal_reference_and_fact_correlations_are_exact() {
             body_id: None,
             wake_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: vec![],

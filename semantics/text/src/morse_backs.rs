@@ -1,11 +1,11 @@
-//! Reviewed finite reusable Form Backs for both Morse directions.
+//! Reviewed finite reusable Plot Backs for both Morse directions.
 
-use conduit_form::{
+use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, ProfileCatalog,
     StartupCatalog,
 };
 
-const TEXT_MORSE_BACK: &str = r#"form text/morse (
+const TEXT_MORSE_BACK: &str = r#"plot text/morse (
     unit-ms: Count = 120
     text: value/text >> pattern: value/morse-pattern@1
 ) {
@@ -15,7 +15,7 @@ const TEXT_MORSE_BACK: &str = r#"form text/morse (
 }
 "#;
 
-const TEXT_MORSE_SYMBOLS_BACK: &str = r#"form text/morse-symbols (
+const TEXT_MORSE_SYMBOLS_BACK: &str = r#"plot text/morse-symbols (
     text: value/text >> symbols: value/morse-symbols@1
 ) {
     characters: text/characters
@@ -26,7 +26,7 @@ const TEXT_MORSE_SYMBOLS_BACK: &str = r#"form text/morse-symbols (
 }
 "#;
 
-const MORSE_TEXT_BACK: &str = r#"form morse/text (
+const MORSE_TEXT_BACK: &str = r#"plot morse/text (
     pattern: value/morse-pattern@1 >> text: value/text
 ) {
     symbols: morse/pattern-to-symbols
@@ -40,7 +40,7 @@ pub fn install_morse_backs(
     profile: &ProfileCatalog,
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), alloc::string::String> {
-    for (kind, form_name, source) in [
+    for (kind, plot_name, source) in [
         (crate::TEXT_MORSE_KIND, "text/morse", TEXT_MORSE_BACK),
         (
             crate::TEXT_MORSE_SYMBOLS_KIND,
@@ -50,7 +50,7 @@ pub fn install_morse_backs(
         (crate::MORSE_TEXT_KIND, "morse/text", MORSE_TEXT_BACK),
     ] {
         let checked = check_syntax_document(&parse_syntax_document(source), startup)
-            .map_err(|error| alloc::format!("check {form_name} Back: {error:?}"))?;
+            .map_err(|error| alloc::format!("check {plot_name} Back: {error:?}"))?;
         let definition = profile
             .canonical_kind(&conduit_core::kind_id(kind))
             .ok_or_else(|| alloc::format!("missing {kind} definition"))?;
@@ -61,8 +61,8 @@ pub fn install_morse_backs(
             .canonical_startup_parameters(signature)
             .map_err(|error| alloc::format!("canonicalize {kind} startup Front: {error:?}"))?;
         backs
-            .insert_with_startup(definition, &canonical_startup, &checked, form_name)
-            .map_err(|error| alloc::format!("install {form_name} Back: {error:?}"))?;
+            .insert_with_startup(definition, &canonical_startup, &checked, plot_name)
+            .map_err(|error| alloc::format!("install {plot_name} Back: {error:?}"))?;
     }
     Ok(())
 }
@@ -70,7 +70,7 @@ pub fn install_morse_backs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_form::CanonicalBackError;
+    use conduit_plot::CanonicalBackError;
 
     #[test]
     fn text_morse_expands_through_a_nested_back_to_five_typed_leaves() {
@@ -80,14 +80,14 @@ mod tests {
         crate::install_morse_catalogs(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "form main (\n pattern: value/morse-pattern@1 >>\n) {\n source: text/literal(\"SOS\")\n morse: text/morse(80)\n source >> morse >> pattern\n}\n",
+                "plot main (\n pattern: value/morse-pattern@1 >>\n) {\n source: text/literal(\"SOS\")\n morse: text/morse(80)\n source >> morse >> pattern\n}\n",
             ),
             &startup,
         )
         .unwrap();
         let mut backs = CanonicalBackCatalog::new();
         install_morse_backs(&startup, &profile, &mut backs).unwrap();
-        let expanded = conduit_form::expand_canonical_form_for_authoring_with_backs(
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
             &checked, "main", &profile, &backs,
         )
         .unwrap()
@@ -153,7 +153,7 @@ mod tests {
         let mut profile = ProfileCatalog::new();
         crate::install_text_catalogs(&mut startup, &mut profile).unwrap();
         crate::install_morse_catalogs(&mut startup, &mut profile).unwrap();
-        let cyclic_source = r#"form text/morse-symbols (
+        let cyclic_source = r#"plot text/morse-symbols (
     text: value/text >> symbols: value/morse-symbols@1
 ) {
     again: text/morse-symbols
@@ -176,7 +176,7 @@ mod tests {
                 crate::TEXT_MORSE_SYMBOLS_KIND,
             )
             .unwrap();
-        let caller_source = r#"form main (
+        let caller_source = r#"plot main (
     symbols: value/morse-symbols@1 >>
 ) {
     source: text/literal("SOS")
@@ -186,11 +186,11 @@ mod tests {
 "#;
         let caller = check_syntax_document(&parse_syntax_document(caller_source), &startup)
             .expect("caller checks");
-        let error = conduit_form::expand_canonical_form_for_authoring_with_backs(
+        let error = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
             &caller, "main", &profile, &backs,
         )
         .unwrap_err();
         assert_eq!(error.code, "CND-FRM-035");
-        assert!(error.message.contains("recursive form expansion cycle"));
+        assert!(error.message.contains("recursive plot expansion cycle"));
     }
 }

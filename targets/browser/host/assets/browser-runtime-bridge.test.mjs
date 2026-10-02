@@ -33,13 +33,13 @@ function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointe
     conduit_browser_body_input_ptr: () => 0,
     conduit_browser_body_input_capacity: () => 1024,
     conduit_browser_body_start: () => 0,
-    conduit_browser_form_input_ptr: () => 0,
-    conduit_browser_form_input_capacity: () => 1024,
-    conduit_browser_form_output_ptr: () => 0,
-    conduit_browser_form_output_len: () => state.bodyOutputLength,
-    conduit_browser_form_acknowledge_cancellation: () => 0,
-    conduit_browser_form_complete_effect: () => 0,
-    conduit_browser_form_refuse_effect: () => 0,
+    conduit_browser_plot_input_ptr: () => 0,
+    conduit_browser_plot_input_capacity: () => 1024,
+    conduit_browser_plot_output_ptr: () => 0,
+    conduit_browser_plot_output_len: () => state.bodyOutputLength,
+    conduit_browser_plot_acknowledge_cancellation: () => 0,
+    conduit_browser_plot_complete_effect: () => 0,
+    conduit_browser_plot_refuse_effect: () => 0,
     conduit_browser_projection_input_ptr: () => 4096,
     conduit_browser_projection_input_capacity: () => 1024,
     conduit_browser_projection_output_ptr: () => 8192,
@@ -153,7 +153,7 @@ test("workspace binary request permits empty output", () => {
 
 test("Patchbay projection uses the product-neutral ABI and retires source bytes", () => {
   const api = runtime();
-  const expected = { schema: "conduit.patchbay/checked-form-projection@1", gears: [], cords: [] };
+  const expected = { schema: "conduit.patchbay/checked-plot-projection@1", gears: [], cords: [] };
   let invocation;
   api.conduit_browser_project_patchbay = (length, sequence) => {
     invocation = { length, sequence };
@@ -161,7 +161,7 @@ test("Patchbay projection uses the product-neutral ABI and retires source bytes"
     return 0;
   };
   const bridge = bindBrowserRuntimeBridge(api, { context: "Patchbay projection proof" });
-  const result = bridge.projectPatchbay("form clock {}", 7n);
+  const result = bridge.projectPatchbay("plot clock {}", 7n);
   assert.deepEqual(result.outputJson, expected);
   assert.equal(invocation.sequence, 7n);
   assert.deepEqual(
@@ -207,15 +207,15 @@ test("initial workload review preserves its four exact fields and retires source
   api.conduit_creche_output_len = () => outputLength;
   api.conduit_creche_review_initial_workload = (...args) => {
     lengths = args;
-    const value = { schema: "conduit.creche/form-workload-review@1", requirements: { kinds: [] } };
+    const value = { schema: "conduit.creche/plot-workload-review@1", requirements: { kinds: [] } };
     const bytes = new TextEncoder().encode(JSON.stringify(value));
     new Uint8Array(api.memory.buffer, outputPointer, bytes.length).set(bytes);
     outputLength = bytes.length;
     return 0;
   };
-  const bridge = bindBrowserRuntimeBridge(api, { context: "Form review proof" });
-  const selected = [{ name: "clock", source_document_id: "sha256:source", checked_form_id: "sha256:checked" }];
-  const result = bridge.crecheReviewInitialWorkload({ host: "host/1", boot: "boot/1", initialForms: selected, source: "clock {}" });
+  const bridge = bindBrowserRuntimeBridge(api, { context: "Plot review proof" });
+  const selected = [{ name: "clock", source_document_id: "sha256:source", checked_plot_id: "sha256:checked" }];
+  const result = bridge.crecheReviewInitialWorkload({ host: "host/1", boot: "boot/1", initialPlots: selected, source: "clock {}" });
   assert.equal(lengths.length, 4);
   assert.deepEqual(result.outputJson.requirements.kinds, []);
   assert.deepEqual([...new Uint8Array(api.memory.buffer, inputPointer, lengths.reduce((sum, length) => sum + length, 0))],

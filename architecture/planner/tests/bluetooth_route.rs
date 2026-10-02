@@ -14,7 +14,7 @@ use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
 use conduit_signal_conformance::{triple, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS};
 
 fn plan_for_browser_line(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     browser_line: conduit_core::LineOffer,
 ) -> conduit_core::Plan {
     let exact = triple::exact_plan().unwrap();
@@ -59,7 +59,7 @@ fn plan_for_browser_line(
         vec![browser_line_id],
     )]);
     plan_with_options(
-        form,
+        plot,
         &[
             exact.source_advertisement,
             exact.browser_advertisement,
@@ -101,7 +101,7 @@ fn selected_browser_line(plan: &conduit_core::Plan) -> &conduit_core::AdmittedLi
 }
 
 #[test]
-fn loss_preserves_plan_and_fresh_planning_selects_a_replacement_for_the_same_form() {
+fn loss_preserves_plan_and_fresh_planning_selects_a_replacement_for_the_same_plot() {
     let exact = triple::exact_plan().unwrap();
     let websocket = exact.browser_line.clone();
     let observation = BluetoothLineObservation {
@@ -140,14 +140,14 @@ fn loss_preserves_plan_and_fresh_planning_selects_a_replacement_for_the_same_for
         SignId::from("bluetooth/line-a/ready"),
     )
     .unwrap();
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../proof/fixtures/forms/triple-signal.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../proof/fixtures/plots/triple-signal.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .unwrap();
 
-    let plan_a = plan_for_browser_line(&form, bluetooth.clone());
+    let plan_a = plan_for_browser_line(&plot, bluetooth.clone());
     let immutable_a = plan_a.clone();
     let unavailable = bluetooth.availability_sign(
         LineAvailability::Unavailable,
@@ -160,14 +160,14 @@ fn loss_preserves_plan_and_fresh_planning_selects_a_replacement_for_the_same_for
         BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
     );
 
-    let plan_b = plan_for_browser_line(&form, websocket);
+    let plan_b = plan_for_browser_line(&plot, websocket);
     assert_ne!(plan_a.plan_id, plan_b.plan_id);
     assert_eq!(
         selected_browser_line(&plan_b).binding.base,
         BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
     );
     assert_eq!(
-        plan_a.checked_form_id, plan_b.checked_form_id,
+        plan_a.checked_plot_id, plan_b.checked_plot_id,
         "replacement planning preserves authored/checked meaning"
     );
 }

@@ -68,9 +68,9 @@ impl BodyPlanningSession {
         {
             return Err(StaleProposal);
         }
-        if self.current_plan().forms.iter().any(|form| {
-            form.plan.fragments.len() != 1
-                || form
+        if self.current_plan().plots.iter().any(|plot| {
+            plot.plan.fragments.len() != 1
+                || plot
                     .plan
                     .fragments
                     .iter()

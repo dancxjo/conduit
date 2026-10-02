@@ -3,7 +3,7 @@ use conduit_ai::{
     ContextRedundancyPolicy, ContextSelectionDisposition, SelectedContextCost,
     SelectedContextRationale,
 };
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn assert_round_trip<T>(value: T)
 where

@@ -1,12 +1,12 @@
 //! Reviewed presentation profiles select existing exact typed realizations in one body.
-use super::{initial_forms, session};
+use super::{initial_plots, session};
 
 fn bundle() -> String {
     serde_json::json!({
-        "schema": "conduit.creche/reviewed-form-bundle@1",
-        "forms": [
-            {"slug": "memory-lantern", "entry": "memory_lantern", "source": include_str!("../../../../../forms/memory-lantern/main.conduit")},
-            {"slug": "secret-knock", "entry": "secret-knock-demo", "presentation_profile": 3, "source": include_str!("../../../../../forms/secret-knock/main.conduit")}
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [
+            {"slug": "memory-lantern", "entry": "memory_lantern", "source": include_str!("../../../../../plots/memory-lantern/main.conduit")},
+            {"slug": "secret-knock", "entry": "secret-knock-demo", "presentation_profile": 3, "source": include_str!("../../../../../plots/secret-knock/main.conduit")}
         ]
     }).to_string()
 }
@@ -14,28 +14,28 @@ fn bundle() -> String {
 #[test]
 fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
     let source = serde_json::json!({
-        "schema": "conduit.creche/reviewed-form-bundle@1",
-        "forms": [{
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [{
             "slug": "pocket-theremin",
             "entry": "pocket-theremin",
             "presentation_profile": 1,
-            "source": include_str!("../../../../../forms/pocket-theremin/main.conduit"),
+            "source": include_str!("../../../../../plots/pocket-theremin/main.conduit"),
         }],
     })
     .to_string();
-    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
-    assert_eq!(inventory.forms.len(), 1);
-    assert!(!inventory.forms[0]
+    let inventory = initial_plots::reviewed_inventory(&source).unwrap();
+    assert_eq!(inventory.plots.len(), 1);
+    assert!(!inventory.plots[0]
         .required_kinds
         .contains(&"state/latest".to_owned()));
-    assert!(inventory.forms[0]
+    assert!(inventory.plots[0]
         .required_kinds
         .contains(&"audio/continuous-tone".to_owned()));
-    assert!(inventory.forms[0]
+    assert!(inventory.plots[0]
         .required_kinds
         .contains(&"audio/apply-gain".to_owned()));
     let host =
-        initial_forms::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
+        initial_plots::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
             .unwrap();
     assert!(!host
         .capabilities
@@ -46,17 +46,17 @@ fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
 #[test]
 fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
     let source = serde_json::json!({
-        "schema": "conduit.creche/reviewed-form-bundle@1",
-        "forms": [{
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [{
             "slug": "pocket-theremin",
             "entry": "phone-two-axis-controller",
             "presentation_profile": 1,
-            "source": include_str!("../../../../../forms/pocket-theremin/main.conduit"),
+            "source": include_str!("../../../../../plots/pocket-theremin/main.conduit"),
         }],
     })
     .to_string();
-    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
-    let required = &inventory.forms[0].required_kinds;
+    let inventory = initial_plots::reviewed_inventory(&source).unwrap();
+    let required = &inventory.plots[0].required_kinds;
     for kind in [
         "input/pointer-source",
         "math/map-normalized-distance",
@@ -65,14 +65,14 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
     ] {
         assert!(required.iter().any(|required| required == kind), "{kind}");
     }
-    let host = initial_forms::reviewed_browser_host(
+    let host = initial_plots::reviewed_browser_host(
         &source,
         "host/theremin".into(),
         "boot/theremin".into(),
     )
     .unwrap();
     for implementation in [
-        "browser/form-pointer-source@1",
+        "browser/plot-pointer-source@1",
         "browser/kernel-audio-tone@1",
         "browser/kernel-audio-apply-gain@1",
         "browser/kernel-map-distance-frequency@1",
@@ -100,18 +100,18 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
 #[test]
 fn typed_inventory_accepts_canonical_default_aliases() {
     let source = bundle();
-    let entries = initial_forms::reviewed_inventory(&source).unwrap();
+    let entries = initial_plots::reviewed_inventory(&source).unwrap();
     let selection: Vec<_> = entries
-        .forms
+        .plots
         .iter()
-        .map(|entry| initial_forms::InitialFormSelection {
+        .map(|entry| initial_plots::InitialPlotSelection {
             name: entry.name.clone(),
             source_document_id: entry.source_document_id.clone(),
-            checked_form_id: entry.checked_form_id.clone(),
+            checked_plot_id: entry.checked_plot_id.clone(),
         })
         .collect();
     let host =
-        initial_forms::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
+        initial_plots::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
             .unwrap();
     assert!(super::review::review(
         &source,
@@ -120,10 +120,10 @@ fn typed_inventory_accepts_canonical_default_aliases() {
         &crate::installed_browser::local_bases()
     )
     .is_ok());
-    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
-    assert_eq!(inventory.forms.len(), 2);
+    let inventory = initial_plots::reviewed_inventory(&source).unwrap();
+    assert_eq!(inventory.plots.len(), 2);
     assert!(inventory
-        .forms
+        .plots
         .iter()
         .all(|entry| !entry.required_kinds.is_empty()));
 }
@@ -132,14 +132,14 @@ fn typed_inventory_accepts_canonical_default_aliases() {
 fn text_and_pattern_presentations_plan_together_under_one_body() {
     session::clear_for_test();
     let source = bundle();
-    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
+    let inventory = initial_plots::reviewed_inventory(&source).unwrap();
     let selected: Vec<_> = inventory
-        .forms
+        .plots
         .iter()
-        .map(|form| initial_forms::InitialFormSelection {
-            name: form.name.clone(),
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
+        .map(|plot| initial_plots::InitialPlotSelection {
+            name: plot.name.clone(),
+            source_document_id: plot.source_document_id.clone(),
+            checked_plot_id: plot.checked_plot_id.clone(),
         })
         .collect();
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), 2260).unwrap();
@@ -153,16 +153,16 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
         interaction,
     )
     .unwrap();
-    assert_eq!(receipt.initial_forms.len(), 2);
-    #[cfg(feature = "form-runner")]
+    assert_eq!(receipt.initial_plots.len(), 2);
+    #[cfg(feature = "plot-runner")]
     {
-        let observed = super::initial_forms::reviewed_browser_host(
+        let observed = super::initial_plots::reviewed_browser_host(
             &source,
             "browser/typed-workset".into(),
             "boot/typed-workset".into(),
         )
         .unwrap();
-        let plans = super::workspace::plan_workspace_forms(
+        let plans = super::workspace::plan_workspace_plots(
             &session::biography().unwrap(),
             &source,
             &[observed],
@@ -206,8 +206,8 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
                 .is_err()
         );
 
-        for (plan, form) in plans.iter().zip(receipt.raw_body.workset.forms()) {
-            assert_eq!(&plan.form, form);
+        for (plan, plot) in plans.iter().zip(receipt.raw_body.workset.plots()) {
+            assert_eq!(&plan.plot, plot);
             assert!(plan
                 .plan
                 .fragments

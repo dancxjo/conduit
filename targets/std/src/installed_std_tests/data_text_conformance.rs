@@ -1,22 +1,22 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, ObservationKind, TerminalDisposition};
-use conduit_form::parse;
 use conduit_kernel::KernelEventKind;
+use conduit_plot::parse;
 use std::collections::BTreeMap;
 
 #[test]
 fn text_save_then_load_uses_one_shared_pool_and_no_play_allocations() {
     let mut host = host("data-text-host");
-    let form = parse(
-        "form data_text_round_trip {\n source: conduit-test/data-text-source\n save: data/save/text\n load: data/load/text\n save-recovery: conduit-test/data-save-terminal-recovery\n load-recovery: conduit-test/data-load-terminal-recovery\n sink: conduit-test/data-text-sink\n source.value >> save.value\n save.data >> load.data\n save.data >> save-recovery.success\n load.value >> sink.value\n load.value >> load-recovery.success\n save.data! >> save-recovery.terminal\n load.value! >> load-recovery.terminal\n}\n",
+    let plot = parse(
+        "plot data_text_round_trip {\n source: conduit-test/data-text-source\n save: data/save/text\n load: data/load/text\n save-recovery: conduit-test/data-save-terminal-recovery\n load-recovery: conduit-test/data-load-terminal-recovery\n sink: conduit-test/data-text-sink\n source.value >> save.value\n save.data >> load.data\n save.data >> save-recovery.success\n load.value >> sink.value\n load.value >> load-recovery.success\n save.data! >> save-recovery.terminal\n load.value! >> load-recovery.terminal\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("data Text round trip parses");
     let hosts = [host.advertisement().clone()];
     let placements =
-        conduit_planner::default_placements(&form, &hosts).expect("data Text placements resolve");
+        conduit_planner::default_placements(&plot, &hosts).expect("data Text placements resolve");
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -80,20 +80,20 @@ fn text_save_then_load_uses_one_shared_pool_and_no_play_allocations() {
 
 #[test]
 fn fifth_publication_is_one_exact_recovered_typed_terminal() {
-    let mut source = String::from("form data_text_pressure {\n");
+    let mut source = String::from("plot data_text_pressure {\n");
     for index in 0..5 {
         source.push_str(&format!(
             " source-{index}: conduit-test/data-text-source\n save-{index}: data/save/text\n recovery-{index}: conduit-test/data-save-terminal-recovery\n source-{index}.value >> save-{index}.value\n save-{index}.data >> recovery-{index}.success\n save-{index}.data! >> recovery-{index}.terminal\n"
         ));
     }
     source.push_str("}\n");
-    let form = parse(&source, &installed_std::test_catalog()).expect("pressure form parses");
+    let plot = parse(&source, &installed_std::test_catalog()).expect("pressure plot parses");
     let mut host = host("data-text-pressure-host");
     let hosts = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&form, &hosts)
+    let placements = conduit_planner::default_placements(&plot, &hosts)
         .expect("data Text pressure placements resolve");
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

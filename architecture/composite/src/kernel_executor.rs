@@ -1017,15 +1017,15 @@ fn execution(child: &HostId, reason: String) -> KernelCompositeError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{seal_plan, FormIdentity};
+    use conduit_core::{seal_plan, PlotIdentity};
 
     #[test]
     fn empty_composite_is_refused_before_any_child_is_admitted() {
         let plan = seal_plan(
-            FormIdentity {
+            PlotIdentity {
                 source_document_id: "source".into(),
-                checked_form_id: "checked".into(),
-                expanded_form_id: "expanded".into(),
+                checked_plot_id: "checked".into(),
+                expanded_plot_id: "expanded".into(),
             },
             vec![],
         );

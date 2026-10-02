@@ -31,8 +31,8 @@ struct KernelSign {
     boot_id: String,
     pipeline: String,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
+    checked_plot_id: String,
+    expanded_plot_id: String,
     plan_id: String,
     fragment_id: String,
     active_play_id: String,
@@ -59,7 +59,7 @@ struct IdentitySign {
     image_id: String,
     wake_source: String,
     wake_irq: u32,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
 }
 
 #[derive(Serialize)]
@@ -82,7 +82,7 @@ struct A3Proof {
     second_identity: IdentitySign,
     fresh_host_id: bool,
     fresh_boot_id: bool,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
     a4_observatory_patchbay_claimed: bool,
     native_patchbay_consumed: bool,
 }
@@ -158,7 +158,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         second_identity,
         fresh_host_id,
         fresh_boot_id,
-        a3_ordinary_form_claimed: true,
+        a3_ordinary_plot_claimed: true,
         a4_observatory_patchbay_claimed: true,
         native_patchbay_consumed: true,
     };
@@ -293,8 +293,8 @@ fn validate(
         || kernel.pipeline != "check-plan-lower-kernel"
         || [
             &kernel.source_document_id,
-            &kernel.checked_form_id,
-            &kernel.expanded_form_id,
+            &kernel.checked_plot_id,
+            &kernel.expanded_plot_id,
             &kernel.plan_id,
             &kernel.fragment_id,
             &kernel.active_play_id,
@@ -319,9 +319,9 @@ fn validate(
         || identity.image_id != format!("conduitos-image/{commit}/aarch64/v1")
         || identity.wake_source != "arm-generic-virtual-timer-ppi-27"
         || identity.wake_irq != 27
-        || !identity.a3_ordinary_form_claimed
+        || !identity.a3_ordinary_plot_claimed
     {
-        return Err(ConduitosError::refusal("stale-or-invalid-aarch64-a3-sign", "A3 Sign does not prove the exact portable form, Plan, Bases, wake, semantic result, and terminal Play"));
+        return Err(ConduitosError::refusal("stale-or-invalid-aarch64-a3-sign", "A3 Sign does not prove the exact portable plot, Plan, Bases, wake, semantic result, and terminal Play"));
     }
     conduit_observatory::validate_snapshot(observatory)
         .map_err(|error| ConduitosError::refusal("invalid-aarch64-observatory", error))?;
@@ -332,8 +332,8 @@ fn validate(
         || observatory.plays.len() != 1
         || observatory.plans[0].plan_id.as_str() != kernel.plan_id
         || observatory.plans[0].source_document_id.as_str() != kernel.source_document_id
-        || observatory.plans[0].checked_form_id.as_str() != kernel.checked_form_id
-        || observatory.plans[0].expanded_form_id.as_str() != kernel.expanded_form_id
+        || observatory.plans[0].checked_plot_id.as_str() != kernel.checked_plot_id
+        || observatory.plans[0].expanded_plot_id.as_str() != kernel.expanded_plot_id
         || observatory.plays[0].active_play_id.as_str() != kernel.active_play_id
         || observatory.plays[0].boot_id.as_str() != kernel.boot_id
         || observatory.sealed_boot_provenance.len() != 1
@@ -341,7 +341,7 @@ fn validate(
     {
         return Err(ConduitosError::refusal(
             "wrong-aarch64-observatory-correlation",
-            "ordinary snapshot does not correlate the exact AArch64 Form, Plan, Play, Bases, and boot provenance",
+            "ordinary snapshot does not correlate the exact AArch64 Plot, Plan, Play, Bases, and boot provenance",
         ));
     }
     Ok(())

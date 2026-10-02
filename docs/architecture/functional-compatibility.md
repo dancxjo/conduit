@@ -1,7 +1,7 @@
 # Callable compatibility and semantic realization
 
 **Status:** canonical architecture direction  
-**Applies to:** forms, catalog kinds, host offers, planning, reusable composition, and shared pools
+**Applies to:** plots, catalog kinds, host offers, planning, reusable composition, and shared pools
 **Related:** #507, #511, #512, #514, #515
 
 ## Two relations
@@ -28,7 +28,7 @@ This is exact equality, not a width/depth/variance subtyping lattice.
 
 ## What belongs to the fore
 
-The checked fore is the complete public callable boundary Conduit has admitted for the form or kind. Whatever the checked fore model contains participates in compatibility.
+The checked fore is the complete public callable boundary Conduit has admitted for the plot or kind. Whatever the checked fore model contains participates in compatibility.
 
 The public boundary includes:
 
@@ -59,14 +59,14 @@ to the semantic contract identity even when they do not alter the callable
 fore. Resource, authority, and Host Call requirements remain later exact
 admission gates; they do not define the operation's meaning.
 
-## forms and kinds share the same compatibility law
+## plots and kinds share the same compatibility law
 
-A reusable form and a host-offered primitive kind are not separate compatibility universes.
+A reusable plot and a host-offered primitive kind are not separate compatibility universes.
 
 Conceptually:
 
 ```conduit
-form loud (
+plot loud (
     input: Text >> output: Text
 ) {
     upper: text/upper
@@ -78,14 +78,14 @@ If another callable thing has the same checked fore as `loud`, it fits that
 boundary. It realizes `loud` only when it also declares the same semantic
 contract. It may still be:
 
-- another reusable form;
+- another reusable plot;
 - a standard catalog kind;
 - a host-native implementation exposed through a kind offer;
 - a browser/WASM realization;
 - a bounded embedded realization.
 
 The planner may choose among fore-compatible realizations with the same
-semantic contract without requiring their catalog/form names or Back identities
+semantic contract without requiring their catalog/plot names or Back identities
 to match.
 
 ## Planning
@@ -144,10 +144,10 @@ Proof and conformance sign remain attached to the exact implementation/artifact/
 Keep these identities separate:
 
 ```text
-source/form/catalog identity
+source/plot/catalog identity
 checked fore identity
 semantic contract identity
-expanded form identity
+expanded plot identity
 selected implementation/artifact identity
 plan identity
 play identity
@@ -168,7 +168,7 @@ Do not infer compatibility from declaration order, friendly names alone, or impl
 
 Catalog categories such as `text/`, `time/`, `flow/`, `web/`, or `llm/` remain useful organization and opt-in packaging boundaries.
 
-A host may advertise named kinds for discovery and signs, but planning eligibility is based on their checked fores plus other explicit planning requirements. Category prefixes and kind names do not form a nominal type hierarchy.
+A host may advertise named kinds for discovery and signs, but planning eligibility is based on their checked fores plus other explicit planning requirements. Category prefixes and kind names do not plot a nominal type hierarchy.
 
 A host compiled with an opt-in family still advertises only the exact realizations it can currently promise. Functional compatibility does not weaken runtime truth or finite limits.
 
@@ -216,7 +216,7 @@ fallback and does not let an offer grant itself broader eligibility.
 
 The migration replaced the former expectations that:
 
-- a differently named form with the same fore is incompatible;
+- a differently named plot with the same fore is incompatible;
 - an offer with the same fore but a different kind identity is ineligible;
 - a revision difference alone makes a candidate incompatible;
 - structural/fore coincidence must be rejected.

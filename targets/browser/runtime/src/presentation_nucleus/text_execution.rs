@@ -14,7 +14,7 @@ use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 
-const TEXT_FORM: &str = r#"form browser-text-nucleus {
+const TEXT_FORM: &str = r#"plot browser-text-nucleus {
  source: browser-fixture/text-source
  upper: text/upper
  present: presentation/text
@@ -35,17 +35,17 @@ type TextScheduler = FixedScheduler<
     3,
 >;
 
-pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), String> {
+pub(super) fn execute_text_plot() -> Result<(String, conduit_core::PlanId), String> {
     let catalog = text_fixture_catalog()?;
     let startup = text_fixture_startup_catalog()?;
-    let form = conduit_form::parse_with_startup(TEXT_FORM, &startup, &catalog)
-        .map_err(|error| format!("parse browser text Form: {error:?}"))?;
+    let plot = conduit_plot::parse_with_startup(TEXT_FORM, &startup, &catalog)
+        .map_err(|error| format!("parse browser text Plot: {error:?}"))?;
     let advertisement = text_advertisement();
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts)
-        .map_err(|error| format!("place browser text Form: {error:?}"))?;
+    let placements = default_placements(&plot, &hosts)
+        .map_err(|error| format!("place browser text Plot: {error:?}"))?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -59,7 +59,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
             line_offers: &[],
         },
     )
-    .map_err(|error| format!("plan browser text Form: {error:?}"))?;
+    .map_err(|error| format!("plan browser text Plot: {error:?}"))?;
     let fragment = plan
         .fragments
         .first()

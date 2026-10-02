@@ -1,8 +1,8 @@
 use conduit_core::{Quantity, QuantityUnit};
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     InputAxisSlot, InputAxisSlots, InputPressure, InputPressurePolicy, InputSurfacePoint,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn generalized_input_values_round_trip_through_authored_types() {
@@ -30,6 +30,9 @@ fn generalized_input_values_round_trip_through_authored_types() {
     )
     .unwrap();
     let structured = point.clone().into_structured().unwrap();
-    assert_eq!(InputSurfacePoint::from_structured(structured).unwrap(), point);
+    assert_eq!(
+        InputSurfacePoint::from_structured(structured).unwrap(),
+        point
+    );
     assert_eq!(*pressure.queue_capacity(), 8);
 }

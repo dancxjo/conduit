@@ -1,25 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readWorkspaceHandoff } from '../../targets/browser/workspace/workspace-handoff.mjs';
-import { selectedReviewedSource } from '../../targets/browser/workspace/reviewed-form-selection.mjs';
+import { selectedReviewedSource } from '../../targets/browser/workspace/reviewed-plot-selection.mjs';
 
-const form = { name: 'notes', source_document_id: 'source/notes', checked_form_id: 'checked/notes' };
-const inventory = { forms: [form] };
-const search = '?form=notes&source_document_id=source%2Fnotes&checked_form_id=checked%2Fnotes';
+const plot = { name: 'notes', source_document_id: 'source/notes', checked_plot_id: 'checked/notes' };
+const inventory = { plots: [plot] };
+const search = '?plot=notes&source_document_id=source%2Fnotes&checked_plot_id=checked%2Fnotes';
 test('Gallery handoff accepts one complete current identity and refuses substitution or ambiguous fields', () => {
-  assert.equal(readWorkspaceHandoff({ search }, inventory), form);
+  assert.equal(readWorkspaceHandoff({ search }, inventory), plot);
   assert.equal(readWorkspaceHandoff({ search: '' }, inventory), null);
-  for (const query of ['?form=notes', search + '&form=notes', search.replace('checked%2Fnotes', 'checked%2Fold')]) assert.throws(() => readWorkspaceHandoff({ search: query }, inventory));
+  for (const query of ['?plot=notes', search + '&plot=notes', search.replace('checked%2Fnotes', 'checked%2Fold')]) assert.throws(() => readWorkspaceHandoff({ search: query }, inventory));
 });
 test('birth admission preserves selected source bytes without admitting the whole catalog', () => {
-  const notes = { slug: 'notes', entry: 'notes', source: 'form notes { }\n' };
-  const other = { slug: 'other', entry: 'other', source: '# unselected\n'.repeat(900) + 'form other { }' };
-  const source = JSON.stringify({ schema: 'conduit.creche/reviewed-form-bundle@1', forms: [notes, other] });
+  const notes = { slug: 'notes', entry: 'notes', source: 'plot notes { }\n' };
+  const other = { slug: 'other', entry: 'other', source: '# unselected\n'.repeat(900) + 'plot other { }' };
+  const source = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: [notes, other] });
   assert.ok(source.length > 8192);
-  const selected = selectedReviewedSource(source, [form]);
-  assert.deepEqual(JSON.parse(selected).forms, [notes]);
-  assert.equal(JSON.parse(selected).forms[0].source, notes.source);
-  assert.deepEqual(JSON.parse(selectedReviewedSource(source, [])).forms, [notes]);
+  const selected = selectedReviewedSource(source, [plot]);
+  assert.deepEqual(JSON.parse(selected).plots, [notes]);
+  assert.equal(JSON.parse(selected).plots[0].source, notes.source);
+  assert.deepEqual(JSON.parse(selectedReviewedSource(source, [])).plots, [notes]);
   assert.throws(() => selectedReviewedSource(source, [{ name: 'unknown' }]));
 });
 

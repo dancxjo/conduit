@@ -10,7 +10,7 @@ impl Copy for SessionTransferCheckpointAccepted {}
 impl Copy for SessionTransferCheckpointOffered {}
 impl Copy for SessionTransferCheckpoint {}
 pub use generated::{
-    SessionRole, SessionTerminalDisposition, SessionTerminalDispositionCode,
+    SessionRole, SessionTerminalDisposition, SessionTerminalDispositionForm,
     SessionTransferCheckpoint, SessionTransferCheckpointAccepted, SessionTransferCheckpointOffered,
 };
 

@@ -1,10 +1,10 @@
 # Exact local timing profile
 
 Issue #706 earns one deterministic timing guarantee for one exact local plan.
-It does not claim that Conduit, ConduitOS, the host, or the authored form is
+It does not claim that Conduit, ConduitOS, the host, or the authored plot is
 generally real-time.
 
-The authored form remains the ordinary platform-neutral
+The authored plot remains the ordinary platform-neutral
 `time/tick -> presentation/tick` chain. Its timing requirement is only a
 deadline in microseconds. The selected boot-scoped host separately offers a
 clock observation basis, resolution/error, timer wake latency, kernel-step

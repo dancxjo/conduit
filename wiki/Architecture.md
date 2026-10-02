@@ -2,9 +2,9 @@
 
 In prose, these are ordinary lowercase nouns:
 
-`form`, `body`, `info`, `kind`, `gear`, `port`, `cord`, `fore`, `back`, `host`, `plan`, `play`.
+`plot`, `body`, `info`, `kind`, `gear`, `port`, `cord`, `fore`, `back`, `host`, `plan`, `play`.
 
-Use capitalization normally at sentence starts and for actual proper names/code identifiers such as `Conduit`, `ConduitOS`, `Patchbay`, `BodyId`, or Rust `Form`.
+Use capitalization normally at sentence starts and for actual proper names/code identifiers such as `Conduit`, `ConduitOS`, `Patchbay`, `BodyId`, or Rust `Plot`.
 
 Provenance: #4066.
 
@@ -31,7 +31,7 @@ KindPath := Name ("/" Name)+
 
 Apply ordinary identifier/source-size bounds rather than a small aesthetic depth limit.
 
-**fore** is the canonical user-facing noun for the checked callable signature of a kind/form:
+**fore** is the canonical user-facing noun for the checked callable signature of a kind/plot:
 
 ~~~text
 Kind = semantic meaning of the work
@@ -39,7 +39,7 @@ Fore = the function-like signature through which it is called
 Back = one concrete realization compatible with that Fore
 ~~~
 
-The fore is not merely an internal compiler boundary. It is the callable surface presented to authors. For an authored form, the parenthesized declaration is its fore; catalog kinds expose the same concept.
+The fore is not merely an internal compiler boundary. It is the callable surface presented to authors. For an authored plot, the parenthesized declaration is its fore; catalog kinds expose the same concept.
 
 A checked fore includes the public calling facts that participate in functional compatibility:
 
@@ -70,9 +70,9 @@ Keep each noun at one altitude:
 
 ~~~text
 Kind      semantic contract: what something means
-Fore      user-visible checked callable signature of a Kind/Form
+Fore      user-visible checked callable signature of a Kind/Plot
 Back      one concrete realization compatible with that Kind/Fore
-Gear      one configured occurrence/invocation of a Kind in a Form
+Gear      one configured occurrence/invocation of a Kind in a Plot
 Port      typed directional point named by a Fore and used by a Gear
 Cord      semantic connection between compatible Ports
 info      general typed/structured value carried through Cords

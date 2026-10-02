@@ -1,15 +1,15 @@
 //! Finite renderer-neutral application views and browser-independent actions.
 
 use crate::{
-    ApplicationAction, ApplicationComponent, ApplicationComponentCode, ApplicationEventKind,
-    ApplicationEventKindCode, ApplicationNodeState, ApplicationNodeStateCode,
+    ApplicationAction, ApplicationComponent, ApplicationComponentForm, ApplicationEventKind,
+    ApplicationEventKindForm, ApplicationNodeState, ApplicationNodeStateForm,
     ApplicationViewRefusal,
 };
 use alloc::{string::String, vec::Vec};
 
-/// Portable encoded input to a retained application Form operation.
+/// Portable encoded input to a retained application Plot operation.
 pub const APPLICATION_EVENT_INFO_ID: &str = "conduit.presentation/application-event@1";
-/// Portable encoded semantic output from a retained application Form operation.
+/// Portable encoded semantic output from a retained application Plot operation.
 pub const APPLICATION_VIEW_INFO_ID: &str = "conduit.presentation/application-view@1";
 
 mod structure;
@@ -19,12 +19,12 @@ pub(crate) use structure::valid_same_site_link;
 pub const APPLICATION_VIEW_VERSION: u8 = 10;
 /// Version 9 omitted renderer-neutral separators.
 pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 9;
-/// Enough finite presentation topology for the reviewed twelve-Form Gallery.
+/// Enough finite presentation topology for the reviewed twelve-Plot Gallery.
 pub const MAX_APPLICATION_VIEW_NODES: usize = 128;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
 pub const MAX_APPLICATION_VIEW_TEXT_BYTES: usize = 256;
-/// Search plus two semantic actions per card, within the reviewed twelve-Form Gallery.
+/// Search plus two semantic actions per card, within the reviewed twelve-Plot Gallery.
 pub const MAX_APPLICATION_ACTIONS: usize = 32;
 pub const MAX_APPLICATION_ACTION_ID_BYTES: usize = 48;
 pub const MAX_APPLICATION_CONTROL_VALUE_BYTES: usize = 65_536;
@@ -265,14 +265,14 @@ impl ApplicationView {
         out.push(self.nodes.len() as u8);
         out.push(self.actions.len() as u8);
         for action in &self.actions {
-            out.push(ApplicationEventKindCode::encode(action.event)[0]);
+            out.push(ApplicationEventKindForm::encode(action.event)[0]);
             out.push(action.id.len() as u8);
             out.extend_from_slice(action.id.as_bytes());
         }
         for node in &self.nodes {
             out.push(node.parent.unwrap_or(u8::MAX));
-            out.push(ApplicationComponentCode::encode(node.component)[0]);
-            out.push(ApplicationNodeStateCode::encode(node.state)[0]);
+            out.push(ApplicationComponentForm::encode(node.component)[0]);
+            out.push(ApplicationNodeStateForm::encode(node.state)[0]);
             out.push(node.action.unwrap_or(u8::MAX));
             out.push(node.key.len() as u8);
             out.extend_from_slice(&(node.text.len() as u16).to_le_bytes());
@@ -403,16 +403,16 @@ impl<'a> Cursor<'a> {
 }
 
 pub(super) fn decode_event_kind(value: u8) -> Result<ApplicationEventKind, ApplicationViewRefusal> {
-    ApplicationEventKindCode::decode(&[value])
+    ApplicationEventKindForm::decode(&[value])
         .map_err(|_| ApplicationViewRefusal::MalformedEncoding)
 }
 
 fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRefusal> {
-    ApplicationComponentCode::decode(&[value])
+    ApplicationComponentForm::decode(&[value])
         .map_err(|_| ApplicationViewRefusal::MalformedEncoding)
 }
 
 fn decode_node_state(value: u8) -> Result<ApplicationNodeState, ApplicationViewRefusal> {
-    ApplicationNodeStateCode::decode(&[value])
+    ApplicationNodeStateForm::decode(&[value])
         .map_err(|_| ApplicationViewRefusal::MalformedEncoding)
 }

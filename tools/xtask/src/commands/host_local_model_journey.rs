@@ -23,7 +23,7 @@ pub(super) fn write(
             .ok_or("Orifina biography lacks a required Body sign")
     };
     let born = body_sign(|event| matches!(event, BodyLifecycleEvent::Born { .. }))?;
-    let workload = body_sign(|event| matches!(event, BodyLifecycleEvent::FormAdmitted { .. }))?;
+    let workload = body_sign(|event| matches!(event, BodyLifecycleEvent::PlotAdmitted { .. }))?;
     let lulled = body_sign(|event| matches!(event, BodyLifecycleEvent::LullRetained { .. }))?;
     let fulfilled = body_sign(|event| matches!(event, BodyLifecycleEvent::Fulfilled { .. }))?;
     let wake = evidence
@@ -58,8 +58,8 @@ pub(super) fn write(
         .find(|request| {
             let basis = &request.semantic_data.presentation.basis;
             basis.source_document_id.is_some()
-                && basis.checked_form_id.is_some()
-                && basis.expanded_form_id.is_some()
+                && basis.checked_plot_id.is_some()
+                && basis.expanded_plot_id.is_some()
                 && basis.plan_id.is_some()
         })
         .ok_or("Orifina live proof lacks a planned Face for its spoken Mask")?;
@@ -146,11 +146,11 @@ pub(super) fn write(
                 action_id: action.id().into(),
                 concrete_event: event.into(),
                 presentation_id: self.presentation_id.clone(),
-                selected_mask_form_id: self
+                selected_mask_plot_id: self
                     .control
                     .selected
                     .as_ref()
-                    .map(|selected| selected.mask_form.checked_form_id.as_str().into()),
+                    .map(|selected| selected.mask_plot.checked_plot_id.as_str().into()),
                 plan_id: self.control.active_plan_id.as_str().into(),
                 selected_route_id: self
                     .control
@@ -206,13 +206,13 @@ pub(super) fn write(
                 }
                 A::WearAlternateMask => {
                     let revision = self.control.scoped_wardrobe.wardrobe.revision;
-                    let evidence = self.control.apply(revision, MaskWardrobeAction::Wear(self.initial[1].mask.form_identity.clone()), &self.initial_routes.routes).map_err(|error| format!("wear hosted spoken Mask: {error:?}"))?;
+                    let evidence = self.control.apply(revision, MaskWardrobeAction::Wear(self.initial[1].mask.plot_identity.clone()), &self.initial_routes.routes).map_err(|error| format!("wear hosted spoken Mask: {error:?}"))?;
                     self.observation(action, "alternate ordinary spoken Mask became eligible while the selected route remained current", vec![format!("wardrobe/revision/{}", evidence.resulting_wardrobe.revision)])
                 }
                 A::PreferAlternateMask => {
                     let routes = self.initial_routes([false, true])?;
                     let revision = self.control.scoped_wardrobe.wardrobe.revision;
-                    let evidence = self.control.apply(revision, MaskWardrobeAction::Prefer(vec![self.initial[1].mask.form_identity.clone()]), &routes.routes).map_err(|error| format!("prefer hosted spoken Mask: {error:?}"))?;
+                    let evidence = self.control.apply(revision, MaskWardrobeAction::Prefer(vec![self.initial[1].mask.plot_identity.clone()]), &routes.routes).map_err(|error| format!("prefer hosted spoken Mask: {error:?}"))?;
                     if !matches!(evidence.reconciliation.show, MaskShowDisposition::SelectSealed { .. }) { return Err("spoken preference did not select the available sealed alternate".into()); }
                     self.initial_routes = routes;
                     self.current = Some((false, 1));
@@ -241,7 +241,7 @@ pub(super) fn write(
                 A::InspectReplannedShow => self.observation(action, "replacement ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show", self.artifact_receipts()?),
                 A::DoffAlternateMask => {
                     let revision = self.control.scoped_wardrobe.wardrobe.revision;
-                    let evidence = self.control.apply(revision, MaskWardrobeAction::Doff(self.initial[1].mask.form_identity.clone()), &self.replacement_routes.routes).map_err(|error| format!("doff hosted spoken Mask: {error:?}"))?;
+                    let evidence = self.control.apply(revision, MaskWardrobeAction::Doff(self.initial[1].mask.plot_identity.clone()), &self.replacement_routes.routes).map_err(|error| format!("doff hosted spoken Mask: {error:?}"))?;
                     if !matches!(evidence.reconciliation.show, MaskShowDisposition::SelectSealed { .. }) { return Err("doffing spoken alternate did not select the restored route".into()); }
                     self.current = Some((true, 1));
                     self.observation(action, "doffing the alternate reconciled the still-worn initial-role Mask to its replacement-Plan route", vec![format!("wardrobe/revision/{}", evidence.resulting_wardrobe.revision)])
@@ -250,10 +250,10 @@ pub(super) fn write(
             })
         }
     }
-    let initial_identity = initial.mask.form_identity.clone();
-    let selected = conduit_presentation::SelectedMaskFormRoute {
+    let initial_identity = initial.mask.plot_identity.clone();
+    let selected = conduit_presentation::SelectedMaskPlotRoute {
         route_id: initial_routes.routes.routes()[0].route_id.clone(),
-        mask_form: initial_identity.clone(),
+        mask_plot: initial_identity.clone(),
         plan_id: initial_routes.body_plan.plan_id.clone(),
     };
     let wardrobe = conduit_presentation::MaskWardrobe::new(
@@ -317,7 +317,7 @@ pub(super) fn write(
         serde_json::json!({"lull_sign_id": lulled}),
         serde_json::json!({"fulfilled_sign_id": fulfilled, "fulfilled": journey.receipt.fulfilled}),
     ];
-    let (embodiment, mask_form_id) = if receipt.proof_class == "ollama-http-fixture" {
+    let (embodiment, mask_plot_id) = if receipt.proof_class == "ollama-http-fixture" {
         (
             "hosted-ollama-http-fixture-body",
             "std/ollama-http-fixture@1",
@@ -333,7 +333,7 @@ pub(super) fn write(
             commit: git_head()?,
             track_id: "hosted-generative",
             embodiment,
-            mask_form_id,
+            mask_plot_id,
             construction: journey.receipt.host_ids.iter().map(|host_id| {
                 crate::commands::body_journey_track::ConstructionTruth {
                     host_id: host_id.clone(),
@@ -367,7 +367,7 @@ pub(super) fn write(
                 signs: BTreeMap::from([
                     ("body.born", born),
                     ("body.awake", wake),
-                    ("form.used", repaired.clone()),
+                    ("plot.used", repaired.clone()),
                     ("workload.revised", workload),
                     ("host.added", "sign/orifina-companion/joined".into()),
                     ("fault.observed", failed),
@@ -383,7 +383,7 @@ pub(super) fn write(
             action_events: BTreeMap::from([
                 ("journey.bootstrap", "The std Host began Orifina's bounded bootstrap before any Body identity existed.".into()),
                 ("journey.birth", "The accepted birth and wake receipts created and activated Orifina's independent Body.".into()),
-                ("journey.useful-work", "The admitted model Form handled a later Face realization request through the retained Plan and Play.".into()),
+                ("journey.useful-work", "The admitted model Plot handled a later Face realization request through the retained Plan and Play.".into()),
                 ("journey.break-recover", "A retained model-provider failure was followed by a new admitted repair receipt.".into()),
                 ("journey.rest-finish", "Explicit lull and fulfillment signs ended Orifina's wake and biography in order.".into()),
             ]),

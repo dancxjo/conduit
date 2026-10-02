@@ -40,7 +40,7 @@ struct IdentitySign {
     image_id: String,
     wake_source: String,
     wake_irq: u32,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
     a4_observatory_patchbay_claimed: bool,
 }
 
@@ -76,7 +76,7 @@ struct A3Proof {
     fresh_kernel_boot_id: bool,
     stable_semantic_identities: bool,
     fresh_realization_identities: bool,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
     a4_observatory_patchbay_claimed: bool,
     native_patchbay_consumed: bool,
 }
@@ -131,8 +131,8 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let fresh_kernel_boot_id = first.kernel.boot_id != second.kernel.boot_id;
     let stable_semantic_identities = first.kernel.source_document_id
         == second.kernel.source_document_id
-        && first.kernel.checked_form_id == second.kernel.checked_form_id
-        && first.kernel.expanded_form_id == second.kernel.expanded_form_id;
+        && first.kernel.checked_plot_id == second.kernel.checked_plot_id
+        && first.kernel.expanded_plot_id == second.kernel.expanded_plot_id;
     let fresh_realization_identities = first.kernel.plan_id != second.kernel.plan_id
         && first.kernel.fragment_id != second.kernel.fragment_id
         && first.kernel.active_play_id != second.kernel.active_play_id;
@@ -188,7 +188,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         fresh_kernel_boot_id,
         stable_semantic_identities,
         fresh_realization_identities,
-        a3_ordinary_form_claimed: true,
+        a3_ordinary_plot_claimed: true,
         a4_observatory_patchbay_claimed: true,
         native_patchbay_consumed: true,
     };
@@ -351,8 +351,8 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
         || kernel.pipeline != "check-plan-lower-kernel"
         || [
             &kernel.source_document_id,
-            &kernel.checked_form_id,
-            &kernel.expanded_form_id,
+            &kernel.checked_plot_id,
+            &kernel.expanded_plot_id,
             &kernel.plan_id,
             &kernel.fragment_id,
             &kernel.active_play_id,
@@ -382,10 +382,10 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
         || identity.image_id != format!("conduitos-image/{commit}/ia32/v1")
         || identity.wake_source != "8254-pit-channel0-irq0"
         || identity.wake_irq != 32
-        || !identity.a3_ordinary_form_claimed
+        || !identity.a3_ordinary_plot_claimed
         || !identity.a4_observatory_patchbay_claimed
     {
-        return Err(refusal("stale-or-invalid-ia32-a3-sign", "A3 Signs do not prove the exact portable form, sealed Plan, finite Bases, real PIT wake, semantic result, and terminal Play"));
+        return Err(refusal("stale-or-invalid-ia32-a3-sign", "A3 Signs do not prove the exact portable plot, sealed Plan, finite Bases, real PIT wake, semantic result, and terminal Play"));
     }
     let observatory = &run.observatory;
     conduit_observatory::validate_snapshot(observatory)
@@ -397,8 +397,8 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
         || observatory.plays.len() != 1
         || observatory.plans[0].plan_id.as_str() != kernel.plan_id
         || observatory.plans[0].source_document_id.as_str() != kernel.source_document_id
-        || observatory.plans[0].checked_form_id.as_str() != kernel.checked_form_id
-        || observatory.plans[0].expanded_form_id.as_str() != kernel.expanded_form_id
+        || observatory.plans[0].checked_plot_id.as_str() != kernel.checked_plot_id
+        || observatory.plans[0].expanded_plot_id.as_str() != kernel.expanded_plot_id
         || observatory.plays[0].active_play_id.as_str() != kernel.active_play_id
         || observatory.plays[0].boot_id.as_str() != kernel.boot_id
         || observatory.sealed_boot_provenance.len() != 1
@@ -407,7 +407,7 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
     {
         return Err(refusal(
             "wrong-ia32-observatory-correlation",
-            "ordinary snapshot does not correlate the exact IA-32 Form, Plan, Play, Bases, and boot provenance",
+            "ordinary snapshot does not correlate the exact IA-32 Plot, Plan, Play, Bases, and boot provenance",
         ));
     }
     Ok(())

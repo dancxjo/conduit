@@ -1,4 +1,4 @@
-//! Exact two-std-Host realization of one authored text Form over an admitted Line.
+//! Exact two-std-Host realization of one authored text Plot over an admitted Line.
 
 mod transport;
 
@@ -15,7 +15,7 @@ use conduit_planner::{PlacementChoice, PlacementChoices};
 use conduit_std_host::{InstalledRemoteFragment, StdHost, StdHostConfig};
 
 use crate::{
-    form_source,
+    plot_source,
     product_execution::{ProductExecutionContext, ProductRuntime},
 };
 
@@ -28,8 +28,8 @@ const PLAY_SEQUENCE: u64 = 0;
 
 pub struct HostedTwoHostExecution {
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
     pub plan_id: PlanId,
     pub source_fragment_id: FragmentId,
     pub sink_fragment_id: FragmentId,
@@ -40,11 +40,11 @@ pub struct HostedTwoHostExecution {
     pub result: String,
 }
 
-pub fn execute_hosted_two_std_form(
+pub fn execute_hosted_two_std_plot(
     source: &str,
     output: &mut impl Write,
 ) -> Result<HostedTwoHostExecution, String> {
-    let form = form_source::parse(source)?.expand_entry()?;
+    let plot = plot_source::parse(source)?.expand_entry()?;
     let source_host = host(SOURCE_HOST, SOURCE_BOOT);
     let sink_host = host(SINK_HOST, SINK_BOOT);
     let line_offer = line_offer(&source_host, &sink_host);
@@ -65,7 +65,7 @@ pub fn execute_hosted_two_std_form(
         vec![line_offer],
         Vec::new(),
     )?;
-    let plan = context.plan_with_placements(&form, &placements(&form)?)?;
+    let plan = context.plan_with_placements(&plot, &placements(&plot)?)?;
     let source_fragment = plan
         .fragments
         .iter()
@@ -107,9 +107,9 @@ pub fn execute_hosted_two_std_form(
         .map_err(|_| "two-Host text is not UTF-8")?
         .to_string();
     Ok(HostedTwoHostExecution {
-        source_document_id: form.source_document_id,
-        checked_form_id: form.checked_form_id,
-        expanded_form_id: form.expanded_form_id,
+        source_document_id: plot.source_document_id,
+        checked_plot_id: plot.checked_plot_id,
+        expanded_plot_id: plot.expanded_plot_id,
         plan_id: plan.plan_id.clone(),
         source_fragment_id: source_fragment.fragment_id.clone(),
         sink_fragment_id: sink_fragment.fragment_id.clone(),
@@ -191,9 +191,9 @@ fn host(host_id: &str, boot_id: &str) -> StdHost {
     })
 }
 
-fn placements(form: &conduit_form::ExpandedCanonicalForm) -> Result<PlacementChoices, String> {
+fn placements(plot: &conduit_plot::ExpandedCanonicalPlot) -> Result<PlacementChoices, String> {
     let mut by_gear = BTreeMap::new();
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let (host, capability) = match gear.kind_id.as_str() {
             conduit_text::TEXT_LITERAL_KIND => (SOURCE_HOST, "text-literal-v1"),
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND => (SINK_HOST, "presentation-text-v1"),

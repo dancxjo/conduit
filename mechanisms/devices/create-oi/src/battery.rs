@@ -1,7 +1,7 @@
 //! Create 1 battery-estimate interpretation below portable robotics meaning.
 //!
 //! OI v2 reports charge and estimated capacity as independent unsigned
-//! 16-bit readings. It does not promise that the two estimates form an
+//! 16-bit readings. It does not promise that the two estimates plot an
 //! already-bounded fraction, so that relationship must not be used to reject
 //! an otherwise valid sensor frame.
 

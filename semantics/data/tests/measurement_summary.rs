@@ -1,7 +1,7 @@
 use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 use conduit_data::*;
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 
@@ -75,7 +75,7 @@ fn empty_inexact_and_overflow_outcomes_are_distinct() {
 }
 
 #[test]
-fn canonical_summary_is_a_reusable_exact_typed_form() {
+fn canonical_summary_is_a_reusable_exact_typed_plot() {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
     install_measurement_window_catalog(&mut startup, &mut catalog).unwrap();
@@ -87,10 +87,10 @@ fn canonical_summary_is_a_reusable_exact_typed_form() {
         &mut catalog,
     )
     .unwrap();
-    let source = include_str!("../../../forms/little-seismograph/main.conduit");
+    let source = include_str!("../../../plots/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "measurement-summary", &catalog).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "measurement-summary", &catalog).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(authored.output_bindings.len(), 1);
     let gear = &authored.expanded.gears[0];

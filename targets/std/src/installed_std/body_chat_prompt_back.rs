@@ -247,12 +247,12 @@ mod tests {
     use conduit_body::{
         Body, BodyConversationContext, BodyConversationContextBasis, BodyConversationHost,
     };
-    use conduit_core::{CheckedFormId, HostId, SignId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, HostId, SignId, SourceDocumentId};
 
     fn context() -> Vec<u8> {
         let body = Body::born(
             SourceDocumentId::from("source/body-chat"),
-            CheckedFormId::from("checked/body-chat"),
+            CheckedPlotId::from("checked/body-chat"),
             1,
             SignId::from("sign/born"),
         )
@@ -274,7 +274,7 @@ mod tests {
                 host_id: HostId::from("Latimer"),
                 present: true,
             }],
-            active_forms: vec!["Tour".into()],
+            active_plots: vec!["Tour".into()],
             current_plan_id: None,
             active_play_id: None,
             lines: vec![],
@@ -300,7 +300,7 @@ mod tests {
             .to_vec();
         assert!(core::str::from_utf8(&first)
             .unwrap()
-            .contains("\"active_forms\":1"));
+            .contains("\"active_plots\":1"));
         host.execute(
             conduit_std_offers::BODY_CHAT_RESPONSE_OPERATION,
             b"I am running the Tour.",

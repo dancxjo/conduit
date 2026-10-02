@@ -4,8 +4,8 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::{PortId, ValueRef, ValueStorage};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 #[cfg(feature = "local-model-proof")]
 use std::cell::RefCell;
 

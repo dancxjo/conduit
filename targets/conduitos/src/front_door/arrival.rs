@@ -1,7 +1,7 @@
 //! Native input adaptation for the shared Crèche draft; no lifecycle authority.
 use alloc::{format, string::String, vec::Vec};
-use conduit_birth_form::{BirthActionOutcome, BirthActions, BirthPresentation};
-use conduit_birth_form::{BirthDraft, BirthDraftRefusal, BirthFormChoice, BirthSelection};
+use conduit_birth_plot::{BirthActionOutcome, BirthActions, BirthPresentation};
+use conduit_birth_plot::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
 use conduit_presentation::ApplicationEventKind;
 
@@ -35,7 +35,7 @@ impl FrontDoor {
     pub fn open_creche_reviewed(
         &mut self,
         uuid: String,
-        refusals: [Option<String>; crate::native_workset::NATIVE_FORM_CAPACITY],
+        refusals: [Option<String>; crate::native_workset::NATIVE_PLOT_CAPACITY],
     ) -> Result<(), Error> {
         if !self.lifecycle_authority_admitted {
             return Err(Error::ActionUnavailable);
@@ -48,12 +48,12 @@ impl FrontDoor {
             crate::native_workset::inventory()
                 .into_iter()
                 .zip(refusals)
-                .map(|(form, refusal)| {
+                .map(|(plot, refusal)| {
                     let available = refusal.is_none();
-                    Ok(BirthFormChoice {
-                        title: form.title().into(),
-                        search_text: form.source().into(),
-                        form: crate::native_workset::resident(form)
+                    Ok(BirthPlotChoice {
+                        title: plot.title().into(),
+                        search_text: plot.source().into(),
+                        plot: crate::native_workset::resident(plot)
                             .map_err(|_| Error::Presentation)?,
                         refusal,
                         selected: available,
@@ -149,9 +149,9 @@ impl Arrival {
             }
             40 | 44 if self.focus == 2 => self.suggest(),
             40 | 44 if self.focus == 1 => self.cycle_tradition(false),
-            40 | 44 if action.starts_with("creche.form.") => {
+            40 | 44 if action.starts_with("creche.plot.") => {
                 let Some(index) = action
-                    .strip_prefix("creche.form.")
+                    .strip_prefix("creche.plot.")
                     .and_then(|value| value.parse::<usize>().ok())
                 else {
                     return ArrivalInput::Unchanged;
@@ -162,7 +162,7 @@ impl Arrival {
                     "true"
                 };
                 self.change(
-                    &format!("creche.form.{index}"),
+                    &format!("creche.plot.{index}"),
                     ApplicationEventKind::Change,
                     value,
                 )
@@ -301,8 +301,8 @@ impl Arrival {
 fn refusal_text(error: BirthDraftRefusal) -> &'static str {
     match error {
         BirthDraftRefusal::InvalidName => "Give your body a name of at most 64 bytes.",
-        BirthDraftRefusal::EmptySelection => "Include at least one form to begin.",
-        BirthDraftRefusal::UnavailableForm => "This form cannot run with the current capabilities.",
+        BirthDraftRefusal::EmptySelection => "Include at least one plot to begin.",
+        BirthDraftRefusal::UnavailablePlot => "This plot cannot run with the current capabilities.",
         BirthDraftRefusal::StalePresentation => "This choice has changed. Please choose again.",
         _ => "The Crèche could not accept this change.",
     }

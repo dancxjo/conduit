@@ -1,7 +1,7 @@
 use super::*;
 use crate::{decode_observation_bundle, lower_charging_sources, lower_group_zero};
 
-const CONTACT_FORM: &str = "form contact_sample {\n contact: robotics/observe-contact\n}\n";
+const CONTACT_FORM: &str = "plot contact_sample {\n contact: robotics/observe-contact\n}\n";
 
 fn evidence() -> CreateObservationEvidence {
     CreateObservationEvidence {
@@ -144,15 +144,15 @@ fn one_correlated_observation_encodes_each_portable_channel_exactly() {
 }
 
 #[test]
-fn mechanism_free_form_plans_to_exact_create_realization() {
+fn mechanism_free_plot_plans_to_exact_create_realization() {
     for forbidden in ["create", "uart", "serial", "opcode", "pete"] {
         assert!(!CONTACT_FORM.contains(forbidden));
     }
     let (startup, profile) = crate::catalogs().unwrap();
-    let syntax = conduit_form::parse_syntax_document(CONTACT_FORM);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(CONTACT_FORM);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "contact_sample", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "contact_sample", &profile).unwrap();
     let host = live_create_observation_advertisement(&evidence(), 100).unwrap();
     let placements =
         conduit_planner::default_expanded_placements(&expanded, std::slice::from_ref(&host))
@@ -176,7 +176,7 @@ fn mechanism_free_form_plans_to_exact_create_realization() {
 }
 
 #[test]
-fn one_form_swaps_tiny_hosts_and_encodes_the_selected_fragment() {
+fn one_plot_swaps_tiny_hosts_and_encodes_the_selected_fragment() {
     use conduit_core::{assigned_plan_payload_digest, AssignedPlanMaxima};
     use conduit_embedded_build::{
         encode_assigned_plan, generate_embedded_plan, EmbeddedImageBounds,
@@ -185,10 +185,10 @@ fn one_form_swaps_tiny_hosts_and_encodes_the_selected_fragment() {
 
     let plan_for = |host_id: &str, boot_id: &str| {
         let (startup, profile) = crate::catalogs().unwrap();
-        let syntax = conduit_form::parse_syntax_document(CONTACT_FORM);
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+        let syntax = conduit_plot::parse_syntax_document(CONTACT_FORM);
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
         let expanded =
-            conduit_form::expand_canonical_form(&checked, "contact_sample", &profile).unwrap();
+            conduit_plot::expand_canonical_plot(&checked, "contact_sample", &profile).unwrap();
         let mut target_evidence = evidence();
         target_evidence.host_id = HostId::from(host_id);
         target_evidence.boot_id = BootId::from(boot_id);
@@ -213,8 +213,8 @@ fn one_form_swaps_tiny_hosts_and_encodes_the_selected_fragment() {
     let avr_placement = &avr.fragments[0].placements[0];
 
     assert_eq!(pico.source_document_id, avr.source_document_id);
-    assert_eq!(pico.checked_form_id, avr.checked_form_id);
-    assert_eq!(pico.expanded_form_id, avr.expanded_form_id);
+    assert_eq!(pico.checked_plot_id, avr.checked_plot_id);
+    assert_eq!(pico.expanded_plot_id, avr.expanded_plot_id);
     assert_eq!(pico_placement.kind_id, avr_placement.kind_id);
     assert_eq!(
         pico_placement.implementation_id,

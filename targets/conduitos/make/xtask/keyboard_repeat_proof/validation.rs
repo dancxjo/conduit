@@ -33,8 +33,8 @@ pub(super) fn validate(serial: &str) -> Result<Value, ConduitosError> {
             "host_id",
             "boot_id",
             "source_document_id",
-            "checked_form_id",
-            "expanded_form_id",
+            "checked_plot_id",
+            "expanded_plot_id",
             "body_id",
             "wake_id",
             "plan_id",
@@ -89,7 +89,7 @@ mod tests {
     fn records() -> Vec<Value> {
         let mut records = (0..=CHARACTERS * 2).map(|count| json!({
             "status":"quiescent-awaiting-input", "host_id":"host", "boot_id":"boot", "source_document_id":"source",
-            "checked_form_id":"checked", "expanded_form_id":"expanded", "body_id":"body", "wake_id":"wake", "plan_id":"plan", "active_play_id":"play",
+            "checked_plot_id":"checked", "expanded_plot_id":"expanded", "body_id":"body", "wake_id":"wake", "plan_id":"plan", "active_play_id":"play",
             "input_count":count, "result":if count == 0 { Value::Null } else { expected_text(count.div_ceil(2)).into() },
             "result_omitted_bytes":count.div_ceil(2).saturating_sub(128)
         })).collect::<Vec<_>>();
@@ -115,7 +115,7 @@ mod tests {
             "body_id",
             "plan_id",
             "active_play_id",
-            "checked_form_id",
+            "checked_plot_id",
             "input_count",
             "result",
             "result_omitted_bytes",

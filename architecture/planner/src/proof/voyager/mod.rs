@@ -216,7 +216,7 @@ pub fn prove_voyager_capstone(
             }
             if let Some(first) = plans.first() {
                 if plan.source_document_id != first.source_document_id
-                    || plan.checked_form_id != first.checked_form_id
+                    || plan.checked_plot_id != first.checked_plot_id
                 {
                     return Err(VoyagerCapstoneRefusal::InvalidPlanHistory);
                 }

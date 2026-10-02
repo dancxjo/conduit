@@ -23,7 +23,7 @@ cargo xtask make conduitos live-boot x86_64 --locked
 
 The first creates the live ISO. The second boots it in QEMU.
 
-The graphical path includes Crèche/body birth, resident forms, Tour, Patchbay, pointer/keyboard paths, and USB-line exercises.
+The graphical path includes Crèche/body birth, resident plots, Tour, Patchbay, pointer/keyboard paths, and USB-line exercises.
 
 ## Profile is not boot truth
 
@@ -41,9 +41,9 @@ host source / profile
 
 A compiled driver does not prove a device initialized. An image is not a body. A boot is not a plan. A profile does not grant authority by listing a capability.
 
-## forms all the way down
+## plots all the way down
 
-Above a small irreducible machine membrane, the architectural preference is ordinary semantic forms/backs instead of a monolithic driver runtime.
+Above a small irreducible machine membrane, the architectural preference is ordinary semantic plots/backs instead of a monolithic driver runtime.
 
 A native path may descend roughly like:
 
@@ -114,7 +114,7 @@ Flashing changes hardware. The interactive proof checks a running boot and exact
 
 ## Pocket Theremin is a useful hardware boundary example
 
-The portable form talks about Distance, Frequency, and bounded PCM.
+The portable plot talks about Distance, Frequency, and bounded PCM.
 
 ```conduit
 distance >> map.distance
@@ -127,4 +127,4 @@ It contains no HDA, PCI, DMA, WebAudio, ALSA, or framebuffer identity.
 
 Those belong to backs, bases, host calls, and resources.
 
-The severe test of portability is not "can it compile twice?" It is "can materially different realizations preserve one semantic form while retaining honest mechanism evidence?"
+The severe test of portability is not "can it compile twice?" It is "can materially different realizations preserve one semantic plot while retaining honest mechanism evidence?"

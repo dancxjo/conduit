@@ -36,8 +36,8 @@ fn reviewed(
 
 #[test]
 fn explicit_precedence_is_lexicographic_and_evidence_names_each_source() {
-    let (form, hosts, advertisements) = facts();
-    let semantic = source("checked-form", 3, PolicyScope::SemanticRequirements);
+    let (plot, hosts, advertisements) = facts();
+    let semantic = source("checked-plot", 3, PolicyScope::SemanticRequirements);
     let site = source("site-policy", 4, PolicyScope::SiteDeployment);
     let style = source("fixed-cell", 2, PolicyScope::NamedStyle);
     let egress = PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
@@ -47,7 +47,7 @@ fn explicit_precedence_is_lexicographic_and_evidence_names_each_source() {
         MAXIMUM_CONTEXT_CHARACTERISTIC,
     ));
     let result = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements {
@@ -112,12 +112,12 @@ fn explicit_precedence_is_lexicographic_and_evidence_names_each_source() {
 
 #[test]
 fn conflicting_hard_sources_refuse_before_candidate_choice() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let fact = PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
         DATA_EGRESS_CHARACTERISTIC,
     ));
     let error = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -152,9 +152,9 @@ fn conflicting_hard_sources_refuse_before_candidate_choice() {
 
 #[test]
 fn stale_observations_are_retained_but_cannot_enter_a_fresh_basis() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let error = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -172,10 +172,10 @@ fn stale_observations_are_retained_but_cannot_enter_a_fresh_basis() {
 
 #[test]
 fn policy_revision_changes_evidence_without_perturbing_realization_truth() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let make_selection = |revision| {
         select_realization_with_scoped_policy(
-            &form.gears[0],
+            &plot.gears[0],
             &hosts,
             &advertisements,
             &HardRealizationRequirements::default(),
@@ -202,7 +202,7 @@ fn policy_revision_changes_evidence_without_perturbing_realization_truth() {
 
 #[test]
 fn observation_signs_must_be_unique_even_across_retained_history() {
-    let (form, hosts, advertisements) = facts();
+    let (plot, hosts, advertisements) = facts();
     let mut history = reviewed(&hosts, 1, 1);
     let mut duplicate = history[0].clone();
     duplicate.observed_epoch = 2;
@@ -210,7 +210,7 @@ fn observation_signs_must_be_unique_even_across_retained_history() {
     duplicate.observation.sign_id = SignId::from(history[0].observation.sign_id.as_str());
     history.push(duplicate);
     let error = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),

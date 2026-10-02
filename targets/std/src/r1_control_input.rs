@@ -1,4 +1,4 @@
-//! Live terminal and browser event collection for the exact three-peer R1 Form.
+//! Live terminal and browser event collection for the exact three-peer R1 Plot.
 
 use std::io::BufRead;
 use std::net::SocketAddr;

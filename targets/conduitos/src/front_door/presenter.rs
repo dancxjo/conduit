@@ -9,8 +9,8 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
-use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
+use conduit_plot::{ProfileCatalog, parse};
 use conduit_presentation::{
     LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId, ManifestationLifecycle,
     PresentationRole, RendererRealizationOffer, renderer_kind_projection, renderer_offer,
@@ -27,7 +27,7 @@ use crate::{
 
 const SURFACE_CLASS: &str = "presentation/surface";
 const SURFACE_ID: &str = "conduitos/front-door/surface/0";
-const RENDERER_FORM: &str = "form front {\n    renderer: presentation/renderer\n}\n";
+const RENDERER_FORM: &str = "plot front {\n    renderer: presentation/renderer\n}\n";
 
 pub struct FrontDoorPresenter {
     plan: Plan,
@@ -86,7 +86,7 @@ impl FrontDoorPresenter {
         catalog
             .insert(renderer_kind_projection())
             .map_err(|_| PresenterError::Catalog)?;
-        let form = parse(RENDERER_FORM, &catalog).map_err(|_| PresenterError::Catalog)?;
+        let plot = parse(RENDERER_FORM, &catalog).map_err(|_| PresenterError::Catalog)?;
         let implementation_id = ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION);
         let host = HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
@@ -117,9 +117,9 @@ impl FrontDoorPresenter {
             })],
             planner_capabilities: Vec::new(),
         };
-        let placements = default_placements(&form, core::slice::from_ref(&host))
+        let placements = default_placements(&plot, core::slice::from_ref(&host))
             .map_err(|_| PresenterError::Plan)?;
-        let plan = plan(&form, &[host], &placements, &[]).map_err(|_| PresenterError::Plan)?;
+        let plan = plan(&plot, &[host], &placements, &[]).map_err(|_| PresenterError::Plan)?;
         let placement_id = plan
             .fragments
             .iter()
@@ -306,7 +306,7 @@ impl FrontDoorPresenter {
 
 #[cfg(test)]
 mod tests {
-    use conduit_core::{CheckedFormId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, SourceDocumentId};
     use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 
     use super::*;
@@ -358,7 +358,7 @@ mod tests {
             "build:one",
             "image:one",
             SourceDocumentId::from("source"),
-            CheckedFormId::from("checked"),
+            CheckedPlotId::from("checked"),
             6,
             false,
         )

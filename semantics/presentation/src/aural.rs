@@ -226,7 +226,7 @@ fn role_token(role: &PresentationRole) -> String {
         PresentationRole::Body => "Body".into(),
         PresentationRole::Part => "Part".into(),
         PresentationRole::Candidate => "Candidate".into(),
-        PresentationRole::Form => "Form".into(),
+        PresentationRole::Plot => "Plot".into(),
         PresentationRole::Gear => "Gear".into(),
         PresentationRole::Port => "Port".into(),
         PresentationRole::Cord => "Cord".into(),

@@ -3,7 +3,7 @@ use conduit_core::ComputeServiceGuarantee;
 use conduit_data::{
     tensor_content_digest, TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 use conduit_std_host::hosted_model_compute::{
     LinearF32ModelAdapter, ModelComputeAdapter, ModelComputeAdapterTerminal,
     ModelComputeInvocation, ReferenceModelComputeAdapter,

@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_text::{AddressDetection, ADDRESS_DETECTION_VALUE_KIND};
 use serde::{Deserialize, Serialize};
 
@@ -16,8 +16,8 @@ use crate::HouseGenerationRequest;
 
 pub const HOUSE_CONTEXT_TO_PROMPT_KIND: &str = "house/context-to-prompt";
 pub const HOUSE_CONTEXT_TO_PROMPT_REVISION: &str = "conduit.house/context-to-prompt@1";
-pub const HOUSE_CONVERSATION_FORM_KIND: &str = "house-conversation";
-pub const HOUSE_CONVERSATION_FORM_REVISION: &str = "conduit.house/conversation-form@1";
+pub const HOUSE_CONVERSATION_PLOT_KIND: &str = "house-conversation";
+pub const HOUSE_CONVERSATION_PLOT_REVISION: &str = "conduit.house/conversation-plot@1";
 pub const WIRED_HOUSE_CONTEXT_VALUE_KIND: &str = "house/wired-context@1";
 pub const MAXIMUM_HOUSE_PROMPT_BYTES: usize = 131_072;
 pub const MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES: usize =
@@ -268,18 +268,18 @@ pub fn install_house_conversation_catalog(
         .map_err(|error| error.to_string())
 }
 
-pub fn install_house_conversation_form_catalog(
+pub fn install_house_conversation_plot_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
     startup.insert(KindSignature {
-        kind: HOUSE_CONVERSATION_FORM_KIND.into(),
+        kind: HOUSE_CONVERSATION_PLOT_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
         .insert(KindProjection {
-            kind_id: kind_id(HOUSE_CONVERSATION_FORM_KIND),
-            kind_contract_revision: KindIdentity::from(HOUSE_CONVERSATION_FORM_REVISION),
+            kind_id: kind_id(HOUSE_CONVERSATION_PLOT_KIND),
+            kind_contract_revision: KindIdentity::from(HOUSE_CONVERSATION_PLOT_REVISION),
             inputs: vec![
                 port(
                     "detection",

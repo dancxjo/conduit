@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { projectFlowScene } from "../../forms/patchbay/workbench/browser/flow-scene.js";
+import { projectFlowScene } from "../../plots/patchbay/workbench/browser/flow-scene.js";
 
 function snapshot(reducedMotion = false) {
   const gear = "gear/source";
@@ -21,7 +21,7 @@ function snapshot(reducedMotion = false) {
     presentation: {
       identity: "presentation/debugger",
       revision: 1,
-      basis: { source_document_id: "source/debugger", checked_form_id: "form/debugger" },
+      basis: { source_document_id: "source/debugger", checked_plot_id: "plot/debugger" },
       subjects,
       relationships: [
         { source: gear, target: output, kind: "Contains" },

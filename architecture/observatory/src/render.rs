@@ -121,11 +121,11 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for plan in &report.plans {
         let _ = writeln!(
             output,
-            "plan id={} source_document={} checked_form={} expanded_form={} fragments={} placements={} connections={} execution_regions={}",
+            "plan id={} source_document={} checked_plot={} expanded_plot={} fragments={} placements={} connections={} execution_regions={}",
             plan.plan_id.as_str(),
             plan.source_document_id.as_str(),
-            plan.checked_form_id.as_str(),
-            plan.expanded_form_id.as_str(),
+            plan.checked_plot_id.as_str(),
+            plan.expanded_plot_id.as_str(),
             plan.fragment_count,
             plan.placement_count,
             plan.connection_count,

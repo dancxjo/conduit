@@ -103,8 +103,8 @@ fn tutorial_face(
     )
     .map_err(TutorialPresenterRefusal::InvalidFace)?;
     if let Some(realization) = body.realization() {
-        let mut tutorial_plans = realization.plan.forms.iter().filter(|form| {
-            form.plan
+        let mut tutorial_plans = realization.plan.plots.iter().filter(|plot| {
+            plot.plan
                 .fragments
                 .iter()
                 .flat_map(|fragment| &fragment.placements)
@@ -124,17 +124,17 @@ fn tutorial_face(
             .next()
             .filter(|_| tutorial_plans.next().is_none())
             .or_else(|| {
-                // A one-Form Body has one unambiguous semantic basis even when
-                // that Form does not carry the optional tutorial application
-                // marker. Multi-Form Bodies remain ungrounded unless exactly
+                // A one-Plot Body has one unambiguous semantic basis even when
+                // that Plot does not carry the optional tutorial application
+                // marker. Multi-Plot Bodies remain ungrounded unless exactly
                 // one tutorial contribution owns the Face.
-                (realization.plan.forms.len() == 1).then(|| &realization.plan.forms[0])
+                (realization.plan.plots.len() == 1).then(|| &realization.plan.plots[0])
             });
         if let Some(basis) = basis {
             face.presentation.basis.source_document_id =
-                Some(basis.form.source_document_id.clone());
-            face.presentation.basis.checked_form_id = Some(basis.form.checked_form_id.clone());
-            face.presentation.basis.expanded_form_id = Some(basis.plan.expanded_form_id.clone());
+                Some(basis.plot.source_document_id.clone());
+            face.presentation.basis.checked_plot_id = Some(basis.plot.checked_plot_id.clone());
+            face.presentation.basis.expanded_plot_id = Some(basis.plan.expanded_plot_id.clone());
             face.presentation.basis.plan_id = Some(realization.plan.plan_id.clone());
             face.presentation.basis.active_play_id = realization
                 .play
@@ -237,7 +237,7 @@ pub fn presentation(
 }
 
 /// Project tutorial guidance from an exact retained body biography at a host
-/// boundary. This lets the ordinary resident Tutorial Form consume the same
+/// boundary. This lets the ordinary resident Tutorial Plot consume the same
 /// semantic truth without reaching through a host-owned lifecycle session.
 pub fn presentation_from_evidence(
     evidence: &BodyBiographyEvidence,
@@ -345,7 +345,7 @@ fn guidance(
         return Guidance {
             phase: "lull",
             title: "Retained rest is not completion",
-            detail: "The body is lulled: its identity, Forms, and biography remain.",
+            detail: "The body is lulled: its identity, Plots, and biography remain.",
             action: "body.wake",
             label: "Wake the retained body",
         };
@@ -369,7 +369,7 @@ fn guidance(
         return Guidance {
             phase: "revised",
             title: "One body, a changed workset",
-            detail: "The workload revision changed without rebirth. The current plan realizes revised Forms for this same body.",
+            detail: "The workload revision changed without rebirth. The current plan realizes revised Plots for this same body.",
             action: "body.inspect-lifecycle",
             label: "Inspect the current realization",
         };
@@ -380,7 +380,7 @@ fn guidance(
             title: "The same body woke again",
             detail: "A fresh Wake, Plan, and Play continue one retained biography.",
             action: "body.open-library",
-            label: "Browse this body's Forms",
+            label: "Browse this body's Plots",
         };
     }
     Guidance {
@@ -392,7 +392,7 @@ fn guidance(
             "Interact more than once. A finite Body may remain awake indefinitely because its instantaneous and retained bounds stay finite."
         },
         action: "body.use-current",
-        label: "Use the current form",
+        label: "Use the current plot",
     }
 }
 

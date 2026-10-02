@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn naming_catalog_and_uppercase_have_admitted_coverage() {
-        let names = include_str!("../../../../forms/birth/names/catalog.mjs");
+        let names = include_str!("../../../../plots/birth/names/catalog.mjs");
         for role in [
             TextRole::Label,
             TextRole::Body,

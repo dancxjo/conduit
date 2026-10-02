@@ -77,7 +77,7 @@ pub struct LocalityPlanningBasis {
     pub now_ms: u64,
     pub horizon_seconds: u32,
     /// A realization-policy ceiling. `Some(0)` forbids remote transport; this
-    /// remains outside authored form meaning.
+    /// remains outside authored plot meaning.
     pub remote_bytes_per_second_ceiling: Option<u64>,
     pub data_flow: DataFlowObservation,
     pub reductions: Vec<ReductionObservation>,
@@ -114,7 +114,7 @@ pub struct CandidateCostEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalitySelection {
-    pub checked_form_id: conduit_core::CheckedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
     pub selected: CandidatePlacement,
     pub considered: Vec<CandidateCostEvidence>,
     pub planning_basis: LocalityPlanningBasis,

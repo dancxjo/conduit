@@ -2,7 +2,7 @@
 
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_core::KindIdentity;
 use conduit_core::{kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection};
 
@@ -59,9 +59,9 @@ pub fn pulse_tone_presentation_contract() -> StandardKindContract {
     contract
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn pulse_presentation_kind_projection() -> conduit_form::KindProjection {
-    use conduit_form::KindProjection;
+#[cfg(feature = "plot-catalog")]
+pub fn pulse_presentation_kind_projection() -> conduit_plot::KindProjection {
+    use conduit_plot::KindProjection;
     let contract = pulse_presentation_contract();
     KindProjection {
         kind_id: contract.kind_id,
@@ -72,8 +72,8 @@ pub fn pulse_presentation_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn pulse_tone_presentation_kind_projection() -> conduit_form::KindProjection {
+#[cfg(feature = "plot-catalog")]
+pub fn pulse_tone_presentation_kind_projection() -> conduit_plot::KindProjection {
     let mut definition = pulse_presentation_kind_projection();
     definition.kind_id = kind_id(PULSE_TONE_PRESENTATION_KIND);
     definition.kind_contract_revision =
@@ -81,12 +81,12 @@ pub fn pulse_tone_presentation_kind_projection() -> conduit_form::KindProjection
     definition
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_pulse_presentation_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     for (kind, definition) in [
         (
             PULSE_PRESENTATION_KIND,

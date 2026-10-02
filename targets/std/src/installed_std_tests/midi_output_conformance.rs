@@ -40,16 +40,16 @@ fn host() -> StdHost {
         .expect("loopback selection matches exact host identity")
 }
 
-fn form() -> conduit_form::CheckedForm {
-    conduit_form::parse(
-        "form midi_loopback {\n source: conduit-proof/midi-performance-source\n output: music/play\n source.notes >> output.notes\n source.controls >> output.controls\n}\n",
+fn plot() -> conduit_plot::CheckedPlot {
+    conduit_plot::parse(
+        "plot midi_loopback {\n source: conduit-proof/midi-performance-source\n output: music/play\n source.notes >> output.notes\n source.controls >> output.controls\n}\n",
         &crate::installed_std::test_catalog(),
     )
-    .expect("portable MIDI loopback Form is valid")
+    .expect("portable MIDI loopback Plot is valid")
 }
 
 fn fragment(host: &StdHost, grant_count: usize) -> Result<conduit_core::PlanFragment, String> {
-    let form = form();
+    let plot = plot();
     let hosts = [host.advertisement().clone()];
     let grants = host
         .midi_output_authority_grants("grant/test-midi-output")?
@@ -67,7 +67,7 @@ fn fragment(host: &StdHost, grant_count: usize) -> Result<conduit_core::PlanFrag
         conduit_core::SignId::from("sign/test-midi-output-ready"),
     );
     let plan = conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
-        &form,
+        &plot,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &hosts,
             bases: &[BaseImplementationId::from("conduit.base/local@1")],

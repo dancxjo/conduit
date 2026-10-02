@@ -1,7 +1,7 @@
 //! Finite, source-independent projection of a typed measurement window for plotting.
 
 use alloc::vec::Vec;
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
     BoundedMeasurementWindow, MeasurementPlotOverflowPolicy, MeasurementPlotPoint,

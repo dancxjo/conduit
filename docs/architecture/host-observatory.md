@@ -1,7 +1,7 @@
 # host Observatory
 
 `conduit-observatory` is a read-only projection over neutral current-model
-reports. It does not open lines, start or cancel plays, edit forms, grant
+reports. It does not open lines, start or cancel plays, edit plots, grant
 authority, install bases, discover hosts, or maintain fleet membership.
 
 ## Authoritative input
@@ -39,7 +39,7 @@ framebuffer provenance, and inconsistent retention accounting.
 A normal actual std execution can write its authoritative snapshot:
 
 ```text
-conduit run forms/hello/main.conduit \
+conduit run plots/hello/main.conduit \
   --report runtime-report.json
 ```
 

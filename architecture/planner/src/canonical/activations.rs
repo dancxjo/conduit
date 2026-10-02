@@ -12,7 +12,7 @@ use conduit_core::{
 #[allow(clippy::too_many_arguments)]
 pub fn plan_expanded_canonical_with_activations(
     document: &CheckedSyntaxDocument,
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     hosts: &[HostAdvertisement],
@@ -20,16 +20,16 @@ pub fn plan_expanded_canonical_with_activations(
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
-    let plan = plan_expanded_canonical_with_options(form, hosts, placements, bases, options)?;
+    let plan = plan_expanded_canonical_with_options(plot, hosts, placements, bases, options)?;
     attach_activations(
-        document, form, catalog, backs, hosts, bases, options, plan, 0,
+        document, plot, catalog, backs, hosts, bases, options, plan, 0,
     )
 }
 
 #[allow(clippy::too_many_arguments)]
 fn attach_activations(
     document: &CheckedSyntaxDocument,
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     hosts: &[HostAdvertisement],
@@ -38,27 +38,27 @@ fn attach_activations(
     plan: Plan,
     depth: u8,
 ) -> Result<Plan, PlannerError> {
-    if form.activations.is_empty() {
+    if plot.activations.is_empty() {
         return Ok(plan);
     }
     if depth >= conduit_core::MAXIMUM_PLANNED_ACTIVATION_DEPTH {
-        return Err(PlannerError::InvalidFormIdentity(
+        return Err(PlannerError::InvalidPlotIdentity(
             "planned activation nesting exceeds the finite architecture bound".into(),
         ));
     }
 
-    let mut planned = Vec::with_capacity(form.activations.len());
-    for activation in &form.activations {
-        let authoring = expand_canonical_form_for_authoring_with_backs(
+    let mut planned = Vec::with_capacity(plot.activations.len());
+    for activation in &plot.activations {
+        let authoring = expand_canonical_plot_for_authoring_with_backs(
             document,
-            &activation.selected_form,
+            &activation.selected_plot,
             catalog,
             backs,
         )
-        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-        if authoring.expanded.checked_form_id != activation.selected_checked_form_id {
-            return Err(PlannerError::InvalidFormIdentity(
-                "activation selected Form identity changed after checked expansion".into(),
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+        if authoring.expanded.checked_plot_id != activation.selected_checked_plot_id {
+            return Err(PlannerError::InvalidPlotIdentity(
+                "activation selected Plot identity changed after checked expansion".into(),
             ));
         }
         let child_placements = default_expanded_placements(&authoring.expanded, hosts)?;
@@ -89,7 +89,7 @@ fn attach_activations(
             .flat_map(|fragment| &fragment.placements)
             .find(|placement| placement.gear_id == activation.owner_gear_id)
             .ok_or_else(|| {
-                PlannerError::InvalidFormIdentity(
+                PlannerError::InvalidPlotIdentity(
                     "activation coordinator has no exact planned placement".into(),
                 )
             })?;
@@ -98,7 +98,7 @@ fn attach_activations(
                 || fragment.boot_id != owner.boot_id
                 || fragment.offer_generation != owner.offer_generation
         }) {
-            return Err(PlannerError::InvalidFormIdentity(
+            return Err(PlannerError::InvalidPlotIdentity(
                 "activation selected Plan must be prepared on the coordinator owner host, boot, and offer generation".into(),
             ));
         }
@@ -148,11 +148,11 @@ fn attach_activations(
         };
         if matches!(
             activation.mode,
-            conduit_form::ActivationSyntax::Fold { .. }
-                | conduit_form::ActivationSyntax::Scan { .. }
+            conduit_plot::ActivationSyntax::Fold { .. }
+                | conduit_plot::ActivationSyntax::Scan { .. }
         ) {
             let accumulator = activation.accumulator_input.as_ref().ok_or_else(|| {
-                PlannerError::InvalidFormIdentity(
+                PlannerError::InvalidPlotIdentity(
                     "fold activation lost its accumulator front".into(),
                 )
             })?;
@@ -160,7 +160,7 @@ fn attach_activations(
                 .initial_accumulator_bytes
                 .clone()
                 .ok_or_else(|| {
-                    PlannerError::InvalidFormIdentity(
+                    PlannerError::InvalidPlotIdentity(
                         "fold activation lost canonical initial bytes".into(),
                     )
                 })?;
@@ -170,7 +170,7 @@ fn attach_activations(
                 .iter()
                 .find_map(|law| match (&activation.mode, law) {
                     (
-                        conduit_form::ActivationSyntax::Fold { .. },
+                        conduit_plot::ActivationSyntax::Fold { .. },
                         conduit_core::KindSemanticLaw::FlowFold(law),
                     ) => Some((
                         &law.initial_accumulator,
@@ -181,7 +181,7 @@ fn attach_activations(
                         law.item.maximum_bytes,
                     )),
                     (
-                        conduit_form::ActivationSyntax::Scan { .. },
+                        conduit_plot::ActivationSyntax::Scan { .. },
                         conduit_core::KindSemanticLaw::FlowScan(law),
                     ) => Some((
                         &law.initial_accumulator,
@@ -194,7 +194,7 @@ fn attach_activations(
                     _ => None,
                 })
                 .ok_or_else(|| {
-                    PlannerError::InvalidFormIdentity(
+                    PlannerError::InvalidPlotIdentity(
                         "fold or scan coordinator has no exact progression law".into(),
                     )
                 })?;
@@ -203,7 +203,7 @@ fn attach_activations(
                 || law.2.value_kind != accumulator.value_kind
                 || law.3 != limits.maximum_items
             {
-                return Err(PlannerError::InvalidFormIdentity(
+                return Err(PlannerError::InvalidPlotIdentity(
                     "progression activation differs from its selected coordinator law".into(),
                 ));
             }
@@ -212,7 +212,7 @@ fn attach_activations(
                 value_kind: accumulator.value_kind.clone(),
                 abnormal_kind: accumulator.abnormal_kind.clone(),
             };
-            if matches!(activation.mode, conduit_form::ActivationSyntax::Scan { .. }) {
+            if matches!(activation.mode, conduit_plot::ActivationSyntax::Scan { .. }) {
                 planned.push(PlannedActivationEntry::Scan(PlannedScanActivation {
                     activation_id: activation.activation_id.clone(),
                     owner_placement_id: owner.placement_id.clone(),
@@ -262,17 +262,17 @@ fn attach_activations(
                 .iter()
                 .find_map(|law| match (&activation.mode, law) {
                     (
-                        conduit_form::ActivationSyntax::Each { .. },
+                        conduit_plot::ActivationSyntax::Each { .. },
                         conduit_core::KindSemanticLaw::FlowEach(law),
                     ) => Some(law.maximum_items),
                     (
-                        conduit_form::ActivationSyntax::Select { .. },
+                        conduit_plot::ActivationSyntax::Select { .. },
                         conduit_core::KindSemanticLaw::FlowSelect(law),
                     ) => Some(law.maximum_items),
                     _ => None,
                 });
         if offered_maximum != Some(limits.maximum_items) {
-            return Err(PlannerError::InvalidFormIdentity(format!(
+            return Err(PlannerError::InvalidPlotIdentity(format!(
                 "activation maximum-items {} differs from its coordinator law {:?}",
                 limits.maximum_items, offered_maximum
             )));
@@ -294,10 +294,10 @@ fn attach_activations(
     }
 
     Ok(conduit_core::seal_plan_with_activation_entries(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: plan.source_document_id,
-            checked_form_id: plan.checked_form_id,
-            expanded_form_id: plan.expanded_form_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
         },
         plan.completion_policy,
         plan.realization_backs,
@@ -307,19 +307,19 @@ fn attach_activations(
 }
 
 fn exact_boundary_limits(
-    form: &ExpandedAuthoringForm,
+    plot: &ExpandedAuthoringPlot,
 ) -> Result<BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>, PlannerError> {
     let mut limits = BTreeMap::new();
     for (direction, bindings, descriptors) in [
         (
             conduit_core::PortDirection::Input,
-            form.input_bindings.as_slice(),
-            form.front.inputs(),
+            plot.input_bindings.as_slice(),
+            plot.front.inputs(),
         ),
         (
             conduit_core::PortDirection::Output,
-            form.output_bindings.as_slice(),
-            form.front.outputs(),
+            plot.output_bindings.as_slice(),
+            plot.front.outputs(),
         ),
     ] {
         for binding in bindings {
@@ -327,8 +327,8 @@ fn exact_boundary_limits(
                 .iter()
                 .find(|port| port.port_id == binding.front_port_id)
                 .ok_or_else(|| {
-                    PlannerError::InvalidFormIdentity(
-                        "activation selected Form front descriptor is missing".into(),
+                    PlannerError::InvalidPlotIdentity(
+                        "activation selected Plot front descriptor is missing".into(),
                     )
                 })?;
             let location = match (direction, binding.track) {
@@ -349,7 +349,7 @@ fn exact_boundary_limits(
                     conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
                 }
             };
-            let bytes = form
+            let bytes = plot
                 .front
                 .value_contract(&location)
                 .map(|contract| contract.maximum_bytes)

@@ -1,4 +1,4 @@
-//! Exact, bounded active-Form changes for an attached ordinary body.
+//! Exact, bounded active-Plot changes for an attached ordinary body.
 
 use super::{PatchbayHtmlServer, ServerError};
 use conduit_core::SignId;
@@ -96,8 +96,8 @@ impl PatchbayHtmlServer {
             return self.body_workload_refusal("UnknownAction");
         };
         let operation = match action.intent.as_str() {
-            "conduit.intent/add-form@1" => "add",
-            "conduit.intent/remove-form@1" => "remove",
+            "conduit.intent/add-plot@1" => "add",
+            "conduit.intent/remove-plot@1" => "remove",
             _ => return self.body_workload_refusal("ActionUnavailable"),
         };
         if !matches!(
@@ -111,14 +111,14 @@ impl PatchbayHtmlServer {
             self.body_workload.as_ref().cloned().ok_or_else(|| {
                 ServerError::Interaction("Body workload session is absent".into())
             })?;
-        let form = if operation == "remove" {
+        let plot = if operation == "remove" {
             candidate
                 .evidence()
                 .body
                 .workset
-                .forms()
+                .plots()
                 .iter()
-                .find(|form| action.target == format!("form/{}", form.checked_form_id.as_str()))
+                .find(|plot| action.target == format!("plot/{}", plot.checked_plot_id.as_str()))
                 .cloned()
         } else {
             self.snapshot
@@ -126,18 +126,18 @@ impl PatchbayHtmlServer {
                 .as_ref()
                 .and_then(|workbench| {
                     workbench
-                        .reviewed_forms
+                        .reviewed_plots
                         .iter()
-                        .find(|form| action.target == format!("form/{}", form.checked_form_id))
+                        .find(|plot| action.target == format!("plot/{}", plot.checked_plot_id))
                 })
-                .map(|form| {
-                    conduit_body::ResidentForm::new(
-                        conduit_core::SourceDocumentId::from(form.source_document_id.as_str()),
-                        conduit_core::CheckedFormId::from(form.checked_form_id.as_str()),
+                .map(|plot| {
+                    conduit_body::ResidentPlot::new(
+                        conduit_core::SourceDocumentId::from(plot.source_document_id.as_str()),
+                        conduit_core::CheckedPlotId::from(plot.checked_plot_id.as_str()),
                     )
                 })
         };
-        let Some(form) = form else {
+        let Some(plot) = plot else {
             return self.body_workload_refusal("WrongTarget");
         };
         let biography_sequence = candidate
@@ -154,9 +154,9 @@ impl PatchbayHtmlServer {
             "patchbay-html/body-workload/{operation}/{next_workload_revision}"
         ));
         let changed = if operation == "remove" {
-            candidate.remove_form(input.workload_revision, form, sign_id, biography_sequence)
+            candidate.remove_plot(input.workload_revision, plot, sign_id, biography_sequence)
         } else {
-            candidate.admit_form(input.workload_revision, form, sign_id, biography_sequence)
+            candidate.admit_plot(input.workload_revision, plot, sign_id, biography_sequence)
         };
         if changed.is_err() {
             return self.body_workload_refusal("OperationRejected");
@@ -172,13 +172,13 @@ impl PatchbayHtmlServer {
             .checked_add(1)
             .ok_or_else(|| ServerError::Interaction("Body evidence revision exhausted".into()))?;
         let entrance = prior.entrance.clone();
-        let reviewed_forms = prior.reviewed_forms.clone();
+        let reviewed_plots = prior.reviewed_plots.clone();
         let prior_interaction = self.snapshot.interaction.clone();
         let mut snapshot = crate::body_workbench::body_workbench_snapshot_with_reviewed(
             evidence_revision,
             candidate.encoded_evidence(),
             entrance,
-            &reviewed_forms,
+            &reviewed_plots,
         )
         .map_err(|error| ServerError::Interaction(error.to_string()))?;
         snapshot.mark_available(SignId::from(format!(
@@ -239,7 +239,7 @@ mod tests {
         let body_id = snapshot.body_workbench.as_ref().unwrap().body_id.clone();
         let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
         let mut stale_presentation: serde_json::Value =
-            serde_json::from_slice(&request(&server, 0, "conduit.intent/remove-form@1")).unwrap();
+            serde_json::from_slice(&request(&server, 0, "conduit.intent/remove-plot@1")).unwrap();
         stale_presentation["presentation_revision"] = serde_json::json!(99);
         let stale_presentation: crate::RendererSnapshot = serde_json::from_slice(
             &server
@@ -256,7 +256,7 @@ mod tests {
             0
         );
 
-        let stale = request(&server, 9, "conduit.intent/remove-form@1");
+        let stale = request(&server, 9, "conduit.intent/remove-plot@1");
         let stale: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&stale).unwrap()).unwrap();
         assert_eq!(
@@ -268,14 +268,14 @@ mod tests {
             0
         );
 
-        let remove = request(&server, 0, "conduit.intent/remove-form@1");
+        let remove = request(&server, 0, "conduit.intent/remove-plot@1");
         let removed: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&remove).unwrap()).unwrap();
         let workbench = removed.body_workbench.unwrap();
         assert_eq!(workbench.body_id, body_id);
         assert_eq!(workbench.current["workload_revision"], 1);
         assert_eq!(
-            workbench.current["active_forms"].as_array().unwrap().len(),
+            workbench.current["active_plots"].as_array().unwrap().len(),
             1
         );
         assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 5);
@@ -284,7 +284,7 @@ mod tests {
             Some("Succeeded")
         );
 
-        let last = request(&server, 1, "conduit.intent/remove-form@1");
+        let last = request(&server, 1, "conduit.intent/remove-plot@1");
         let last: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&last).unwrap()).unwrap();
         let workbench = last.body_workbench.as_ref().unwrap();
@@ -293,7 +293,7 @@ mod tests {
             Some("Succeeded")
         );
         assert_eq!(workbench.current["workload_revision"], 2);
-        assert!(workbench.current["active_forms"]
+        assert!(workbench.current["active_plots"]
             .as_array()
             .unwrap()
             .is_empty());
@@ -305,14 +305,14 @@ mod tests {
         );
         assert_eq!(navigation.navigation.places.len(), 1);
 
-        let add = request(&server, 2, "conduit.intent/add-form@1");
+        let add = request(&server, 2, "conduit.intent/add-plot@1");
         let added: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&add).unwrap()).unwrap();
         let workbench = added.body_workbench.unwrap();
         assert_eq!(workbench.body_id, body_id);
         assert_eq!(workbench.current["workload_revision"], 3);
         assert_eq!(
-            workbench.current["active_forms"].as_array().unwrap().len(),
+            workbench.current["active_plots"].as_array().unwrap().len(),
             1
         );
         assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 7);
@@ -320,6 +320,6 @@ mod tests {
             serde_json::from_slice(&server.current_body_evidence().unwrap()).unwrap();
         assert_eq!(exported.body.body_id.as_str(), body_id);
         assert_eq!(exported.body.workload_revision, 3);
-        assert_eq!(exported.body.workset.forms().len(), 1);
+        assert_eq!(exported.body.workset.plots().len(), 1);
     }
 }

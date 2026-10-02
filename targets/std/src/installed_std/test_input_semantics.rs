@@ -4,7 +4,6 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal, TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_human::{
     ChordInfo, CoreChordId, KeyEvent, KeyModifiers, KeyTransition, CHORD_ENCODED_LEN,
     CHORD_INFO_ID, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
@@ -14,6 +13,7 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
+use conduit_plot::{KindProjection, ProfileCatalog};
 
 const SOURCE_KIND: &str = "conduit-test/key-event-source";
 const SOURCE_REVISION: &str = "conduit-test/key-event-source@1";

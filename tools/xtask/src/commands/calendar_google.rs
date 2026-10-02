@@ -3,8 +3,8 @@ use crate::{
     process::StepError,
 };
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::hosted_calendar::{
@@ -162,14 +162,14 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     let cancel =
         serde_json::json!({"event_identity": event_identity, "notify_participants": false});
 
-    let forms = [
-        single_form("read", conduit_semantic_catalog::CALENDAR_READ_KIND, &read),
-        single_form(
+    let plots = [
+        single_plot("read", conduit_semantic_catalog::CALENDAR_READ_KIND, &read),
+        single_plot(
             "free_busy",
             conduit_semantic_catalog::CALENDAR_FREE_BUSY_KIND,
             &free_busy,
         ),
-        write_form(&create, &update, &cancel),
+        write_plot(&create, &update, &cancel),
     ];
     let operations: [&[CalendarHostedOperation]; 3] = [
         &[CalendarHostedOperation::Read],
@@ -180,9 +180,9 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
             CalendarHostedOperation::Cancel,
         ],
     ];
-    let mut plan_ids = Vec::with_capacity(forms.len());
-    let mut active_play_ids = Vec::with_capacity(forms.len());
-    for (source, required_operations) in forms.iter().zip(operations) {
+    let mut plan_ids = Vec::with_capacity(plots.len());
+    let mut active_play_ids = Vec::with_capacity(plots.len());
+    for (source, required_operations) in plots.iter().zip(operations) {
         let fragment = plan(&host, source, required_operations)?;
         plan_ids.push(fragment.plan_id.as_str().to_string());
         let mut operator_output = Vec::with_capacity(8_192);
@@ -253,7 +253,7 @@ fn plan(
     let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &startup)
         .map_err(|error| StepError::prereq(PROOF_ID, error.message))?;
-    let expanded = expand_canonical_form(&checked, "proof", &profiles)
+    let expanded = expand_canonical_plot(&checked, "proof", &profiles)
         .map_err(|error| StepError::prereq(PROOF_ID, error.message))?;
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
@@ -289,20 +289,20 @@ fn plan(
         .ok_or_else(|| StepError::prereq(PROOF_ID, "calendar Plan has no local fragment"))
 }
 
-fn single_form(name: &str, kind: &str, request: &serde_json::Value) -> String {
+fn single_plot(name: &str, kind: &str, request: &serde_json::Value) -> String {
     format!(
-        "form proof {{\n {name}: {kind}(request = {{semantic_json: {}}})\n}}\n",
+        "plot proof {{\n {name}: {kind}(request = {{semantic_json: {}}})\n}}\n",
         serde_json::to_string(&request.to_string()).expect("JSON string encoding cannot fail")
     )
 }
 
-fn write_form(
+fn write_plot(
     create: &serde_json::Value,
     update: &serde_json::Value,
     cancel: &serde_json::Value,
 ) -> String {
     format!(
-        "form proof {{\n create: calendar/create-event(request = {{semantic_json: {}}})\n update: calendar/update-event(request = {{semantic_json: {}}})\n cancel: calendar/cancel-event(request = {{semantic_json: {}}})\n create.receipt >> update.prior\n update.receipt >> cancel.prior\n}}\n",
+        "plot proof {{\n create: calendar/create-event(request = {{semantic_json: {}}})\n update: calendar/update-event(request = {{semantic_json: {}}})\n cancel: calendar/cancel-event(request = {{semantic_json: {}}})\n create.receipt >> update.prior\n update.receipt >> cancel.prior\n}}\n",
         serde_json::to_string(&create.to_string()).unwrap(),
         serde_json::to_string(&update.to_string()).unwrap(),
         serde_json::to_string(&cancel.to_string()).unwrap(),

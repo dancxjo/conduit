@@ -215,7 +215,7 @@ fn request(
     let digest = digest(identity);
     JobRequest::new(
         JobArguments::new(
-            conduit_form::rust_binding::BoundedSequence::try_from_iter(
+            conduit_plot::rust_binding::BoundedSequence::try_from_iter(
                 arguments
                     .into_iter()
                     .map(|value| JobText::new(value).unwrap()),
@@ -224,7 +224,7 @@ fn request(
         )
         .unwrap(),
         JobEnvironment::new(
-            conduit_form::rust_binding::BoundedSequence::try_from_iter(environment).unwrap(),
+            conduit_plot::rust_binding::BoundedSequence::try_from_iter(environment).unwrap(),
         )
         .unwrap(),
         JobExecutable::new(BoundedResourceRef {

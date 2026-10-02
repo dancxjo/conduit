@@ -6,7 +6,7 @@ const ROOTS: &[&str] = &[
     "bodies",
     "docs",
     "make",
-    "forms",
+    "plots",
     "mechanisms",
     "products",
     "proof",
@@ -103,9 +103,9 @@ fn ordinary_interface_vocabulary_is_not_rewritten_as_front() {
             .expect("Create Open Interface source remains readable");
     assert!(create_protocol.contains("Create Open Interface"));
 
-    let form = fs::read_to_string(repository.join("architecture/form/src/checked_syntax.rs"))
-        .expect("Form facade remains readable");
-    assert!(form.contains("Front"));
+    let plot = fs::read_to_string(repository.join("architecture/plot/src/checked_syntax.rs"))
+        .expect("Plot facade remains readable");
+    assert!(plot.contains("Front"));
 }
 
 fn inspect_directory(

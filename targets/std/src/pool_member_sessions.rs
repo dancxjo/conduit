@@ -146,12 +146,12 @@ mod tests {
     use conduit_core::{
         mandatory_sign_storage_requirement, seal_plan, AdmittedLine, ArtifactId, AuthorityGrantId,
         BaseImplementationId, BaseInstanceId, BootId, BoundLink, CancellationPolicy, CapabilityId,
-        CapabilityLimits, CheckedFront, ConfigurationEntry, ExecutionProfileId, ExpandedFormId,
-        ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, ImplementationId, KindId,
-        KindIdentity, LineContinuation, LineContract, LineDuplex, LineId, LineOrdering,
-        LineReliability, LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference,
-        LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits,
-        OfferGeneration, PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PoolDeclarationId,
+        CapabilityLimits, CheckedFront, ConfigurationEntry, ExecutionProfileId, ExpandedPlotId,
+        ExpectedSign, ExpectedTerminal, FragmentId, GearId, ImplementationId, KindId, KindIdentity,
+        LineContinuation, LineContract, LineDuplex, LineId, LineOrdering, LineReliability,
+        LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBindingId,
+        LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration,
+        PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PlotIdentity, PoolDeclarationId,
         PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope, PoolSelectionEvidence,
         PortDescriptor, PortDirection, PortTemporal, SharedPoolId, SharedPoolSelectionPolicy,
         SignId, SourceDocumentId, TerminalPolicy,
@@ -223,8 +223,8 @@ mod tests {
             plan_id: PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from("source/pool-session"),
-            checked_form_id: conduit_core::CheckedFormId::from("checked/pool-session"),
-            expanded_form_id: ExpandedFormId::from("expanded/pool-session"),
+            checked_plot_id: conduit_core::CheckedPlotId::from("checked/pool-session"),
+            expanded_plot_id: ExpandedPlotId::from("expanded/pool-session"),
             completion_policy: conduit_core::PlanCompletionPolicy::Live,
             realization_backs: vec![],
             host_id: HostId::from(host),
@@ -336,10 +336,10 @@ mod tests {
             pool_references: vec![pool_id.clone()],
         };
         let plan = seal_plan(
-            FormIdentity {
+            PlotIdentity {
                 source_document_id: SourceDocumentId::from("source/pool-session"),
-                checked_form_id: conduit_core::CheckedFormId::from("checked/pool-session"),
-                expanded_form_id: ExpandedFormId::from("expanded/pool-session"),
+                checked_plot_id: conduit_core::CheckedPlotId::from("checked/pool-session"),
+                expanded_plot_id: ExpandedPlotId::from("expanded/pool-session"),
             },
             vec![
                 fragment("host/client", "boot/client", vec![consumer], pool.clone()),

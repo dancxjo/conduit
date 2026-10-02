@@ -4,7 +4,7 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, KindId, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_presentation::{
     VisionMotionsFour, VisionObjectObservations, VisionTextsEight, VisionTracksFour,
     VisualExperience, VisualImpression,

@@ -1,11 +1,11 @@
-//! Ordinary form-facing contract for a finite measurement window.
+//! Ordinary plot-facing contract for a finite measurement window.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
     MEASUREMENT_SAMPLE_INFO_ID, MEASUREMENT_WINDOW_INFO_ID, MEASUREMENT_WINDOW_PROFILE_INFO_ID,

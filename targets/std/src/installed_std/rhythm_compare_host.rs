@@ -9,7 +9,7 @@ use conduit_audio::{
 use conduit_core::StructuredInfoValue;
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 #[cfg(test)]
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use std::collections::VecDeque;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

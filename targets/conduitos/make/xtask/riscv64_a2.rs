@@ -37,7 +37,7 @@ struct MachineSign {
     kernel_signs: u32,
     pending_host_calls: u32,
     sequence: Vec<String>,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
 }
 
 #[derive(Serialize)]
@@ -61,7 +61,7 @@ struct Proof {
     fresh_boot_id: bool,
     production_kernel_owner: bool,
     real_timer_wake: bool,
-    a3_ordinary_form_claimed: bool,
+    a3_ordinary_plot_claimed: bool,
 }
 
 pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -132,7 +132,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         fresh_boot_id,
         production_kernel_owner: true,
         real_timer_wake: true,
-        a3_ordinary_form_claimed: false,
+        a3_ordinary_plot_claimed: false,
     };
     let path = paths.target.join("a2-proof.json");
     fs::write(&path, serde_json::to_vec_pretty(&proof).map_err(encoding)?)
@@ -278,7 +278,7 @@ fn validate(sign: &MachineSign) -> Result<(), ConduitosError> {
         || sign.kernel_signs == 0
         || sign.pending_host_calls != 0
         || sign.sequence.iter().map(String::as_str).ne(sequence)
-        || sign.a3_ordinary_form_claimed
+        || sign.a3_ordinary_plot_claimed
     {
         return Err(refusal(
             "stale-or-invalid-riscv64-machine-sign",

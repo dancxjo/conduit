@@ -208,7 +208,7 @@ pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProf
 }
 
 #[cfg(feature = "host-profile")]
-pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog) {
+pub(crate) fn extend_profile_catalog(catalog: &mut conduit_plot::ProfileCatalog) {
     catalog
         .insert_kind(trigger_semantic_contract())
         .expect("signal profile kinds are unique");

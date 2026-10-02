@@ -1,6 +1,6 @@
 //! Bounded Google Calendar protocol and credential/resource boundary.
 //!
-//! These types are realization facts. They do not belong in authored forms or
+//! These types are realization facts. They do not belong in authored plots or
 //! portable calendar Info, and this module owns no scheduling or retry policy.
 use serde::{Deserialize, Serialize};
 use std::fmt;

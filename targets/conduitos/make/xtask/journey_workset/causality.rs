@@ -1,4 +1,4 @@
-//! Ordinary Boot and Body lifecycle identity checks, independent of foreground Form.
+//! Ordinary Boot and Body lifecycle identity checks, independent of foreground Plot.
 use super::{ConduitosError, Value};
 
 pub(in super::super) fn validate(

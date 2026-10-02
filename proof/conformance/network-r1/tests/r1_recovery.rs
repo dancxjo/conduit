@@ -267,7 +267,7 @@ fn non_loss_and_non_selected_host_observations_refuse_without_mutation() {
     let mut wrong_body = stale.clone();
     wrong_body.body_id = conduit_body::Body::born(
         conduit_core::SourceDocumentId::from("r1/other-source"),
-        conduit_core::CheckedFormId::from("r1/other-checked"),
+        conduit_core::CheckedPlotId::from("r1/other-checked"),
         99,
         SignId::from("r1/other-body-born"),
     )

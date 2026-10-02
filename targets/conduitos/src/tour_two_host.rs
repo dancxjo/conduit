@@ -22,15 +22,15 @@ pub fn run(
 ) -> Result<TourPlayEvidence, TourPlayError> {
     let run = crate::tour_two_host_play::run(prepared, serial).map_err(TourPlayError::Machine)?;
     Ok(TourPlayEvidence {
-        specimen_id: "canonical-form:hello-across",
+        specimen_id: "canonical-plot:hello-across",
         source_document_id: prepared.plan.source_document_id.clone(),
-        checked_form_id: prepared.plan.checked_form_id.clone(),
-        expanded_form_id: prepared.plan.expanded_form_id.clone(),
+        checked_plot_id: prepared.plan.checked_plot_id.clone(),
+        expanded_plot_id: prepared.plan.expanded_plot_id.clone(),
         plan_id: prepared.plan.plan_id.clone(),
         active_play_id: prepared.source_active.active_play_id.clone(),
         result: "hello across one cord",
         manifestations: 1,
-        comparison_expanded_form_id: None,
+        comparison_expanded_plot_id: None,
         comparison_plan_id: None,
         multi_host: Some(conduit_tour_model::TourMultiHostProof {
             source_fragment_id: prepared.source_fragment_id.as_str().into(),

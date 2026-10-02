@@ -16,12 +16,12 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-fn form() -> conduit_form::CheckedForm {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn plot() -> conduit_plot::CheckedPlot {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_llm_semantic_catalog(&mut startup, &mut profile).expect("catalog installs");
-    conduit_form::parse("form answer {\n    generate: llm/generate\n}\n", &profile)
-        .expect("form checks")
+    conduit_plot::parse("plot answer {\n    generate: llm/generate\n}\n", &profile)
+        .expect("plot checks")
 }
 
 fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObservation> {
@@ -48,14 +48,14 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
 
 #[test]
 fn context_and_privacy_hard_requirements_select_only_large_local() {
-    let form = form();
+    let plot = plot();
     let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
     let advertisements = llm_generate_realization_advertisements(&fixtures);
-    let gear = &form.gears[0];
+    let gear = &plot.gears[0];
     let requirements = HardRealizationRequirements {
         minimum_characteristic_counts: BTreeMap::from([(
             CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
@@ -72,7 +72,7 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
     };
     let requirement_map = BTreeMap::from([(gear.gear_id.clone(), requirements)]);
     let plan = plan_selected_realizations_with_characteristics(
-        &form,
+        &plot,
         &hosts,
         &[],
         &requirement_map,
@@ -94,7 +94,7 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
             unit: conduit_core::CharacteristicUnit::Items,
         };
     let changed = plan_selected_realizations_with_characteristics(
-        &form,
+        &plot,
         &hosts,
         &[],
         &requirement_map,
@@ -113,7 +113,7 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
         maximum: u64::MAX - 1,
     };
     let changed = plan_selected_realizations_with_characteristics(
-        &form,
+        &plot,
         &hosts,
         &[],
         &requirement_map,
@@ -127,7 +127,7 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
 
 #[test]
 fn a_unit_mismatched_hard_quantity_cannot_be_interpreted_by_convention() {
-    let form = form();
+    let plot = plot();
     let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
@@ -145,7 +145,7 @@ fn a_unit_mismatched_hard_quantity_cannot_be_interpreted_by_convention() {
         ..HardRealizationRequirements::default()
     };
     let error = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &requirements,
@@ -161,7 +161,7 @@ fn a_unit_mismatched_hard_quantity_cannot_be_interpreted_by_convention() {
 
 #[test]
 fn bounded_decision_sign_explains_rejections_and_exact_selection() {
-    let form = form();
+    let plot = plot();
     let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
@@ -184,7 +184,7 @@ fn bounded_decision_sign_explains_rejections_and_exact_selection() {
     };
 
     let selection = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &requirements,
@@ -238,7 +238,7 @@ fn bounded_decision_sign_explains_rejections_and_exact_selection() {
 
 #[test]
 fn decision_sign_fails_before_exceeding_its_candidate_bound() {
-    let form = form();
+    let plot = plot();
     let fixture = llm_generate_base_fixtures()[0].clone();
     let mut hosts = Vec::new();
     let mut advertisements = Vec::new();
@@ -258,7 +258,7 @@ fn decision_sign_fails_before_exceeding_its_candidate_bound() {
         hosts.push(host);
     }
     let error = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -274,7 +274,7 @@ fn decision_sign_fails_before_exceeding_its_candidate_bound() {
 
 #[test]
 fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
-    let form = form();
+    let plot = plot();
     let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
@@ -282,7 +282,7 @@ fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
         .collect::<Vec<_>>();
     let advertisements = llm_generate_realization_advertisements(&fixtures);
     let selection = select_realization_with_characteristics_and_signs(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
@@ -308,14 +308,14 @@ fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
 
 #[test]
 fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
-    let form = form();
+    let plot = plot();
     let fixtures = llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
     let advertisements = llm_generate_realization_advertisements(&fixtures);
-    let gear_id = form.gears[0].gear_id.clone();
+    let gear_id = plot.gears[0].gear_id.clone();
     let requirements = BTreeMap::from([(
         gear_id.clone(),
         HardRealizationRequirements {
@@ -340,7 +340,7 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
     )]);
     let initial_observations = observations(&hosts);
     let plan_a = plan_selected_realizations_with_characteristics(
-        &form,
+        &plot,
         &hosts,
         &[],
         &requirements,
@@ -377,7 +377,7 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
     let line_candidates = BTreeMap::new();
     let outcome = replan_selected_realizations_with_characteristics(
         &plan_a,
-        &form,
+        &plot,
         &hosts,
         &[],
         &requirements,
@@ -413,7 +413,7 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
 
     let unchanged = replan_selected_realizations_with_characteristics(
         &plan_a,
-        &form,
+        &plot,
         &hosts,
         &[],
         &requirements,

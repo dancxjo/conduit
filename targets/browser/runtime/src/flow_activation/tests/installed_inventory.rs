@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 fn predicate_plan() -> Plan {
     let source = r#"
-form browser-predicate (
+plot browser-predicate (
  >> value: Scalar
  accepted: Boolean >>
 ) {
@@ -23,10 +23,10 @@ form browser-predicate (
 "#;
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
     let expanded =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "browser-predicate", &catalog)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "browser-predicate", &catalog)
             .unwrap()
             .expanded;
     let identity = identity();
@@ -78,10 +78,10 @@ form browser-predicate (
         ),
     ];
     conduit_core::seal_plan_with_completion(
-        conduit_core::FormIdentity {
+        conduit_core::PlotIdentity {
             source_document_id: planned.source_document_id,
-            checked_form_id: planned.checked_form_id,
-            expanded_form_id: planned.expanded_form_id,
+            checked_plot_id: planned.checked_plot_id,
+            expanded_plot_id: planned.expanded_plot_id,
         },
         planned.completion_policy,
         vec![fragment],
@@ -122,10 +122,10 @@ fn select_plan(child: Plan) -> Plan {
         .max()
         .unwrap();
     conduit_core::seal_plan_with_activation_entries(
-        conduit_core::FormIdentity {
+        conduit_core::PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
-            checked_form_id: outer.checked_form_id.clone(),
-            expanded_form_id: outer.expanded_form_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
         },
         conduit_core::PlanCompletionPolicy::Live,
         vec![],

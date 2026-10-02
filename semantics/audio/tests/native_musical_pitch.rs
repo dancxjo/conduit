@@ -1,5 +1,5 @@
 use conduit_audio::MusicalPitch;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn musical_pitch_has_exact_native_and_twenty_byte_round_trips() {

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use conduit_form::{
+use conduit_plot::{
     parse_syntax_document, ConstructionDirectiveSyntax, ConstructionRole, ExpressionSyntax,
     StructuredExpressionField,
 };
@@ -24,9 +24,9 @@ pub fn parse_body_description_conduit(
             ),
         });
     }
-    if !document.forms.is_empty() {
+    if !document.plots.is_empty() {
         return Err(decode_error(
-            "construction source must not contain Form definitions",
+            "construction source must not contain Plot definitions",
         ));
     }
     if document.constructions.len() != 1 {

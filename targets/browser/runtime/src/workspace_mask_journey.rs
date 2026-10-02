@@ -1,7 +1,7 @@
 use super::*;
 use conduit_presentation::{
     actualize_mask_journey, MaskJourneyAction, MaskJourneyEmbodiment, MaskPlanningDisposition,
-    MaskShowDisposition, SelectedMaskFormRoute,
+    MaskShowDisposition, SelectedMaskPlotRoute,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -9,7 +9,7 @@ pub struct BrowserMaskJourneyOutcome {
     pub action_id: &'static str,
     pub concrete_event: String,
     pub presentation_id: String,
-    pub selected_mask_form_id: Option<String>,
+    pub selected_mask_plot_id: Option<String>,
     pub plan_id: conduit_core::PlanId,
     pub selected_route_id: Option<String>,
     pub show_id: Option<String>,
@@ -21,10 +21,10 @@ struct BrowserJourney<'a> {
     alternate_show: &'a BrowserMaskObservation,
     replacement: &'a BrowserMaskObservation,
     restored: &'a BrowserMaskObservation,
-    alternate: MaskForm,
-    initial_routes: AdmittedMaskFormRoutes,
-    unavailable_routes: AdmittedMaskFormRoutes,
-    replacement_routes: AdmittedMaskFormRoutes,
+    alternate: MaskPlot,
+    initial_routes: AdmittedMaskPlotRoutes,
+    unavailable_routes: AdmittedMaskPlotRoutes,
+    replacement_routes: AdmittedMaskPlotRoutes,
     control: MaskWardrobeControl,
     current_show: Option<String>,
 }
@@ -47,11 +47,11 @@ impl BrowserJourney<'_> {
             action_id: action.id(),
             concrete_event: event.into(),
             presentation_id: self.initial.presentation.identity.as_str().into(),
-            selected_mask_form_id: self
+            selected_mask_plot_id: self
                 .control
                 .selected
                 .as_ref()
-                .map(|v| v.mask_form.checked_form_id.as_str().into()),
+                .map(|v| v.mask_plot.checked_plot_id.as_str().into()),
             plan_id: self.control.active_plan_id.clone(),
             selected_route_id: self.control.selected.as_ref().map(|v| v.route_id.clone()),
             show_id: retains_fresh_show
@@ -63,7 +63,7 @@ impl BrowserJourney<'_> {
     fn apply(
         &mut self,
         action: MaskWardrobeAction,
-        routes: &AdmittedMaskFormRoutes,
+        routes: &AdmittedMaskPlotRoutes,
     ) -> Result<MaskWardrobeControlEvidence, String> {
         self.control
             .apply(
@@ -98,7 +98,7 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
             MaskJourneyAction::WearAlternateMask => {
                 let routes = self.initial_routes.clone();
                 let e = self.apply(
-                    MaskWardrobeAction::Wear(self.alternate.form_identity.clone()),
+                    MaskWardrobeAction::Wear(self.alternate.plot_identity.clone()),
                     &routes,
                 )?;
                 self.retain(
@@ -116,7 +116,7 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
             MaskJourneyAction::PreferAlternateMask => {
                 let routes = self.initial_routes.clone();
                 let e = self.apply(
-                    MaskWardrobeAction::Prefer(vec![self.alternate.form_identity.clone()]),
+                    MaskWardrobeAction::Prefer(vec![self.alternate.plot_identity.clone()]),
                     &routes,
                 )?;
                 self.control = MaskWardrobeControl::new(
@@ -236,7 +236,7 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
             MaskJourneyAction::DoffAlternateMask => {
                 let routes = self.replacement_routes.clone();
                 let e = self.apply(
-                    MaskWardrobeAction::Doff(self.alternate.form_identity.clone()),
+                    MaskWardrobeAction::Doff(self.alternate.plot_identity.clone()),
                     &routes,
                 )?;
                 self.current_show = None;
@@ -330,15 +330,15 @@ pub(super) fn actualize(
     )?;
     let wardrobe = MaskWardrobe::new(
         MaskWardrobeLifetime::Body,
-        vec![initial_mask.form_identity.clone()],
+        vec![initial_mask.plot_identity.clone()],
         vec![],
     )
     .map_err(|e| format!("initial wardrobe: {e:?}"))?;
     let scoped = BodyMaskWardrobe::new(initial.wardrobe_action.body_id.clone(), None, wardrobe)
         .map_err(|e| format!("scope wardrobe: {e:?}"))?;
-    let selected = SelectedMaskFormRoute {
+    let selected = SelectedMaskPlotRoute {
         route_id: "route/browser-graphical".into(),
-        mask_form: initial_mask.form_identity.clone(),
+        mask_plot: initial_mask.plot_identity.clone(),
         plan_id: initial.body_plan.plan_id.clone(),
     };
     let control = MaskWardrobeControl::new(

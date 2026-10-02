@@ -4,14 +4,14 @@ use conduit_body::{
     PurposeState,
 };
 use conduit_core::{
-    bind_active_play, seal_plan, AuthorityGrantId, CheckedFormId, ExpandedFormId, FormIdentity,
-    HostId, Plan, SignId, SourceDocumentId,
+    bind_active_play, seal_plan, AuthorityGrantId, CheckedPlotId, ExpandedPlotId, HostId, Plan,
+    PlotIdentity, SignId, SourceDocumentId,
 };
 
 fn body() -> Body {
     Body::born(
         SourceDocumentId::from("source/orifina"),
-        CheckedFormId::from("checked/orifina"),
+        CheckedPlotId::from("checked/orifina"),
         1,
         SignId::from("sign/born"),
     )
@@ -38,10 +38,10 @@ fn purpose(revision: u64, state: PurposeObligationState) -> PurposeState {
 
 fn plan(identity: &str) -> Plan {
     seal_plan(
-        FormIdentity {
+        PlotIdentity {
             source_document_id: SourceDocumentId::from("source/orifina"),
-            checked_form_id: CheckedFormId::from("checked/orifina"),
-            expanded_form_id: ExpandedFormId::from(identity),
+            checked_plot_id: CheckedPlotId::from("checked/orifina"),
+            expanded_plot_id: ExpandedPlotId::from(identity),
         },
         vec![],
     )

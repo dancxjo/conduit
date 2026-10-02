@@ -2,18 +2,18 @@ use super::*;
 use conduit_body::{
     Body, BodyBiographyEvidence, BodyGraduationChoice, BodyGraduationEvidence, BodyMembership,
 };
-use conduit_core::{CheckedFormId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SourceDocumentId};
 
-fn form(name: &str) -> ResidentForm {
-    ResidentForm::new(
+fn plot(name: &str) -> ResidentPlot {
+    ResidentPlot::new(
         SourceDocumentId::from(format!("source/{name}")),
-        CheckedFormId::from(format!("checked/{name}")),
+        CheckedPlotId::from(format!("checked/{name}")),
     )
 }
 
 fn session() -> BodyWorkloadSession {
-    let body = Body::born_with_forms(
-        conduit_body::BodyWorkset::from_forms([form("clock"), form("lantern")]).unwrap(),
+    let body = Body::born_with_plots(
+        conduit_body::BodyWorkset::from_plots([plot("clock"), plot("lantern")]).unwrap(),
         1,
         SignId::from("sign/born"),
     )
@@ -37,9 +37,9 @@ fn session() -> BodyWorkloadSession {
 fn add_then_remove_preserves_body_identity_and_advances_exact_workload_evidence() {
     let mut session = session();
     let body_id = session.evidence().body_id.clone();
-    let telegraph = form("telegraph");
+    let telegraph = plot("telegraph");
     let admitted = session
-        .admit_form(
+        .admit_plot(
             0,
             telegraph.clone(),
             SignId::from("sign/telegraph-admitted"),
@@ -53,7 +53,7 @@ fn add_then_remove_preserves_body_identity_and_advances_exact_workload_evidence(
     assert!(session.evidence().body.workset.contains(&telegraph));
 
     let removed = session
-        .remove_form(1, form("clock"), SignId::from("sign/clock-removed"), 4)
+        .remove_plot(1, plot("clock"), SignId::from("sign/clock-removed"), 4)
         .unwrap();
     assert_eq!(removed.workload_revision, 2);
     assert_eq!(removed.kind, BodyWorkloadChangeKind::Removed);
@@ -69,24 +69,24 @@ fn stale_duplicate_absent_and_reused_evidence_fail_without_partial_mutation() {
     let mut session = session();
     let original = session.encoded_evidence().to_vec();
     assert_eq!(
-        session.admit_form(9, form("radio"), SignId::from("sign/radio"), 3),
+        session.admit_plot(9, plot("radio"), SignId::from("sign/radio"), 3),
         Err(BodyWorkloadError::StaleWorkloadRevision {
             current: 0,
             offered: 9,
         })
     );
     assert!(matches!(
-        session.admit_form(0, form("clock"), SignId::from("sign/duplicate"), 3),
+        session.admit_plot(0, plot("clock"), SignId::from("sign/duplicate"), 3),
         Err(BodyWorkloadError::Lifecycle(
-            BodyLifecycleError::DuplicateForm
+            BodyLifecycleError::DuplicatePlot
         ))
     ));
     assert!(matches!(
-        session.remove_form(0, form("absent"), SignId::from("sign/absent"), 3),
-        Err(BodyWorkloadError::Lifecycle(BodyLifecycleError::FormAbsent))
+        session.remove_plot(0, plot("absent"), SignId::from("sign/absent"), 3),
+        Err(BodyWorkloadError::Lifecycle(BodyLifecycleError::PlotAbsent))
     ));
     assert!(matches!(
-        session.admit_form(0, form("radio"), SignId::from("sign/graduated"), 3),
+        session.admit_plot(0, plot("radio"), SignId::from("sign/graduated"), 3),
         Err(BodyWorkloadError::Biography(
             BodyBiographyError::InvalidSequence
         ))
@@ -105,7 +105,7 @@ fn awake_body_refuses_workload_change_instead_of_leaving_a_wake_stale() {
     let before = session.encoded_evidence().to_vec();
 
     assert_eq!(
-        session.admit_form(0, form("radio"), SignId::from("sign/radio"), 4),
+        session.admit_plot(0, plot("radio"), SignId::from("sign/radio"), 4),
         Err(BodyWorkloadError::BodyAwake)
     );
     assert_eq!(session.encoded_evidence(), before);
@@ -130,7 +130,7 @@ fn retained_lull_allows_later_workload_changes() {
         .unwrap();
     session.retain_wake(body, wake.clone(), 4).unwrap();
     session
-        .admit_form(0, form("radio"), SignId::from("sign/radio"), 6)
+        .admit_plot(0, plot("radio"), SignId::from("sign/radio"), 6)
         .unwrap();
     assert_eq!(session.evidence().body_id, id);
     assert_eq!(session.evidence().wakes, vec![wake]);

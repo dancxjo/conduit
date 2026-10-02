@@ -4,16 +4,16 @@ import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/
 // nor creates a body; the receiver revalidates against its own admitted inventory.
 export function readWorkspaceHandoff(location, inventory) {
   const parameters = new URLSearchParams(location.search);
-  const keys = ['form', 'source_document_id', 'checked_form_id'];
+  const keys = ['plot', 'source_document_id', 'checked_plot_id'];
   if (keys.every(key => !parameters.has(key))) return null;
   const values = keys.map(key => parameters.getAll(key));
   if (values.some(entries => entries.length !== 1 || !entries[0] || new TextEncoder().encode(entries[0]).length > 256)) {
-    throw new Error('The Gallery link needs one complete Form identity.');
+    throw new Error('The Gallery link needs one complete Plot identity.');
   }
   const [name, source, checked] = values.map(entries => entries[0]);
-  const form = inventory.forms.find(form => form.name === name && form.source_document_id === source && form.checked_form_id === checked);
-  if (!form) throw new Error('This Gallery Form is unavailable or its checked identity has changed. Your installed forms are retained.');
-  return form;
+  const plot = inventory.plots.find(plot => plot.name === name && plot.source_document_id === source && plot.checked_plot_id === checked);
+  if (!plot) throw new Error('This Gallery Plot is unavailable or its checked identity has changed. Your installed plots are retained.');
+  return plot;
 }
 
 export async function consumeWorkspaceHandoff({ host, applicationId }) {

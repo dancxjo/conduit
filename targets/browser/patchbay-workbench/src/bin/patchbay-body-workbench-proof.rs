@@ -128,7 +128,7 @@ fn workbench_entry(
         "evidence_bytes": workbench.encoded_evidence,
         "body_id": workbench.body_id,
         "source_document_id": evidence["body"]["source_document_id"],
-        "checked_form_id": evidence["body"]["checked_form_id"],
+        "checked_plot_id": evidence["body"]["checked_plot_id"],
         "graduation": evidence["graduation"],
         "attachment": entrance,
         "current": workbench.current,
@@ -157,7 +157,7 @@ fn prove_equivalent_body_truth(hosted: &Value, external: &Value) -> Result<(), &
     for path in [
         "/body_id",
         "/source_document_id",
-        "/checked_form_id",
+        "/checked_plot_id",
         "/current/program",
         "/current/lifecycle",
         "/current/current_hosts",
@@ -248,8 +248,8 @@ fn follow_entry(snapshot: &RendererSnapshot) -> Result<Value, Box<dyn std::error
         "plan_ids": plan_ids,
         "cord_ids": cord_ids,
         "line_ids": line_ids,
-        "form_properties_contain_realization_ids": snapshot.presentation.properties.iter().any(|property| {
-            property.subject.starts_with("form/") && matches!(property.name.as_str(), "plan-id" | "cord-id" | "line-id")
+        "plot_properties_contain_realization_ids": snapshot.presentation.properties.iter().any(|property| {
+            property.subject.starts_with("plot/") && matches!(property.name.as_str(), "plan-id" | "cord-id" | "line-id")
         }),
     }))
 }

@@ -1,6 +1,6 @@
 //! Repository-only orchestration entry point for Conduit development and proof tooling.
 //!
-//! Product-facing form execution remains in the Conduit CLI; this binary owns only
+//! Product-facing plot execution remains in the Conduit CLI; this binary owns only
 //! checked-out repository workflows and local hardware tooling.
 
 mod cli;
@@ -33,8 +33,8 @@ fn main() {
                     match scope {
                         CheckScope::Catalog(args) => commands::catalog::run(args, &opts)
                             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
-                        CheckScope::Forms(args) => {
-                            commands::forms::run(args, &opts).map_err(|error| {
+                        CheckScope::Plots(args) => {
+                            commands::plots::run(args, &opts).map_err(|error| {
                                 Box::new(std::io::Error::other(error)) as Box<dyn std::error::Error>
                             })
                         }

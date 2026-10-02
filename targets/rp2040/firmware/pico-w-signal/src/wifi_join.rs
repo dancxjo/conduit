@@ -376,8 +376,8 @@ pub(crate) async fn establish_usb(
         crate::receipts::BootIdentity {
             firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
             source_document_id: crate::network_image::SOURCE_DOCUMENT_ID,
-            checked_form_id: crate::network_image::CHECKED_FORM_ID,
-            expanded_form_id: crate::network_image::EXPANDED_FORM_ID,
+            checked_plot_id: crate::network_image::CHECKED_PLOT_ID,
+            expanded_plot_id: crate::network_image::EXPANDED_PLOT_ID,
             plan_id: crate::network_image::PLAN_ID,
             fragment_id: crate::network_image::FRAGMENT_ID,
             host_id: crate::network_image::HOST_ID,
@@ -498,8 +498,8 @@ pub(crate) fn attachment_identity<'a>(
     NetworkAttachmentIdentity {
         firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
         source_document_id: crate::network_image::SOURCE_DOCUMENT_ID,
-        checked_form_id: crate::network_image::CHECKED_FORM_ID,
-        expanded_form_id: crate::network_image::EXPANDED_FORM_ID,
+        checked_plot_id: crate::network_image::CHECKED_PLOT_ID,
+        expanded_plot_id: crate::network_image::EXPANDED_PLOT_ID,
         plan_id: crate::network_image::PLAN_ID,
         fragment_id: crate::network_image::FRAGMENT_ID,
         host_id: crate::network_image::HOST_ID,

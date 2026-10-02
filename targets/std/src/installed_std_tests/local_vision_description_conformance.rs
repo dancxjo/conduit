@@ -7,8 +7,8 @@ use conduit_core::{
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
     TerminalDisposition,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -96,7 +96,7 @@ fn authored_description_and_experience_join_through_one_production_play() {
     host.kernel_resources =
         crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
     let source = format!(
-        "form proof {{\n image: conduit-test/vision-image(value = \"{}\")\n objects: conduit-test/vision-objects(value = \"{}\")\n texts: conduit-test/vision-texts(value = \"{}\")\n tracks: conduit-test/vision-tracks(value = \"{}\")\n motions: conduit-test/vision-motions(value = \"{}\")\n describe: vision/model-describe\n relate: vision/relate-experience\n sink: conduit-test/local-model-result\n image.image >> describe.image\n objects.detections >> describe.detections\n objects.detections >> relate.detections\n texts.texts >> describe.texts\n texts.texts >> relate.texts\n tracks.tracks >> describe.tracks\n tracks.tracks >> relate.tracks\n motions.motions >> relate.motions\n describe.impression >> relate.impression\n relate.experience >> sink.value\n}}\n",
+        "plot proof {{\n image: conduit-test/vision-image(value = \"{}\")\n objects: conduit-test/vision-objects(value = \"{}\")\n texts: conduit-test/vision-texts(value = \"{}\")\n tracks: conduit-test/vision-tracks(value = \"{}\")\n motions: conduit-test/vision-motions(value = \"{}\")\n describe: vision/model-describe\n relate: vision/relate-experience\n sink: conduit-test/local-model-result\n image.image >> describe.image\n objects.detections >> describe.detections\n objects.detections >> relate.detections\n texts.texts >> describe.texts\n texts.texts >> relate.texts\n tracks.tracks >> describe.tracks\n tracks.tracks >> relate.tracks\n motions.motions >> relate.motions\n describe.impression >> relate.impression\n relate.experience >> sink.value\n}}\n",
         hex(&values[0].canonical_bytes().unwrap()),
         hex(&values[1].canonical_bytes().unwrap()),
         hex(&values[2].canonical_bytes().unwrap()),
@@ -104,7 +104,7 @@ fn authored_description_and_experience_join_through_one_production_play() {
         hex(&values[4].canonical_bytes().unwrap()),
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "proof", &profile_catalog).unwrap();
+    let expanded = expand_canonical_plot(&checked, "proof", &profile_catalog).unwrap();
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
     let offer = hosts[0]

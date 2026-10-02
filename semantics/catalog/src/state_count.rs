@@ -1,7 +1,7 @@
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
@@ -114,12 +114,12 @@ pub fn count_presentation_contract() -> StandardKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_count_pipeline_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     for (contract, revision) in [
         (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
         (
@@ -132,7 +132,7 @@ pub fn install_count_pipeline_catalogs(
             startup_parameters: contract
                 .configuration
                 .iter()
-                .map(|field| conduit_form::StartupParameterSignature {
+                .map(|field| conduit_plot::StartupParameterSignature {
                     name: field.key.clone(),
                     value_type: "Count".to_string(),
                     default: Some(match field.default_value {
@@ -178,22 +178,22 @@ mod tests {
         assert!(semantics.startup_parameters[0].has_default);
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
     fn count_family_installs_exact_source_contracts() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
         crate::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
         install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "form count (\n    start: Count = 0\n    bump: Tick... >> value: $Count\n) {\n    gear: state/count(start)\n    bump >> gear.bump\n    gear.value >> value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock >> count >> show\n}\n";
-        let syntax = conduit_form::parse_syntax_document(source);
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        let expanded = conduit_form::expand_canonical_form(&checked, "main", &profile).unwrap();
+        let source = "plot count (\n    start: Count = 0\n    bump: Tick... >> value: $Count\n) {\n    gear: state/count(start)\n    bump >> gear.bump\n    gear.value >> value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock >> count >> show\n}\n";
+        let syntax = conduit_plot::parse_syntax_document(source);
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot(&checked, "main", &profile).unwrap();
         let count = checked
-            .forms
+            .plots
             .iter()
-            .find(|form| form.name == "count")
+            .find(|plot| plot.name == "count")
             .unwrap();
         let state = expanded
             .gears

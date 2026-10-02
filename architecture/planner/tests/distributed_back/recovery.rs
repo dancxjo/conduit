@@ -36,19 +36,19 @@ fn candidate<'a>(
 
 #[test]
 fn lost_direct_capability_recovers_as_bounded_full_profile_cross_host_back() {
-    let (direct_form, direct) = direct_plan();
-    let (recursive_form, recursive) = plan_with_http_part(host("b", &[HTTP, DECODE]));
+    let (direct_plot, direct) = direct_plan();
+    let (recursive_plot, recursive) = plan_with_http_part(host("b", &[HTTP, DECODE]));
     let snapshot = direct.clone();
     assert!(direct.realization_backs.is_empty());
     assert_eq!(direct.fragments.len(), 1);
     assert!(default_expanded_placements(
-        &direct_form,
+        &direct_plot,
         &[host("a", &[SOURCE, REQUEST, ENCODE, RESULT, SINK])]
     )
     .is_err());
     assert_eq!(direct.source_document_id, recursive.source_document_id);
-    assert_eq!(direct.checked_form_id, recursive.checked_form_id);
-    assert_ne!(direct.expanded_form_id, recursive.expanded_form_id);
+    assert_eq!(direct.checked_plot_id, recursive.checked_plot_id);
+    assert_ne!(direct.expanded_plot_id, recursive.expanded_plot_id);
 
     let evidence =
         conduit_planner::prove_recursive_recovery(&candidate(&direct, &recursive), limits())
@@ -65,7 +65,7 @@ fn lost_direct_capability_recovers_as_bounded_full_profile_cross_host_back() {
     );
     assert_eq!(
         recursive.realization_backs,
-        recursive_form.realization_backs
+        recursive_plot.realization_backs
     );
     assert_eq!(direct, snapshot, "the lost Plan remains immutable");
 }

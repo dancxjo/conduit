@@ -44,7 +44,7 @@ type Kernel = FixedScheduler<
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RoboticsError {
     Catalog,
-    Form,
+    Plot,
     Placement,
     Plan,
     Lowering,

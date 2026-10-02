@@ -1,8 +1,8 @@
 //! Validated projection from a model-derived generation envelope to bounded text.
 
-#[cfg(any(feature = "form-catalog", test))]
+#[cfg(any(feature = "plot-catalog", test))]
 use alloc::string::String;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -151,12 +151,12 @@ pub fn project_generated_text(encoded: &[u8]) -> Result<Vec<u8>, ModelTextRefusa
     Ok(result.payload)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_model_text_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
 
     for contract in [
         model_result_to_text_contract(),

@@ -2,7 +2,7 @@ use conduit_finance::{
     FinanceCurrency, FinanceFixedDecimal, FinanceRateObservation, FinanceRateProfile,
     FinanceRateSource,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn text(length: usize) -> String {
     "x".repeat(length)

@@ -43,7 +43,7 @@ function processOutcome(child) {
 }
 
 test("unchanged Text Lab executes both exact Lines through browser WASM", async ({ page }) => {
-  const sourceText = readFileSync("forms/text-lab/main.conduit", "utf8").toLowerCase();
+  const sourceText = readFileSync("plots/text-lab/main.conduit", "utf8").toLowerCase();
   for (const forbidden of ["browser", "websocket", "127.0.0.1", "host", "line", "address"]) {
     expect(sourceText).not.toContain(forbidden);
   }
@@ -181,12 +181,12 @@ test("return Line loss preserves the accepted Plan and makes fresh planning unre
       line_id: "text-lab/browser-to-native",
       old_plan_disposition: "immutable",
       fresh_planning: "unrealizable",
-      form_unchanged: true,
+      plot_unchanged: true,
     });
     for (const identity of [
       "plan_id",
       "source_document_id",
-      "checked_form_id",
+      "checked_plot_id",
       "active_play_id",
       "sign_id",
     ]) {

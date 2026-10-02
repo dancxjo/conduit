@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 export function registerButtonMultiHostTests(openStep) {
-  test("canonical button Form preserves ordered input across two browser Hosts", async ({ page }) => {
-    const source = await readFile(new URL("../../forms/button-across-room/main.conduit", import.meta.url), "utf8");
+  test("canonical button Plot preserves ordered input across two browser Hosts", async ({ page }) => {
+    const source = await readFile(new URL("../../plots/button-across-room/main.conduit", import.meta.url), "utf8");
     await openStep(page, 3);
     const runner = page.locator(".multi-host-runner").first();
     await runner.locator("textarea").fill(source);
@@ -34,7 +34,7 @@ export function registerButtonMultiHostTests(openStep) {
   });
 
   test("stopping a pending two-Host input retires it before the next Play", async ({ page }) => {
-    const source = await readFile(new URL("../../forms/button-across-room/main.conduit", import.meta.url), "utf8");
+    const source = await readFile(new URL("../../plots/button-across-room/main.conduit", import.meta.url), "utf8");
     await openStep(page, 3);
     const runner = page.locator(".multi-host-runner").first();
     await runner.locator("textarea").fill(source);

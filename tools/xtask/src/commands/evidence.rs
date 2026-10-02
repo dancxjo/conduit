@@ -22,7 +22,7 @@ pub(crate) enum EvidenceCommand {
     /// Add an already-verified three-Body Journey to a built Pages gallery.
     StageThreeBodyJourney(StageThreeBodyJourneyArgs),
     /// Retain native and pinned-browser pixels for one exact Presentation.
-    OneFormTwoFronts(TwoFrontsArgs),
+    OnePlotTwoFronts(TwoFrontsArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
     LittleLife(EvidenceLittleLifeArgs),
     /// Recompute and validate one evidence manifest and its declared files.
@@ -81,7 +81,7 @@ pub(crate) struct StageThreeBodyJourneyArgs {
 #[derive(Args, Debug)]
 pub(crate) struct TwoFrontsArgs {
     /// New directory that will receive the bounded sibling evidence manifest.
-    #[arg(long, default_value = "target/journeys/one-form-two-fronts")]
+    #[arg(long, default_value = "target/journeys/one-plot-two-fronts")]
     output: PathBuf,
 }
 
@@ -117,7 +117,7 @@ pub(crate) struct EvidenceGalleryArgs {
     #[arg(long)]
     conduitos_evidence_root: Option<PathBuf>,
 
-    /// Optional complete One form, Two Fronts evidence for the same commit.
+    /// Optional complete One plot, Two Fronts evidence for the same commit.
     #[arg(long)]
     two_fronts_evidence_root: Option<PathBuf>,
 
@@ -176,7 +176,7 @@ pub fn run(command: EvidenceCommand) -> Result<(), Box<dyn std::error::Error>> {
             three_body_journey::stage(args.publication_root, args.site_root, args.commit)
                 .map_err(Into::into)
         }
-        EvidenceCommand::OneFormTwoFronts(args) => two_fronts::run(args.output),
+        EvidenceCommand::OnePlotTwoFronts(args) => two_fronts::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {
             let result = match args.result {

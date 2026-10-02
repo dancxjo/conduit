@@ -5,7 +5,7 @@ const PROTOCOL = "conduit.syntax-highlight-projection@1";
 export function attachConduitSyntaxEditor(textarea, runtime) {
   if (!(textarea instanceof HTMLTextAreaElement)) throw new TypeError("Conduit syntax editor requires a textarea");
   const container = textarea.closest('[data-application-component="form-field"]');
-  if (!container) throw new TypeError("Conduit syntax editor requires a presentation form field");
+  if (!container) throw new TypeError("Conduit syntax editor requires a presentation plot field");
   container.dataset.applicationSyntax = "conduit";
   const editor = document.createElement("div");
   editor.className = "syntax-editor";

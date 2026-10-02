@@ -1,23 +1,23 @@
 use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyFormPlan, BodyMembership,
-    BodyPlayIdentity, BodyState, CurrentHostOfferError, CurrentHostOffers, FulfillmentReadiness,
-    MembershipProofId, PartId, PurposeObligationState, ResidentForm, WakeLifecycle,
+    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership, BodyPlayIdentity,
+    BodyPlotPlan, BodyState, CurrentHostOfferError, CurrentHostOffers, FulfillmentReadiness,
+    MembershipProofId, PartId, PurposeObligationState, ResidentPlot, WakeLifecycle,
     derive_fulfillment_readiness,
 };
 use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError};
 use conduit_core::{
-    AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId,
-    HostProfileId, OfferGeneration, PROTOCOL_VERSION, SignId, bind_sign, seal_plan,
+    AuthorityGrantId, BootId, ExpandedPlotId, HostAdvertisement, HostId, HostProfileId,
+    OfferGeneration, PROTOCOL_VERSION, PlotIdentity, SignId, bind_sign, seal_plan,
 };
 
 #[test]
 fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
     let body = born();
-    let request = conduit_tutorial_form::generative_request(
+    let request = conduit_tutorial_plot::generative_request(
         &body,
         "request/orifina/initial".into(),
         11,
-        conduit_tutorial_form::TutorialPlayback::Lulled,
+        conduit_tutorial_plot::TutorialPlayback::Lulled,
     )
     .unwrap();
     assert_eq!(
@@ -87,8 +87,8 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
             .subjects
             .iter()
             .any(|subject| {
-                subject.role == conduit_presentation::PresentationRole::Form
-                    && subject.identity == "form/checked/morse"
+                subject.role == conduit_presentation::PresentationRole::Plot
+                    && subject.identity == "plot/checked/morse"
             })
     );
     assert!(
@@ -112,10 +112,10 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
 #[test]
 fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validation() {
     let body = born();
-    let face = conduit_tutorial_form::face_presentation(
+    let face = conduit_tutorial_plot::face_presentation(
         &body,
         12,
-        conduit_tutorial_form::TutorialPlayback::Lulled,
+        conduit_tutorial_plot::TutorialPlayback::Lulled,
     )
     .unwrap();
     let action = face
@@ -173,11 +173,11 @@ fn playing_tutorial_request_uses_the_canonical_face_execution_projection() {
     let mut body = born();
     let play = start(&mut body);
     let realization = body.realization().unwrap();
-    let request = conduit_tutorial_form::generative_request(
+    let request = conduit_tutorial_plot::generative_request(
         &body,
         "request/orifina/playing".into(),
         13,
-        conduit_tutorial_form::TutorialPlayback::Playing,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
     )
     .unwrap();
     let presentation = &request.semantic_data.presentation;
@@ -217,11 +217,11 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
             host_id: host(),
             boot_id: boot(),
             plan_id: Some(proposal.plan.plan_id.clone()),
-            checked_form_ids: proposal
+            checked_plot_ids: proposal
                 .plan
-                .forms
+                .plots
                 .iter()
-                .map(|form| form.form.checked_form_id.clone())
+                .map(|plot| plot.plot.checked_plot_id.clone())
                 .collect(),
         }],
     )
@@ -262,11 +262,11 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
         .append_membership_events(membership, &[(admitted, next), (joined, next + 1)])
         .unwrap();
     let body = BodyLifecycleSession::open(evidence).unwrap();
-    let request = conduit_tutorial_form::generative_request(
+    let request = conduit_tutorial_plot::generative_request(
         &body,
         "request/orifina/ready".into(),
         12,
-        conduit_tutorial_form::TutorialPlayback::Completed,
+        conduit_tutorial_plot::TutorialPlayback::Completed,
     )
     .unwrap();
     assert!(
@@ -295,10 +295,10 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
 #[test]
 fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     let body = born();
-    let view = conduit_tutorial_form::presentation(
+    let view = conduit_tutorial_plot::presentation(
         &body,
         7,
-        conduit_tutorial_form::TutorialPlayback::Lulled,
+        conduit_tutorial_plot::TutorialPlayback::Lulled,
     )
     .unwrap()
     .lower()
@@ -314,12 +314,12 @@ fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
 #[test]
 fn revised_tutorial_uses_the_shared_host_invitation_action() {
     let mut body = born();
-    body.admit_form(0, form("notes"), &host(), &boot()).unwrap();
+    body.admit_plot(0, plot("notes"), &host(), &boot()).unwrap();
     start(&mut body);
-    let view = conduit_tutorial_form::presentation(
+    let view = conduit_tutorial_plot::presentation(
         &body,
         8,
-        conduit_tutorial_form::TutorialPlayback::Playing,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
     )
     .unwrap()
     .lower()
@@ -339,7 +339,7 @@ fn revised_tutorial_uses_the_shared_host_invitation_action() {
 #[test]
 fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() {
     let mut body = born();
-    let initial = conduit_tutorial_form::purpose_state(&body).unwrap();
+    let initial = conduit_tutorial_plot::purpose_state(&body).unwrap();
     assert!(matches!(
         initial.obligations[0].state,
         PurposeObligationState::Satisfied { ref evidence_sign_ids }
@@ -352,7 +352,7 @@ fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() 
     );
 
     start(&mut body);
-    let active = conduit_tutorial_form::purpose_state(&body).unwrap();
+    let active = conduit_tutorial_plot::purpose_state(&body).unwrap();
     for obligation_id in ["born", "wake", "plan-ready", "play-started"] {
         let obligation = active
             .obligations
@@ -392,20 +392,20 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
             host_id: host(),
             boot_id: boot(),
             plan_id: Some(proposal.plan.plan_id.clone()),
-            checked_form_ids: proposal
+            checked_plot_ids: proposal
                 .plan
-                .forms
+                .plots
                 .iter()
-                .map(|form| form.form.checked_form_id.clone())
+                .map(|plot| plot.plot.checked_plot_id.clone())
                 .collect(),
         }],
     )
     .unwrap();
 
-    let repair = conduit_tutorial_form::presentation(
+    let repair = conduit_tutorial_plot::presentation(
         &body,
         9,
-        conduit_tutorial_form::TutorialPlayback::Refused,
+        conduit_tutorial_plot::TutorialPlayback::Refused,
     )
     .unwrap()
     .lower()
@@ -424,15 +424,15 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
     );
 
     start(&mut body);
-    let purpose = conduit_tutorial_form::purpose_state(&body).unwrap();
+    let purpose = conduit_tutorial_plot::purpose_state(&body).unwrap();
     assert!(purpose.obligations.iter().any(|obligation| {
         obligation.obligation_id == "repair-fault"
             && matches!(obligation.state, PurposeObligationState::Satisfied { .. })
     }));
-    let repaired = conduit_tutorial_form::presentation(
+    let repaired = conduit_tutorial_plot::presentation(
         &body,
         10,
-        conduit_tutorial_form::TutorialPlayback::Playing,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
     )
     .unwrap()
     .lower()
@@ -459,7 +459,7 @@ fn host() -> HostId {
 fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
     let transfer_uri =
         "https://example.invalid/workspace/#body-invitation=header.payload.signature";
-    let semantic = conduit_body_invitation_form::InvitationPresentation {
+    let semantic = conduit_body_invitation_plot::InvitationPresentation {
         invitation_id: "invitation/one",
         body_id: "body/one",
         body_name: "Orifina",
@@ -525,7 +525,7 @@ fn explicit_fulfillment_is_terminal_attributable_and_inspectable_after_restore()
     ));
 
     assert_eq!(
-        body.admit_form(0, form("notes"), &host(), &boot()),
+        body.admit_plot(0, plot("notes"), &host(), &boot()),
         Err(BodyLifecycleSessionError::Lifecycle(
             conduit_body::BodyLifecycleError::Fulfilled
         ))
@@ -577,17 +577,17 @@ fn fulfillment_refuses_until_the_current_play_is_retired() {
 fn boot() -> BootId {
     "boot/one".into()
 }
-fn form(name: &str) -> ResidentForm {
-    ResidentForm::new(
+fn plot(name: &str) -> ResidentPlot {
+    ResidentPlot::new(
         format!("source/{name}").into(),
         format!("checked/{name}").into(),
     )
 }
 fn born() -> BodyLifecycleSession {
-    let form = form("morse");
+    let plot = plot("morse");
     let body = Body::born(
-        form.source_document_id,
-        form.checked_form_id,
+        plot.source_document_id,
+        plot.checked_plot_id,
         1,
         "sign/birth".into(),
     )
@@ -639,19 +639,19 @@ fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdver
         planner_capabilities: vec![],
     }
 }
-fn plans(body: &BodyLifecycleSession) -> Vec<BodyFormPlan> {
+fn plans(body: &BodyLifecycleSession) -> Vec<BodyPlotPlan> {
     body.evidence()
         .body
         .workset
-        .forms()
+        .plots()
         .iter()
-        .map(|form| BodyFormPlan {
-            form: form.clone(),
+        .map(|plot| BodyPlotPlan {
+            plot: plot.clone(),
             plan: seal_plan(
-                FormIdentity {
-                    source_document_id: form.source_document_id.clone(),
-                    checked_form_id: form.checked_form_id.clone(),
-                    expanded_form_id: ExpandedFormId::from("expanded/fixture"),
+                PlotIdentity {
+                    source_document_id: plot.source_document_id.clone(),
+                    checked_plot_id: plot.checked_plot_id.clone(),
+                    expanded_plot_id: ExpandedPlotId::from("expanded/fixture"),
                 },
                 vec![],
             ),
@@ -761,11 +761,11 @@ fn quantitative_pre_play_refusal_survives_into_the_body_biography() {
         host_id: host(),
         boot_id: boot(),
         plan_id: Some(proposal.plan.plan_id.clone()),
-        checked_form_ids: proposal
+        checked_plot_ids: proposal
             .plan
-            .forms
+            .plots
             .iter()
-            .map(|form| form.form.checked_form_id.clone())
+            .map(|plot| plot.plot.checked_plot_id.clone())
             .collect(),
     };
     body.fail(&host(), &boot(), vec![rejection.clone()])
@@ -783,7 +783,7 @@ fn quantitative_pre_play_refusal_survives_into_the_body_biography() {
 }
 
 #[test]
-fn refusal_evidence_cannot_claim_unrelated_host_plan_or_form_provenance() {
+fn refusal_evidence_cannot_claim_unrelated_host_plan_or_plot_provenance() {
     let mut body = born();
     let proposal = body
         .propose(plans(&body), &host(), &boot())
@@ -799,11 +799,11 @@ fn refusal_evidence_cannot_claim_unrelated_host_plan_or_form_provenance() {
         host_id: host(),
         boot_id: boot(),
         plan_id: Some(proposal.plan.plan_id.clone()),
-        checked_form_ids: proposal
+        checked_plot_ids: proposal
             .plan
-            .forms
+            .plots
             .iter()
-            .map(|form| form.form.checked_form_id.clone())
+            .map(|plot| plot.plot.checked_plot_id.clone())
             .collect(),
     };
     for forged in [
@@ -816,7 +816,7 @@ fn refusal_evidence_cannot_claim_unrelated_host_plan_or_form_provenance() {
             ..valid.clone()
         },
         conduit_body::WakeRejectionEvidence {
-            checked_form_ids: vec!["form/other".into()],
+            checked_plot_ids: vec!["plot/other".into()],
             ..valid.clone()
         },
     ] {
@@ -854,16 +854,16 @@ fn awake_snapshots_do_not_resurrect_a_play_and_stale_terminal_identity_cannot_lu
 fn workload_edits_are_revision_checked_and_cannot_mutate_an_active_plan() {
     let mut body = born();
     assert_eq!(
-        body.admit_form(1, form("clock"), &host(), &boot()),
+        body.admit_plot(1, plot("clock"), &host(), &boot()),
         Err(BodyLifecycleSessionError::StaleWorkload)
     );
-    body.admit_form(0, form("clock"), &host(), &boot()).unwrap();
+    body.admit_plot(0, plot("clock"), &host(), &boot()).unwrap();
     assert_eq!(body.evidence().body.workload_revision, 1);
     assert_eq!(body.evidence().body.workset.len(), 2);
     start(&mut body);
     let before = body.evidence().clone();
     assert_eq!(
-        body.admit_form(1, form("text"), &host(), &boot()),
+        body.admit_plot(1, plot("text"), &host(), &boot()),
         Err(BodyLifecycleSessionError::NotLulled)
     );
     assert_eq!(body.evidence(), &before);
@@ -983,18 +983,18 @@ fn ten_thousand_wakes_keep_one_body_and_a_bounded_active_window() {
             body.acknowledge_archives(digest).unwrap();
         }
         if cycle == 2_000 || cycle == 6_000 {
-            body.admit_form(
+            body.admit_plot(
                 body.evidence().body.workload_revision,
-                form("soak-companion"),
+                plot("soak-companion"),
                 &host(),
                 &boot(),
             )
             .unwrap();
         }
         if cycle == 4_000 || cycle == 8_000 {
-            body.remove_form(
+            body.remove_plot(
                 body.evidence().body.workload_revision,
-                &form("soak-companion"),
+                &plot("soak-companion"),
                 &host(),
                 &boot(),
             )
@@ -1011,23 +1011,23 @@ fn ten_thousand_wakes_keep_one_body_and_a_bounded_active_window() {
 }
 
 #[test]
-fn repeated_form_changes_roll_over_without_rebirth_or_active_growth() {
+fn repeated_plot_changes_roll_over_without_rebirth_or_active_growth() {
     let mut body = born();
     let identity = body.evidence().body_id.clone();
-    let companion = form("rolling-companion");
-    let mut archived_form_events = 0usize;
+    let companion = plot("rolling-companion");
+    let mut archived_plot_events = 0usize;
     for cycle in 0..200 {
         let revision = body.evidence().body.workload_revision;
         if cycle % 2 == 0 {
-            body.admit_form(revision, companion.clone(), &host(), &boot())
+            body.admit_plot(revision, companion.clone(), &host(), &boot())
                 .unwrap();
         } else {
-            body.remove_form(revision, &companion, &host(), &boot())
+            body.remove_plot(revision, &companion, &host(), &boot())
                 .unwrap();
         }
         for segment in body.pending_archives() {
             segment.validate().unwrap();
-            archived_form_events += segment.body_events.len();
+            archived_plot_events += segment.body_events.len();
             assert!(segment.membership_events.is_empty());
         }
         persist_archives(&mut body);
@@ -1036,7 +1036,7 @@ fn repeated_form_changes_roll_over_without_rebirth_or_active_growth() {
     }
     assert_eq!(body.evidence().body_id, identity);
     assert_eq!(body.evidence().body.workload_revision, 200);
-    assert!(archived_form_events >= 100);
+    assert!(archived_plot_events >= 100);
     body.evidence().validate().unwrap();
 }
 
@@ -1113,44 +1113,44 @@ fn fresh_boot_reconciles_lost_local_play_as_failure_and_retains_the_same_body() 
 #[test]
 fn foreground_selection_changes_neither_body_evidence_nor_running_realization() {
     let mut body = born();
-    body.admit_form(0, form("notes"), &host(), &boot()).unwrap();
-    assert_eq!(body.foreground(), Some(&form("morse")));
+    body.admit_plot(0, plot("notes"), &host(), &boot()).unwrap();
+    assert_eq!(body.foreground(), Some(&plot("morse")));
     let play = start(&mut body);
     let before = body.evidence().clone();
     let realization = body.realization().cloned();
-    body.select_form(&form("notes")).unwrap();
-    assert_eq!(body.foreground(), Some(&form("notes")));
+    body.select_plot(&plot("notes")).unwrap();
+    assert_eq!(body.foreground(), Some(&plot("notes")));
     assert_eq!(body.evidence(), &before);
     assert_eq!(body.realization(), realization.as_ref());
     assert_eq!(body.realization().unwrap().play.as_ref(), Some(&play));
-    let mut stale = form("notes");
+    let mut stale = plot("notes");
     stale.source_document_id = "source/unreviewed".into();
     assert_eq!(
-        body.select_form(&stale),
-        Err(BodyLifecycleSessionError::UninstalledForm)
+        body.select_plot(&stale),
+        Err(BodyLifecycleSessionError::UninstalledPlot)
     );
-    assert_eq!(body.foreground(), Some(&form("notes")));
+    assert_eq!(body.foreground(), Some(&plot("notes")));
 }
 
 #[test]
-fn removing_forms_retains_the_body_and_membership_and_reconciles_foreground() {
+fn removing_plots_retains_the_body_and_membership_and_reconciles_foreground() {
     let mut body = born();
     let identity = body.evidence().body_id.clone();
     let membership = body.evidence().membership.clone();
-    body.admit_form(0, form("notes"), &host(), &boot()).unwrap();
-    body.select_form(&form("notes")).unwrap();
+    body.admit_plot(0, plot("notes"), &host(), &boot()).unwrap();
+    body.select_plot(&plot("notes")).unwrap();
     let play = start(&mut body);
     let before = body.evidence().clone();
     assert_eq!(
-        body.remove_form(1, &form("notes"), &host(), &boot()),
+        body.remove_plot(1, &plot("notes"), &host(), &boot()),
         Err(BodyLifecycleSessionError::NotLulled)
     );
     assert_eq!(body.evidence(), &before);
     body.lull(&host(), &boot(), Some(&play)).unwrap();
-    body.remove_form(1, &form("notes"), &host(), &boot())
+    body.remove_plot(1, &plot("notes"), &host(), &boot())
         .unwrap();
-    assert_eq!(body.foreground(), Some(&form("morse")));
-    body.remove_form(2, &form("morse"), &host(), &boot())
+    assert_eq!(body.foreground(), Some(&plot("morse")));
+    body.remove_plot(2, &plot("morse"), &host(), &boot())
         .unwrap();
     assert_eq!(body.foreground(), None);
     assert!(body.evidence().body.workset.is_empty());
@@ -1175,42 +1175,42 @@ fn stale_or_absent_removal_preserves_current_workload_and_evidence() {
     let mut body = born();
     let before = body.evidence().clone();
     assert_eq!(
-        body.remove_form(1, &form("morse"), &host(), &boot()),
+        body.remove_plot(1, &plot("morse"), &host(), &boot()),
         Err(BodyLifecycleSessionError::StaleWorkload)
     );
     assert_eq!(
-        body.remove_form(0, &form("morse"), &host(), &"boot/stale".into()),
+        body.remove_plot(0, &plot("morse"), &host(), &"boot/stale".into()),
         Err(BodyLifecycleSessionError::StaleHost)
     );
     assert!(
-        body.remove_form(0, &form("missing"), &host(), &boot())
+        body.remove_plot(0, &plot("missing"), &host(), &boot())
             .is_err()
     );
     assert_eq!(body.evidence(), &before);
-    assert_eq!(body.foreground(), Some(&form("morse")));
+    assert_eq!(body.foreground(), Some(&plot("morse")));
 }
 
 #[test]
 fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtered() {
-    use conduit_form_library::{FormLibrary, LibraryAvailability, LibraryEntry, LibraryRefusal};
+    use conduit_plot_library::{LibraryAvailability, LibraryEntry, LibraryRefusal, PlotLibrary};
     let body = born();
-    let library = FormLibrary::new(vec![
+    let library = PlotLibrary::new(vec![
         LibraryEntry {
-            form: form("morse"),
+            plot: plot("morse"),
             title: "Morse".into(),
             search_text: "keyboard light".into(),
             availability: LibraryAvailability::Available,
             graceful_fallback: None,
         },
         LibraryEntry {
-            form: form("notes"),
+            plot: plot("notes"),
             title: "Notes".into(),
             search_text: "keyboard text".into(),
             availability: LibraryAvailability::needs_capability(
                 "Needs a text model realization.".into(),
             )
             .unwrap(),
-            graceful_fallback: Some(conduit_form_library::LibraryFallback {
+            graceful_fallback: Some(conduit_plot_library::LibraryFallback {
                 title: "Keyboard Notes".into(),
                 availability: LibraryAvailability::Available,
             }),
@@ -1248,32 +1248,32 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
 }
 
 #[test]
-fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
-    use conduit_body::MAX_BODY_FORMS;
-    use conduit_form_library::{FormLibrary, LibraryAvailability, LibraryEntry};
+fn library_keeps_reviewed_plots_visible_when_the_body_is_at_capacity() {
+    use conduit_body::MAX_BODY_PLOTS;
+    use conduit_plot_library::{LibraryAvailability, LibraryEntry, PlotLibrary};
 
     let mut body = born();
-    for index in 1..MAX_BODY_FORMS {
-        body.admit_form(
+    for index in 1..MAX_BODY_PLOTS {
+        body.admit_plot(
             body.evidence().body.workload_revision,
-            form(&format!("resident-{index}")),
+            plot(&format!("resident-{index}")),
             &host(),
             &boot(),
         )
         .unwrap();
         persist_archives(&mut body);
     }
-    let library = FormLibrary::new(vec![
+    let library = PlotLibrary::new(vec![
         LibraryEntry {
-            form: form("morse"),
+            plot: plot("morse"),
             title: "Morse".into(),
             search_text: "resident".into(),
             availability: LibraryAvailability::Available,
             graceful_fallback: None,
         },
         LibraryEntry {
-            form: form("another"),
-            title: "Another reviewed form".into(),
+            plot: plot("another"),
+            title: "Another reviewed plot".into(),
             search_text: "candidate".into(),
             availability: LibraryAvailability::Available,
             graceful_fallback: None,
@@ -1284,7 +1284,7 @@ fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
     let semantic = library.presentation(&body, 10, "candidate").unwrap();
     let encoded = format!("{semantic:?}");
     assert!(encoded.contains("Body at capacity"));
-    assert!(encoded.contains("Remove a form before adding another"));
+    assert!(encoded.contains("Remove a plot before adding another"));
     let lowered = semantic.lower().unwrap();
     assert!(
         !lowered

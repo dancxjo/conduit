@@ -19,10 +19,10 @@ The [handbook](../wiki/Home.md) is also published as the
 |---|---|
 | See the product before building | [body Workspace](https://dancxjo.github.io/conduit/workspace/), [ConduitOS journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/) |
 | Run hosted, browser, native workbench, or ConduitOS | [Try Conduit](try-conduit.md) |
-| Read, check, and run examples | [Try forms](try-forms.md), [reviewed collection](../forms/README.md) |
+| Read, check, and run examples | [Try plots](try-plots.md), [reviewed collection](../plots/README.md) |
 | Choose a product or target | [Products](../products/README.md), [targets](../targets/README.md) |
 | Build a body or host artifact | [body building](body-building.md), [host make](host-make.md) |
-| Understand birth, lifecycle, and inspection | [Self-hosted biography](self-hosted-biography.md), [Patchbay](../forms/patchbay/workbench/README.md) |
+| Understand birth, lifecycle, and inspection | [Self-hosted biography](self-hosted-biography.md), [Patchbay](../plots/patchbay/workbench/README.md) |
 | Run a private remote rendezvous | [User-operated relay](user-operated-relay.md) |
 | Export a package and provenance | [Supply-chain export](supply-chain-export.md) |
 | Retain or reproduce visual proof | [Visual evidence](visual-evidence.md) |
@@ -56,7 +56,7 @@ The [handbook](../wiki/Home.md) is also published as the
 
 The root README is a short entrance. The handbook teaches and defines the
 language. Cross-cutting workflows live in `docs/`; detailed contracts live in
-`docs/architecture/`; product, form, body, mechanism, and target guides stay
+`docs/architecture/`; product, plot, body, mechanism, and target guides stay
 beside their owners. `STATUS` summarizes capability and proof limits, while the
 roadmap points to unfinished work. Historical checkpoints belong under
 `docs/history/`, not in the current reading path.

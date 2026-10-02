@@ -1,11 +1,11 @@
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 
-const SOURCE: &str = include_str!("../../../../forms/webchat/main.conduit");
+const SOURCE: &str = include_str!("../../../../plots/webchat/main.conduit");
 
 fn main() -> Result<(), String> {
     let bind = std::env::args()
@@ -18,7 +18,7 @@ fn main() -> Result<(), String> {
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .map_err(|error| format!("canonical webchat check: {error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "webchat-server-demo", &profile)
+    let expanded = expand_canonical_plot(&checked, "webchat-server-demo", &profile)
         .map_err(|error| format!("canonical webchat expansion: {error:?}"))?;
     let mut host = StdHost::new_with_composition(
         StdHostConfig {

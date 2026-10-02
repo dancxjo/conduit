@@ -1,4 +1,4 @@
-//! Fixed native kernel for the standing `count-over-time` Tour Form.
+//! Fixed native kernel for the standing `count-over-time` Tour Plot.
 
 use crate::machine::KernelInterest;
 use alloc::vec::Vec;

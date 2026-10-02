@@ -90,7 +90,7 @@ pub(crate) fn offer(selector: &StructuredSelector, temporal: PortTemporal) -> Ca
 }
 
 /// Reconstruct and validate the exact contract supported by this installed generic implementation.
-#[cfg(feature = "form-runner")]
+#[cfg(feature = "plot-runner")]
 pub(crate) fn offer_for_placement(
     placement: &PlannedGear,
 ) -> Result<Option<CapabilityOffer>, String> {

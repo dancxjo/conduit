@@ -38,10 +38,10 @@ pub(super) static PRESENTATION: BrowserInstallation = BrowserInstallation {
 };
 
 pub(super) fn install_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     conduit_language::install_linguistics_catalogs(startup, profile)?;
     let contract = presentation_contract();
     startup.insert(KindSignature {

@@ -138,7 +138,7 @@ impl Manifestation {
         )
     }
 
-    pub(crate) fn prepared_at_mask_form_boundary(
+    pub(crate) fn prepared_at_mask_plot_boundary(
         presentation: &Presentation,
         plan: &Plan,
         active_play: ActivePlayIdentity,
@@ -286,7 +286,7 @@ impl Manifestation {
         Ok(placement)
     }
 
-    pub(crate) fn validate_against_mask_form<'a>(
+    pub(crate) fn validate_against_mask_plot<'a>(
         &self,
         presentation: &Presentation,
         plan: &'a Plan,

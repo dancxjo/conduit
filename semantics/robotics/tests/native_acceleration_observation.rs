@@ -1,5 +1,5 @@
 use conduit_core::InfoDecodeError;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{
     AccelerationObservation, MAXIMUM_ACCELERATION_MM_S2, ROBOTICS_ACCELERATION_ENCODED_LEN,
 };

@@ -44,7 +44,7 @@ pub struct BrowserAuthoring {
     pub source_document_id: String,
     pub source_revision: u64,
     pub saved_revision: u64,
-    pub expanded_form_id: String,
+    pub expanded_plot_id: String,
     pub source_path: String,
     pub palette: Vec<BrowserPaletteEntry>,
 }
@@ -101,17 +101,17 @@ pub struct BrowserBodyWorkbench {
     pub entrance: BrowserBodyWorkbenchEntrance,
     pub body_id: String,
     #[serde(default)]
-    pub reviewed_forms: Vec<BrowserReviewedForm>,
+    pub reviewed_plots: Vec<BrowserReviewedPlot>,
     pub current: serde_json::Value,
     pub history: serde_json::Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct BrowserReviewedForm {
+pub struct BrowserReviewedPlot {
     pub label: String,
     pub source_document_id: String,
-    pub checked_form_id: String,
+    pub checked_plot_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

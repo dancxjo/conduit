@@ -1,8 +1,0 @@
-form orifina-tutorial-presenter {
-  request: tutorial/presenter-request
-  present: llm/present
-  manifestation: tutorial/manifestation
-
-  request.request >> present.request
-  present.result >> manifestation.manifestation
-}

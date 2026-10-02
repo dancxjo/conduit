@@ -3,13 +3,13 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::ConfigurationValue;
-use conduit_form::{KindSignature, StartupParameterSignature};
+use conduit_plot::{KindSignature, StartupParameterSignature};
 
 /// Installs portable sound semantics and structured instrument authoring contracts.
 /// This installs no Host offer: availability and implementation remain separate realization facts.
 pub fn install_sound_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in sound_contracts_with_revisions() {
         if contract.kind_id.as_str() == super::AUDIO_TONE_KIND {
@@ -24,25 +24,25 @@ pub fn install_sound_catalogs(
             install_contract(startup, profile, contract, revision)?;
         }
     }
-    crate::install_structured_music_form_catalogs(startup, profile)?;
+    crate::install_structured_music_plot_catalogs(startup, profile)?;
     Ok(())
 }
 
 /// Install only the portable `audio/tone` transform contract.
 ///
 /// Hosts that cannot realize tone synthesis still need this semantic contract
-/// to check reviewed Forms before realization eligibility is considered.
+/// to check reviewed Plots before realization eligibility is considered.
 pub fn install_audio_tone_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())
 }
 
 /// Install only the portable sustained-tone transform contract.
 pub fn install_audio_continuous_tone_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     install_semantic_contract(
         startup,
@@ -53,8 +53,8 @@ pub fn install_audio_continuous_tone_catalog(
 
 /// Install only the portable `audio/apply-gain` transform contract.
 pub fn install_audio_gain_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     install_contract(
         startup,
@@ -65,8 +65,8 @@ pub fn install_audio_gain_catalog(
 }
 
 fn install_semantic_contract(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: conduit_core::Kind,
 ) -> Result<(), String> {
     startup.insert(KindSignature {
@@ -81,8 +81,8 @@ fn install_semantic_contract(
 /// Install only the portable push-to-talk Front when another semantic owner
 /// has already installed the shared `audio/play` contract.
 pub fn install_audio_capture_push_to_talk_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     install_contract(
         startup,
@@ -93,8 +93,8 @@ pub fn install_audio_capture_push_to_talk_catalog(
 }
 
 fn install_contract(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: super::StandardKindContract,
     revision: &'static str,
 ) -> Result<(), String> {
@@ -127,7 +127,7 @@ fn configuration_source(value: &ConfigurationValue) -> String {
             value.canonical_value().len()
         ),
         ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().form_suffix())
+            format!("{}{}", value.value(), value.unit().plot_suffix())
         }
     }
 }

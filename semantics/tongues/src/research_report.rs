@@ -80,7 +80,7 @@ pub enum ResearchError {
     Data(ResearchDataError),
     Model(ResearchModelError),
     InvalidSignature,
-    InvalidForm,
+    InvalidPlot,
     MissingHeldOutData,
 }
 
@@ -97,7 +97,7 @@ impl From<ResearchModelError> for ResearchError {
 }
 
 pub fn run_research() -> Result<ResearchReport, ResearchError> {
-    crate::check_research_forms().map_err(|_| ResearchError::InvalidForm)?;
+    crate::check_research_plots().map_err(|_| ResearchError::InvalidPlot)?;
     let corpus = Pb2007Slice::load()?;
     let training_utterances = corpus.training_utterances();
     let (checkpoint, training) = train_shared_latent(&training_utterances, RESEARCH_SEED)?;

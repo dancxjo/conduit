@@ -1,5 +1,5 @@
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_text::{
@@ -89,20 +89,20 @@ fn configuration_and_recognized_text_are_finite_and_unambiguous() {
 }
 
 #[test]
-fn canonical_address_detector_is_a_reusable_checked_form() {
+fn canonical_address_detector_is_a_reusable_checked_plot() {
     let mut startup = StartupCatalog::default();
     let mut profile = ProfileCatalog::default();
     install_text_catalogs(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/addressed-utterance/main.conduit");
+    let source = include_str!("../../../plots/addressed-utterance/main.conduit");
     let parsed = parse_syntax_document(source);
     assert!(parsed.diagnostics.is_empty());
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    assert_eq!(checked.forms.len(), 1);
-    let form = &checked.forms[0];
-    assert_eq!(form.name, "addressed-utterance");
-    assert_eq!(form.gears.len(), 1);
+    assert_eq!(checked.plots.len(), 1);
+    let plot = &checked.plots[0];
+    assert_eq!(plot.name, "addressed-utterance");
+    assert_eq!(plot.gears.len(), 1);
     let authored =
-        expand_canonical_form_for_authoring(&checked, "addressed-utterance", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "addressed-utterance", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 2);
     assert_eq!(authored.output_bindings.len(), 1);
     let gear = &authored.expanded.gears[0];

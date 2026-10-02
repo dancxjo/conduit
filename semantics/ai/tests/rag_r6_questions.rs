@@ -17,7 +17,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 const DECISION_AT: u64 = 1_000;
 

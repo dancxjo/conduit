@@ -4,7 +4,7 @@ use conduit_core::{
     GearId, InfoBool, StateContinuation, StructuredFieldType, StructuredFieldValue,
     StructuredInfoValue, BOOL_INFO_ID,
 };
-use conduit_form::{ProfileCatalog, StartupCatalog};
+use conduit_plot::{ProfileCatalog, StartupCatalog};
 
 fn boolean() -> (StructuredInfoType, StructuredInfoValue) {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
@@ -27,13 +27,13 @@ fn catalogs(
 fn authored_initialization_has_an_exact_type_and_no_semantic_step_count() {
     let (ty, initial) = boolean();
     let (startup, profile) = catalogs(&ty, &initial);
-    let form = conduit_form::parse_with_startup(
-        "form retained {\n cell: state/value(initial = true)\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot retained {\n cell: state/value(initial = true)\n}\n",
         &startup,
         &profile,
     )
     .unwrap();
-    let state = derive_state_boundary(&form, &GearId::from("retained/cell"), 64).unwrap();
+    let state = derive_state_boundary(&plot, &GearId::from("retained/cell"), 64).unwrap();
     assert_eq!(state.value_kind.as_str(), BOOL_INFO_ID);
     assert_eq!(state.initial_value, Some(InfoBool::TRUE.encode().to_vec()));
     assert_ne!(
@@ -44,11 +44,11 @@ fn authored_initialization_has_an_exact_type_and_no_semantic_step_count() {
     assert_eq!(state.state_id.as_str(), state.gear_id.as_str());
     assert_eq!(state.maximum_value_bytes, 64);
     assert_eq!(
-        derive_state_boundary(&form, &state.gear_id, 1),
+        derive_state_boundary(&plot, &state.gear_id, 1),
         Err(StateValueAdmissionError::InitialValueExceedsCapacity)
     );
     assert_eq!(
-        derive_state_boundary(&form, &state.gear_id, 0),
+        derive_state_boundary(&plot, &state.gear_id, 0),
         Err(StateValueAdmissionError::InvalidCapacity)
     );
 }
@@ -67,13 +67,13 @@ fn the_same_kind_specializes_to_a_distinct_finite_record_profile() {
     )
     .unwrap();
     let (startup, profile) = catalogs(&ty, &initial);
-    let form = conduit_form::parse_with_startup(
-        "form retained {\n cell: state/value(initial = {on: true})\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot retained {\n cell: state/value(initial = {on: true})\n}\n",
         &startup,
         &profile,
     )
     .unwrap();
-    let state = derive_state_boundary(&form, &GearId::from("retained/cell"), 128).unwrap();
+    let state = derive_state_boundary(&plot, &GearId::from("retained/cell"), 128).unwrap();
     assert_eq!(state.value_kind, *ty.profile().unwrap().value_kind());
     assert_ne!(state.value_kind, *leaf.profile().unwrap().value_kind());
     assert_eq!(
@@ -99,21 +99,21 @@ fn missing_wrong_typed_and_forged_initializations_do_not_become_state() {
     let (ty, initial) = boolean();
     let (startup, profile) = catalogs(&ty, &initial);
     for source in [
-        "form retained {\n cell: state/value\n}\n",
-        "form retained {\n cell: state/value(initial = 123)\n}\n",
+        "plot retained {\n cell: state/value\n}\n",
+        "plot retained {\n cell: state/value(initial = 123)\n}\n",
     ] {
-        assert!(conduit_form::parse_with_startup(source, &startup, &profile).is_err());
+        assert!(conduit_plot::parse_with_startup(source, &startup, &profile).is_err());
     }
-    let mut form = conduit_form::parse_with_startup(
-        "form retained {\n cell: state/value(initial = true)\n}\n",
+    let mut plot = conduit_plot::parse_with_startup(
+        "plot retained {\n cell: state/value(initial = true)\n}\n",
         &startup,
         &profile,
     )
     .unwrap();
-    form.checked_form_id = conduit_core::CheckedFormId::from("forged");
+    plot.checked_plot_id = conduit_core::CheckedPlotId::from("forged");
     assert_eq!(
-        derive_state_boundary(&form, &GearId::from("retained/cell"), 64),
-        Err(StateValueAdmissionError::InvalidForm)
+        derive_state_boundary(&plot, &GearId::from("retained/cell"), 64),
+        Err(StateValueAdmissionError::InvalidPlot)
     );
 }
 
@@ -127,14 +127,14 @@ fn a_matching_unary_front_does_not_authorize_state_initialization() {
     let mut definition = profile.get(&kind_id(STATE_VALUE_KIND)).unwrap().clone();
     definition.kind_id = kind_id("fixture/unary");
     profile.insert(definition).unwrap();
-    let form = conduit_form::parse_with_startup(
-        "form retained {\n cell: fixture/unary(initial = true)\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot retained {\n cell: fixture/unary(initial = true)\n}\n",
         &startup,
         &profile,
     )
     .unwrap();
     assert_eq!(
-        derive_state_boundary(&form, &GearId::from("retained/cell"), 64),
+        derive_state_boundary(&plot, &GearId::from("retained/cell"), 64),
         Err(StateValueAdmissionError::WrongContract)
     );
 }

@@ -3,7 +3,7 @@ use conduit_core::{
     BaseImplementationId, HostAdvertisement, Plan, PlannerCapabilityOffer, PlannerLimits,
     PlannerProfileId,
 };
-use conduit_form::CheckedForm;
+use conduit_plot::CheckedPlot;
 
 pub const FULL_PLANNER_PROFILE: &str = "conduit.planner/full@1";
 pub const BROWSER_PLANNER_PROFILE: &str = "conduit.planner/browser-wasm@1";
@@ -23,7 +23,7 @@ pub const FULL_PLANNER_LIMITS: PlannerLimits = PlannerLimits {
 pub fn plan_with_advertised_profile(
     planner_host: &HostAdvertisement,
     profile_id: &PlannerProfileId,
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
@@ -49,13 +49,13 @@ pub fn plan_with_advertised_profile(
             profile_id.as_str()
         )));
     }
-    admit_request(offer, form, hosts, &options)?;
-    plan_with_options(form, hosts, placements, bases, options)
+    admit_request(offer, plot, hosts, &options)?;
+    plan_with_options(plot, hosts, placements, bases, options)
 }
 
 fn admit_request(
     offer: &PlannerCapabilityOffer,
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     options: &PlanningOptions<'_>,
 ) -> Result<(), PlannerError> {
@@ -64,10 +64,10 @@ fn admit_request(
         hosts.len(),
         offer.limits.maximum_host_advertisements,
     )?;
-    admit_count("gears", form.gears.len(), offer.limits.maximum_gears)?;
+    admit_count("gears", plot.gears.len(), offer.limits.maximum_gears)?;
     admit_count(
         "connections",
-        form.connections.len(),
+        plot.connections.len(),
         offer.limits.maximum_connections,
     )?;
     admit_count(

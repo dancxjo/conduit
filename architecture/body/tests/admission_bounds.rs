@@ -3,7 +3,7 @@ use conduit_body::{
     CandidateRefusal, DiscoveryProofId, MAX_PENDING_ADMISSIONS,
 };
 use conduit_core::{
-    BootId, CheckedFormId, HostAdvertisement, HostId, HostProfileId, LinkBindingId,
+    BootId, CheckedPlotId, HostAdvertisement, HostId, HostProfileId, LinkBindingId,
     OfferGeneration, SignId, SourceDocumentId, PROTOCOL_VERSION,
 };
 use ed25519_dalek::SigningKey;
@@ -41,7 +41,7 @@ fn observation(index: usize) -> CandidateObservation {
 fn ambient_admission_storage_pressure_refuses_before_membership() {
     let body = Body::born(
         SourceDocumentId::from("source/admission-pressure"),
-        CheckedFormId::from("checked/admission-pressure"),
+        CheckedPlotId::from("checked/admission-pressure"),
         1,
         SignId::from("sign/admission-pressure/body-born"),
     )

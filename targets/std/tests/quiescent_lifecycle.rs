@@ -1,6 +1,6 @@
 use conduit_core::{ObservationKind, PlanCompletionPolicy, TerminalDisposition};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer};
@@ -11,7 +11,7 @@ fn plan(source: &str) -> (StdHost, conduit_core::PlanFragment) {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "specimen", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "specimen", &profile).unwrap();
     let host = StdHost::new();
     let fragment = host
         .plan_expanded_local(&expanded)
@@ -23,7 +23,7 @@ fn plan(source: &str) -> (StdHost, conduit_core::PlanFragment) {
 
 #[test]
 fn live_drained_play_stays_attached_until_explicit_cancellation() {
-    let source = "form specimen {\n value: text/literal(\"still here\")\n show: presentation/text\n value >> show\n}\n";
+    let source = "plot specimen {\n value: text/literal(\"still here\")\n show: presentation/text\n value >> show\n}\n";
     let (mut host, fragment) = plan(source);
     assert_eq!(fragment.completion_policy, PlanCompletionPolicy::Live);
     let plan_id = fragment.plan_id.clone();
@@ -65,7 +65,7 @@ fn live_drained_play_stays_attached_until_explicit_cancellation() {
 
 #[test]
 fn explicit_completion_policy_finishes_the_attached_product_runner() {
-    let source = "form specimen {\n value: text/literal(\"done\")\n show: presentation/text\n value >> show\n}.\n";
+    let source = "plot specimen {\n value: text/literal(\"done\")\n show: presentation/text\n value >> show\n}.\n";
     let (mut host, fragment) = plan(source);
     assert_eq!(
         fragment.completion_policy,

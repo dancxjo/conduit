@@ -2,7 +2,7 @@ import { acquireBrowserAudioCue, AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL } from "./br
 import { acquireBrowserPcmAudio, PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL, PCM_PLAY_RESOURCE, PCM_PLAY_POOL } from "./browser-pcm-audio.mjs";
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
-import { createPitchTonePerformer, drainBrowserEffects } from "./browser-form-effects.mjs";
+import { createPitchTonePerformer, drainBrowserEffects } from "./browser-plot-effects.mjs";
 import { manifestApplicationView } from "./application-presentation.mjs";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
@@ -19,7 +19,7 @@ const pools = new Map([
 ]);
 
 function readOutput(bridge) {
-  return bridge.browserFormReadOutputJson();
+  return bridge.browserPlotReadOutputJson();
 }
 
 function refuseUnavailableExecutionLine(proposal, fragment) {
@@ -37,7 +37,7 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
       host_id: proposal.authority_host_id,
       boot_id: proposal.authority_boot_id,
       plan_id: proposal.plan.plan_id,
-      checked_form_ids: proposal.plan.forms.map(({ form }) => form.checked_form_id),
+      checked_plot_ids: proposal.plan.plots.map(({ plot }) => plot.checked_plot_id),
       selected_host_id: fragment.host_id,
       selected_boot_id: fragment.boot_id,
     })]),
@@ -50,7 +50,7 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
  * One owner per WASM instance prevents duplicate page-side resource ownership.
  */
 const owners = new WeakSet();
-export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundForm,
+export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
   presentationRootFor, onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
@@ -58,44 +58,44 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   if ([hostId, bootId].some(identity => typeof identity !== "string" || identity.length < 1 || identity.length > 256) ||
       proposal?.schema !== "conduit.body/execution-proposal@1" ||
       proposal.wake?.lifecycle !== "AwaitingPlan" || proposal.wake.plans.length !== 0 ||
-      !Array.isArray(proposal.plan?.forms) || proposal.plan.forms.length < 1 || proposal.plan.forms.length > 16 ||
+      !Array.isArray(proposal.plan?.plots) || proposal.plan.plots.length < 1 || proposal.plan.plots.length > 16 ||
       !Array.isArray(externallyManagedPlanIds) || external.size !== externallyManagedPlanIds.length ||
       externallyManagedPlanIds.some(identity => typeof identity !== "string" || !identity) ||
       !outputRoot?.isConnected || !inputTarget?.isConnected) {
     throw new Error("invalid browser Body acquisition inputs");
   }
   const bridge = bindBrowserRuntimeBridge(api, { context: "browser Body host runtime" });
-  if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
+  if (api.conduit_browser_plot_human_machinery() < 0) throw new Error("browser machinery unavailable");
   const machinery = readOutput(bridge);
   const maximumPlacements = machinery?.limits?.maximum_gears;
   if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64 ||
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
   const placements = [];
-  const placementForms = new Map();
+  const placementPlots = new Map();
   const matchedExternal = new Set();
-  for (const form of proposal.plan.forms) {
-    if (external.has(form.plan.plan_id)) {
-      const local = form.plan.fragments.filter(fragment => fragment.host_id === hostId && fragment.boot_id === bootId);
-      if (form.plan.fragments.length < 2 || local.length !== 1) {
-        throw new Error("external Body Form does not name one exact browser fragment");
+  for (const plot of proposal.plan.plots) {
+    if (external.has(plot.plan.plan_id)) {
+      const local = plot.plan.fragments.filter(fragment => fragment.host_id === hostId && fragment.boot_id === bootId);
+      if (plot.plan.fragments.length < 2 || local.length !== 1) {
+        throw new Error("external Body Plot does not name one exact browser fragment");
       }
-      matchedExternal.add(form.plan.plan_id);
+      matchedExternal.add(plot.plan.plan_id);
       continue;
     }
-    if (form.plan.fragments.length !== 1) throw new Error("distributed Body Form requires an external manager");
-    const fragment = form.plan.fragments[0];
+    if (plot.plan.fragments.length !== 1) throw new Error("distributed Body Plot requires an external manager");
+    const fragment = plot.plan.fragments[0];
     if (fragment.host_id !== hostId || fragment.boot_id !== bootId || fragment.offer_generation !== 1) {
       refuseUnavailableExecutionLine({ ...proposal, authority_host_id: hostId, authority_boot_id: bootId }, fragment);
     }
     for (const placement of fragment.placements) {
-      if (placementForms.has(placement.placement_id)) throw new Error("duplicate browser Body placement identity");
-      placementForms.set(placement.placement_id, form.form?.checked_form_id ?? form.plan.checked_form_id);
+      if (placementPlots.has(placement.placement_id)) throw new Error("duplicate browser Body placement identity");
+      placementPlots.set(placement.placement_id, plot.plot?.checked_plot_id ?? plot.plan.checked_plot_id);
       placements.push(placement);
     }
     if (placements.length > maximumPlacements) throw new Error("browser Body placement bound exceeded");
   }
-  if (matchedExternal.size !== external.size) throw new Error("external Body Form is absent from the proposal");
-  if (!placements.length) throw new Error("browser Body requires at least one locally managed Form");
+  if (matchedExternal.size !== external.size) throw new Error("external Body Plot is absent from the proposal");
+  if (!placements.length) throw new Error("browser Body requires at least one locally managed Plot");
   const demand = new Map();
   for (const placement of placements) {
     if (!Array.isArray(placement.resources) || placement.resources.length > 64) throw new Error("browser resource binding bound exceeded");
@@ -113,19 +113,19 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (units > capacity) throw new Error("browser Body resource demand exceeds local bounds");
   }
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
-  const routing = foregroundForm ? createBodyInputRouting({ forms: proposal.plan.forms, foreground: foregroundForm, maximumPlacements }) : null;
+  const routing = foregroundPlot ? createBodyInputRouting({ plots: proposal.plan.plots, foreground: foregroundPlot, maximumPlacements }) : null;
   const slots = new Map();
   const applicationChannels = new Map();
-  const applicationChannel = checkedFormId => {
-    let channel = applicationChannels.get(checkedFormId);
+  const applicationChannel = checkedPlotId => {
+    let channel = applicationChannels.get(checkedPlotId);
     if (!channel) {
       channel = { queue: [], bytes: 0, waiter: null, manifestation: null };
-      applicationChannels.set(checkedFormId, channel);
+      applicationChannels.set(checkedPlotId, channel);
     }
     return channel;
   };
-  const publishApplicationEvent = (checkedFormId, event) => {
-    const channel = applicationChannel(checkedFormId);
+  const publishApplicationEvent = (checkedPlotId, event) => {
+    const channel = applicationChannel(checkedPlotId);
     channel.manifestation?.nextEvent();
     if (channel.waiter) {
       const waiter = channel.waiter;
@@ -137,10 +137,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       channel.queue.push(event.encoded);
       channel.bytes += event.encoded.length;
     }
-    onApplicationEvent?.(Object.freeze({ checkedFormId, event }));
+    onApplicationEvent?.(Object.freeze({ checkedPlotId, event }));
   };
-  const nextApplicationEvent = (checkedFormId, signal) => {
-    const channel = applicationChannel(checkedFormId);
+  const nextApplicationEvent = (checkedPlotId, signal) => {
+    const channel = applicationChannel(checkedPlotId);
     const queued = channel.queue.shift();
     if (queued) {
       channel.bytes -= queued.length;
@@ -205,7 +205,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       output.dataset.placementId = placement.placement_id;
       output.setAttribute("aria-label", placement.gear_id);
       const selectedRoot = presentationRootFor?.(Object.freeze({
-        checkedFormId: placementForms.get(placement.placement_id),
+        checkedPlotId: placementPlots.get(placement.placement_id),
         placementId: placement.placement_id,
         gearId: placement.gear_id,
       })) ?? outputRoot;
@@ -281,11 +281,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (!input || !routing) throw new Error("routed pointer input not acquired");
       const event = await routing.next("pointer", effect.placement_id, signal);
       assertCurrent();
-      const status = api.conduit_browser_form_encode_pointer(event.position_x, event.position_y,
+      const status = api.conduit_browser_plot_encode_pointer(event.position_x, event.position_y,
         event.delta_x, event.delta_y, event.primary_pressed ? 1 : 0, event.coalesced,
         event.dropped, event.queue_capacity, event.sequence);
       if (status < 0) throw new Error("pointer encoding refused");
-      return bridge.browserFormReadOutputBytes();
+      return bridge.browserPlotReadOutputBytes();
     }
     if (effect.effect_kind === "key-event" || effect.effect_kind === "button-transition") {
       if (!input) throw new Error("browser input not acquired");
@@ -297,11 +297,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         const event = await (routing ? routing.next("button", effect.placement_id, signal) : input.nextButton());
         assertCurrent();
         if (api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence)) < 0) throw new Error("button encoding refused");
-        return bridge.browserFormReadOutputBytes();
+        return bridge.browserPlotReadOutputBytes();
       } finally { signal.removeEventListener("abort", abort); }
     }
     if (effect.effect_kind === "application-event") {
-      return nextApplicationEvent(effect.checked_form_id, signal);
+      return nextApplicationEvent(effect.checked_plot_id, signal);
     }
     if (effect.effect_kind === "tutorial-presenter-request") {
       if (typeof onTutorialPresenterRequest !== "function") throw new Error("tutorial Presenter request owner is unavailable");
@@ -320,12 +320,12 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       output.dataset.observationSequence = effect.observation_sequence;
       output.dataset.presentationKind = effect.presentation_kind;
       if (effect.presentation_kind === "presentation/application-view" && Array.isArray(effect.application_view)) {
-        const channel = applicationChannel(effect.checked_form_id);
+        const channel = applicationChannel(effect.checked_plot_id);
         channel.manifestation = manifestApplicationView(Uint8Array.from(effect.application_view), output, {
           eventCapacity: 8,
           eventByteCapacity: 131072,
           choiceScope: effect.active_play_id,
-          onEvent: event => publishApplicationEvent(effect.checked_form_id, event),
+          onEvent: event => publishApplicationEvent(effect.checked_plot_id, event),
         });
       } else if (typeof effect.text === "string") output.textContent = effect.text;
       else if (effect.presentation_kind === "presentation/indicator" && Array.isArray(effect.segments) && effect.segments.length <= 256) {
@@ -345,7 +345,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     evidence() {
       if (terminal) return terminal.kernel_signs ?? null;
       if (!started || closed) return null;
-      if (api.conduit_browser_form_signs() < 0) throw new Error("active body observation is unavailable");
+      if (api.conduit_browser_plot_signs() < 0) throw new Error("active body observation is unavailable");
       return readOutput(bridge);
     },
     start(playSequence) {
@@ -359,7 +359,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         externally_managed_plan_ids: [...external],
         body_evidence: proposal.body_evidence ?? null,
         source: proposal.source ?? "",
-        foreground_checked_form_id: foregroundForm?.() ?? proposal.plan.forms[0].form?.checked_form_id ?? proposal.plan.forms[0].plan.checked_form_id,
+        foreground_checked_plot_id: foregroundPlot?.() ?? proposal.plan.plots[0].plot?.checked_plot_id ?? proposal.plan.plots[0].plan.checked_plot_id,
         play_sequence: playSequence,
         observations: observations(),
       };

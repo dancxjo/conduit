@@ -1,4 +1,4 @@
-use conduit_form::{SourceSugarExpansion, Span};
+use conduit_plot::{SourceSugarExpansion, Span};
 use serde::Serialize;
 use std::path::Path;
 
@@ -12,8 +12,8 @@ struct ExpansionReport<'a> {
 
 #[derive(Debug, Serialize)]
 struct ExpansionView<'a> {
-    form: &'a str,
-    checked_form_id: &'a str,
+    plot: &'a str,
+    checked_plot_id: &'a str,
     authored: &'a str,
     source_span: SourceSpan,
     ordinary_kind: &'a str,
@@ -53,11 +53,11 @@ impl From<Span> for SourceSpan {
 }
 
 pub(crate) fn run(path: &Path, json: bool) -> Result<String, String> {
-    let source = crate::form_source::load(path)?;
+    let source = crate::plot_source::load(path)?;
     let checked = source.check()?;
     let report = ExpansionReport {
         schema: "conduit.source-sugar-expansion@1",
-        boundary: "authored source sugar; canonical checked Form remains authoritative",
+        boundary: "authored source sugar; canonical checked Plot remains authoritative",
         source_document_id: checked.source_document_id.as_str(),
         expansions: checked.source_sugar_expansions.iter().map(view).collect(),
     };
@@ -75,8 +75,8 @@ pub(crate) fn run(path: &Path, json: bool) -> Result<String, String> {
 
 fn view(expansion: &SourceSugarExpansion) -> ExpansionView<'_> {
     ExpansionView {
-        form: &expansion.form,
-        checked_form_id: expansion.checked_form_id.as_str(),
+        plot: &expansion.plot,
+        checked_plot_id: expansion.checked_plot_id.as_str(),
         authored: &expansion.authored,
         source_span: expansion.source_span.into(),
         ordinary_kind: &expansion.ordinary_kind,
@@ -96,20 +96,20 @@ fn view(expansion: &SourceSugarExpansion) -> ExpansionView<'_> {
 
 fn render_human(report: &ExpansionReport<'_>) -> String {
     let mut output =
-        String::from("Authored source sugar (the canonical checked Form remains authoritative)\n");
+        String::from("Authored source sugar (the canonical checked Plot remains authoritative)\n");
     if report.expansions.is_empty() {
         output.push_str("No admitted concise source spelling occurs.\n");
         return output;
     }
     for expansion in &report.expansions {
         output.push_str(&format!(
-            "\n{}:{} `{}` in form `{}`\n  ordinary Gear: {}\n  checked Form: {}\n  Fore: ({}) -> ({})\n",
+            "\n{}:{} `{}` in plot `{}`\n  ordinary Gear: {}\n  checked Plot: {}\n  Fore: ({}) -> ({})\n",
             expansion.source_span.line,
             expansion.source_span.column,
             expansion.authored,
-            expansion.form,
+            expansion.plot,
             expansion.ordinary_kind,
-            expansion.checked_form_id,
+            expansion.checked_plot_id,
             expansion.input_ports.join(", "),
             expansion.output_ports.join(", "),
         ));
@@ -134,12 +134,12 @@ mod tests {
     fn human_view_names_the_semantic_boundary() {
         let report = ExpansionReport {
             schema: "conduit.source-sugar-expansion@1",
-            boundary: "authored source sugar; canonical checked Form remains authoritative",
+            boundary: "authored source sugar; canonical checked Plot remains authoritative",
             source_document_id: "source",
             expansions: Vec::new(),
         };
         let rendered = render_human(&report);
-        assert!(rendered.contains("canonical checked Form remains authoritative"));
+        assert!(rendered.contains("canonical checked Plot remains authoritative"));
         assert!(rendered.contains("No admitted concise source spelling"));
     }
 
@@ -174,14 +174,14 @@ mod tests {
     }
 
     #[test]
-    fn expression_body_reports_its_lossless_ordinary_form() {
+    fn expression_body_reports_its_lossless_ordinary_plot() {
         let path = std::env::temp_dir().join(format!(
             "conduit-expression-body-expansion-{}.conduit",
             std::process::id()
         ));
         std::fs::write(
             &path,
-            "form identity (\n  >> value: Text\n  result: Text >>\n) = .\n",
+            "plot identity (\n  >> value: Text\n  result: Text >>\n) = .\n",
         )
         .unwrap();
 
@@ -189,7 +189,7 @@ mod tests {
         let json = run(&path, true).unwrap();
         std::fs::remove_file(path).unwrap();
 
-        assert!(human.contains("`= .` in form `identity`"));
+        assert!(human.contains("`= .` in plot `identity`"));
         assert!(human.contains("ordinary Gear: conduitese/pure-expression-operation@1"));
         assert!(human.contains("value >> . >> result"));
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();

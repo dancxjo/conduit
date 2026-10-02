@@ -5,7 +5,7 @@ pub use conduit_alife::{
     GardenClockObservation, GardenContactObservation, GardenEvolutionRefusal, GardenState,
 };
 use conduit_core::{Scalar, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const GARDEN_STATE_TYPE: &str = "GardenState";
 pub const GARDEN_CLOCK_OBSERVATION_TYPE: &str = "GardenClockObservation";

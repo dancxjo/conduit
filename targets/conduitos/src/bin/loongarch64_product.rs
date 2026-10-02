@@ -78,8 +78,8 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     let host_id = HostId::from(host_identity.clone());
     let boot_id = BootId::from(boot_identity.clone());
     let generation = OfferGeneration(offer.generation);
-    let form =
-        keyboard_text_plan::checked_form_identity().unwrap_or_else(|error| refuse(error.as_str()));
+    let plot =
+        keyboard_text_plan::checked_plot_identity().unwrap_or_else(|error| refuse(error.as_str()));
     let front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -87,8 +87,8 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         EMBEDDED_MAKE.profile_id,
         EMBEDDED_MAKE.build_id,
         EMBEDDED_MAKE.image_binding,
-        form.source_document_id,
-        form.checked_form_id,
+        plot.source_document_id,
+        plot.checked_plot_id,
         5,
         false,
     );

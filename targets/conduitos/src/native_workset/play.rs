@@ -5,7 +5,7 @@ mod preparation;
 mod tests;
 
 use super::application_delivery::NativeApplication;
-use super::{AdmittedFormInput, PreparedNativeWorkset, WorksetRefusal};
+use super::{AdmittedPlotInput, PreparedNativeWorkset, WorksetRefusal};
 use crate::keyboard_text_backs::PlannedBack;
 use alloc::boxed::Box;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
@@ -15,7 +15,7 @@ use conduit_kernel::{
 };
 use conduit_semantic_catalog::BoundedTextState;
 
-const FORMS: usize = super::NATIVE_FORM_CAPACITY;
+const PLOTS: usize = super::NATIVE_PLOT_CAPACITY;
 const NODES: usize = 14;
 const CORDS: usize = 10;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -47,7 +47,7 @@ enum Effect {
 }
 #[derive(Clone, Copy)]
 struct Binding {
-    form: u8,
+    plot: u8,
     effect: Effect,
 }
 
@@ -104,22 +104,22 @@ impl NativePresentation {
 pub struct NativeWorksetPlay {
     scheduler: Box<Scheduler>,
     bindings: [Option<Binding>; NODES],
-    keymaps: [ConduitIntlKeymap; FORMS],
-    editors: [Option<BoundedTextState>; FORMS],
-    pending: [Option<HostCallRequest>; FORMS],
+    keymaps: [ConduitIntlKeymap; PLOTS],
+    editors: [Option<BoundedTextState>; PLOTS],
+    pending: [Option<HostCallRequest>; PLOTS],
     held: [Option<u8>; 256],
-    presentations: [Option<NativePresentation>; FORMS],
-    application_views: [Option<conduit_presentation::ApplicationView>; FORMS],
-    applications: [Option<NativeApplication>; FORMS],
-    application_requests: [Option<super::NativeApplicationRequest>; FORMS],
-    input_owners: [Option<AdmittedFormInput>; FORMS],
-    form_count: usize,
+    presentations: [Option<NativePresentation>; PLOTS],
+    application_views: [Option<conduit_presentation::ApplicationView>; PLOTS],
+    applications: [Option<NativeApplication>; PLOTS],
+    application_requests: [Option<super::NativeApplicationRequest>; PLOTS],
+    input_owners: [Option<AdmittedPlotInput>; PLOTS],
+    plot_count: usize,
     cancelled: bool,
 }
 
 impl NativeWorksetPlay {
     #[cfg(test)]
-    pub(crate) fn pending_requests(&self) -> [Option<HostCallRequest>; FORMS] {
+    pub(crate) fn pending_requests(&self) -> [Option<HostCallRequest>; PLOTS] {
         self.pending
     }
     pub fn prepare(prepared: &PreparedNativeWorkset) -> Result<Self, WorksetRefusal> {
@@ -131,11 +131,11 @@ impl NativeWorksetPlay {
     pub fn sign_retention_gap(&self) -> Option<conduit_kernel::SignRetentionGap> {
         conduit_kernel::SignQuery::retention_gap(self.scheduler.signs())
     }
-    pub fn take_presentation(&mut self, form: usize) -> Option<NativePresentation> {
-        self.presentations.get_mut(form)?.take()
+    pub fn take_presentation(&mut self, plot: usize) -> Option<NativePresentation> {
+        self.presentations.get_mut(plot)?.take()
     }
-    pub fn application_view(&self, form: usize) -> Option<&conduit_presentation::ApplicationView> {
-        self.application_views.get(form)?.as_ref()
+    pub fn application_view(&self, plot: usize) -> Option<&conduit_presentation::ApplicationView> {
+        self.application_views.get(plot)?.as_ref()
     }
     pub fn select_patchbay_target(
         &mut self,
@@ -154,22 +154,22 @@ impl NativeWorksetPlay {
     }
     pub fn take_application_view(
         &mut self,
-        form: usize,
+        plot: usize,
     ) -> Option<conduit_presentation::ApplicationView> {
-        self.application_views.get_mut(form)?.take()
+        self.application_views.get_mut(plot)?.take()
     }
     pub fn take_application_request(
         &mut self,
-        form: usize,
+        plot: usize,
     ) -> Option<super::NativeApplicationRequest> {
-        self.application_requests.get_mut(form)?.take()
+        self.application_requests.get_mut(plot)?.take()
     }
     pub fn set_mask_topology(
         &mut self,
         topology: &patchbay_application::PatchbayMaskTopology,
     ) -> Result<(), PlayRefusal> {
-        for form in 0..self.form_count {
-            let is_patchbay = match self.applications[form].as_mut() {
+        for plot in 0..self.plot_count {
+            let is_patchbay = match self.applications[plot].as_mut() {
                 Some(NativeApplication::Patchbay(application)) => {
                     application.set_mask_topology(topology);
                     true
@@ -179,10 +179,10 @@ impl NativeWorksetPlay {
             if !is_patchbay {
                 continue;
             }
-            let _ = self.take_application_view(form);
-            let request = self.pending[form].ok_or(PlayRefusal::InputPressure)?;
+            let _ = self.take_application_view(plot);
+            let request = self.pending[plot].ok_or(PlayRefusal::InputPressure)?;
             self.output(request, Some(&[]))?;
-            self.pending[form] = None;
+            self.pending[plot] = None;
             self.drive()?;
         }
         Ok(())
@@ -212,7 +212,7 @@ impl NativeWorksetPlay {
         if self.cancelled {
             return Err(PlayRefusal::Cancelled);
         }
-        if foreground >= self.form_count {
+        if foreground >= self.plot_count {
             return Err(PlayRefusal::Foreground);
         }
         let owner = self.input_owners[foreground]
@@ -232,8 +232,8 @@ impl NativeWorksetPlay {
             && event.transition() == KeyTransition::Released
             && self.held[usize::from(event.usage())].is_some()
     }
-    pub fn input_owner(&self, form: usize) -> Option<&AdmittedFormInput> {
-        self.input_owners.get(form)?.as_ref()
+    pub fn input_owner(&self, plot: usize) -> Option<&AdmittedPlotInput> {
+        self.input_owners.get(plot)?.as_ref()
     }
     /// Foreground is supplied by the authoritative workspace selection. A held
     /// key keeps its original owner across subsequent selection changes.
@@ -241,7 +241,7 @@ impl NativeWorksetPlay {
         if self.cancelled {
             return Err(PlayRefusal::Cancelled);
         }
-        if foreground >= self.form_count {
+        if foreground >= self.plot_count {
             return Err(PlayRefusal::Foreground);
         }
         let usage = usize::from(event.usage());
@@ -287,7 +287,7 @@ impl NativeWorksetPlay {
             while let Some(request) = self.scheduler.next_host_request() {
                 let binding = self.binding(request.node)?;
                 if matches!(binding.effect, Effect::Keyboard | Effect::ApplicationEvent) {
-                    if self.pending[usize::from(binding.form)]
+                    if self.pending[usize::from(binding.plot)]
                         .replace(request)
                         .is_some()
                     {
@@ -300,7 +300,7 @@ impl NativeWorksetPlay {
             match self.scheduler.step().map_err(PlayRefusal::Scheduler)? {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle
-                    if self.pending[..self.form_count].iter().all(Option::is_some) =>
+                    if self.pending[..self.plot_count].iter().all(Option::is_some) =>
                 {
                     return Ok(());
                 }

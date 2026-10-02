@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, KindIdentity, Quantity, QuantityUnit};
-use conduit_form::{
-    check_expression, check_syntax_document, expand_canonical_form, parse_syntax_document,
+use conduit_plot::{
+    check_expression, check_syntax_document, expand_canonical_plot, parse_syntax_document,
     BackStatement, CheckedExpressionType, CordStage, ExpressionTypeContext, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, PortableExpressionProgram,
     ProfileCatalog, StartupCatalog, StartupParameterSignature,
@@ -39,9 +39,9 @@ fn ternary_selects_one_exact_branch_through_the_std_host() {
 fn anonymous_record_and_tuple_plan_and_play_through_the_std_host() {
     let expression_source = "(., { doubled: . + . })";
     let syntax = parse_syntax_document(&format!(
-        "form typed (\n input: U8 >> output: U8\n) {{\n input >> ({expression_source}) >> output\n}}\n"
+        "plot typed (\n input: U8 >> output: U8\n) {{\n input >> ({expression_source}) >> output\n}}\n"
     ));
-    let BackStatement::Cord(cord) = &syntax.forms[0].back[0] else {
+    let BackStatement::Cord(cord) = &syntax.plots[0].back[0] else {
         panic!("fixture contains one Cord")
     };
     let CordStage::PureExpression(expression) = &cord.stages[1] else {
@@ -180,7 +180,7 @@ fn assert_pipeline_plans_and_plays(
             .unwrap();
     }
     let source = format!(
-        "form pipeline {{\n source: {}\n sink: {}\n source >> {stage_source} >> sink\n}}\n",
+        "plot pipeline {{\n source: {}\n sink: {}\n source >> {stage_source} >> sink\n}}\n",
         installed_std::test_structured_selector::SOURCE_KIND,
         installed_std::test_structured_selector::SINK_KIND,
     );
@@ -211,7 +211,7 @@ fn assert_pipeline_plans_and_plays(
         let mut unused_startup = StartupCatalog::new();
         conduit_semantic_catalog::install_math_catalogs(&mut unused_startup, &mut profile).unwrap();
     }
-    let expanded = expand_canonical_form(&checked, "pipeline", &profile)
+    let expanded = expand_canonical_plot(&checked, "pipeline", &profile)
         .expect("pure expression expands to an ordinary gear");
     let expression = expanded
         .gears
@@ -219,16 +219,16 @@ fn assert_pipeline_plans_and_plays(
         .find(|gear| {
             gear.kind_contract_revision.as_str()
                 == if filter {
-                    conduit_form::PURE_FILTER_REVISION
+                    conduit_plot::PURE_FILTER_REVISION
                 } else {
-                    conduit_form::PURE_EXPRESSION_REVISION
+                    conduit_plot::PURE_EXPRESSION_REVISION
                 }
         })
         .expect("expanded expression gear exists");
     let conduit_core::ConfigurationValue::Text(program) = &expression.configuration[0].value else {
         panic!("expression has exact portable program configuration")
     };
-    let program = conduit_form::PortableExpressionProgram::from_canonical_hex(program).unwrap();
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap();
     let expression_offer = if filter {
         conduit_std_offers::pure_filter_std_offer(&program, expression.inputs[0].temporal).unwrap()
     } else {

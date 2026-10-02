@@ -5,7 +5,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::StructuredInfoValue;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::*;
 

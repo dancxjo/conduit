@@ -22,9 +22,9 @@ impl PatchbayHtmlServer {
             .evidence()
             .body
             .workset;
-        let forms = planning_forms(workset, &self.body_planning_forms)?;
+        let plots = planning_plots(workset, &self.body_planning_plots)?;
         let requirements =
-            conduit_body_make::body_planning_requirements(workset, &forms).map_err(|error| {
+            conduit_body_make::body_planning_requirements(workset, &plots).map_err(|error| {
                 ServerError::Interaction(format!("Body planning requirements: {error:?}"))
             })?;
         let body = serde_json::to_vec(&requirements)
@@ -97,8 +97,8 @@ impl PatchbayHtmlServer {
         }
         let advertisement = advertisement(&evidence)?;
         let workset = &biography.body.workset;
-        let candidates = planning_forms(workset, &self.body_planning_forms)?;
-        let forms = conduit_body_make::plan_body_workset_on_host(
+        let candidates = planning_plots(workset, &self.body_planning_plots)?;
+        let plots = conduit_body_make::plan_body_workset_on_host(
             workset,
             &candidates,
             &advertisement,
@@ -115,12 +115,12 @@ impl PatchbayHtmlServer {
         let mut next_planning = if let Some(current) = &self.body_planning {
             let mut next = current.clone();
             if current.wake().lifecycle == conduit_body::WakeLifecycle::Lulled {
-                next.prepare_next_wake(&biography.body, sequence, sign("wake"), forms)
+                next.prepare_next_wake(&biography.body, sequence, sign("wake"), plots)
                     .map_err(|error| {
                         ServerError::Interaction(format!("Body next Wake: {error:?}"))
                     })?;
             } else {
-                next.replace_proposal(forms)
+                next.replace_proposal(plots)
                     .map_err(|error| ServerError::Interaction(format!("Body replan: {error:?}")))?;
             }
             next
@@ -129,7 +129,7 @@ impl PatchbayHtmlServer {
                 &biography.body,
                 sequence,
                 sign("wake"),
-                forms,
+                plots,
             )
             .map_err(|error| ServerError::Interaction(format!("Body initial plan: {error:?}")))?
         };
@@ -169,24 +169,24 @@ impl PatchbayHtmlServer {
     }
 }
 
-pub(super) fn planning_forms(
+pub(super) fn planning_plots(
     workset: &conduit_body::BodyWorkset,
-    candidates: &[conduit_patchbay_workbench::FormCandidate],
-) -> Result<Vec<conduit_body_make::BodyPlanningForm>, ServerError> {
+    candidates: &[conduit_patchbay_workbench::PlotCandidate],
+) -> Result<Vec<conduit_body_make::BodyPlanningPlot>, ServerError> {
     workset
-        .forms()
+        .plots()
         .iter()
         .map(|resident| {
             candidates
                 .iter()
                 .find(|candidate| {
                     candidate.source_document_id == resident.source_document_id
-                        && candidate.checked_form_id == resident.checked_form_id
+                        && candidate.checked_plot_id == resident.checked_plot_id
                 })
-                .ok_or_else(|| ServerError::Interaction("Body planning forms: MissingForm".into()))?
-                .body_planning_form()
+                .ok_or_else(|| ServerError::Interaction("Body planning plots: MissingPlot".into()))?
+                .body_planning_plot()
                 .map_err(|error| {
-                    ServerError::Interaction(format!("Body planning forms: {error:?}"))
+                    ServerError::Interaction(format!("Body planning plots: {error:?}"))
                 })
         })
         .collect::<Result<Vec<_>, _>>()
@@ -323,8 +323,8 @@ mod tests {
             .evidence()
             .body
             .workset;
-        let forms = planning_forms(workset, &server.body_planning_forms).unwrap();
-        let requirements = conduit_body_make::body_planning_requirements(workset, &forms).unwrap();
+        let plots = planning_plots(workset, &server.body_planning_plots).unwrap();
+        let requirements = conduit_body_make::body_planning_requirements(workset, &plots).unwrap();
         let mut offers = requirements
             .kind_ids
             .iter()
@@ -390,10 +390,10 @@ mod tests {
     fn explicit_policy_admission_starts_an_ordinary_body_plan() {
         let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
         let body_id = snapshot.body_workbench.as_ref().unwrap().body_id.clone();
-        let forms = crate::body_workbench_fixture_forms().unwrap();
+        let plots = crate::body_workbench_fixture_plots().unwrap();
         let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot)
             .unwrap()
-            .with_body_planning_forms(forms)
+            .with_body_planning_plots(plots)
             .unwrap();
         let (summary, planning) = projections(&server);
         server
@@ -439,10 +439,10 @@ mod tests {
     #[test]
     fn stale_boot_and_detail_absent_from_summary_refuse_atomically() {
         let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
-        let forms = crate::body_workbench_fixture_forms().unwrap();
+        let plots = crate::body_workbench_fixture_plots().unwrap();
         let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot)
             .unwrap()
-            .with_body_planning_forms(forms)
+            .with_body_planning_plots(plots)
             .unwrap();
         let (summary, mut planning) = projections(&server);
         server

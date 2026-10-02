@@ -6,7 +6,7 @@ use crate::workspace::workspace_root;
 
 pub(crate) const STD_STEP: Step = Step::new(
     "journey.std",
-    "Launch the ordinary std Host with the canonical Hello Form",
+    "Launch the ordinary std Host with the canonical Hello Plot",
     "cargo",
     &[
         "run",
@@ -14,13 +14,13 @@ pub(crate) const STD_STEP: Step = Step::new(
         "conduit",
         "--",
         "run",
-        "forms/hello/main.conduit",
+        "plots/hello/main.conduit",
     ],
 );
 
 pub(crate) const TRIPLE_STEP: Step = Step::new(
     "journey.triple",
-    "Run the three-sink Form locally",
+    "Run the three-sink Plot locally",
     "cargo",
     &[
         "run",
@@ -28,7 +28,7 @@ pub(crate) const TRIPLE_STEP: Step = Step::new(
         "conduit",
         "--",
         "run",
-        "proof/fixtures/forms/triple-signal.conduit",
+        "proof/fixtures/plots/triple-signal.conduit",
         "--placements",
         "proof/fixtures/placements/triple-local.placements",
         "--await-terminal",
@@ -76,8 +76,8 @@ pub fn run_patchbay(
             "-p",
             "patchbay-native",
             "--",
-            "--form",
-            "forms/default-welcome/main.conduit",
+            "--plot",
+            "plots/default-welcome/main.conduit",
             "--first-run-proof",
         ][..]
     } else if args.on == PatchbayHost::Native {
@@ -90,19 +90,19 @@ pub fn run_patchbay(
             "--",
             "--seed",
             "Text Lab",
-            "forms/text-lab/main.conduit",
+            "plots/text-lab/main.conduit",
             "--seed",
             "Hello",
-            "forms/hello/main.conduit",
+            "plots/hello/main.conduit",
             "--seed",
             "Greet",
-            "forms/greet/main.conduit",
+            "plots/greet/main.conduit",
             "--seed",
             "Clock",
-            "forms/clock/main.conduit",
+            "plots/clock/main.conduit",
             "--seed",
             "Count",
-            "forms/count/main.conduit",
+            "plots/count/main.conduit",
         ][..]
     };
     let step = Step::new(
@@ -137,7 +137,7 @@ pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
             "patchbay-native",
             "--",
             "--environment",
-            "forms/patchbay/workbench/examples/maker-workbench.json",
+            "plots/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -148,7 +148,7 @@ pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> 
     let root = workspace_root()?;
     let step = Step::new(
         "journey.prewake",
-        "Rehearse the canonical Form against authored simulation truth",
+        "Rehearse the canonical Plot against authored simulation truth",
         "cargo",
         &[
             "run",
@@ -156,10 +156,10 @@ pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> 
             "patchbay-native",
             "--",
             "--prewake",
-            "--form",
-            "forms/hello/main.conduit",
+            "--plot",
+            "plots/hello/main.conduit",
             "--environment",
-            "forms/patchbay/workbench/examples/maker-workbench.json",
+            "plots/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -179,10 +179,10 @@ pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
             "--",
             "--prewake",
             "--prewake-hold",
-            "--form",
-            "forms/text-lab/main.conduit",
+            "--plot",
+            "plots/text-lab/main.conduit",
             "--environment",
-            "forms/patchbay/workbench/examples/maker-workbench.json",
+            "plots/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;

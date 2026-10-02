@@ -1,13 +1,13 @@
 use std::collections::BTreeSet;
 
 use conduit_core::{BootId, HostId, HostProfileId, OfferGeneration};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_host_make::{
     bind_runtime_offer, build_default_host_image, BuildInputs, HostImage, HostProfile,
     RuntimeFacts, RuntimeOfferInputs,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
 };
 
 use crate::{StdHost, TimerAdapter};
@@ -89,14 +89,14 @@ impl TimerAdapter for NoopTimer {
 #[test]
 fn rebuild_keeps_the_old_plan_bound_to_the_old_boot() {
     let (old_host, old_image) = bound_host("git:old", "std/boot-old", 0);
-    let source = "form clock-demo {\n    clock: time/tick(count = 1, period-ms = 0)\n}\n";
+    let source = "plot clock-demo {\n    clock: time/tick(count = 1, period-ms = 0)\n}\n";
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
     let old_plan = old_host.plan_expanded_local(&expanded).unwrap();
     assert_eq!(old_plan.fragments[0].boot_id.as_str(), "std/boot-old");
 

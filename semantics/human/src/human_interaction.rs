@@ -112,7 +112,7 @@ impl InteractionValue {
         }
         Self::new_native(
             InteractionCanonicalBytes::new(
-                conduit_form::rust_binding::BoundedBytes::new(&canonical_bytes)
+                conduit_plot::rust_binding::BoundedBytes::new(&canonical_bytes)
                     .ok_or(InteractionRefusal::ValueBoundExceeded)?,
             )
             .map_err(|_| InteractionRefusal::ValueBoundExceeded)?,
@@ -252,7 +252,7 @@ impl InteractionProposalPayload {
     pub fn selected(values: Vec<InteractionValue>) -> Result<Self, InteractionRefusal> {
         Self::values(
             InteractionValues::new(
-                conduit_form::rust_binding::BoundedSequence::try_from_iter(values)
+                conduit_plot::rust_binding::BoundedSequence::try_from_iter(values)
                     .map_err(|_| InteractionRefusal::InvalidCardinality)?,
             )
             .map_err(|_| InteractionRefusal::InvalidCardinality)?,

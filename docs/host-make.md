@@ -6,7 +6,7 @@
 Conduit has two orthogonal construction paths:
 
 ```text
-FORM WORKSET ── BIRTH ──> BODY
+PLOT WORKSET ── BIRTH ──> BODY
 PROFILE ── BUILD ──> IMAGE
 ```
 
@@ -14,15 +14,15 @@ The words name different kinds of truth. They are not parallel aliases.
 
 ## Meaning becomes living
 
-- **FORM** is dormant semantic material that can be opened and inspected.
+- **PLOT** is dormant semantic material that can be opened and inspected.
 - **BIRTH** is the explicit human-authorized action that creates a body.
 - the **birth sign/event** is the bounded evidence that the action succeeded.
 - **BODY** is the resulting living semantic identity, potentially realized by
   several parts and hosts.
 
-`OPEN FORM` is inert. It does not admit membership, issue authority, start a
+`OPEN PLOT` is inert. It does not admit membership, issue authority, start a
 play, or cause platform effects. `BIRTH` is explicit, attributable operator
-authority; it admits the exact bounded selection of checked forms, creates a durable body
+authority; it admits the exact bounded selection of checked plots, creates a durable body
 identity and originating part, and leaves the body LULLED. BIRTH does not
 implicitly wake, plan, or play. Public Conduit UI, command, schema, and action
 labels use **BIRTH**. Conventional past-tense prose and internal event fields
@@ -66,7 +66,7 @@ an ambient plugin/DLL manager.
 
 ```text
 one canonical Conduit language
-  ├─ form  -> portable meaning
+  ├─ plot  -> portable meaning
   ├─ host  -> configuration -> PROFILE -> BUILD -> IMAGE
   ├─ body  -> BODY BUILD -> SPORES
   └─ implementation need templates
@@ -81,11 +81,11 @@ A versioned `*.host.conduit` document is the small structural recipe from
 which the checked PROFILE is derived. It names one target, a finite set of
 bases, an explicit implementation (or finite ordered preferences) for each
 base, authorable finite `need` templates, and complete finite host limits.
-Resource capacity and bases remain explicit in the source. It contains no form,
+Resource capacity and bases remain explicit in the source. It contains no plot,
 application pin meaning, current presence, or authority truth.
 
 host construction uses the same lossless tokenizer, declaration syntax,
-structured values, source spans, and diagnostic model as ordinary form source.
+structured values, source spans, and diagnostic model as ordinary plot source.
 `host` selects the document role; it does not introduce another language or an
 embedded TOML section. A Need remains construction appetite. It does not create
 a current OFFER, OBSERVE, ADMIT, binding, assignment, plan, or play.
@@ -143,8 +143,8 @@ earlier migration remain unchanged.
 The following identities never substitute for one another:
 
 ```text
-checked form identity  ProfileId
-source form identity   BuildId
+checked plot identity  ProfileId
+source plot identity   BuildId
 BodyId                 ImageId / ArtifactId
 birth sign             build receipt
                        HostId

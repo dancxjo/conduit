@@ -86,7 +86,7 @@ pub struct StdDriveArgs {
 struct Evidence {
     schema: &'static str,
     proof_class: &'static str,
-    portable_form: &'static str,
+    portable_plot: &'static str,
     plan_id: String,
     host_id: String,
     boot_id: String,
@@ -398,7 +398,7 @@ fn navigation_intent(
     now_ms: u64,
     robot_id: &str,
 ) -> Result<(NavigationEvidence, Scalar, Scalar), Box<dyn std::error::Error>> {
-    use conduit_form::rust_binding::BoundedSequence;
+    use conduit_plot::rust_binding::BoundedSequence;
     use conduit_semantic_catalog::{
         local_control, time_parameterize_route, ControlDecision, NavigationPose, NavigationRoute,
         NavigationTime, Validity, Waypoint,
@@ -488,7 +488,7 @@ fn base_evidence(
     Evidence {
         schema: EVIDENCE_SCHEMA,
         proof_class: "live_std_create_reduced_safety_motion_machine_evidence",
-        portable_form: BOUNDED_DRIVE_FORM,
+        portable_plot: BOUNDED_DRIVE_FORM,
         plan_id: plan_id.into(),
         host_id: args.host_id.clone(),
         boot_id: args.boot_id.clone(),

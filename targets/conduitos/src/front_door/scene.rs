@@ -65,8 +65,8 @@ impl FrontDoor {
                 self.journey.as_ref().ok_or(Error::Scene)?,
                 self.workspace
                     .as_ref()
-                    .and_then(|workspace| workspace.forms.iter().find(|form| form.foreground))
-                    .map(|form| form.title)
+                    .and_then(|workspace| workspace.plots.iter().find(|plot| plot.foreground))
+                    .map(|plot| plot.title)
                     .ok_or(Error::Scene)?,
                 self.application_view.as_ref(),
                 self.refusal.as_ref().map(|refusal| refusal.reason()),
@@ -79,10 +79,10 @@ impl FrontDoor {
             text(&mut scene, 18, 76, label)?;
             exact_text(&mut scene, 18, 100, &value)?;
             text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
-        } else if self.form_open {
+        } else if self.plot_open {
             text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-            text(&mut scene, 18, 76, "FORM OPEN / INSPECTION ONLY")?;
-            exact_text(&mut scene, 18, 100, &self.form_subject)?;
+            text(&mut scene, 18, 76, "PLOT OPEN / INSPECTION ONLY")?;
+            exact_text(&mut scene, 18, 100, &self.plot_subject)?;
             text(
                 &mut scene,
                 18,
@@ -99,22 +99,22 @@ impl FrontDoor {
         } else {
             text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
             text(&mut scene, 18, 70, "BODIES NEARBY    NONE OBSERVED")?;
-            text(&mut scene, 18, 96, "FORMS")?;
+            text(&mut scene, 18, 96, "PLOTS")?;
             text(
                 &mut scene,
                 26,
                 118,
-                if self.selected_subject.starts_with("form/") {
-                    "> CONDUITOS ENTRANCE FORM"
+                if self.selected_subject.starts_with("plot/") {
+                    "> CONDUITOS ENTRANCE PLOT"
                 } else {
-                    "  CONDUITOS ENTRANCE FORM"
+                    "  CONDUITOS ENTRANCE PLOT"
                 },
             )?;
             text(
                 &mut scene,
                 26,
                 140,
-                if !self.selected_subject.starts_with("form/") {
+                if !self.selected_subject.starts_with("plot/") {
                     "> DETAILS"
                 } else {
                     "  DETAILS"
@@ -144,17 +144,17 @@ impl FrontDoor {
                     self.offer_count, self.offer_generation.0
                 ),
             ),
-            6 => ("FORM SUBJECT", self.form_subject.clone()),
+            6 => ("PLOT SUBJECT", self.plot_subject.clone()),
             7 => (
                 "SOURCE DOCUMENT ID",
                 self.source_document_id.as_str().into(),
             ),
-            8 => ("CHECKED FORM ID", self.checked_form_id.as_str().into()),
+            8 => ("CHECKED PLOT ID", self.checked_plot_id.as_str().into()),
             9 => (
-                "EXPANDED FORM ID",
+                "EXPANDED PLOT ID",
                 self.journey
                     .as_ref()
-                    .and_then(|value| value.expanded_form_id.as_ref())
+                    .and_then(|value| value.expanded_plot_id.as_ref())
                     .map(|value| value.as_str().into())
                     .unwrap_or_else(|| "NONE".into()),
             ),

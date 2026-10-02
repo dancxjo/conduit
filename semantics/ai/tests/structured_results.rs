@@ -1,7 +1,7 @@
 use conduit_ai::{
     FiniteClassification, FiniteEmbedding, StructuredResultInvalidity, ValidatedExtraction,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn classification_requires_one_exact_member_of_a_finite_unique_label_set() {

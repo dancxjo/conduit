@@ -10,16 +10,16 @@ use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
 use super::offers::text_advertisement;
 
-const SOURCE: &str = include_str!("../../../../../forms/text-lab/main.conduit");
+const SOURCE: &str = include_str!("../../../../../plots/text-lab/main.conduit");
 const LOCAL_HOST: &str = "text-lab/native";
 
-fn checked_form() -> conduit_form::CheckedForm {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn checked_plot() -> conduit_plot::CheckedPlot {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_form::parse(SOURCE, &profile).expect("checked-in Text Lab checks unchanged")
+    conduit_plot::parse(SOURCE, &profile).expect("checked-in Text Lab checks unchanged")
 }
 
 fn hosts() -> (
@@ -149,7 +149,7 @@ fn lines(
 }
 
 fn split_plan(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     local: &conduit_core::HostAdvertisement,
     browser: &conduit_core::HostAdvertisement,
     lines: &[conduit_core::LineOffer],
@@ -198,7 +198,7 @@ fn split_plan(
         ]),
     };
     plan_with_line_offers(
-        form,
+        plot,
         &[local.clone(), browser.clone()],
         &placements,
         &[
@@ -213,16 +213,16 @@ fn split_plan(
 
 #[test]
 fn unchanged_text_lab_selects_browser_uppercase_and_loss_cannot_mutate_its_plan() {
-    let form = checked_form();
-    let source_document_id = form.source_document_id.clone();
-    let checked_form_id = form.checked_form_id.clone();
+    let plot = checked_plot();
+    let source_document_id = plot.source_document_id.clone();
+    let checked_plot_id = plot.checked_plot_id.clone();
     let (local, browser) = hosts();
     let mut lines = lines(&local, &browser);
-    let plan = split_plan(&form, &local, &browser, &lines).expect("split Text Lab plans");
+    let plan = split_plan(&plot, &local, &browser, &lines).expect("split Text Lab plans");
 
     assert!(conduit_core::verify_plan(&plan));
     assert_eq!(plan.source_document_id, source_document_id);
-    assert_eq!(plan.checked_form_id, checked_form_id);
+    assert_eq!(plan.checked_plot_id, checked_plot_id);
     let uppercase = plan
         .fragments
         .iter()
@@ -259,7 +259,7 @@ fn unchanged_text_lab_selects_browser_uppercase_and_loss_cannot_mutate_its_plan(
 
     let immutable_plan_id = plan.plan_id.clone();
     lines[0].availability.availability = LineAvailability::Unavailable;
-    let refusal = split_plan(&form, &local, &browser, &lines)
+    let refusal = split_plan(&plot, &local, &browser, &lines)
         .expect_err("lost selected Line refuses a replacement Plan");
     assert!(matches!(
         refusal,

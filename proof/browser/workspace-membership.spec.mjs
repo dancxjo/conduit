@@ -29,14 +29,14 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
-  await capture("bootstrap.started", "Firefly Choir is selected as the new body's first form.");
+  await capture("bootstrap.started", "Firefly Choir is selected as the new body's first plot.");
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   const bornBodyId = await page.evaluate(() => globalThis.__conduitWorkspace.current().body_id);
   await capture("body.born", "The new body has its own home and a Wake control.");
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
-  await capture("body.awake", "The body is awake and its selected form is playing.");
-  await page.getByRole("button", { name: "Use the current form", exact: true }).click();
+  await capture("body.awake", "The body is awake and its selected plot is playing.");
+  await page.getByRole("button", { name: "Use the current plot", exact: true }).click();
   await page.locator('[data-inspect="lifecycle"]').click();
   await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
   await capture("body.inspected", "The body's own inspection panel reveals its lifecycle.");
@@ -77,17 +77,17 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   expect(new Set(maskActions.map(({ show_id }) => show_id).filter(Boolean)).size).toBe(4);
   captures["body.inspected"].maskActions = maskActions;
   await page.locator("[data-close-inspection]").click();
-  await page.getByRole("button", { name: "+ Forms", exact: true }).click();
-  await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("desk");
-  await page.locator('[data-application-key^="library-form-"]').filter({ hasText: /^Desk Telegraph/u })
+  await page.getByRole("button", { name: "+ Plots", exact: true }).click();
+  await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("desk");
+  await page.locator('[data-application-key^="library-plot-"]').filter({ hasText: /^Desk Telegraph/u })
     .getByRole("button", { name: "Use", exact: true }).click();
   await expect(page.locator("#surface-title")).toHaveText("Desk Telegraph");
-  await capture("workload.revised", "Desk Telegraph has been added through the form library.");
-  await page.locator("#form-input").click();
+  await capture("workload.revised", "Desk Telegraph has been added through the plot library.");
+  await page.locator("#plot-input").click();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-form-output] output:visible")).toHaveText("hello");
-  await capture("form.used", "Typing hello into Desk Telegraph produces hello through the running form.");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("hello");
+  await capture("plot.used", "Typing hello into Desk Telegraph produces hello through the running plot.");
   expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).workload_revision).toBe(1);
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
   await expect(page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another host", exact: true })).toBeVisible();
@@ -191,7 +191,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   expect(offer.host_id).toBe(added.current.host_id);
   expect(offer.capabilities.length).toBeGreaterThan(0);
 
-  const authoredForms = await page.evaluate(() => globalThis.__conduitWorkspace.current().initial_forms);
+  const authoredPlots = await page.evaluate(() => globalThis.__conduitWorkspace.current().initial_plots);
   await page.locator("[data-close-membership]").click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Refused");
@@ -204,11 +204,11 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     code: "ExecutionLineUnavailable",
     message: "Body proposal selected an admitted host without a current execution Line",
   });
-  expect(replan.playback.proposal.plan.workset.forms).toEqual(
-    authoredForms.map(({ source_document_id, checked_form_id }) => ({ source_document_id, checked_form_id })),
+  expect(replan.playback.proposal.plan.workset.plots).toEqual(
+    authoredPlots.map(({ source_document_id, checked_plot_id }) => ({ source_document_id, checked_plot_id })),
   );
-  const plannedFragments = replan.playback.proposal.plan.forms.flatMap(({ plan }) => plan.fragments);
-  expect(plannedFragments).toHaveLength(authoredForms.length);
+  const plannedFragments = replan.playback.proposal.plan.plots.flatMap(({ plan }) => plan.fragments);
+  expect(plannedFragments).toHaveLength(authoredPlots.length);
   expect(new Set(plannedFragments.map(({ host_id }) => host_id))).toEqual(new Set([added.current.host_id]));
   expect(plannedFragments.flatMap(({ placements }) => placements.map(({ implementation_id }) => implementation_id)))
     .toContain("browser/presentation-rhythm@1");
@@ -224,7 +224,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
       plan_id: replan.playback.proposal.plan.plan_id,
     }],
   });
-  expect(replan.evidence.evidence.body.workset.forms).toEqual(authoredForms);
+  expect(replan.evidence.evidence.body.workset.plots).toEqual(authoredPlots);
   expect(replan.evidence.realization).toBeNull();
 
   await expect(page.locator('[data-application-key="tutorial-guidance"]')).toContainText("Tutorial · repair");
@@ -261,10 +261,10 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).toContainText("Tutorial · revised");
   await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).not.toContainText("Tutorial · repair");
   await capture("body.repaired", "After refreshing host presence, Wake succeeds on the available host.");
-  await page.locator("#form-input").click();
+  await page.locator("#plot-input").click();
   await page.keyboard.type("still here");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-form-output] output:visible")).toHaveText("still here");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("still here");
   const continued = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
   expect(continued.play).toBeTruthy();
   expect(continued.play).toEqual(repaired.evidence.realization.play);
@@ -339,7 +339,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await receiverPage.getByLabel("Body invitation link or code", { exact: true }).fill(portableCode);
   await receiverPage.getByRole("button", { name: "Inspect invitation", exact: true }).click();
   await expect(receiverPage.getByText("Body invitation", { exact: true })).toBeVisible();
-  await expect(receiverPage.getByText("It grants no Form or effect authority.")).toBeVisible();
+  await expect(receiverPage.getByText("It grants no Plot or effect authority.")).toBeVisible();
   expect(await receiverPage.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
   await receiverContext.close();
 
@@ -352,18 +352,18 @@ test("a second distinct browser Host explicitly joins through one canonical Body
     if (frame === sharedPage.mainFrame() && frame.url().includes("#body-share=")) shareDeliveryUrl = frame.url();
   });
   await sharedPage.evaluate(value => {
-    const form = document.createElement("form");
-    form.method = "post";
-    form.action = new URL("share-body-invitation", location.href).href;
+    const plot = document.createElement("plot");
+    plot.method = "post";
+    plot.action = new URL("share-body-invitation", location.href).href;
     const invitation = document.createElement("input");
     invitation.name = "body-invitation";
     invitation.value = value;
-    form.append(invitation);
-    document.body.append(form);
-    form.submit();
+    plot.append(invitation);
+    document.body.append(plot);
+    plot.submit();
   }, portableCode);
   await expect(sharedPage.getByText("Body invitation", { exact: true })).toBeVisible();
-  await expect(sharedPage.getByText("It grants no Form or effect authority.")).toBeVisible();
+  await expect(sharedPage.getByText("It grants no Plot or effect authority.")).toBeVisible();
   expect(await sharedPage.evaluate(() => ({ current: globalThis.__conduitWorkspace.current(), search: location.search }))).toEqual({ current: null, search: "" });
   expect(shareDeliveryUrl).toContain("#body-share=");
   const replayPage = await shareContext.newPage();
@@ -412,22 +412,22 @@ test("the POST share target refuses ambiguous, oversized, and GET delivery", asy
   expect(manifest.share_target).toEqual({
     action: "share-body-invitation",
     method: "POST",
-    enctype: "application/x-www-form-urlencoded",
+    enctype: "application/x-www-plot-urlencoded",
     params: { text: "body-invitation" },
   });
   await page.evaluate(() => navigator.serviceWorker.ready);
   const submit = values => page.evaluate(shared => {
-    const form = document.createElement("form");
-    form.method = "post";
-    form.action = new URL("share-body-invitation", location.href).href;
+    const plot = document.createElement("plot");
+    plot.method = "post";
+    plot.action = new URL("share-body-invitation", location.href).href;
     for (const value of shared) {
       const invitation = document.createElement("input");
       invitation.name = "body-invitation";
       invitation.value = value;
-      form.append(invitation);
+      plot.append(invitation);
     }
-    document.body.append(form);
-    form.submit();
+    document.body.append(plot);
+    plot.submit();
   }, values);
 
   await submit(["first", "second"]);

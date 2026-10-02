@@ -1,9 +1,9 @@
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 
-const SOURCE: &str = include_str!("../../../forms/webchat/main.conduit");
+const SOURCE: &str = include_str!("../../../plots/webchat/main.conduit");
 
 #[test]
 fn canonical_browser_chat_accepts_face_interaction_at_its_fore() {
@@ -14,7 +14,7 @@ fn canonical_browser_chat_accepts_face_interaction_at_its_fore() {
     let syntax = parse_syntax_document(SOURCE);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let authoring =
-        expand_canonical_form_for_authoring(&checked, "chat/browser-client", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "chat/browser-client", &profile).unwrap();
     let expanded = authoring.expanded;
     assert_eq!(expanded.gears.len(), 6);
     assert_eq!(expanded.connections.len(), 6);
@@ -77,7 +77,7 @@ fn application_plan_needs_no_human_input_back_because_the_mask_owns_it() {
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
     let authoring =
-        expand_canonical_form_for_authoring(&checked, "chat/browser-client", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "chat/browser-client", &profile).unwrap();
     let expanded = authoring.expanded;
     let socket = conduit_net::browser_external_websocket_family();
     let chat = conduit_chat::browser_chat_family();

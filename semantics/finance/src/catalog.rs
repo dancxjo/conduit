@@ -1,4 +1,4 @@
-//! Canonical Form catalog for exact finance Info.
+//! Canonical Plot catalog for exact finance Info.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::*;
 
@@ -70,8 +70,8 @@ pub fn finance_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn install_finance_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in finance_types() {
         startup

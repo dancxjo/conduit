@@ -7,7 +7,7 @@ use alloc::{
 use conduit_core::{
     kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 pub const PURPOSE_READINESS_KIND: &str = "purpose/fulfillment-readiness";
 pub const PURPOSE_STATE_TYPE: &str = "PurposeState";
@@ -22,8 +22,8 @@ pub fn fulfillment_readiness_type() -> StructuredInfoType {
 }
 
 pub fn install_purpose_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in [
         (PURPOSE_STATE_TYPE, purpose_state_type()),

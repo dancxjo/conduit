@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const ontologyNouns =
-  "Body|Bodies|Host|Hosts|Form|Forms|Kind|Kinds|Gear|Gears|Front|Fronts|Face|Faces|Plan|Plans|Play|Plays|Flow|Flows|Evidence|Seed|Seeds|Birth|Wake|Wakes|Lull";
+  "Body|Bodies|Host|Hosts|Plot|Plots|Kind|Kinds|Gear|Gears|Front|Fronts|Face|Faces|Plan|Plans|Play|Plays|Flow|Flows|Evidence|Seed|Seeds|Birth|Wake|Wakes|Lull";
 const determiners =
   "A|An|The|This|That|Another|One|Each|Every|Same|Current|Exact|Portable|Remote|Local|Ordinary|Selected|Authored|Checked|Planned|Running|New|Durable|Installed|Available|Admitted|Active|Retained|Reviewed|Shared|First|Second|Zero|Single|Its|Their|Our|Your|a|an|the|this|that|another|one|each|every|same|current|exact|portable|remote|local|ordinary|selected|authored|checked|planned|running|new|durable|installed|available|admitted|active|retained|reviewed|shared|first|second|zero|single|its|their|our|your";
 

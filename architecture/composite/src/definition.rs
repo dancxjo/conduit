@@ -4,7 +4,7 @@ use conduit_core::{
     Plan, PlannedActivationEntry, PlannedActivationFront, PortDescriptor, PortDirection,
     PreparedPlan,
 };
-use conduit_form::{CheckedForm, CompositeFrontTerminal};
+use conduit_plot::{CheckedPlot, CompositeFrontTerminal};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KernelCompositeDefinitionError {
@@ -50,7 +50,7 @@ pub struct KernelCompositeDefinition {
 
 impl KernelCompositeDefinition {
     /// Build the executable child composite from sealed Plan and preparation
-    /// truth. This entrance deliberately cannot see CheckedForm or a Kind
+    /// truth. This entrance deliberately cannot see CheckedPlot or a Kind
     /// registry: every boundary route is an exact selected-Plan Fore.
     pub fn from_planned_activation(
         outer: &Plan,
@@ -165,26 +165,26 @@ impl KernelCompositeDefinition {
         profile: HostProfileId,
         implementation_id: ImplementationId,
         artifact_id: ArtifactId,
-        form: &CheckedForm,
+        plot: &CheckedPlot,
         export_capability_id: &conduit_core::CapabilityId,
         internal_plan: Plan,
         failure_translation: FailureReason,
     ) -> Result<Self, KernelCompositeDefinitionError> {
-        if internal_plan.source_document_id != form.source_document_id
-            || internal_plan.checked_form_id != form.checked_form_id
-            || internal_plan.expanded_form_id != form.expanded_form_id
+        if internal_plan.source_document_id != plot.source_document_id
+            || internal_plan.checked_plot_id != plot.checked_plot_id
+            || internal_plan.expanded_plot_id != plot.expanded_plot_id
             || !verify_plan(&internal_plan)
         {
             return Err(KernelCompositeDefinitionError::InvalidInternalPlan(
-                "authored form and exact internal plan do not agree".into(),
+                "authored plot and exact internal plan do not agree".into(),
             ));
         }
-        let exported = form
+        let exported = plot
             .export_boundary(export_capability_id)
             .map_err(|error| {
                 KernelCompositeDefinitionError::InvalidInternalPlan(error.to_string())
             })?;
-        let bind_fronts = |fronts: &[conduit_form::CheckedCompositeFront]| {
+        let bind_fronts = |fronts: &[conduit_plot::CheckedCompositeFront]| {
             fronts
                 .iter()
                 .map(|front| {

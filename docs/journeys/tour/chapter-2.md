@@ -2,15 +2,15 @@
 page: fronts-and-backs
 journey: conduit-tour
 route: fronts-backs-and-implementation
-companion: recursive-form
-stage: canonical-form:same-morse-caller|compare
+companion: recursive-plot
+stage: canonical-plot:same-morse-caller|compare
 ---
 # fronts, backs, and implementation
 
 When one gear calls another, it depends on the called gear's **front**: meaning plus typed port contract. It does not need the callee's implementation details.
 
 ```conduit compare
-form same-morse-caller {
+plot same-morse-caller {
     message: text/literal("HELLO")
     morse: text/morse(40)
     light: presentation/indicator
@@ -19,7 +19,7 @@ form same-morse-caller {
 }
 ```
 
-In Patchbay, open the reviewed back for `same-morse-caller/morse`. The caller stays unchanged while you inspect a checked internal form made of smaller gears. Close the back and you are back at the same front.
+In Patchbay, open the reviewed back for `same-morse-caller/morse`. The caller stays unchanged while you inspect a checked internal plot made of smaller gears. Close the back and you are back at the same front.
 
 That distinction matters: the caller composes against stable semantics, while hosts can realize the inside differently. A rich host might provide `text/morse` directly. A smaller host can keep opening reviewed backs until remaining leaves match machinery it can actually provide.
 

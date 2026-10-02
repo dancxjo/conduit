@@ -1,4 +1,4 @@
-//! Portable form contracts for bounded calendar-provider interactions.
+//! Portable plot contracts for bounded calendar-provider interactions.
 //!
 //! The semantic JSON payloads are validated by the selected realization. They
 //! contain portable calendar meaning only; provider, account, credential,
@@ -15,7 +15,7 @@ use conduit_core::{
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredConfigurationValue,
     StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
 };
 
@@ -256,8 +256,8 @@ pub fn calendar_request_type(contract: &CalendarProviderKindContract) -> Structu
 }
 
 pub fn install_calendar_provider_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, semantic_contract) in calendar_provider_contracts()
         .into_iter()

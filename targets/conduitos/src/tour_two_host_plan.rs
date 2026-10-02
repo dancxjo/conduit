@@ -1,4 +1,4 @@
-//! Exact two-Host native realization of the shared `hello-across` Tour Form.
+//! Exact two-Host native realization of the shared `hello-across` Tour Plot.
 
 use alloc::{collections::BTreeMap, format, vec::Vec};
 use conduit_core::{
@@ -17,7 +17,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-const FORM_NAME: &str = "hello-across";
+const PLOT_NAME: &str = "hello-across";
 const LINE_BASE: &str = "conduit.base/conduitos-process-line@1";
 const PLAY_SEQUENCE: u64 = 0;
 
@@ -38,10 +38,10 @@ pub fn prepare(
     build_id: &str,
 ) -> Result<PreparedTourTwoHostPlan, PreparationError> {
     let source =
-        conduit_tour_model::tour_stage_source(3, 0).map_err(|_| PreparationError::FormRejected)?;
-    let form = crate::ordinary_form::checked_expanded_text_form_named(&source, FORM_NAME)?;
-    if form.gears.len() != 2 || form.connections.len() != 1 {
-        return Err(PreparationError::FormRejected);
+        conduit_tour_model::tour_stage_source(3, 0).map_err(|_| PreparationError::PlotRejected)?;
+    let plot = crate::ordinary_plot::checked_expanded_text_plot_named(&source, PLOT_NAME)?;
+    if plot.gears.len() != 2 || plot.connections.len() != 1 {
+        return Err(PreparationError::PlotRejected);
     }
     let peer_identities = derive_tour_peer(identities);
     let peer_offer = HostOffer::new(
@@ -56,9 +56,9 @@ pub fn prepare(
     let hosts = [source_advertisement, sink_advertisement];
     let line_offer = line_offer(&hosts[0], &hosts[1]);
     let line_id = line_offer.line_id.clone();
-    let placements = placements(&form, &hosts)?;
+    let placements = placements(&plot, &hosts)?;
     let plan = conduit_planner::plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[
@@ -124,11 +124,11 @@ pub fn prepare(
 }
 
 fn placements(
-    form: &conduit_form::ExpandedCanonicalForm,
+    plot: &conduit_plot::ExpandedCanonicalPlot,
     hosts: &[conduit_core::HostAdvertisement; 2],
 ) -> Result<PlacementChoices, PreparationError> {
     let mut by_gear = BTreeMap::new();
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let (host, capability) = match gear.kind_id.as_str() {
             conduit_text::TEXT_LITERAL_KIND => (&hosts[0], "conduitos/text-literal@1"),
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND => {
@@ -254,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn shared_form_runs_as_two_distinct_native_fragment_plays_over_one_line() {
+    fn shared_plot_runs_as_two_distinct_native_fragment_plays_over_one_line() {
         let identities = BootIdentities {
             host: [1; 32],
             boot: [2; 32],

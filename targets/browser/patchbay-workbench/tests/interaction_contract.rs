@@ -1,4 +1,4 @@
-use conduit_core::ExpandedFormId;
+use conduit_core::ExpandedPlotId;
 use conduit_patchbay_workbench::{
     PatchbayAction, PatchbayInteractionRequest, PatchbayInteractionRequestId, PatchbaySubjectRef,
 };
@@ -10,8 +10,8 @@ fn presentation() -> conduit_presentation::Presentation {
             body_id: None,
             wake_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: vec![],
@@ -41,7 +41,7 @@ fn presentation() -> conduit_presentation::Presentation {
 #[test]
 fn html_can_emit_the_shared_semantic_contract_without_dom_identity() {
     let subject = PatchbaySubjectRef {
-        expanded_form_id: ExpandedFormId::from("expanded/example"),
+        expanded_plot_id: ExpandedPlotId::from("expanded/example"),
         subject_identity: "gear/source".into(),
     };
     let selection = PatchbayInteractionRequest::select(
@@ -60,10 +60,10 @@ fn html_can_emit_the_shared_semantic_contract_without_dom_identity() {
     assert!(matches!(
         selection,
         PatchbayInteractionRequest::Select {
-            expanded_form_id,
+            expanded_plot_id,
             subject_identity,
             ..
-        } if expanded_form_id == subject.expanded_form_id
+        } if expanded_plot_id == subject.expanded_plot_id
             && subject_identity == subject.subject_identity
     ));
     assert!(matches!(

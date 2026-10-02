@@ -2,8 +2,8 @@ use super::{installed_std, StdHost, StdHostConfig, TimerAdapter};
 use conduit_core::{
     BaseImplementationId, BootId, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
-use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
+use conduit_plot::parse;
 use std::collections::BTreeMap;
 use std::time::Duration;
 
@@ -93,16 +93,16 @@ fn host(id: &str) -> StdHost {
 #[test]
 fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
     let mut host = host("typed-tick-host");
-    let form = parse(
-        "form typed_tick {\n clock: time/tick(count = 3, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
+    let plot = parse(
+        "plot typed_tick {\n clock: time/tick(count = 3, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed tick fixture parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("typed tick placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("typed tick placements resolve");
     let base_choices = BTreeMap::new();
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -168,15 +168,15 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
 #[test]
 fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
     let mut host = host("audio-tone-host");
-    let form = parse(
-        "form tone_path {\n source: conduit-test/frequency-source\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n closed: conduit-test/normal-close-sink\n source.frequency >> tone.frequency\n tone.audio >> sink.audio\n tone.audio| >> closed.closed\n}.\n",
+    let plot = parse(
+        "plot tone_path {\n source: conduit-test/frequency-source\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n closed: conduit-test/normal-close-sink\n source.frequency >> tone.frequency\n tone.audio >> sink.audio\n tone.audio| >> closed.closed\n}.\n",
         &installed_std::test_catalog(),
     )
     .expect("typed audio/tone fixture parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("audio/tone placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("audio/tone placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -231,8 +231,8 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
 #[test]
 fn theremin_pitch_distance_maps_near_high_and_far_low() {
     let mut host = host("theremin-distance-host");
-    let form = parse(
-        "form theremin_pitch_proof {\n source: conduit-test/distance-source\n pitch: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 1760Hz, target-maximum = 110Hz)\n frequency: keep Frequency(440Hz) for this play\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n source.distance >> pitch.distance\n pitch.frequency >> frequency\n frequency >> tone.frequency\n tone.audio >> sink.audio\n}.\n",
+    let plot = parse(
+        "plot theremin_pitch_proof {\n source: conduit-test/distance-source\n pitch: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 1760Hz, target-maximum = 110Hz)\n frequency: keep Frequency(440Hz) for this play\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n source.distance >> pitch.distance\n pitch.frequency >> frequency\n frequency >> tone.frequency\n tone.audio >> sink.audio\n}.\n",
         &installed_std::test_catalog(),
     )
     .expect("typed theremin pitch law parses");
@@ -252,9 +252,9 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
             .unwrap(),
     );
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("theremin pitch placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("theremin pitch placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -312,14 +312,14 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
 #[test]
 fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
     let mut host = host("audio-tone-cancellation-host");
-    let form = parse(
-        "form tone_cancel {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n recovery: conduit-test/tone-terminal-recovery\n cancel.request >> tone~\n tone.audio! >> recovery.terminal\n}.\n",
+    let plot = parse(
+        "plot tone_cancel {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n recovery: conduit-test/tone-terminal-recovery\n cancel.request >> tone~\n tone.audio! >> recovery.terminal\n}.\n",
         &installed_std::test_catalog(),
-    ).expect("canonical tone cancellation Form parses");
+    ).expect("canonical tone cancellation Plot parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("cancellation placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("cancellation placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -339,12 +339,12 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
         .connections
         .iter()
         .all(|cord| cord.item_capacity == 1));
-    let cancellation = form
+    let cancellation = plot
         .connections
         .iter()
         .find(|cord| cord.value_kind.as_str() == conduit_core::CANCELLATION_REQUEST_INFO_ID)
         .unwrap();
-    let terminal = form
+    let terminal = plot
         .connections
         .iter()
         .find(|cord| cord.value_kind == conduit_audio::audio_tone_terminal_kind_id())
@@ -402,15 +402,15 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
 #[test]
 fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     let mut host = host("typed-flow-state-host");
-    let form = parse(
-        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
+    let plot = parse(
+        "plot typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
         &installed_std::test_catalog(),
     )
-    .expect("typed flow/state form parses");
+    .expect("typed flow/state plot parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("every typed placement resolves");
+    let placements = default_placements(&plot, &hosts).expect("every typed placement resolves");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -424,7 +424,7 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
             line_offers: &[],
         },
     )
-    .expect("typed latest/tee form plans with capacity-one cords");
+    .expect("typed latest/tee plot plans with capacity-one cords");
     let fragment = &plan.fragments[0];
     let latest = fragment
         .placements
@@ -484,15 +484,15 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
 #[test]
 fn mutated_typed_tee_identity_fails_before_play() {
     let baseline_host = host("mutated-flow-state-host");
-    let form = parse(
-        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
+    let plot = parse(
+        "plot typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
         &installed_std::test_catalog(),
     )
-    .expect("typed flow/state form parses");
+    .expect("typed flow/state plot parses");
     let hosts = [baseline_host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("typed placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("typed placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -527,12 +527,12 @@ fn mutated_typed_tee_identity_fails_before_play() {
 #[test]
 fn zero_count_tick_completes_without_wait_or_value_receipt() {
     let mut host = host("zero-tick-host");
-    let form = parse(
-        "form zero_tick {\n clock: time/tick(count = 0, period-ms = 99)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
+    let plot = parse(
+        "plot zero_tick {\n clock: time/tick(count = 0, period-ms = 99)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("zero tick fixture parses");
-    let plan = host.plan_local(&form, None).expect("zero tick plans");
+    let plan = host.plan_local(&plot, None).expect("zero tick plans");
     let mut output = Vec::with_capacity(1_024);
     let mut timer = RecordingTimer { waits: Vec::new() };
     let report = host
@@ -555,12 +555,12 @@ fn zero_count_tick_completes_without_wait_or_value_receipt() {
 #[test]
 fn mutated_tick_executable_identity_fails_before_any_wait() {
     let mut host = host("mutated-tick-host");
-    let form = parse(
-        "form mutated_tick {\n clock: time/tick(count = 1, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
+    let plot = parse(
+        "plot mutated_tick {\n clock: time/tick(count = 1, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed tick fixture parses");
-    let plan = host.plan_local(&form, None).expect("typed tick plans");
+    let plan = host.plan_local(&plot, None).expect("typed tick plans");
     let mut fragment = plan.fragments[0].clone();
     let tick = fragment
         .placements
@@ -581,14 +581,14 @@ fn mutated_tick_executable_identity_fails_before_any_wait() {
 }
 
 fn text_plan(host: &StdHost, invalid: bool) -> conduit_core::Plan {
-    let form = parse(
+    let plot = parse(
         &format!(
-            "form text_demo {{\n source: conduit-test/text-source(invalid = {invalid})\n show: presentation/text\n source.text >> show.text\n}}\n"
+            "plot text_demo {{\n source: conduit-test/text-source(invalid = {invalid})\n show: presentation/text\n source.text >> show.text\n}}\n"
         ),
         &installed_std::test_catalog(),
     )
     .expect("typed text fixture parses");
-    host.plan_local(&form, None)
+    host.plan_local(&plot, None)
         .expect("typed text presentation plans")
 }
 
@@ -710,18 +710,18 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
 
 #[test]
 fn canonical_text_pipeline_has_zero_successful_post_play_start_allocations() {
-    let source = r#"form hello {
+    let source = r#"plot hello {
     upper: text/upper
     show: presentation/text
     "Hello, world." >> upper >> show
 }
 "#;
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, "hello", &profile).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "hello", &profile).unwrap();
     let mut host = host("allocation-text-host");
     let plan = host.plan_expanded_local(&expanded).unwrap();
     let mut output = Vec::with_capacity(4_096);
@@ -737,24 +737,24 @@ fn canonical_text_pipeline_has_zero_successful_post_play_start_allocations() {
 
 #[test]
 fn canonical_greet_has_zero_successful_post_play_start_allocations() {
-    let source = r#"form greet (
+    let source = r#"plot greet (
     greeting: Text = "Hello"
     name: Text >> text: Text
 ) {
     join: text/join(greeting)
     name >> join >> text
 }
-form welcome {
+plot welcome {
     hello: greet("Welcome")
     "Travis" >> hello >> presentation/text
 }
 "#;
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, "welcome", &profile).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "welcome", &profile).unwrap();
     let mut host = host("allocation-greet-host");
     let plan = host.plan_expanded_local(&expanded).unwrap();
     let mut output = Vec::with_capacity(4_096);
@@ -771,15 +771,15 @@ form welcome {
 #[test]
 fn canonical_clock_has_zero_successful_post_play_start_allocations() {
     let source =
-        "form clock-demo {\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n";
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+        "plot clock-demo {\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n";
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
     let mut host = host("allocation-clock-host");
     let plan = host.plan_expanded_local(&expanded).unwrap();
     let mut output = Vec::with_capacity(4_096);
@@ -801,7 +801,7 @@ fn canonical_clock_has_zero_successful_post_play_start_allocations() {
 
 #[test]
 fn canonical_state_count_executes_current_values_with_bounded_sign() {
-    let source = r#"form count (
+    let source = r#"plot count (
     start: Count = 0
     bump: Tick... >> value: $Count
 ) {
@@ -809,22 +809,22 @@ fn canonical_state_count_executes_current_values_with_bounded_sign() {
     bump >> gear.bump
     gear.value >> value
 }
-form count-demo {
+plot count-demo {
     clock: time/every(1s)
     count: count(2)
     show: presentation/count
     clock >> count >> show
 }
 "#;
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, "count-demo", &profile).unwrap();
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "count-demo", &profile).unwrap();
     let mut host = host("allocation-count-host");
     let plan = host.plan_expanded_local(&expanded).unwrap();
     assert_eq!(plan.fragments[0].placements.len(), 3);
@@ -881,4 +881,4 @@ form count-demo {
     );
 }
 
-mod timing_form_catalogs;
+mod timing_plot_catalogs;

@@ -3,24 +3,24 @@
 use super::{PatchbayHtmlServer, ServerError};
 use crate::front_door::{snapshot_for_front_door, snapshot_for_zero_body_front_door};
 use conduit_core::SignId;
-use conduit_patchbay_workbench::{FormCandidate, ZeroBodyFrontDoor};
+use conduit_patchbay_workbench::{PlotCandidate, ZeroBodyFrontDoor};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::{Arc, Mutex};
 
 impl PatchbayHtmlServer {
     pub fn bind_front_door(address: SocketAddr) -> Result<Self, ServerError> {
-        Self::bind_front_door_with_forms(address, Vec::new())
+        Self::bind_front_door_with_plots(address, Vec::new())
     }
 
-    pub fn bind_front_door_with_forms(
+    pub fn bind_front_door_with_plots(
         address: SocketAddr,
-        forms: Vec<FormCandidate>,
+        plots: Vec<PlotCandidate>,
     ) -> Result<Self, ServerError> {
         let mut session =
             ZeroBodyFrontDoor::fresh(std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter))
                 .map_err(ServerError::Interaction)?;
-        for form in forms {
-            session.add_form(form).map_err(ServerError::Interaction)?;
+        for plot in plots {
+            session.add_plot(plot).map_err(ServerError::Interaction)?;
         }
         let snapshot =
             snapshot_for_zero_body_front_door(&session).map_err(ServerError::Interaction)?;
@@ -33,10 +33,10 @@ impl PatchbayHtmlServer {
         Self::bind_front_door(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into())
     }
 
-    pub fn bind_front_door_with_forms_ephemeral(
-        forms: Vec<FormCandidate>,
+    pub fn bind_front_door_with_plots_ephemeral(
+        plots: Vec<PlotCandidate>,
     ) -> Result<Self, ServerError> {
-        Self::bind_front_door_with_forms(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into(), forms)
+        Self::bind_front_door_with_plots(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into(), plots)
     }
 
     pub(super) fn refresh_front_door(&mut self) -> Result<(), ServerError> {

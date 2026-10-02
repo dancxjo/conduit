@@ -193,7 +193,7 @@ test("two native browser clients exchange bounded chat through planned kernels",
 
 test("authored Presentation labels change the generic host without JavaScript changes", async ({ page }) => {
   const oracleServer = await startWebchatServer();
-  const target = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(oracleServer.url)}&form=chat/browser-client-label-oracle`;
+  const target = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(oracleServer.url)}&plot=chat/browser-client-label-oracle`;
   await page.goto(target);
   await expect(page.getByRole("status")).toHaveText("connected");
   await expect(page.getByLabel("Say something")).toBeVisible();

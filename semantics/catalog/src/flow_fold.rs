@@ -1,6 +1,6 @@
-//! Exact bounded left fold through one reviewed two-input Value combine Form.
+//! Exact bounded left fold through one reviewed two-input Value combine Plot.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -125,17 +125,17 @@ fn require_finite(value: &CheckedValueContract, role: &'static str) -> Result<()
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_fold_kind(
     item: &CheckedValueContract,
     accumulator: &CheckedValueContract,
     initial_accumulator: &[u8],
     abnormal: Option<&CheckedValueContract>,
     maximum_items: u16,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: FLOW_FOLD_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;

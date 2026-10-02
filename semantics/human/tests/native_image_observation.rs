@@ -2,8 +2,8 @@ use conduit_core::{
     kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{ImageObservationReference, ImageObservationRefusal};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn content() -> BoundedResourceRef {
     BoundedResourceRef {

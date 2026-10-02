@@ -23,16 +23,15 @@ pub use generated::{
     ExtractionFields, ExtractionKey, ExtractionLineage, ExtractionValue, FiniteClassification,
     FiniteEmbedding, FiniteEmbeddingValuePage, FiniteEmbeddingValuePages, FiniteF32,
     FusionStrategy, FusionStrategyReciprocalRank, GeneratedTextChunk, GeneratedTextFlowEvidence,
-    GeneratedTextFlowRefusal, GeneratedTextFlowTerminal, GroundedAnswerDisposition,
-    GroundedAnswerBytePage, GroundedAnswerBytePages, GroundedAnswerPolicy, GroundedAnswerRefusal,
-    GroundedClaim, GroundedClaimSupport,
-    GroundedClaimSupportSupported, GroundedClaimSupportUnsupported, GroundingDisposition,
-    GroundingInputAssessment, GroundingInputAssessmentConflictingEvidence,
-    GroundingInputAssessmentInsufficientEvidence, GroundingLimitation, HouseContextProvenanceClass,
-    HouseContextRefusal, HouseModelRequest, HumanAssessmentDisposition,
-    HybridFusionPolicy, HybridRequiredMechanisms, HybridRetrievalOfferInvalidity,
-    IntegrationAccuracy, IntegrationResourceEnvelope, IntegrationTerminal,
-    InterpretationDisposition, InterpretationInvalidity,
+    GeneratedTextFlowRefusal, GeneratedTextFlowTerminal, GroundedAnswerBytePage,
+    GroundedAnswerBytePages, GroundedAnswerDisposition, GroundedAnswerPolicy,
+    GroundedAnswerRefusal, GroundedClaim, GroundedClaimSupport, GroundedClaimSupportSupported,
+    GroundedClaimSupportUnsupported, GroundingDisposition, GroundingInputAssessment,
+    GroundingInputAssessmentConflictingEvidence, GroundingInputAssessmentInsufficientEvidence,
+    GroundingLimitation, HouseContextProvenanceClass, HouseContextRefusal, HouseModelRequest,
+    HumanAssessmentDisposition, HybridFusionPolicy, HybridRequiredMechanisms,
+    HybridRetrievalOfferInvalidity, IntegrationAccuracy, IntegrationResourceEnvelope,
+    IntegrationTerminal, InterpretationDisposition, InterpretationInvalidity,
     InterpretationProvenance, LearnedLifecycleRefusal, LlmDeterminismProfile,
     LlmImplementationControl, LlmInterruptionReason, LlmPlanningRefusal, LlmTerminalOutcome,
     LlmWorkBounds, LocalModelCachePolicy, LocalModelFailure, LocalModelKindProfile,
@@ -43,53 +42,51 @@ pub use generated::{
     ModelCachePolicyBounded, ModelCompatibilityRefusal, ModelComputeLifecycle,
     ModelComputeOperation, ModelComputeRefusal, ModelDimensionConstraint,
     ModelDimensionConstraintBounded, ModelDimensionConstraintFixed, ModelEvidenceRefusal,
-    ModelFailure, ModelInvocationTerminal, ModelOperation, ModelOperationCode, ModelOperations,
-    ModelPortConstraint, ModelPortIdentity, ModelPortPresence, ModelPortPresenceCode, ModelPorts,
+    ModelFailure, ModelInvocationTerminal, ModelOperation, ModelOperationForm, ModelOperations,
+    ModelPortConstraint, ModelPortIdentity, ModelPortPresence, ModelPortPresenceForm, ModelPorts,
     ModelRefusal, ModelRelationSignature, ModelResultDisposition, ModelResultInvalidity,
-    ModelResultPayload,
-    ModelResultProvenance, ModelSemanticKind, ModelSignature, ModelSignatureRefusal,
-    ModelTensorAxes, ModelTensorConstraint, ModelTensorElements, ModelTextRefusal,
-    ModelValueConstraint, ModelValueConstraintProbabilisticSignal,
+    ModelResultPayload, ModelResultProvenance, ModelSemanticKind, ModelSignature,
+    ModelSignatureRefusal, ModelTensorAxes, ModelTensorConstraint, ModelTensorElements,
+    ModelTextRefusal, ModelValueConstraint, ModelValueConstraintProbabilisticSignal,
     ModelValueConstraintProbabilisticTensor, ModelValueConstraintSampledSignal,
     ModelValueConstraintTensor, ModelWorkAccounting, NonnegativeFiniteF32, ObjectiveParticipation,
-    PortableComputeClass, ProbabilisticDisposition, ProbabilisticDispositionApproximate,
-    ProbabilisticDispositionTruncated, ProbabilityClaimProfile, ProbabilityDigest,
-    PortableGroundedAnswer, PortableModelDerivedResult, PortableProposedClaimSupport,
-    PortableProposedGroundedClaim, ProbabilityRefusal, ProbabilitySample, ProbabilitySampleSet,
-    ProbabilitySummary, ProfileReportedConfidence, PromotionDecision, PromotionTerminal,
-    R3OfferInvalidity,
-    RagAnswerOfferInvalidity, RagIdentity, RandomnessProfile, RandomnessProfileExplicitSeed,
-    RandomnessProfileProviderChosen, RelationCandidateOutput, RelationDigest, RelationEvidence,
-    RelationEvidenceValues, RelationIdentity, RelationQuery, RelationQueryIdentity,
-    RelationQueryMode, RelationRefusal, RelationResultProfile, RelationResultProfileProbabilistic,
-    RelationSemanticRole, RelationTerminal, RelationValue, RelationVariable,
-    RelationVariableIdentities, RelationVariableIdentity, RelationVariables, RerankObservation,
-    RerankScore, RerankingPolicy, RerankingProofClass, RerankingRefusal, RerankingStrategy,
-    RerankingStrategyObservedScores, RetrievalContribution, RetrievalIntent,
-    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMechanismCode, RetrievalMode,
+    PortableComputeClass, PortableGroundedAnswer, PortableModelDerivedResult,
+    PortableProposedClaimSupport, PortableProposedGroundedClaim, ProbabilisticDisposition,
+    ProbabilisticDispositionApproximate, ProbabilisticDispositionTruncated,
+    ProbabilityClaimProfile, ProbabilityDigest, ProbabilityRefusal, ProbabilitySample,
+    ProbabilitySampleSet, ProbabilitySummary, ProfileReportedConfidence, PromotionDecision,
+    PromotionTerminal, R3OfferInvalidity, RagAnswerOfferInvalidity, RagIdentity, RandomnessProfile,
+    RandomnessProfileExplicitSeed, RandomnessProfileProviderChosen, RelationCandidateOutput,
+    RelationDigest, RelationEvidence, RelationEvidenceValues, RelationIdentity, RelationQuery,
+    RelationQueryIdentity, RelationQueryMode, RelationRefusal, RelationResultProfile,
+    RelationResultProfileProbabilistic, RelationSemanticRole, RelationTerminal, RelationValue,
+    RelationVariable, RelationVariableIdentities, RelationVariableIdentity, RelationVariables,
+    RerankObservation, RerankScore, RerankingPolicy, RerankingProofClass, RerankingRefusal,
+    RerankingStrategy, RerankingStrategyObservedScores, RetrievalContribution, RetrievalIntent,
+    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMechanismForm, RetrievalMode,
     RetrievalModeBoundary, RetrievalModeTemporal, RetrievalModes, RetrievalScore,
-    RetrieverIdentity, RollbackTerminal, SelectedContextCost,
-    SelectedContextRationale, ShadowResourceEnvelope, ShadowTerminal, SimilarityMetric,
-    SimilarityQuery, SimilarityScore, SimilarityThreshold, SourceExtractionLimits,
-    SourceExtractionOfferInvalidity, SourceExtractionProfile,
-    SourceExtractionProfileResourceMetadata, SourceExtractionProfileStructuredItems,
-    SourceExtractionProfileTextUtf8, SourceRef, SourceSpan, SourceSpanUnit, StochasticProvenance,
-    StructuredResultInvalidity, SupportedRelationQueries, SupportedRelationQuery,
-    TemporalContextRefusal, TemporalEvidenceBatch, TemporalEvidenceCandidate,
-    TemporalEvidenceCandidates, TemporalEvidenceIdentities, TemporalEvidenceIdentity,
-    TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalEvidenceSelectionSelected,
-    TemporalInterpretationRefusal, TemporalProvenance, TemporalReference, TemporalRetrievalIntent,
-    TemporalRetrievalIntentDurationSince, TemporalRetrievalIntentEvidenceWithin,
-    TemporalRetrievalIntentStateValidAt, TemporalRetrievalIntentTransition,
-    TemporalRetrievalWindow, TemporalSource, TemporalValidity, TemporalWindowRelation,
-    TrainStepFailure, TrainStepRequest, TrainingBatch, TrainingExampleIdentityPage,
-    TrainingExampleIdentityPages, TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep,
-    TrainingMetric, TrainingModalities, TrainingModality, TrainingObjective,
-    TrainingObjectiveIdentity, TrainingObjectives, TrainingRefusal, TrainingResourceEnvelope,
-    TrainingSession, TrajectoryAlternatives, TransformProfiles, TransitionDirection,
-    ValidatedExtraction, VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
-    VectorMetadata, VectorMetadataEntries, VectorRefusal, VectorSearchExecutionProofClass,
-    VectorSearchOfferInvalidity, VectorSearchProofClass, WeightedSamples, WiredHouseContextItem,
+    RetrieverIdentity, RollbackTerminal, SelectedContextCost, SelectedContextRationale,
+    ShadowResourceEnvelope, ShadowTerminal, SimilarityMetric, SimilarityQuery, SimilarityScore,
+    SimilarityThreshold, SourceExtractionLimits, SourceExtractionOfferInvalidity,
+    SourceExtractionProfile, SourceExtractionProfileResourceMetadata,
+    SourceExtractionProfileStructuredItems, SourceExtractionProfileTextUtf8, SourceRef, SourceSpan,
+    SourceSpanUnit, StochasticProvenance, StructuredResultInvalidity, SupportedRelationQueries,
+    SupportedRelationQuery, TemporalContextRefusal, TemporalEvidenceBatch,
+    TemporalEvidenceCandidate, TemporalEvidenceCandidates, TemporalEvidenceIdentities,
+    TemporalEvidenceIdentity, TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal,
+    TemporalEvidenceSelectionSelected, TemporalInterpretationRefusal, TemporalProvenance,
+    TemporalReference, TemporalRetrievalIntent, TemporalRetrievalIntentDurationSince,
+    TemporalRetrievalIntentEvidenceWithin, TemporalRetrievalIntentStateValidAt,
+    TemporalRetrievalIntentTransition, TemporalRetrievalWindow, TemporalSource, TemporalValidity,
+    TemporalWindowRelation, TrainStepFailure, TrainStepRequest, TrainingBatch,
+    TrainingExampleIdentityPage, TrainingExampleIdentityPages, TrainingLifecyclePhase,
+    TrainingLifecyclePhaseActiveStep, TrainingMetric, TrainingModalities, TrainingModality,
+    TrainingObjective, TrainingObjectiveIdentity, TrainingObjectives, TrainingRefusal,
+    TrainingResourceEnvelope, TrainingSession, TrajectoryAlternatives, TransformProfiles,
+    TransitionDirection, ValidatedExtraction, VectorIndexHealth, VectorIndexMaintenanceKind,
+    VectorIndexResourceRefusal, VectorMetadata, VectorMetadataEntries, VectorRefusal,
+    VectorSearchExecutionProofClass, VectorSearchOfferInvalidity, VectorSearchProofClass,
+    WeightedSamples, WiredHouseContextItem,
 };
 
 mod bases;
@@ -98,10 +95,10 @@ mod context_selection;
 pub use context_selection::*;
 mod context_selection_contract;
 pub use context_selection_contract::*;
-#[cfg(feature = "form-catalog")]
-mod form_composition;
-#[cfg(feature = "form-catalog")]
-pub use form_composition::*;
+#[cfg(feature = "plot-catalog")]
+mod plot_composition;
+#[cfg(feature = "plot-catalog")]
+pub use plot_composition::*;
 mod effect_proposal;
 pub use effect_proposal::*;
 mod embodiment;
@@ -182,9 +179,9 @@ mod vector_retrieval;
 pub use vector_retrieval::*;
 mod vector_search_contract;
 pub use vector_search_contract::*;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 mod provider;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub use provider::*;
 
 pub const TEXT_VALUE_KIND: &str = "value/text";

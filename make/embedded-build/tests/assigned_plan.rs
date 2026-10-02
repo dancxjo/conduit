@@ -185,17 +185,17 @@ fn assigned_plan_refuses_identity_inventory_capacity_and_global_mutations() {
 }
 
 fn local_signal_plan() -> GeneratedEmbeddedPlan {
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../proof/fixtures/plots/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .unwrap();
     let host = pico_local_advertisement();
     let placements =
-        conduit_planner::default_placements(&form, std::slice::from_ref(&host)).unwrap();
+        conduit_planner::default_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

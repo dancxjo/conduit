@@ -1,5 +1,5 @@
 use conduit_alife::ReactionDiffusionRegionId;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn region_identity_has_exact_native_round_trips_and_full_u16_domain() {

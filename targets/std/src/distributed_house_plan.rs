@@ -14,7 +14,7 @@ type PlannedLines = (Vec<LineOffer>, LineCandidates);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DistributedHousePlan {
-    pub checked_form_id: String,
+    pub checked_plot_id: String,
     pub plan: conduit_core::Plan,
     pub hosts: [HostAdvertisement; 3],
     pub lines: Vec<LineOffer>,
@@ -121,7 +121,7 @@ fn exact_distributed_spoken_house_plan_with_replacement(
         &topology.connection_limits,
     )?;
     Ok(DistributedHousePlan {
-        checked_form_id: topology.expanded.checked_form_id.as_str().to_owned(),
+        checked_plot_id: topology.expanded.checked_plot_id.as_str().to_owned(),
         plan,
         hosts,
         lines,
@@ -201,12 +201,12 @@ pub fn replan_distributed_spoken_house_after_loss(
 
 fn exact_placements(
     template: &HostAdvertisement,
-    form: &conduit_form::ExpandedCanonicalForm,
+    plot: &conduit_plot::ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement; 3],
 ) -> Result<PlacementChoices, conduit_planner::PlannerError> {
     let defaults =
-        conduit_planner::default_expanded_placements(form, std::slice::from_ref(template))?;
-    let capture_sources = form
+        conduit_planner::default_expanded_placements(plot, std::slice::from_ref(template))?;
+    let capture_sources = plot
         .connections
         .iter()
         .filter(|connection| connection.sink_gear_id.as_str().ends_with("/audio"))
@@ -276,7 +276,7 @@ fn authority_grants(
 }
 
 fn lines(
-    form: &conduit_form::ExpandedCanonicalForm,
+    plot: &conduit_plot::ExpandedCanonicalPlot,
     limits: &BTreeMap<
         crate::house_conversation_topology::HouseConnectionEndpoints,
         conduit_planner::ConnectionQueueLimits,
@@ -286,7 +286,7 @@ fn lines(
 ) -> Result<PlannedLines, Box<dyn std::error::Error>> {
     let mut offers = Vec::new();
     let mut candidates = BTreeMap::new();
-    for (index, connection) in form.connections.iter().enumerate() {
+    for (index, connection) in plot.connections.iter().enumerate() {
         let source = placements
             .by_gear
             .get(&connection.source_gear_id)

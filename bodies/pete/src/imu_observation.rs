@@ -27,7 +27,7 @@ pub const I2C_BASE_RESOURCE: &str = "pete.resource/i2c-base@1";
 pub const MPU6050_ATTACHMENT_RESOURCE: &str = "pete.resource/mpu6050-attachment@1";
 pub const MPU6050_SESSION_RESOURCE: &str = "pete.resource/mpu6050-session@1";
 
-pub const MPU6050_FORM: &str = r#"form pete_imu {
+pub const MPU6050_FORM: &str = r#"plot pete_imu {
     imu: robotics/observe-imu
 }
 "#;
@@ -178,8 +178,8 @@ pub fn live_mpu6050_advertisement(
 
 pub fn mpu6050_plan(evidence: &Mpu6050Evidence) -> Result<conduit_core::Plan, PlannerError> {
     let (_, profile) = crate::catalogs().expect("fixed Pete catalogs are valid");
-    let checked = conduit_form::parse(MPU6050_FORM, &profile)
-        .expect("portable IMU Form checks without mechanism facts");
+    let checked = conduit_plot::parse(MPU6050_FORM, &profile)
+        .expect("portable IMU Plot checks without mechanism facts");
     let host = live_mpu6050_advertisement(evidence, evidence.observed_at_tick)
         .expect("caller supplies valid current MPU-6050 evidence");
     let observations = host

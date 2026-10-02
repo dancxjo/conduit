@@ -62,7 +62,7 @@ impl PatchbayHtmlServer {
         let plan = planning.current_plan();
         plan.validate_for(wake)
             .map_err(|_| refuse("BodyProposalInvalidPlan"))?;
-        for fragment in plan.forms.iter().flat_map(|form| &form.plan.fragments) {
+        for fragment in plan.plots.iter().flat_map(|plot| &plot.plan.fragments) {
             if !evidence.membership.parts.iter().any(|part| {
                 part.state == conduit_body::MembershipState::Admitted
                     && part.current.as_ref().is_some_and(|current| {

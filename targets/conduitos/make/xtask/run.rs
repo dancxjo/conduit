@@ -357,7 +357,7 @@ fn validate_presentation(
         || sign.back_contract_revision != conduit_semantic_catalog::PATCHBAY_PRESENTATION_REVISION
         || sign.back_invocation_path != "conduitos-gear-front/front"
         || !exact_id(&sign.back_source_document_id)
-        || !exact_id(&sign.back_checked_form_id)
+        || !exact_id(&sign.back_checked_plot_id)
         || sign.host_id != boot.host_id
         || sign.boot_id != boot.boot_id
         || !exact_id(&sign.display_base_id)
@@ -368,8 +368,8 @@ fn validate_presentation(
         || sign.execution_profile != conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_PROFILE
         || sign.artifact != conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_ARTIFACT
         || !exact_id(&sign.source_document_id)
-        || !exact_id(&sign.checked_form_id)
-        || !exact_id(&sign.expanded_form_id)
+        || !exact_id(&sign.checked_plot_id)
+        || !exact_id(&sign.expanded_plot_id)
         || !exact_id(&sign.plan_id)
         || !exact_id(&sign.fragment_id)
         || sign.node_count != 11
@@ -513,8 +513,8 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || sign.boot_id != boot.boot_id
         || sign.pipeline != "check-plan-lower-kernel"
         || !exact_id(&sign.source_document_id)
-        || !exact_id(&sign.checked_form_id)
-        || !exact_id(&sign.expanded_form_id)
+        || !exact_id(&sign.checked_plot_id)
+        || !exact_id(&sign.expanded_plot_id)
         || !exact_id(&sign.plan_id)
         || !exact_id(&sign.fragment_id)
         || !exact_id(&sign.active_play_id)
@@ -792,8 +792,8 @@ fn validate_observatory(
         || plan.is_none_or(|plan| {
             plan.plan_id.as_str() != kernel.plan_id
                 || plan.source_document_id.as_str() != kernel.source_document_id
-                || plan.checked_form_id.as_str() != kernel.checked_form_id
-                || plan.expanded_form_id.as_str() != kernel.expanded_form_id
+                || plan.checked_plot_id.as_str() != kernel.checked_plot_id
+                || plan.expanded_plot_id.as_str() != kernel.expanded_plot_id
                 || plan.fragments.len() != 1
                 || plan.fragments[0].fragment_id.as_str() != kernel.fragment_id
                 || plan.fragments[0].placements.len() != 5

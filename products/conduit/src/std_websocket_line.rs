@@ -179,10 +179,10 @@ pub(crate) fn context() -> Result<crate::product_execution::ProductExecutionCont
 
 #[cfg(test)]
 pub(crate) fn placements(
-    form: &conduit_form::ExpandedCanonicalForm,
+    plot: &conduit_plot::ExpandedCanonicalPlot,
 ) -> Result<conduit_planner::PlacementChoices, String> {
     let mut by_gear = BTreeMap::new();
-    for gear in &form.gears {
+    for gear in &plot.gears {
         let (host_id, capability_id) = match gear.kind_id.as_str() {
             conduit_signal::PULSE_KIND => (SOURCE_HOST, "pulse-1"),
             conduit_signal::SHOW_KIND => (SINK_HOST, "stdout-show-1"),

@@ -7,7 +7,7 @@ fn production_conduit_sources_use_the_frozen_surface() {
         .and_then(Path::parent)
         .expect("xtask lives under the repository tools directory");
     let mut sources = Vec::new();
-    for root in ["forms", "bodies", "products", "targets"] {
+    for root in ["plots", "bodies", "products", "targets"] {
         collect_conduit_sources(&repository.join(root), &mut sources);
     }
     sources.sort();
@@ -17,7 +17,7 @@ fn production_conduit_sources_use_the_frozen_surface() {
     for path in sources {
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
-        let document = conduit_form::parse_syntax_document(&source);
+        let document = conduit_plot::parse_syntax_document(&source);
         for diagnostic in document.diagnostics {
             failures.push(format!(
                 "{}:{}:{} [{}] {}",

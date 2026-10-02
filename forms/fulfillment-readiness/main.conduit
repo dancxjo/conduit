@@ -1,9 +1,0 @@
-# Deterministic semantic derivation only. This form offers no lifecycle action.
-form fulfillment-readiness (
-    >> purpose: $PurposeState
-    readiness: $FulfillmentReadiness >>
-) {
-    evaluate: purpose/fulfillment-readiness
-    purpose >> evaluate.purpose
-    evaluate.readiness >> readiness
-}

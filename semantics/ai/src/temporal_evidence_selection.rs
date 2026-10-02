@@ -1,7 +1,7 @@
 //! Finite boundary-oriented selection over exact temporal evidence.
 
 use alloc::{vec, vec::Vec};
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
     TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceIdentities,
@@ -167,7 +167,7 @@ mod tests {
         TemporalProvenance, TemporalReference, TemporalSource, TemporalValidity,
     };
     use alloc::{format, string::String, vec};
-    use conduit_form::rust_binding::NativeRustBinding;
+    use conduit_plot::rust_binding::NativeRustBinding;
 
     fn provenance(event_at: u64, valid_until: Option<u64>) -> TemporalProvenance {
         TemporalProvenance {

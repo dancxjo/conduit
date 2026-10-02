@@ -1,4 +1,4 @@
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_ai::install_llm_semantic_catalog;
 use conduit_ai::{
     llm_contract, llm_semantic_catalog, ConfidencePermille, LlmDeterminismProfile,
@@ -10,7 +10,7 @@ use conduit_ai::{
 };
 use conduit_core::PortDirection;
 use conduit_core::PortTemporal;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn produced(kind: &str) -> ModelDerivedResult {
     let contract = llm_contract(kind).unwrap();
@@ -181,17 +181,17 @@ fn generative_presentation_is_structured_and_distinct_from_input_interpretation(
 }
 
 #[test]
-#[cfg(feature = "form-catalog")]
-fn all_contracts_install_and_check_as_ordinary_provider_free_forms() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+#[cfg(feature = "plot-catalog")]
+fn all_contracts_install_and_check_as_ordinary_provider_free_plots() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     for contract in llm_semantic_catalog() {
         let name = contract.kind_id.as_str().replace('/', "-");
-        let source = format!("form {name} {{\n gear: {}\n}}\n", contract.kind_id.as_str());
-        let syntax = conduit_form::parse_syntax_document(&source);
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        let expanded = conduit_form::expand_canonical_form(&checked, &name, &profile).unwrap();
+        let source = format!("plot {name} {{\n gear: {}\n}}\n", contract.kind_id.as_str());
+        let syntax = conduit_plot::parse_syntax_document(&source);
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot(&checked, &name, &profile).unwrap();
         assert_eq!(expanded.gears[0].kind_id, contract.kind_id);
     }
 }

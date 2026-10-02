@@ -2,7 +2,7 @@ use conduit_data::{
     decode_measurement_plot_series, encode_measurement_plot_series, MeasurementPlotPoint,
     MeasurementPlotSeries, PLOT_AXIS_MILLIONTHS,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn measurement_plot_point_round_trips_exact_native_bounds() {

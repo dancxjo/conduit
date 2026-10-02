@@ -8,7 +8,7 @@ use conduit_core::{
     AuthorityContractId, CapabilityOffer, CharacteristicId, ComputePerformanceClassId,
     HostAdvertisement, HostCallContractId, ResourceClassId,
 };
-use conduit_form::CheckedGear;
+use conduit_plot::CheckedGear;
 use core::cmp::Ordering;
 
 /// One explicit lexicographic comparison dimension.

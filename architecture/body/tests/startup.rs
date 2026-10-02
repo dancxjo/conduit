@@ -1,5 +1,5 @@
 use conduit_body::*;
-use conduit_core::{seal_plan, FormIdentity, SignId};
+use conduit_core::{seal_plan, PlotIdentity, SignId};
 
 fn born(sequence: u64) -> BodyBiographyEvidence {
     let body = Body::born(
@@ -31,15 +31,15 @@ fn start(
     let plan = BodyPlan::seal(
         &wake,
         wake.workset
-            .forms()
+            .plots()
             .iter()
-            .map(|form| BodyFormPlan {
-                form: form.clone(),
+            .map(|plot| BodyPlotPlan {
+                plot: plot.clone(),
                 plan: seal_plan(
-                    FormIdentity {
-                        source_document_id: form.source_document_id.clone(),
-                        checked_form_id: form.checked_form_id.clone(),
-                        expanded_form_id: format!("expanded/{}", form.checked_form_id.as_str())
+                    PlotIdentity {
+                        source_document_id: plot.source_document_id.clone(),
+                        checked_plot_id: plot.checked_plot_id.clone(),
+                        expanded_plot_id: format!("expanded/{}", plot.checked_plot_id.as_str())
                             .into(),
                     },
                     vec![],
@@ -108,8 +108,8 @@ fn replacement_play_in_the_same_wake_does_not_repeat_either_startup_scope() {
     let (old_plan, old_play) = wake(&mut history, 1);
     let body = history
         .body
-        .admit_form(
-            ResidentForm::new("source/other".into(), "checked/other".into()),
+        .admit_plot(
+            ResidentPlot::new("source/other".into(), "checked/other".into()),
             sign("add", 1),
         )
         .unwrap();

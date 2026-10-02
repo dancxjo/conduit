@@ -2,8 +2,8 @@ use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
     BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document,
     structured_selector_definition, KindConfigurationField, KindConfigurationRule, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
@@ -47,7 +47,7 @@ fn found_storage_result_feeds_reusable_comparison_through_checked_selectors() {
         install_fixture(&mut startup, &mut profile, kind, value, offer);
     }
     let source = format!(
-        "form proof {{\n found: {FOUND_KIND}(value = \"{}\")\n candidate: {CANDIDATE_KIND}(value = \"{}\")\n compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 20000)\n sink: {SINK_KIND}(value = \"{}\")\n found >> select(NamedPatternTemplateResult.found, unmatched=refuse) >> project(NamedPatternTemplate.pattern) >> compare.template\n candidate.output >> compare.candidate\n compare.comparison >> sink.input\n}}\n",
+        "plot proof {{\n found: {FOUND_KIND}(value = \"{}\")\n candidate: {CANDIDATE_KIND}(value = \"{}\")\n compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 20000)\n sink: {SINK_KIND}(value = \"{}\")\n found >> select(NamedPatternTemplateResult.found, unmatched=refuse) >> project(NamedPatternTemplate.pattern) >> compare.template\n candidate.output >> compare.candidate\n compare.comparison >> sink.input\n}}\n",
         hex(&found.canonical_bytes().unwrap()),
         hex(&candidate.canonical_bytes().unwrap()),
         conduit_semantic_catalog::MAXIMUM_ABSOLUTE_METRIC,
@@ -56,12 +56,12 @@ fn found_storage_result_feeds_reusable_comparison_through_checked_selectors() {
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let selectors = checked.forms[0]
+    let selectors = checked.plots[0]
         .cords
         .iter()
         .flat_map(|cord| &cord.stages)
         .filter_map(|stage| match stage {
-            conduit_form::CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
+            conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -74,7 +74,7 @@ fn found_storage_result_feeds_reusable_comparison_through_checked_selectors() {
             ))
             .unwrap();
     }
-    let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "proof", &profile).unwrap();
     let selector_offers = selectors
         .iter()
         .map(|selector| {

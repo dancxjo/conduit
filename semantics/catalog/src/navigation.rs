@@ -2,7 +2,7 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::StructuredInfoType;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_robotics::{
     NavigationBoundedMotionIntent, NavigationControlDecision, NavigationGoal, NavigationPose,
     NavigationRoute, NavigationRouteDecision, NavigationTime, NavigationTrajectory,

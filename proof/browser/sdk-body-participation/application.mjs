@@ -1,5 +1,5 @@
 import { Conduit } from "/target/field-station-sdk/browser-sdk.mjs";
-import { renderBodyPlanInspection } from "/forms/patchbay/workbench/browser/body-plan-inspection.js";
+import { renderBodyPlanInspection } from "/plots/patchbay/workbench/browser/body-plan-inspection.js";
 
 const parameters = new URLSearchParams(location.search);
 const invitation = parameters.get("body");

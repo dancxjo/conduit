@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn keyboard_occurrences_round_trip_through_exact_native_types() {

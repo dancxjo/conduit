@@ -124,10 +124,10 @@ pub fn machine_accepted(
     write_hex(&mut output, &identities.boot)?;
     write!(
         output,
-        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":3,\"cord_byte_capacity\":{},\"semantic_result\":\"{}\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
+        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":3,\"cord_byte_capacity\":{},\"semantic_result\":\"{}\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
         prepared.source_document_id.as_str(),
-        prepared.checked_form_id.as_str(),
-        prepared.expanded_form_id.as_str(),
+        prepared.checked_plot_id.as_str(),
+        prepared.expanded_plot_id.as_str(),
         prepared.plan_id.as_str(),
         prepared.fragment_id.as_str(),
         prepared.active_play.active_play_id.as_str(),

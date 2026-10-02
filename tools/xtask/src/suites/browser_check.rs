@@ -27,13 +27,13 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.browser.sdk-contracts",
-        "Prove the public Browser SDK, events, Forms, and exact package closure",
+        "Prove the public Browser SDK, events, Plots, and exact package closure",
         "node",
         &[
             "--test",
             "targets/browser/sdk/browser-sdk-errors.test.mjs",
             "targets/browser/sdk/browser-sdk-events.test.mjs",
-            "targets/browser/sdk/browser-sdk-forms.test.mjs",
+            "targets/browser/sdk/browser-sdk-plots.test.mjs",
             "targets/browser/sdk/package-browser-bundle.test.mjs",
         ],
     ),

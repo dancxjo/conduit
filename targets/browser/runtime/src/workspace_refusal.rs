@@ -30,7 +30,7 @@ impl From<BodyLifecycleSessionError> for Refusal {
             StaleHost => "StaleHost".into(),
             StalePlay => "StalePlay".into(),
             StaleWorkload => "StaleWorkload".into(),
-            UninstalledForm => "UninstalledForm".into(),
+            UninstalledPlot => "UninstalledPlot".into(),
             SequenceExhausted => "SequenceExhausted".into(),
             UnreconciledWake => "UnreconciledWake".into(),
             ArchivePersistenceRequired => "HistoryArchivePersistenceRequired".into(),

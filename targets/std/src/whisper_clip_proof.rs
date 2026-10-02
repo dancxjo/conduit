@@ -29,8 +29,8 @@ pub fn run(
     let mut host = StdHost::new_with_whisper_clip_speech_recognition(config, composition, adapter)?;
     host.attach_proof_pcm_clip_source(clip)?;
 
-    let mut catalog = conduit_form::ProfileCatalog::new();
-    let mut startup = conduit_form::StartupCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut catalog)?;
     crate::installed_std::test_local_model_io::install_house_source_catalog(
         &mut startup,
@@ -41,17 +41,17 @@ pub fn run(
         &mut catalog,
     );
     let source = format!(
-        "form whisper_recorded_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> sink.value\n}}\n",
+        "plot whisper_recorded_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_RECOGNITION_SINK_KIND,
     );
-    let form = conduit_form::parse(&source, &catalog)
-        .map_err(|error| format!("parse Whisper clip proof Form: {error}"))?;
+    let plot = conduit_plot::parse(&source, &catalog)
+        .map_err(|error| format!("parse Whisper clip proof Plot: {error}"))?;
     let advertisements = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&form, &advertisements)
+    let placements = conduit_planner::default_placements(&plot, &advertisements)
         .map_err(|error| format!("place Whisper clip proof: {error}"))?;
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &advertisements,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

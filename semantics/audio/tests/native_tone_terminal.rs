@@ -4,7 +4,7 @@ use conduit_audio::{
     SoundTerminalBehavior,
 };
 use conduit_core::StructuredInfoTypeShape;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit() {

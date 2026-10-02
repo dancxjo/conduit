@@ -5,7 +5,7 @@ use conduit_core::{
     ResourcePoolId, ResourceReferenceAccessRefusal, ResourceReferenceBinding,
     ResourceSemanticIdentity,
 };
-use conduit_form::rust_binding::BoundedBytes;
+use conduit_plot::rust_binding::BoundedBytes;
 use conduit_semantic_catalog::{
     JobExitDisposition, JobLifecycleEvent, JobOutput, JobOutputBytes, JobRequest,
     JobRequestRefusal, JobResourceUsage, JobStreamPressure, JobTerminalOutcome, JobText,
@@ -91,7 +91,7 @@ impl TrustedJobProvider {
     }
 
     /// Installs trusted provider-local realization data. The path is never
-    /// portable identity and never enters a Form or Plan.
+    /// portable identity and never enters a Plot or Plan.
     pub fn register_executable(
         &mut self,
         pool_id: ResourcePoolId,

@@ -5,7 +5,7 @@ use conduit_core::{
     LocalDate, LocalDateTime, LocalTime, NamedTimeZone, TemporalInstant, TemporalScale,
     ZonedResolution, MAXIMUM_TEMPORAL_IDENTITY_BYTES, UNIX_UTC_CLOCK_BASIS,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 use conduit_time::{MeetingCandidate, MeetingProposalRequest, TemporalBoundary, TemporalWindow};
 use serde::{Deserialize, Serialize};
 

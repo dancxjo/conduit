@@ -1,6 +1,6 @@
 //! Conduit Pico W Signal firmware.
 //!
-//! Runs the Signal demo form on real RP2040 hardware, blinks the onboard CYW43
+//! Runs the Signal demo plot on real RP2040 hardware, blinks the onboard CYW43
 //! LED, and emits machine-readable receipts over USB CDC.
 //! The default image runs the generated Pico-local plan without heap
 //! allocation. The explicit `usb-remote` image uses one finite startup arena

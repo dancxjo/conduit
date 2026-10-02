@@ -1,4 +1,4 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 #[path = "common/hybrid_plan.rs"]
 mod hybrid_plan;
@@ -13,7 +13,6 @@ use conduit_core::{
     ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
     ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::BoundedSequence;
 use conduit_kernel::{
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
@@ -23,6 +22,7 @@ use conduit_kernel::{
     KernelEvent, KernelEventKind, NodeId, PortId, RouteRange, RouteTarget, SignQuery, ValueRef,
     ValueStorage,
 };
+use conduit_plot::rust_binding::BoundedSequence;
 
 const FUSION_NODE: NodeId = NodeId(4);
 const SINK_NODE: NodeId = NodeId(5);

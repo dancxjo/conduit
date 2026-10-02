@@ -1,6 +1,6 @@
 # Protected resource bindings
 
-Conduit keeps a user's resource choice separate from authored meaning. A form may require an operation whose offered implementation declares a named protected resource role, but the form does not contain a filesystem path, browser object, descriptor, or base token.
+Conduit keeps a user's resource choice separate from authored meaning. A plot may require an operation whose offered implementation declares a named protected resource role, but the plot does not contain a filesystem path, browser object, descriptor, or base token.
 
 Before planning, a base may supply a `ProtectedResourceGrant`. The grant names one operation role and carries an opaque handle plus exact host, boot, capability, resource class, access, byte bound, and commit policy. It is planning input, not authority inferred from availability. Raw locator material remains in the base's private handle table.
 

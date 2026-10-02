@@ -143,7 +143,7 @@ function eventForWake(identity, wake, lifecycleEvent) {
 }
 
 function bodyEventType(kind) {
-  return ({ Born: "body-born", PartAdmitted: "part-admitted", HostJoined: "host-attached", HostLeft: "host-lost", PartRevoked: "part-revoked", FormAdmitted: "workset-changed", FormRemoved: "workset-changed", Fulfilled: "body-fulfilled", Graduated: "body-graduated", EmergencyConfigured: "emergency-configured", LullRetained: "lull" })[kind] ?? "body-evidence";
+  return ({ Born: "body-born", PartAdmitted: "part-admitted", HostJoined: "host-attached", HostLeft: "host-lost", PartRevoked: "part-revoked", PlotAdmitted: "workset-changed", PlotRemoved: "workset-changed", Fulfilled: "body-fulfilled", Graduated: "body-graduated", EmergencyConfigured: "emergency-configured", LullRetained: "lull" })[kind] ?? "body-evidence";
 }
 
 function wakeEventType(kind) {

@@ -4,7 +4,7 @@
 pub enum FailureScope {
     Gear(NodeId),
     Cord(CordId),
-    Form(u16),
+    Plot(u16),
     Play,
     HostCall(HostCallId),
     Resource(ResourceId),
@@ -65,7 +65,7 @@ const fn same_scope(a: FailureScope, b: FailureScope) -> bool {
     match (a, b) {
         (FailureScope::Gear(NodeId(a)), FailureScope::Gear(NodeId(b))) => a == b,
         (FailureScope::Cord(CordId(a)), FailureScope::Cord(CordId(b))) => a == b,
-        (FailureScope::Form(a), FailureScope::Form(b)) => a == b,
+        (FailureScope::Plot(a), FailureScope::Plot(b)) => a == b,
         (FailureScope::Play, FailureScope::Play) => true,
         (FailureScope::HostCall(HostCallId(a)), FailureScope::HostCall(HostCallId(b))) => a == b,
         (FailureScope::Resource(ResourceId(a)), FailureScope::Resource(ResourceId(b))) => a == b,

@@ -102,8 +102,8 @@ export function decodeEffect(bytes) {
   const kind = frame.byte();
   const common = {
     sourceDocumentId: frame.text(),
-    checkedFormId: frame.text(),
-    expandedFormId: frame.text(),
+    checkedPlotId: frame.text(),
+    expandedPlotId: frame.text(),
     planId: frame.text(),
     fragmentId: frame.text(),
     hostId: frame.text(),
@@ -159,8 +159,8 @@ function encodeCompletion(effect, completion) {
   const frame = new FrameWriter();
   frame.byte(effect.kind);
   frame.text(completion.sourceDocumentId);
-  frame.text(completion.checkedFormId);
-  frame.text(completion.expandedFormId);
+  frame.text(completion.checkedPlotId);
+  frame.text(completion.expandedPlotId);
   frame.text(completion.planId);
   frame.text(completion.fragmentId);
   frame.text(completion.hostId);
@@ -198,8 +198,8 @@ function encodeCompletion(effect, completion) {
 function commonCompletion(effect, success = true) {
   return {
     sourceDocumentId: effect.sourceDocumentId,
-    checkedFormId: effect.checkedFormId,
-    expandedFormId: effect.expandedFormId,
+    checkedPlotId: effect.checkedPlotId,
+    expandedPlotId: effect.expandedPlotId,
     planId: effect.planId,
     fragmentId: effect.fragmentId,
     hostId: effect.hostId,

@@ -46,13 +46,13 @@ pub extern "C" fn conduit_browser_webchat_start(url_len: u32) -> i32 {
         else {
             return ERROR_INPUT;
         };
-        let form_name = fields.next().unwrap_or("chat/browser-client");
+        let plot_name = fields.next().unwrap_or("chat/browser-client");
         if fields.next().is_some() {
             return ERROR_INPUT;
         }
-        match BrowserChatSession::prepare_form(
+        match BrowserChatSession::prepare_plot(
             url,
-            form_name,
+            plot_name,
             conduit_core::HostId::from(host_id),
             conduit_core::BootId::from(boot_id),
         ) {

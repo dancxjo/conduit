@@ -26,7 +26,7 @@ struct ArchitectureRow {
     a0_compile_link: bool,
     a1_boot: bool,
     a2_machine_wake: bool,
-    a3_ordinary_form: bool,
+    a3_ordinary_plot: bool,
     a4_observatory_patchbay: bool,
     blocker: Option<&'static str>,
 }
@@ -120,7 +120,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
             | ConduitosArch::Loongarch64
     );
     let full_spine_accepted = matches!(arch, ConduitosArch::X86_64 | ConduitosArch::Loongarch64);
-    let ordinary_form_accepted = full_spine_accepted
+    let ordinary_plot_accepted = full_spine_accepted
         || matches!(
             arch,
             ConduitosArch::Ia32
@@ -198,7 +198,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         a0_compile_link: compile_link_accepted,
         a1_boot: boot_accepted,
         a2_machine_wake: machine_wake_accepted,
-        a3_ordinary_form: ordinary_form_accepted,
+        a3_ordinary_plot: ordinary_plot_accepted,
         a4_observatory_patchbay: observatory_patchbay_accepted,
         blocker: (!observatory_patchbay_accepted).then_some(blocker),
     }
@@ -233,7 +233,7 @@ mod tests {
         assert!(aarch64.a0_compile_link);
         assert!(aarch64.a1_boot);
         assert!(aarch64.a2_machine_wake);
-        assert!(aarch64.a3_ordinary_form);
+        assert!(aarch64.a3_ordinary_plot);
         assert!(aarch64.a4_observatory_patchbay);
         let ia32 = matrix
             .architectures
@@ -244,7 +244,7 @@ mod tests {
         assert!(ia32.a0_compile_link);
         assert!(ia32.a1_boot);
         assert!(ia32.a2_machine_wake);
-        assert!(ia32.a3_ordinary_form);
+        assert!(ia32.a3_ordinary_plot);
         assert!(ia32.a4_observatory_patchbay);
         let riscv64 = matrix
             .architectures
@@ -255,7 +255,7 @@ mod tests {
         assert!(riscv64.a0_compile_link);
         assert!(riscv64.a1_boot);
         assert!(riscv64.a2_machine_wake);
-        assert!(riscv64.a3_ordinary_form);
+        assert!(riscv64.a3_ordinary_plot);
         assert!(riscv64.a4_observatory_patchbay);
         let loongarch64 = matrix
             .architectures
@@ -266,7 +266,7 @@ mod tests {
         assert!(loongarch64.a0_compile_link);
         assert!(loongarch64.a1_boot);
         assert!(loongarch64.a2_machine_wake);
-        assert!(loongarch64.a3_ordinary_form);
+        assert!(loongarch64.a3_ordinary_plot);
         assert!(loongarch64.a4_observatory_patchbay);
         let armv6 = matrix
             .architectures
@@ -278,7 +278,7 @@ mod tests {
         assert_eq!(armv6.boot_artifact, "kernel.img");
         assert!(armv6.a1_boot);
         assert!(armv6.a2_machine_wake);
-        assert!(armv6.a3_ordinary_form);
+        assert!(armv6.a3_ordinary_plot);
         assert!(!armv6.a4_observatory_patchbay);
         assert_eq!(
             armv6.blocker,

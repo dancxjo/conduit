@@ -38,13 +38,13 @@ mod device_base;
 mod distributed;
 mod distributed_toggle;
 pub mod flow_activation;
-#[cfg(feature = "form-runner")]
-mod form_runner;
 pub mod human_media;
-#[cfg_attr(not(feature = "form-runner"), allow(unused_imports, dead_code))]
+#[cfg_attr(not(feature = "plot-runner"), allow(unused_imports, dead_code))]
 mod installed_browser;
 pub mod membership;
 mod membership_abi;
+#[cfg(feature = "plot-runner")]
+mod plot_runner;
 pub mod presentation_nucleus;
 #[cfg(feature = "protected-line")]
 mod protected_line_abi;
@@ -52,7 +52,7 @@ mod rendezvous_cbor_abi;
 pub mod resource_snapshot;
 pub use installed_browser::resource::advertisement as snapshot_advertisement;
 #[cfg(any(
-    feature = "form-runner",
+    feature = "plot-runner",
     feature = "tour-surface",
     feature = "creche-surface"
 ))]
@@ -71,7 +71,7 @@ mod tour_workspace;
 mod webchat;
 mod webrtc_session;
 mod workspace_mask;
-#[cfg(all(feature = "creche-surface", feature = "form-runner"))]
+#[cfg(all(feature = "creche-surface", feature = "plot-runner"))]
 mod workspace_runtime;
 
 const FRAME_CAPACITY: usize = 4_096;
@@ -346,19 +346,19 @@ impl BrowserSession {
             _ => return Err(ERROR_INVALID_HOST),
         };
         let advertisement = build_advertisement(host_id, boot_id);
-        let form = conduit_form::parse_with_startup(
-            include_str!("../../../../proof/fixtures/forms/signal-demo.conduit"),
+        let plot = conduit_plot::parse_with_startup(
+            include_str!("../../../../proof/fixtures/plots/signal-demo.conduit"),
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .map_err(|_| ERROR_START)?;
         let hosts = [advertisement.clone()];
-        let placements = default_placements(&form, &hosts).map_err(|_| ERROR_START)?;
+        let placements = default_placements(&plot, &hosts).map_err(|_| ERROR_START)?;
         let base_overrides = BTreeMap::new();
         let mut planned = plan_with_advertised_profile(
             &advertisement,
             &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -929,8 +929,8 @@ fn write_common_frame(
 ) -> Result<(), i32> {
     writer.byte(kind)?;
     writer.text(fragment.source_document_id.as_str())?;
-    writer.text(fragment.checked_form_id.as_str())?;
-    writer.text(fragment.expanded_form_id.as_str())?;
+    writer.text(fragment.checked_plot_id.as_str())?;
+    writer.text(fragment.expanded_plot_id.as_str())?;
     writer.text(fragment.plan_id.as_str())?;
     writer.text(fragment.fragment_id.as_str())?;
     writer.text(fragment.host_id.as_str())?;

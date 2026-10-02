@@ -58,19 +58,19 @@ fn soft_layer(id: &str, scope: PolicyScope, preferences: Vec<PlannerPreference>)
 }
 
 fn selected_plan(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[conduit_core::HostAdvertisement],
     choice: &PlacementChoice,
 ) -> conduit_core::Plan {
     let placements = PlacementChoices {
-        by_gear: BTreeMap::from([(form.gears[0].gear_id.clone(), choice.clone())]),
+        by_gear: BTreeMap::from([(plot.gears[0].gear_id.clone(), choice.clone())]),
     };
-    plan(form, hosts, &placements, &[]).expect("the exact selected realization seals into a plan")
+    plan(plot, hosts, &placements, &[]).expect("the exact selected realization seals into a plan")
 }
 
 #[test]
 fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans() {
-    let (form, mut hosts, advertisements) = generic_policy_facts();
+    let (plot, mut hosts, advertisements) = generic_policy_facts();
     let cpu_id = conduit_core::ResourceClassId::from(CPU_EXECUTION_RESOURCE);
     let small_cpu = hosts
         .iter_mut()
@@ -94,10 +94,10 @@ fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans
         nominal_clock_hz: Some(900_000_000),
     }];
     let observations = reviewed(&hosts, 8, 9);
-    let semantic = source("checked-form", 1, PolicyScope::SemanticRequirements);
+    let semantic = source("checked-plot", 1, PolicyScope::SemanticRequirements);
 
     let private_llm = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements {
@@ -144,7 +144,7 @@ fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans
     }));
 
     let economical_compute = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts[..2],
         &advertisements[..2],
         &HardRealizationRequirements::default(),
@@ -168,7 +168,7 @@ fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans
     );
 
     let performance_compute = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts[..2],
         &advertisements[..2],
         &HardRealizationRequirements {
@@ -198,12 +198,12 @@ fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans
         "ai-large-local"
     );
 
-    let old_plan = selected_plan(&form, &hosts, &economical_compute.selection.choice);
-    let replacement = selected_plan(&form, &hosts, &performance_compute.selection.choice);
+    let old_plan = selected_plan(&plot, &hosts, &economical_compute.selection.choice);
+    let replacement = selected_plan(&plot, &hosts, &performance_compute.selection.choice);
     assert_ne!(old_plan.plan_id, replacement.plan_id);
     assert_eq!(
         old_plan.plan_id,
-        selected_plan(&form, &hosts, &economical_compute.selection.choice).plan_id,
+        selected_plan(&plot, &hosts, &economical_compute.selection.choice).plan_id,
         "selecting a replacement does not mutate the old Plan"
     );
     for selection in [&private_llm, &economical_compute, &performance_compute] {
@@ -218,16 +218,16 @@ fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans
 }
 
 fn presentation_fixture() -> (
-    conduit_form::CheckedForm,
+    conduit_plot::CheckedPlot,
     Vec<conduit_core::HostAdvertisement>,
     Vec<RealizationAdvertisement>,
 ) {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
         .expect("presentation catalogs install");
-    let form = conduit_form::parse(
-        "form styled {\n    canvas: presentation/patchbay\n}\n",
+    let plot = conduit_plot::parse(
+        "plot styled {\n    canvas: presentation/patchbay\n}\n",
         &profile,
     )
     .expect("semantic presentation checks");
@@ -285,12 +285,12 @@ fn presentation_fixture() -> (
         });
         hosts.push(host);
     }
-    (form, hosts, advertisements)
+    (plot, hosts, advertisements)
 }
 
 #[test]
 fn style_is_another_policy_layer_not_a_presenter_specific_selector() {
-    let (form, hosts, advertisements) = presentation_fixture();
+    let (plot, hosts, advertisements) = presentation_fixture();
     let observations = reviewed(&hosts, 5, 5);
     let accessibility = HardRealizationRequirements {
         predicates: vec![PlannerPredicate::Equal {
@@ -317,7 +317,7 @@ fn style_is_another_policy_layer_not_a_presenter_specific_selector() {
         PolicyScope::SemanticRequirements,
     );
     let dos = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &accessibility,
@@ -328,7 +328,7 @@ fn style_is_another_policy_layer_not_a_presenter_specific_selector() {
     )
     .expect("DOS STYLE flows through the generic selector");
     let spacious = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &accessibility,
@@ -341,8 +341,8 @@ fn style_is_another_policy_layer_not_a_presenter_specific_selector() {
     assert_eq!(dos.selection.choice.host_id.as_str(), "style-native");
     assert_eq!(spacious.selection.choice.host_id.as_str(), "style-browser");
     assert_ne!(
-        selected_plan(&form, &hosts, &dos.selection.choice).plan_id,
-        selected_plan(&form, &hosts, &spacious.selection.choice).plan_id
+        selected_plan(&plot, &hosts, &dos.selection.choice).plan_id,
+        selected_plan(&plot, &hosts, &spacious.selection.choice).plan_id
     );
     assert!(dos
         .basis
@@ -369,13 +369,13 @@ fn style_equal(id: &str, value: &str) -> PlannerPreference {
 
 #[test]
 fn generic_negative_boundaries_hold_across_domain_vocabulary() {
-    let (form, hosts, mut advertisements) = generic_policy_facts();
+    let (plot, hosts, mut advertisements) = generic_policy_facts();
     let stale = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
-        source("checked-form", 1, PolicyScope::SemanticRequirements),
+        source("checked-plot", 1, PolicyScope::SemanticRequirements),
         &[],
         &reviewed(&hosts, 2, 2),
         3,
@@ -387,11 +387,11 @@ fn generic_negative_boundaries_hold_across_domain_vocabulary() {
     ));
 
     let unordered = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
-        source("checked-form", 1, PolicyScope::SemanticRequirements),
+        source("checked-plot", 1, PolicyScope::SemanticRequirements),
         &[soft_layer(
             "invalid-category-magnitude",
             PolicyScope::SiteDeployment,
@@ -431,11 +431,11 @@ fn generic_negative_boundaries_hold_across_domain_vocabulary() {
             },
         });
     let wrong_subject = select_realization_with_scoped_policy(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &HardRealizationRequirements::default(),
-        source("checked-form", 1, PolicyScope::SemanticRequirements),
+        source("checked-plot", 1, PolicyScope::SemanticRequirements),
         &[],
         &reviewed(&hosts, 3, 3),
         3,

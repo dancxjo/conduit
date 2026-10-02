@@ -7,17 +7,17 @@ use conduit_chat::{
     MAXIMUM_BODY_CHAT_HISTORY_ITEMS, MAXIMUM_BODY_CHAT_PROMPT_BYTES,
 };
 use conduit_core::{
-    ActivePlayId, CheckedFormId, HostId, LineAvailability, PlanId, SignId, SourceDocumentId,
+    ActivePlayId, CheckedPlotId, HostId, LineAvailability, PlanId, SignId, SourceDocumentId,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 
 fn context() -> BodyConversationContext {
     let body = Body::born(
         SourceDocumentId::from("source/roseau"),
-        CheckedFormId::from("checked/roseau"),
+        CheckedPlotId::from("checked/roseau"),
         1,
         SignId::from("sign/born"),
     )
@@ -39,7 +39,7 @@ fn context() -> BodyConversationContext {
             host_id: HostId::from("Latimer"),
             present: true,
         }],
-        active_forms: vec!["Tour".into()],
+        active_plots: vec!["Tour".into()],
         current_plan_id: None,
         active_play_id: None,
         lines: vec![],
@@ -55,7 +55,7 @@ fn prompt_uses_bounded_owned_history_and_current_body_truth() {
     let prompt = String::from_utf8(first.encoded_request).unwrap();
     assert!(prompt.contains("Roseau"));
     assert!(prompt.contains("\"present_hosts\":1"));
-    assert!(prompt.contains("\"active_forms\":1"));
+    assert!(prompt.contains("\"active_plots\":1"));
     assert!(!prompt.contains("Latimer"));
     assert!(!prompt.contains("Tour"));
     for forbidden in [
@@ -91,7 +91,7 @@ fn model_summary_is_stable_across_internal_ids_and_changes_with_human_truth() {
         .unwrap();
     let other_body = Body::born(
         SourceDocumentId::from("unrelated/source/identity"),
-        CheckedFormId::from("unrelated/checked/identity"),
+        CheckedPlotId::from("unrelated/checked/identity"),
         1,
         SignId::from("unrelated/sign/born"),
     )
@@ -110,7 +110,7 @@ fn model_summary_is_stable_across_internal_ids_and_changes_with_human_truth() {
         revision: 72,
     };
     ids_changed.hosts[0].host_id = HostId::from("opaque/other-host-id");
-    ids_changed.active_forms[0] = "opaque/other-source-document-id".into();
+    ids_changed.active_plots[0] = "opaque/other-source-document-id".into();
     let changed_ids = conduit_chat::BodyConversationalSummary::project(&ids_changed)
         .unwrap()
         .canonical_bytes()
@@ -118,13 +118,13 @@ fn model_summary_is_stable_across_internal_ids_and_changes_with_human_truth() {
     assert_eq!(baseline, changed_ids);
 
     ids_changed.hosts[0].present = false;
-    ids_changed.active_forms.push("another-form".into());
+    ids_changed.active_plots.push("another-plot".into());
     ids_changed.current_plan_id = Some(PlanId::from("opaque/plan"));
     ids_changed.active_play_id = Some(ActivePlayId::from("opaque/play"));
     let relevant = conduit_chat::BodyConversationalSummary::project(&ids_changed).unwrap();
     assert_eq!(*relevant.present_hosts(), 0);
     assert_eq!(*relevant.offline_hosts(), 1);
-    assert_eq!(*relevant.active_forms(), 2);
+    assert_eq!(*relevant.active_plots(), 2);
     assert_eq!(relevant.execution(), "playing");
     assert_ne!(baseline, relevant.canonical_bytes().unwrap());
 }
@@ -212,8 +212,8 @@ fn prompt_keeps_owned_history_but_sends_only_the_recent_suffix_that_fits() {
 }
 
 #[test]
-fn canonical_body_chat_is_an_ordinary_checked_form() {
-    let source = include_str!("../../../forms/body-chat/main.conduit");
+fn canonical_body_chat_is_an_ordinary_checked_plot() {
+    let source = include_str!("../../../plots/body-chat/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile).unwrap();
@@ -222,7 +222,7 @@ fn canonical_body_chat_is_an_ordinary_checked_form() {
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile).unwrap();
     install_body_chat_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let authored = expand_canonical_form_for_authoring(&checked, "body-chat", &profile).unwrap();
+    let authored = expand_canonical_plot_for_authoring(&checked, "body-chat", &profile).unwrap();
     assert_eq!(authored.input_bindings.len(), 1);
     assert_eq!(
         authored.input_bindings[0].front_port_id.as_str(),

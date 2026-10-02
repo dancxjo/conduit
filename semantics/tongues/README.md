@@ -6,7 +6,7 @@ specimen is `StarterGraph::TextToSpeech` from
 `5748f20ee4fd133be6a9332b01d96dc0649b26a3`. The crate calls that pinned upstream API and checks
 the original graph remains `text_source.out -> tts.in -> audio_output.in`.
 
-The authored Conduit form retains only text-to-speech-to-audio meaning. Planning separately seals
+The authored Conduit plot retains only text-to-speech-to-audio meaning. Planning separately seals
 the exact implementation, artifact, host, boot, output base resource pool, authority grant, host
 operations, and capacity-one/32,768-byte cords. play uses the production `conduit-kernel`
 scheduler and its admitted Host Call table. There is no Tongues dispatcher in the execution

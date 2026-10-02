@@ -9,7 +9,7 @@ use crate::{
     SupportedRelationQueries, SupportedRelationQuery,
 };
 use alloc::{boxed::Box, string::String, vec::Vec};
-use conduit_form::rust_binding::{BoundedSequence, NativeBindingRefusal};
+use conduit_plot::rust_binding::{BoundedSequence, NativeBindingRefusal};
 
 #[path = "relation_digest.rs"]
 mod digest;

@@ -2,7 +2,7 @@ use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_core::KindIdentity;
 use conduit_core::{kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection};
 
@@ -40,9 +40,9 @@ pub fn tick_presentation_semantic_contract() -> Kind {
     tick_presentation_contract().into_semantic_contract(TICK_PRESENTATION_CONTRACT_REVISION)
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn tick_presentation_kind_projection() -> conduit_form::KindProjection {
-    use conduit_form::KindProjection;
+#[cfg(feature = "plot-catalog")]
+pub fn tick_presentation_kind_projection() -> conduit_plot::KindProjection {
+    use conduit_plot::KindProjection;
     let contract = tick_presentation_contract();
     KindProjection {
         kind_id: contract.kind_id,
@@ -53,12 +53,12 @@ pub fn tick_presentation_kind_projection() -> conduit_form::KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_tick_presentation_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     startup.insert(KindSignature {
         kind: TICK_PRESENTATION_KIND.to_string(),
         startup_parameters: Vec::new(),

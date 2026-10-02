@@ -2,7 +2,7 @@ use conduit_ai::{
     EntityBoundary, TemporalRetrievalIntent, TemporalRetrievalWindow, TemporalSource,
     TemporalValidity, TemporalWindowRelation, TransitionDirection,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where

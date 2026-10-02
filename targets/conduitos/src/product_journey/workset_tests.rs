@@ -4,7 +4,7 @@ use crate::machine::{
     BaseError, IdleBase, InterruptBase, InterruptState, MonotonicClockBase, SerialBase,
 };
 use alloc::{collections::BTreeSet, vec::Vec};
-use conduit_birth_form::BirthSelection;
+use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
 use conduit_human::KeyTransition;
 
@@ -14,10 +14,10 @@ fn born() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
         .birth_from_creche(BirthSelection {
             revision: 3,
             friendly_name: "Roseau".into(),
-            workset: BodyWorkset::from_forms(
+            workset: BodyWorkset::from_plots(
                 native_workset::inventory()
                     .into_iter()
-                    .map(|form| native_workset::resident(form).unwrap()),
+                    .map(|plot| native_workset::resident(plot).unwrap()),
             )
             .unwrap(),
         })
@@ -38,9 +38,9 @@ fn type_key(journey: &mut ProductJourney, usage: u8) {
         assert!(journey.accept_play_input(key(usage, transition)).unwrap());
     }
 }
-fn select(journey: &mut ProductJourney, form: NativeForm) {
+fn select(journey: &mut ProductJourney, plot: NativePlot) {
     journey
-        .select_form(&native_workset::resident(form).unwrap(), journey.revision())
+        .select_plot(&native_workset::resident(plot).unwrap(), journey.revision())
         .unwrap();
 }
 
@@ -70,11 +70,11 @@ fn request_mask_change(
 }
 
 #[test]
-fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foreground() {
+fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foreground() {
     let (ids, offer, mut journey) = born();
     let born = journey.workspace_projection().unwrap();
-    assert_eq!(born.forms.len(), 4);
-    assert!(born.forms.iter().all(|form| form.input.is_none()));
+    assert_eq!(born.plots.len(), 4);
+    assert!(born.plots.iter().all(|plot| plot.input.is_none()));
     run(&mut journey, &ids, &offer);
     let started = journey.projection();
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
@@ -93,9 +93,9 @@ fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foregro
         "conduitos/test/framebuffer/surface"
     );
     let admitted = journey.workspace_projection().unwrap();
-    assert!(admitted.forms.iter().all(|form| {
-        form.input.as_ref().is_some_and(|input| {
-            input.form == form.form
+    assert!(admitted.plots.iter().all(|plot| {
+        plot.input.as_ref().is_some_and(|input| {
+            input.plot == plot.plot
                 && matches!(
                     input.value_kind.as_str(),
                     conduit_human::KEY_EVENT_INFO_ID
@@ -103,25 +103,25 @@ fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foregro
                 )
         })
     }));
-    select(&mut journey, NativeForm::KeyboardCanvas);
+    select(&mut journey, NativePlot::KeyboardCanvas);
     assert_eq!(
-        journey.foreground_input_owner().unwrap().form,
-        native_workset::resident(NativeForm::KeyboardCanvas).unwrap()
+        journey.foreground_input_owner().unwrap().plot,
+        native_workset::resident(NativePlot::KeyboardCanvas).unwrap()
     );
     type_key(&mut journey, 4);
     assert_eq!(journey.projection().result.as_deref(), Some("A"));
-    select(&mut journey, NativeForm::MemoryLantern);
+    select(&mut journey, NativePlot::MemoryLantern);
     assert_eq!(
-        journey.foreground_input_owner().unwrap().form,
-        native_workset::resident(NativeForm::MemoryLantern).unwrap()
+        journey.foreground_input_owner().unwrap().plot,
+        native_workset::resident(NativePlot::MemoryLantern).unwrap()
     );
     type_key(&mut journey, 5);
     type_key(&mut journey, 6);
     assert_eq!(journey.projection().result.as_deref(), Some("bc"));
-    select(&mut journey, NativeForm::KeyboardCanvas);
+    select(&mut journey, NativePlot::KeyboardCanvas);
     type_key(&mut journey, 7);
     assert_eq!(journey.projection().result.as_deref(), Some("AD"));
-    select(&mut journey, NativeForm::MemoryLantern);
+    select(&mut journey, NativePlot::MemoryLantern);
     type_key(&mut journey, 42);
     assert_eq!(journey.projection().result.as_deref(), Some("b"));
     let final_view = journey.projection();
@@ -132,12 +132,12 @@ fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foregro
     assert_eq!(final_view.input_count, 10);
     let current = journey.workspace_projection().unwrap();
     assert_eq!(
-        current.forms.iter().filter(|form| form.foreground).count(),
+        current.plots.iter().filter(|plot| plot.foreground).count(),
         1
     );
     let before = journey.projection();
     assert_eq!(
-        journey.select_next_form(0),
+        journey.select_next_plot(0),
         Err(JourneyError::StalePresentation)
     );
     assert_eq!(journey.projection(), before);
@@ -147,7 +147,7 @@ fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foregro
 fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
-    select(&mut journey, NativeForm::Patchbay);
+    select(&mut journey, NativePlot::Patchbay);
     let initial = journey.projection();
     let initial_view = journey.foreground_application_view().unwrap();
     assert_eq!(
@@ -225,8 +225,8 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     assert_ne!(preferred.show_id, initial_show.show_id);
     assert_ne!(preferred.selected_route_id, initial_show.selected_route_id);
     assert_ne!(
-        preferred.selected_mask_form_id,
-        initial_show.selected_mask_form_id
+        preferred.selected_mask_plot_id,
+        initial_show.selected_mask_plot_id
     );
     for unavailable in &mask.mask_actions[3..6] {
         assert_eq!(unavailable.plan_id, initial_show.plan_id);
@@ -249,8 +249,8 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
         4
     );
     assert_eq!(
-        restored.selected_mask_form_id,
-        initial_show.selected_mask_form_id
+        restored.selected_mask_plot_id,
+        initial_show.selected_mask_plot_id
     );
     assert!(mask.kernel_signs > 0 && mask.fore_endpoints >= 3);
     assert_eq!(mask.shows.len(), 1);
@@ -317,7 +317,7 @@ fn returning_to_resident_tour_preserves_state_and_body_execution_identity() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     let execution = journey.projection();
-    select(&mut journey, NativeForm::Tour);
+    select(&mut journey, NativePlot::Tour);
     let initial = journey.foreground_application_view().unwrap().clone();
     assert!(
         journey
@@ -336,11 +336,11 @@ fn returning_to_resident_tour_preserves_state_and_body_execution_identity() {
             .unwrap()
             .nodes
             .iter()
-            .any(|node| node.key == "form" && node.text == "tour")
+            .any(|node| node.key == "plot" && node.text == "tour")
     );
-    select(&mut journey, NativeForm::MemoryLantern);
+    select(&mut journey, NativePlot::MemoryLantern);
     type_key(&mut journey, 5);
-    select(&mut journey, NativeForm::Tour);
+    select(&mut journey, NativePlot::Tour);
     assert_eq!(
         journey.foreground_application_view().unwrap().revision,
         tour_revision
@@ -352,34 +352,34 @@ fn returning_to_resident_tour_preserves_state_and_body_execution_identity() {
 }
 
 #[test]
-fn resident_patchbay_opens_the_previously_used_exact_form_and_plan() {
+fn resident_patchbay_opens_the_previously_used_exact_plot_and_plan() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
-    select(&mut journey, NativeForm::Tour);
+    select(&mut journey, NativePlot::Tour);
     let before = journey.projection();
-    let expected_form = before.expanded_form_id.clone().unwrap();
+    let expected_plot = before.expanded_plot_id.clone().unwrap();
     let expected_plan = before.plan_id.clone().unwrap();
-    select(&mut journey, NativeForm::Patchbay);
+    select(&mut journey, NativePlot::Patchbay);
     let view = journey.foreground_application_view().unwrap();
     assert!(
         view.nodes.iter().any(|node| {
             node.key == "identity"
-                && node.text.contains(expected_form.as_str())
+                && node.text.contains(expected_plot.as_str())
                 && node.text.contains(expected_plan.as_str())
         }),
-        "{view:?} expected {expected_form:?} {expected_plan:?}"
+        "{view:?} expected {expected_plot:?} {expected_plan:?}"
     );
     let execution = journey.projection();
     assert_eq!(execution.body_id, before.body_id);
-    select(&mut journey, NativeForm::MemoryLantern);
-    select(&mut journey, NativeForm::Patchbay);
+    select(&mut journey, NativePlot::MemoryLantern);
+    select(&mut journey, NativePlot::Patchbay);
     assert!(
         journey
             .foreground_application_view()
             .unwrap()
             .nodes
             .iter()
-            .any(|node| node.key == "form" && node.text == "memory_lantern")
+            .any(|node| node.key == "plot" && node.text == "memory_lantern")
     );
     assert_eq!(
         journey.projection().active_play_id,
@@ -391,7 +391,7 @@ fn resident_patchbay_opens_the_previously_used_exact_form_and_plan() {
 fn resident_tour_run_crosses_the_real_plan_play_and_returns_proof_to_the_same_body() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
-    select(&mut journey, NativeForm::Tour);
+    select(&mut journey, NativePlot::Tour);
     let execution = journey.projection();
     let view = journey.foreground_application_view().unwrap().clone();
     journey
@@ -442,7 +442,7 @@ fn resident_tour_run_crosses_the_real_plan_play_and_returns_proof_to_the_same_bo
 fn resident_tour_retains_the_exact_requested_stage_across_the_application_seam() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
-    select(&mut journey, NativeForm::Tour);
+    select(&mut journey, NativePlot::Tour);
     let initial = journey.foreground_application_view().unwrap().clone();
     journey
         .accept_application_event(&conduit_presentation::ApplicationEvent {
@@ -520,14 +520,14 @@ impl IdleBase for TestIdle {
 }
 
 #[test]
-fn lull_retains_all_forms_and_next_wake_prepares_fresh_plan_play() {
+fn lull_retains_all_plots_and_next_wake_prepares_fresh_plan_play() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     let first = journey.projection();
     type_key(&mut journey, 4);
     invoke(&mut journey, JourneyAction::Stop, &ids, &offer).unwrap();
     invoke(&mut journey, JourneyAction::Lull, &ids, &offer).unwrap();
-    assert_eq!(journey.workspace_projection().unwrap().forms.len(), 4);
+    assert_eq!(journey.workspace_projection().unwrap().plots.len(), 4);
     assert!(
         !journey
             .accept_play_input(key(5, KeyTransition::Pressed))
@@ -561,7 +561,7 @@ fn one_lull_action_retires_a_listening_body_and_preserves_its_workset() {
             .accept_play_input(key(4, KeyTransition::Released))
             .unwrap()
     );
-    assert_eq!(journey.workspace_projection().unwrap().forms, before.forms);
+    assert_eq!(journey.workspace_projection().unwrap().plots, before.plots);
     assert_eq!(
         journey.workspace_projection().unwrap().body_id,
         before.body_id
@@ -572,13 +572,13 @@ fn one_lull_action_retires_a_listening_body_and_preserves_its_workset() {
 fn foreground_selection_before_admission_does_not_invent_a_plan_or_play() {
     let (ids, offer, mut journey) = born();
     let before = journey.projection();
-    select(&mut journey, NativeForm::MemoryLantern);
+    select(&mut journey, NativePlot::MemoryLantern);
     let selected = journey.projection();
     assert_eq!(selected.status, JourneyStatus::BornLulled);
     assert_eq!(selected.body_id, before.body_id);
     assert!(selected.plan_id.is_none() && selected.active_play_id.is_none());
     invoke(&mut journey, JourneyAction::Wake, &ids, &offer).unwrap();
-    select(&mut journey, NativeForm::KeyboardCanvas);
+    select(&mut journey, NativePlot::KeyboardCanvas);
     let waiting = journey.projection();
     assert_eq!(waiting.status, JourneyStatus::Awake);
     assert!(waiting.plan_id.is_none() && waiting.active_play_id.is_none());

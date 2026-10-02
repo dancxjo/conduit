@@ -36,7 +36,7 @@ mod state_select_tests;
 pub use crate::presentation_offers::{
     CONDUITOS_PRESENTATION_ARTIFACT, CONDUITOS_PRESENTATION_PROFILE, presentation_nucleus_offers,
 };
-pub use plan::{FORM_SOURCE, PreparedPresentationPlay, prepare};
+pub use plan::{PLOT_SOURCE, PreparedPresentationPlay, prepare};
 pub use play::{PresentationProof, PresentationRunError, run};
 
 pub const TEXT_SOURCE_KIND: &str = "conduitos/fixture-text-source";

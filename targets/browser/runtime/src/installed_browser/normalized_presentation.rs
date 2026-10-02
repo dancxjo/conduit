@@ -28,16 +28,16 @@ pub(super) fn offer() -> CapabilityOffer {
     offer
 }
 pub(super) fn install_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     let offer = offer();
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: offer.kind_id.as_str().into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: offer.kind_id,
             kind_contract_revision: offer.kind_contract_revision,
             inputs: offer.inputs,

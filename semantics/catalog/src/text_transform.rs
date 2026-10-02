@@ -4,7 +4,7 @@ use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::vec;
 
 pub fn text_literal_contract() -> StandardKindContract {
@@ -37,12 +37,12 @@ pub fn text_join_contract() -> StandardKindContract {
     )
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_text_pipeline_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     conduit_text::install_text_catalogs(startup, profile)?;
     startup.insert(KindSignature {
         kind: super::TEXT_PRESENTATION_KIND.to_string(),

@@ -60,11 +60,11 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
         offer_generation: OfferGeneration(1),
     };
     let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_http());
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     conduit_web::install_http_catalogs(&mut startup, &mut catalog).unwrap();
-    let form = conduit_form::parse(
-        "form proxy {\n server: http/server\n client: http/client\n server.request >> client.request\n client.response >> server.response\n}\n",
+    let plot = conduit_plot::parse(
+        "plot proxy {\n server: http/server\n client: http/client\n server.request >> client.request\n client.response >> server.response\n}\n",
         &catalog,
     )
     .unwrap();
@@ -93,11 +93,11 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
                 })
         })
         .collect::<Vec<_>>();
-    assert!(host.plan_local(&form, None).is_err());
+    assert!(host.plan_local(&plot, None).is_err());
     let hosts = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[conduit_core::BaseImplementationId::from(
@@ -198,11 +198,11 @@ fn operator_cancellation_releases_the_admitted_listener_before_accept() {
         offer_generation: OfferGeneration(1),
     };
     let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_http());
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     conduit_web::install_http_catalogs(&mut startup, &mut catalog).unwrap();
-    let form = conduit_form::parse(
-        "form proxy {\n server: http/server\n client: http/client\n server.request >> client.request\n client.response >> server.response\n}\n",
+    let plot = conduit_plot::parse(
+        "plot proxy {\n server: http/server\n client: http/client\n server.request >> client.request\n client.response >> server.response\n}\n",
         &catalog,
     )
     .unwrap();
@@ -230,7 +230,7 @@ fn operator_cancellation_releases_the_admitted_listener_before_accept() {
         })
         .collect::<Vec<_>>();
     let plan = host
-        .plan_local_with_authority(&form, None, &grants)
+        .plan_local_with_authority(&plot, None, &grants)
         .unwrap();
     let control = RunControl::default();
     control

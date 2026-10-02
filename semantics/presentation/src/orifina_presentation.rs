@@ -22,7 +22,7 @@ pub enum OrifinaPresentationRefusal {
 
 /// The reviewed implementation policy for Orifina's first-person voice.
 ///
-/// This is Presenter configuration, not authored form meaning or Body state.
+/// This is Presenter configuration, not authored plot meaning or Body state.
 pub fn orifina_completion_presenter_policy() -> GenerativePresenterPolicy {
     GenerativePresenterPolicy {
         template_contract_revision: ORIFINA_COMPLETION_POLICY_REVISION.into(),
@@ -110,8 +110,8 @@ pub fn project_orifina_purpose_presentation(
             body_id: Some(body_id),
             wake_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: evidence_signs(purpose),

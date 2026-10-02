@@ -230,19 +230,19 @@ impl Hash for WheelDropObservation {
     }
 }
 
-use crate::{ChargingState, ChargingStateCode};
+use crate::{ChargingState, ChargingStateForm};
 
 impl TryFrom<u8> for ChargingState {
     type Error = InfoDecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        ChargingStateCode::decode(&[value]).map_err(|_| InfoDecodeError::NonCanonicalEnum(value))
+        ChargingStateForm::decode(&[value]).map_err(|_| InfoDecodeError::NonCanonicalEnum(value))
     }
 }
 
 impl ChargingState {
     pub const fn wire_tag(self) -> u8 {
-        ChargingStateCode::encode(self)[0]
+        ChargingStateForm::encode(self)[0]
     }
 }
 

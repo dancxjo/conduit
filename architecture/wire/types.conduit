@@ -9,7 +9,7 @@ type SessionTerminalDisposition =
     | cancelled
     | failed
 
-code wire/session-terminal-disposition = SessionTerminalDisposition as u8
+form wire/session-terminal-disposition = SessionTerminalDisposition as u8
 
 type SessionTransferCheckpoint =
     none

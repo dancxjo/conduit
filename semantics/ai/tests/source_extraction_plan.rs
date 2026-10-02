@@ -1,4 +1,4 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 use std::collections::BTreeMap;
 
@@ -13,23 +13,23 @@ use conduit_core::{
     ProtectedResourceAccess, ProtectedResourceCommitPolicy, ProtectedResourceGrant,
     ResourceBindingRoleId, ResourceClassId, ResourceHandleId, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlannerError,
     PlanningOptions,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 
-const FORM: &str = "form chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 32, 8192, 512, 16, 16384)\n}\n";
+const PLOT: &str = "plot chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 32, 8192, 512, 16, 16384)\n}\n";
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_source_extraction_catalog(&mut startup, &mut profile).unwrap();
-    let checked = check_syntax_document(&parse_syntax_document(FORM), &startup).unwrap();
-    expand_canonical_form(&checked, "chunk", &profile).unwrap()
+    let checked = check_syntax_document(&parse_syntax_document(PLOT), &startup).unwrap();
+    expand_canonical_plot(&checked, "chunk", &profile).unwrap()
 }
 
 fn host() -> HostAdvertisement {
@@ -51,7 +51,7 @@ fn host() -> HostAdvertisement {
 }
 
 fn resource_grant(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
     host: &HostAdvertisement,
 ) -> ProtectedResourceGrant {
     ProtectedResourceGrant {
@@ -69,7 +69,7 @@ fn resource_grant(
 }
 
 fn plan(
-    expanded: &conduit_form::ExpandedCanonicalForm,
+    expanded: &conduit_plot::ExpandedCanonicalPlot,
     host: &HostAdvertisement,
     authority: &[conduit_core::AuthorityGrant],
     resources: &[ProtectedResourceGrant],
@@ -93,7 +93,7 @@ fn plan(
 }
 
 #[test]
-fn ordinary_form_seals_exact_operation_authority_resource_and_bounds() {
+fn ordinary_plot_seals_exact_operation_authority_resource_and_bounds() {
     let expanded = expanded();
     let host = host();
     let offer = &host.capabilities[0];

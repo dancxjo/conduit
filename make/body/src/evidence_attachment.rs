@@ -80,20 +80,20 @@ mod tests {
     use super::*;
     use conduit_body::{
         Body, BodyBiographyEvidence, BodyGraduationEvidence, BodyMembership, BodyWorkset,
-        ResidentForm,
+        ResidentPlot,
     };
-    use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 
     const HOSTED_PLAN: &str = "plan/body-hosted-surface";
     const HOSTED_IMPLEMENTATION: &str = "browser/body-surface@1";
 
     fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
-        let form = ResidentForm::new(
+        let plot = ResidentPlot::new(
             SourceDocumentId::from("source/body"),
-            CheckedFormId::from("checked/body"),
+            CheckedPlotId::from("checked/body"),
         );
-        let body = Body::born_with_forms(
-            BodyWorkset::one(form).unwrap(),
+        let body = Body::born_with_plots(
+            BodyWorkset::one(plot).unwrap(),
             1,
             SignId::from("sign/born"),
         )

@@ -45,7 +45,7 @@ impl PatchbayHostAdapter for HostedPatchbayAdapter {
     fn plan_expanded_local(
         &self,
         advertisement: &HostAdvertisement,
-        expanded: &conduit_form::ExpandedCanonicalForm,
+        expanded: &conduit_plot::ExpandedCanonicalPlot,
     ) -> Result<Plan, String> {
         StdHost::from_advertisement(advertisement.clone())?
             .plan_expanded_local(expanded)

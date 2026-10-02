@@ -1,6 +1,6 @@
 use super::*;
 use alloc::borrow::ToOwned;
-use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SourceDocumentId};
 use conduit_presentation::{PresentationActionAvailability, PresentationPropertyValue};
 
 fn door(refusal: Option<String>) -> FrontDoor {
@@ -12,7 +12,7 @@ fn door(refusal: Option<String>) -> FrontDoor {
         "build",
         "image",
         SourceDocumentId::from("source"),
-        CheckedFormId::from("checked"),
+        CheckedPlotId::from("checked"),
         7,
         true,
     );
@@ -45,21 +45,21 @@ fn native_draft_edits_name_and_submits_exact_checked_selection_without_birth() {
     };
     assert_eq!(selection.friendly_name, "ro");
     assert_eq!(
-        selection.workset.forms(),
-        conduit_body::BodyWorkset::from_forms(
+        selection.workset.plots(),
+        conduit_body::BodyWorkset::from_plots(
             crate::native_workset::inventory()
                 .into_iter()
-                .map(|form| crate::native_workset::resident(form).unwrap())
+                .map(|plot| crate::native_workset::resident(plot).unwrap())
         )
         .unwrap()
-        .forms()
+        .plots()
     );
     assert!(door.presentation().unwrap().basis.body_id.is_none());
     assert!(door.close_creche().is_err());
 }
 
 #[test]
-fn zero_body_arrival_has_no_lifecycle_form_while_creche_inventory_is_usable() {
+fn zero_body_arrival_has_no_lifecycle_plot_while_creche_inventory_is_usable() {
     let mut door = door(None);
     let journey = crate::product_journey::ProductJourney::new(
         HostId::from("host"),
@@ -70,20 +70,20 @@ fn zero_body_arrival_has_no_lifecycle_form_while_creche_inventory_is_usable() {
     let lifecycle = journey.projection();
     assert!(lifecycle.body_id.is_none());
     assert!(lifecycle.source_document_id.is_none());
-    assert!(lifecycle.checked_form_id.is_none());
-    assert!(lifecycle.expanded_form_id.is_none());
-    assert!(!door.form_open);
+    assert!(lifecycle.checked_plot_id.is_none());
+    assert!(lifecycle.expanded_plot_id.is_none());
+    assert!(!door.plot_open);
     door.observe_journey(lifecycle).unwrap();
 
     let presentation = door.presentation().unwrap();
     assert!(presentation.basis.body_id.is_none());
     assert!(presentation.basis.source_document_id.is_none());
-    assert!(presentation.basis.checked_form_id.is_none());
+    assert!(presentation.basis.checked_plot_id.is_none());
     assert_eq!(
         presentation
             .subjects
             .iter()
-            .filter(|subject| subject.role == conduit_presentation::PresentationRole::Form)
+            .filter(|subject| subject.role == conduit_presentation::PresentationRole::Plot)
             .count(),
         crate::native_workset::inventory().len()
     );
@@ -96,9 +96,9 @@ fn selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth(
     for _ in 0..4 {
         press(&mut door, 43);
     }
-    press(&mut door, 44); // remove the first form
+    press(&mut door, 44); // remove the first plot
     press(&mut door, 43);
-    press(&mut door, 44); // remove the second form
+    press(&mut door, 44); // remove the second plot
     press(&mut door, 43);
     press(&mut door, 44); // remove Tour
     press(&mut door, 43);
@@ -178,7 +178,7 @@ fn unrelated_input_preserves_refusal_and_revision_exhaustion_is_atomic() {
 }
 
 #[test]
-fn shared_search_filters_visible_controls_without_losing_included_forms() {
+fn shared_search_filters_visible_controls_without_losing_included_plots() {
     let mut door = door(None);
     for _ in 0..3 {
         press(&mut door, 43);
@@ -187,8 +187,8 @@ fn shared_search_filters_visible_controls_without_losing_included_forms() {
         press(&mut door, usage);
     } // memory
     let actions = door.arrival.as_ref().unwrap().controls();
-    assert!(actions.iter().any(|action| action == "creche.form.1"));
-    assert!(!actions.iter().any(|action| action == "creche.form.0"));
+    assert!(actions.iter().any(|action| action == "creche.plot.1"));
+    assert!(!actions.iter().any(|action| action == "creche.plot.0"));
     assert!(door.scene(&super::super::tests::Sink).is_ok());
     press(&mut door, 29); // mz: no match
     assert!(door.scene(&super::super::tests::Sink).is_ok());
@@ -198,16 +198,16 @@ fn shared_search_filters_visible_controls_without_losing_included_forms() {
             .unwrap()
             .controls()
             .iter()
-            .all(|action| !action.starts_with("creche.form."))
+            .all(|action| !action.starts_with("creche.plot."))
     );
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
-        panic!("selected forms survive filtering")
+        panic!("selected plots survive filtering")
     };
     assert_eq!(selection.workset.len(), 4);
 }
 
 #[test]
-fn four_form_scene_keeps_choices_status_and_birth_visually_separate() {
+fn four_plot_scene_keeps_choices_status_and_birth_visually_separate() {
     let mut door = door(None);
     assert!(door.scene(&super::super::tests::Sink).is_ok());
     press(&mut door, 42);
@@ -243,7 +243,7 @@ fn four_form_scene_keeps_choices_status_and_birth_visually_separate() {
 }
 
 #[test]
-fn native_form_availability_is_reviewed_independently() {
+fn native_plot_availability_is_reviewed_independently() {
     let mut door = door(None);
     door.arrival = None;
     door.open_creche_reviewed(
@@ -252,15 +252,15 @@ fn native_form_availability_is_reviewed_independently() {
     )
     .unwrap();
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
-        panic!("the available form can be included")
+        panic!("the available plot can be included")
     };
     assert_eq!(
-        selection.workset.forms(),
+        selection.workset.plots(),
         &[
-            crate::native_workset::resident(crate::native_workset::NativeForm::Tour).unwrap(),
-            crate::native_workset::resident(crate::native_workset::NativeForm::MemoryLantern)
+            crate::native_workset::resident(crate::native_workset::NativePlot::Tour).unwrap(),
+            crate::native_workset::resident(crate::native_workset::NativePlot::MemoryLantern)
                 .unwrap(),
-            crate::native_workset::resident(crate::native_workset::NativeForm::Patchbay).unwrap(),
+            crate::native_workset::resident(crate::native_workset::NativePlot::Patchbay).unwrap(),
         ]
     );
 }

@@ -2,10 +2,10 @@
 
 **Status:** development contract for [issue #2232](https://github.com/dancxjo/conduit/issues/2232)
 
-**Canonical form:** [`forms/bounded-navigation/main.conduit`](../../forms/bounded-navigation/main.conduit)
+**Canonical plot:** [`plots/bounded-navigation/main.conduit`](../../plots/bounded-navigation/main.conduit)
 
 Portable navigation is the semantic waist between a spatial goal and bounded
-body-motion intent. It lets a human, model, or another form propose where a
+body-motion intent. It lets a human, model, or another plot propose where a
 body should go without giving that proposer local-control, actuator, or motor
 authority.
 
@@ -76,9 +76,9 @@ The last two are lower-layer outcomes. Navigation must not translate either
 one into `no route`, retry it invisibly, or report that a motion request was
 physically realized.
 
-## Ordinary form work, not a Conduit plan
+## Ordinary plot work, not a Conduit plan
 
-The canonical `bounded-navigation` form composes three ordinary kinds:
+The canonical `bounded-navigation` plot composes three ordinary kinds:
 
 ```text
 navigation/route-grid4
@@ -93,20 +93,20 @@ navigation/local-control
 
 Variant selection with `unmatched=drop` prevents a refusal from being fed into
 the next stage. The same decision and control values remain visible at the
-form boundary. Every successful stage is an explicit typed cord; there is no
+plot boundary. Every successful stage is an explicit typed cord; there is no
 callback loop hidden in Pete or Patchbay.
 
 Each invocation computes one bounded decision and control result. A separately
 admitted receding-horizon composition may invoke this work again for newer
 inputs during one play. That does not mutate the immutable **Conduit plan**,
-which owns the exact realization of the authored form on current hosts, bases,
+which owns the exact realization of the authored plot on current hosts, bases,
 resources, and authority. Navigation code must not use `PlanId` for route
 identity. Changing the selected route or controller implementation leaves the
-authored goal and the form's portable front unchanged.
+authored goal and the plot's portable front unchanged.
 
 ## Authority and Create safety boundary
 
-The form ends at `RoboticsMotionRequest`. Producing that typed value grants no
+The plot ends at `RoboticsMotionRequest`. Producing that typed value grants no
 motor authority and performs no physical effect. A model proposal, human
 interaction, valid route, body membership, or reachable host cannot make
 the capability required by the selected actuator realization.
@@ -117,7 +117,7 @@ physical drive offer must pass through `LocalCreateDriveSafety`, which checks
 current authority, TTL, safety generation, hazards, provider state, and the
 admitted safety profile before lowering to Create OI wheel commands. It owns
 finite stop work for expiry, authority loss, hazard, cancellation, and provider
-failure. That boundary is not an author-wirable gear, and this navigation form
+failure. That boundary is not an author-wirable gear, and this navigation plot
 cannot route around it.
 
 Deterministic route and controller evidence may use a non-actuating fixture.
@@ -126,7 +126,7 @@ it does not prove a Create moved or stopped in the physical world.
 
 ## Generic Patchbay observation
 
-Navigation needs no private debugger. The canonical form exposes each semantic
+Navigation needs no private debugger. The canonical plot exposes each semantic
 stage through ordinary gears, typed ports, and cords. Existing bounded Patchbay
 Watches can attach to those exact subjects, while the causal timeline follows
 the retained parent sequence through goal, route decision, trajectory, control,
@@ -145,7 +145,7 @@ The deterministic proof uses one exact 4 by 4 fixture to establish a finite
 route, trajectory, and expiring body-motion request, plus distinct invalid,
 stale, unavailable, no-route, and controller-refusal cases. A production-kernel
 oracle must correlate its exact plan and play rather than treating direct Rust
-evaluation as form execution.
+evaluation as plot execution.
 
 Closing #2232 additionally requires a tiny attended Pete movement through the
 same `RoboticsMotionRequest` and #1521 safety/authority boundary. The receipt

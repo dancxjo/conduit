@@ -1,12 +1,12 @@
 use conduit_core::{ObservationKind, TerminalDisposition};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{StdHost, ThreadTimer};
 
-const GREET_SOURCE: &str = include_str!("../../../forms/greet/main.conduit");
-const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+const GREET_SOURCE: &str = include_str!("../../../plots/greet/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
@@ -20,11 +20,11 @@ fn reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play() {
     let (startup, profile) = catalogs();
     let canonical = check_syntax_document(&parse_syntax_document(GREET_SOURCE), &startup).unwrap();
     let canonical_greet_id = canonical
-        .forms
+        .plots
         .iter()
-        .find(|form| form.name == "greet")
+        .find(|plot| plot.name == "greet")
         .unwrap()
-        .checked_form_id
+        .checked_plot_id
         .clone();
     let proof_source = format!(
         "{GREET_SOURCE}\nform greet-double-driver {{\n    first: greet(\"Hi \")\n    second: greet(\"Bye \")\n    \"Ada\" >> first >> presentation/text\n    \"Bob\" >> second >> presentation/text\n}}\n"
@@ -32,20 +32,20 @@ fn reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play() {
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(
         checked
-            .forms
+            .plots
             .iter()
-            .find(|form| form.name == "greet")
+            .find(|plot| plot.name == "greet")
             .unwrap()
-            .checked_form_id,
+            .checked_plot_id,
         canonical_greet_id
     );
 
-    let expanded = expand_canonical_form(&checked, "greet-double-driver", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "greet-double-driver", &profile).unwrap();
     let occurrences = expanded
         .provenance
         .iter()
-        .filter(|row| row.source_form == "greet" && row.source_gear == "join")
-        .map(|row| row.form_path.clone())
+        .filter(|row| row.source_plot == "greet" && row.source_gear == "join")
+        .map(|row| row.plot_path.clone())
         .collect::<Vec<_>>();
     assert_eq!(
         occurrences,

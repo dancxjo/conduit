@@ -16,7 +16,7 @@ type LoweredNode = (
     ApplicationNodeState,
 );
 
-pub(super) fn lower_form_field(
+pub(super) fn lower_plot_field(
     parent: u8,
     source_key: &str,
     field: &FormField,

@@ -1,9 +1,9 @@
 use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ArtifactId, ObservationKind, TerminalDisposition, SCALAR_ENCODED_LEN};
-use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
+use conduit_plot::parse;
 
-const FORM: &str = r#"form math_control {
+const PLOT: &str = r#"plot math_control {
  source: conduit-test/scalar-literal
  deadband: math/deadband(radius = 0)
  scale: math/scale(gain = 1000000)
@@ -18,11 +18,11 @@ const FORM: &str = r#"form math_control {
 
 fn plan(source: &str) -> (super::StdHost, conduit_core::Plan) {
     let host = host("typed-math-host");
-    let form = parse(source, &installed_std::test_catalog()).expect("typed math Form parses");
+    let plot = parse(source, &installed_std::test_catalog()).expect("typed math Plot parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("math placements resolve");
+    let placements = default_placements(&plot, &hosts).expect("math placements resolve");
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -36,13 +36,13 @@ fn plan(source: &str) -> (super::StdHost, conduit_core::Plan) {
             line_offers: &[],
         },
     )
-    .expect("math Form plans with capacity-one cords");
+    .expect("math Plot plans with capacity-one cords");
     (host, plan)
 }
 
 #[test]
 fn deadband_scale_and_clamp_execute_together_through_the_production_kernel() {
-    let (mut host, plan) = plan(FORM);
+    let (mut host, plan) = plan(PLOT);
     let fragment = &plan.fragments[0];
     assert_eq!(fragment.placements.len(), 5);
     assert_eq!(fragment.connections.len(), 4);
@@ -76,7 +76,7 @@ fn deadband_scale_and_clamp_execute_together_through_the_production_kernel() {
     let mut timer = RecordingTimer { waits: Vec::new() };
     let report = host
         .run_fragment_to(fragment.clone(), &mut output, &mut timer)
-        .expect("combined math Form executes through the installed kernel");
+        .expect("combined math Plot executes through the installed kernel");
     assert!(timer.waits.is_empty());
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
@@ -94,7 +94,7 @@ fn deadband_scale_and_clamp_execute_together_through_the_production_kernel() {
 
 #[test]
 fn invalid_clamp_and_mutated_math_implementation_refuse_before_play() {
-    let invalid = FORM
+    let invalid = PLOT
         .replace("minimum = -1", "minimum = 2")
         .replace("maximum = -1", "maximum = 1");
     let (mut host, invalid_plan) = plan(&invalid);
@@ -105,7 +105,7 @@ fn invalid_clamp_and_mutated_math_implementation_refuse_before_play() {
         .is_err());
     assert!(timer.waits.is_empty());
 
-    let (mut host, plan) = plan(FORM);
+    let (mut host, plan) = plan(PLOT);
     let mut fragment = plan.fragments[0].clone();
     fragment
         .placements
@@ -122,7 +122,7 @@ fn invalid_clamp_and_mutated_math_implementation_refuse_before_play() {
 fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
     for (minimum, maximum, detail) in [(0, 1_000_000, 3), (-1_000_000, 0, 4)] {
         let source = format!(
-            r#"form quantity_refusal {{
+            r#"plot quantity_refusal {{
  source: conduit-test/scalar-literal
  map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "refuse", quantization = "exact")
  source.value >> map.in
@@ -184,7 +184,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
     let contract =
         conduit_semantic_catalog::structured_presentation_contract("Quantity", &value_type);
     catalog
-        .insert(conduit_form::KindProjection {
+        .insert(conduit_plot::KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -192,7 +192,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             configuration: Default::default(),
         })
         .unwrap();
-    let syntax = conduit_form::parse_syntax_document(source);
+    let syntax = conduit_plot::parse_syntax_document(source);
     let mut startup = catalog.startup_catalog().unwrap();
     startup
         .insert_value_kind_alias(
@@ -206,9 +206,9 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
         )
         .unwrap();
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-    let form = conduit_form::expand_canonical_form(&checked, entry, &catalog).unwrap();
-    let limits = form
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+    let plot = conduit_plot::expand_canonical_plot(&checked, entry, &catalog).unwrap();
+    let limits = plot
         .connections
         .iter()
         .map(|cord| {
@@ -244,9 +244,9 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
         .capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     let hosts = [advertisement.clone()];
-    let placements = conduit_planner::default_expanded_placements(&form, &hosts).unwrap();
+    let placements = conduit_planner::default_expanded_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -290,7 +290,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
 
 #[test]
 fn quantity_mapping_completes_one_admitted_kernel_request() {
-    let source = r#"form quantity_success {
+    let source = r#"plot quantity_success {
  source: conduit-test/scalar-literal
  map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
  wrap: structured-info/wrap-quantity
@@ -374,7 +374,7 @@ fn quantity_refusals_do_not_make_a_connected_presentation() {
     for (minimum, maximum, expected) in [(0, 1_000_000, "out-of-range"), (-1_000_000, 0, "inexact")]
     {
         let source = format!(
-            r#"form quantity_refusal {{
+            r#"plot quantity_refusal {{
  source: conduit-test/scalar-literal
  map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = "%", range-policy = "refuse", quantization = "exact")
  wrap: structured-info/wrap-quantity
@@ -420,17 +420,17 @@ fn quantity_refusals_do_not_make_a_connected_presentation() {
 }
 
 #[test]
-fn authored_quantity_forms_execute_and_present_through_the_production_kernel() {
+fn authored_quantity_plots_execute_and_present_through_the_production_kernel() {
     use conduit_core::{Quantity, QuantityUnit};
     for (authored, name, output, expected) in [
         (
-            include_str!("../../../../forms/quantity-range-map/main.conduit"),
+            include_str!("../../../../plots/quantity-range-map/main.conduit"),
             "quantity-range-map",
             "quantity",
             Quantity::new(10010, QuantityUnit::Hertz),
         ),
         (
-            include_str!("../../../../forms/normalized-light-intensity/main.conduit"),
+            include_str!("../../../../plots/normalized-light-intensity/main.conduit"),
             "normalized-light-intensity",
             "intensity",
             Quantity::new(50, QuantityUnit::Percent),
@@ -438,7 +438,7 @@ fn authored_quantity_forms_execute_and_present_through_the_production_kernel() {
     ] {
         let source = format!(
             r#"{authored}
-form quantity_composition {{
+plot quantity_composition {{
  source: conduit-test/scalar-literal
  input: math/scale(gain = -500000000000)
  map: {name}

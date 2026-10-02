@@ -1,4 +1,4 @@
-//! Canonical Form catalog for tabular Info.
+//! Canonical Plot catalog for tabular Info.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{
     tabular_person_row_type, tabular_query_outcome_type, tabular_query_result_type,
@@ -56,8 +56,8 @@ pub fn tabular_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn install_tabular_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in tabular_types() {
         startup

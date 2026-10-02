@@ -6,14 +6,14 @@ use conduit_core::{
     ImplementationOffer, Kind, KindIdentity, LineId, LinkBindingId, LinkEndpointId,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
-    parse_syntax_document, CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, CanonicalRealizationMode,
     PlacementChoice, PlacementChoices, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, expand_canonical_plot_with_backs,
+    parse_syntax_document, CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog,
+    StartupCatalog,
 };
 
 #[path = "distributed_back/execution.rs"]
@@ -121,18 +121,18 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, Kind) {
     (startup, profile, high.unwrap())
 }
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let (startup, profile, high) = catalogs();
     let user = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
+            "plot distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
         )),
         &startup,
     )
     .unwrap();
     let back = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form {HIGH} (\n in: {} >> out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in >> request >> encode >> http >> decode >> result >> out\n}}\n",
+            "plot {HIGH} (\n in: {} >> out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in >> request >> encode >> http >> decode >> result >> out\n}}\n",
             VALUES[0], VALUES[5]
         )),
         &startup,
@@ -140,19 +140,19 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     .unwrap();
     let mut backs = CanonicalBackCatalog::new();
     backs.insert(&high, &back, HIGH).unwrap();
-    expand_canonical_form_with_backs(&user, "distributed", &profile, &backs).unwrap()
+    expand_canonical_plot_with_backs(&user, "distributed", &profile, &backs).unwrap()
 }
 
-fn direct_expanded() -> conduit_form::ExpandedCanonicalForm {
+fn direct_expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let (startup, profile, _) = catalogs();
     let user = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
+            "plot distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
         )),
         &startup,
     )
     .unwrap();
-    expand_canonical_form(&user, "distributed", &profile).unwrap()
+    expand_canonical_plot(&user, "distributed", &profile).unwrap()
 }
 
 fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
@@ -228,12 +228,12 @@ fn line(
 
 fn plan_with_http_part(
     http_part: HostAdvertisement,
-) -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
-    let form = expanded();
+) -> (conduit_plot::ExpandedCanonicalPlot, conduit_core::Plan) {
+    let plot = expanded();
     let part_a = host("a", &[SOURCE, REQUEST, ENCODE, RESULT, SINK]);
     let hosts = [part_a.clone(), http_part.clone()];
     let placements = PlacementChoices {
-        by_gear: form
+        by_gear: plot
             .gears
             .iter()
             .map(|gear| {
@@ -262,7 +262,7 @@ fn plan_with_http_part(
         line(&http_part, &part_a, "http-to-a"),
     ];
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[
@@ -280,19 +280,19 @@ fn plan_with_http_part(
         },
     )
     .unwrap();
-    (form, plan)
+    (plot, plan)
 }
 
-fn direct_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
+fn direct_plan() -> (conduit_plot::ExpandedCanonicalPlot, conduit_core::Plan) {
     direct_plan_on("direct")
 }
 
-fn direct_plan_on(part: &str) -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
-    let form = direct_expanded();
+fn direct_plan_on(part: &str) -> (conduit_plot::ExpandedCanonicalPlot, conduit_core::Plan) {
+    let plot = direct_expanded();
     let direct = host(part, &[SOURCE, HIGH, SINK]);
-    let placements = default_expanded_placements(&form, std::slice::from_ref(&direct)).unwrap();
+    let placements = default_expanded_placements(&plot, std::slice::from_ref(&direct)).unwrap();
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &[direct],
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -307,7 +307,7 @@ fn direct_plan_on(part: &str) -> (conduit_form::ExpandedCanonicalForm, conduit_c
         },
     )
     .unwrap();
-    (form, plan)
+    (plot, plan)
 }
 
 #[test]
@@ -315,14 +315,14 @@ fn ordinary_selection_prefers_direct_and_falls_back_to_the_exact_recursive_back(
     let (startup, profile, high) = catalogs();
     let user = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
+            "plot distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
         )),
         &startup,
     )
     .unwrap();
     let back = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form {HIGH} (\n in: {} >> out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in >> request >> encode >> http >> decode >> result >> out\n}}\n",
+            "plot {HIGH} (\n in: {} >> out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in >> request >> encode >> http >> decode >> result >> out\n}}\n",
             VALUES[0], VALUES[5]
         )),
         &startup,
@@ -336,7 +336,7 @@ fn ordinary_selection_prefers_direct_and_falls_back_to_the_exact_recursive_back(
             &back,
             HIGH,
             &back.source_document_id,
-            &back.forms[0].checked_form_id,
+            &back.plots[0].checked_plot_id,
         )
         .unwrap();
     let connection_bases = BTreeMap::new();
@@ -411,41 +411,41 @@ fn ordinary_selection_prefers_direct_and_falls_back_to_the_exact_recursive_back(
     assert!(conduit_core::verify_plan(&direct.plan));
     assert!(conduit_core::verify_plan(&recursive.plan));
     assert_eq!(
-        direct.expanded.checked_form_id,
-        recursive.expanded.checked_form_id
+        direct.expanded.checked_plot_id,
+        recursive.expanded.checked_plot_id
     );
     assert_ne!(
-        direct.expanded.expanded_form_id,
-        recursive.expanded.expanded_form_id
+        direct.expanded.expanded_plot_id,
+        recursive.expanded.expanded_plot_id
     );
 }
 
 #[test]
 fn one_back_is_planned_as_ordinary_leaves_across_truthful_parts() {
     let part_b = host("b", &[HTTP, DECODE]);
-    let (form, plan) = plan_with_http_part(part_b.clone());
-    assert_eq!(form.realization_backs.len(), 1);
+    let (plot, plan) = plan_with_http_part(part_b.clone());
+    assert_eq!(plot.realization_backs.len(), 1);
     assert_eq!(
-        form.realization_backs[0].invocation_path,
+        plot.realization_backs[0].invocation_path,
         "distributed/generate"
     );
-    assert_eq!(form.gears.len(), 7);
+    assert_eq!(plot.gears.len(), 7);
     for kind in [REQUEST, ENCODE, HTTP, DECODE, RESULT] {
-        let gear = form
+        let gear = plot
             .gears
             .iter()
             .find(|gear| gear.kind_id.as_str() == kind)
             .unwrap();
-        let origin = form
+        let origin = plot
             .provenance
             .iter()
             .find(|origin| origin.gear_id == gear.gear_id.as_str())
             .unwrap();
-        assert_eq!(origin.source_form, HIGH);
-        assert_eq!(origin.form_path, ["distributed", "generate"]);
+        assert_eq!(origin.source_plot, HIGH);
+        assert_eq!(origin.plot_path, ["distributed", "generate"]);
     }
     assert_eq!(plan.fragments.len(), 2);
-    assert_eq!(plan.realization_backs, form.realization_backs);
+    assert_eq!(plan.realization_backs, plot.realization_backs);
     assert!(conduit_core::verify_plan(&plan));
 
     let placements = plan
@@ -488,19 +488,19 @@ fn one_back_is_planned_as_ordinary_leaves_across_truthful_parts() {
 }
 
 #[test]
-fn loss_yields_a_fresh_plan_without_mutating_form_or_prior_plan() {
+fn loss_yields_a_fresh_plan_without_mutating_plot_or_prior_plan() {
     let part_b = host("b", &[HTTP, DECODE]);
-    let (form, first) = plan_with_http_part(part_b);
+    let (plot, first) = plan_with_http_part(part_b);
     let immutable = first.clone();
     let part_a_only = host("a", &[SOURCE, REQUEST, ENCODE, RESULT, SINK]);
-    assert!(default_expanded_placements(&form, &[part_a_only]).is_err());
+    assert!(default_expanded_placements(&plot, &[part_a_only]).is_err());
 
     let part_c = host("c", &[HTTP, DECODE]);
     let (_, second) = plan_with_http_part(part_c.clone());
     assert_eq!(first, immutable);
     assert_eq!(first.source_document_id, second.source_document_id);
-    assert_eq!(first.checked_form_id, second.checked_form_id);
-    assert_eq!(first.expanded_form_id, second.expanded_form_id);
+    assert_eq!(first.checked_plot_id, second.checked_plot_id);
+    assert_eq!(first.expanded_plot_id, second.expanded_plot_id);
     assert_ne!(first.plan_id, second.plan_id);
     assert!(second
         .fragments

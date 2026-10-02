@@ -156,7 +156,7 @@ test("Body routing reuses one pointer slot for 100,000 browser observations", as
   expect(result.latest.coalesced).toBe(99_998);
   expect(result.pressure).toEqual([expect.objectContaining({
     kind: "pointer",
-    form: "form/pointer-pressure-proof",
+    plot: "plot/pointer-pressure-proof",
     capacity: 1,
     occupancy: 0,
     accepted: 100_000,

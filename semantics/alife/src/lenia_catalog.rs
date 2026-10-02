@@ -1,11 +1,11 @@
-//! Portable form-facing Lenia contracts.
+//! Portable plot-facing Lenia contracts.
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ConfigurationValue, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
     PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
@@ -258,7 +258,7 @@ fn render_default(value: &ConfigurationValue) -> alloc::string::String {
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::Structured(_) => "structured".to_string(),
         ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().form_suffix())
+            format!("{}{}", value.value(), value.unit().plot_suffix())
         }
     }
 }

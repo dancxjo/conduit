@@ -22,14 +22,14 @@ cord = meaning/composition
 line = realized carriage
 ```
 
-A form can therefore be written without naming WebSocket, USB, Bluetooth, WebRTC, a relay, or a local socket.
+A plot can therefore be written without naming WebSocket, USB, Bluetooth, WebRTC, a relay, or a local socket.
 
 ## A network operation can still be semantic when networking is the point
 
 Current tree:
 
 ```conduit
-form network-resolution (
+plot network-resolution (
     connection: NetworkConnectionState >>
     dns: DnsResult >>
 ) {
@@ -45,11 +45,11 @@ form network-resolution (
 }
 ```
 
-![The network resolution form as connected gears](assets/sample-diagrams/network-resolution.svg)
+![The network resolution plot as connected gears](assets/sample-diagrams/network-resolution.svg)
 
-Here connection and DNS meaning are themselves the subject of the form.
+Here connection and DNS meaning are themselves the subject of the plot.
 
-That is different from a portable button/indicator form whose cord merely happens to cross a network during realization.
+That is different from a portable button/indicator plot whose cord merely happens to cross a network during realization.
 
 ## Remote carriage does not grant membership
 
@@ -132,7 +132,7 @@ Provider URLs, HTTP framing, credentials, and model vendor identity remain below
 Current tree:
 
 ```conduit
-form bounded-record-send (
+plot bounded-record-send (
     maximum-items: Count = 4
     maximum-frame-bytes: Count = 4096
     frame: FramedTypedRecord >> queued: FramedTypedRecord

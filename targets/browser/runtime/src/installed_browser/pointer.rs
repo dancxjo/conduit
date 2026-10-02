@@ -1,4 +1,4 @@
-//! Existing browser pointer offer installed in the ordinary form runner.
+//! Existing browser pointer offer installed in the ordinary plot runner.
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserBack;
@@ -9,7 +9,7 @@ use conduit_kernel::{
 
 pub(crate) const HOST_CALL: &str = "browser.host/pointer-source@1";
 pub(super) static POINTER: BrowserInstallation = BrowserInstallation {
-    implementation_id: "browser/form-pointer-source@1",
+    implementation_id: "browser/plot-pointer-source@1",
     offer,
     prepare,
     perform: None,
@@ -17,10 +17,10 @@ pub(super) static POINTER: BrowserInstallation = BrowserInstallation {
 
 fn offer() -> conduit_core::CapabilityOffer {
     crate::browser_pointer::pointer_source_offer(
-        "browser-form-pointer-source@1",
-        "browser/form-pointer-source@1",
-        "browser/form-pointer-source@1",
-        "conduit-browser-runtime/form-pointer-source@1",
+        "browser-plot-pointer-source@1",
+        "browser/plot-pointer-source@1",
+        "browser/plot-pointer-source@1",
+        "conduit-browser-runtime/plot-pointer-source@1",
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         vec![conduit_core::ResourceRequirement {
             class_id: super::input::WINDOW_INPUT_RESOURCE_CLASS.into(),

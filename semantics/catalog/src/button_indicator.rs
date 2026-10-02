@@ -6,7 +6,7 @@
 
 use super::{input_button_transition_type, KindTerminalBehavior, StandardKindContract};
 mod prepared;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
@@ -268,12 +268,12 @@ fn button_limits() -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_button_indicator_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     for contract in [
         button_source_semantic_contract(),
         button_indicator_state_semantic_contract(),
@@ -284,7 +284,7 @@ pub fn install_button_indicator_catalogs(
             startup_parameters: contract
                 .configuration
                 .iter()
-                .map(|field| conduit_form::StartupParameterSignature {
+                .map(|field| conduit_plot::StartupParameterSignature {
                     name: field.key.clone(),
                     value_type: "Count".into(),
                     default: Some("2".into()),

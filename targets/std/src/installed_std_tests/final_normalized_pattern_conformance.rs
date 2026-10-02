@@ -3,8 +3,8 @@ use conduit_core::{
     BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal, ResourceClassId,
     ResourceOffer, ResourcePoolId, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -26,13 +26,13 @@ fn final_pattern_adapter_is_reused_for_calibration_revisions() {
         .collect::<Vec<_>>()
         .join(",");
     let source = format!(
-        "form calibration-proof {{\n revisions: {SOURCE_KIND}(values = \"{values}\")\n final: sequence/final-normalized-pattern(maximum-values = 2)\n sink: {SINK_KIND}(value = \"{}\")\n revisions.output >> final.patterns\n final.pattern >> sink.input\n}}\n",
+        "plot calibration-proof {{\n revisions: {SOURCE_KIND}(values = \"{values}\")\n final: sequence/final-normalized-pattern(maximum-values = 2)\n sink: {SINK_KIND}(value = \"{}\")\n revisions.output >> final.patterns\n final.pattern >> sink.input\n}}\n",
         hex(&final_value.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "calibration-proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "calibration-proof", &profile).unwrap();
 
     let mut advertisement = host("calibration-pattern-host").advertisement().clone();
     advertisement.capabilities.extend([

@@ -119,7 +119,7 @@ pub struct PatchbayHtmlServer {
     zero_body_front_door:
         Option<std::sync::Arc<std::sync::Mutex<conduit_patchbay_workbench::ZeroBodyFrontDoor>>>,
     body_workload: Option<conduit_body_make::BodyWorkloadSession>,
-    body_planning_forms: Vec<conduit_patchbay_workbench::FormCandidate>,
+    body_planning_plots: Vec<conduit_patchbay_workbench::PlotCandidate>,
     body_planning: Option<conduit_body::BodyPlanningSession>,
     mask_control: Option<conduit_patchbay_workbench::MaskControlSession>,
     body_admission: Option<Vec<u8>>,
@@ -173,7 +173,7 @@ impl PatchbayHtmlServer {
             front_door: None,
             zero_body_front_door: None,
             body_workload,
-            body_planning_forms: Vec::new(),
+            body_planning_plots: Vec::new(),
             body_planning: None,
             mask_control: None,
             body_admission: None,
@@ -187,9 +187,9 @@ impl PatchbayHtmlServer {
         Self::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into(), snapshot)
     }
 
-    pub fn with_body_planning_forms(
+    pub fn with_body_planning_plots(
         mut self,
-        mut forms: Vec<conduit_patchbay_workbench::FormCandidate>,
+        mut plots: Vec<conduit_patchbay_workbench::PlotCandidate>,
     ) -> Result<Self, ServerError> {
         let workset = &self
             .body_workload
@@ -198,56 +198,56 @@ impl PatchbayHtmlServer {
             .evidence()
             .body
             .workset;
-        for resident in workset.forms() {
-            let candidate = forms
+        for resident in workset.plots() {
+            let candidate = plots
                 .iter_mut()
                 .find(|candidate| candidate.source_document_id == resident.source_document_id)
                 .ok_or_else(|| {
-                    ServerError::Interaction("Body planning forms: MissingForm".into())
+                    ServerError::Interaction("Body planning plots: MissingPlot".into())
                 })?;
             candidate
-                .select_checked_form(&resident.checked_form_id)
+                .select_checked_plot(&resident.checked_plot_id)
                 .map_err(|error| {
-                    ServerError::Interaction(format!("Body planning forms: {error}"))
+                    ServerError::Interaction(format!("Body planning plots: {error}"))
                 })?;
         }
-        let planning_forms = body_host_planning_offer::planning_forms(workset, &forms)?;
-        conduit_body_make::body_planning_requirements(workset, &planning_forms)
-            .map_err(|error| ServerError::Interaction(format!("Body planning forms: {error:?}")))?;
-        let selector_form = if self
+        let planning_plots = body_host_planning_offer::planning_plots(workset, &plots)?;
+        conduit_body_make::body_planning_requirements(workset, &planning_plots)
+            .map_err(|error| ServerError::Interaction(format!("Body planning plots: {error:?}")))?;
+        let selector_plot = if self
             .snapshot
             .presentation
             .basis
             .source_document_id
             .is_none()
-            && self.snapshot.presentation.basis.checked_form_id.is_none()
+            && self.snapshot.presentation.basis.checked_plot_id.is_none()
         {
             Some(None)
         } else {
             workset
-                .forms()
+                .plots()
                 .iter()
                 .find(|resident| {
                     self.snapshot.presentation.basis.source_document_id.as_ref()
                         == Some(&resident.source_document_id)
-                        && self.snapshot.presentation.basis.checked_form_id.as_ref()
-                            == Some(&resident.checked_form_id)
+                        && self.snapshot.presentation.basis.checked_plot_id.as_ref()
+                            == Some(&resident.checked_plot_id)
                 })
                 .cloned()
                 .map(Some)
         };
-        if let Some(form) = selector_form {
+        if let Some(plot) = selector_plot {
             let manifestation = &self.snapshot.renderer.manifestation;
             self.mask_control = Some(
                 conduit_patchbay_workbench::MaskControlSession::new(
                     self.snapshot.presentation.clone(),
                     conduit_body::BodyFaceSelector {
-                        form,
+                        plot,
                         source_placement_id: self
                             .snapshot
                             .presentation
                             .basis
-                            .expanded_form_id
+                            .expanded_plot_id
                             .clone()
                             .map(|id| conduit_core::PlacementId::from(id.as_str()))
                             .unwrap_or_else(|| {
@@ -269,7 +269,7 @@ impl PatchbayHtmlServer {
                 .map_err(|error| ServerError::Interaction(format!("Mask control: {error:?}")))?,
             );
         }
-        self.body_planning_forms = forms;
+        self.body_planning_plots = plots;
         Ok(self)
     }
 

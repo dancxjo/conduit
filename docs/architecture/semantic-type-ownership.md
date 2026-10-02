@@ -36,33 +36,33 @@ failure that actually crosses a Fore is **P**, even when its Rust name ends in
 
 A semantic `type` states what a value means. A named `code` states one portable
 compatibility contract for carrying or storing that value. Changing a code
-does not change Type identity, and a Type may have several codes.
+does not change Type identity, and a Type may have several Forms.
 
 A generated binding is target-language machinery derived from checked Types
-and codes. It may choose a native target type, a checked wrapper, or
+and Forms. It may choose a native target type, a checked wrapper, or
 a dynamic carrier, but it never contributes meaning. An external adapter owns
 only translation to a separately governed protocol or mechanism. “The mapping
 is small” and “Rust already serializes it” do not establish an external
 boundary.
 
-The ordinary compact form derives iota tags from authored variant order:
+The ordinary compact plot derives iota tags from authored variant order:
 
 ```conduit
 type SaveRefusal =
     value_too_large
     | wrong_content_kind
 
-code data/save-refusal = SaveRefusal as u8
+form data/save-refusal = SaveRefusal as u8
 ```
 
-The checked code records `0` and `1`, bounded invalid-tag refusal,
+The checked Form records `0` and `1`, bounded invalid-tag refusal,
 and a compatibility fingerprint. Authors write no tag table or version bump.
 When an established contract needs a different order, an indented list states
 only that order; the checker still proves it exhaustive and unique. A nonzero
 iota origin stays terse and equally checked:
 
 ```conduit
-code presentation/role = PresentationRole as u8 from 1
+form presentation/role = PresentationRole as u8 from 1
 ```
 
 That records `1`, `2`, and onward in authored variant order. The checker
@@ -72,7 +72,7 @@ refuses overflow instead of wrapping or inventing a wider layout.
 
 | Scope | Class | Ownership decision |
 |---|---|---|
-| `architecture/form/**` | C | Lossless/CST syntax, checked forms, expression programs, package resolution, and native-Type checking implement Conduitese. They are not authored info. |
+| `architecture/plot/**` | C | Lossless/CST syntax, checked plots, expression programs, package resolution, and native-Type checking implement Conduitese. They are not authored info. |
 | `architecture/core/src/primitive_info.rs`, `fixed_integer.rs`, `quantity.rs`, `structured_info/**`, `value_constraint.rs` | C | These define the checked value substrate and canonical validation. Primitive and quantity *instances* may be P; the generic representation machinery remains C. |
 | Other `architecture/core/**` | R | Exact IDs, Fores, contracts, offers, capabilities, resources, host calls, execution records, and evidence are architectural truth. Portable projections explicitly exposed through a Fore are separate P declarations. |
 | `architecture/body/**`, `assigned-plan/**`, `planner/**`, `plan-lowering/**`, `kernel/**`, `observatory/**`, `composite/**` | R | Body, planning, scheduling, admission, and observation state remain architectural runtime truth. |
@@ -96,11 +96,11 @@ families are explicit exceptions.
 | `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery, live-conversation evidence and presentation state | browser-family installers, prompt/state machines and delivery realizations are M; structured-value views and fixtures are C | none; the portable family is native and generated |
 | `semantics/data/**` | observations, provenance, measurements, windows, thresholds, plots, tensors, datasets, cadence/continuity, quantity-mapping policy and data-reference domain values | stores/prepared stores, bounded operators and hysteresis/window state are M; `DataReference` is the primitive generation-reference carrier; wire/codec refusals are W; tabular borrowed rows and structured-decoder refusal are W/C | none; the portable family is native and generated |
 | Data file-copy terminal result | `semantics/data/types.conduit` | generated at build time; Catalog consumes the generated schema | yes | yes | file-copy contract and hosted copy behavior |
-| Reminder occurrence | `semantics/time/types.conduit` | generated at build time; Catalog consumes the generated schema | yes | yes | reminder fixture/delivery Form contracts |
+| Reminder occurrence | `semantics/time/types.conduit` | generated at build time; Catalog consumes the generated schema | yes | yes | reminder fixture/delivery Plot contracts |
 | Normalized pattern comparison result | `semantics/time/types.conduit` | generated at build time; Catalog consumes generated construction/schema | yes | yes | comparison behavior and host contracts |
 | Normalized duration and named-pattern template family | `semantics/time/types.conduit` | generated at build time; Catalog retains only normalization/storage behavior | yes | yes | normalization, comparison, bounded collection and storage suites |
 | Timed event and interval sequences | `semantics/time/types.conduit` | generated at build time; Catalog retains only interval derivation behavior | yes | yes | ordered-event and pattern-stack suites |
-| Schedule effect, lifecycle, position, timing and assessment values | `semantics/time/types.conduit` | generated at build time; Catalog retains scheduling joins and Form registration | yes | yes | schedule and temporal-isomorphism suites |
+| Schedule effect, lifecycle, position, timing and assessment values | `semantics/time/types.conduit` | generated at build time; Catalog retains scheduling joins and Plot registration | yes | yes | schedule and temporal-isomorphism suites |
 | `semantics/finance/**` | currency, fixed decimal, money, rates, quotes and transaction events | `FinanceFixture` is C; `FinanceRefusal` is a Rust operation/adapter error joining arithmetic, structured-value and binding failures and is C/W rather than carried Info | none; the portable family is native and generated |
 | `semantics/human/**` | input events, modifiers, regions, image/image-text values, experience Fore inputs/projections, and interaction values/outcomes | media offers/plans/reservations/active instances are R; initialized implementations, current-experience stores, interaction flows and keymap state are M; codecs are W; visual assembly views, source adapters, traces and conformance vectors are C | none; the portable family is native and generated |
 | `semantics/language/**` | spans, tokens, segments, provenance/evidence, annotations and dependencies | private tokenizer scratch state and parser/recognizer machinery are M; construction/Host errors that never cross a typed Fore are M/C | none; the portable family is native and generated |
@@ -111,7 +111,7 @@ families are explicit exceptions.
 | `semantics/robotics/**` | acceleration, battery, beacon, button, charging, cliff, contact, odometry, orientation, proximity, range and wheel-drop observations | `RoboticsStructuredFixture` and its structured-value refusal are C; fixture/catalog builders are C | none; the portable family is native and generated |
 | `semantics/signal/**` | Signal, Trigger and finite pulse/toggle/trigger configurations | encoders are M/W according to the exact carrier | none; the portable family is native and generated for fixed no-std carriers |
 | `semantics/text/**` | addresses, Morse patterns/segments/transitions and text configuration values | interpreters are M; Kind contracts are C; provider errors remain M unless exported as a typed terminal | none; the portable family is native and generated |
-| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, historical/replay commands and results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec forms are W; Kind configuration/checker contracts are C; `ScheduledIntent<T>` is the generated family’s thin open-generic Rust carrier | none; the portable family is native and generated |
+| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, historical/replay commands and results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec plots are W; Kind configuration/checker contracts are C; `ScheduledIntent<T>` is the generated family’s thin open-generic Rust carrier | none; the portable family is native and generated |
 | `semantics/tongues/**` | speech commit/message boundaries, recognition attempts/results, output conditions, terminal outcomes and emitted speech signs | recognizers, committers, acoustic windows and training machinery are M; dataset/model file representations are W; planning/specimen/receipt and research reports are C | none; every reviewed portable Fore payload is native and generated |
 | `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | recursive JSON values with aggregate depth/node/string budgets |
 
@@ -122,7 +122,7 @@ stated separately rather than treating the entire crate as portable data.
 
 | Scope | Classification |
 |---|---|
-| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. The terminal path audit below classifies every surviving handwritten family. |
+| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Plot/checker records and fixtures are C. The terminal path audit below classifies every surviving handwritten family. |
 | `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. The portable family is native and generated. |
 | `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Former domain values now come from their domain-owned `.conduit` source: Human/Presentation vision, Education, Time, Process, Robotics and the remaining catalogued domains. |
 | `semantics/system-continuity/**` | Reboot request/decision/denial and transition causes exposed through reviewed Fores are P. Host instances, assignments, grants, replacement observations, progress state and acceptance receipts are R. Persistence/wire records are W. |
@@ -146,7 +146,7 @@ second semantic definition.
 | `model_artifact.rs`, `model_compute.rs`, `local_model.rs`, `vector_index_resource.rs`, `vector_index_lifecycle.rs` | R/M/W | Artifact/checkpoint format, mutable state, offers, sessions, cache state, authority, handles, generations, mutations and maintenance evidence. Portable profiles, policies, health and refusals are native. |
 | `source_extraction.rs`, `source_extraction_codec.rs`, `hybrid_retrieval_codec.rs` and other `*_codec.rs` | W/R | Borrowed source payloads and named byte encodings plus extraction/execution receipts. Portable lineage, chunks, profiles, limits and typed refusals are native. |
 | `effect_proposal.rs` | R | Authority derivation, proposal-gate decisions, authorized requests and effect receipts; native disposition/refusal vocabulary is used where carried. |
-| `form_composition.rs` | C | Checked/expanded Form candidates and compiler refusal detail. |
+| `plot_composition.rs` | C | Checked/expanded Plot candidates and compiler refusal detail. |
 | `provider.rs` and provider submodules | M/W | Provider sessions, HTTP schemas, external failures and realization evidence. |
 | `*_contract.rs`, `bases.rs`, catalog installers and fixtures | C | Kind/Fore declarations, startup configuration, catalog construction and proof data. |
 
@@ -166,7 +166,7 @@ enforcement rules below.
 ## Migration ledger
 
 The inventory above makes the ownership decision; migration receipts record
-when the code actually follows it. A family is not complete until all columns
+when the implementation actually follows it. A family is not complete until all columns
 are satisfied.
 
 | Family | Native source | Generated binding | Consumers switched | Duplicate removed | Proof |
@@ -175,10 +175,10 @@ are satisfied.
 | Finance rate observation and bounded source/profile identities | `semantics/finance/types.conduit` | generated at build time | yes | yes | exact native round trips and text-boundary proof plus finance conversion/reference suites |
 | Education question, bounded hints and closed response family extracted from the catalog | `semantics/education/types.conduit` | generated at build time | yes | yes | exact native round trips and three-hint bound plus arithmetic lesson catalog and realization suites |
 | Education assessment outcome, assessment, optional hint, evidence/provenance, lesson feedback and progress family extracted from the catalog | `semantics/education/types.conduit` | generated at build time | yes | yes | exact native round trips plus arithmetic and rhythm lesson catalog/realization suites |
-| Education rhythm feedback with audio-owned timing feedback | `semantics/education/types.conduit` | generated with an identity-checked external `conduit_audio::TimingFeedback` binding | yes | yes | exact nested-owner/native round trip plus Education and Catalog rhythm-form suites |
+| Education rhythm feedback with audio-owned timing feedback | `semantics/education/types.conduit` | generated with an identity-checked external `conduit_audio::TimingFeedback` binding | yes | yes | exact nested-owner/native round trip plus Education and Catalog rhythm-plot suites |
 | Linguistic span, token, segment, provenance, annotation and dependency family | `semantics/language/types.conduit` | generated at build time | yes | yes | exact four-token/four-annotation hosted proof, bounded text and native round trips |
 | Finance observed instant, quote freshness/quote and fixed transaction-event family | `semantics/finance/types.conduit` | generated at build time | yes | yes | exact native identities and round trips, bounded identifiers/sources and finance reference suites |
-| Signal Garden state, clock, contact and enriched-observation family | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact bounded native round trips plus deterministic minimal/enriched evolution and authored Form suites |
+| Signal Garden state, clock, contact and enriched-observation family | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact bounded native round trips plus deterministic minimal/enriched evolution and authored Plot suites |
 | Calendar participant role, invitation state and availability state | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus calendar, AI and std Host suites |
 | Temporal instant/window, civil and monotonic substrate, calendar, meeting proposal, recurrence and scheduled-intent families | `semantics/time/types.conduit` | generated at build time; the authored generic scheduled-intent family retains its thin Rust generic carrier while concrete payload fields consume generated Types | yes | yes | exact native bounds and round trips, calendar/proposal and recurrence behavior, AI temporal interpretation, presentation conversion and std Host codecs; obsolete struct-literal tests were removed with the handwritten declarations |
 | Historical origin/overflow and temporal window boundary/position vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and time behavior suites |
@@ -246,7 +246,7 @@ are satisfied.
 | Robotics start-local odometry observation | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native axis/yaw bounds and round trip plus preserved component API, 12-byte codec, digest golden and typed decode refusals |
 | Robotics button-set observation | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native U32 round trip plus preserved public projection, four-byte codec, digest golden and typed decode refusal |
 | Robotics simulation availability extracted from the catalog | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native round trips plus robotics catalog and std/ConduitOS consumers |
-| Robotics navigation goal, pose, grid, route, trajectory, planning and local-control family extracted from the catalog | `semantics/robotics/types.conduit` | generated at build time | yes | yes | catalog ports and codecs consume the native family directly; exact native bounds and round trips, signed-origin/unsigned-extent law, maximum identity/sequence proof, and preserved route/control behavior plus consumer Form/planner proof |
+| Robotics navigation goal, pose, grid, route, trajectory, planning and local-control family extracted from the catalog | `semantics/robotics/types.conduit` | generated at build time | yes | yes | catalog ports and codecs consume the native family directly; exact native bounds and round trips, signed-origin/unsigned-extent law, maximum identity/sequence proof, and preserved route/control behavior plus consumer Plot/planner proof |
 | HTTP contract refusal vocabulary | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec and hosted-HTTP suites |
 | HTTP scheme, transaction identity, bounded target and bounded header | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec, AI provider, hosted, isolated and ConduitOS consumer suites |
 | Body Chat role, bounded message and history record | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trip plus Chat, prompt and std Host suites |
@@ -320,7 +320,7 @@ are satisfied.
 | House-context and retrieval provenance/proof vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus house-context, hybrid-retrieval, and reranking suites |
 | Hybrid-retrieval mechanism and reranking score payloads | `semantics/ai/types.conduit` | generated at build time with direct scalar payloads | yes | yes | exact native round trips plus hybrid-retrieval and reranking suites |
 | AI result, contract-offer, temporal-context and vector-proof validation vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI behavior and contract suites |
-| Form Library availability and refusal vocabularies | `semantics/form-library/types.conduit` | generated at build time | yes | yes | exact native round trips and capability-reason bounds plus library behavior suite |
+| Plot Library availability and refusal vocabularies | `semantics/plot-library/types.conduit` | generated at build time | yes | yes | exact native round trips and capability-reason bounds plus library behavior suite |
 | Body invitation presentation refusal | `semantics/body-invitation/types.conduit` | generated at build time | yes | yes | exact native round trips plus invitation presentation and Body lifecycle suites |
 | Tutorial playback phase vocabulary | `semantics/tutorial/types.conduit` | generated at build time | yes | yes | exact native and Serde round trips plus Tutorial behavior suites |
 | Home destination vocabulary | `semantics/home/types.conduit` | generated at build time | yes | yes | exact native round trips plus finite launcher navigation and Home behavior suites |
@@ -342,11 +342,11 @@ are satisfied.
 | Speech-recognition attempt and result family | `semantics/tongues/types.conduit` | generated at build time | yes | yes | exact bounded identity/text/digest and payload round trips plus recognition and JSON-adapter suites |
 | House generation request | `semantics/tongues/types.conduit` | generated at build time | yes | yes | exact identity/prompt/output bounds plus House, Tongues and std Host consumer suites |
 | Chat conversation-request evidence | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact request-identity bound, native and JSON round trips plus Chat and Patchbay consumer suites |
-| Presentation place/aspect/depth, navigation, wardrobe, Face-role and narrator vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native/code round trips plus navigation, mask, Face and generative-presentation suites |
+| Presentation place/aspect/depth, navigation, wardrobe, Face-role and narrator vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native/form round trips plus navigation, mask, Face and generative-presentation suites |
 | Presentation application action | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact nonempty 48-byte identity bound and event-kind composition plus unchanged application-view, Patchbay, Tour and ConduitOS consumers |
 | Presentation fixed layout rectangle, eight-child frame and refusal family | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native round trips plus preserved layout operations, fixed codec, Patchbay and ConduitOS consumers |
 | Presentation static geometry family | `semantics/presentation/types.conduit` | generated at build time over the canonical `Quantity` leaf | yes | yes | native round trips for points, vectors, extents, rectangles, translations, poses, image regions and the product four-point path plus Presentation and std geometry suites; the runtime-count path constructor remains an explicit checked schema adapter |
-| Portable purpose-state and fulfillment-readiness projection extracted from the catalog | `semantics/purpose/types.conduit` | generated at build time | yes | yes | exact 32-obligation, eight-evidence and 32-reason fixed bounds plus catalog/Form proof; Body lifecycle and fulfillment objects remain architectural runtime truth |
+| Portable purpose-state and fulfillment-readiness projection extracted from the catalog | `semantics/purpose/types.conduit` | generated at build time | yes | yes | exact 32-obligation, eight-evidence and 32-reason fixed bounds plus catalog/Plot proof; Body lifecycle and fulfillment objects remain architectural runtime truth |
 | Presentation rhetorical composition kind and bounded relation record | `semantics/presentation/types.conduit` | generated at build time with legacy Serde adapters | yes | yes | exact native payload/record round trips and 256-byte identity bounds plus preserved JSON/postcard shape, Presentation digest, Face, aural and browser consumers; subject membership, distinct endpoints and relation uniqueness remain contextual graph validation |
 | AI similarity-score family | `semantics/ai/types.conduit` | generated at build time with exact finite `F32` | yes | yes | bit-exact native and JSON round trips plus vector retrieval/search suites and non-finite refusal proof |
 | Alife field identities, reaction-diffusion cell and evolve-request family | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native/refinement round trips plus retained wire codecs and full Alife behavior suites |

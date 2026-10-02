@@ -123,7 +123,7 @@ where
         return Err(ObligationRefusal::AttemptBudgetExhausted);
     }
     let attempt_number = attempts_used + 1;
-    let (form, plan, advertisement) = checked_plan(&basis)?;
+    let (plot, plan, advertisement) = checked_plan(&basis)?;
     let fragment = &plan.fragments[0];
     let lowered = lower_plan_fragment(fragment).map_err(|_| ObligationRefusal::StepFailed)?;
     if lowered.nodes.len() != NODES
@@ -226,7 +226,7 @@ where
         schema_version: OBLIGATION_SCHEMA_VERSION,
         obligation_id: obligation_id(&basis),
         basis,
-        form_id: form.expanded_form_id.as_str().into(),
+        plot_id: plot.expanded_plot_id.as_str().into(),
         plan_id: plan.plan_id.as_str().into(),
         attempts,
         retention_gap,

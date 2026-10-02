@@ -6,7 +6,7 @@ use conduit_core::{
     ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoRefusal,
     StructuredInfoValue,
 };
-use conduit_form::rust_binding::{NativeBindingRefusal, NativeRustBinding};
+use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 use conduit_presentation::{
     Extent2, ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource, Point2, Rect2,
     VisionColorSample, VisionDetectionSlot, VisionDetectionsFour, VisionEvidenceClass,

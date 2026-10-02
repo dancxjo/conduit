@@ -1,4 +1,4 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 use conduit_ai::{
     deterministic_context_select_offer, deterministic_rerank_offer, install_r3_catalog,
@@ -9,18 +9,18 @@ use conduit_core::{
     verify_plan, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 use std::collections::BTreeMap;
 
-fn form(answer_kind: &str, maximum_citations: u16) -> String {
+fn plot(answer_kind: &str, maximum_citations: u16) -> String {
     format!(
-        "form r4 {{\n rerank: retrieval/rerank(\"rerank/preserve-hybrid-deterministic@1\", 8, 32)\n select: context/select(\"context/reranked-diverse@1\", \"tokens/exact-fixture@1\", \"keep-all\", \"reranked\", 8, 4096, 1024, 32)\n answer: rag/answer(\"grounding/exact-context-citations@1\", \"{answer_kind}\", 4096, 16, {maximum_citations}, 1024)\n rerank.result >> select.candidates\n select.result >> answer.context\n}}\n"
+        "plot r4 {{\n rerank: retrieval/rerank(\"rerank/preserve-hybrid-deterministic@1\", 8, 32)\n select: context/select(\"context/reranked-diverse@1\", \"tokens/exact-fixture@1\", \"keep-all\", \"reranked\", 8, 4096, 1024, 32)\n answer: rag/answer(\"grounding/exact-context-citations@1\", \"{answer_kind}\", 4096, 16, {maximum_citations}, 1024)\n rerank.result >> select.candidates\n select.result >> answer.context\n}}\n"
     )
 }
 
@@ -35,7 +35,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 fn plan(source: &str) -> conduit_core::Plan {
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "r4", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "r4", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/r4"),
@@ -98,8 +98,8 @@ fn ordinary_answer_front_consumes_query_and_structured_context_without_prompt_se
 
 #[test]
 fn retrieval_context_answer_chain_and_grounding_bounds_are_exact_plan_facts() {
-    let text = plan(&form("value/text-utf8@1", 8));
-    let structured = plan(&form("value/structured-answer@1", 16));
+    let text = plan(&plot("value/text-utf8@1", 8));
+    let structured = plan(&plot("value/structured-answer@1", 16));
     assert!(verify_plan(&text));
     assert!(verify_plan(&structured));
     assert_ne!(text.plan_id, structured.plan_id);
@@ -128,10 +128,10 @@ fn retrieval_context_answer_chain_and_grounding_bounds_are_exact_plan_facts() {
 #[test]
 fn opaque_provider_citation_policy_refuses_canonical_expansion() {
     let (startup, profile) = catalogs();
-    let source = form("value/text-utf8@1", 8).replace(
+    let source = plot("value/text-utf8@1", 8).replace(
         "grounding/exact-context-citations@1",
         "provider/citation-magic@1",
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    assert!(expand_canonical_form(&checked, "r4", &profile).is_err());
+    assert!(expand_canonical_plot(&checked, "r4", &profile).is_err());
 }

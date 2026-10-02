@@ -3,8 +3,8 @@ use conduit_core::{
     BaseImplementationId, ConfigurationValue, ResourceClassId, ResourceOffer, ResourcePoolId,
     StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -23,14 +23,14 @@ fn reusable_named_template_storage_requires_a_slot_and_executes_without_play_all
     let sink_offer = fixture_offer(&result, conduit_core::PortDirection::Input);
     let (startup, profile) = catalogs(&command, &result, &source_offer, &sink_offer);
     let source = format!(
-        "form named-template-storage (\n    >> command: NamedPatternTemplateCommand...|\n    result: NamedPatternTemplateResult...| >>\n) {{\n    storage: storage/named-pattern-templates(maximum-commands = 4)\n    command >> storage.command\n    storage.result >> result\n}}\nform protocol-template-proof {{\n    command: {SOURCE_KIND}(value = \"{}\")\n    storage: named-template-storage\n    result: {SINK_KIND}(value = \"{}\")\n    command.output >> storage.command\n    storage.result >> result.input\n}}\n",
+        "plot named-template-storage (\n    >> command: NamedPatternTemplateCommand...|\n    result: NamedPatternTemplateResult...| >>\n) {{\n    storage: storage/named-pattern-templates(maximum-commands = 4)\n    command >> storage.command\n    storage.result >> result\n}}\nform protocol-template-proof {{\n    command: {SOURCE_KIND}(value = \"{}\")\n    storage: named-template-storage\n    result: {SINK_KIND}(value = \"{}\")\n    command.output >> storage.command\n    storage.result >> result.input\n}}\n",
         hex(&command.canonical_bytes().unwrap()),
         hex(&result.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "protocol-template-proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "protocol-template-proof", &profile).unwrap();
 
     let mut advertisement = host("template-storage-host").advertisement().clone();
     advertisement.capabilities.extend([

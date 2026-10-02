@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
-use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -8,8 +8,8 @@ fn main() {
     catalog
         .insert_value_kind_alias(
             "ResourceRef",
-            conduit_form::rust_binding::semantic_core::kind_id(
-                conduit_form::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
+            conduit_plot::rust_binding::semantic_core::kind_id(
+                conduit_plot::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
             ),
         )
         .expect("resource references are one exact portable leaf");
@@ -18,9 +18,9 @@ fn main() {
         &catalog,
     )
     .expect("time semantic Types must check");
-    let generated = generate_rust_bindings_with_codes(
+    let generated = generate_rust_bindings_with_forms(
         &checked.native_types,
-        &checked.codes,
+        &checked.type_forms,
         &RustBindingOptions {
             derive_serde_for_variants: true,
             serde_variant_exclusions: [
@@ -143,7 +143,7 @@ fn main() {
             ..RustBindingOptions::default()
         },
     )
-    .expect("time semantic Types and codes must generate exact Rust bindings");
+    .expect("time semantic Types and Forms must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated time bindings");

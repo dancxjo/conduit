@@ -15,7 +15,7 @@ export class BrowserInputRefusal extends Error {
 
 /**
  * host-owned, finite adaptation of DOM input facts to portable Conduit values.
- * The caller supplies the current admitted Boot truth; Forms never see DOM
+ * The caller supplies the current admitted Boot truth; Plots never see DOM
  * objects, selectors, key codes, focus state, or browser lifecycle facts.
  */
 export function openBrowserHumanInput({
@@ -56,8 +56,8 @@ export function openBrowserHumanInput({
     const usage = browserKeyboardUsage(event.code);
     if (usage === null) return;
     // A document-wide adapter must leave ordinary browser controls operable
-    // while no admitted form is waiting for a key. This also prevents a skip
-    // link or layout button from becoming stale queued Form input.
+    // while no admitted plot is waiting for a key. This also prevents a skip
+    // link or layout button from becoming stale queued Plot input.
     if (keyboardWaiters.length === 0 && target.nodeType === 9 &&
         typeof event.target?.closest === "function" &&
         event.target.closest("a[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable='false'])")) {
@@ -68,12 +68,12 @@ export function openBrowserHumanInput({
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "keyboard focus left the admitted target");
       const canonical = Uint8Array.of(usage, event.type === "keydown" ? 0 : 1, modifiers(event));
-      const deliveryForm = routeInput?.("keyboard", canonical);
-      if (routeInput && deliveryForm === null) return;
+      const deliveryPlot = routeInput?.("keyboard", canonical);
+      if (routeInput && deliveryPlot === null) return;
       event.preventDefault();
       const transition = Object.freeze({
         schema: "input/key-event@1", canonical_bytes: canonical, owner,
-        ...(routeInput ? { delivery_form: deliveryForm } : {}),
+        ...(routeInput ? { delivery_plot: deliveryPlot } : {}),
       });
       if (keyboardWaiters.length > 0) keyboardWaiters.shift().resolve(transition);
       else {
@@ -105,14 +105,14 @@ export function openBrowserHumanInput({
         refuse("UnsupportedInput", "pointer buttons exceed the reviewed primary-button profile");
       }
       const isButtonTransition = event.type === "pointerdown" || event.type === "pointerup";
-      const buttonForm = buttonActive && isButtonTransition
+      const buttonPlot = buttonActive && isButtonTransition
         ? routeInput?.("button", { pressed: event.type === "pointerdown" })
         : null;
-      if (buttonActive && isButtonTransition && !buttonFailure && (!routeInput || buttonForm !== null)) {
+      if (buttonActive && isButtonTransition && !buttonFailure && (!routeInput || buttonPlot !== null)) {
         const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
-          ...(routeInput ? { delivery_form: buttonForm } : {}),
+          ...(routeInput ? { delivery_plot: buttonPlot } : {}),
           sequence: buttonSequence++,
           owner,
         });
@@ -126,8 +126,8 @@ export function openBrowserHumanInput({
         }
       }
       if (pointerConsumers.size === 0) return;
-      const pointerForm = routeInput?.("pointer", null);
-      if (routeInput && pointerForm === null) return;
+      const pointerPlot = routeInput?.("pointer", null);
+      if (routeInput && pointerPlot === null) return;
       const surface = target.nodeType === 9 ? target.documentElement : target;
       const bounds = surface.getBoundingClientRect();
       if (!(bounds.width > 0 && bounds.height > 0)) refuse("TargetLost", "pointer target has no extent");
@@ -139,7 +139,7 @@ export function openBrowserHumanInput({
         : 0;
       const value = Object.freeze({
         schema: "input/pointer-event@1",
-        ...(routeInput ? { delivery_form: pointerForm } : {}),
+        ...(routeInput ? { delivery_plot: pointerPlot } : {}),
         position_x: boundedPosition(millionth((event.clientX - bounds.left) / bounds.width)),
         position_y: boundedPosition(millionth((event.clientY - bounds.top) / bounds.height)),
         delta_x: boundedAxis(millionth(event.movementX / bounds.width)),

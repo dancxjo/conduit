@@ -1,11 +1,11 @@
 use conduit_core::{
-    ActivePlayId, AuthorityGrantId, CheckedFormId, PlanId, SignId, SourceDocumentId,
+    ActivePlayId, AuthorityGrantId, CheckedPlotId, PlanId, SignId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
     hold::validate_planning_basis_signs, BodyHistoryCheckpoint, BodyLifecycleError, BodyState,
-    BodyWorkset, FulfillmentObligation, HoldPolicy, ResidentForm, WakeId, WakeLifecycle, WakePlan,
+    BodyWorkset, FulfillmentObligation, HoldPolicy, ResidentPlot, WakeId, WakeLifecycle, WakePlan,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,15 +15,15 @@ pub enum BodyLifecycleEvent {
         workload_revision: u64,
         sign_id: SignId,
     },
-    FormAdmitted {
+    PlotAdmitted {
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         workload_revision: u64,
         sign_id: SignId,
     },
-    FormRemoved {
+    PlotRemoved {
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         workload_revision: u64,
         sign_id: SignId,
     },
@@ -49,8 +49,8 @@ impl BodyLifecycleEvent {
     pub fn sign_id(&self) -> &SignId {
         match self {
             Self::Born { sign_id, .. }
-            | Self::FormAdmitted { sign_id, .. }
-            | Self::FormRemoved { sign_id, .. }
+            | Self::PlotAdmitted { sign_id, .. }
+            | Self::PlotRemoved { sign_id, .. }
             | Self::Woke { sign_id, .. }
             | Self::LullRetained { sign_id, .. }
             | Self::Fulfilled { sign_id, .. } => sign_id,
@@ -201,9 +201,9 @@ pub(crate) fn validate_body_events(
             .map_err(|_| BodyLifecycleError::InvalidTransition)?;
         }
         match event {
-            BodyLifecycleEvent::FormAdmitted {
+            BodyLifecycleEvent::PlotAdmitted {
                 source_document_id,
-                checked_form_id,
+                checked_plot_id,
                 workload_revision,
                 ..
             } => {
@@ -213,14 +213,14 @@ pub(crate) fn validate_body_events(
                 if *workload_revision != replayed_workload_revision {
                     return Err(BodyLifecycleError::InvalidTransition);
                 }
-                replayed_workset.add(ResidentForm::new(
+                replayed_workset.add(ResidentPlot::new(
                     source_document_id.clone(),
-                    checked_form_id.clone(),
+                    checked_plot_id.clone(),
                 ))?;
             }
-            BodyLifecycleEvent::FormRemoved {
+            BodyLifecycleEvent::PlotRemoved {
                 source_document_id,
-                checked_form_id,
+                checked_plot_id,
                 workload_revision,
                 ..
             } => {
@@ -230,16 +230,16 @@ pub(crate) fn validate_body_events(
                 if *workload_revision != replayed_workload_revision {
                     return Err(BodyLifecycleError::InvalidTransition);
                 }
-                replayed_workset.remove(&ResidentForm::new(
+                replayed_workset.remove(&ResidentPlot::new(
                     source_document_id.clone(),
-                    checked_form_id.clone(),
+                    checked_plot_id.clone(),
                 ))?;
             }
             _ => {}
         }
         replayed = match (&replayed, event) {
-            (state, BodyLifecycleEvent::FormAdmitted { .. })
-            | (state, BodyLifecycleEvent::FormRemoved { .. }) => state.clone(),
+            (state, BodyLifecycleEvent::PlotAdmitted { .. })
+            | (state, BodyLifecycleEvent::PlotRemoved { .. }) => state.clone(),
             (BodyState::Lulled, BodyLifecycleEvent::Woke { wake_id, .. }) => BodyState::Awake {
                 wake_id: wake_id.clone(),
             },

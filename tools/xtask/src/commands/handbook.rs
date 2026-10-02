@@ -1,7 +1,7 @@
 //! Static handbook and Pages-root construction from repository-owned sources.
 
 use clap::Args;
-use conduit_form::{highlight_syntax, SyntaxHighlightKind};
+use conduit_plot::{highlight_syntax, SyntaxHighlightKind};
 use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Options, Parser, Tag, TagEnd};
 use std::collections::BTreeMap;
 use std::fs;
@@ -87,11 +87,11 @@ fn build_handbook(source: &Path, output: &Path) -> Result<(), Box<dyn std::error
     )?;
     fs::write(
         output.join("svg-viewport.css"),
-        include_str!("../../../../forms/patchbay/workbench/browser/svg-viewport.css"),
+        include_str!("../../../../plots/patchbay/workbench/browser/svg-viewport.css"),
     )?;
     fs::write(
         output.join("svg-viewport.js"),
-        include_str!("../../../../forms/patchbay/workbench/browser/svg-viewport.js"),
+        include_str!("../../../../plots/patchbay/workbench/browser/svg-viewport.js"),
     )?;
 
     for (stem, markdown) in &pages {

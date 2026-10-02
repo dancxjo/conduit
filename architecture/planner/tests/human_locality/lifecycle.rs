@@ -4,7 +4,7 @@ use conduit_planner::{PolicyScope, PolicySourceId, PolicySourceRevision, Reviewe
 pub fn active_wake(plan: &Plan, local_host_id: &str) -> conduit_body::Wake {
     let body = conduit_body::Body::born(
         plan.source_document_id.clone(),
-        plan.checked_form_id.clone(),
+        plan.checked_plot_id.clone(),
         1,
         SignId::from("human-locality/body-born"),
     )

@@ -2,7 +2,7 @@ use conduit_alife::{
     ReactionDiffusionPartition, ReactionDiffusionPartitionRefusal, ReactionDiffusionRegion,
     ReactionDiffusionRegionId,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn region(id: u16) -> ReactionDiffusionRegion {
     ReactionDiffusionRegion::new(ReactionDiffusionRegionId::new(id).unwrap(), id, 0, 1, 1).unwrap()

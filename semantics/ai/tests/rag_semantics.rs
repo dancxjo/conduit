@@ -10,8 +10,8 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::BoundedSequence;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn chunk_identity_is_one_native_fixed_digest() {

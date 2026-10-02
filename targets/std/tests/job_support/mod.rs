@@ -5,8 +5,8 @@ use conduit_core::{
     ResourceReferenceAvailability, ResourceReferenceBinding, ResourceRetention, ResourceSharing,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_semantic_catalog::{
@@ -16,7 +16,7 @@ use conduit_std_host::hosted_job::TrustedJobProvider;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-const SOURCE: &str = include_str!("../../../../forms/bounded-job/main.conduit");
+const SOURCE: &str = include_str!("../../../../plots/bounded-job/main.conduit");
 
 pub fn planned_job(request: &JobRequest) -> PlannedGear {
     let mut startup = StartupCatalog::new();
@@ -25,7 +25,7 @@ pub fn planned_job(request: &JobRequest) -> PlannedGear {
     let syntax = parse_syntax_document(SOURCE);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let authored = expand_canonical_form_for_authoring(&checked, "bounded-job", &profile).unwrap();
+    let authored = expand_canonical_plot_for_authoring(&checked, "bounded-job", &profile).unwrap();
     let host_id = HostId::from("host/job-proof");
     let boot_id = BootId::from("boot/job-proof");
     let executable_contract = ResourceContentRequirement {

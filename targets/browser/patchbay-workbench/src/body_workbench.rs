@@ -8,7 +8,7 @@ use conduit_body_make::{
 };
 use conduit_core::{BootId, HostId, ImplementationId, PlanId, SignId};
 use conduit_patchbay_workbench::{
-    prepare_renderer_execution, FormCandidate, RendererAdapterIdentity, RendererAdapterKind,
+    prepare_renderer_execution, PlotCandidate, RendererAdapterIdentity, RendererAdapterKind,
 };
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
@@ -19,7 +19,7 @@ use conduit_presentation::{
 use patchbay_application::PatchbayNavigationProjection;
 
 use crate::{
-    BrowserBodyWorkbench, BrowserBodyWorkbenchEntrance, BrowserReviewedForm, RendererSnapshot,
+    BrowserBodyWorkbench, BrowserBodyWorkbenchEntrance, BrowserReviewedPlot, RendererSnapshot,
     SnapshotError,
 };
 
@@ -43,13 +43,13 @@ pub fn body_workbench_snapshot(
     body_workbench_snapshot_with_reviewed(evidence_revision, encoded_evidence, entrance, &[])
 }
 
-pub fn body_workbench_snapshot_with_forms(
+pub fn body_workbench_snapshot_with_plots(
     evidence_revision: u64,
     encoded_evidence: &[u8],
     entrance: BrowserBodyWorkbenchEntrance,
-    forms: &[FormCandidate],
+    plots: &[PlotCandidate],
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
-    let reviewed = crate::body_workbench_inventory::from_candidates(forms)
+    let reviewed = crate::body_workbench_inventory::from_candidates(plots)
         .map_err(BodyWorkbenchError::Projection)?;
     body_workbench_snapshot_with_reviewed(evidence_revision, encoded_evidence, entrance, &reviewed)
 }
@@ -58,12 +58,12 @@ pub(crate) fn body_workbench_snapshot_with_reviewed(
     evidence_revision: u64,
     encoded_evidence: &[u8],
     entrance: BrowserBodyWorkbenchEntrance,
-    reviewed_forms: &[BrowserReviewedForm],
+    reviewed_plots: &[BrowserReviewedPlot],
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
     let attachment =
         BodyEvidenceAttachment::open_serialized(encoded_evidence, model_entrance(&entrance))
             .map_err(BodyWorkbenchError::Entrance)?;
-    let presentation = workbench_presentation(evidence_revision, &attachment, reviewed_forms)?;
+    let presentation = workbench_presentation(evidence_revision, &attachment, reviewed_plots)?;
     let execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
@@ -87,7 +87,7 @@ pub(crate) fn body_workbench_snapshot_with_reviewed(
         evidence_revision,
         encoded_evidence,
         entrance,
-        reviewed_forms,
+        reviewed_plots,
     )
 }
 
@@ -119,7 +119,7 @@ fn attach_body_workbench_with_reviewed(
     evidence_revision: u64,
     encoded_evidence: &[u8],
     entrance: BrowserBodyWorkbenchEntrance,
-    reviewed_forms: &[BrowserReviewedForm],
+    reviewed_plots: &[BrowserReviewedPlot],
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
     let model_entrance = model_entrance(&entrance);
     let attachment = BodyEvidenceAttachment::open_serialized(encoded_evidence, model_entrance)
@@ -133,7 +133,7 @@ fn attach_body_workbench_with_reviewed(
         encoded_evidence: encoded_evidence.to_vec(),
         entrance,
         body_id: attachment.evidence().body_id.as_str().into(),
-        reviewed_forms: reviewed_forms.to_vec(),
+        reviewed_plots: reviewed_plots.to_vec(),
         current: serde_json::to_value(current).map_err(BodyWorkbenchError::Encode)?,
         history: serde_json::to_value(history).map_err(BodyWorkbenchError::Encode)?,
     };
@@ -156,10 +156,10 @@ pub(crate) fn validate_body_workbench(
         model_entrance(&workbench.entrance),
     )
     .map_err(BodyWorkbenchError::Entrance)?;
-    crate::body_workbench_inventory::validate(&workbench.reviewed_forms)
+    crate::body_workbench_inventory::validate(&workbench.reviewed_plots)
         .map_err(BodyWorkbenchError::Projection)?;
     let inventory = crate::body_workbench_inventory::project(
-        &workbench.reviewed_forms,
+        &workbench.reviewed_plots,
         &attachment.evidence().body.workset,
         &attachment.evidence().body.state,
         attachment.evidence().body.workload_revision,
@@ -168,7 +168,7 @@ pub(crate) fn validate_body_workbench(
     let presented_add_actions = presentation
         .actions
         .iter()
-        .filter(|action| action.intent == "conduit.intent/add-form@1")
+        .filter(|action| action.intent == "conduit.intent/add-plot@1")
         .cloned()
         .collect::<Vec<_>>();
     let inventory_matches = presented_add_actions == inventory.actions
@@ -182,17 +182,17 @@ pub(crate) fn validate_body_workbench(
         .body_id
         .as_ref()
         .is_some_and(|identity| identity.as_str() == body_id);
-    let basis_form = presentation
+    let basis_plot = presentation
         .basis
         .source_document_id
         .as_ref()
-        .zip(presentation.basis.checked_form_id.as_ref());
-    let form_matches = basis_form.is_none_or(|(source, checked)| {
+        .zip(presentation.basis.checked_plot_id.as_ref());
+    let plot_matches = basis_plot.is_none_or(|(source, checked)| {
         attachment
             .evidence()
             .body
             .workset
-            .contains(&conduit_body::ResidentForm::new(
+            .contains(&conduit_body::ResidentPlot::new(
                 source.clone(),
                 checked.clone(),
             ))
@@ -209,7 +209,7 @@ pub(crate) fn validate_body_workbench(
     .map_err(BodyWorkbenchError::Encode)?;
     if workbench.body_id != body_id
         || !body_matches
-        || !form_matches
+        || !plot_matches
         || !inventory_matches
         || workbench.current != expected_current
         || workbench.history != expected_history
@@ -235,7 +235,7 @@ pub(crate) fn model_entrance(entrance: &BrowserBodyWorkbenchEntrance) -> BodyEvi
 fn workbench_presentation(
     revision: u64,
     attachment: &BodyEvidenceAttachment,
-    reviewed_forms: &[BrowserReviewedForm],
+    reviewed_plots: &[BrowserReviewedPlot],
 ) -> Result<Presentation, BodyWorkbenchError> {
     let evidence = attachment.evidence();
     let body_identity = format!("body/{}", evidence.body_id.as_str());
@@ -257,7 +257,7 @@ fn workbench_presentation(
             value: PresentationPropertyValue::Count(evidence.body.workload_revision),
         },
     ];
-    let mut form_identities = Vec::with_capacity(workset.len());
+    let mut plot_identities = Vec::with_capacity(workset.len());
     let lifecycle_action = match evidence.body.state {
         conduit_body::BodyState::Lulled => Some(("wake", "Wake", "conduit.intent/wake@1")),
         conduit_body::BodyState::Awake { .. } => Some(("lull", "Lull", "conduit.intent/lull@1")),
@@ -277,37 +277,37 @@ fn workbench_presentation(
             },
         )
         .collect::<Vec<_>>();
-    for form in workset.forms() {
-        let form_identity = format!("form/{}", form.checked_form_id.as_str());
-        let label = form.checked_form_id.as_str().to_owned();
+    for plot in workset.plots() {
+        let plot_identity = format!("plot/{}", plot.checked_plot_id.as_str());
+        let label = plot.checked_plot_id.as_str().to_owned();
         subjects.push(PresentationSubject {
-            identity: form_identity.clone(),
-            role: PresentationRole::Form,
+            identity: plot_identity.clone(),
+            role: PresentationRole::Plot,
             name: label.clone(),
         });
         relationships.push(PresentationRelationship {
             source: body_identity.clone(),
-            target: form_identity.clone(),
+            target: plot_identity.clone(),
             kind: PresentationRelationshipKind::Contains,
         });
         properties.push(identity_property(
-            &form_identity,
+            &plot_identity,
             "source-document-id",
-            form.source_document_id.as_str(),
+            plot.source_document_id.as_str(),
         ));
         properties.push(identity_property(
-            &form_identity,
-            "checked-form-id",
-            form.checked_form_id.as_str(),
+            &plot_identity,
+            "checked-plot-id",
+            plot.checked_plot_id.as_str(),
         ));
         actions.push(PresentationAction {
             identity: format!(
-                "action/remove-form/{}/{}",
-                form.checked_form_id.as_str(),
+                "action/remove-plot/{}/{}",
+                plot.checked_plot_id.as_str(),
                 evidence.body.workload_revision
             ),
-            intent: "conduit.intent/remove-form@1".into(),
-            target: form_identity.clone(),
+            intent: "conduit.intent/remove-plot@1".into(),
+            target: plot_identity.clone(),
             name: "Remove from Body".into(),
             arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
@@ -316,7 +316,7 @@ fn workbench_presentation(
                 conduit_body::BodyState::Awake { .. } => {
                     PresentationActionAvailability::Unavailable {
                         reason_code: "body-awake".into(),
-                        explanation: "Lull the body before changing its active form workload."
+                        explanation: "Lull the body before changing its active plot workload."
                             .into(),
                     }
                 }
@@ -324,16 +324,16 @@ fn workbench_presentation(
                     PresentationActionAvailability::Unavailable {
                         reason_code: "body-fulfilled".into(),
                         explanation:
-                            "A fulfilled Body retains its biography but cannot change its form workload."
+                            "A fulfilled Body retains its biography but cannot change its plot workload."
                                 .into(),
                     }
                 }
             },
         });
-        form_identities.push(form_identity);
+        plot_identities.push(plot_identity);
     }
     let reviewed = crate::body_workbench_inventory::project(
-        reviewed_forms,
+        reviewed_plots,
         &workset,
         &evidence.body.state,
         evidence.body.workload_revision,
@@ -342,11 +342,11 @@ fn workbench_presentation(
     subjects.extend(reviewed.subjects);
     properties.extend(reviewed.properties);
     actions.extend(reviewed.actions);
-    form_identities.extend(reviewed.disclosures.iter().map(|item| item.subject.clone()));
+    plot_identities.extend(reviewed.disclosures.iter().map(|item| item.subject.clone()));
     let mut text = vec![PresentationText {
         subject: body_identity.clone(),
         text: format!(
-            "{} is a durable body running {} current form(s) at workload revision {}.",
+            "{} is a durable body running {} current plot(s) at workload revision {}.",
             evidence.friendly_name,
             workset.len(),
             evidence.body.workload_revision,
@@ -415,8 +415,8 @@ fn workbench_presentation(
                 conduit_body::BodyState::Fulfilled { .. } => None,
             },
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: evidence
@@ -436,7 +436,7 @@ fn workbench_presentation(
         }]
         .into_iter()
         .chain(
-            form_identities
+            plot_identities
                 .into_iter()
                 .map(|subject| PresentationDisclosure {
                     subject,

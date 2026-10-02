@@ -1,6 +1,6 @@
 //! Canonical bounded International Morse representation and text transforms.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
@@ -9,7 +9,7 @@ use conduit_core::{
     PortTemporal,
 };
 
-use conduit_form::rust_binding::{BoundedSequence, BoundedSequenceCapacityRefusal};
+use conduit_plot::rust_binding::{BoundedSequence, BoundedSequenceCapacityRefusal};
 
 use crate::{MorseError, MorsePattern, MorseSegment, MorseSegments};
 
@@ -104,12 +104,12 @@ impl MorseKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_morse_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
+    use conduit_plot::{
         KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
     };
 

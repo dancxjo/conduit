@@ -1,14 +1,14 @@
 use super::*;
 
-const FORM: &str = "form bool_presentation {\n    source: test/timing-bool-source\n    show: presentation/bool\n    source >> show\n}\n";
+const PLOT: &str = "plot bool_presentation {\n    source: test/timing-bool-source\n    show: presentation/bool\n    source >> show\n}\n";
 
 fn plan(host: &StdHost) -> conduit_core::Plan {
-    let form =
-        parse(FORM, &installed_std::test_catalog()).expect("Boolean presentation Form parses");
+    let plot =
+        parse(PLOT, &installed_std::test_catalog()).expect("Boolean presentation Plot parses");
     let hosts = [host.advertisement().clone()];
-    let placements = default_placements(&form, &hosts).expect("Boolean presentation resolves");
+    let placements = default_placements(&plot, &hosts).expect("Boolean presentation resolves");
     plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

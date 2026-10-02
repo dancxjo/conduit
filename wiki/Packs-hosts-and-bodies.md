@@ -1,9 +1,9 @@
-## One Conduit language for form, host, body and pack source
+## One Conduit language for plot, host, body and pack source
 
 The repository has four canonical `.conduit` document roles:
 
 ~~~text
-form      portable semantic meaning
+plot      portable semantic meaning
 host      intended finite Host construction
 body      intended Body/Part/Host construction and spore binding
 pack      finite source/shipment/dependency description
@@ -37,11 +37,11 @@ body source
   != plan / play
 ~~~
 
-body birth itself consumes checked ordinary forms as the initial workload under the current body lifecycle; there is no privileged Seed semantic identity.
+body birth itself consumes checked ordinary plots as the initial workload under the current body lifecycle; there is no privileged Seed semantic identity.
 
 Do not invent another parser or embed TOML/YAML blobs inside `.conduit`.
 
-The exact **existing** host/body grammar is implemented. New fields/declaration forms needed for richer mask/resource/facility composition must be earned as minimal general extensions, not treated as permission to redesign the document roles.
+The exact **existing** host/body grammar is implemented. New fields/declaration plots needed for richer mask/resource/facility composition must be earned as minimal general extensions, not treated as permission to redesign the document roles.
 
 Provenance: #1752, #1780, #2284. Living native/host pressure test: #4117.
 
@@ -50,16 +50,16 @@ Provenance: #1752, #1780, #2284. Living native/host pressure test: #4117.
 
 ## Generics
 
-Reusable forms use named type parameters such as `item: type`, with named
+Reusable plots use named type parameters such as `item: type`, with named
 application arguments when inference is insufficient. Native type families
 have a separate checked surface, `type Pair<T> = ...` and `Pair<Text>`. Both
 specialize to finite checked meaning before play. See
 [[Current language surface|Current-language-surface#generic-native-types]].
 
-Form signature sketch; the body is omitted, so `...` is not runnable source:
+Plot signature sketch; the body is omitted, so `...` is not runnable source:
 
 ```conduit
-form latest (
+plot latest (
     item: type
 
     >> values: item...
@@ -83,7 +83,7 @@ Keep these identities distinct:
 
 ~~~text
 semantic Kind path
-authored Form/source identity
+authored Plot/source identity
 pack identity + pack version
 module/source path
 local alias
@@ -113,7 +113,7 @@ Canonical ecosystem laws:
 Source import spelling is canonical `with` syntax:
 
 ~~~conduit
-with audio/forms/tone
+with audio/plots/tone
 with math/geometry/{vector2, matrix2}
 with house/sensors/temperature as room-temperature
 ~~~

@@ -1,7 +1,7 @@
 //! Portable bounded JSON encode/decode Kind meaning.
 
 use crate::PortableKindContract;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -59,12 +59,12 @@ pub fn json_semantic_contract(contract: PortableKindContract) -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_json_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     for contract in [
         json_encode_semantics(),
         json_decode_semantics(),

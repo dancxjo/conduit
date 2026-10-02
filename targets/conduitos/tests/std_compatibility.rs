@@ -18,14 +18,14 @@ impl TimerAdapter for RecordingTimer {
 
 #[test]
 fn ordinary_semantics_match_the_materially_different_std_realization() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog).unwrap();
     let syntax =
-        conduit_form::parse_syntax_document(conduitos::ordinary_plan::ORDINARY_FORM_SOURCE);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+        conduit_plot::parse_syntax_document(conduitos::ordinary_plan::ORDINARY_PLOT_SOURCE);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "conduitos-text-upper", &catalog).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "conduitos-text-upper", &catalog).unwrap();
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -48,7 +48,7 @@ fn ordinary_semantics_match_the_materially_different_std_realization() {
         offer_generation: conduit_core::OfferGeneration(1),
     });
     let std_plan = std_host.plan_expanded_local(&expanded).unwrap();
-    assert_eq!(std_plan.checked_form_id, bare_metal.checked_form_id);
+    assert_eq!(std_plan.checked_plot_id, bare_metal.checked_plot_id);
     assert_ne!(std_plan.plan_id, bare_metal.plan_id);
     assert!(
         std_plan.fragments[0]

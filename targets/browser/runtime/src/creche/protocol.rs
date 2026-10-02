@@ -9,7 +9,7 @@ pub(super) struct GraduationReadiness {
     pub(super) durable_identity: bool,
     pub(super) birth_evidence: bool,
     pub(super) current_admitted_part: bool,
-    pub(super) active_form_count: usize,
+    pub(super) active_plot_count: usize,
     pub(super) ready: bool,
 }
 
@@ -31,7 +31,7 @@ pub(super) struct GraduationReceipt {
 pub(super) struct BirthReceipt {
     pub(super) schema: String,
     pub(super) disposition: String,
-    pub(super) initial_forms: Vec<InitialFormReceipt>,
+    pub(super) initial_plots: Vec<InitialPlotReceipt>,
     pub(super) initial_review: super::review::InitialWorkloadReview,
     pub(super) body_id: String,
     pub(super) friendly_name: String,
@@ -53,8 +53,8 @@ pub(super) struct BirthReceipt {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub(super) struct InitialFormReceipt {
+pub(super) struct InitialPlotReceipt {
     pub(super) name: String,
     pub(super) source_document_id: String,
-    pub(super) checked_form_id: String,
+    pub(super) checked_plot_id: String,
 }

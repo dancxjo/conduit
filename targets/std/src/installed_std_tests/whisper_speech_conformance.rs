@@ -48,7 +48,7 @@ fn initialized_whisper_runs_portable_recognition_through_ordinary_plan_and_play(
     }));
 
     let mut catalog = crate::installed_std::test_catalog();
-    let mut startup = conduit_form::StartupCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut catalog).unwrap();
     crate::installed_std::test_local_model_io::install_house_source_catalog(
         &mut startup,
@@ -59,15 +59,15 @@ fn initialized_whisper_runs_portable_recognition_through_ordinary_plan_and_play(
         &mut catalog,
     );
     let source = format!(
-        "form whisper_proof {{\n audio: {}\n recognize: speech/recognize\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
+        "plot whisper_proof {{\n audio: {}\n recognize: speech/recognize\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );
-    let form = conduit_form::parse(&source, &catalog).unwrap();
+    let plot = conduit_plot::parse(&source, &catalog).unwrap();
     let advertisements = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&form, &advertisements).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &advertisements).unwrap();
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &advertisements,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -157,7 +157,7 @@ fn initialized_whisper_assembles_a_bounded_clip_in_one_ordinary_play() {
     .unwrap();
 
     let mut catalog = crate::installed_std::test_catalog();
-    let mut startup = conduit_form::StartupCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut catalog).unwrap();
     crate::installed_std::test_local_model_io::install_house_source_catalog(
         &mut startup,
@@ -168,15 +168,15 @@ fn initialized_whisper_assembles_a_bounded_clip_in_one_ordinary_play() {
         &mut catalog,
     );
     let source = format!(
-        "form whisper_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
+        "plot whisper_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );
-    let form = conduit_form::parse(&source, &catalog).unwrap();
+    let plot = conduit_plot::parse(&source, &catalog).unwrap();
     let advertisements = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&form, &advertisements).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &advertisements).unwrap();
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &advertisements,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

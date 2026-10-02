@@ -219,7 +219,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#route-cards")).toContainText("conduit.base/usb-cdc-acm@1");
     await expect(page.locator("#route-cards")).toContainText("conduit.base/websocket-rfc6455@1");
     const workspace=await page.locator(".workspace").boundingBox();
-    const canvas=await page.locator("#form").boundingBox();
+    const canvas=await page.locator("#plot").boundingBox();
     if(await page.locator("body").getAttribute("data-inspector-open")!=="true")await page.locator("#toggle-inspector").click();
     const inspector=await page.locator("#inspector").boundingBox();
     expect(workspace).not.toBeNull();expect(canvas).not.toBeNull();expect(inspector).not.toBeNull();
@@ -245,7 +245,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
       expect((await page.evaluate(()=>getComputedStyle(document.documentElement).fontFamily)).replaceAll('"',"")).toBe("DejaVu Sans, sans-serif");
     }
 
-    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.getByRole("button",{name:"Plot",exact:true}).click();
     await prepareCanvasEvidence(page);
     await expectFlowDominant(page);
     const structuredSummary=await page.locator("#toggle-inspector").boundingBox();
@@ -267,7 +267,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const structuredSubjects=await page.locator("#structured-navigator [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     expect(listSubjects).toEqual(expectedSubjects); expect(structuredSubjects).toEqual(expectedSubjects);
     await expect(page.locator("#flow-root .react-flow")).toHaveCount(1);
-    await expect(page.locator("#form svg[role=img]")).toHaveCount(0);
+    await expect(page.locator("#plot svg[role=img]")).toHaveCount(0);
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=false;});
     expect(await principalNode.evaluate((node,current)=>node.isSameNode(current),await page.locator("#flow-root .react-flow__node").first().elementHandle())).toBe(true);
     await expect(page.locator("#flow-root .flow-gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
@@ -338,7 +338,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const routeSnapshot=await (await fetch(`${url}/api/snapshot`)).json();expect(routeSnapshot.navigation.cursor.focus).toBe(await route.getAttribute("data-subject"));
     await expect(page.locator("#deep-inspection")).not.toHaveAttribute("open","");
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"route-recovery",routeSnapshot,"exact-line-loss-new-plan-and-same-plan-recovery-spatially-correlated");
-    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.getByRole("button",{name:"Plot",exact:true}).click();
     const second=page.locator('#subjects input[type="radio"][data-role="Port"]').first();await second.click();
     await expect(second).toBeChecked();
     await expect(page.locator("#inspector .selected-summary")).toContainText(/receiving|outgoing/);
@@ -421,7 +421,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
   try {
     const url=await server.url;
     await page.goto(url);
-    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.getByRole("button",{name:"Plot",exact:true}).click();
     await expect(page.locator("#flow-root")).toHaveAttribute("data-renderer","react-flow");
     await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();
     const before=await (await fetch(`${url}/api/snapshot`)).json();
@@ -484,7 +484,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     expect(spaceSelection.navigation.cursor.focus).toBe(pointerSelection.navigation.cursor.focus);
     const lensAnchor=await nodes.first().boundingBox();
     await page.getByRole("button",{name:"Structure",exact:true}).click();
-    await expect(page.locator("#flow-root .flow-frontplate").first()).toHaveAttribute("data-lens","form");
+    await expect(page.locator("#flow-root .flow-frontplate").first()).toHaveAttribute("data-lens","plot");
     const intentAnchor=await nodes.first().boundingBox();
     expect(Math.abs(intentAnchor.x-lensAnchor.x)+Math.abs(intentAnchor.y-lensAnchor.y)).toBeLessThan(3);
     await page.getByRole("button",{name:"Realization",exact:true}).click();
@@ -550,7 +550,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     expect(await page.evaluate(()=>({height:document.scrollingElement.scrollHeight,width:document.scrollingElement.scrollWidth}))).toEqual({height:900,width:700});
     const topbarBox=await page.locator('[data-application-slot="product-masthead"]').boundingBox(),navBox=await page.getByRole("navigation",{name:"Patchbay workspace"}).boundingBox();
     expect(topbarBox.y+topbarBox.height).toBeLessThanOrEqual(navBox.y);
-    for(const control of ["Library","Inspect","Form","Body","Structure","Realization","Play","Debug"]){
+    for(const control of ["Library","Inspect","Plot","Body","Structure","Realization","Play","Debug"]){
       const item=page.getByRole("button",{name:control,exact:true});
       await item.evaluate(element=>element.scrollIntoView({block:"nearest",inline:"nearest"}));
       const box=await item.boundingBox();

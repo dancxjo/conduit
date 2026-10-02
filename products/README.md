@@ -4,6 +4,6 @@
 owns the installed `conduit` command and packages the supported entrances.
 
 Human encounters such as Workspace, Tour, Birth, and Patchbay are not separate
-products or runtimes. Their meaning lives with resident Forms and semantic
+products or runtimes. Their meaning lives with resident Plots and semantic
 owners; browser realization lives under `targets/browser`, and ConduitOS
 realization lives under `targets/conduitos`.

@@ -77,8 +77,8 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let (second_kernel, second_identity, _) = boot_once(&paths)?;
     let stable_semantic_identities = first_kernel.source_document_id
         == second_kernel.source_document_id
-        && first_kernel.checked_form_id == second_kernel.checked_form_id
-        && first_kernel.expanded_form_id == second_kernel.expanded_form_id;
+        && first_kernel.checked_plot_id == second_kernel.checked_plot_id
+        && first_kernel.expanded_plot_id == second_kernel.expanded_plot_id;
     let fresh_realization_identities = first_kernel.plan_id != second_kernel.plan_id
         && first_kernel.fragment_id != second_kernel.fragment_id
         && first_kernel.active_play_id != second_kernel.active_play_id;

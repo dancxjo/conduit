@@ -118,14 +118,14 @@ pub fn flow_first_contract(value: &CheckedValueContract) -> Result<Kind, &'stati
     })
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_first_kind(
     value_name: &str,
     value: &CheckedValueContract,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: FIRST_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
@@ -163,9 +163,9 @@ mod tests {
     }
 
     #[test]
-    fn canonical_form_lowers_both_explicit_loser_cancellation_routes() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+    fn canonical_plot_lowers_both_explicit_loser_cancellation_routes() {
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         for name in [
             FIRST_KIND,
             "test/cancellable-scalar",
@@ -173,7 +173,7 @@ mod tests {
             "test/cancel-recovery",
         ] {
             startup
-                .insert(conduit_form::KindSignature {
+                .insert(conduit_plot::KindSignature {
                     kind: name.to_string(),
                     startup_parameters: Vec::new(),
                 })
@@ -290,11 +290,11 @@ mod tests {
             })
             .unwrap();
 
-        let form = conduit_form::parse_syntax_document(
-            "form race {\n left: test/cancellable-scalar\n right: test/cancellable-scalar\n first: flow/first\n sink: test/scalar-sink\n left-recovery: test/cancel-recovery\n right-recovery: test/cancel-recovery\n left.out >> first.left\n right.out >> first.right\n first.out >> sink.in\n first.cancel-left >> left~\n first.cancel-right >> right~\n left! >> left-recovery.terminal\n right! >> right-recovery.terminal\n}\n",
+        let plot = conduit_plot::parse_syntax_document(
+            "plot race {\n left: test/cancellable-scalar\n right: test/cancellable-scalar\n first: flow/first\n sink: test/scalar-sink\n left-recovery: test/cancel-recovery\n right-recovery: test/cancel-recovery\n left.out >> first.left\n right.out >> first.right\n first.out >> sink.in\n first.cancel-left >> left~\n first.cancel-right >> right~\n left! >> left-recovery.terminal\n right! >> right-recovery.terminal\n}\n",
         );
-        let checked = conduit_form::check_syntax_document(&form, &startup).unwrap();
-        let expanded = conduit_form::expand_canonical_form(&checked, "race", &profile).unwrap();
+        let checked = conduit_plot::check_syntax_document(&plot, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot(&checked, "race", &profile).unwrap();
         assert_eq!(expanded.connections.len(), 7);
         let cancellation_connections = expanded
             .connections

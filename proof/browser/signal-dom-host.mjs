@@ -78,8 +78,8 @@ export class BrowserDomHost {
   completePresentation(effect) {
     const identityFields = [
       effect?.sourceDocumentId,
-      effect?.checkedFormId,
-      effect?.expandedFormId,
+      effect?.checkedPlotId,
+      effect?.expandedPlotId,
       effect?.planId,
       effect?.fragmentId,
       effect?.hostId,
@@ -133,8 +133,8 @@ export class BrowserDomHost {
       hostId: this.hostId,
       bootId: this.bootId,
       sourceDocumentId: effect.sourceDocumentId,
-      checkedFormId: effect.checkedFormId,
-      expandedFormId: effect.expandedFormId,
+      checkedPlotId: effect.checkedPlotId,
+      expandedPlotId: effect.expandedPlotId,
       planId: effect.planId,
       fragmentId: effect.fragmentId,
       activePlayId: effect.activePlayId,
@@ -186,8 +186,8 @@ export class BrowserDomHost {
       ok: true,
       completion: Object.freeze({
         sourceDocumentId: effect.sourceDocumentId,
-        checkedFormId: effect.checkedFormId,
-        expandedFormId: effect.expandedFormId,
+        checkedPlotId: effect.checkedPlotId,
+        expandedPlotId: effect.expandedPlotId,
         planId: effect.planId,
         fragmentId: effect.fragmentId,
         hostId: effect.hostId,

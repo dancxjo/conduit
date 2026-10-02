@@ -1,7 +1,7 @@
 //! Correlated, evidence-honest lifecycle for one finite record delivery.
 
 use crate::MAXIMUM_TYPED_RECORD_FRAME_BYTES;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::vec::Vec;
 
 pub const MAXIMUM_RECORD_CORRELATION_BYTES: usize = 128;
@@ -99,7 +99,7 @@ pub struct RecordDeliveryTracker {
     state: RecordDeliveryState,
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub struct BoundedRecordDeliveryStatusCodec {
     tracker: Option<RecordDeliveryTracker>,
     observation_type: Vec<u8>,
@@ -108,7 +108,7 @@ pub struct BoundedRecordDeliveryStatusCodec {
     output: Vec<u8>,
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 impl BoundedRecordDeliveryStatusCodec {
     pub fn prepare() -> Result<Self, RecordDeliveryRefusal> {
         Ok(Self {
@@ -157,7 +157,7 @@ impl BoundedRecordDeliveryStatusCodec {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn exact_leaf<'a>(
     canonical: &'a [u8],
     value_type: &[u8],
@@ -179,7 +179,7 @@ fn exact_leaf<'a>(
         .ok_or(RecordDeliveryRefusal::MalformedWire)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn write_exact_leaf(
     output: &mut Vec<u8>,
     value_type: &[u8],

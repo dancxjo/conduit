@@ -1,4 +1,4 @@
-//! One admitted native Body Plan/Play across exact resident Form partitions.
+//! One admitted native Body Plan/Play across exact resident Plot partitions.
 use super::{JourneyError, JourneyLossKind, JourneyStatus, ProductJourney};
 use crate::{identity::BootIdentities, native_workset, offer::HostOffer};
 use alloc::{boxed::Box, format, vec};
@@ -8,7 +8,7 @@ use conduit_human::KeyEvent;
 use conduit_presentation::{ApplicationEvent, ApplicationView};
 
 impl ProductJourney {
-    pub fn foreground_input_owner(&self) -> Option<&native_workset::AdmittedFormInput> {
+    pub fn foreground_input_owner(&self) -> Option<&native_workset::AdmittedPlotInput> {
         (self.status == JourneyStatus::QuiescentAwaitingInput)
             .then(|| self.kernel.as_ref()?.input_owner(self.foreground))?
     }
@@ -30,9 +30,9 @@ impl ProductJourney {
             return Err(JourneyError::InvalidTransition);
         }
         let tour = self
-            .forms
+            .plots
             .iter()
-            .position(|form| *form == Some(native_workset::NativeForm::Tour))
+            .position(|plot| *plot == Some(native_workset::NativePlot::Tour))
             .ok_or(JourneyError::Kernel)?;
         self.kernel
             .as_mut()
@@ -42,8 +42,8 @@ impl ProductJourney {
                 conduit_tour_model::TourRunProof {
                     specimen_id: evidence.specimen_id.into(),
                     source_document_id: evidence.source_document_id.clone(),
-                    checked_form_id: evidence.checked_form_id.clone(),
-                    expanded_form_id: evidence.expanded_form_id.clone(),
+                    checked_plot_id: evidence.checked_plot_id.clone(),
+                    expanded_plot_id: evidence.expanded_plot_id.clone(),
                     plan_id: evidence.plan_id.clone(),
                     active_play_id: evidence.active_play_id.clone(),
                     result: evidence.result.into(),
@@ -91,9 +91,9 @@ impl ProductJourney {
         self.input_count = next_count;
         self.advance()?;
         if application_request == Some(native_workset::NativeApplicationRequest::OpenPatchbay) {
-            let patchbay = native_workset::resident(native_workset::NativeForm::Patchbay)
+            let patchbay = native_workset::resident(native_workset::NativePlot::Patchbay)
                 .map_err(JourneyError::Workset)?;
-            self.select_form(&patchbay, self.revision)?;
+            self.select_plot(&patchbay, self.revision)?;
         } else if application_request.is_some() {
             if self.application_request.is_some() {
                 return Err(JourneyError::Play(
@@ -145,10 +145,10 @@ impl ProductJourney {
             play.active_play_id.as_str(),
             self.input_count
         )));
-        for index in 0..self.forms.len() {
+        for index in 0..self.plots.len() {
             if let Some(value) = kernel.take_presentation(index) {
                 self.results[index].record(
-                    self.forms[index].ok_or(JourneyError::Kernel)?,
+                    self.plots[index].ok_or(JourneyError::Kernel)?,
                     value,
                     SignId::from(format!(
                         "conduitos/product/result/{}/{}/{}",
@@ -212,8 +212,8 @@ impl ProductJourney {
             return Err(JourneyError::WrongTarget);
         }
         let mask_control = if self
-            .forms
-            .contains(&Some(native_workset::NativeForm::Patchbay))
+            .plots
+            .contains(&Some(native_workset::NativePlot::Patchbay))
         {
             let control = crate::mask_control::MaskControl::graphical(
                 self.host_id.clone(),
@@ -246,7 +246,7 @@ impl ProductJourney {
             )
             .map_err(|_| JourneyError::InvalidTransition)?,
         );
-        self.results = core::array::from_fn(|_| super::FormResult::new());
+        self.results = core::array::from_fn(|_| super::PlotResult::new());
         self.input_count = 0;
         self.input_sign_id = None;
         self.loss_kind = None;
@@ -293,7 +293,7 @@ impl ProductJourney {
         }
         self.wake = Some(wake);
         self.play = Some(play.clone());
-        // This form has no checked completion witness. Its initial structural
+        // This plot has no checked completion witness. Its initial structural
         // drain leaves the admitted play resident and awaiting later input.
         self.status = JourneyStatus::QuiescentAwaitingInput;
         Ok(())

@@ -118,7 +118,7 @@ impl StdHost {
 
     /// Execute a fragment whose Plan selected the Body-durable State Back.
     /// The Body identity and host-selected residence enter explicitly here;
-    /// neither is inferred from the Form, Plan id, or filesystem path.
+    /// neither is inferred from the Plot, Plan id, or filesystem path.
     pub fn run_body_durable_fragment_to<W: Write, T: TimerAdapter>(
         &mut self,
         body: &conduit_body::BodyId,
@@ -175,7 +175,7 @@ impl StdHost {
         .map(|run| run.report)
     }
 
-    pub fn run_external_form_to<W: Write, T: TimerAdapter>(
+    pub fn run_external_plot_to<W: Write, T: TimerAdapter>(
         &mut self,
         fragment: PlanFragment,
         inputs: &[ExternalForeInput],
@@ -204,7 +204,7 @@ impl StdHost {
         .map(|run| run.report)
     }
 
-    pub fn run_spoken_mask_form_to<W: Write, T: TimerAdapter>(
+    pub fn run_spoken_mask_plot_to<W: Write, T: TimerAdapter>(
         &mut self,
         fragment: PlanFragment,
         preparation: crate::spoken_mask_runtime::SpokenMaskPreparation,

@@ -1,6 +1,6 @@
 //! Conduit kernel execution for the generated Signal demo image on Pico W.
 //!
-//! The build script parses `proof/fixtures/forms/signal-demo.conduit`, plans it onto the
+//! The build script parses `proof/fixtures/plots/signal-demo.conduit`, plans it onto the
 //! Pico-local advertisement, lowers the exact fragment, and emits the fixed
 //! tables consumed here.
 
@@ -42,7 +42,7 @@ use crate::signal_image::{
 };
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::signal_image::{
-    ACTIVE_PLAY_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
+    ACTIVE_PLAY_ID, BOOT_ID, CHECKED_PLOT_ID, EXPANDED_PLOT_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
     HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_SIGN_ID,
 };
 
@@ -214,8 +214,8 @@ pub fn boot_identity() -> BootIdentity {
     BootIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
-        checked_form_id: CHECKED_FORM_ID,
-        expanded_form_id: EXPANDED_FORM_ID,
+        checked_plot_id: CHECKED_PLOT_ID,
+        expanded_plot_id: EXPANDED_PLOT_ID,
         plan_id: PLAN_ID,
         fragment_id: FRAGMENT_ID,
         host_id: HOST_ID,
@@ -231,8 +231,8 @@ pub fn presentation_receipt_identity(
     PresentationReceiptIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
-        checked_form_id: CHECKED_FORM_ID,
-        expanded_form_id: EXPANDED_FORM_ID,
+        checked_plot_id: CHECKED_PLOT_ID,
+        expanded_plot_id: EXPANDED_PLOT_ID,
         plan_id: PLAN_ID,
         fragment_id: FRAGMENT_ID,
         host_id: HOST_ID,
@@ -248,8 +248,8 @@ pub fn terminal_identity() -> TerminalIdentity {
     TerminalIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
-        checked_form_id: CHECKED_FORM_ID,
-        expanded_form_id: EXPANDED_FORM_ID,
+        checked_plot_id: CHECKED_PLOT_ID,
+        expanded_plot_id: EXPANDED_PLOT_ID,
         plan_id: PLAN_ID,
         fragment_id: FRAGMENT_ID,
         host_id: HOST_ID,

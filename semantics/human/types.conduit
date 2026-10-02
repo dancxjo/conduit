@@ -105,12 +105,12 @@ type ImageTextRefusal =
     | duplicate_metadata_key
     | integrity_mismatch
 
-code human/key-transition = KeyTransition as u8
+form human/key-transition = KeyTransition as u8
 
 type ChordPhase =
     triggered
 
-code human/chord-phase = ChordPhase as u8 from 2
+form human/chord-phase = ChordPhase as u8 from 2
 
 type CoreChordId =
     cancel_or_escape
@@ -122,14 +122,14 @@ type CoreChordId =
     | command
     | activate
 
-code human/core-chord-id = CoreChordId as u8 from 1
+form human/core-chord-id = CoreChordId as u8 from 1
 
 type ControlChordModifier =
     left
     | right
     | both
 
-# The eight exact chord meanings. Usage, phase and compact-code fields are
+# The eight exact chord meanings. Usage, phase and compact-form fields are
 # derived compatibility facts rather than redundant authored payload.
 type ChordInfo =
     cancel_or_escape ControlChordModifier

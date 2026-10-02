@@ -10,7 +10,7 @@ use conduit_core::{
     BaseImplementationId, CharacteristicId, HostAdvertisement, Plan, RealizationAdvertisement,
     ResourceObservation, SignId,
 };
-use conduit_form::{CheckedForm, CheckedGear};
+use conduit_plot::{CheckedGear, CheckedPlot};
 
 pub const MAXIMUM_DEGRADED_PROFILE_DIMENSIONS: usize = 16;
 pub const MAXIMUM_DEGRADED_PROFILE_ID_BYTES: usize = 256;
@@ -245,18 +245,18 @@ fn selected_observation_signs(
 }
 
 /// Seals an already admitted exact profile choice through the ordinary plan path.
-/// The admission does not grant authority and cannot substitute a different Form.
+/// The admission does not grant authority and cannot substitute a different Plot.
 pub fn seal_reviewed_service_profile_plan(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
     advertisements: &[RealizationAdvertisement],
     admission: &ServiceProfileAdmission,
 ) -> Result<Plan, DegradedProfileRefusal> {
-    if form.gears.len() != 1 {
+    if plot.gears.len() != 1 {
         return Err(DegradedProfileRefusal::InvalidProfile);
     }
-    let gear = &form.gears[0];
+    let gear = &plot.gears[0];
     let placements = crate::PlacementChoices {
         by_gear: alloc::collections::BTreeMap::from([(
             gear.gear_id.clone(),
@@ -264,7 +264,7 @@ pub fn seal_reviewed_service_profile_plan(
         )]),
     };
     let plan =
-        crate::plan(form, hosts, &placements, bases).map_err(DegradedProfileRefusal::Planner)?;
+        crate::plan(plot, hosts, &placements, bases).map_err(DegradedProfileRefusal::Planner)?;
     crate::characteristic_sealing::seal_characteristics(plan, advertisements)
         .map_err(DegradedProfileRefusal::Planner)
 }

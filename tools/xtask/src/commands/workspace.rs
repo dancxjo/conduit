@@ -106,7 +106,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                 "--release",
                 "--no-default-features",
                 "--features",
-                "creche-surface,form-runner",
+                "creche-surface,plot-runner",
             ],
         ),
         &root,
@@ -142,7 +142,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "proof/browser/browser-body-input.test.mjs",
                     "proof/browser/browser-body-host.test.mjs",
                     "proof/browser/workspace-handoff.test.mjs",
-                    "proof/browser/browser-form-effects.test.mjs",
+                    "proof/browser/browser-plot-effects.test.mjs",
                     "proof/browser/browser-pitch-tone.test.mjs",
                 ],
             ),
@@ -152,7 +152,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         run_step(
             &Step::new(
                 "journey.workspace.arrival",
-                "Prove Birth, listening Forms, continuity, and storage refusal",
+                "Prove Birth, listening Plots, continuity, and storage refusal",
                 "node",
                 &[
                     "proof/browser/node_modules/@playwright/test/cli.js",

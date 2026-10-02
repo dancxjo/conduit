@@ -97,8 +97,8 @@ pub(super) fn direct_presentation_offer() -> CapabilityOffer {
 }
 
 pub(super) fn install_catalogs(
-    _: &mut conduit_form::StartupCatalog,
-    _: &mut conduit_form::ProfileCatalog,
+    _: &mut conduit_plot::StartupCatalog,
+    _: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     Ok(())
 }

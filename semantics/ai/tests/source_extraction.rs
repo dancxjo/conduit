@@ -10,7 +10,7 @@ use conduit_core::{
     ResourceReferenceAccessRefusal, ResourceReferenceAvailability, ResourceReferenceBinding,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 const ACCESS_CLASS: &str = "resource/read-authorized@1";
 const AUTHORITY: &str = conduit_ai::SOURCE_READ_AUTHORITY;
@@ -380,17 +380,17 @@ fn malformed_extent_profile_and_every_finite_bound_fail_closed() {
     );
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 #[test]
-fn ordinary_authored_form_checks_and_expands_without_realization_facts() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn ordinary_authored_plot_checks_and_expands_without_realization_facts() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_ai::install_source_extraction_catalog(&mut startup, &mut profile).unwrap();
-    let source = "form chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 32, 8192, 512, 16, 16384)\n}\n";
+    let source = "plot chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 32, 8192, 512, 16, 16384)\n}\n";
     let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, "chunk", &profile).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "chunk", &profile).unwrap();
     assert_eq!(
         expanded.gears[0].kind_id.as_str(),
         "retrieval/extract-source"

@@ -11,11 +11,11 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, SignStorageBudget, ValuePayload, BOOL_INFO_ID,
     PROTOCOL_VERSION,
 };
-use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{HostedValueStore, PortId as KernelPortId, ValueRef, ValueStorage};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
+use conduit_plot::{parse, KindProjection, ProfileCatalog};
 use std::collections::BTreeMap;
 
 #[path = "support/allocation.rs"]
@@ -49,8 +49,8 @@ fn definition() -> KernelCompositeDefinition {
             configuration: vec![],
         })
         .unwrap();
-    let form = parse(
-        "form test/predicate (\n >> input: value/bytes\n output: Boolean >>\n) {\n predicate: test/kernel-composite-predicate\n input >> predicate.in\n predicate.accepted >> output\n}\n",
+    let plot = parse(
+        "plot test/predicate (\n >> input: value/bytes\n output: Boolean >>\n) {\n predicate: test/kernel-composite-predicate\n input >> predicate.in\n predicate.accepted >> output\n}\n",
         &catalog,
     )
     .unwrap();
@@ -93,7 +93,7 @@ fn definition() -> KernelCompositeDefinition {
         )]),
     };
     let plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[host],
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -109,7 +109,7 @@ fn definition() -> KernelCompositeDefinition {
         HostProfileId::from("composite/predicate"),
         ImplementationId::from("composite/predicate-v1"),
         ArtifactId::from("composite/predicate-artifact-v1"),
-        &form,
+        &plot,
         &CapabilityId::from("run"),
         plan,
         FailureReason::CompositeCapabilityFailed,

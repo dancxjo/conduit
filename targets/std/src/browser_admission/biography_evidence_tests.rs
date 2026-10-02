@@ -1,12 +1,12 @@
 use super::*;
 use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
-use conduit_core::{CheckedFormId, SourceDocumentId};
+use conduit_core::{CheckedPlotId, SourceDocumentId};
 
 #[test]
 fn bounded_validated_biography_evidence_round_trips_separately_from_admission() {
     let body = Body::born(
         SourceDocumentId::from("source/browser-biography-frame"),
-        CheckedFormId::from("checked/browser-biography-frame"),
+        CheckedPlotId::from("checked/browser-biography-frame"),
         1,
         SignId::from("sign/browser-biography-frame/born"),
     )

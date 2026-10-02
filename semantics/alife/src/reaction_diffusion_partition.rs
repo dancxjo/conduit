@@ -112,7 +112,7 @@ impl ReactionDiffusionPartition {
         if regions.is_empty() {
             return Err(ReactionDiffusionPartitionRefusal::InvalidRegionCount);
         }
-        let regions = conduit_form::rust_binding::BoundedSequence::try_from_iter(regions)
+        let regions = conduit_plot::rust_binding::BoundedSequence::try_from_iter(regions)
             .map_err(|_| ReactionDiffusionPartitionRefusal::InvalidRegionCount)?;
         Self::new(regions).map_err(|_| ReactionDiffusionPartitionRefusal::InvalidRegionCount)
     }

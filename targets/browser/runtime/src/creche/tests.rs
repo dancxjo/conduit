@@ -2,47 +2,47 @@ use super::session;
 use crate::source_interaction::admit_source;
 use conduit_body::{BodyLifecycleEvent, BodyState, MembershipEventKind, MembershipState};
 
-const SEED: &str = r#"form hello_across {
+const SEED: &str = r#"plot hello_across {
     message: text/literal("hello across one planned Cord")
     show: presentation/text
     message >> show
 }"#;
 
-const TWO_FORMS: &str = concat!(
-    include_str!("../../../../../forms/morse-network/main.conduit"),
+const TWO_PLOTS: &str = concat!(
+    include_str!("../../../../../plots/morse-network/main.conduit"),
     "\n",
-    include_str!("../../../../../forms/memory-lantern/main.conduit"),
+    include_str!("../../../../../plots/memory-lantern/main.conduit"),
     "\n",
-    include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+    include_str!("../../../../../plots/desk-telegraph/main.conduit"),
 );
 
 fn reviewed_bundle() -> String {
     serde_json::json!({
-        "schema": "conduit.creche/reviewed-form-bundle@1",
-        "forms": [
-            { "slug": "morse-network", "source": include_str!("../../../../../forms/morse-network/main.conduit") },
-            { "slug": "memory-lantern", "source": include_str!("../../../../../forms/memory-lantern/main.conduit") },
-            { "slug": "desk-telegraph", "source": include_str!("../../../../../forms/desk-telegraph/main.conduit") },
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [
+            { "slug": "morse-network", "source": include_str!("../../../../../plots/morse-network/main.conduit") },
+            { "slug": "memory-lantern", "source": include_str!("../../../../../plots/memory-lantern/main.conduit") },
+            { "slug": "desk-telegraph", "source": include_str!("../../../../../plots/desk-telegraph/main.conduit") },
         ],
     })
     .to_string()
 }
 
 fn selection(source: &str, names: &[&str]) -> String {
-    let inventory = super::initial_forms::reviewed_inventory(source).unwrap();
+    let inventory = super::initial_plots::reviewed_inventory(source).unwrap();
     serde_json::to_string(
         &names
             .iter()
             .map(|name| {
-                let form = inventory
-                    .forms
+                let plot = inventory
+                    .plots
                     .iter()
-                    .find(|form| form.name == *name)
+                    .find(|plot| plot.name == *name)
                     .unwrap();
-                super::initial_forms::InitialFormSelection {
-                    name: form.name.clone(),
-                    source_document_id: form.source_document_id.clone(),
-                    checked_form_id: form.checked_form_id.clone(),
+                super::initial_plots::InitialPlotSelection {
+                    name: plot.name.clone(),
+                    source_document_id: plot.source_document_id.clone(),
+                    checked_plot_id: plot.checked_plot_id.clone(),
                 }
             })
             .collect::<Vec<_>>(),
@@ -79,8 +79,8 @@ fn explicit_birth_retains_one_lulled_body_then_attaches_the_first_host() {
     assert!(receipt.plan_id.is_none());
     assert!(receipt.active_play_id.is_none());
     assert_eq!(receipt.friendly_name, "brisk lantern");
-    assert_eq!(receipt.initial_forms.len(), 1);
-    assert_eq!(receipt.initial_forms[0].name, "hello_across");
+    assert_eq!(receipt.initial_plots.len(), 1);
+    assert_eq!(receipt.initial_plots[0].name, "hello_across");
     assert!(receipt.here_part_id.is_none());
     assert!(receipt.raw_membership.parts.is_empty());
 
@@ -135,23 +135,23 @@ fn duplicate_birth_and_changed_source_refuse_without_mutating_the_body() {
 }
 
 #[test]
-fn birth_activates_multiple_selected_forms_as_one_revision_zero_workload() {
+fn birth_activates_multiple_selected_plots_as_one_revision_zero_workload() {
     session::clear_for_test();
-    let interaction = admit_source(TWO_FORMS.as_bytes(), 24).unwrap();
+    let interaction = admit_source(TWO_PLOTS.as_bytes(), 24).unwrap();
     let receipt = session::birth(
         "browser/creche",
         "browser-boot/creche",
         "shared lantern",
         &selection(
-            TWO_FORMS,
+            TWO_PLOTS,
             &["memory_lantern", "morse_network", "desk_telegraph"],
         ),
-        TWO_FORMS,
+        TWO_PLOTS,
         24,
         interaction,
     )
     .unwrap();
-    assert_eq!(receipt.initial_forms.len(), 3);
+    assert_eq!(receipt.initial_plots.len(), 3);
     assert_eq!(receipt.workload_revision, 0);
     assert_eq!(receipt.raw_body.workload_revision, 0);
     assert_eq!(receipt.raw_body.workset.len(), 3);
@@ -162,14 +162,14 @@ fn birth_activates_multiple_selected_forms_as_one_revision_zero_workload() {
 fn duplicate_absent_and_over_capacity_initial_selections_refuse_before_birth() {
     for (sequence, selection) in [
         (25, selection(SEED, &["hello_across", "hello_across"])),
-        (26, r#"[{"name":"absent","source_document_id":"source/stale","checked_form_id":"checked/stale"}]"#.to_string()),
+        (26, r#"[{"name":"absent","source_document_id":"source/stale","checked_plot_id":"checked/stale"}]"#.to_string()),
         (
             27,
-            serde_json::to_string(&vec![super::initial_forms::InitialFormSelection {
+            serde_json::to_string(&vec![super::initial_plots::InitialPlotSelection {
                 name: "hello_across".into(),
                 source_document_id: "source/over-capacity".into(),
-                checked_form_id: "checked/over-capacity".into(),
-            }; conduit_body::MAX_BODY_FORMS + 1]).unwrap(),
+                checked_plot_id: "checked/over-capacity".into(),
+            }; conduit_body::MAX_BODY_PLOTS + 1]).unwrap(),
         ),
     ] {
         session::clear_for_test();
@@ -191,44 +191,44 @@ fn duplicate_absent_and_over_capacity_initial_selections_refuse_before_birth() {
 #[test]
 fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
     let source = reviewed_bundle();
-    let inventory = super::initial_forms::reviewed_inventory(&source).unwrap();
-    assert_eq!(inventory.forms.len(), 3);
-    assert_eq!(inventory.forms[0].title, "Morse Network");
+    let inventory = super::initial_plots::reviewed_inventory(&source).unwrap();
+    assert_eq!(inventory.plots.len(), 3);
+    assert_eq!(inventory.plots[0].title, "Morse Network");
     assert!(inventory
-        .forms
+        .plots
         .iter()
-        .all(|form| form.source_document_id != inventory.source_document_id));
-    for form in &inventory.forms {
-        let canonical = match form.name.as_str() {
-            "morse_network" => include_str!("../../../../../forms/morse-network/main.conduit"),
-            "memory_lantern" => include_str!("../../../../../forms/memory-lantern/main.conduit"),
-            "desk_telegraph" => include_str!("../../../../../forms/desk-telegraph/main.conduit"),
-            name => panic!("unexpected reviewed form {name}"),
+        .all(|plot| plot.source_document_id != inventory.source_document_id));
+    for plot in &inventory.plots {
+        let canonical = match plot.name.as_str() {
+            "morse_network" => include_str!("../../../../../plots/morse-network/main.conduit"),
+            "memory_lantern" => include_str!("../../../../../plots/memory-lantern/main.conduit"),
+            "desk_telegraph" => include_str!("../../../../../plots/desk-telegraph/main.conduit"),
+            name => panic!("unexpected reviewed plot {name}"),
         };
-        let individually_checked = super::initial_forms::check_source(canonical).unwrap();
-        let individually_checked_form = individually_checked
-            .forms
+        let individually_checked = super::initial_plots::check_source(canonical).unwrap();
+        let individually_checked_plot = individually_checked
+            .plots
             .iter()
-            .find(|checked| checked.name == form.name)
+            .find(|checked| checked.name == plot.name)
             .unwrap();
-        assert_eq!(form.source, canonical);
+        assert_eq!(plot.source, canonical);
         assert_eq!(
-            form.source_document_id,
+            plot.source_document_id,
             individually_checked.source_document_id.as_str()
         );
         assert_eq!(
-            form.checked_form_id,
-            individually_checked_form.checked_form_id.as_str()
+            plot.checked_plot_id,
+            individually_checked_plot.checked_plot_id.as_str()
         );
     }
     assert!(inventory
-        .forms
+        .plots
         .iter()
-        .all(|form| !form.required_kinds.is_empty()));
+        .all(|plot| !plot.required_kinds.is_empty()));
 
-    let mut stale: Vec<super::initial_forms::InitialFormSelection> =
+    let mut stale: Vec<super::initial_plots::InitialPlotSelection> =
         serde_json::from_str(&selection(&source, &["memory_lantern"])).unwrap();
-    stale[0].checked_form_id = "checked/stale".into();
+    stale[0].checked_plot_id = "checked/stale".into();
     session::clear_for_test();
     let interaction = admit_source(source.as_bytes(), 29).unwrap();
     let refusal = session::birth(
@@ -246,9 +246,9 @@ fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
 }
 
 #[test]
-fn malformed_or_empty_form_source_is_refused_before_body_creation() {
+fn malformed_or_empty_plot_source_is_refused_before_body_creation() {
     session::clear_for_test();
-    let malformed = "form broken { nope: missing/kind }";
+    let malformed = "plot broken { nope: missing/kind }";
     let interaction = admit_source(malformed.as_bytes(), 31).unwrap();
     assert!(session::birth(
         "browser/tour",
@@ -299,7 +299,7 @@ fn friendly_name_is_metadata_and_cannot_change_durable_body_identity() {
         "browser/creche",
         "browser-boot/creche",
         "steady willow",
-        r#"[{"name":"absent_form","source_document_id":"source/absent","checked_form_id":"checked/absent"}]"#,
+        r#"[{"name":"absent_plot","source_document_id":"source/absent","checked_plot_id":"checked/absent"}]"#,
         SEED,
         42,
         unsupported,

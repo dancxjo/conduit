@@ -34,7 +34,7 @@ pub trait Mpu6050I2cProvider {
 
 /// Asynchronous realization of the same finite MPU-6050 transaction surface.
 ///
-/// Embedded hosts use this form when a peripheral transaction must yield to
+/// Embedded hosts use this plot when a peripheral transaction must yield to
 /// unrelated admitted work such as USB. The provider remains responsible for
 /// imposing its platform-specific operation deadline.
 #[allow(async_fn_in_trait)]

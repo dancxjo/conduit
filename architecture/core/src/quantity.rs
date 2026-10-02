@@ -57,7 +57,7 @@ impl QuantityDimension {
             Self::Ratio => RATIO_INFO_ID,
             Self::PixelCount => PIXEL_COUNT_INFO_ID,
             // These dimensions have reviewed units and exact conversion laws,
-            // but do not yet own public dimension-specific Form aliases.
+            // but do not yet own public dimension-specific Plot aliases.
             Self::Current
             | Self::Charge
             | Self::DataSize
@@ -403,7 +403,7 @@ impl QuantityUnit {
         }
     }
 
-    pub const fn form_suffix(self) -> &'static str {
+    pub const fn plot_suffix(self) -> &'static str {
         match self {
             Self::Picosecond => "ps",
             Self::Nanosecond => "ns",
@@ -538,7 +538,7 @@ impl QuantityUnit {
         }
     }
 
-    pub fn from_form_suffix(suffix: &str) -> Result<Self, QuantityLiteralRefusal> {
+    pub fn from_plot_suffix(suffix: &str) -> Result<Self, QuantityLiteralRefusal> {
         match suffix {
             "ps" => Ok(Self::Picosecond),
             "ns" => Ok(Self::Nanosecond),
@@ -1254,7 +1254,7 @@ impl Quantity {
     /// Parses a reviewed scientific quantity literal exactly. Decimal source
     /// is admitted only when a reviewed unit in the same dimension can retain
     /// the value without rounding (for example, `3.2m` becomes `320cm`).
-    pub fn parse_form_literal(literal: &str) -> Result<Self, QuantityLiteralRefusal> {
+    pub fn parse_plot_literal(literal: &str) -> Result<Self, QuantityLiteralRefusal> {
         let value_end = literal
             .char_indices()
             .find_map(|(index, character)| {
@@ -1268,7 +1268,7 @@ impl Quantity {
         if value.is_empty() || value == "-" {
             return Err(QuantityLiteralRefusal::MissingValue);
         }
-        let unit = QuantityUnit::from_form_suffix(suffix)?;
+        let unit = QuantityUnit::from_plot_suffix(suffix)?;
         let Some((whole, fraction)) = value.split_once('.') else {
             let value = value
                 .parse::<i64>()

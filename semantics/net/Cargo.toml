@@ -5,19 +5,19 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [features]
 default = []
-form-catalog = []
+plot-catalog = []
 
 [build-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 
 [dev-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 conduit-planner = { path = "../../architecture/planner" }
-conduit-text = { path = "../text", features = ["form-catalog"] }
+conduit-text = { path = "../text", features = ["plot-catalog"] }
 postcard = { version = "1", features = ["alloc"] }
 serde_json = "1"

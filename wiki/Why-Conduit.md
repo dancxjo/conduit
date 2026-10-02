@@ -8,18 +8,18 @@ Conduit tries to keep that distinction explicit all the way from source to execu
 
 The result is not “write once, run anywhere” in the usual sense. Conduit does not pretend machines are interchangeable. It does the opposite: portable meaning stays portable **because realization is allowed to remain exact, local, finite, and truthful**.
 
-## The central movement: form, plan, play
+## The central movement: plot, plan, play
 
 The most important three nouns describe three different moments.
 
-- A **form** is the authored course of events: what should happen and how semantic work relates.
-- A **plan** is one exact, admitted way of realizing that form given the body, hosts, backs, lines, resources, authority, and other current facts.
+- A **plot** is the authored course of events: what should happen and how semantic work relates.
+- A **plan** is one exact, admitted way of realizing that plot given the body, hosts, backs, lines, resources, authority, and other current facts.
 - A **play** is that plan in motion.
 
 Conceptually:
 
 ```text
-form
+plot
   + current truth about the world
   ↓ planning
 plan
@@ -29,23 +29,23 @@ play
 
 This separation is the answer to a surprisingly large family of systems problems.
 
-When a host disappears, the form need not change. When a different implementation is selected, the kind need not change. When a cord moves from local memory to a network carrier, the semantic connection need not change. Conduit changes the **plan** when reality changes rather than quietly rewriting the authored meaning.
+When a host disappears, the plot need not change. When a different implementation is selected, the kind need not change. When a cord moves from local memory to a network carrier, the semantic connection need not change. Conduit changes the **plan** when reality changes rather than quietly rewriting the authored meaning.
 
 That is what “continuous planning” is meant to preserve: not constant recomputation, but the continued availability of planning as the lawful place where changed reality is reconciled with enduring intent.
 
-## Meaning and code
+## Meaning and form
 
-A **type** says what a value means. A **code** declares one exact portable
-encoding of that meaning. An info value is one value of the type.
+A **type** says what a value means. A **form** declares one exact portable
+representation of that meaning. An info value is one value of the type.
 
 ```text
 type  = semantic meaning
 info  = one typed value
-code  = a portable encoding contract
+form  = a portable representation contract
 ```
 
-A variant such as `work` does not mean the byte `1`; a code can assign it that
-tag without making the tag its semantic identity. Current compact codes cover
+A variant such as `work` does not mean the byte `1`; a form can assign it that
+tag without making the tag its semantic identity. Current compact Forms cover
 finite variant tags. See [[Current language surface|Current-language-surface]]
 for the checked declaration and its scope.
 
@@ -56,15 +56,15 @@ Work has another small cluster of nouns:
 - a **kind** says what a reusable operation means;
 - its **fore** is the checked function-like signature through which authors call that meaning;
 - a **back** is one concrete realization compatible with that kind and fore;
-- a **gear** is one configured occurrence of a kind in a form.
+- a **gear** is one configured occurrence of a kind in a plot.
 
-A form can therefore ask for semantic work without choosing the final implementation.
+A plot can therefore ask for semantic work without choosing the final implementation.
 
 ```text
 kind      what work means
 fore      the callable signature presented to the author
 back      one way to realize it
-gear      one occurrence in the authored form
+gear      one occurrence in the authored plot
 ```
 
 A host may offer several backs for the same kind. Planning chooses among eligible backs using current, finite facts rather than source-code accident.
@@ -80,7 +80,7 @@ cord  = semantic relationship
 line  = realized carriage
 ```
 
-A cord can remain the same cord whether the plan realizes it through shared memory, USB, WebSocket, WebRTC, a relay, or some future mechanism. If networking itself is the meaning, networking appears in the form as semantic work; if networking is merely carriage, it belongs to realization.
+A cord can remain the same cord whether the plan realizes it through shared memory, USB, WebSocket, WebRTC, a relay, or some future mechanism. If networking itself is the meaning, networking appears in the plot as semantic work; if networking is merely carriage, it belongs to realization.
 
 ## One computer, changing machinery
 
@@ -157,7 +157,7 @@ This lets the language describe the world honestly without promising infinite ma
 
 A live play may become **quiescent** when no admitted work can presently make progress. Quiescence is a pause, not a terminal state; later admitted work may wake the same play again.
 
-Semantic completion is a stronger claim. When a form explicitly says that structural drain is sufficient completion, the play may terminate normally at that point.
+Semantic completion is a stronger claim. When a plot explicitly says that structural drain is sufficient completion, the play may terminate normally at that point.
 
 This distinction matters for continuously reactive systems: “nothing to do right now” and “the authored work is finished” are not synonyms.
 
@@ -170,7 +170,7 @@ type → info                    kind → fore → back
                                   ↓
                                 gear
                                   ↓ ports
-form ──────────────────────── cords
+plot ──────────────────────── cords
   +                             ↓
 current body/host truth       lines when needed
   ↓

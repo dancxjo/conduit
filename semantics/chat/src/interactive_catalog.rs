@@ -1,6 +1,6 @@
 //! Portable chat-state/submit contracts and browser realization offers.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -312,14 +312,14 @@ fn limits(items: u16, bytes: u32) -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_browser_chat_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
 
-    conduit_presentation::install_mask_form_value_aliases(startup)?;
+    conduit_presentation::install_mask_plot_value_aliases(startup)?;
     startup.insert(KindSignature {
         kind: CHAT_STATE_KIND.into(),
         startup_parameters: CHAT_CONFIGURATION_FIELDS
@@ -423,7 +423,7 @@ fn configuration(name: &str, value_type: &str) -> conduit_core::KindConfiguratio
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn default_source(name: &str) -> String {
     if matches!(name, "maximum-history-items" | "maximum-message-bytes") {
         if name == "maximum-history-items" {
@@ -448,7 +448,7 @@ fn default_text(name: &str) -> &'static str {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn format_text(value: &str) -> String {
     alloc::format!("\"{value}\"")
 }

@@ -1,36 +1,36 @@
-//! Exact Form expansion inputs and planning for a Body workset.
+//! Exact Plot expansion inputs and planning for a Body workset.
 
-use conduit_body::{BodyFormPlan, BodyPlanningSessionError, BodyWorkset, ResidentForm};
+use conduit_body::{BodyPlanningSessionError, BodyPlotPlan, BodyWorkset, ResidentPlot};
 use conduit_core::{BaseImplementationId, HostAdvertisement, KindId};
-use conduit_form::ExpandedCanonicalForm;
+use conduit_plot::ExpandedCanonicalPlot;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BodyPlanningForm {
-    resident: ResidentForm,
-    expanded: ExpandedCanonicalForm,
+pub struct BodyPlanningPlot {
+    resident: ResidentPlot,
+    expanded: ExpandedCanonicalPlot,
 }
 
-impl BodyPlanningForm {
+impl BodyPlanningPlot {
     pub fn new(
-        resident: ResidentForm,
-        expanded: ExpandedCanonicalForm,
+        resident: ResidentPlot,
+        expanded: ExpandedCanonicalPlot,
     ) -> Result<Self, BodyPlanningSessionError> {
         if resident.source_document_id != expanded.source_document_id
-            || resident.checked_form_id != expanded.checked_form_id
+            || resident.checked_plot_id != expanded.checked_plot_id
         {
-            return Err(BodyPlanningSessionError::InvalidForm(
-                "expanded Form identity disagrees with its resident Body identity".into(),
+            return Err(BodyPlanningSessionError::InvalidPlot(
+                "expanded Plot identity disagrees with its resident Body identity".into(),
             ));
         }
         Ok(Self { resident, expanded })
     }
 
-    pub fn resident(&self) -> &ResidentForm {
+    pub fn resident(&self) -> &ResidentPlot {
         &self.resident
     }
 
-    pub fn expanded(&self) -> &ExpandedCanonicalForm {
+    pub fn expanded(&self) -> &ExpandedCanonicalPlot {
         &self.expanded
     }
 }
@@ -42,10 +42,10 @@ pub struct BodyPlanningRequirements {
 
 pub fn body_planning_requirements(
     workset: &BodyWorkset,
-    candidates: &[BodyPlanningForm],
+    candidates: &[BodyPlanningPlot],
 ) -> Result<BodyPlanningRequirements, BodyPlanningSessionError> {
-    let forms = exact_workset_forms(workset, candidates)?;
-    let mut kind_ids = forms
+    let plots = exact_workset_plots(workset, candidates)?;
+    let mut kind_ids = plots
         .iter()
         .flat_map(|candidate| {
             candidate
@@ -62,11 +62,11 @@ pub fn body_planning_requirements(
 
 pub fn plan_body_workset_on_host(
     workset: &BodyWorkset,
-    candidates: &[BodyPlanningForm],
+    candidates: &[BodyPlanningPlot],
     host: &HostAdvertisement,
     bases: &[BaseImplementationId],
-) -> Result<Vec<BodyFormPlan>, BodyPlanningSessionError> {
-    exact_workset_forms(workset, candidates)?
+) -> Result<Vec<BodyPlotPlan>, BodyPlanningSessionError> {
+    exact_workset_plots(workset, candidates)?
         .into_iter()
         .map(|candidate| {
             let hosts = [host.clone()];
@@ -129,26 +129,26 @@ pub fn plan_body_workset_on_host(
                 &limits,
             )
             .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
-            Ok(BodyFormPlan {
-                form: candidate.resident.clone(),
+            Ok(BodyPlotPlan {
+                plot: candidate.resident.clone(),
                 plan,
             })
         })
         .collect()
 }
 
-fn exact_workset_forms<'a>(
+fn exact_workset_plots<'a>(
     workset: &BodyWorkset,
-    candidates: &'a [BodyPlanningForm],
-) -> Result<Vec<&'a BodyPlanningForm>, BodyPlanningSessionError> {
+    candidates: &'a [BodyPlanningPlot],
+) -> Result<Vec<&'a BodyPlanningPlot>, BodyPlanningSessionError> {
     workset
-        .forms()
+        .plots()
         .iter()
         .map(|resident| {
             candidates
                 .iter()
                 .find(|candidate| &candidate.resident == resident)
-                .ok_or(BodyPlanningSessionError::MissingForm)
+                .ok_or(BodyPlanningSessionError::MissingPlot)
         })
         .collect()
 }
@@ -157,8 +157,8 @@ fn exact_workset_forms<'a>(
 mod tests {
     use super::*;
     use conduit_core::{resource_offer, INPUT_RESOURCE_CLASS};
-    use conduit_form::{
-        check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
         StartupCatalog,
     };
 
@@ -168,14 +168,14 @@ mod tests {
         let mut profile = ProfileCatalog::new();
         conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
             .unwrap();
-        let source = include_str!("../../../forms/button-across-room/main.conduit");
+        let source = include_str!("../../../plots/button-across-room/main.conduit");
         let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-        let expanded = expand_canonical_form(&checked, "button_across_room", &profile).unwrap();
-        let resident = ResidentForm::new(
+        let expanded = expand_canonical_plot(&checked, "button_across_room", &profile).unwrap();
+        let resident = ResidentPlot::new(
             expanded.source_document_id.clone(),
-            expanded.checked_form_id.clone(),
+            expanded.checked_plot_id.clone(),
         );
-        let candidate = BodyPlanningForm::new(resident.clone(), expanded).unwrap();
+        let candidate = BodyPlanningPlot::new(resident.clone(), expanded).unwrap();
         let workset = BodyWorkset::one(resident).unwrap();
         let mut host = conduit_std_host::StdHost::new().advertisement().clone();
         host.capabilities = vec![
@@ -213,14 +213,14 @@ mod tests {
         let mut profile = ProfileCatalog::new();
         conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
             .unwrap();
-        let source = include_str!("../../../forms/button-across-room/main.conduit");
+        let source = include_str!("../../../plots/button-across-room/main.conduit");
         let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-        let expanded = expand_canonical_form(&checked, "button_across_room", &profile).unwrap();
-        let resident = ResidentForm::new("source/stale".into(), expanded.checked_form_id.clone());
+        let expanded = expand_canonical_plot(&checked, "button_across_room", &profile).unwrap();
+        let resident = ResidentPlot::new("source/stale".into(), expanded.checked_plot_id.clone());
 
         assert!(matches!(
-            BodyPlanningForm::new(resident, expanded),
-            Err(BodyPlanningSessionError::InvalidForm(_))
+            BodyPlanningPlot::new(resident, expanded),
+            Err(BodyPlanningSessionError::InvalidPlot(_))
         ));
     }
 }

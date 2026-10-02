@@ -3,7 +3,7 @@
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
@@ -182,12 +182,12 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_math_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     for contract in [
         math_clamp_semantic_contract(),
         math_scale_semantic_contract(),
@@ -263,7 +263,7 @@ mod tests {
         assert_eq!(deadband_scalar(Scalar::MIN, Scalar::MAX), Ok(Scalar::MIN));
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
     fn contracts_and_authored_signed_configuration_are_exact() {
         for contract in [
@@ -284,11 +284,11 @@ mod tests {
             assert!(conduit_core::pure_expression_facts(&contract).is_ok());
         }
 
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         install_math_catalogs(&mut startup, &mut profile).unwrap();
-        let checked = conduit_form::parse(
-            "form math {\n clamp: math/clamp(minimum = -7, maximum = 9)\n}\n",
+        let checked = conduit_plot::parse(
+            "plot math {\n clamp: math/clamp(minimum = -7, maximum = 9)\n}\n",
             &profile,
         )
         .expect("signed scalar configuration checks");
@@ -296,8 +296,8 @@ mod tests {
             checked.gears[0].configuration[0].value,
             ConfigurationValue::I64(-7)
         );
-        assert!(conduit_form::parse(
-            "form math {\n scale: math/scale(gain = 9223372036854775808)\n}\n",
+        assert!(conduit_plot::parse(
+            "plot math {\n scale: math/scale(gain = 9223372036854775808)\n}\n",
             &profile,
         )
         .is_err());

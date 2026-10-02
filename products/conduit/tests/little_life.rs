@@ -2,20 +2,20 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::process::Command;
 
-const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
 #[test]
 fn canonical_little_life_completes_exactly_thirty_two_presented_generations() {
     let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let report = std::env::temp_dir().join(format!(
-        "conduit-little-life-form-proof-{}.json",
+        "conduit-little-life-plot-proof-{}.json",
         std::process::id()
     ));
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .current_dir(&workspace)
         .args([
             "run",
-            "forms/little-life/main.conduit",
+            "plots/little-life/main.conduit",
             "--await-terminal",
             "--report",
         ])

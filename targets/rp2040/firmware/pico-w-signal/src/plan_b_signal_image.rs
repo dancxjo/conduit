@@ -14,8 +14,8 @@ pub fn execution_identity() -> SignalExecutionIdentity {
     SignalExecutionIdentity {
         firmware_build_id: generated::FIRMWARE_BUILD_ID,
         source_document_id: generated::SOURCE_DOCUMENT_ID,
-        checked_form_id: generated::CHECKED_FORM_ID,
-        expanded_form_id: generated::EXPANDED_FORM_ID,
+        checked_plot_id: generated::CHECKED_PLOT_ID,
+        expanded_plot_id: generated::EXPANDED_PLOT_ID,
         plan_id: generated::PLAN_ID,
         fragment_id: generated::FRAGMENT_ID,
         host_id: generated::HOST_ID,
@@ -79,5 +79,5 @@ pub fn validate_replacement() -> bool {
         && plan_a.active_play_id != plan_b.active_play_id
         && plan_a.host_id == plan_b.host_id
         && plan_a.boot_id == plan_b.boot_id
-        && plan_a.checked_form_id == plan_b.checked_form_id
+        && plan_a.checked_plot_id == plan_b.checked_plot_id
 }

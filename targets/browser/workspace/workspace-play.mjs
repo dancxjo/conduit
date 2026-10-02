@@ -1,6 +1,6 @@
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 
-export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundForm, onState,
+export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundPlot, onState,
   presentationRootFor, onApplicationEvent,
   onTutorialPresenterRequest,
   prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
@@ -27,25 +27,25 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
   if (session.current()?.state === 'FULFILLED') {
     publish('Fulfilled', 'This body is complete. Its biography remains available for inspection.');
   } else {
-    publish('Lulled', 'This body is retained. Wake it to start its forms.');
+    publish('Lulled', 'This body is retained. Wake it to start its plots.');
   }
   return Object.freeze({
     async wake(authorizeAudio = false) {
       if (adapter || transition) return;
       transition = true; terminal = null; started = null;
-      publish('Preparing', 'Checking the installed forms');
+      publish('Preparing', 'Checking the installed plots');
       try {
         proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
         external = await prepareExternal(proposal);
         adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
-          inputTarget, outputRoot, foregroundForm, presentationRootFor, onApplicationEvent,
+          inputTarget, outputRoot, foregroundPlot, presentationRootFor, onApplicationEvent,
           onTutorialPresenterRequest,
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
         await external?.updateContext?.();
-        publish('Playing', 'Forms are awake');
+        publish('Playing', 'Plots are awake');
         const running = adapter;
         const runningPlay = started.play;
         const localRun = adapter.run();
@@ -54,10 +54,10 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
           if (adapter !== running || terminal) return;
           if (external && (externalReceipt?.disposition !== 'completed' ||
               externalReceipt.active_play_id !== external.identity.active_play_id)) {
-            throw new Error('The external Form did not supply its exact terminal outcome');
+            throw new Error('The external Plot did not supply its exact terminal outcome');
           }
           if (receipt?.schema === 'conduit.browser/pending-effects@1' && receipt.disposition === 'quiescent_awaiting_input' && receipt.active_play_id === started.play.active_play_id && receipt.pending_effects === 0) {
-            publish('Idle', 'Its forms are awake. Their current work has finished.');
+            publish('Idle', 'Its plots are awake. Their current work has finished.');
             return;
           }
           requireTerminal(receipt);
@@ -97,7 +97,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
           }
         } catch (failure) { cleanupError = failure; }
         if (session.persistenceFailure()) {
-          publish(terminal ? 'Stopped' : 'Refused', `Your body could not be saved. ${terminal ? 'Its forms have stopped. ' : ''}Reopen to recover the last saved state. ${error.message}`, error);
+          publish(terminal ? 'Stopped' : 'Refused', `Your body could not be saved. ${terminal ? 'Its plots have stopped. ' : ''}Reopen to recover the last saved state. ${error.message}`, error);
         } else {
           publish(adapter ? 'Failed' : 'Refused', [error.message, cleanupError?.message].filter(Boolean).join(' · '), error);
         }
@@ -108,10 +108,10 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
       transition = true;
       try {
         await stop();
-        publish('Lulled', 'Your body is retained. Its forms can wake again.');
+        publish('Lulled', 'Your body is retained. Its plots can wake again.');
       } catch (error) {
         publish(terminal ? 'Stopped' : 'Failed', terminal
-          ? `Its forms have stopped, but your body could not be saved. Reopen to recover the last saved state. ${error.message}`
+          ? `Its plots have stopped, but your body could not be saved. Reopen to recover the last saved state. ${error.message}`
           : error.message, error);
       } finally { transition = false; }
     },
@@ -128,17 +128,17 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
         throw error;
       } finally { transition = false; }
     },
-    async changeWorkset(edit, form, expectedRevision) {
+    async changeWorkset(edit, plot, expectedRevision) {
       if (transition) throw new Error('A body transition is already in progress');
       if (session.persistenceFailure()) throw session.persistenceFailure();
       transition = true;
       try {
         // The view's revision is checked again at the authoritative mutation.
-        if (session.current().workload_revision !== expectedRevision) throw new Error('The installed forms changed. Reopen the chooser.');
+        if (session.current().workload_revision !== expectedRevision) throw new Error('The installed plots changed. Reopen the chooser.');
         if (adapter) await stop();
         if (session.current().state !== 'LULLED') throw new Error('The current play has not been retired');
-        await session.changeWorkset(edit, form, source, expectedRevision);
-        publish('Lulled', 'Your installed forms have been saved.');
+        await session.changeWorkset(edit, plot, source, expectedRevision);
+        publish('Lulled', 'Your installed plots have been saved.');
       } catch (error) {
         publish(session.persistenceFailure() ? 'Stopped' : session.current().state === 'LULLED' ? 'Refused' : 'Failed', error.message, error);
         throw error;

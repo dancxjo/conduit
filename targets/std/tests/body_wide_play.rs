@@ -1,10 +1,6 @@
-use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, ResidentForm};
+use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::{
-    seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, Plan, SignId, SourceDocumentId,
-};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
+    seal_plan, CheckedPlotId, ExpandedPlotId, Plan, PlotIdentity, SignId, SourceDocumentId,
 };
 use conduit_kernel::scheduler::{
     CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepBack, StepInputBytes,
@@ -14,18 +10,22 @@ use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
     RouteTarget, ValueRef, ValueStorage,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 use std::collections::BTreeSet;
 
 const PORTS: usize = 1;
-const FORMS: usize = 3;
-const NODES: usize = FORMS * 2;
-const CORDS: usize = FORMS;
+const PLOTS: usize = 3;
+const NODES: usize = PLOTS * 2;
+const CORDS: usize = PLOTS;
 const SIGNS: usize = 64;
-const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
-const MORSE_NETWORK: &str = include_str!("../../../forms/morse-network/main.conduit");
-const MEMORY_LANTERN: &str = include_str!("../../../forms/memory-lantern/main.conduit");
-const DESK_TELEGRAPH: &str = include_str!("../../../forms/desk-telegraph/main.conduit");
+const MORSE_NETWORK: &str = include_str!("../../../plots/morse-network/main.conduit");
+const MEMORY_LANTERN: &str = include_str!("../../../plots/memory-lantern/main.conduit");
+const DESK_TELEGRAPH: &str = include_str!("../../../plots/desk-telegraph/main.conduit");
 
 #[derive(Clone, Copy)]
 enum Work {
@@ -34,12 +34,12 @@ enum Work {
 }
 
 #[derive(Clone, Copy)]
-struct FormDriver {
-    form: usize,
+struct PlotDriver {
+    plot: usize,
     work: Work,
 }
 
-impl StepBack<PORTS> for FormDriver {
+impl StepBack<PORTS> for PlotDriver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -75,21 +75,21 @@ impl StepBack<PORTS> for FormDriver {
     fn cancel(&mut self) {}
 }
 
-fn resident(name: &str) -> ResidentForm {
-    ResidentForm::new(
+fn resident(name: &str) -> ResidentPlot {
+    ResidentPlot::new(
         SourceDocumentId::from(format!("source/{name}")),
-        CheckedFormId::from(format!("checked/{name}")),
+        CheckedPlotId::from(format!("checked/{name}")),
     )
 }
 
-fn constituent(form: &ResidentForm) -> conduit_core::Plan {
+fn constituent(plot: &ResidentPlot) -> conduit_core::Plan {
     seal_plan(
-        FormIdentity {
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
-            expanded_form_id: ExpandedFormId::from(format!(
+        PlotIdentity {
+            source_document_id: plot.source_document_id.clone(),
+            checked_plot_id: plot.checked_plot_id.clone(),
+            expanded_plot_id: ExpandedPlotId::from(format!(
                 "expanded/{}",
-                form.checked_form_id.as_str()
+                plot.checked_plot_id.as_str()
             )),
         },
         vec![],
@@ -100,7 +100,7 @@ fn canonical_constituent(
     source: &str,
     root: &str,
     host: &conduit_std_host::StdHost,
-) -> (ResidentForm, Plan) {
+) -> (ResidentPlot, Plan) {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)
@@ -123,20 +123,20 @@ fn canonical_constituent(
         .expect("the installed ordered-record queue catalog is disjoint");
     let syntax = parse_syntax_document(source);
     assert_eq!(syntax.round_trip(), source);
-    let checked = check_syntax_document(&syntax, &startup).expect("reviewed form checks");
-    let expanded = expand_canonical_form(&checked, root, &profiles).expect("reviewed form expands");
-    let resident = ResidentForm::new(
+    let checked = check_syntax_document(&syntax, &startup).expect("reviewed plot checks");
+    let expanded = expand_canonical_plot(&checked, root, &profiles).expect("reviewed plot expands");
+    let resident = ResidentPlot::new(
         expanded.source_document_id.clone(),
-        expanded.checked_form_id.clone(),
+        expanded.checked_plot_id.clone(),
     );
     let plan = host
         .plan_expanded_local(&expanded)
-        .expect("reviewed form plans onto the exact std Host offers");
+        .expect("reviewed plot plans onto the exact std Host offers");
     (resident, plan)
 }
 
 #[test]
-fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_scheduler() {
+fn three_reviewed_plots_progress_in_one_body_play_through_one_production_kernel_scheduler() {
     let mut advertisement = conduit_std_host::StdHost::new().advertisement().clone();
     advertisement
         .capabilities
@@ -160,29 +160,29 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
         canonical_constituent(DESK_TELEGRAPH, "desk_telegraph", &host);
     let body = Body::born(
         morse.source_document_id.clone(),
-        morse.checked_form_id.clone(),
+        morse.checked_plot_id.clone(),
         1,
         SignId::from("sign/born"),
     )
     .unwrap()
-    .admit_form(lantern.clone(), SignId::from("sign/lantern-admitted"))
+    .admit_plot(lantern.clone(), SignId::from("sign/lantern-admitted"))
     .unwrap()
-    .admit_form(telegraph.clone(), SignId::from("sign/telegraph-admitted"))
+    .admit_plot(telegraph.clone(), SignId::from("sign/telegraph-admitted"))
     .unwrap();
     let (_awake, wake) = body.wake(1, SignId::from("sign/woke")).unwrap();
     let plan = BodyPlan::seal(
         &wake,
         vec![
-            BodyFormPlan {
-                form: morse,
+            BodyPlotPlan {
+                plot: morse,
                 plan: morse_plan,
             },
-            BodyFormPlan {
-                form: lantern,
+            BodyPlotPlan {
+                plot: lantern,
                 plan: lantern_plan,
             },
-            BodyFormPlan {
-                form: telegraph,
+            BodyPlotPlan {
+                plot: telegraph,
                 plan: telegraph_plan,
             },
         ],
@@ -198,7 +198,7 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
         .body_play_started(&plan, &play, SignId::from("sign/playing"))
         .unwrap();
 
-    let mut values = FixedValueStore::<FORMS, 1>::new(FORMS as u32).unwrap();
+    let mut values = FixedValueStore::<PLOTS, 1>::new(PLOTS as u32).unwrap();
     let first_value = values.store(&[1]).unwrap();
     let second_value = values.store(&[2]).unwrap();
     let node = |input| NodeSpec {
@@ -238,7 +238,7 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
     routes.seal().unwrap();
     let sign_bytes = u32::try_from(SIGNS * core::mem::size_of::<KernelEvent>()).unwrap();
     let signs = FixedSignLog::<SIGNS>::new(sign_bytes).unwrap();
-    let mut scheduler = FixedScheduler::<_, _, _, NODES, CORDS, PORTS, FORMS, NODES, CORDS>::new(
+    let mut scheduler = FixedScheduler::<_, _, _, NODES, CORDS, PORTS, PLOTS, NODES, CORDS>::new(
         [
             node(None),
             node(Some(CordId(0))),
@@ -250,37 +250,37 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
         [cord(0, 0, 1), cord(1, 2, 3), cord(2, 4, 5)],
         routes,
         [
-            FormDriver {
-                form: 0,
+            PlotDriver {
+                plot: 0,
                 work: Work::Source {
                     value: first_value,
                     emitted: false,
                 },
             },
-            FormDriver {
-                form: 0,
+            PlotDriver {
+                plot: 0,
                 work: Work::Sink { received: false },
             },
-            FormDriver {
-                form: 1,
+            PlotDriver {
+                plot: 1,
                 work: Work::Source {
                     value: second_value,
                     emitted: false,
                 },
             },
-            FormDriver {
-                form: 1,
+            PlotDriver {
+                plot: 1,
                 work: Work::Sink { received: false },
             },
-            FormDriver {
-                form: 2,
+            PlotDriver {
+                plot: 2,
                 work: Work::Source {
                     value: values.store(&[3]).unwrap(),
                     emitted: false,
                 },
             },
-            FormDriver {
-                form: 2,
+            PlotDriver {
+                plot: 2,
                 work: Work::Sink { received: false },
             },
         ],
@@ -303,9 +303,9 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
         scheduler.drivers()[5].work,
         Work::Sink { received: true }
     ));
-    assert_eq!(scheduler.drivers()[0].form, 0);
-    assert_eq!(scheduler.drivers()[2].form, 1);
-    assert_eq!(scheduler.drivers()[4].form, 2);
+    assert_eq!(scheduler.drivers()[0].plot, 0);
+    assert_eq!(scheduler.drivers()[2].plot, 1);
+    assert_eq!(scheduler.drivers()[4].plot, 2);
     assert_eq!(playing.plans.len(), 1);
     assert_eq!(
         playing.plans[0].active_play_id,
@@ -319,26 +319,26 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
 }
 
 #[test]
-fn the_same_body_plan_model_covers_local_and_distributed_form_partitions() {
+fn the_same_body_plan_model_covers_local_and_distributed_plot_partitions() {
     let distributed = conduit_semantic_catalog::exact_body_coordination_plan(
         conduit_core::BootId::from("forebrain/boot"),
         conduit_core::BootId::from("motherbrain/boot"),
         "line/interbrain",
     )
     .unwrap();
-    let distributed_form = ResidentForm::new(
+    let distributed_plot = ResidentPlot::new(
         distributed.plan.source_document_id.clone(),
-        distributed.plan.checked_form_id.clone(),
+        distributed.plan.checked_plot_id.clone(),
     );
-    let local_form = resident("local-dashboard");
+    let local_plot = resident("local-dashboard");
     let body = Body::born(
-        distributed_form.source_document_id.clone(),
-        distributed_form.checked_form_id.clone(),
+        distributed_plot.source_document_id.clone(),
+        distributed_plot.checked_plot_id.clone(),
         9,
         SignId::from("sign/distributed-born"),
     )
     .unwrap()
-    .admit_form(local_form.clone(), SignId::from("sign/local-admitted"))
+    .admit_plot(local_plot.clone(), SignId::from("sign/local-admitted"))
     .unwrap();
     let wake = body
         .wake(1, SignId::from("sign/distributed-woke"))
@@ -347,21 +347,21 @@ fn the_same_body_plan_model_covers_local_and_distributed_form_partitions() {
     let body_plan = BodyPlan::seal(
         &wake,
         vec![
-            BodyFormPlan {
-                form: distributed_form,
+            BodyPlotPlan {
+                plot: distributed_plot,
                 plan: distributed.plan,
             },
-            BodyFormPlan {
-                form: local_form.clone(),
-                plan: constituent(&local_form),
+            BodyPlotPlan {
+                plot: local_plot.clone(),
+                plan: constituent(&local_plot),
             },
         ],
     )
     .unwrap();
     let hosts = body_plan
-        .forms
+        .plots
         .iter()
-        .find(|partition| partition.form != local_form)
+        .find(|partition| partition.plot != local_plot)
         .unwrap()
         .plan
         .fragments
@@ -369,7 +369,7 @@ fn the_same_body_plan_model_covers_local_and_distributed_form_partitions() {
         .map(|fragment| fragment.host_id.clone())
         .collect::<BTreeSet<_>>();
 
-    assert_eq!(body_plan.forms.len(), 2);
+    assert_eq!(body_plan.plots.len(), 2);
     assert_eq!(hosts.len(), 2);
     assert_eq!(body_plan.workset, wake.workset);
 }

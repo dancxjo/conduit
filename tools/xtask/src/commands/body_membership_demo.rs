@@ -96,8 +96,8 @@ pub(super) fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("[body-membership] browser chat Line: {chat_url}");
     let mut native = Command::new("target/debug/patchbay-native");
     native.args([
-        "--form",
-        "forms/hello/main.conduit",
+        "--plot",
+        "plots/hello/main.conduit",
         "--body-parts-demo",
         "--browser-page-url",
         &page_url,

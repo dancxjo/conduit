@@ -5,12 +5,12 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, RequestId,
 };
 use conduit_kernel::{PortId, ValueRef, ValueStorage};
+use conduit_plot::{KindProjection, ProfileCatalog};
 
 pub(super) const KIND: &str = "conduit-proof/pcm-specimen-source";
 const REVISION: &str = "conduit-proof/pcm-specimen-source@1";

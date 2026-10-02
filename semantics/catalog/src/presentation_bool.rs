@@ -1,7 +1,7 @@
 //! Portable Boolean presentation meaning.
 
 use super::{KindTerminalBehavior, StandardKindContract};
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
@@ -45,9 +45,9 @@ pub fn bool_presentation_semantic_contract() -> Kind {
     bool_presentation_contract().into_semantic_contract(BOOL_PRESENTATION_CONTRACT_REVISION)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_bool_presentation_catalog(
-    profile: &mut conduit_form::ProfileCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     profile
         .insert_kind(bool_presentation_semantic_contract())

@@ -14,10 +14,10 @@ pub const PATCHBAY_PRESENTATION_REVISION: &str = "conduit.patchbay/presentation@
 pub const PATCHBAY_PRESENTATION_INPUT: &str = "subject";
 pub const PATCHBAY_PRESENTATION_VALUE_KIND: &str = "value/text";
 pub const MAX_PATCHBAY_PRESENTATION_BYTES: u32 = 1_024;
-pub const PATCHBAY_ROOT_BACK_SOURCE: &str = "form presentation/patchbay (\n >> subject: Text\n) {\n front: patchbay/gear-front\n port: patchbay/port\n cord: patchbay/cord\n subject >> front.subject\n subject >> port.subject\n subject >> cord.subject\n}\n";
-pub const PATCHBAY_GEAR_FACE_BACK_SOURCE: &str = "form patchbay/gear-front (\n >> subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)\n inset: layout/inset(inset = 8)\n column: layout/column(gap = 3)\n icon: presentation/icon(icon = \"type\", name = \"Patchbay\")\n frame: presentation/frame(role = \"panel\", name = \"Gear Front\")\n rect: graphics/rect(style = \"stroke\")\n resolved-text: graphics/text(text = \"r\")\n resolved-icon: graphics/icon(icon = \"type\")\n manifest: presentation/graphics\n subject >> text.text\n viewport >> inset >> column\n icon >> frame >> rect >> resolved-text >> resolved-icon >> manifest.scene\n}\n";
-pub const PATCHBAY_PORT_BACK_SOURCE: &str = "form patchbay/port (\n >> subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n align: layout/align\n icon: presentation/icon\n frame: presentation/frame\n rect: graphics/rect\n resolved-text: graphics/text\n subject >> text.text\n viewport >> align\n icon >> frame >> rect >> resolved-text\n}\n";
-pub const PATCHBAY_CORD_BACK_SOURCE: &str = "form patchbay/cord (\n >> subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n stack: layout/stack\n icon: presentation/icon\n badge: presentation/badge\n rect: graphics/rect\n resolved-text: graphics/text\n subject >> text.text\n viewport >> stack\n icon >> badge >> rect >> resolved-text\n}\n";
+pub const PATCHBAY_ROOT_BACK_SOURCE: &str = "plot presentation/patchbay (\n >> subject: Text\n) {\n front: patchbay/gear-front\n port: patchbay/port\n cord: patchbay/cord\n subject >> front.subject\n subject >> port.subject\n subject >> cord.subject\n}\n";
+pub const PATCHBAY_GEAR_FACE_BACK_SOURCE: &str = "plot patchbay/gear-front (\n >> subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)\n inset: layout/inset(inset = 8)\n column: layout/column(gap = 3)\n icon: presentation/icon(icon = \"type\", name = \"Patchbay\")\n frame: presentation/frame(role = \"panel\", name = \"Gear Front\")\n rect: graphics/rect(style = \"stroke\")\n resolved-text: graphics/text(text = \"r\")\n resolved-icon: graphics/icon(icon = \"type\")\n manifest: presentation/graphics\n subject >> text.text\n viewport >> inset >> column\n icon >> frame >> rect >> resolved-text >> resolved-icon >> manifest.scene\n}\n";
+pub const PATCHBAY_PORT_BACK_SOURCE: &str = "plot patchbay/port (\n >> subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n align: layout/align\n icon: presentation/icon\n frame: presentation/frame\n rect: graphics/rect\n resolved-text: graphics/text\n subject >> text.text\n viewport >> align\n icon >> frame >> rect >> resolved-text\n}\n";
+pub const PATCHBAY_CORD_BACK_SOURCE: &str = "plot patchbay/cord (\n >> subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n stack: layout/stack\n icon: presentation/icon\n badge: presentation/badge\n rect: graphics/rect\n resolved-text: graphics/text\n subject >> text.text\n viewport >> stack\n icon >> badge >> rect >> resolved-text\n}\n";
 
 pub fn patchbay_presentation_contracts() -> [StandardKindContract; 4] {
     [
@@ -71,12 +71,12 @@ fn contract(kind: &str, name: &str, summary: &str) -> StandardKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_patchbay_presentation_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     for contract in patchbay_presentation_contracts() {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -89,13 +89,13 @@ pub fn install_patchbay_presentation_catalogs(
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_patchbay_presentation_backs(
-    startup: &conduit_form::StartupCatalog,
-    profile: &conduit_form::ProfileCatalog,
-    backs: &mut conduit_form::CanonicalBackCatalog,
+    startup: &conduit_plot::StartupCatalog,
+    profile: &conduit_plot::ProfileCatalog,
+    backs: &mut conduit_plot::CanonicalBackCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{check_syntax_document, parse_syntax_document};
+    use conduit_plot::{check_syntax_document, parse_syntax_document};
     for (kind, source) in [
         (PATCHBAY_PRESENTATION_KIND, PATCHBAY_ROOT_BACK_SOURCE),
         (PATCHBAY_GEAR_FACE_KIND, PATCHBAY_GEAR_FACE_BACK_SOURCE),

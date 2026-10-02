@@ -2,8 +2,8 @@ use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
     BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal, StructuredInfoValue,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -13,7 +13,7 @@ const SOURCE_KIND: &str = "conduit-test/duration-sequence";
 const SINK_KIND: &str = "conduit-test/normalized-sequence";
 
 #[test]
-fn reusable_normalization_form_executes_outside_secret_knock_without_play_allocations() {
+fn reusable_normalization_plot_executes_outside_secret_knock_without_play_allocations() {
     let events = conduit_semantic_catalog::timed_event_sequence_value(
         "fixture/protocol-microseconds",
         &[1_000, 1_200, 1_800, 2_200],
@@ -26,7 +26,7 @@ fn reusable_normalization_form_executes_outside_secret_knock_without_play_alloca
     let (startup, profile) = catalogs(&intervals, &normalized, &source_offer, &sink_offer);
     let source = format!(
         "{}\nform protocol-cadence-proof {{\n    intervals: {SOURCE_KIND}(value = \"{}\")\n    normalize: normalize-durations\n    result: {SINK_KIND}(value = \"{}\")\n    intervals.output >> normalize.intervals\n    normalize.normalized >> result.input\n}}\n",
-        include_str!("../../../../forms/secret-knock/main.conduit"),
+        include_str!("../../../../plots/secret-knock/main.conduit"),
         hex(&intervals.canonical_bytes().unwrap()),
         hex(&normalized.canonical_bytes().unwrap()),
     );
@@ -34,34 +34,34 @@ fn reusable_normalization_form_executes_outside_secret_knock_without_play_alloca
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let canonical = check_syntax_document(
-        &parse_syntax_document(include_str!("../../../../forms/secret-knock/main.conduit")),
+        &parse_syntax_document(include_str!("../../../../plots/secret-knock/main.conduit")),
         &startup,
     )
     .unwrap();
     let canonical_normalize = canonical
-        .forms
+        .plots
         .iter()
-        .find(|form| form.name == "normalize-durations")
+        .find(|plot| plot.name == "normalize-durations")
         .unwrap();
     let consumed_normalize = checked
-        .forms
+        .plots
         .iter()
-        .find(|form| form.name == "normalize-durations")
+        .find(|plot| plot.name == "normalize-durations")
         .unwrap();
     assert_eq!(
-        canonical_normalize.checked_form_id,
-        consumed_normalize.checked_form_id
+        canonical_normalize.checked_plot_id,
+        consumed_normalize.checked_plot_id
     );
     let consumer = checked
-        .forms
+        .plots
         .iter()
-        .find(|form| form.name == "protocol-cadence-proof")
+        .find(|plot| plot.name == "protocol-cadence-proof")
         .unwrap();
     assert!(consumer
         .gears
         .iter()
         .any(|gear| gear.kind == "normalize-durations"));
-    let expanded = expand_canonical_form(&checked, "protocol-cadence-proof", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "protocol-cadence-proof", &profile).unwrap();
     assert!(expanded.gears.iter().any(|gear| {
         gear.kind_id.as_str() == conduit_semantic_catalog::NORMALIZE_SEQUENCE_KIND
     }));
@@ -131,7 +131,7 @@ fn catalogs(
 ) -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    super::timing_form_catalogs::install_catalogs(&mut startup, &mut profile);
+    super::timing_plot_catalogs::install_catalogs(&mut startup, &mut profile);
     for (kind, value, offer) in [
         (SOURCE_KIND, input, source_offer),
         (SINK_KIND, output, sink_offer),

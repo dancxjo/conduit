@@ -17,7 +17,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalRelation,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 fn retained_memory() -> BoundedAutobiography {
     let mut memory = BoundedAutobiography::new(8).unwrap();

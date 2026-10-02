@@ -6,8 +6,8 @@ mod common;
 fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_capacity_changes() {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
     let seed = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
     install_state_value_kind("Cell", &ty, &seed, &mut startup, &mut profile).unwrap();
     // Planning-only external Flow; runtime production is outside this proof.
@@ -25,7 +25,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     source.outputs[0].temporal = PortTemporal::Flow { closes: true };
     source.semantic_contract.configuration.clear();
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: "fixture/typed-flow".into(),
             startup_parameters: vec![],
         })
@@ -43,15 +43,15 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
             limits: source.limits.clone(),
         })
         .unwrap();
-    let form = conduit_form::parse_with_startup(
-        "form retained {\n cell: state/value(initial = true)\n source: fixture/typed-flow\n source.current >> cell.next\n}\n",
+    let plot = conduit_plot::parse_with_startup(
+        "plot retained {\n cell: state/value(initial = true)\n source: fixture/typed-flow\n source.current >> cell.next\n}\n",
         &startup,
         &profile,
     )
     .unwrap();
     let mut host = common::standard_planning_fixture("state-host", "state-boot");
     let mut state_offer = conduit_std_offers::state_value_std_offer("Cell", &ty, &seed).unwrap();
-    state_offer.semantic_contract = form
+    state_offer.semantic_contract = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == STATE_VALUE_KIND)
@@ -60,9 +60,9 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         .clone();
     host.capabilities = vec![state_offer, source];
     let hosts = [host];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
@@ -70,13 +70,13 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         64,
     )
     .unwrap();
-    let state = derive_state_boundary(&form, &GearId::from("retained/cell"), 64).unwrap();
+    let state = derive_state_boundary(&plot, &GearId::from("retained/cell"), 64).unwrap();
     validate_state_placement(&plan.fragments[0].placements[0], &state).unwrap();
     let sealed =
-        conduit_planner::state_delay::plan::seal_state_plan(&form, &plan, vec![state.clone()])
+        conduit_planner::state_delay::plan::seal_state_plan(&plot, &plan, vec![state.clone()])
             .unwrap();
     assert!(verify_plan(&sealed));
-    assert_eq!(sealed.checked_form_id, form.checked_form_id);
+    assert_eq!(sealed.checked_plot_id, plot.checked_plot_id);
     assert_ne!(sealed.plan_id, plan.plan_id);
     let placement = &sealed.fragments[0].placements[0];
     let mut altered = state.clone();

@@ -116,7 +116,7 @@ fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
 }
 
 fn standard_configuration(
-    fields: Vec<conduit_form::KindConfigurationField>,
+    fields: Vec<conduit_plot::KindConfigurationField>,
 ) -> Vec<KindConfigurationField> {
     fields
         .into_iter()
@@ -124,17 +124,17 @@ fn standard_configuration(
             key: field.key,
             default_value: field.default_value,
             rule: match field.rule {
-                conduit_form::KindConfigurationRule::Any => KindConfigurationRule::Any,
-                conduit_form::KindConfigurationRule::U64Range { minimum, maximum } => {
+                conduit_plot::KindConfigurationRule::Any => KindConfigurationRule::Any,
+                conduit_plot::KindConfigurationRule::U64Range { minimum, maximum } => {
                     KindConfigurationRule::U64Range { minimum, maximum }
                 }
-                conduit_form::KindConfigurationRule::I64Range { minimum, maximum } => {
+                conduit_plot::KindConfigurationRule::I64Range { minimum, maximum } => {
                     KindConfigurationRule::I64Range { minimum, maximum }
                 }
-                conduit_form::KindConfigurationRule::DurationMillis { minimum, maximum } => {
+                conduit_plot::KindConfigurationRule::DurationMillis { minimum, maximum } => {
                     KindConfigurationRule::DurationMillis { minimum, maximum }
                 }
-                conduit_form::KindConfigurationRule::QuantityRange {
+                conduit_plot::KindConfigurationRule::QuantityRange {
                     minimum,
                     maximum,
                     canonical_unit,
@@ -143,13 +143,13 @@ fn standard_configuration(
                     maximum,
                     canonical_unit,
                 },
-                conduit_form::KindConfigurationRule::TextBytes { maximum } => {
+                conduit_plot::KindConfigurationRule::TextBytes { maximum } => {
                     KindConfigurationRule::TextBytes { maximum }
                 }
-                conduit_form::KindConfigurationRule::TextOneOf { values } => {
+                conduit_plot::KindConfigurationRule::TextOneOf { values } => {
                     KindConfigurationRule::TextOneOf { values }
                 }
-                conduit_form::KindConfigurationRule::Structured { .. } => {
+                conduit_plot::KindConfigurationRule::Structured { .. } => {
                     unreachable!("Lenia definitions do not use structured configuration")
                 }
             },

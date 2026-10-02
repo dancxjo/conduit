@@ -1,6 +1,6 @@
 //! Exact checked flow-pressure seams distinct from `state/latest`.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -116,13 +116,13 @@ fn port(
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_pressure_kind(
     contract: FlowPressureContract,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_plot::{KindProjection, KindSignature};
 
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().into(),
@@ -172,11 +172,11 @@ mod tests {
         assert_ne!(latest.kind_id.as_str(), crate::LATEST_KIND);
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
-    fn exact_contracts_install_for_checked_forms() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+    fn exact_contracts_install_for_checked_plots() {
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         let value_kind = kind_id(conduit_core::SCALAR_INFO_ID);
         install_flow_pressure_kind(
             flow_backpressure_contract(&value_kind, conduit_core::SCALAR_ENCODED_LEN as u32),

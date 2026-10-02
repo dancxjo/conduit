@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use conduit_core::{
     kind_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const COPY_FILE_KIND: &str = "file/copy";
 pub const COPY_FILE_CONTRACT_REVISION: &str = "conduit.std/file-copy@1";
@@ -67,8 +67,8 @@ pub fn copy_file_contract() -> StandardKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn install_copy_file_catalog(catalog: &mut conduit_form::ProfileCatalog) -> Result<(), String> {
+#[cfg(feature = "plot-catalog")]
+pub fn install_copy_file_catalog(catalog: &mut conduit_plot::ProfileCatalog) -> Result<(), String> {
     for definition in [
         copy_file_contract().into_semantic_contract(COPY_FILE_CONTRACT_REVISION),
         crate::structured_presentation_contract(COPY_RESULT_TYPE, &copy_result_type()).into(),

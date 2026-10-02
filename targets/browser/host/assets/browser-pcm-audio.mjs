@@ -1,4 +1,4 @@
-import { BrowserHostEffectRefusal } from "./browser-form-effects.mjs";
+import { BrowserHostEffectRefusal } from "./browser-plot-effects.mjs";
 
 export const PCM_CAPTURE_RESOURCE = "conduit.resource/browser-microphone-turn@1";
 export const PCM_CAPTURE_POOL = "browser/microphone-turn";

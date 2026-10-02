@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
 use conduit_core::{Quantity, QuantityUnit};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_presentation::{Extent2, Path2Four, Point2, Rect2};
 
 #[test]

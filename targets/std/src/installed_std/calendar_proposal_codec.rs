@@ -1,7 +1,7 @@
 //! Exact conversion between structured calendar request Info and core semantics.
 
 use conduit_core::{StructuredFieldValue, StructuredInfoValue, StructuredInfoValueShape};
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 use conduit_time::{
     AvailabilityBasis, AvailabilityInterval, AvailabilityState, MeetingCandidate,
     MeetingProposalRequest, NamedTimeZone, ParticipantAvailability, TemporalBoundary,

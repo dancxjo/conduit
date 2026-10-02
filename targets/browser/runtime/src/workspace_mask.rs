@@ -1,4 +1,4 @@
-//! Browser realization of the tutorial Face through one ordinary Mask Form.
+//! Browser realization of the tutorial Face through one ordinary Mask Plot.
 
 use conduit_body::{BodyFaceSelector, BodyId, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, Wake};
 use conduit_core::{
@@ -7,10 +7,6 @@ use conduit_core::{
     HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId, Kind,
     KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId,
     PROTOCOL_VERSION,
-};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
@@ -22,11 +18,15 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredForePort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    KindSignature, ProfileCatalog, StartupCatalog,
+};
 use conduit_presentation::{
-    install_mask_form_value_aliases, AdmittedMaskFormRoutes, BodyMaskWardrobe, FaceInteraction,
-    FaceInteractionArgument, ManifestationLifecycle, MaskForm, MaskInteractionCorrelation,
+    install_mask_plot_value_aliases, AdmittedMaskPlotRoutes, BodyMaskWardrobe, FaceInteraction,
+    FaceInteractionArgument, ManifestationLifecycle, MaskInteractionCorrelation, MaskPlot,
     MaskShow, MaskWardrobe, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence,
-    MaskWardrobeLifetime, PlannedMaskForm, Presentation, PresentationAction, SealedMaskFormRoute,
+    MaskWardrobeLifetime, PlannedMaskPlot, Presentation, PresentationAction, SealedMaskPlotRoute,
     FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 use serde::{Deserialize, Serialize};
@@ -48,7 +48,7 @@ pub use journey::BrowserMaskJourneyOutcome;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BrowserMaskEffect {
     pub schema: String,
-    pub mask_form: conduit_core::FormIdentity,
+    pub mask_plot: conduit_core::PlotIdentity,
     pub mask_plan_id: conduit_core::PlanId,
     pub mask_play: ActivePlayIdentity,
     pub show_id: String,
@@ -76,8 +76,8 @@ pub struct BrowserMaskAcknowledgement {
 pub struct BrowserMaskObservation {
     pub schema: &'static str,
     pub wardrobe_action: MaskWardrobeControlEvidence,
-    pub planned_mask: PlannedMaskForm,
-    pub alternate: PlannedMaskForm,
+    pub planned_mask: PlannedMaskPlot,
+    pub alternate: PlannedMaskPlot,
     pub body_plan: BodyPlan,
     pub mask_play: ActivePlayIdentity,
     pub presentation: Presentation,
@@ -113,10 +113,10 @@ pub struct BrowserMaskRemoteSignReceipt {
 }
 
 pub struct BrowserMaskRuntime {
-    routes: AdmittedMaskFormRoutes,
+    routes: AdmittedMaskPlotRoutes,
     wardrobe_action: MaskWardrobeControlEvidence,
-    planned: PlannedMaskForm,
-    alternate: PlannedMaskForm,
+    planned: PlannedMaskPlot,
+    alternate: PlannedMaskPlot,
     body_plan: BodyPlan,
     basis_plan: BodyPlan,
     wake: Wake,
@@ -177,7 +177,7 @@ impl BrowserMaskRuntime {
             "browser-graphical-alternate",
         )?;
         let source_placement_id = base_plan
-            .forms
+            .plots
             .first()
             .and_then(|f| f.plan.fragments.first())
             .and_then(|f| f.placements.first())
@@ -199,10 +199,10 @@ impl BrowserMaskRuntime {
             .collect();
         let body_plan = BodyPlan::seal_with_masks(
             &wake,
-            base_plan.forms.clone(),
+            base_plan.plots.clone(),
             vec![BodyMaskTopology {
                 face: BodyFaceSelector {
-                    form: base_plan.forms.first().map(|f| f.form.clone()),
+                    plot: base_plan.plots.first().map(|f| f.plot.clone()),
                     source_placement_id,
                 },
                 chains,
@@ -227,7 +227,7 @@ impl BrowserMaskRuntime {
         let wardrobe_action = control
             .apply(
                 0,
-                MaskWardrobeAction::Wear(mask.form_identity.clone()),
+                MaskWardrobeAction::Wear(mask.plot_identity.clone()),
                 &routes,
             )
             .map_err(|error| format!("{error:?}"))?;
@@ -331,7 +331,7 @@ impl BrowserMaskRuntime {
             .collect();
         let effect = BrowserMaskEffect {
             schema: "conduit.browser/mask-effect@1".into(),
-            mask_form: mask.form_identity,
+            mask_plot: mask.plot_identity,
             mask_plan_id: planned.plan.plan_id.clone(),
             mask_play: play.clone(),
             show_id: show.show_id.as_str().into(),

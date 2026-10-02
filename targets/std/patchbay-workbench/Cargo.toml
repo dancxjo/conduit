@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
-conduit-form = { path = "../../../architecture/form" }
+conduit-plot = { path = "../../../architecture/plot" }
 conduit-std-host = { path = ".." }
-patchbay-workbench-host-contract = { path = "../../../forms/patchbay/workbench/host-contract" }
+patchbay-workbench-host-contract = { path = "../../../plots/patchbay/workbench/host-contract" }

@@ -1,7 +1,7 @@
 //! Explicit clock relations, coordinate frames, and derived alignment views.
 
 use conduit_core::QuantityDimension;
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
     nonzero, text, AlignedTrainingView, CalibrationTransform, ClockRelation, ClockRelationQuality,

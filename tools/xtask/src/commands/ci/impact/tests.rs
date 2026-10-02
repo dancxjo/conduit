@@ -274,8 +274,8 @@ fn pages_products_follow_the_typed_live_ownership_registry() {
 
     for path in [
         "docs/architecture/example.md",
-        "proof/browser/reviewed-form-conformance.spec.mjs",
-        "tools/xtask/src/commands/forms/browser.rs",
+        "proof/browser/reviewed-plot-conformance.spec.mjs",
+        "tools/xtask/src/commands/plots/browser.rs",
     ] {
         let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
         assert!(!plan.pages_products_required, "{path}");
@@ -284,21 +284,21 @@ fn pages_products_follow_the_typed_live_ownership_registry() {
 }
 
 #[test]
-fn registered_form_commands_do_not_make_unrelated_machines() {
+fn registered_plot_commands_do_not_make_unrelated_machines() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let plan = plan_for_paths(
         &root,
         vec![
-            "forms/inventory.toml".to_owned(),
-            "tools/xtask/src/commands/forms.rs".to_owned(),
-            "tools/xtask/src/commands/forms/deterministic.rs".to_owned(),
+            "plots/inventory.toml".to_owned(),
+            "tools/xtask/src/commands/plots.rs".to_owned(),
+            "tools/xtask/src/commands/plots/deterministic.rs".to_owned(),
         ],
         &packages,
     )
     .unwrap();
 
-    assert_eq!(plan.repository_command_proofs, ["repository.forms"]);
+    assert_eq!(plan.repository_command_proofs, ["repository.plots"]);
     assert!(!plan.full_fallback);
     assert!(plan.browser_required);
     assert!(!plan.esp32_required);
@@ -320,18 +320,18 @@ fn registered_form_commands_do_not_make_unrelated_machines() {
 }
 
 #[test]
-fn canonical_form_sources_retain_repository_form_proof() {
+fn canonical_plot_sources_retain_repository_plot_proof() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
 
     for path in [
-        "forms/hello/main.conduit",
-        "forms/not-yet-inventory/main.conduit",
+        "plots/hello/main.conduit",
+        "plots/not-yet-inventory/main.conduit",
     ] {
         let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
         assert_eq!(
             plan.repository_command_proofs,
-            ["repository.forms"],
+            ["repository.plots"],
             "{path}"
         );
         assert!(!plan.full_fallback, "{path}");
@@ -341,15 +341,15 @@ fn canonical_form_sources_retain_repository_form_proof() {
 }
 
 #[test]
-fn form_fixture_code_uses_cargo_package_impact() {
+fn plot_fixture_code_uses_cargo_package_impact() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
 
     for (path, browser_required) in [
-        ("forms/little-seismograph/fixture/Cargo.toml", true),
-        ("forms/little-seismograph/fixture/src/lib.rs", true),
+        ("plots/little-seismograph/fixture/Cargo.toml", true),
+        ("plots/little-seismograph/fixture/src/lib.rs", true),
         (
-            "forms/little-seismograph/fixture/tests/little_seismograph.rs",
+            "plots/little-seismograph/fixture/tests/little_seismograph.rs",
             false,
         ),
     ] {
@@ -429,7 +429,7 @@ fn complete_tongues_analysis_slice_avoids_unrelated_machine_make() {
     let paths = [
         "semantics/tongues/src/analysis.rs",
         "semantics/tongues/tests/dynamics_analysis.rs",
-        "forms/tongues-dynamics-analysis/main.conduit",
+        "plots/tongues-dynamics-analysis/main.conduit",
         "targets/browser/patchbay-workbench/src/learned_demo.rs",
         "proof/browser/patchbay-debugger-watch.spec.mjs",
         "tools/xtask/src/cli.rs",
@@ -468,7 +468,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let patchbay = plan_for_paths(
         &root,
-        vec!["forms/patchbay/workbench/model/src/lib.rs".to_owned()],
+        vec!["plots/patchbay/workbench/model/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();

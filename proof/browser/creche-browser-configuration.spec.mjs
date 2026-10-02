@@ -229,7 +229,7 @@ async function exerciseProfile(page, realization, rich) {
     }
     let storage;
     try {
-      const adapter = await openBrowserApplicationStorage("conduit.form/profile-capstone", 1, `sha256:${"a".repeat(64)}`, {
+      const adapter = await openBrowserApplicationStorage("conduit.plot/profile-capstone", 1, `sha256:${"a".repeat(64)}`, {
         implementationRegistry: realization.implementation_registry.map(({ id }) => id),
       });
       await adapter.writeJson("ordinary-plan", { count: 1 });

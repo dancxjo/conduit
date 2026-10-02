@@ -1,7 +1,7 @@
 use super::*;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
-const FORMS: [&str; 4] = ["Keyboard canvas", "Memory Lantern", "Tour", "Patchbay"];
+const PLOTS: [&str; 4] = ["Keyboard canvas", "Memory Lantern", "Tour", "Patchbay"];
 
 #[test]
 fn destinations_round_trip_through_the_native_type() {
@@ -18,37 +18,37 @@ fn destinations_round_trip_through_the_native_type() {
 fn launcher_navigation_is_finite() {
     let mut home = HomeModel::new();
     assert_eq!(home.selected_destination(), HomeDestination::Tour);
-    home.accept(HomeEvent::Previous, &FORMS);
+    home.accept(HomeEvent::Previous, &PLOTS);
     assert_eq!(home.selected_destination(), HomeDestination::Prompt);
-    home.accept(HomeEvent::Next, &FORMS);
+    home.accept(HomeEvent::Next, &PLOTS);
     assert_eq!(home.selected_destination(), HomeDestination::Tour);
 }
 
 #[test]
 fn text_and_voice_share_the_exact_command_path() {
     let mut home = HomeModel::new();
-    assert_eq!(home.submit_text("help", &FORMS), HomeAction::Changed);
+    assert_eq!(home.submit_text("help", &PLOTS), HomeAction::Changed);
     assert_eq!(home.view(), HomeView::Prompt);
     assert!(
         home.output()
-            .contains("open tour|patchbay|forms|body|prompt|creche")
+            .contains("open tour|patchbay|plots|body|prompt|creche")
     );
     assert_eq!(
-        home.submit_text("run memory lantern", &FORMS),
-        HomeAction::RunForm(1)
+        home.submit_text("run memory lantern", &PLOTS),
+        HomeAction::RunPlot(1)
     );
     assert_eq!(
-        home.submit_text("run definitely absent", &FORMS),
+        home.submit_text("run definitely absent", &PLOTS),
         HomeAction::Changed
     );
-    assert_eq!(home.output(), "No installed form named definitely absent.");
+    assert_eq!(home.output(), "No installed plot named definitely absent.");
 }
 
 #[test]
 fn creche_is_an_explicit_host_request() {
     let mut home = HomeModel::new();
     assert_eq!(
-        home.submit_text("open creche", &FORMS),
+        home.submit_text("open creche", &PLOTS),
         HomeAction::OpenCreche
     );
 }
@@ -56,9 +56,9 @@ fn creche_is_an_explicit_host_request() {
 #[test]
 fn command_storage_is_bounded_without_splitting_unicode() {
     let mut home = HomeModel::new();
-    home.accept(HomeEvent::Text("é"), &FORMS);
+    home.accept(HomeEvent::Text("é"), &PLOTS);
     for _ in 0..MAX_COMMAND_BYTES {
-        home.accept(HomeEvent::Text("é"), &FORMS);
+        home.accept(HomeEvent::Text("é"), &PLOTS);
     }
     assert!(home.command().len() <= MAX_COMMAND_BYTES);
     assert!(core::str::from_utf8(home.command().as_bytes()).is_ok());
@@ -76,16 +76,16 @@ fn journey_identity_is_complete_and_unique() {
 #[test]
 fn every_home_view_lowers_to_the_shared_application_contract() {
     let mut home = HomeModel::new();
-    let launcher = home.presentation(1, &FORMS).lower().unwrap();
+    let launcher = home.presentation(1, &PLOTS).lower().unwrap();
     assert_eq!(launcher.actions.len(), HOME_ITEM_COUNT);
     assert_eq!(launcher.actions[0].id, OPEN_TOUR_ACTION_ID);
 
-    home.submit_text("forms", &FORMS);
-    let forms = home.presentation(2, &FORMS).lower().unwrap();
-    assert_eq!(forms.actions.len(), FORMS.len());
+    home.submit_text("plots", &PLOTS);
+    let plots = home.presentation(2, &PLOTS).lower().unwrap();
+    assert_eq!(plots.actions.len(), PLOTS.len());
 
-    home.submit_text("open prompt", &FORMS);
-    let prompt = home.presentation(3, &FORMS).lower().unwrap();
+    home.submit_text("open prompt", &PLOTS);
+    let prompt = home.presentation(3, &PLOTS).lower().unwrap();
     assert!(prompt.nodes.iter().any(|node| node.key == "command-result"));
 }
 
@@ -93,11 +93,11 @@ fn every_home_view_lowers_to_the_shared_application_contract() {
 fn inspect_resolves_real_inventory_or_refuses_without_success_action() {
     let mut home = HomeModel::new();
     assert_eq!(
-        home.submit_text("inspect memory lantern", &FORMS),
-        HomeAction::OpenForm(1)
+        home.submit_text("inspect memory lantern", &PLOTS),
+        HomeAction::OpenPlot(1)
     );
     assert_eq!(
-        home.submit_text("inspect missing thing", &FORMS),
+        home.submit_text("inspect missing thing", &PLOTS),
         HomeAction::Changed
     );
     assert_eq!(
@@ -109,15 +109,15 @@ fn inspect_resolves_real_inventory_or_refuses_without_success_action() {
 #[test]
 fn category_and_lifecycle_commands_refuse_honestly_on_an_unprivileged_front() {
     let mut home = HomeModel::new();
-    home.submit_text("hosts", &FORMS);
+    home.submit_text("hosts", &PLOTS);
     let hosts = String::from(home.output());
-    home.submit_text("lines", &FORMS);
+    home.submit_text("lines", &PLOTS);
     let lines = String::from(home.output());
     assert_ne!(hosts, lines);
     assert!(hosts.contains("unavailable"));
     assert!(lines.contains("unavailable"));
 
-    assert_eq!(home.submit_text("wake", &FORMS), HomeAction::Changed);
+    assert_eq!(home.submit_text("wake", &PLOTS), HomeAction::Changed);
     assert_eq!(
         home.output(),
         "Wake is unavailable on this Home front; no lifecycle authority is attached."
@@ -127,7 +127,7 @@ fn category_and_lifecycle_commands_refuse_honestly_on_an_unprivileged_front() {
 #[test]
 fn help_documents_effects_and_unavailable_commands() {
     let mut home = HomeModel::new();
-    home.submit_text("help", &FORMS);
-    assert!(home.output().contains("inspect <installed form>|body"));
+    home.submit_text("help", &PLOTS);
+    assert!(home.output().contains("inspect <installed plot>|body"));
     assert!(home.output().contains("hosts/lines/wake (unavailable"));
 }

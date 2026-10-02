@@ -1,6 +1,6 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::*;
-use conduit_form::{
+use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
@@ -19,7 +19,7 @@ fn fixture(
     optional_keep: bool,
     keep_duration: &str,
 ) -> (
-    conduit_form::CheckedForm,
+    conduit_plot::CheckedPlot,
     HostAdvertisement,
     StructuredInfoValue,
 ) {
@@ -36,8 +36,8 @@ fn fixture(
     } else {
         next_payload
     };
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
     install_state_value_kind("Cell", &ty, &next, &mut startup, &mut profile).unwrap();
     startup
@@ -173,9 +173,9 @@ fn fixture(
     } else {
         "cell: state/value(initial = true)".into()
     };
-    let form = conduit_form::parse_with_startup(
+    let plot = conduit_plot::parse_with_startup(
         &format!(
-            "form retained {{\n source: conduit-test/structured-source\n {cell}\n sink: conduit-test/structured-sink\n source.output >> cell.next\n cell.current >> sink.input\n}}\n"
+            "plot retained {{\n source: conduit-test/structured-source\n {cell}\n sink: conduit-test/structured-sink\n source.output >> cell.next\n cell.current >> sink.input\n}}\n"
         ),
         &startup,
         &profile,
@@ -191,18 +191,18 @@ fn fixture(
             .push(conduit_std_offers::state_value_std_offer("Cell", &ty, &next).unwrap());
     }
     advertisement.capabilities.extend([source, sink]);
-    (form, advertisement, next)
+    (plot, advertisement, next)
 }
 
 fn plans(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     advertisement: &HostAdvertisement,
     maximum: u32,
 ) -> (Plan, Plan) {
     let hosts = [advertisement.clone()];
-    let placements = conduit_planner::default_placements(form, &hosts).unwrap();
+    let placements = conduit_planner::default_placements(plot, &hosts).unwrap();
     let ordinary = conduit_planner::plan_with_connection_limits(
-        form,
+        plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
@@ -210,9 +210,9 @@ fn plans(
         64,
     )
     .unwrap();
-    let state = derive_state_boundary(form, &GearId::from("retained/cell"), maximum).unwrap();
+    let state = derive_state_boundary(plot, &GearId::from("retained/cell"), maximum).unwrap();
     let sealed =
-        conduit_planner::state_delay::plan::seal_state_plan(form, &ordinary, vec![state]).unwrap();
+        conduit_planner::state_delay::plan::seal_state_plan(plot, &ordinary, vec![state]).unwrap();
     (ordinary, sealed)
 }
 
@@ -262,8 +262,8 @@ fn run(
 
 #[test]
 fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
-    let (form, advertisement, next) = fixture(false, false, false, "for this play");
-    let (ordinary, sealed) = plans(&form, &advertisement, 60);
+    let (plot, advertisement, next) = fixture(false, false, false, "for this play");
+    let (ordinary, sealed) = plans(&plot, &advertisement, 60);
 
     assert!(run(&advertisement, &ordinary.fragments[0], None)
         .err()
@@ -276,7 +276,7 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
     assert_eq!(retained.current_value, state_bytes(&next));
     assert_eq!(retained.generation, 2);
     assert_eq!(retained.source_play.plan_id, sealed.plan_id);
-    assert_eq!(retained.source_form, form.identity());
+    assert_eq!(retained.source_plot, plot.identity());
     let kernel = report.report.kernel.unwrap();
     assert_eq!(retained.source_play.active_play_id, kernel.active_play_id);
     assert_eq!(kernel.post_play_start_allocations, 0);
@@ -284,8 +284,8 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
 
 #[test]
 fn initialized_keep_plans_and_runs_as_installed_typed_state() {
-    let (form, advertisement, next) = fixture(false, true, false, "for this play");
-    let state_gear = form
+    let (plot, advertisement, next) = fixture(false, true, false, "for this play");
+    let state_gear = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == STATE_VALUE_KIND)
@@ -298,9 +298,9 @@ fn initialized_keep_plans_and_runs_as_installed_typed_state() {
     assert_eq!(state_gear.checked_front(), state_offer.checked_front());
     assert!(state_gear.accepts_semantic_contract(state_offer));
     let hosts = [advertisement.clone()];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
@@ -338,7 +338,7 @@ fn initialized_keep_plans_and_runs_as_installed_typed_state() {
 #[test]
 fn keep_duration_requires_exact_back_support_before_planning() {
     let plan = |duration: &str, maximum_lifetime: StateLifetime| {
-        let (form, mut advertisement, _) = fixture(false, true, false, duration);
+        let (plot, mut advertisement, _) = fixture(false, true, false, duration);
         let offer = advertisement
             .capabilities
             .iter_mut()
@@ -346,16 +346,16 @@ fn keep_duration_requires_exact_back_support_before_planning() {
             .unwrap();
         offer.state_retention = Some(StateRetentionSupport { maximum_lifetime });
         let hosts = [advertisement];
-        let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+        let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
         let result = conduit_planner::plan_with_connection_limits(
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
             1,
             100,
         );
-        (form, hosts, result)
+        (plot, hosts, result)
     };
 
     for duration in ["for this step", "for this play"] {
@@ -375,12 +375,12 @@ fn keep_duration_requires_exact_back_support_before_planning() {
         ));
     }
 
-    let (body_form, _, body_refusal) = plan("for this body", StateLifetime::Play);
-    let (life_form, _, life_refusal) = plan("for life", StateLifetime::Play);
-    assert_eq!(body_form.checked_form_id, life_form.checked_form_id);
+    let (body_plot, _, body_refusal) = plan("for this body", StateLifetime::Play);
+    let (life_plot, _, life_refusal) = plan("for life", StateLifetime::Play);
+    assert_eq!(body_plot.checked_plot_id, life_plot.checked_plot_id);
     assert_eq!(body_refusal, life_refusal);
 
-    let (form, hosts, result) = plan("for this body", StateLifetime::Body);
+    let (plot, hosts, result) = plan("for this body", StateLifetime::Body);
     let admitted = result.unwrap();
     let [state] = admitted.fragments[0].states.as_slice() else {
         panic!("Body-lived keep must seal one State boundary")
@@ -401,12 +401,12 @@ fn keep_duration_requires_exact_back_support_before_planning() {
         offered.implementation.implementation_id
     );
     assert_eq!(selected.artifact_id, offered.implementation.artifact_id);
-    assert_eq!(admitted.checked_form_id, form.checked_form_id);
+    assert_eq!(admitted.checked_plot_id, plot.checked_plot_id);
 }
 
 #[test]
 fn body_durable_keep_selects_and_executes_only_the_sealed_durable_back() {
-    let (form, mut advertisement, initial) = fixture(false, true, false, "for life");
+    let (plot, mut advertisement, initial) = fixture(false, true, false, "for life");
     advertisement
         .capabilities
         .retain(|offer| offer.kind_id.as_str() != STATE_VALUE_KIND);
@@ -429,9 +429,9 @@ fn body_durable_keep_selects_and_executes_only_the_sealed_durable_back() {
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
 
     let hosts = [advertisement.clone()];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
@@ -487,8 +487,8 @@ fn body_durable_keep_selects_and_executes_only_the_sealed_durable_back() {
 fn canonical_four_kib_text_keep_plans_on_the_durable_back_and_larger_refuses() {
     let text_type = StructuredInfoType::leaf(kind_id(TEXT_INFO_ID)).unwrap();
     let initial = StructuredInfoValue::leaf(text_type.clone(), Vec::new()).unwrap();
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     install_state_value_kind("Text", &text_type, &initial, &mut startup, &mut profile).unwrap();
     startup
         .insert(KindSignature {
@@ -498,10 +498,10 @@ fn canonical_four_kib_text_keep_plans_on_the_durable_back_and_larger_refuses() {
         .unwrap();
     let source = |maximum| {
         format!(
-            "form durable-note (\n >> write: Text <= {maximum}B\n current: $Text <= {maximum}B >>\n) {{\n note: keep Text(\"\") <= {maximum}B for life\n write >> note\n note >> current\n}}\n"
+            "plot durable-note (\n >> write: Text <= {maximum}B\n current: $Text <= {maximum}B >>\n) {{\n note: keep Text(\"\") <= {maximum}B for life\n write >> note\n note >> current\n}}\n"
         )
     };
-    let checked = conduit_form::parse_with_startup(&source(4096), &startup, &profile).unwrap();
+    let checked = conduit_plot::parse_with_startup(&source(4096), &startup, &profile).unwrap();
     let mut advertisement = host("durable-text-host").advertisement().clone();
     advertisement
         .capabilities
@@ -552,7 +552,7 @@ fn canonical_four_kib_text_keep_plans_on_the_durable_back_and_larger_refuses() {
         conduit_data::MAXIMUM_DATA_TEXT_BYTES
     );
 
-    let oversized = conduit_form::parse_with_startup(&source(4097), &startup, &profile).unwrap();
+    let oversized = conduit_plot::parse_with_startup(&source(4097), &startup, &profile).unwrap();
     let placements = conduit_planner::default_placements(&oversized, &hosts).unwrap();
     assert!(conduit_planner::plan_with_connection_limits(
         &oversized,
@@ -567,8 +567,8 @@ fn canonical_four_kib_text_keep_plans_on_the_durable_back_and_larger_refuses() {
 
 #[test]
 fn optional_keep_plans_runs_and_retains_canonical_some_value() {
-    let (form, advertisement, _next) = fixture(false, true, true, "for this play");
-    let state_gear = form
+    let (plot, advertisement, _next) = fixture(false, true, true, "for this play");
+    let state_gear = plot
         .gears
         .iter()
         .find(|gear| gear.kind_id.as_str() == STATE_VALUE_KIND)
@@ -584,9 +584,9 @@ fn optional_keep_plans_runs_and_retains_canonical_some_value() {
     assert_eq!(state_gear.outputs[0].value_kind, optional_kind);
 
     let hosts = [advertisement.clone()];
-    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
@@ -614,12 +614,12 @@ fn optional_keep_continuity_preserves_exact_variant_and_generation() {
     use conduit_planner::state_delay::continuity::{
         seal_state_continuity, StateContinuityApproval,
     };
-    let (form, source_host, _next) = fixture(false, true, true, "for this play");
+    let (plot, source_host, _next) = fixture(false, true, true, "for this play");
     let plan_for = |advertisement: &HostAdvertisement| {
         let hosts = [advertisement.clone()];
-        let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+        let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
         conduit_planner::plan_with_connection_limits(
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
@@ -669,15 +669,15 @@ fn public_host_replaces_play_with_owned_state_and_fresh_boot_without_semantic_re
     use conduit_planner::state_delay::continuity::{
         seal_state_continuity, StateContinuityApproval,
     };
-    let (form, source_host, next) = fixture(true, false, false, "for this play");
-    let (_, source) = plans(&form, &source_host, 60);
+    let (plot, source_host, next) = fixture(true, false, false, "for this play");
+    let (_, source) = plans(&plot, &source_host, 60);
     let first = run(&source_host, &source.fragments[0], None).unwrap();
     let old_play = first.report.kernel.as_ref().unwrap().active_play_id.clone();
     let mut states = first.states;
     assert_eq!(states[0].provenance().generation, 2);
     let mut destination_host = source_host.clone();
     destination_host.boot_id = "replacement-boot".into();
-    let (_, candidate) = plans(&form, &destination_host, 64);
+    let (_, candidate) = plans(&plot, &destination_host, 64);
     let replacement = seal_state_continuity(
         &source,
         &candidate,
@@ -693,7 +693,7 @@ fn public_host_replaces_play_with_owned_state_and_fresh_boot_without_semantic_re
     // A structurally valid forged snapshot cannot consume the actual owner.
     let mut fragments = replacement.fragments.clone();
     fragments[0].states[0].retained.as_mut().unwrap().generation += 1;
-    let forged = seal_plan(form.identity(), fragments);
+    let forged = seal_plan(plot.identity(), fragments);
     assert!(run(&destination_host, &forged.fragments[0], Some(&mut states)).is_err());
     assert_eq!(states.len(), 1);
     assert_eq!(states[0].provenance().generation, 2);
@@ -710,7 +710,7 @@ fn public_host_replaces_play_with_owned_state_and_fresh_boot_without_semantic_re
         "replacement must not renew State generation"
     );
     assert_eq!(retained.current_value, state_bytes(&next));
-    assert_eq!(retained.source_form, form.identity());
+    assert_eq!(retained.source_plot, plot.identity());
     assert_eq!(retained.source_play.plan_id, replacement.plan_id);
     assert_eq!(retained.source_play.boot_id, destination_host.boot_id);
     assert_ne!(retained.source_play.active_play_id, old_play);

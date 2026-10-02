@@ -21,17 +21,17 @@ const LOCAL: &str = "host/zz-constrained-laptop";
 const REMOTE: &str = "host/aa-capable-workstation";
 const CPU: &str = conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS;
 
-fn form() -> conduit_form::CheckedForm {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn plot() -> conduit_plot::CheckedPlot {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_form::parse(
-        "form text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key >> keymap.key\n keymap.text >> uppercase.text\n uppercase.text >> presentation.text\n}\n",
+    conduit_plot::parse(
+        "plot text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key >> keymap.key\n keymap.text >> uppercase.text\n uppercase.text >> presentation.text\n}\n",
         &profile,
     )
-    .expect("the unchanged text-lab Form checks")
+    .expect("the unchanged text-lab Plot checks")
 }
 
 fn hosts() -> Vec<conduit_core::HostAdvertisement> {
@@ -193,7 +193,7 @@ fn policies() -> BTreeMap<GearId, RealizationPolicy> {
 }
 
 fn plan_fixture(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[conduit_core::HostAdvertisement],
     observations: &[ResourceObservation],
     lines: &[conduit_core::LineOffer],
@@ -215,7 +215,7 @@ fn plan_fixture(
         ),
     ]);
     plan_selected_realizations_with_characteristics_and_options(
-        form,
+        plot,
         hosts,
         &[
             BaseImplementationId::from("conduit.base/local@1"),
@@ -239,11 +239,11 @@ fn plan_fixture(
 
 #[test]
 fn human_facing_gears_stay_local_while_heavy_work_uses_an_ordinary_peer_plan() {
-    let form = form();
+    let plot = plot();
     let hosts = hosts();
     let observations = observations(&hosts);
     let lines = lines(&hosts);
-    let plan = plan_fixture(&form, &hosts, &observations, &lines)
+    let plan = plan_fixture(&plot, &hosts, &observations, &lines)
         .expect("explicit locality and capacity policy produce one ordinary plan");
 
     assert!(verify_plan(&plan));
@@ -271,16 +271,16 @@ fn human_facing_gears_stay_local_while_heavy_work_uses_an_ordinary_peer_plan() {
 
 #[test]
 fn insufficient_or_lost_line_refuses_replacement_without_mutating_the_old_plan() {
-    let form = form();
+    let plot = plot();
     let hosts = hosts();
     let observations = observations(&hosts);
     let mut lines = lines(&hosts);
-    let accepted = plan_fixture(&form, &hosts, &observations, &lines).expect("initial Plan");
+    let accepted = plan_fixture(&plot, &hosts, &observations, &lines).expect("initial Plan");
     let accepted_id = accepted.plan_id.clone();
     let wake = lifecycle::active_wake(&accepted, LOCAL);
 
     lines[1].binding.limits.maximum_payload_bytes = 8;
-    let insufficient = plan_fixture(&form, &hosts, &observations, &lines)
+    let insufficient = plan_fixture(&plot, &hosts, &observations, &lines)
         .expect_err("an undersized return Line refuses before Play");
     assert!(matches!(
         insufficient,
@@ -289,7 +289,7 @@ fn insufficient_or_lost_line_refuses_replacement_without_mutating_the_old_plan()
 
     lines[1].binding.limits.maximum_payload_bytes = 256;
     lines[0].availability.availability = conduit_core::LineAvailability::Unavailable;
-    let lost = plan_fixture(&form, &hosts, &observations, &lines)
+    let lost = plan_fixture(&plot, &hosts, &observations, &lines)
         .expect_err("lost selected Line requires ordinary replacement planning");
     assert!(matches!(
         lost,
@@ -308,16 +308,16 @@ fn insufficient_or_lost_line_refuses_replacement_without_mutating_the_old_plan()
 
 #[test]
 fn local_human_preference_retains_its_exact_policy_source() {
-    let form = form();
+    let plot = plot();
     let hosts = hosts();
     let observations = observations(&hosts);
-    let presentation = form
+    let presentation = plot
         .gears
         .iter()
         .find(|gear| gear.gear_id.as_str() == "text_lab/presentation")
         .unwrap();
     let semantic = lifecycle::policy_source(
-        "checked-form/text-lab",
+        "checked-plot/text-lab",
         1,
         PolicyScope::SemanticRequirements,
     );
@@ -359,10 +359,10 @@ fn local_human_preference_retains_its_exact_policy_source() {
 
 #[test]
 fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() {
-    let form = form();
+    let plot = plot();
     let hosts = hosts();
     let current_observations = observations(&hosts);
-    let presentation = form
+    let presentation = plot
         .gears
         .iter()
         .find(|gear| gear.gear_id.as_str() == "text_lab/presentation")
@@ -390,7 +390,7 @@ fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() 
 
     let local_only = &hosts[..1];
     let local_observations = observations(local_only);
-    let keyboard = form
+    let keyboard = plot
         .gears
         .iter()
         .find(|gear| gear.gear_id.as_str() == "text_lab/keyboard")
@@ -406,7 +406,7 @@ fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() 
     .expect("remote disappearance does not erase the local input offer");
     assert_eq!(still_local.choice.host_id.as_str(), LOCAL);
 
-    let heavy = form
+    let heavy = plot
         .gears
         .iter()
         .find(|gear| gear.gear_id.as_str() == "text_lab/uppercase")
@@ -430,7 +430,7 @@ fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() 
 
 #[test]
 fn remote_capacity_cannot_override_authority_or_data_locality_requirements() {
-    let form = form();
+    let plot = plot();
     let mut hosts = hosts();
     let authority = conduit_core::AuthorityContractId::from("authority/text-may-leave-laptop");
     let remote_upper = hosts[1]
@@ -447,7 +447,7 @@ fn remote_capacity_cannot_override_authority_or_data_locality_requirements() {
             subject_kind: conduit_core::kind_id("value/text"),
         });
     let observations = observations(&hosts);
-    let heavy = form
+    let heavy = plot
         .gears
         .iter()
         .find(|gear| gear.gear_id.as_str() == "text_lab/uppercase")

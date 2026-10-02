@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
   <title id="title">The Conduit idea</title>
-  <desc id="desc">A form describes what should happen. Body building prepares parts as spores. After boot and join, the current body contains the hosts, resources, lines, and signs that actually exist now. Conduit combines the form with that current body to create one exact plan and execute it as a play.</desc>
+  <desc id="desc">A plot describes what should happen. Body building prepares parts as spores. After boot and join, the current body contains the hosts, resources, lines, and signs that actually exist now. Conduit combines the plot with that current body to create one exact plan and execute it as a play.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#101827"/>
@@ -29,7 +29,7 @@
   <text x="54" y="84" class="h">The body is the computer</text>
 
   <rect x="54" y="126" width="330" height="126" rx="18" class="semantic"/>
-  <text x="82" y="164" class="label">form</text>
+  <text x="82" y="164" class="label">plot</text>
   <text x="82" y="197" class="t">what should happen</text>
   <text x="82" y="224" class="small">portable semantic meaning</text>
 
@@ -58,5 +58,5 @@
   <path d="M816 397 H698" class="line"/>
   <path d="M568 460 V500" class="line"/>
 
-  <text x="54" y="601" class="small">The form says what must remain true. The current body says what can make it true now.</text>
+  <text x="54" y="601" class="small">The plot says what must remain true. The current body says what can make it true now.</text>
 </svg>

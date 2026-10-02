@@ -5,7 +5,7 @@ use conduit_chat::{
     LiveConversationStageState, LiveConversationStages, RecognitionEvidenceStatus,
     RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn live_conversation_projection_family_is_native_and_bounded() {

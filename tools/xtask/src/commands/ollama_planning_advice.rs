@@ -3,10 +3,10 @@ use crate::{
     process::StepError,
 };
 use conduit_core::{BaseImplementationId, BootId, CapabilityId, HostId, OfferGeneration};
-use conduit_form::parse_with_startup;
 use conduit_planner::{
     default_placements, plan, seed_planning_from_advice, PlanningAdvice, SuggestedPlacement,
 };
+use conduit_plot::parse_with_startup;
 use conduit_signal::signal_profile_catalog;
 use conduit_signal_conformance::pico_local_advertisement;
 use serde::{Deserialize, Serialize};
@@ -45,7 +45,7 @@ struct WireProposal {
     proposal_id: String,
     request_identity: String,
     run_identity: String,
-    checked_form_id: String,
+    checked_plot_id: String,
     placements: Vec<WirePlacement>,
 }
 
@@ -75,7 +75,7 @@ struct LiveProof {
     proposal_id: String,
     request_identity: String,
     run_identity: String,
-    checked_form_id: String,
+    checked_plot_id: String,
     selected_host_id: String,
     selected_boot_id: String,
     selected_offer_generation: u64,
@@ -102,11 +102,11 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         return Ok(());
     }
 
-    let (form, hosts) = fixture();
-    let ordinary_choices = default_placements(&form, &hosts)
+    let (plot, hosts) = fixture();
+    let ordinary_choices = default_placements(&plot, &hosts)
         .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
     let baseline = plan(
-        &form,
+        &plot,
         &hosts,
         &ordinary_choices,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -114,7 +114,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
     let sealed_baseline = baseline.clone();
 
-    let request = request(model, &form, &hosts)?;
+    let request = request(model, &plot, &hosts)?;
     let request_bytes = serde_json::to_vec(&request)
         .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
     if request_bytes.len() > MAXIMUM_REQUEST_BYTES {
@@ -149,11 +149,11 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         )
     })?;
     let advice = convert(wire.clone())?;
-    let seeded = seed_planning_from_advice(&form, &hosts, &[], &advice).map_err(|error| {
+    let seeded = seed_planning_from_advice(&plot, &hosts, &[], &advice).map_err(|error| {
         StepError::prereq(PROOF_ID, format!("planning advice refused: {error:?}"))
     })?;
     let advised = plan(
-        &form,
+        &plot,
         &hosts,
         &seeded.placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -191,7 +191,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         proposal_id: seeded.evidence.proposal_id,
         request_identity: seeded.evidence.request_identity,
         run_identity: seeded.evidence.run_identity,
-        checked_form_id: seeded.evidence.checked_form_id.as_str().to_string(),
+        checked_plot_id: seeded.evidence.checked_plot_id.as_str().to_string(),
         selected_host_id: suggestion.host_id.as_str().to_string(),
         selected_boot_id: suggestion.boot_id.as_str().to_string(),
         selected_offer_generation: suggestion.offer_generation.0,
@@ -223,11 +223,11 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
 }
 
 fn fixture() -> (
-    conduit_form::CheckedForm,
+    conduit_plot::CheckedPlot,
     [conduit_core::HostAdvertisement; 2],
 ) {
-    let form = parse_with_startup(
-        "form advised {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n}\n",
+    let plot = parse_with_startup(
+        "plot advised {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n}\n",
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -259,12 +259,12 @@ fn fixture() -> (
         .find(|pool| pool.class_id == resource_class)
         .expect("reviewed fixture has the required resource pool")
         .capacity_units = 1;
-    (form, [first, second])
+    (plot, [first, second])
 }
 
 fn request(
     model: &str,
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     hosts: &[conduit_core::HostAdvertisement; 2],
 ) -> Result<serde_json::Value, StepError> {
     let candidates = hosts
@@ -288,8 +288,8 @@ fn request(
         "messages": [
             {"role": "system", "content": "You are an optional Conduit planning adviser. Return only the requested typed proposal. Never invent identifiers. You do not create a plan. Prefer the candidate with lower resource units."},
             {"role": "user", "content": format!(
-                "Checked form: {}. Gear: advised/pulse. Exact candidates: {}. Use proposal_id=proposal/live-gpt-oss request_identity=request/live-gpt-oss run_identity=run/live-gpt-oss.",
-                form.checked_form_id.as_str(),
+                "Checked plot: {}. Gear: advised/pulse. Exact candidates: {}. Use proposal_id=proposal/live-gpt-oss request_identity=request/live-gpt-oss run_identity=run/live-gpt-oss.",
+                plot.checked_plot_id.as_str(),
                 serde_json::to_string(&candidates).map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?,
             )}
         ],
@@ -304,7 +304,7 @@ fn proposal_schema() -> serde_json::Value {
             "proposal_id": {"type": "string"},
             "request_identity": {"type": "string"},
             "run_identity": {"type": "string"},
-            "checked_form_id": {"type": "string"},
+            "checked_plot_id": {"type": "string"},
             "placements": {"type": "array", "maxItems": 1, "items": {
                 "type": "object",
                 "properties": {
@@ -316,7 +316,7 @@ fn proposal_schema() -> serde_json::Value {
                 "additionalProperties": false
             }}
         },
-        "required": ["proposal_id", "request_identity", "run_identity", "checked_form_id", "placements"],
+        "required": ["proposal_id", "request_identity", "run_identity", "checked_plot_id", "placements"],
         "additionalProperties": false
     })
 }
@@ -332,7 +332,7 @@ fn convert(wire: WireProposal) -> Result<PlanningAdvice, StepError> {
         proposal_id: wire.proposal_id,
         request_identity: wire.request_identity,
         run_identity: wire.run_identity,
-        checked_form_id: conduit_core::CheckedFormId::from(wire.checked_form_id),
+        checked_plot_id: conduit_core::CheckedPlotId::from(wire.checked_plot_id),
         placements: wire
             .placements
             .into_iter()

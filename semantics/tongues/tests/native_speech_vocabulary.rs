@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_tongues::{
     no_speech_result, recognized_result, CommittedUserMessage, RecognitionTextRefusal,
     SpeakableSegment, SpeechCommitReason, SpeechCommitRefusal, SpeechDigest, SpeechOutcome,

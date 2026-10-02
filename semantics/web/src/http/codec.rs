@@ -4,7 +4,7 @@ use super::{
 };
 use alloc::vec::Vec;
 use conduit_core::StructuredInfoValue;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub fn encode_request(value: &HttpRequest) -> Result<Vec<u8>, HttpContractError> {
     value.validate()?;
@@ -80,7 +80,7 @@ mod tests {
     fn header(name: &str, value: &[u8]) -> HttpHeader {
         HttpHeader::new(
             name.into(),
-            conduit_form::rust_binding::BoundedBytes::new(value).unwrap(),
+            conduit_plot::rust_binding::BoundedBytes::new(value).unwrap(),
         )
         .unwrap()
     }
@@ -204,7 +204,7 @@ mod tests {
         value.headers =
             crate::http_headers([header("Upper", b"first"), header("x-order", b"second")]).unwrap();
         assert_eq!(value.validate(), Err(HttpContractError::InvalidHeaderName));
-        assert!(conduit_form::rust_binding::BoundedBytes::<
+        assert!(conduit_plot::rust_binding::BoundedBytes::<
             { crate::HTTP_MAXIMUM_REQUEST_BODY_BYTES },
         >::new(&vec![0; crate::HTTP_MAXIMUM_REQUEST_BODY_BYTES + 1])
         .is_none());

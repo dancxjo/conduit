@@ -211,7 +211,7 @@ const DEVICE_ACQUISITION: BrowserRuntimePrerequisite = BrowserRuntimePrerequisit
 pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
     descriptor("Presentation", "Optional audible cue", "audio/output", "browser/audio-cue@1",
         16, 1024 * 1024, &[BrowserRuntimePrerequisite {
-            kind: "audio-policy", detail: "playback requires available output and permitted audio; denial is retained without blocking other Forms",
+            kind: "audio-policy", detail: "playback requires available output and permitted audio; denial is retained without blocking other Plots",
         }]),
     descriptor(
         "Presentation",

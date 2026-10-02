@@ -1,7 +1,7 @@
 //! Bounded zero-body Patchbay state for an ordinary ConduitOS boot.
 
 use alloc::{format, string::String, vec};
-use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SourceDocumentId};
 use conduit_human::KeyEvent;
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionRefusal, PresentationBasis,
@@ -45,11 +45,11 @@ pub struct FrontDoor {
     build_id: String,
     image_id: String,
     source_document_id: SourceDocumentId,
-    checked_form_id: CheckedFormId,
-    form_subject: String,
+    checked_plot_id: CheckedPlotId,
+    plot_subject: String,
     selected_subject: String,
     exact_details_open: bool,
-    form_open: bool,
+    plot_open: bool,
     revision: u64,
     offer_count: u64,
     lifecycle_authority_admitted: bool,
@@ -127,11 +127,11 @@ impl FrontDoor {
         build_id: impl Into<String>,
         image_id: impl Into<String>,
         source_document_id: SourceDocumentId,
-        checked_form_id: CheckedFormId,
+        checked_plot_id: CheckedPlotId,
         offer_count: u64,
         lifecycle_authority_admitted: bool,
     ) -> Self {
-        let form_subject = format!("form/{}", checked_form_id.as_str());
+        let plot_subject = format!("plot/{}", checked_plot_id.as_str());
         let selected_subject = format!("host/{}/{}", host_id.as_str(), boot_id.as_str());
         Self {
             host_id,
@@ -141,11 +141,11 @@ impl FrontDoor {
             build_id: build_id.into(),
             image_id: image_id.into(),
             source_document_id,
-            checked_form_id,
-            form_subject,
+            checked_plot_id,
+            plot_subject,
             selected_subject,
             exact_details_open: false,
-            form_open: false,
+            plot_open: false,
             revision: 1,
             offer_count,
             lifecycle_authority_admitted,
@@ -174,13 +174,13 @@ impl FrontDoor {
             .as_ref()
             .is_some_and(|identity| identity != &self.source_document_id)
             || projection
-                .checked_form_id
+                .checked_plot_id
                 .as_ref()
-                .is_some_and(|identity| identity != &self.checked_form_id)
+                .is_some_and(|identity| identity != &self.checked_plot_id)
         {
             return Err(Error::Presentation);
         }
-        self.form_open = projection.status == JourneyStatus::FormOpened;
+        self.plot_open = projection.status == JourneyStatus::PlotOpened;
         self.journey = Some(projection);
         self.advance()
     }
@@ -211,12 +211,12 @@ impl FrontDoor {
         }
         match event.usage() {
             TAB | RIGHT | LEFT | DOWN | UP => {
-                let form = self.form_subject.clone();
+                let plot = self.plot_subject.clone();
                 let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
-                self.selected_subject = if self.selected_subject == form {
+                self.selected_subject = if self.selected_subject == plot {
                     host
                 } else {
-                    form
+                    plot
                 };
                 self.exact_details_open = false;
                 self.advance()?;
@@ -231,8 +231,8 @@ impl FrontDoor {
                 Ok(true)
             }
             ENTER => {
-                self.form_open = self.selected_subject.starts_with("form/");
-                self.exact_details_open = !self.form_open;
+                self.plot_open = self.selected_subject.starts_with("plot/");
+                self.exact_details_open = !self.plot_open;
                 self.advance()?;
                 Ok(true)
             }

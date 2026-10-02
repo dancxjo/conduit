@@ -1,7 +1,7 @@
-//! Exact cumulative Body admission for the namesake and its unrelated peer Form.
+//! Exact cumulative Body admission for the namesake and its unrelated peer Plot.
 
 use conduit_body::{
-    Body, BodyFormResourceRequests, BodyPlan, BodyResourceAllowance, BodyResourceEnvelope,
+    Body, BodyPlan, BodyPlotResourceRequests, BodyResourceAllowance, BodyResourceEnvelope,
     BodyResourceReservationLedger, PartId,
 };
 use conduit_core::{
@@ -49,7 +49,7 @@ pub(super) fn admit_combined_resources(
     let secret_requests = references(&secret_demands);
     let unrelated_requests = references(&unrelated_demands);
     let partitions = body_plan
-        .forms
+        .plots
         .iter()
         .map(|partition| {
             let requests = if partition.plan.plan_id == secret_knock.plan_id {
@@ -59,8 +59,8 @@ pub(super) fn admit_combined_resources(
             } else {
                 panic!("Body plan contains an unexpected constituent Plan")
             };
-            BodyFormResourceRequests {
-                form: &partition.form,
+            BodyPlotResourceRequests {
+                plot: &partition.plot,
                 requests,
             }
         })
@@ -74,7 +74,7 @@ pub(super) fn admit_combined_resources(
     let mut ledger = BodyResourceReservationLedger::new(&envelope);
     ledger
         .reserve_body_plan(body_plan, &envelope, host, &observations, &partitions)
-        .expect("all Form demand is admitted atomically before Body Play start");
+        .expect("all Plot demand is admitted atomically before Body Play start");
     assert_eq!(ledger.reservations().len(), 1);
     assert_eq!(ledger.reservations()[0].plan_id(), &body_plan.plan_id);
     assert_eq!(ledger.reservations()[0].bindings().len(), expected_bindings);

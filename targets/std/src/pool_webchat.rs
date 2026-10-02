@@ -14,10 +14,6 @@ use conduit_core::{
     PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_kernel::shared_flow::{FixedFan, FixedMerge, MergeEvent};
 use conduit_kernel::shared_pool::{
     FixedSharedPool, MemberIdentity, MemberKey, MemberPlacement, PoolId,
@@ -27,10 +23,14 @@ use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_shared_pools, PlanningOptions,
     SharedPoolPlanningRequirement,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 
-const SOURCE: &str = include_str!("../../../forms/pool-webchat/main.conduit");
+const SOURCE: &str = include_str!("../../../plots/pool-webchat/main.conduit");
 const MAXIMUM_PEERS: usize = conduit_chat::POOL_WEBCHAT_MAXIMUM_PEERS as usize;
 const MAXIMUM_MESSAGE_BYTES: usize = 256;
 const AUTHORITY: u16 = 0;
@@ -83,7 +83,7 @@ fn planned_pool() -> Result<(String, conduit_plan_lowering::lowering::LoweredSha
     conduit_chat::install_pool_chat_catalogs(&mut startup, &mut profile)?;
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
         .map_err(|error| format!("pool chat check: {error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "pool-webchat", &profile)
+    let expanded = expand_canonical_plot(&checked, "pool-webchat", &profile)
         .map_err(|error| format!("pool chat expansion: {error:?}"))?;
     let host = advertisement();
     let placements = default_expanded_placements(&expanded, std::slice::from_ref(&host))
@@ -137,13 +137,13 @@ fn source_identity() -> Result<String, String> {
     conduit_chat::install_pool_chat_catalogs(&mut startup, &mut profile)?;
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
         .map_err(|error| format!("pool chat check: {error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "pool-webchat", &profile)
+    let expanded = expand_canonical_plot(&checked, "pool-webchat", &profile)
         .map_err(|error| format!("pool chat expansion: {error:?}"))?;
     Ok(format!(
         "{}/{}/{}",
         expanded.source_document_id.as_str(),
-        expanded.checked_form_id.as_str(),
-        expanded.expanded_form_id.as_str()
+        expanded.checked_plot_id.as_str(),
+        expanded.expanded_plot_id.as_str()
     ))
 }
 

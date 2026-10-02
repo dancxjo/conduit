@@ -18,15 +18,15 @@ use crate::{
     planned_kernel::PlannedKernel,
 };
 
-const TIMING_FORM_SOURCE: &str = "form conduitos-ordinary {\n    clock: time/tick(count = 1, period-ms = 1)\n    show: presentation/tick\n\n\n    clock.tick >> show.tick\n}\n";
+const TIMING_PLOT_SOURCE: &str = "plot conduitos-ordinary {\n    clock: time/tick(count = 1, period-ms = 1)\n    show: presentation/tick\n\n\n    clock.tick >> show.tick\n}\n";
 
 pub struct PreparedTimingPlay {
     pub kernel: PlannedKernel,
     pub advertisement: HostAdvertisement,
     pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
     pub plan_id: PlanId,
     pub fragment_id: conduit_core::FragmentId,
     pub active_play: ActivePlayIdentity,
@@ -37,7 +37,7 @@ pub struct PreparedTimingPlay {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PreparationError {
     OfferMismatch,
-    FormRejected,
+    PlotRejected,
     PlacementRejected,
     PlanRejected,
     LoweringRejected,
@@ -50,20 +50,20 @@ pub fn prepare_timing(
     build_id: &str,
 ) -> Result<PreparedTimingPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
-    let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     catalog
         .insert_kind(conduit_time::tick_semantic_contract())
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     catalog
         .insert_kind(conduit_semantic_catalog::tick_presentation_semantic_contract())
-        .map_err(|_| PreparationError::FormRejected)?;
-    let form = conduit_form::parse(TIMING_FORM_SOURCE, &catalog)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
+    let plot = conduit_plot::parse(TIMING_PLOT_SOURCE, &catalog)
+        .map_err(|_| PreparationError::PlotRejected)?;
     let hosts = [advertisement.clone()];
     let placements =
-        default_placements(&form, &hosts).map_err(|_| PreparationError::PlacementRejected)?;
+        default_placements(&plot, &hosts).map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -110,8 +110,8 @@ pub fn prepare_timing(
         kernel,
         advertisement,
         source_document_id: plan.source_document_id.clone(),
-        checked_form_id: plan.checked_form_id.clone(),
-        expanded_form_id: plan.expanded_form_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
         plan_id: plan.plan_id.clone(),
         fragment_id: fragment.fragment_id.clone(),
         active_play,

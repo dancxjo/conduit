@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use conduit_form::{
+use conduit_plot::{
     parse_syntax_document, ConstructionRole, ConstructionSyntax, ExpressionSyntax,
     StructuredExpressionField,
 };
@@ -164,8 +164,8 @@ fn one_host_construction(source: &str) -> Result<ConstructionSyntax, String> {
             diagnostic.message, diagnostic.span.line, diagnostic.span.column
         ));
     }
-    if !document.forms.is_empty() {
-        return Err("construction source must not contain Form definitions".into());
+    if !document.plots.is_empty() {
+        return Err("construction source must not contain Plot definitions".into());
     }
     if document.constructions.len() != 1 {
         return Err("construction source must contain exactly one document".into());

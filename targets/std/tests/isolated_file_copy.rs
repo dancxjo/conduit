@@ -268,7 +268,7 @@ fn proof_material(
 }
 
 #[test]
-fn unchanged_copy_form_executes_through_isolated_provider_and_kernel() {
+fn unchanged_copy_plot_executes_through_isolated_provider_and_kernel() {
     let fixture = Fixture::new();
     let source_dir = fixture.directory("source");
     let destination_dir = fixture.directory("destination");
@@ -346,7 +346,7 @@ fn unchanged_copy_form_executes_through_isolated_provider_and_kernel() {
         provider.provider_generation
     );
     assert_eq!(host.registry().entries().len(), 1);
-    assert!(!format!("{:?}", prepared.form).contains(source.to_string_lossy().as_ref()));
+    assert!(!format!("{:?}", prepared.plot).contains(source.to_string_lossy().as_ref()));
     assert!(!format!("{:?}", prepared.plan).contains(source.to_string_lossy().as_ref()));
     let proof_play = host
         .host_mut()

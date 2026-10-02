@@ -14,16 +14,16 @@ use std::collections::BTreeMap;
 static EMPTY_ROUTE_CANDIDATES: BTreeMap<(GearId, GearId), Vec<conduit_core::LineId>> =
     BTreeMap::new();
 
-fn portable_inputs() -> (conduit_form::CheckedForm, Vec<HostAdvertisement>) {
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
+fn portable_inputs() -> (conduit_plot::CheckedPlot, Vec<HostAdvertisement>) {
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../proof/fixtures/plots/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     )
-    .expect("portable Signal form checks");
+    .expect("portable Signal plot checks");
     let target = conduit_signal_conformance::pico_local_advertisement();
     assert!(target.planner_capabilities.is_empty());
-    (form, vec![target])
+    (plot, vec![target])
 }
 
 fn planner_host(host: &str, boot: &str, profile: &str, limits: PlannerLimits) -> HostAdvertisement {
@@ -55,8 +55,8 @@ fn options<'a>(
 
 #[test]
 fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
-    let (form, hosts) = portable_inputs();
-    let placements = default_placements(&form, &hosts).expect("target placement");
+    let (plot, hosts) = portable_inputs();
+    let placements = default_placements(&plot, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
     let full = planner_host(
         "std-planner-a",
@@ -81,7 +81,7 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
     let full_plan = plan_with_advertised_profile(
         &full,
         &PlannerProfileId::from(FULL_PLANNER_PROFILE),
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -91,7 +91,7 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
     let browser_plan = plan_with_advertised_profile(
         &browser,
         &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -110,8 +110,8 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
 
 #[test]
 fn bounded_profile_refuses_before_planning_without_delegation() {
-    let (form, hosts) = portable_inputs();
-    let placements = default_placements(&form, &hosts).expect("target placement");
+    let (plot, hosts) = portable_inputs();
+    let placements = default_placements(&plot, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
     let bounded = planner_host(
         "bounded-planner",
@@ -130,13 +130,13 @@ fn bounded_profile_refuses_before_planning_without_delegation() {
     let error = plan_with_advertised_profile(
         &bounded,
         &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
         options(&overrides),
     )
-    .expect_err("two-gear form exceeds bounded offer");
+    .expect_err("two-gear plot exceeds bounded offer");
 
     assert_eq!(
         error,
@@ -148,14 +148,14 @@ fn bounded_profile_refuses_before_planning_without_delegation() {
 
 #[test]
 fn host_must_truthfully_advertise_the_requested_profile() {
-    let (form, hosts) = portable_inputs();
-    let placements = default_placements(&form, &hosts).expect("target placement");
+    let (plot, hosts) = portable_inputs();
+    let placements = default_placements(&plot, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
 
     let error = plan_with_advertised_profile(
         &hosts[0],
         &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -171,8 +171,8 @@ fn host_must_truthfully_advertise_the_requested_profile() {
 
 #[test]
 fn portable_profile_admits_protected_grants_before_planning() {
-    let (form, hosts) = portable_inputs();
-    let placements = default_placements(&form, &hosts).expect("target placement");
+    let (plot, hosts) = portable_inputs();
+    let placements = default_placements(&plot, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
     let bounded = planner_host(
         "bounded-planner",
@@ -206,7 +206,7 @@ fn portable_profile_admits_protected_grants_before_planning() {
         plan_with_advertised_profile(
             &bounded,
             &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],

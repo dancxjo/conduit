@@ -1,6 +1,6 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_wire::{
-    SessionRole, SessionTerminalDisposition, SessionTerminalDispositionCode,
+    SessionRole, SessionTerminalDisposition, SessionTerminalDispositionForm,
     SessionTransferCheckpoint,
 };
 
@@ -23,10 +23,10 @@ fn session_roles_terminals_and_transfer_checkpoints_are_native() {
         (SessionTerminalDisposition::Failed, 2),
     ] {
         round_trip(terminal);
-        assert_eq!(SessionTerminalDispositionCode::encode(terminal), [tag]);
-        assert_eq!(SessionTerminalDispositionCode::decode(&[tag]), Ok(terminal));
+        assert_eq!(SessionTerminalDispositionForm::encode(terminal), [tag]);
+        assert_eq!(SessionTerminalDispositionForm::decode(&[tag]), Ok(terminal));
     }
-    assert!(SessionTerminalDispositionCode::decode(&[3]).is_err());
+    assert!(SessionTerminalDispositionForm::decode(&[3]).is_err());
 
     for checkpoint in [
         SessionTransferCheckpoint::None,

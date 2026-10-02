@@ -1,15 +1,15 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 mod common;
 
 use common::{
-    available_mask_show, checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE,
+    available_mask_show, checked_renderer_plot, host, plan_for, presentation, WAYLAND_RESOURCE,
 };
 use conduit_core::{
     encode_count, CheckedValueContract, IntervalEndpoint, Quantity, QuantityUnit, ValueConstraint,
     COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
-use conduit_form::TextPatternExpression;
+use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
     FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionDisposition,
     FaceInteractionFailure, FaceInteractionLedger, FaceInteractionRefusal, MaskShow, Presentation,
@@ -19,9 +19,9 @@ use conduit_presentation::{
 };
 
 fn available_interaction_basis() -> (Presentation, MaskShow) {
-    let form = checked_renderer_form();
+    let plot = checked_renderer_plot();
     let plan = plan_for(
-        &form,
+        &plot,
         host(
             "linux-host",
             "linux-boot",
@@ -32,7 +32,7 @@ fn available_interaction_basis() -> (Presentation, MaskShow) {
             WAYLAND_RESOURCE,
         ),
     );
-    let base = presentation(&form, &plan);
+    let base = presentation(&plot, &plan);
     let presentation = Presentation::new_with_semantics(
         base.revision,
         base.basis,
@@ -43,7 +43,7 @@ fn available_interaction_basis() -> (Presentation, MaskShow) {
         vec![PresentationAction {
             identity: "message/send".into(),
             intent: "message/send".into(),
-            target: "patchbay/form".into(),
+            target: "patchbay/plot".into(),
             name: "Send".into(),
             arguments: vec![FaceActionArgument::text(
                 "message/input".into(),
@@ -179,7 +179,7 @@ fn zero_argument_action_needs_no_counterfeit_empty_input() {
     actions.push(PresentationAction {
         identity: "message/refresh".into(),
         intent: "message/refresh".into(),
-        target: "patchbay/form".into(),
+        target: "patchbay/plot".into(),
         name: "Refresh".into(),
         arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
@@ -188,13 +188,13 @@ fn zero_argument_action_needs_no_counterfeit_empty_input() {
     let face = rebuild_with_interactions(&base, actions);
     let show = available_mask_show(&face);
 
-    FaceInteraction::new(&face, &show, "message/refresh", "patchbay/form", vec![], 1).unwrap();
+    FaceInteraction::new(&face, &show, "message/refresh", "patchbay/plot", vec![], 1).unwrap();
     assert_eq!(
         FaceInteraction::new(
             &face,
             &show,
             "message/refresh",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("counterfeit/empty", b"")],
             2,
         ),
@@ -220,7 +220,7 @@ fn multiple_named_arguments_are_admitted_as_one_complete_atomic_interaction() {
         &face,
         &show,
         "message/send",
-        "patchbay/form",
+        "patchbay/plot",
         complete.clone(),
         1,
     )
@@ -231,7 +231,7 @@ fn multiple_named_arguments_are_admitted_as_one_complete_atomic_interaction() {
             &face,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", b"hello")],
             2,
         ),
@@ -242,7 +242,7 @@ fn multiple_named_arguments_are_admitted_as_one_complete_atomic_interaction() {
             &face,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![
                 argument("message/input", b"hello"),
                 argument("message/input", b"again"),
@@ -265,7 +265,7 @@ fn cancellation_and_renderer_failure_are_terminal_evidence_not_success() {
             &presentation,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", b"ok")],
             failure as u64,
         )
@@ -289,7 +289,7 @@ fn exact_available_interaction_round_trips_and_evidence_omits_plaintext() {
         &presentation,
         &show,
         "message/send",
-        "patchbay/form",
+        "patchbay/plot",
         vec![argument("message/input", b"hello")],
         7,
     )
@@ -320,7 +320,7 @@ fn changing_only_interaction_context_stales_action_and_input_correlation() {
         &presentation,
         &show,
         "message/send",
-        "patchbay/form",
+        "patchbay/plot",
         vec![argument("message/input", b"hello")],
         8,
     )
@@ -330,7 +330,7 @@ fn changing_only_interaction_context_stales_action_and_input_correlation() {
         .with_interaction_context(PresentationInteractionContext {
             identity: "presentation/context/other-participant".into(),
             basis: vec![PresentationContextBasis {
-                source: "patchbay/form".into(),
+                source: "patchbay/plot".into(),
                 relationship: PresentationRelationshipKind::Contains,
                 target: "patchbay/renderer".into(),
             }],
@@ -352,7 +352,7 @@ fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly
             &presentation,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", value)],
             sequence,
         )
@@ -374,7 +374,7 @@ fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly
             &presentation,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("missing", b"ok")],
             0
         ),
@@ -398,7 +398,7 @@ fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly
             &presentation,
             &stale,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", b"ok")],
             3
         ),
@@ -418,7 +418,7 @@ fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspe
         &face,
         &show,
         "message/send",
-        "patchbay/form",
+        "patchbay/plot",
         vec![argument("message/input", b"conduit")],
         1,
     )
@@ -428,7 +428,7 @@ fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspe
             &face,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", b"Conduit")],
             2,
         ),
@@ -439,7 +439,7 @@ fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspe
             &face,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", b"toolonggg")],
             3,
         ),
@@ -450,7 +450,7 @@ fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspe
             &face,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", &[0xff])],
             4,
         ),
@@ -464,7 +464,7 @@ fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspe
             &face,
             &stale_show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![argument("message/input", b"Conduit")],
             5,
         ),
@@ -499,7 +499,7 @@ fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspe
             &face,
             &show,
             "message/send",
-            "patchbay/form",
+            "patchbay/plot",
             vec![
                 FaceInteractionArgument {
                     name: "sample/count".into(),

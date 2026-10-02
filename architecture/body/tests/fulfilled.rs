@@ -1,14 +1,14 @@
 use conduit_body::{
     Body, BodyBiographyEvidence, BodyBiographyRecordKind, BodyFulfillment, BodyLifecycleError,
     BodyLifecycleEvent, BodyMembership, BodyMembershipRevision, BodyState, FulfillmentObligation,
-    MembershipProofId, MembershipRefusal, PartId, ResidentForm,
+    MembershipProofId, MembershipRefusal, PartId, ResidentPlot,
 };
-use conduit_core::{AuthorityGrantId, CheckedFormId, SignId, SourceDocumentId};
+use conduit_core::{AuthorityGrantId, CheckedPlotId, SignId, SourceDocumentId};
 
 fn born() -> Body {
     Body::born(
         SourceDocumentId::from("source/seed"),
-        CheckedFormId::from("checked/seed"),
+        CheckedPlotId::from("checked/seed"),
         1,
         SignId::from("sign/born"),
     )
@@ -75,20 +75,20 @@ fn fulfillment_is_attributable_terminal_truth_after_retained_lull() {
         Err(BodyLifecycleError::Fulfilled)
     );
     assert_eq!(
-        fulfilled.admit_form(
-            ResidentForm::new(
+        fulfilled.admit_plot(
+            ResidentPlot::new(
                 SourceDocumentId::from("source/new"),
-                CheckedFormId::from("checked/new"),
+                CheckedPlotId::from("checked/new"),
             ),
             SignId::from("sign/add"),
         ),
         Err(BodyLifecycleError::Fulfilled)
     );
     assert_eq!(
-        fulfilled.remove_form(
-            &ResidentForm::new(
+        fulfilled.remove_plot(
+            &ResidentPlot::new(
                 SourceDocumentId::from("source/seed"),
-                CheckedFormId::from("checked/seed"),
+                CheckedPlotId::from("checked/seed"),
             ),
             SignId::from("sign/remove"),
         ),
@@ -255,12 +255,12 @@ fn biography_and_compaction_retain_exact_terminal_provenance() {
     )
     .unwrap();
     let changed = seed
-        .admit_form(
-            ResidentForm::new(
+        .admit_plot(
+            ResidentPlot::new(
                 SourceDocumentId::from("source/useful"),
-                CheckedFormId::from("checked/useful"),
+                CheckedPlotId::from("checked/useful"),
             ),
-            SignId::from("sign/form-admitted"),
+            SignId::from("sign/plot-admitted"),
         )
         .unwrap();
     let fulfilled = changed
@@ -270,7 +270,7 @@ fn biography_and_compaction_retain_exact_terminal_provenance() {
         .append_body_lifecycle_events(
             fulfilled,
             &[
-                (SignId::from("sign/form-admitted"), 2),
+                (SignId::from("sign/plot-admitted"), 2),
                 (SignId::from("sign/fulfilled"), 3),
             ],
         )

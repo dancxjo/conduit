@@ -282,19 +282,19 @@ fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
     TourRunProof {
         specimen_id: evidence.specimen_id.into(),
         source_document_id: evidence.source_document_id.clone(),
-        checked_form_id: evidence.checked_form_id.clone(),
-        expanded_form_id: evidence.expanded_form_id.clone(),
+        checked_plot_id: evidence.checked_plot_id.clone(),
+        expanded_plot_id: evidence.expanded_plot_id.clone(),
         plan_id: evidence.plan_id.clone(),
         active_play_id: evidence.active_play_id.clone(),
         result: evidence.result.into(),
         terminal: evidence.terminal,
         comparison: evidence
-            .comparison_expanded_form_id
+            .comparison_expanded_plot_id
             .as_ref()
             .zip(evidence.comparison_plan_id.as_ref())
             .map(
-                |(expanded_form_id, plan_id)| conduit_tour_model::TourComparisonProof {
-                    expanded_form_id: expanded_form_id.clone(),
+                |(expanded_plot_id, plan_id)| conduit_tour_model::TourComparisonProof {
+                    expanded_plot_id: expanded_plot_id.clone(),
                     plan_id: plan_id.clone(),
                 },
             ),
@@ -454,8 +454,8 @@ mod tests {
         let evidence = update.play.unwrap();
         let graph = product.graph.as_ref().unwrap();
         assert_eq!(graph.source_document_id, evidence.source_document_id);
-        assert_eq!(graph.checked_form_id, evidence.checked_form_id);
-        assert_eq!(graph.expanded_form_id, evidence.expanded_form_id);
+        assert_eq!(graph.checked_plot_id, evidence.checked_plot_id);
+        assert_eq!(graph.expanded_plot_id, evidence.expanded_plot_id);
         assert_eq!(evidence.result, CANONICAL_RESULT);
         assert_eq!(evidence.observations.upper_input.text(), Some("hello"));
         assert_eq!(evidence.observations.upper_output.text(), Some("HELLO"));
@@ -579,7 +579,7 @@ mod tests {
             )
             .unwrap();
         let evidence = update.play.unwrap();
-        assert_eq!(evidence.specimen_id, "canonical-form:edit-one-gear");
+        assert_eq!(evidence.specimen_id, "canonical-plot:edit-one-gear");
         assert_eq!(evidence.result, "MAKE THIS LOUD");
         assert_eq!(serial.0, [b"MAKE THIS LOUD".as_slice()]);
         let proof = product.controller().last_run().unwrap();
@@ -624,7 +624,7 @@ mod tests {
             )
             .unwrap();
         let evidence = update.play.unwrap();
-        assert_eq!(evidence.specimen_id, "canonical-form:branch-a-cord");
+        assert_eq!(evidence.specimen_id, "canonical-plot:branch-a-cord");
         assert_eq!(evidence.result, "SOS");
         assert_eq!(evidence.manifestations, 2);
         assert_eq!(evidence.run.logical_operations, 5);
@@ -712,7 +712,7 @@ mod tests {
             )
             .unwrap();
         let evidence = update.play.unwrap();
-        assert_eq!(evidence.specimen_id, "canonical-form:same-morse-caller");
+        assert_eq!(evidence.specimen_id, "canonical-plot:same-morse-caller");
         assert_eq!(evidence.result, "Direct and recursive realizations agree");
         assert_eq!(evidence.manifestations, 2);
         assert_eq!(evidence.run.logical_operations, 10);
@@ -723,7 +723,7 @@ mod tests {
         assert_eq!(pattern.to_text().unwrap(), "HELLO");
         let proof = product.controller().last_run().unwrap();
         let comparison = proof.comparison.as_ref().unwrap();
-        assert_ne!(proof.expanded_form_id, comparison.expanded_form_id);
+        assert_ne!(proof.expanded_plot_id, comparison.expanded_plot_id);
         assert_ne!(proof.plan_id, comparison.plan_id);
     }
 

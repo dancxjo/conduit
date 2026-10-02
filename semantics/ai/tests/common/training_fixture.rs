@@ -7,7 +7,7 @@ use conduit_data::{
     DatasetDescriptor, DatasetExampleIdentity, DatasetSplitMembership, TensorAxisRole,
     TensorElement, CORPUS_MANIFEST_PROFILE,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 pub fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     BoundedResourceRef {

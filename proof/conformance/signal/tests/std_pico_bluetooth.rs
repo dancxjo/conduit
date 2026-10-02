@@ -7,7 +7,7 @@ use conduit_signal_conformance::{
 };
 
 #[test]
-fn unchanged_signal_form_seals_one_exact_bluetooth_pico_fragment() {
+fn unchanged_signal_plot_seals_one_exact_bluetooth_pico_fragment() {
     let exact = exact_std_pico_bluetooth_plan([1, 2, 3, 4, 5, 6]).unwrap();
     let sink = exact
         .plan
@@ -35,7 +35,7 @@ fn unchanged_signal_form_seals_one_exact_bluetooth_pico_fragment() {
 }
 
 #[test]
-fn unchanged_form_can_receive_a_fresh_usb_realization_after_bluetooth_loss() {
+fn unchanged_plot_can_receive_a_fresh_usb_realization_after_bluetooth_loss() {
     let bluetooth = exact_std_pico_bluetooth_plan([1, 2, 3, 4, 5, 6]).unwrap();
     let usb = exact_std_pico_usb_plan().unwrap();
 
@@ -43,8 +43,8 @@ fn unchanged_form_can_receive_a_fresh_usb_realization_after_bluetooth_loss() {
         bluetooth.plan.source_document_id,
         usb.plan.source_document_id
     );
-    assert_eq!(bluetooth.plan.checked_form_id, usb.plan.checked_form_id);
-    assert_eq!(bluetooth.plan.expanded_form_id, usb.plan.expanded_form_id);
+    assert_eq!(bluetooth.plan.checked_plot_id, usb.plan.checked_plot_id);
+    assert_eq!(bluetooth.plan.expanded_plot_id, usb.plan.expanded_plot_id);
     assert_ne!(bluetooth.plan.plan_id, usb.plan.plan_id);
 
     let bluetooth_cord = &bluetooth

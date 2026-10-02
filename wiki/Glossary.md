@@ -5,22 +5,22 @@ Conduit uses ordinary nouns very deliberately, but they are easier to learn in *
 | term | meaning |
 |---|---|
 | **type** | reusable semantic contract describing what values mean |
-| **code** | an exact portable encoding contract, distinct from type meaning |
+| **form** | an exact portable representation contract, distinct from type meaning |
 | **info** | one finite typed/structured value carried through cords |
 | **data** | independently addressable immutable content generation |
 | **&T** | ordinary finite info naming one exact data generation containing `T`, not authority or a pointer |
 | **keep** | retained current semantic value with an exact duration |
 
-type meaning and code identity are separate. A current value in a keep may change while an earlier saved data generation remains immutable.
+type meaning and form identity are separate. A current value in a keep may change while an earlier saved data generation remains immutable.
 
 ## Work and realization
 
 | term | meaning |
 |---|---|
 | **kind** | reusable semantic contract for executable work |
-| **fore** | user-visible checked callable signature of a kind or form |
+| **fore** | user-visible checked callable signature of a kind or plot |
 | **back** | one concrete realization compatible with a fore |
-| **gear** | one configured occurrence of a kind in a form |
+| **gear** | one configured occurrence of a kind in a plot |
 | **port** | typed directional point named by a fore and used by gears |
 | **cord** | semantic connection between compatible ports |
 | **line** | finite concrete carriage that may realize a cord across hosts |
@@ -33,14 +33,14 @@ A cord is not a line, and a kind is not its back.
 
 | term | meaning |
 |---|---|
-| **form** | authored portable course of semantic work: what should happen |
-| **plan** | exact immutable admitted realization of a form under current truth |
+| **plot** | authored portable course of semantic work: what should happen |
+| **plan** | exact immutable admitted realization of a plot under current truth |
 | **play** | active execution of one exact plan |
 | **step** | one bounded kernel transition during a play |
 | **host call** | one bounded request from an executing back into host machinery |
 | **sign** | bounded evidence/observation about truth or events |
 
-A changed plan does not imply a changed form. A sign is evidence, not authority.
+A changed plan does not imply a changed plot. A sign is evidence, not authority.
 
 ## Continuity
 
@@ -85,7 +85,7 @@ kind → fore → back
           ↓
         gear → port → cord → line
 
-form → plan → play
+plot → plan → play
 
 body → wake / lull
   ↓
@@ -101,9 +101,9 @@ The arrows are mnemonic, not a claim that every noun is a pipeline stage.
 
 ## Proposed vocabulary
 
-Current source uses executable `form` and encoding `code`.
+Current source uses executable `plot` and encoding `code`.
 [#4513](https://github.com/dancxjo/conduit/issues/4513) proposes `plot` for the
-executable unit and `form` for portable representation. That proposed pair is
+executable unit and `plot` for portable representation. That proposed pair is
 not the current parser surface. Follow [[Current language surface|Current-language-surface]]
 when writing source.
 
@@ -119,7 +119,7 @@ Historical repository material may use older names.
 | Presenter | **mask** |
 | presentation Manifestation | **show** |
 | HostOperation | **host call** |
-| Seed as privileged body semantic identity | no privileged seed; ordinary forms/workset participate in birth |
+| Seed as privileged body semantic identity | no privileged seed; ordinary plots/workset participate in birth |
 
 The current noun **data** was later reintroduced with the narrower meaning “independently addressable immutable content generation.”
 

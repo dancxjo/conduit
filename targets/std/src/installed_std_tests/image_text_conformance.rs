@@ -5,8 +5,8 @@ use conduit_core::{
     PortTemporal, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
     ResourceVersionIdentity,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -74,13 +74,13 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     let image_hex = hex(&image_value.canonical_bytes().unwrap());
     let expected_hex = hex(&expected_value.canonical_bytes().unwrap());
     let source = format!(
-        "form talking-polaroid-kernel {{\n image: conduit-test/structured-source(value = \"{image_hex}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{expected_hex}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
+        "plot talking-polaroid-kernel {{\n image: conduit-test/structured-source(value = \"{image_hex}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{expected_hex}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
         hex(b"Inspection point A")
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "talking-polaroid-kernel", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "talking-polaroid-kernel", &profile).unwrap();
 
     let mut advertisement = host("image-text-host").advertisement().clone();
     advertisement
@@ -202,7 +202,7 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
     install_fixture(&mut startup, &mut profile, &mut record_sink);
 
     let source = format!(
-        "form talking-polaroid-remote {{\n image: conduit-test/structured-source(value = \"{}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
+        "plot talking-polaroid-remote {{\n image: conduit-test/structured-source(value = \"{}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
         hex(&image_value.canonical_bytes().unwrap()),
         hex(b"Inspection point B"),
         hex(&expected),
@@ -210,7 +210,7 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "talking-polaroid-remote", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "talking-polaroid-remote", &profile).unwrap();
 
     let mut source_host = host("image-text-source").advertisement().clone();
     source_host

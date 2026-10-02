@@ -33,7 +33,7 @@ pub(super) static MANIFESTATION: BrowserInstallation = BrowserInstallation {
 
 fn request_offer() -> CapabilityOffer {
     offer(
-        conduit_tutorial_form::presenter::request_contract(),
+        conduit_tutorial_plot::presenter::request_contract(),
         REQUEST_IMPLEMENTATION,
         REQUEST_OPERATION,
         0,
@@ -44,7 +44,7 @@ fn request_offer() -> CapabilityOffer {
 
 fn manifestation_offer() -> CapabilityOffer {
     offer(
-        conduit_tutorial_form::presenter::manifestation_contract(),
+        conduit_tutorial_plot::presenter::manifestation_contract(),
         MANIFESTATION_IMPLEMENTATION,
         MANIFESTATION_OPERATION,
         MANIFESTATION_BYTES,
@@ -124,10 +124,10 @@ fn refuse_unvalidated_candidate(input: &[u8]) -> Result<BrowserHostResult, Strin
 }
 
 pub(crate) fn install_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    conduit_tutorial_form::presenter::install_tutorial_presenter_catalog(startup, profile)
+    conduit_tutorial_plot::presenter::install_tutorial_presenter_catalog(startup, profile)
 }
 
 #[cfg(test)]
@@ -135,14 +135,14 @@ mod tests {
     use super::refuse_unvalidated_candidate;
 
     #[test]
-    fn tutorial_presenter_form_uses_the_planned_llm_present_front() {
+    fn tutorial_presenter_plot_uses_the_planned_llm_present_front() {
         let (startup, profile) = crate::installed_browser::catalogs().unwrap();
-        let syntax = conduit_form::parse_syntax_document(include_str!(
-            "../../../../../forms/orifina-tutorial-presenter/main.conduit"
+        let syntax = conduit_plot::parse_syntax_document(include_str!(
+            "../../../../../plots/orifina-tutorial-presenter/main.conduit"
         ));
         assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        let expanded = conduit_form::expand_canonical_form_for_authoring(
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
             &checked,
             "orifina-tutorial-presenter",
             &profile,
@@ -156,9 +156,9 @@ mod tests {
                 .map(|gear| gear.kind_id.as_str())
                 .collect::<Vec<_>>(),
             vec![
-                conduit_tutorial_form::presenter::MANIFESTATION_KIND,
+                conduit_tutorial_plot::presenter::MANIFESTATION_KIND,
                 conduit_ai::LLM_PRESENT_KIND,
-                conduit_tutorial_form::presenter::REQUEST_KIND,
+                conduit_tutorial_plot::presenter::REQUEST_KIND,
             ]
         );
         assert!(conduit_planner::default_expanded_placements(

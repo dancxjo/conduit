@@ -85,12 +85,12 @@ pub fn json_boolean_summary_semantic_contract() -> Kind {
     kind
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_json_boolean_summary_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindSignature, StartupParameterSignature};
+    use conduit_plot::{KindSignature, StartupParameterSignature};
     startup.insert(KindSignature {
         kind: JSON_BOOLEAN_SUMMARY_KIND.into(),
         startup_parameters: vec![StartupParameterSignature {

@@ -1,4 +1,4 @@
-//! Portable structured-robotics Form catalog.
+//! Portable structured-robotics Plot catalog.
 
 use alloc::{
     string::{String, ToString},
@@ -6,7 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{kind_id, KindIdentity, PortDescriptor};
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use conduit_robotics::{
     robotics_structured_kind_contracts, robotics_structured_registered_types,
@@ -14,8 +14,8 @@ use conduit_robotics::{
 };
 
 pub fn install_robotics_structured_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in robotics_structured_registered_types() {
         startup
@@ -29,8 +29,8 @@ pub fn install_robotics_structured_catalogs(
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,

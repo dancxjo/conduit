@@ -2,25 +2,25 @@ use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_host::hosted_messaging::{
     github_messaging_authority_grant, github_messaging_offer, github_messaging_resource_offer,
 };
 
-const SOURCE: &str = include_str!("../../../forms/messaging-delivery/main.conduit");
+const SOURCE: &str = include_str!("../../../plots/messaging-delivery/main.conduit");
 
 #[test]
-fn unchanged_portable_form_selects_exact_github_profile_with_authority() {
+fn unchanged_portable_plot_selects_exact_github_profile_with_authority() {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles).unwrap();
     let syntax = parse_syntax_document(SOURCE);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "messaging-delivery", &profiles).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "messaging-delivery", &profiles).unwrap();
     let host = host();
     let github = host
         .capabilities

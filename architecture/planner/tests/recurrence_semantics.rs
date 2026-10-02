@@ -4,12 +4,12 @@ use conduit_core::{
     OfferGeneration, StructuredConfigurationValue, StructuredFieldType, StructuredInfoType,
     StructuredInfoValue, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, CanonicalStartupValue,
+use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, CanonicalStartupValue,
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
-use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 
 const KIND: &str = "time/expand-recurrence";
 
@@ -40,7 +40,7 @@ fn civil_recurrence_type() -> StructuredInfoType {
     .unwrap()
 }
 
-fn checked_document() -> (conduit_form::CheckedSyntaxDocument, StructuredInfoValue) {
+fn checked_document() -> (conduit_plot::CheckedSyntaxDocument, StructuredInfoValue) {
     let mut startup = StartupCatalog::new();
     startup
         .insert_structured_type("CivilRecurrence", civil_recurrence_type())
@@ -55,14 +55,14 @@ fn checked_document() -> (conduit_form::CheckedSyntaxDocument, StructuredInfoVal
             }],
         })
         .unwrap();
-    let source = r#"form meeting {
+    let source = r#"plot meeting {
   expand: time/expand-recurrence({ first_date: "2026-03-02", local_time: "09:00:00", zone: "America/Los_Angeles", rule_set: "tzdb/2026a", weekdays: 1, maximum_occurrences: 36, excluded_dates: ["2026-03-09"] })
 }
 "#;
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let value = {
         let CanonicalStartupValue::Structured(value) =
-            &checked.forms[0].gears[0].startup_bindings[0].value
+            &checked.plots[0].gears[0].startup_bindings[0].value
         else {
             panic!("recurrence must become checked structured semantics")
         };
@@ -132,12 +132,12 @@ fn advertisement(
 }
 
 #[test]
-fn recurrence_survives_checked_form_and_exact_plan_as_typed_semantics() {
+fn recurrence_survives_checked_plot_and_exact_plan_as_typed_semantics() {
     let (checked, value) = checked_document();
     let definition = definition(&value);
     let mut catalog = ProfileCatalog::new();
     catalog.insert(definition.clone()).unwrap();
-    let expanded = expand_canonical_form(&checked, "meeting", &catalog).unwrap();
+    let expanded = expand_canonical_plot(&checked, "meeting", &catalog).unwrap();
     let advertised = advertisement(&definition, expanded.gears[0].startup_parameters.clone());
     let placements =
         default_expanded_placements(&expanded, core::slice::from_ref(&advertised)).unwrap();

@@ -47,7 +47,7 @@ fn mask_actions(track: usize) -> Vec<MaskActionObservation> {
                     action.id()
                 ),
                 face_id: face_id.clone(),
-                selected_mask_form_id: Some(if position < 2 || restored {
+                selected_mask_plot_id: Some(if position < 2 || restored {
                     primary_mask.clone()
                 } else {
                     alternate_mask.clone()
@@ -79,7 +79,7 @@ fn track(index: usize) -> BodyTrack {
         ("bootstrap.started", "bootstrap-started"),
         ("body.born", "body-born"),
         ("body.awake", "body-awake"),
-        ("form.used", "standing-form-used"),
+        ("plot.used", "standing-plot-used"),
         ("body.inspected", "body-inspected"),
         ("fault.observed", "fault-observed"),
         ("body.repaired", "body-repaired"),
@@ -119,7 +119,7 @@ fn track(index: usize) -> BodyTrack {
         TrackActionObservation {
             action_id: "journey.useful-work".into(),
             concrete_event: format!("Embodiment {index} performed its concrete useful work."),
-            receipt_ids: vec!["form.used".into()],
+            receipt_ids: vec!["plot.used".into()],
         },
         TrackActionObservation {
             action_id: "journey.break-recover".into(),
@@ -149,7 +149,7 @@ fn track(index: usize) -> BodyTrack {
         track_id: format!("track-{index}"),
         embodiment: format!("embodiment-{index}"),
         body_id: format!("body-{index}"),
-        mask_form_id: format!("mask-form-{index}"),
+        mask_plot_id: format!("mask-plot-{index}"),
         construction: if index < 2 {
             vec![ConstructionTruth {
                 host_id: format!("host-{index}"),
@@ -300,7 +300,7 @@ fn mask_journey_refuses_staged_or_invented_transition_truth() {
         .contains("genuine replacement Plan"));
 
     let mut tracks = complete();
-    tracks[2].mask_actions[9].selected_mask_form_id = Some("wrong-mask".into());
+    tracks[2].mask_actions[9].selected_mask_plot_id = Some("wrong-mask".into());
     assert!(validate(&contract, &tracks, &contract.git_commit)
         .unwrap_err()
         .contains("restore its original worn Mask"));

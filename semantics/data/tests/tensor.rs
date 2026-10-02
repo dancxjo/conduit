@@ -3,9 +3,9 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::*;
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 
@@ -133,13 +133,13 @@ fn malformed_shape_axis_payload_and_reference_cases_refuse_exactly() {
 }
 
 #[test]
-fn tensor_ports_survive_an_ordinary_checked_and_expanded_form() {
+fn tensor_ports_survive_an_ordinary_checked_and_expanded_plot() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_tensor_catalogs(&mut startup, &mut profile).unwrap();
-    let source = "form trajectory {\n  source: data/tensor-fixture\n  identity: data/tensor-identity\n  source >> identity\n}\n";
+    let source = "plot trajectory {\n  source: data/tensor-fixture\n  identity: data/tensor-identity\n  source >> identity\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "trajectory", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "trajectory", &profile).unwrap();
     assert_eq!(expanded.connections.len(), 1);
     assert_eq!(expanded.connections[0].value_kind.as_str(), TENSOR_INFO_ID);
     assert_eq!(

@@ -11,8 +11,8 @@ use conduit_presentation::{
 fn subject(identity: &str) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
-        role: PresentationRole::Form,
-        name: "Example checked form".into(),
+        role: PresentationRole::Plot,
+        name: "Example checked plot".into(),
     }
 }
 
@@ -42,13 +42,13 @@ fn presentation(
             body_id: None,
             wake_id: None,
             source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
             plan_id: None,
             active_play_id: None,
             sign_ids: vec![],
         },
-        vec![subject("form/example")],
+        vec![subject("plot/example")],
         vec![],
         vec![],
         vec![],
@@ -61,11 +61,11 @@ fn presentation(
 fn semantic_changes_are_identity_bearing_and_linear_projection_preserves_them() {
     let available = action(
         "action/open",
-        "form/example",
+        "plot/example",
         PresentationActionAvailability::Available,
     );
     let primary = PresentationDisclosure {
-        subject: "form/example".into(),
+        subject: "plot/example".into(),
         level: PresentationDisclosureLevel::Primary,
     };
     let first = presentation(vec![available.clone()], vec![primary.clone()]).unwrap();
@@ -75,14 +75,14 @@ fn semantic_changes_are_identity_bearing_and_linear_projection_preserves_them() 
     let unavailable = presentation(
         vec![action(
             "action/open",
-            "form/example",
+            "plot/example",
             PresentationActionAvailability::Unavailable {
                 reason_code: "authority/not-admitted".into(),
-                explanation: "No admitted authority can open this form.".into(),
+                explanation: "No admitted authority can open this plot.".into(),
             },
         )],
         vec![PresentationDisclosure {
-            subject: "form/example".into(),
+            subject: "plot/example".into(),
             level: PresentationDisclosureLevel::ExactProvenance,
         }],
     )
@@ -95,7 +95,7 @@ fn semantic_changes_are_identity_bearing_and_linear_projection_preserves_them() 
         .join("\n");
     assert!(output.contains("ACTION id=\"action/open\""));
     assert!(output.contains("unavailable code=\"authority/not-admitted\""));
-    assert!(output.contains("DISCLOSURE subject=\"form/example\" level=ExactProvenance"));
+    assert!(output.contains("DISCLOSURE subject=\"plot/example\" level=ExactProvenance"));
 }
 
 #[test]
@@ -104,18 +104,18 @@ fn action_resolution_is_read_only_and_fails_closed() {
         vec![
             action(
                 "action/open",
-                "form/example",
+                "plot/example",
                 PresentationActionAvailability::Unavailable {
                     reason_code: "authority/not-admitted".into(),
-                    explanation: "No admitted authority can open this form.".into(),
+                    explanation: "No admitted authority can open this plot.".into(),
                 },
             ),
             action(
                 "action/born",
-                "form/example",
+                "plot/example",
                 PresentationActionAvailability::Refused {
                     reason_code: "body/already-exists".into(),
-                    explanation: "A body already exists for this form.".into(),
+                    explanation: "A body already exists for this plot.".into(),
                 },
             ),
         ],
@@ -150,7 +150,7 @@ fn action_resolution_is_read_only_and_fails_closed() {
 fn malformed_actions_and_disclosures_fail_closed() {
     let available = action(
         "action/open",
-        "form/example",
+        "plot/example",
         PresentationActionAvailability::Available,
     );
     assert_eq!(
@@ -161,7 +161,7 @@ fn malformed_actions_and_disclosures_fail_closed() {
         presentation(
             vec![action(
                 "action/open",
-                "form/unknown",
+                "plot/unknown",
                 PresentationActionAvailability::Available
             )],
             vec![]
@@ -172,7 +172,7 @@ fn malformed_actions_and_disclosures_fail_closed() {
         presentation(
             vec![action(
                 "action/open",
-                "form/example",
+                "plot/example",
                 PresentationActionAvailability::Unavailable {
                     reason_code: "reason/large".into(),
                     explanation: String::from_utf8(vec![b'x'; MAX_PRESENTATION_REASON_BYTES + 1])
@@ -187,7 +187,7 @@ fn malformed_actions_and_disclosures_fail_closed() {
         presentation(
             vec![],
             vec![PresentationDisclosure {
-                subject: "form/unknown".into(),
+                subject: "plot/unknown".into(),
                 level: PresentationDisclosureLevel::Context,
             }]
         ),

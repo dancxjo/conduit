@@ -6,16 +6,16 @@ use crate::installed_std::MAX_CORDS;
 use crate::installed_std::{
     kernel_preparation::KernelTables, simple_presentation_host, typed_record_back,
 };
-use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, ResidentForm};
+use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::{resource_offer, HostAdvertisement, Plan, SignId};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_kernel::scheduler::SchedulerStatus;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog};
 use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetBounds};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE;
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
+};
 
 fn workload() -> (HostAdvertisement, Vec<Plan>) {
     let mut startup = StartupCatalog::new();
@@ -58,15 +58,15 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
     let sources = [
         (
             "button_across_room",
-            include_str!("../../../../forms/button-across-room/main.conduit"),
+            include_str!("../../../../plots/button-across-room/main.conduit"),
         ),
         (
             "clock-demo",
-            include_str!("../../../../forms/clock/main.conduit"),
+            include_str!("../../../../plots/clock/main.conduit"),
         ),
         (
             "desk_telegraph",
-            include_str!("../../../../forms/desk-telegraph/main.conduit"),
+            include_str!("../../../../plots/desk-telegraph/main.conduit"),
         ),
     ];
     let plans = sources
@@ -75,7 +75,7 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
             let syntax = parse_syntax_document(source);
             assert_eq!(syntax.round_trip(), source);
             let checked = check_syntax_document(&syntax, &startup).unwrap();
-            let expanded = expand_canonical_form(&checked, entry, &profile).unwrap();
+            let expanded = expand_canonical_plot(&checked, entry, &profile).unwrap();
             let hosts = [host.clone()];
             let placements =
                 conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
@@ -156,17 +156,17 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
     let first = &plans[0];
     let mut body = Body::born(
         first.source_document_id.clone(),
-        first.checked_form_id.clone(),
+        first.checked_plot_id.clone(),
         1,
         SignId::from("sign/body-born"),
     )
     .unwrap();
     for (index, plan) in plans.iter().enumerate().skip(1) {
         body = body
-            .admit_form(
-                ResidentForm::new(
+            .admit_plot(
+                ResidentPlot::new(
                     plan.source_document_id.clone(),
-                    plan.checked_form_id.clone(),
+                    plan.checked_plot_id.clone(),
                 ),
                 SignId::from(format!("sign/admit-{index}")),
             )
@@ -177,10 +177,10 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         &wake,
         plans
             .into_iter()
-            .map(|plan| BodyFormPlan {
-                form: ResidentForm::new(
+            .map(|plan| BodyPlotPlan {
+                plot: ResidentPlot::new(
                     plan.source_document_id.clone(),
-                    plan.checked_form_id.clone(),
+                    plan.checked_plot_id.clone(),
                 ),
                 plan,
             })
@@ -192,7 +192,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
     let play = BodyPlayIdentity::bind(&plan, 1);
     assert!(play.validate_for(&plan));
     let fragments: Vec<_> = plan
-        .forms
+        .plots
         .iter()
         .map(|part| {
             assert_eq!(part.plan.fragments.len(), 1);
@@ -464,17 +464,17 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
     let first = &plans[0];
     let mut body = Body::born(
         first.source_document_id.clone(),
-        first.checked_form_id.clone(),
+        first.checked_plot_id.clone(),
         1,
         SignId::from("sign/production-body"),
     )
     .unwrap();
     for (index, part) in plans.iter().enumerate().skip(1) {
         body = body
-            .admit_form(
-                ResidentForm::new(
+            .admit_plot(
+                ResidentPlot::new(
                     part.source_document_id.clone(),
-                    part.checked_form_id.clone(),
+                    part.checked_plot_id.clone(),
                 ),
                 SignId::from(format!("sign/production-admit-{index}")),
             )
@@ -488,10 +488,10 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
         &wake,
         plans
             .into_iter()
-            .map(|plan| BodyFormPlan {
-                form: ResidentForm::new(
+            .map(|plan| BodyPlotPlan {
+                plot: ResidentPlot::new(
                     plan.source_document_id.clone(),
-                    plan.checked_form_id.clone(),
+                    plan.checked_plot_id.clone(),
                 ),
                 plan,
             })

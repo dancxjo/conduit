@@ -33,11 +33,11 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
         .collect()
 }
 
-fn form() -> conduit_form::CheckedForm {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn plot() -> conduit_plot::CheckedPlot {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
-    conduit_form::parse("form answer {\n generate: llm/generate\n}\n", &profile).unwrap()
+    conduit_plot::parse("plot answer {\n generate: llm/generate\n}\n", &profile).unwrap()
 }
 
 fn profile() -> ReviewedServiceProfile {
@@ -81,7 +81,7 @@ fn policy() -> SurvivalPolicy {
 
 #[test]
 fn names_requested_surviving_policy_plan_and_current_signs() {
-    let form = form();
+    let plot = plot();
     let fixtures = conduit_ai::llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
@@ -89,7 +89,7 @@ fn names_requested_surviving_policy_plan_and_current_signs() {
         .collect::<Vec<_>>();
     let advertisements = conduit_ai::llm_generate_realization_advertisements(&fixtures);
     let full = select_reviewed_service_profile(
-        &form.gears[0],
+        &plot.gears[0],
         &hosts,
         &advertisements,
         &observations(&hosts),
@@ -99,7 +99,7 @@ fn names_requested_surviving_policy_plan_and_current_signs() {
     )
     .unwrap();
     let plan_a = seal_reviewed_service_profile_plan(
-        &form,
+        &plot,
         &hosts,
         &[BaseImplementationId::from("conduit.base/local@1")],
         &advertisements,
@@ -115,7 +115,7 @@ fn names_requested_surviving_policy_plan_and_current_signs() {
         .filter(|item| item.host_id.as_str() == "ai-small-local")
         .collect::<Vec<_>>();
     let degraded = select_reviewed_service_profile(
-        &form.gears[0],
+        &plot.gears[0],
         &surviving_hosts,
         &surviving_ads,
         &observations(&surviving_hosts),
@@ -125,7 +125,7 @@ fn names_requested_surviving_policy_plan_and_current_signs() {
     )
     .unwrap();
     let plan_b = seal_reviewed_service_profile_plan(
-        &form,
+        &plot,
         &surviving_hosts,
         &[BaseImplementationId::from("conduit.base/local@1")],
         &surviving_ads,

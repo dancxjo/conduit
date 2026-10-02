@@ -109,7 +109,7 @@ pub(super) fn validate_phenomenon(
                     plans.iter().any(|previous| {
                         &previous.plan_id == previous_plan_id
                             && current.plan_id != previous.plan_id
-                            && current.expanded_form_id == previous.expanded_form_id
+                            && current.expanded_plot_id == previous.expanded_plot_id
                             && placement_kinds(current) == placement_kinds(previous)
                             && placement_hosts(current) != placement_hosts(previous)
                     })

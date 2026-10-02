@@ -1,4 +1,4 @@
-//! Cross-Host proof that browser button transitions feed the portable timing Forms.
+//! Cross-Host proof that browser button transitions feed the portable timing Plots.
 
 use super::factory;
 use std::collections::BTreeMap;
@@ -11,7 +11,7 @@ use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 
-const SOURCE: &str = r#"form browser-knock-trigger {
+const SOURCE: &str = r#"plot browser-knock-trigger {
     button: input/button
     attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)
     intervals: time/ordered-event-intervals
@@ -24,9 +24,9 @@ const SOURCE: &str = r#"form browser-knock-trigger {
 "#;
 
 #[test]
-fn real_browser_button_offer_feeds_the_same_portable_timing_forms() {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn real_browser_button_offer_feeds_the_same_portable_timing_plots() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .unwrap();
     conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile).unwrap();
@@ -34,11 +34,11 @@ fn real_browser_button_offer_feeds_the_same_portable_timing_forms() {
         .unwrap();
     conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)
         .unwrap();
-    let syntax = conduit_form::parse_syntax_document(SOURCE);
+    let syntax = conduit_plot::parse_syntax_document(SOURCE);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "browser-knock-trigger", &profile).unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "browser-knock-trigger", &profile).unwrap();
 
     let browser = factory::advertisement(
         HostId::from("browser/secret-knock-trigger"),

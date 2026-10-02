@@ -1,7 +1,7 @@
 use alloc::vec;
 use conduit_body::Body;
 use conduit_core::{
-    ActivePlayId, BaseImplementationId, CheckedFormId, ExpandedFormId, PlanId, SignId,
+    ActivePlayId, BaseImplementationId, CheckedPlotId, ExpandedPlotId, PlanId, SignId,
     SourceDocumentId,
 };
 
@@ -13,10 +13,10 @@ use crate::{
 
 fn exact_presentation() -> Presentation {
     let source_document_id = SourceDocumentId::from("source/interface-parity");
-    let checked_form_id = CheckedFormId::from("checked/interface-parity");
+    let checked_plot_id = CheckedPlotId::from("checked/interface-parity");
     let body = Body::born(
         source_document_id.clone(),
-        checked_form_id.clone(),
+        checked_plot_id.clone(),
         1,
         SignId::from("sign/born"),
     )
@@ -28,8 +28,8 @@ fn exact_presentation() -> Presentation {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
             source_document_id: Some(source_document_id),
-            checked_form_id: Some(checked_form_id),
-            expanded_form_id: Some(ExpandedFormId::from("expanded/interface-parity")),
+            checked_plot_id: Some(checked_plot_id),
+            expanded_plot_id: Some(ExpandedPlotId::from("expanded/interface-parity")),
             plan_id: Some(PlanId::from("plan/interface-parity")),
             active_play_id: Some(ActivePlayId::from("play/interface-parity")),
             sign_ids: vec![SignId::from("sign/playing"), SignId::from("sign/presented")],
@@ -86,13 +86,13 @@ fn linear_projection_preserves_exact_basis_and_all_nonspatial_content() {
             .as_str(),
         presentation
             .basis
-            .checked_form_id
+            .checked_plot_id
             .as_ref()
             .unwrap()
             .as_str(),
         presentation
             .basis
-            .expanded_form_id
+            .expanded_plot_id
             .as_ref()
             .unwrap()
             .as_str(),

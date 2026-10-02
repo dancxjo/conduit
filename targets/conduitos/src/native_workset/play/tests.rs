@@ -1,5 +1,5 @@
 use super::*;
-use crate::native_workset::{self, NativeForm};
+use crate::native_workset::{self, NativePlot};
 use alloc::{borrow::ToOwned, string::String};
 use conduit_human::KeyModifiers;
 use conduit_kernel::ValueStorage;
@@ -15,28 +15,28 @@ fn kernel() -> (PreparedNativeWorkset, NativeWorksetPlay) {
 fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
     KeyEvent::new(usage, transition, KeyModifiers::NONE).unwrap()
 }
-fn type_key(play: &mut NativeWorksetPlay, form: usize, usage: u8) -> String {
-    play.input(form, key(usage, KeyTransition::Pressed))
-        .unwrap_or_else(|error| panic!("Form {form} usage {usage}: {error:?}"));
-    let text = play.take_presentation(form).unwrap().text().to_owned();
-    play.input(form, key(usage, KeyTransition::Released))
+fn type_key(play: &mut NativeWorksetPlay, plot: usize, usage: u8) -> String {
+    play.input(plot, key(usage, KeyTransition::Pressed))
+        .unwrap_or_else(|error| panic!("Plot {plot} usage {usage}: {error:?}"));
+    let text = play.take_presentation(plot).unwrap().text().to_owned();
+    play.input(plot, key(usage, KeyTransition::Released))
         .unwrap();
     text
 }
-fn index(prepared: &PreparedNativeWorkset, form: NativeForm) -> usize {
-    let identity = native_workset::resident(form).unwrap();
+fn index(prepared: &PreparedNativeWorkset, plot: NativePlot) -> usize {
+    let identity = native_workset::resident(plot).unwrap();
     prepared
         .plan
-        .forms
+        .plots
         .iter()
-        .position(|form| form.form == identity)
+        .position(|plot| plot.plot == identity)
         .unwrap()
 }
 
 #[test]
 fn tour_initial_view_and_event_cross_the_same_production_kernel() {
     let (prepared, mut play) = kernel();
-    let tour = index(&prepared, NativeForm::Tour);
+    let tour = index(&prepared, NativePlot::Tour);
     let initial = play.take_application_view(tour).unwrap();
     let event = conduit_presentation::ApplicationEvent {
         revision: initial.revision,
@@ -54,17 +54,17 @@ fn tour_initial_view_and_event_cross_the_same_production_kernel() {
 }
 
 #[test]
-fn patchbay_inspects_the_selected_form_and_emits_bounded_edit_authority() {
+fn patchbay_inspects_the_selected_plot_and_emits_bounded_edit_authority() {
     let (prepared, mut play) = kernel();
-    let tour = index(&prepared, NativeForm::Tour);
-    let patchbay = index(&prepared, NativeForm::Patchbay);
+    let tour = index(&prepared, NativePlot::Tour);
+    let patchbay = index(&prepared, NativePlot::Patchbay);
     play.select_patchbay_target(patchbay, tour).unwrap();
     let initial = play.take_application_view(patchbay).unwrap();
     assert!(
         initial
             .nodes
             .iter()
-            .any(|node| node.key == "form" && node.text == "tour")
+            .any(|node| node.key == "plot" && node.text == "tour")
     );
     let inspect = conduit_presentation::ApplicationEvent {
         revision: initial.revision,
@@ -103,10 +103,10 @@ fn patchbay_inspects_the_selected_form_and_emits_bounded_edit_authority() {
     assert!(play.take_application_request(patchbay).is_none());
 }
 #[test]
-fn switching_forms_keeps_independent_state_and_repeated_input_in_one_kernel() {
+fn switching_plots_keeps_independent_state_and_repeated_input_in_one_kernel() {
     let (prepared, mut play) = kernel();
-    let canvas = index(&prepared, NativeForm::KeyboardCanvas);
-    let memory = index(&prepared, NativeForm::MemoryLantern);
+    let canvas = index(&prepared, NativePlot::KeyboardCanvas);
+    let memory = index(&prepared, NativePlot::MemoryLantern);
     assert_eq!(type_key(&mut play, canvas, 4), "A");
     assert_eq!(type_key(&mut play, memory, 5), "b");
     assert_eq!(type_key(&mut play, canvas, 6), "C");
@@ -118,8 +118,8 @@ fn switching_forms_keeps_independent_state_and_repeated_input_in_one_kernel() {
 #[test]
 fn release_keeps_press_owner_and_cancel_retires_every_pending_request() {
     let (prepared, mut play) = kernel();
-    let canvas = index(&prepared, NativeForm::KeyboardCanvas);
-    let memory = index(&prepared, NativeForm::MemoryLantern);
+    let canvas = index(&prepared, NativePlot::KeyboardCanvas);
+    let memory = index(&prepared, NativePlot::MemoryLantern);
     let before = play.pending[memory].unwrap();
     play.input(canvas, key(4, KeyTransition::Pressed)).unwrap();
     play.take_presentation(canvas).unwrap();
@@ -147,7 +147,7 @@ fn release_keeps_press_owner_and_cancel_retires_every_pending_request() {
 #[test]
 fn retained_editing_reaches_its_exact_bound_and_reports_capacity_failure() {
     let (prepared, mut play) = kernel();
-    let memory = index(&prepared, NativeForm::MemoryLantern);
+    let memory = index(&prepared, NativePlot::MemoryLantern);
     for length in 1..=256 {
         assert_eq!(type_key(&mut play, memory, 4).len(), length);
     }
@@ -165,8 +165,8 @@ fn retained_editing_reaches_its_exact_bound_and_reports_capacity_failure() {
 #[test]
 fn thousands_of_interactions_reuse_fixed_storage_and_disclose_sign_eviction() {
     let (prepared, mut play) = kernel();
-    let canvas = index(&prepared, NativeForm::KeyboardCanvas);
-    let memory = index(&prepared, NativeForm::MemoryLantern);
+    let canvas = index(&prepared, NativePlot::KeyboardCanvas);
+    let memory = index(&prepared, NativePlot::MemoryLantern);
     let items = play.scheduler.values().used_items();
     let bytes = play.scheduler.values().used_bytes();
     for _ in 0..512 {
@@ -182,7 +182,7 @@ fn thousands_of_interactions_reuse_fixed_storage_and_disclose_sign_eviction() {
 #[test]
 fn unread_presentation_pressure_refuses_input_without_overwriting_it() {
     let (prepared, mut play) = kernel();
-    let canvas = index(&prepared, NativeForm::KeyboardCanvas);
+    let canvas = index(&prepared, NativePlot::KeyboardCanvas);
     play.input(canvas, key(4, KeyTransition::Pressed)).unwrap();
     let pending = play.pending[canvas].unwrap();
     assert_eq!(

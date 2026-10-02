@@ -12,7 +12,7 @@ use conduit_core::{
 
 pub const REQUEST_KIND: &str = "tutorial/presenter-request";
 pub const MANIFESTATION_KIND: &str = "tutorial/manifestation";
-pub const CONTRACT_REVISION: &str = "conduit.form/tutorial-presenter@1";
+pub const CONTRACT_REVISION: &str = "conduit.plot/tutorial-presenter@1";
 
 pub fn request_contract() -> Kind {
     contract(
@@ -71,16 +71,16 @@ fn contract(
 }
 
 pub fn install_tutorial_presenter_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for contract in [request_contract(), manifestation_contract()] {
-        startup.insert(conduit_form::KindSignature {
+        startup.insert(conduit_plot::KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(conduit_form::KindProjection {
+            .insert(conduit_plot::KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

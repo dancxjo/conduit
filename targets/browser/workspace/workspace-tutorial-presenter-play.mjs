@@ -77,7 +77,7 @@ function acquireTutorialPresenter({ window, outputRoot, host, fragment, request 
   });
 }
 
-/** Prepare the exact browser → joined Presenter Host → browser Form. */
+/** Prepare the exact browser → joined Presenter Host → browser Plot. */
 export async function prepareWorkspaceTutorialPresenterPlay({
   api, localAdvertisement, joined, plan, outputRoot, request,
   window = outputRoot?.ownerDocument?.defaultView,

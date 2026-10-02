@@ -122,8 +122,8 @@ pub fn exact_std_esp32_bluetooth_plan_for_host(
         SignId::from("bluetooth/line/esp32-offer-ready"),
     )
     .map_err(|error| alloc::format!("Bluetooth Line offer: {error:?}"))?;
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../fixtures/plots/signal-demo.conduit"),
         &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -147,7 +147,7 @@ pub fn exact_std_esp32_bluetooth_plan_for_host(
         ]),
     };
     let plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[source, sink],
         &placements,
         &[BaseImplementationId::from(

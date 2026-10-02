@@ -10,7 +10,7 @@ use conduit_data::{
     ScalarComparison, SignalCadence, SignalContinuity, SignalStart, SignalWindow, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorSummary, TensorValue,
 };
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 
 fn assert_round_trip<T>(value: T)

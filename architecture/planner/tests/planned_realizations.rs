@@ -2,14 +2,14 @@ mod common;
 
 use common::competing_hosts;
 use conduit_core::{ResourceHealth, ResourceObservation, SignId};
-use conduit_form::parse_with_startup;
 use conduit_planner::{plan_selected_realizations, RealizationPolicy, RealizationPreference};
+use conduit_plot::parse_with_startup;
 use conduit_signal::signal_profile_catalog;
 use std::collections::BTreeMap;
 
-fn two_pulse_form() -> conduit_form::CheckedForm {
+fn two_pulse_plot() -> conduit_plot::CheckedPlot {
     parse_with_startup(
-        "form realization {\n    first: flow/pulse(count = 2, period-ms = 0, initial = false)\n    second: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+        "plot realization {\n    first: flow/pulse(count = 2, period-ms = 0, initial = false)\n    second: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
     .expect("two equal-front gears check")
 }
 
@@ -41,13 +41,13 @@ fn observations(hosts: &[conduit_core::HostAdvertisement; 2]) -> Vec<ResourceObs
 }
 
 #[test]
-fn whole_form_selection_shares_observed_capacity_and_seals_exact_realizations() {
-    let form = two_pulse_form();
+fn whole_plot_selection_shares_observed_capacity_and_seals_exact_realizations() {
+    let plot = two_pulse_plot();
     let hosts = competing_hosts();
     let resource_class = hosts[0].capabilities[0].resource_requirements[0]
         .class_id
         .clone();
-    let policies = form
+    let policies = plot
         .gears
         .iter()
         .map(|gear| {
@@ -63,7 +63,7 @@ fn whole_form_selection_shares_observed_capacity_and_seals_exact_realizations() 
         .collect::<BTreeMap<_, _>>();
 
     let plan = plan_selected_realizations(
-        &form,
+        &plot,
         &hosts,
         &[],
         &BTreeMap::new(),
@@ -102,10 +102,10 @@ fn whole_form_selection_shares_observed_capacity_and_seals_exact_realizations() 
 
 #[test]
 fn selected_semantic_limits_participate_in_plan_identity() {
-    let form = two_pulse_form();
+    let plot = two_pulse_plot();
     let hosts = competing_hosts();
     let original = plan_selected_realizations(
-        &form,
+        &plot,
         &hosts,
         &[],
         &BTreeMap::new(),
@@ -117,7 +117,7 @@ fn selected_semantic_limits_participate_in_plan_identity() {
     let mut changed_hosts = hosts.clone();
     changed_hosts[1].capabilities[0].limits.max_queue_bytes += 1;
     let changed = plan_selected_realizations(
-        &form,
+        &plot,
         &changed_hosts,
         &[],
         &BTreeMap::new(),

@@ -33,8 +33,8 @@ pub const RUNTIME_SIGN_BYTES: u32 =
     (RUNTIME_SIGN_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
 
 pub const SOURCE_DOCUMENT_ID: &str = generated_signal::SOURCE_DOCUMENT_ID;
-pub const CHECKED_FORM_ID: &str = generated_signal::CHECKED_FORM_ID;
-pub const EXPANDED_FORM_ID: &str = generated_signal::EXPANDED_FORM_ID;
+pub const CHECKED_PLOT_ID: &str = generated_signal::CHECKED_PLOT_ID;
+pub const EXPANDED_PLOT_ID: &str = generated_signal::EXPANDED_PLOT_ID;
 pub const PLAN_ID: &str = generated_signal::PLAN_ID;
 pub const FRAGMENT_ID: &str = generated_signal::FRAGMENT_ID;
 pub const HOST_ID: &str = generated_signal::HOST_ID;

@@ -11,7 +11,7 @@ fn request(action: Value) -> Vec<u8> {
 
 fn claim_request(server: &PatchbayHtmlServer) -> Vec<u8> {
     let plan = server.body_planning.as_ref().unwrap().current_plan();
-    let fragment = &plan.forms[0].plan.fragments[0];
+    let fragment = &plan.plots[0].plan.fragments[0];
     request(
         json!({"kind": "Claim", "plan_id": plan.plan_id, "host_id": fragment.host_id, "boot_id": fragment.boot_id}),
     )

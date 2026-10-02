@@ -44,7 +44,7 @@ pub const REVIEWED_DELIVERY_CLASSIFICATIONS: &[DeliveryClassification] = &[
             EvolutionSemantics::CurrentState,
             AdmissionUnit::CoherentFrame,
         ),
-        "buttons, position, delta, pressure, and sequence form one atomic snapshot",
+        "buttons, position, delta, pressure, and sequence plot one atomic snapshot",
     ),
     classification(
         "input/touch-frame@1",

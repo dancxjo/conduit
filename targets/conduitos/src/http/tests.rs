@@ -35,7 +35,7 @@ fn request(scheme: &str, authority: &str) -> alloc::vec::Vec<u8> {
         target: HttpTarget::new(authority.into(), "/v1/check?q=1".into(), scheme).unwrap(),
         headers: conduit_web::http_headers([conduit_web::HttpHeader::new(
             "x-test".into(),
-            conduit_form::rust_binding::BoundedBytes::new(b"yes").unwrap(),
+            conduit_plot::rust_binding::BoundedBytes::new(b"yes").unwrap(),
         )
         .unwrap()])
         .unwrap(),

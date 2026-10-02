@@ -9,7 +9,7 @@ use conduit_ai::{
     VectorIndexResourceRefusal, VectorIndexState, VectorRecord, VectorRefusal,
 };
 use conduit_core::ResourceBinding;
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 use instant_distance::{Builder, HnswMap, Point, Search};
 use std::collections::BTreeSet;
 

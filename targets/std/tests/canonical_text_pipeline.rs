@@ -1,6 +1,6 @@
 use conduit_core::{resource_offer, ObservationKind, TerminalDisposition, INPUT_RESOURCE_CLASS};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{
@@ -9,10 +9,10 @@ use conduit_std_host::{
 };
 use std::collections::VecDeque;
 
-const HELLO_PROGRAM: &str = include_str!("../../../forms/hello/main.conduit");
-const MORSE_NETWORK: &str = include_str!("../../../forms/morse-network/main.conduit");
+const HELLO_PROGRAM: &str = include_str!("../../../plots/hello/main.conduit");
+const MORSE_NETWORK: &str = include_str!("../../../plots/morse-network/main.conduit");
 
-fn expanded() -> conduit_form::ExpandedCanonicalForm {
+fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
@@ -20,7 +20,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let syntax = parse_syntax_document(HELLO_PROGRAM);
     assert_eq!(syntax.round_trip(), HELLO_PROGRAM);
     let checked = check_syntax_document(&syntax, &startup).expect("Program 1 checks");
-    expand_canonical_form(&checked, "hello", &profile).expect("Program 1 expands")
+    expand_canonical_plot(&checked, "hello", &profile).expect("Program 1 expands")
 }
 
 #[test]
@@ -91,7 +91,7 @@ fn canonical_morse_network_runs_through_the_std_kernel_and_indicator_effect() {
     let syntax = parse_syntax_document(MORSE_NETWORK);
     let checked = check_syntax_document(&syntax, &startup).expect("Morse Network checks");
     let expanded =
-        expand_canonical_form(&checked, "morse_network", &profile).expect("Morse Network expands");
+        expand_canonical_plot(&checked, "morse_network", &profile).expect("Morse Network expands");
     let mut advertisement = StdHost::new().advertisement().clone();
     advertisement
         .capabilities
@@ -173,7 +173,7 @@ fn text_literals_reject_invalid_escape_and_the_exact_byte_bound() {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let invalid = parse_syntax_document(
-        r#"form bad {
+        r#"plot bad {
     upper: text/upper
     "bad\q" >> upper
 }
@@ -182,10 +182,10 @@ fn text_literals_reject_invalid_escape_and_the_exact_byte_bound() {
     assert!(check_syntax_document(&invalid, &startup).is_err());
 
     let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let source = format!("form bad {{\n    upper: text/upper\n    \"{oversized}\" >> upper\n}}\n");
+    let source = format!("plot bad {{\n    upper: text/upper\n    \"{oversized}\" >> upper\n}}\n");
     let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).expect("syntax remains lossless");
-    let error = expand_canonical_form(&checked, "bad", &profile)
+    let error = expand_canonical_plot(&checked, "bad", &profile)
         .expect_err("oversized text must fail before planning");
     assert_eq!(error.code, "CND-FRM-040");
 }

@@ -1,7 +1,7 @@
 //! Finite text-level address detection independent of speech or model machinery.
 
 use alloc::{string::String, vec::Vec};
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 
 use crate::{

@@ -21,22 +21,22 @@ pub struct DistributedTogglePlan {
 
 pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> {
     exact_distributed_toggle_plan_for(include_str!(
-        "../../../../proof/fixtures/forms/remote-toggle.conduit"
+        "../../../../proof/fixtures/plots/remote-toggle.conduit"
     ))
 }
 
 pub(super) fn exact_distributed_toggle_plan_for(
-    form_source: &str,
+    plot_source: &str,
 ) -> Result<DistributedTogglePlan, String> {
     let source_advertisement = distributed_toggle_std_source_advertisement();
     let sink_advertisement = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse_with_startup(
-        form_source,
+    let plot = conduit_plot::parse_with_startup(
+        plot_source,
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
-    let form_id = if form_source.contains("form physical-light-switch-runtime") {
+    let plot_id = if plot_source.contains("plot physical-light-switch-runtime") {
         "physical-light-switch-runtime"
     } else {
         "remote-toggle"
@@ -45,7 +45,7 @@ pub(super) fn exact_distributed_toggle_plan_for(
         by_gear: BTreeMap::from([
             (
                 GearId::from(
-                    format!("{form_id}/press")
+                    format!("{plot_id}/press")
                         .replace("remote-toggle/press", "remote-toggle/trigger"),
                 ),
                 PlacementChoice {
@@ -55,7 +55,7 @@ pub(super) fn exact_distributed_toggle_plan_for(
             ),
             (
                 GearId::from(
-                    format!("{form_id}/switch")
+                    format!("{plot_id}/switch")
                         .replace("remote-toggle/switch", "remote-toggle/toggle"),
                 ),
                 PlacementChoice {
@@ -65,7 +65,7 @@ pub(super) fn exact_distributed_toggle_plan_for(
             ),
             (
                 GearId::from(
-                    format!("{form_id}/every_light")
+                    format!("{plot_id}/every_light")
                         .replace("remote-toggle/every_light", "remote-toggle/show"),
                 ),
                 PlacementChoice {
@@ -77,7 +77,7 @@ pub(super) fn exact_distributed_toggle_plan_for(
     };
     let link = distributed_toggle_websocket_line_offer();
     let plan = plan_with_line_offers(
-        &form,
+        &plot,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
         &[

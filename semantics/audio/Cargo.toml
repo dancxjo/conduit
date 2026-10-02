@@ -6,9 +6,9 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
 conduit-data = { path = "../data" }
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }
 libm = "0.2"
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [build-dependencies]
-conduit-form = { path = "../../architecture/form" }
+conduit-plot = { path = "../../architecture/plot" }

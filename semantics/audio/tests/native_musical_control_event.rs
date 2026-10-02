@@ -2,7 +2,7 @@ use conduit_audio::{
     MusicalControl, MusicalControlEvent, SoundInfoError, CONTROL_EVENT_ENCODED_LEN,
     MAXIMUM_EVENT_TIME_MICROS,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn musical_control_event_round_trips_and_preserves_codec_and_digest() {

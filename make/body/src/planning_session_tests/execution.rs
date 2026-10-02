@@ -1,4 +1,4 @@
-use crate::BodyPlanningForm;
+use crate::BodyPlanningPlot;
 use conduit_body::{
     Body, BodyExecutionClaim, BodyExecutionClaimError, BodyLifecycleError, BodyPlanningSession,
     BodyPlanningSessionError, BodyPlanningTransition, BodyWorkset, RemoteProofClass, Wake,
@@ -7,28 +7,28 @@ use conduit_body::{
 use conduit_core::{bind_sign, SignId};
 
 fn proposal() -> BodyPlanningSession {
-    let expanded = super::hello_form();
-    let resident = conduit_body::ResidentForm::new(
+    let expanded = super::hello_plot();
+    let resident = conduit_body::ResidentPlot::new(
         expanded.source_document_id.clone(),
-        expanded.checked_form_id.clone(),
+        expanded.checked_plot_id.clone(),
     );
     let workset = BodyWorkset::one(resident.clone()).unwrap();
     let host = conduit_std_host::StdHost::new();
-    let planning = BodyPlanningForm::new(resident.clone(), expanded).unwrap();
-    let forms = crate::plan_body_workset_on_host(
+    let planning = BodyPlanningPlot::new(resident.clone(), expanded).unwrap();
+    let plots = crate::plan_body_workset_on_host(
         &workset,
         &[planning],
         host.advertisement(),
         &["conduit.base/local@1".into()],
     )
     .unwrap();
-    let body = Body::born_with_forms(workset, 1, "sign/born".into()).unwrap();
-    BodyPlanningSession::prepare(&body, 1, "sign/wake".into(), forms).unwrap()
+    let body = Body::born_with_plots(workset, 1, "sign/born".into()).unwrap();
+    BodyPlanningSession::prepare(&body, 1, "sign/wake".into(), plots).unwrap()
 }
 
 fn claim(session: &mut BodyPlanningSession) -> BodyExecutionClaim {
     let plan = session.current_plan().clone();
-    let fragment = &plan.forms[0].plan.fragments[0];
+    let fragment = &plan.plots[0].plan.fragments[0];
     session
         .claim_execution(&plan.plan_id, &fragment.host_id, &fragment.boot_id)
         .unwrap()
@@ -63,7 +63,7 @@ fn explicit_lull_requires_terminal_accounting_and_next_wake_preserves_history() 
     assert_eq!(session.wake().lifecycle, WakeLifecycle::Lulled);
     let body = session.body().clone();
     session
-        .prepare_next_wake(&body, 2, "sign/next-wake".into(), old_plan.forms.clone())
+        .prepare_next_wake(&body, 2, "sign/next-wake".into(), old_plan.plots.clone())
         .unwrap();
     assert_ne!(session.current_plan().plan_id, old_plan.plan_id);
     assert_eq!(session.plan(&old_plan.plan_id), Some(&old_plan));
@@ -105,7 +105,7 @@ fn claim_pins_exact_proposal_without_inventing_a_start() {
         Err(BodyExecutionClaimError::OutstandingClaim)
     );
     assert!(session
-        .replace_proposal(session.current_plan().forms.clone())
+        .replace_proposal(session.current_plan().plots.clone())
         .is_err());
     assert_eq!(session.snapshot(), before);
     let mut wrong = claim.play.clone();
@@ -148,7 +148,7 @@ fn refused_attempts_are_bounded_and_never_reuse_play_identity() {
 fn wrong_host_boot_plan_and_unavailable_proposals_are_refused_atomically() {
     let mut session = proposal();
     let plan = session.current_plan().clone();
-    let fragment = &plan.forms[0].plan.fragments[0];
+    let fragment = &plan.plots[0].plan.fragments[0];
     let before = session.snapshot();
     assert_eq!(
         session.claim_execution(&plan.plan_id, &fragment.host_id, &"boot/stale".into()),
@@ -227,7 +227,7 @@ fn loss_after_claim_retains_actual_start_then_marks_unsatisfied() {
     assert!(session.has_outstanding_execution_claim());
     assert!(session
         .replan(
-            session.current_plan().forms.clone(),
+            session.current_plan().plots.clone(),
             BodyPlanningTransition {
                 unsatisfied_sign_id: None,
                 plan_ready_sign_id: "sign/ready".into(),
@@ -290,28 +290,28 @@ fn next_wake_refuses_reused_identity_wrong_body_and_stale_workset_atomically() {
             &body,
             wake.wake_sequence,
             "sign/reused".into(),
-            prior_plan.forms.clone()
+            prior_plan.plots.clone()
         ),
         Err(BodyPlanningSessionError::StaleCurrentPlan)
     );
-    let other = Body::born_with_forms(body.workset.clone(), 99, "sign/other-body".into()).unwrap();
+    let other = Body::born_with_plots(body.workset.clone(), 99, "sign/other-body".into()).unwrap();
     assert_eq!(
         session.prepare_next_wake(
             &other,
             2,
             "sign/other-wake".into(),
-            prior_plan.forms.clone()
+            prior_plan.plots.clone()
         ),
         Err(BodyPlanningSessionError::StaleCurrentPlan)
     );
-    let resident = body.workset.forms()[0].clone();
-    let changed = body.remove_form(&resident, "sign/removed".into()).unwrap();
+    let resident = body.workset.plots()[0].clone();
+    let changed = body.remove_plot(&resident, "sign/removed".into()).unwrap();
     assert!(session
         .prepare_next_wake(
             &changed,
             2,
             "sign/stale-workset".into(),
-            prior_plan.forms.clone()
+            prior_plan.plots.clone()
         )
         .is_err());
     assert_eq!(session.snapshot(), before);

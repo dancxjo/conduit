@@ -90,13 +90,13 @@ pub struct StreamSemantics {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StandardRealizationForm {
+pub struct StandardRealizationPlot {
     pub requirement_kind: &'static str,
     pub stages: [&'static str; 2],
 }
 
 /// Ordinary reusable expansion; planners need no backend-specific switch.
-pub const MUSIC_PLAY_THROUGH_SYNTH: StandardRealizationForm = StandardRealizationForm {
+pub const MUSIC_PLAY_THROUGH_SYNTH: StandardRealizationPlot = StandardRealizationPlot {
     requirement_kind: MUSIC_PLAY_KIND,
     stages: [MUSIC_SYNTH_KIND, AUDIO_PLAY_KIND],
 };

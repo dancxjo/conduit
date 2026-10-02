@@ -1,4 +1,4 @@
-//! Canonical Form catalog for finite schedule and workflow-state Info.
+//! Canonical Plot catalog for finite schedule and workflow-state Info.
 
 use alloc::{
     string::{String, ToString},
@@ -8,7 +8,7 @@ use alloc::{
 use conduit_core::{
     kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{
     schedule_assessment_type, schedule_observation_type, schedule_registered_types,
@@ -20,8 +20,8 @@ pub const SCHEDULE_ASSESS_KIND: &str = "schedule/assess-workflow";
 pub const SCHEDULE_REVISION: &str = "conduit.std/schedule-workflow@1";
 
 pub fn install_schedule_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in schedule_registered_types() {
         startup
@@ -73,8 +73,8 @@ pub fn install_schedule_catalogs(
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,

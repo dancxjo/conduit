@@ -324,7 +324,7 @@ test("permission and acquired-resource observations do not collapse the media ac
     };
     const before = await boot.admitBrowserBoot(common);
     const realization = boot.bindBrowserOfferRealization(before, {
-      realizationId: "realization/7", offerId: "media/acquire-camera@1", formId: "form/unchanged", planId: "plan/7",
+      realizationId: "realization/7", offerId: "media/acquire-camera@1", formId: "plot/unchanged", planId: "plan/7",
     });
     const after = boot.refreshBrowserBootTruth(before, {
       [ids[1]]: { api_supported: true, secure_context: true, permission: "granted", resource_ready: false, resource_lost: true },
@@ -365,7 +365,7 @@ test("WebRTC signaling bootstrap and exact session grant remain separate from Da
     });
     const realization = boot.bindBrowserOfferRealization(ready, {
       realizationId: "line-realization/webrtc/1", offerId: "line/webrtc-datachannel@1",
-      formId: "form/portable-camera", planId: "plan/webrtc/1",
+      formId: "plot/portable-camera", planId: "plan/webrtc/1",
     });
     return { noSignaling, noGrant, ready, realization };
   }, { implementation, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("7") });
@@ -375,7 +375,7 @@ test("WebRTC signaling bootstrap and exact session grant remain separate from Da
   expect(result.ready.inspection[0]).toMatchObject({ offered: true, resource_ready: true });
   expect(result.realization).toMatchObject({
     implementation_id: implementation,
-    form_id: "form/portable-camera",
+    plot_id: "plot/portable-camera",
     plan_id: "plan/webrtc/1",
     admitted_offer_generation: 1,
   });

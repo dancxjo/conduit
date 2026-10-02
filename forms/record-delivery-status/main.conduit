@@ -1,8 +1,0 @@
-form record-delivery-status (
-    >> observation: RecordDeliveryObservation...|
-    status: RecordDeliveryStatus...| >>
-) {
-    tracker: record/delivery-status
-    observation >> tracker.observation
-    tracker.status >> status
-}

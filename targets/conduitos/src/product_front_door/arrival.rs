@@ -11,7 +11,7 @@ use crate::{
     product_journey::{JourneyAction, ProductJourney},
 };
 use alloc::format;
-use conduit_birth_form::BirthSelection;
+use conduit_birth_plot::BirthSelection;
 
 pub(super) fn open(
     door: &mut FrontDoor,
@@ -20,8 +20,8 @@ pub(super) fn open(
     offer: &HostOffer<'_>,
     make: &MakeRecord,
 ) -> Result<(), &'static str> {
-    // Crèche is the zero-body entrance. Do not open a form merely to make the
-    // arrival surface exist: reviewed forms belong to the Crèche inventory and
+    // Crèche is the zero-body entrance. Do not open a plot merely to make the
+    // arrival surface exist: reviewed plots belong to the Crèche inventory and
     // become lifecycle truth only after an explicit birth selection.
     door.observe_journey(journey.projection())
         .map_err(|e| e.as_str())?;
@@ -34,8 +34,8 @@ pub(super) fn open(
         &hex[16..20],
         &hex[20..32]
     );
-    let refusals = native_workset::inventory().map(|form| {
-        native_workset::review(form, identities, offer, make.build_id)
+    let refusals = native_workset::inventory().map(|plot| {
+        native_workset::review(plot, identities, offer, make.build_id)
             .err()
             .map(|error| error.as_str().into())
     });

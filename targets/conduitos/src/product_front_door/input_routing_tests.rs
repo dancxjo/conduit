@@ -1,6 +1,6 @@
 use alloc::{vec, vec::Vec};
 
-use conduit_core::{BootId, CheckedFormId, HostBaseId, HostId, OfferGeneration, SourceDocumentId};
+use conduit_core::{BootId, CheckedPlotId, HostBaseId, HostId, OfferGeneration, SourceDocumentId};
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourPointerOutcome};
@@ -47,7 +47,7 @@ fn native_pointer_and_keyboard_cross_surface_routing_before_typed_tour_interacti
         "build",
         "image",
         SourceDocumentId::from("source"),
-        CheckedFormId::from("checked"),
+        CheckedPlotId::from("checked"),
         1,
         true,
     );

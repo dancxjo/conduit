@@ -9,7 +9,7 @@ pub use model::*;
 pub use state::*;
 
 use crate::PortableKindContract;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
@@ -76,10 +76,10 @@ pub fn http_server_semantics() -> PortableKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_http_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     install(
         startup,
@@ -103,14 +103,14 @@ fn port(
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn install<const N: usize>(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contracts: [PortableKindContract; N],
 ) -> Result<(), alloc::string::String> {
     use alloc::vec::Vec;
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_plot::{KindProjection, KindSignature};
     for contract in contracts {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),

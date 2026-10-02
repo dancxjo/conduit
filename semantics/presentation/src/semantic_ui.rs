@@ -21,7 +21,7 @@ use evidence_lowering::{
     code_node, definition_node, evidence_component, push_definition, push_evidence_state,
     validate_artifact, validate_evidence,
 };
-use form_lowering::{lower_form_field, progress_node};
+use form_lowering::{lower_plot_field, progress_node};
 use mechanism_lowering::{action_node, titled};
 use structure_lowering::structural_node;
 
@@ -307,9 +307,9 @@ fn lower_node(
         _ => {}
     }
     if let PresentationMechanism::FormField(field) = &source.mechanism {
-        lower_form_field(index, &source.key, field, nodes, actions, false)?;
+        lower_plot_field(index, &source.key, field, nodes, actions, false)?;
     } else if let PresentationMechanism::DeviceChoice(field) = &source.mechanism {
-        lower_form_field(index, &source.key, field, nodes, actions, true)?;
+        lower_plot_field(index, &source.key, field, nodes, actions, true)?;
     } else if let PresentationMechanism::ChoiceGroup {
         label,
         multiplicity,

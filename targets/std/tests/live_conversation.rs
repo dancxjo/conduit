@@ -1,15 +1,15 @@
-//! Canonical live-conversation Form conformance across semantic owners.
+//! Canonical live-conversation Plot conformance across semantic owners.
 
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, Kind, LineId,
     LinkBindingId, LinkEndpointId, OfferGeneration, PortTemporal, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use std::collections::BTreeMap;
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
@@ -35,13 +35,13 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 }
 
 #[test]
-fn canonical_live_conversation_is_one_reviewed_temporal_form() {
-    let source = include_str!("../../../forms/live-conversation/main.conduit");
+fn canonical_live_conversation_is_one_reviewed_temporal_plot() {
+    let source = include_str!("../../../plots/live-conversation/main.conduit");
     let (startup, profile) = catalogs();
 
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "live-conversation", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "live-conversation", &profile).unwrap();
     assert_eq!(
         authored.front.inputs()[0].temporal,
         PortTemporal::Flow { closes: true }
@@ -69,7 +69,7 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
     ] {
         assert!(
             kinds.contains(&expected),
-            "canonical Form omitted {expected}"
+            "canonical Plot omitted {expected}"
         );
     }
     let lower = source.to_ascii_lowercase();
@@ -86,7 +86,7 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
     ] {
         assert!(
             !lower.contains(forbidden),
-            "canonical Form contains {forbidden}"
+            "canonical Plot contains {forbidden}"
         );
     }
 }
@@ -161,11 +161,11 @@ fn proof_line(
 
 #[test]
 fn unchanged_live_conversation_source_plans_across_compatible_hosts() {
-    let source = include_str!("../../../forms/live-conversation/main.conduit");
+    let source = include_str!("../../../plots/live-conversation/main.conduit");
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "live-conversation", &profile).unwrap();
+        expand_canonical_plot_for_authoring(&checked, "live-conversation", &profile).unwrap();
     let definitions = authored
         .expanded
         .gears
@@ -222,7 +222,7 @@ fn unchanged_live_conversation_source_plans_across_compatible_hosts() {
     )
     .unwrap();
 
-    assert_eq!(plan.checked_form_id, authored.expanded.checked_form_id);
+    assert_eq!(plan.checked_plot_id, authored.expanded.checked_plot_id);
     assert_eq!(plan.fragments.len(), 2);
     assert!(plan.fragments.iter().any(|fragment| fragment
         .connections
@@ -232,11 +232,11 @@ fn unchanged_live_conversation_source_plans_across_compatible_hosts() {
 
 #[test]
 fn spoken_live_conversation_wraps_the_unchanged_pipeline_with_portable_audio_edges() {
-    let source = include_str!("../../../forms/live-conversation/main.conduit");
+    let source = include_str!("../../../plots/live-conversation/main.conduit");
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        expand_canonical_form_for_authoring(&checked, "spoken-live-conversation", &profile)
+        expand_canonical_plot_for_authoring(&checked, "spoken-live-conversation", &profile)
             .unwrap();
     let kinds = authored
         .expanded

@@ -118,12 +118,12 @@ pub(crate) fn scene_with_observations(
 /// Preparation only. The live Tour retains this projection across revisions.
 pub(crate) fn canonical_graph() -> Result<patchbay_graph::PatchbayGraph, TourWorkspaceSceneRefusal>
 {
-    let form = crate::ordinary_form::checked_expanded_text_form_named(
+    let plot = crate::ordinary_plot::checked_expanded_text_plot_named(
         conduit_tour_model::CANONICAL_SOURCE,
         "meet-one-gear",
     )
     .map_err(|_| TourWorkspaceSceneRefusal::Graph)?;
-    patchbay_graph::PatchbayGraph::from_expanded(&form)
+    patchbay_graph::PatchbayGraph::from_expanded(&plot)
         .map_err(|_| TourWorkspaceSceneRefusal::Graph)
 }
 

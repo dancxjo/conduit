@@ -6,7 +6,7 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{BoundedResourceRef, KindId, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES};
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
     ImageObservationReference, ImageTextContentDigest, ImageTextMetadata, ImageTextMetadataEntries,

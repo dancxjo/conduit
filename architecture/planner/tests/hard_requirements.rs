@@ -1,34 +1,34 @@
 use conduit_core::{kind_id, GearId, ResourceClassId, TIMER_RESOURCE_CLASS};
-use conduit_form::parse_with_startup;
 use conduit_planner::{
     default_placements, plan_with_hard_requirements, HardRealizationRequirements, PlannerError,
 };
+use conduit_plot::parse_with_startup;
 use conduit_signal::signal_profile_catalog;
 use conduit_signal_conformance::pico_local_advertisement;
 use std::collections::{BTreeMap, BTreeSet};
 
-fn pulse_form() -> conduit_form::CheckedForm {
+fn pulse_plot() -> conduit_plot::CheckedPlot {
     parse_with_startup(
-        "form requirements {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-    .expect("pulse form checks")
+        "plot requirements {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+    .expect("pulse plot checks")
 }
 
 fn planning_inputs() -> (
-    conduit_form::CheckedForm,
+    conduit_plot::CheckedPlot,
     conduit_core::HostAdvertisement,
     conduit_planner::PlacementChoices,
 ) {
-    let form = pulse_form();
+    let plot = pulse_plot();
     let host = pico_local_advertisement();
-    let placements = default_placements(&form, std::slice::from_ref(&host))
+    let placements = default_placements(&plot, std::slice::from_ref(&host))
         .expect("pulse realization is front-compatible");
-    (form, host, placements)
+    (plot, host, placements)
 }
 
 #[test]
 fn hard_bounds_reject_before_plan_construction_and_pass_when_satisfied() {
-    let (form, host, placements) = planning_inputs();
-    let gear_id = form.gears[0].gear_id.clone();
+    let (plot, host, placements) = planning_inputs();
+    let gear_id = plot.gears[0].gear_id.clone();
     let selected = &host.capabilities[0];
     let requirements = BTreeMap::from([(
         gear_id.clone(),
@@ -39,7 +39,7 @@ fn hard_bounds_reject_before_plan_construction_and_pass_when_satisfied() {
     )]);
     assert!(matches!(
         plan_with_hard_requirements(
-            &form,
+            &plot,
             std::slice::from_ref(&host),
             &placements,
             &[],
@@ -57,7 +57,7 @@ fn hard_bounds_reject_before_plan_construction_and_pass_when_satisfied() {
         },
     )]);
     plan_with_hard_requirements(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[],
@@ -68,8 +68,8 @@ fn hard_bounds_reject_before_plan_construction_and_pass_when_satisfied() {
 
 #[test]
 fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
-    let (form, host, placements) = planning_inputs();
-    let gear_id = form.gears[0].gear_id.clone();
+    let (plot, host, placements) = planning_inputs();
+    let gear_id = plot.gears[0].gear_id.clone();
     let forbidden_timer = BTreeMap::from([(
         gear_id.clone(),
         HardRealizationRequirements {
@@ -82,7 +82,7 @@ fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
     )]);
     assert!(matches!(
         plan_with_hard_requirements(
-            &form,
+            &plot,
             std::slice::from_ref(&host),
             &placements,
             &[],
@@ -100,7 +100,7 @@ fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
     )]);
     assert!(matches!(
         plan_with_hard_requirements(
-            &form,
+            &plot,
             std::slice::from_ref(&host),
             &placements,
             &[],
@@ -112,31 +112,31 @@ fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
 
 #[test]
 fn checked_front_compatibility_is_evaluated_before_hard_requirements() {
-    let (form, mut host, placements) = planning_inputs();
+    let (plot, mut host, placements) = planning_inputs();
     host.capabilities[0].outputs[0].value_kind = kind_id("test/different-value");
     let requirements = BTreeMap::from([(
-        form.gears[0].gear_id.clone(),
+        plot.gears[0].gear_id.clone(),
         HardRealizationRequirements {
             minimum_queue_items: u16::MAX,
             ..HardRealizationRequirements::default()
         },
     )]);
     assert!(matches!(
-        plan_with_hard_requirements(&form, &[host], &placements, &[], &requirements),
+        plan_with_hard_requirements(&plot, &[host], &placements, &[], &requirements),
         Err(PlannerError::IncompatibleCheckedFront(_))
     ));
 }
 
 #[test]
 fn requirements_for_an_unknown_operation_fail_closed() {
-    let (form, host, placements) = planning_inputs();
+    let (plot, host, placements) = planning_inputs();
     let requirements = BTreeMap::from([(
         GearId::from("absent"),
         HardRealizationRequirements::default(),
     )]);
     assert!(matches!(
         plan_with_hard_requirements(
-            &form,
+            &plot,
             std::slice::from_ref(&host),
             &placements,
             &[],

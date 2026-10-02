@@ -78,8 +78,8 @@ PROFILE or IMAGE.
 
 Offer truth is boot-local and generation-numbered. A lost prerequisite removes
 the current offer and yields an exact invalidation for each dependent
-realization, retaining its form and plan identities while explicitly recording
-that neither the authored form nor IMAGE changed. A reduced-module bundle and
+realization, retaining its plot and plan identities while explicitly recording
+that neither the authored plot nor IMAGE changed. A reduced-module bundle and
 the superset bundle therefore produce the same semantic registry and offers for
 one selected PROFILE; only their artifact layout and size may differ.
 
@@ -102,7 +102,7 @@ products and the pointer vertical. It binds every delivered value to exact
 host, boot, and offer-generation truth, translates keys and normalized pointer
 coordinates into the existing portable value schemas, and keeps unsupported
 input, focus/page loss, finite pressure, cancellation, and stale boot distinct.
-The authored form and portable contract never receive DOM objects, selectors,
+The authored plot and portable contract never receive DOM objects, selectors,
 CSS, or Web API event classes. Touch and gamepad stay absent until a reviewed
 live browser implementation and lifecycle exist; their portable schemas alone
 are not an implementation claim.
@@ -157,13 +157,13 @@ current provider, an endpoint grant, and endpoint authority. WebRTC additionally
 requires the current body-scoped signaling bootstrap and session grant. Browser
 API presence alone sets none of those authority facts. Addresses, signaling
 data, and opaque credentials remain runtime host inputs and never enter the
-authored form; the browser adapter initiates only explicitly granted outbound
+authored plot; the browser adapter initiates only explicitly granted outbound
 sessions and does not treat network reachability as body membership.
 
 Provider loss, endpoint-authority loss, signaling loss, session loss, pressure,
 cancellation, stale boot or negotiation identity, unsupported APIs, and finite
 capacity exhaustion remain distinct refusals. There is no implicit reconnect:
-a later session requires new current authority. The same portable form and line
+a later session requires new current authority. The same portable plot and line
 contract may therefore select this browser realization or a materially different
 non-browser realization without changing authored transport syntax, because no
-such syntax exists in the form.
+such syntax exists in the plot.

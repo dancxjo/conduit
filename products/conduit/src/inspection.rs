@@ -8,7 +8,7 @@ const BODY_BIOGRAPHY_SCHEMA: &str = "conduit.body/biography-evidence@2";
 
 pub(crate) fn inspect(path: &Path) -> Result<String, String> {
     if path.extension().and_then(std::ffi::OsStr::to_str) == Some("conduit") {
-        return inspect_form(path);
+        return inspect_plot(path);
     }
     let bytes = std::fs::read(path)
         .map_err(|error| format!("read inspection artifact {}: {error}", path.display()))?;
@@ -18,17 +18,17 @@ pub(crate) fn inspect(path: &Path) -> Result<String, String> {
     inspect_json(path, &bytes)
 }
 
-fn inspect_form(path: &Path) -> Result<String, String> {
-    let form = crate::form_source::load(path)?.expand_entry()?;
+fn inspect_plot(path: &Path) -> Result<String, String> {
+    let plot = crate::plot_source::load(path)?.expand_entry()?;
     Ok(format!(
-        "Form {}\nsource {}\nchecked {}\nexpanded {}\ngears {}\nconnections {}\nshared pools {}\n",
-        form.name,
-        form.source_document_id.as_str(),
-        form.checked_form_id.as_str(),
-        form.expanded_form_id.as_str(),
-        form.gears.len(),
-        form.connections.len(),
-        form.shared_pools.len(),
+        "Plot {}\nsource {}\nchecked {}\nexpanded {}\ngears {}\nconnections {}\nshared pools {}\n",
+        plot.name,
+        plot.source_document_id.as_str(),
+        plot.checked_plot_id.as_str(),
+        plot.expanded_plot_id.as_str(),
+        plot.gears.len(),
+        plot.connections.len(),
+        plot.shared_pools.len(),
     ))
 }
 
@@ -70,8 +70,8 @@ fn inspect_plan(bytes: &[u8]) -> Result<String, String> {
         "Plan {}\nsource {}\nchecked {}\nexpanded {}\ncompletion {:?}\nfragments {}\nplacements {}\nconnections {}\n",
         artifact.plan.plan_id.as_str(),
         artifact.plan.source_document_id.as_str(),
-        artifact.plan.checked_form_id.as_str(),
-        artifact.plan.expanded_form_id.as_str(),
+        artifact.plan.checked_plot_id.as_str(),
+        artifact.plan.expanded_plot_id.as_str(),
         artifact.plan.completion_policy,
         artifact.plan.fragments.len(),
         placement_count,

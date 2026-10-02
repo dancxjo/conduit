@@ -1,10 +1,10 @@
 use conduit_planner::proof::resource_frame::*;
 #[test]
-fn unchanged_form_plans_copy_and_shared_residence_and_refuses_foreign_owner() {
+fn unchanged_plot_plans_copy_and_shared_residence_and_refuses_foreign_owner() {
     let copy = frame_resource_plan(true, false).unwrap();
     let shared = frame_resource_plan(false, false).unwrap();
-    assert_eq!(copy.plan.checked_form_id, shared.plan.checked_form_id);
-    assert_eq!(copy.plan.expanded_form_id, shared.plan.expanded_form_id);
+    assert_eq!(copy.plan.checked_plot_id, shared.plan.checked_plot_id);
+    assert_eq!(copy.plan.expanded_plot_id, shared.plan.expanded_plot_id);
     assert_ne!(copy.plan.plan_id, shared.plan.plan_id);
     assert_eq!(copy.plan.fragments[0].connections.len(), 3);
     for (a, b) in copy.plan.fragments[0]
@@ -27,10 +27,10 @@ fn resource_generation_bounds_and_residence_are_sealed_into_plan_identity() {
     use conduit_core::*;
     let proof = frame_resource_plan(false, false).unwrap();
     let original = proof.plan.clone();
-    let identity = FormIdentity {
+    let identity = PlotIdentity {
         source_document_id: original.source_document_id.clone(),
-        checked_form_id: original.checked_form_id.clone(),
-        expanded_form_id: original.expanded_form_id.clone(),
+        checked_plot_id: original.checked_plot_id.clone(),
+        expanded_plot_id: original.expanded_plot_id.clone(),
     };
     for change in [
         |c: &mut ResourceContentOffer| {

@@ -6,7 +6,7 @@ record in `STATUS.md` and the issue; this document describes the contract.
 resource is the noun for bounded addressable content whose residence, lifetime,
 sharing, access, generation, or durability outlives one ordinary inline info
 transfer. ResourceRef is still `value/resource-ref@1` info. Records remain info;
-forms and gears are computations. state retains evolving info across explicit
+plots and gears are computations. state retains evolving info across explicit
 time boundaries; persistence materializes a resource across a lifecycle boundary;
 recording retains historical evidence. These do not introduce a `save` primitive.
 
@@ -16,7 +16,7 @@ identity. A content contract names exact semantic identity, version and content
 profile, byte/item bounds, retention, sharing, access, generation slots, reader
 leases, publication slots, and sensitivity. Offers add exact owner host/boot,
 base and residence profile. Bindings seal those facts into plan identity. Neither
-form info nor canonical ResourceRef encoding contains residence or handles.
+plot info nor canonical ResourceRef encoding contains residence or handles.
 
 Invocation, play, boot, body-durable and externally durable obligations are
 separate retention classes. The local provider in this slice implements only
@@ -56,7 +56,7 @@ Run `cargo xtask prove resource-frame --locked`.
 The fixed source is source → compositor → display, with a second compositor →
 encoder cord. All cords carry exact bounded ResourceRef info. The ordinary
 checker and planner produce two different exact plans for the same checked and
-expanded form. Input/output resource generations, finite compositor scratch,
+expanded plot. Input/output resource generations, finite compositor scratch,
 optional consumer materializations, authority and Host Calls are admitted
 before the production kernel executes either plan.
 

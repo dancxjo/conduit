@@ -31,19 +31,19 @@ impl TimerAdapter for ScheduledTimer {
     }
 }
 
-const DEBOUNCE_FORM: &str = "form robot-debounce {\n    switch: test/timing-bool-source\n    stable: time/debounce(duration-ms = 5ms, policy = \"trailing\", maximum-values = 3)\n    sink: test/timing-bool-sink\n    switch >> stable >> sink\n}\n";
+const DEBOUNCE_FORM: &str = "plot robot-debounce {\n    switch: test/timing-bool-source\n    stable: time/debounce(duration-ms = 5ms, policy = \"trailing\", maximum-values = 3)\n    sink: test/timing-bool-sink\n    switch >> stable >> sink\n}\n";
 
-const TIMEOUT_FORM: &str = "form robot-timeout {\n    clock: time/tick(count = 2, period-ms = 10)\n    stale: time/timeout(duration-ms = 7ms, maximum-values = 2)\n    sink: test/timing-bool-sink\n    clock >> stale >> sink\n}\n";
+const TIMEOUT_FORM: &str = "plot robot-timeout {\n    clock: time/tick(count = 2, period-ms = 10)\n    stale: time/timeout(duration-ms = 7ms, maximum-values = 2)\n    sink: test/timing-bool-sink\n    clock >> stale >> sink\n}\n";
 
-const DELAY_FORM: &str = "form ordinary-delay {\n    source: test/timing-bool-source\n    paced: time/delay(duration-ms = 5ms, maximum-values = 3)\n    sink: test/timing-bool-sink\n    source >> paced >> sink\n}\n";
+const DELAY_FORM: &str = "plot ordinary-delay {\n    source: test/timing-bool-source\n    paced: time/delay(duration-ms = 5ms, maximum-values = 3)\n    sink: test/timing-bool-sink\n    source >> paced >> sink\n}\n";
 
-const THROTTLE_FORM: &str = "form patchbay-refresh-throttle {\n    edits: test/timing-bool-source\n    refresh: time/throttle(duration-ms = 5ms, policy = \"leading\", maximum-values = 3)\n    presenter: test/timing-bool-sink\n    edits >> refresh >> presenter\n}\n";
+const THROTTLE_FORM: &str = "plot patchbay-refresh-throttle {\n    edits: test/timing-bool-source\n    refresh: time/throttle(duration-ms = 5ms, policy = \"leading\", maximum-values = 3)\n    presenter: test/timing-bool-sink\n    edits >> refresh >> presenter\n}\n";
 
-const DEADLINE_CANCELLATION_FORM: &str = "form deadline-cancel {\n    trigger: test/timing-unit-source\n    deadline: time/deadline(duration-ms = 1ms)\n    operation: audio/tone\n    recovery: conduit-test/tone-terminal-recovery\n    trigger >> deadline.arm\n    deadline.request >> operation~\n    operation.audio! >> recovery.terminal\n}.\n";
+const DEADLINE_CANCELLATION_FORM: &str = "plot deadline-cancel {\n    trigger: test/timing-unit-source\n    deadline: time/deadline(duration-ms = 1ms)\n    operation: audio/tone\n    recovery: conduit-test/tone-terminal-recovery\n    trigger >> deadline.arm\n    deadline.request >> operation~\n    operation.audio! >> recovery.terminal\n}.\n";
 
 fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut startup_profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut startup_profile = conduit_plot::ProfileCatalog::new();
     conduit_time::install_tick_catalog(&mut startup, &mut startup_profile)
         .expect("tick startup signature installs");
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut startup_profile)
@@ -51,37 +51,37 @@ fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut startup_profile)
         .expect("timing startup signatures install");
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: "test/timing-bool-source".to_string(),
             startup_parameters: Vec::new(),
         })
         .expect("test source startup signature is unique");
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: "test/timing-unit-source".to_string(),
             startup_parameters: Vec::new(),
         })
         .expect("test unit source startup signature is unique");
     for kind in ["audio/tone", "conduit-test/tone-terminal-recovery"] {
         startup
-            .insert(conduit_form::KindSignature {
+            .insert(conduit_plot::KindSignature {
                 kind: kind.to_string(),
                 startup_parameters: Vec::new(),
             })
             .expect("deadline cancellation proof signature is unique");
     }
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: "test/timing-bool-sink".to_string(),
             startup_parameters: Vec::new(),
         })
         .expect("test timing sink startup signature is unique");
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .expect("canonical timing Form checks");
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .expect("canonical timing Plot checks");
     let profile = installed_std::test_catalog();
-    let expanded = conduit_form::expand_canonical_form(&checked, &checked.forms[0].name, &profile)
-        .expect("canonical timing Form expands");
+    let expanded = conduit_plot::expand_canonical_plot(&checked, &checked.plots[0].name, &profile)
+        .expect("canonical timing Plot expands");
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
         .expect("timing placements resolve");
@@ -100,7 +100,7 @@ fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
             line_offers: &[],
         },
     )
-    .expect("timing Form plans through the ordinary planner")
+    .expect("timing Plot plans through the ordinary planner")
     .fragments
     .into_iter()
     .next()
@@ -119,7 +119,7 @@ fn run(source: &str, id: &str) -> (crate::StdRunReport, ScheduledTimer) {
     };
     let report = host
         .run_fragment_to(fragment, &mut output, &mut timer)
-        .expect("timing Form executes through the production kernel");
+        .expect("timing Plot executes through the production kernel");
     (report, timer)
 }
 
@@ -170,7 +170,7 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
         };
         let report = planned_host
             .run_fragment_to(planned, &mut output, &mut timer)
-            .unwrap_or_else(|error| panic!("representative {kind} Form completes: {error}"));
+            .unwrap_or_else(|error| panic!("representative {kind} Plot completes: {error}"));
         let kernel = report.kernel.expect("production kernel report exists");
         assert_eq!(kernel.post_play_start_allocations, 0);
         assert_eq!(

@@ -127,8 +127,8 @@ pub fn admit_realization_recovery(
             if !verify_plan(&plan)
                 || previous_plan_id != previous.plan_id
                 || plan.source_document_id != previous.source_document_id
-                || plan.checked_form_id != previous.checked_form_id
-                || plan.expanded_form_id != previous.expanded_form_id
+                || plan.checked_plot_id != previous.checked_plot_id
+                || plan.expanded_plot_id != previous.expanded_plot_id
                 || plan.plan_id == previous.plan_id
             {
                 return Err(RealizationRecoveryRefusal::ReplacementDoesNotMatchPreviousPlan);

@@ -5,7 +5,7 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{Quantity, QuantityDimension, StructuredInfoType};
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_presentation::{
     ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource, VisionColorSample,
     VisionDetection, VisionDetectionSlot, VisionDetectionsFour, VisionEvidenceClass,

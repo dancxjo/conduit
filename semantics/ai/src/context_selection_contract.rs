@@ -264,13 +264,13 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_r3_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
 
     startup.insert(KindSignature {
         kind: RERANK_KIND.to_string(),
@@ -301,19 +301,19 @@ pub fn install_r3_catalog(
         .map_err(|error| error.to_string())
 }
 
-#[cfg(feature = "form-catalog")]
-fn text_parameter(name: &str, default: &str) -> conduit_form::StartupParameterSignature {
-    conduit_form::StartupParameterSignature {
+#[cfg(feature = "plot-catalog")]
+fn text_parameter(name: &str, default: &str) -> conduit_plot::StartupParameterSignature {
+    conduit_plot::StartupParameterSignature {
         name: name.into(),
         value_type: "Text".into(),
         default: Some(default.into()),
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn count_parameter(name: &str, default: u32) -> conduit_form::StartupParameterSignature {
+#[cfg(feature = "plot-catalog")]
+fn count_parameter(name: &str, default: u32) -> conduit_plot::StartupParameterSignature {
     use alloc::string::ToString;
-    conduit_form::StartupParameterSignature {
+    conduit_plot::StartupParameterSignature {
         name: name.into(),
         value_type: "Count".into(),
         default: Some(default.to_string()),

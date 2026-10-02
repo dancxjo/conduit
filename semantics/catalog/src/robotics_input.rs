@@ -76,7 +76,7 @@ pub fn robotics_input_contracts() -> Vec<StandardKindContract> {
     ]
 }
 
-#[cfg(any(feature = "form-catalog", test))]
+#[cfg(any(feature = "plot-catalog", test))]
 pub(crate) fn robotics_input_contracts_with_revisions() -> Vec<(StandardKindContract, &'static str)>
 {
     vec![
@@ -156,17 +156,17 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "form-catalog")]
+    #[cfg(feature = "plot-catalog")]
     #[test]
-    fn canonical_input_form_checks_and_expands_without_device_facts() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+    fn canonical_input_plot_checks_and_expands_without_device_facts() {
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         crate::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "form robot_inputs {\n near: robotics/observe-proximity\n beacon: robotics/observe-beacon\n buttons: robotics/observe-buttons\n acceleration: robotics/observe-acceleration\n}\n";
-        let syntax = conduit_form::parse_syntax_document(source);
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+        let source = "plot robot_inputs {\n near: robotics/observe-proximity\n beacon: robotics/observe-beacon\n buttons: robotics/observe-buttons\n acceleration: robotics/observe-acceleration\n}\n";
+        let syntax = conduit_plot::parse_syntax_document(source);
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
         let expanded =
-            conduit_form::expand_canonical_form(&checked, "robot_inputs", &profile).unwrap();
+            conduit_plot::expand_canonical_plot(&checked, "robot_inputs", &profile).unwrap();
         assert_eq!(expanded.gears.len(), 4);
     }
 }

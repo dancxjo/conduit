@@ -16,8 +16,8 @@ fn canonical_durable_notebook_checks_and_seals_distinct_retention_publication_an
         CheckedValueContract::new(kind_id("data/save-request@1"), 0, vec![]).unwrap();
     let text_type = StructuredInfoType::leaf(kind_id(TEXT_INFO_ID)).unwrap();
     let initial = StructuredInfoValue::leaf(text_type.clone(), Vec::new()).unwrap();
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     startup
         .insert_value_kind_alias("Text", kind_id(TEXT_INFO_ID))
         .unwrap();
@@ -33,7 +33,7 @@ fn canonical_durable_notebook_checks_and_seals_distinct_retention_publication_an
     )
     .unwrap();
     startup
-        .insert(conduit_form::KindSignature {
+        .insert(conduit_plot::KindSignature {
             kind: "state/latest".into(),
             startup_parameters: vec![],
         })
@@ -46,8 +46,8 @@ fn canonical_durable_notebook_checks_and_seals_distinct_retention_publication_an
         &mut profile,
     )
     .unwrap();
-    let form = conduit_form::parse_with_startup(
-        include_str!("../../../forms/durable-notebook/main.conduit"),
+    let plot = conduit_plot::parse_with_startup(
+        include_str!("../../../plots/durable-notebook/main.conduit"),
         &startup,
         &profile,
     )
@@ -77,10 +77,10 @@ fn canonical_durable_notebook_checks_and_seals_distinct_retention_publication_an
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let hosts = [advertisement];
-    let placements = conduit_planner::default_placements(&form, &hosts)
+    let placements = conduit_planner::default_placements(&plot, &hosts)
         .expect("Durable Notebook placements resolve");
     let plan = conduit_planner::plan_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

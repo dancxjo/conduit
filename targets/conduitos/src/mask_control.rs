@@ -2,7 +2,7 @@
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{
-    BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, BodyPlayIdentity, ResidentForm,
+    BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, BodyPlayIdentity, ResidentPlot,
 };
 use conduit_core::{
     ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId,
@@ -10,20 +10,20 @@ use conduit_core::{
     ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, SignId,
     authority_grant, kind_id, present_authority_requirement, resource_offer, resource_requirement,
 };
-use conduit_form::{
-    KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
-    expand_canonical_form_for_authoring, parse_syntax_document,
-};
 use conduit_planner::{
     ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
     plan_expanded_authoring_with_options,
 };
+use conduit_plot::{
+    KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
+    expand_canonical_plot_for_authoring, parse_syntax_document,
+};
 use conduit_presentation::{
     BodyMaskWardrobe, FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES,
-    ManifestationLifecycle, MaskForm, MaskShow, MaskWardrobe, MaskWardrobeLifetime,
-    PlannedMaskForm, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
+    ManifestationLifecycle, MaskPlot, MaskShow, MaskWardrobe, MaskWardrobeLifetime,
+    PlannedMaskPlot, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
     RendererRealizationOffer, ResourceRendererRealizationOffer, ShowResourceSourceOffer,
-    face_interaction_kind_projection, face_interaction_offer, install_mask_form_value_aliases,
+    face_interaction_kind_projection, face_interaction_offer, install_mask_plot_value_aliases,
     presentation_tee_kind_projection, presentation_tee_offer, renderer_kind_projection,
     renderer_offer, resource_renderer_kind, resource_renderer_offer, show_resource_source_kind,
     show_resource_source_offer,
@@ -39,8 +39,8 @@ pub struct NativeMaskEvidence {
     pub actions: Vec<&'static str>,
     pub mask_actions: Vec<crate::native_mask_journey::NativeMaskJourneyObservation>,
     pub wardrobe_revision: u64,
-    pub worn_mask_forms: Vec<conduit_core::FormIdentity>,
-    pub preference: Vec<conduit_core::FormIdentity>,
+    pub worn_mask_plots: Vec<conduit_core::PlotIdentity>,
+    pub preference: Vec<conduit_core::PlotIdentity>,
     pub application_plan_id: conduit_core::PlanId,
     pub mask_plan_ids: Vec<conduit_core::PlanId>,
     pub route_disposition: &'static str,
@@ -82,7 +82,7 @@ pub(super) struct MaskControl {
 
 #[derive(Clone)]
 pub(super) struct MaskStage {
-    pub(super) planned_mask: PlannedMaskForm,
+    pub(super) planned_mask: PlannedMaskPlot,
     pub(super) target: String,
 }
 
@@ -188,22 +188,22 @@ impl MaskControl {
         play: &BodyPlayIdentity,
     ) -> Result<PatchbayMaskTopology, ()> {
         let topology = body_plan.mask_topologies.first().ok_or(())?;
-        let form = topology.face.form.as_ref();
-        let expanded_form_id = form.and_then(|selected| {
+        let plot = topology.face.plot.as_ref();
+        let expanded_plot_id = plot.and_then(|selected| {
             body_plan
-                .forms
+                .plots
                 .iter()
-                .find(|candidate| &candidate.form == selected)
-                .map(|candidate| candidate.plan.expanded_form_id.clone())
+                .find(|candidate| &candidate.plot == selected)
+                .map(|candidate| candidate.plan.expanded_plot_id.clone())
         });
         let presentation = Presentation::new(
             self.sequence,
             PresentationBasis {
                 body_id: Some(body_plan.body_id.clone()),
                 wake_id: Some(body_plan.wake_id.clone()),
-                source_document_id: form.map(|form| form.source_document_id.clone()),
-                checked_form_id: form.map(|form| form.checked_form_id.clone()),
-                expanded_form_id,
+                source_document_id: plot.map(|plot| plot.source_document_id.clone()),
+                checked_plot_id: plot.map(|plot| plot.checked_plot_id.clone()),
+                expanded_plot_id,
                 plan_id: Some(body_plan.plan_id.clone()),
                 active_play_id: Some(play.active_play_id.clone()),
                 sign_ids: vec![SignId::from(format!(
@@ -353,7 +353,7 @@ impl MaskControl {
             .graphical
             .iter()
             .chain(self.speech.iter())
-            .map(|stage| stage.planned_mask.mask.form_identity.clone())
+            .map(|stage| stage.planned_mask.mask.plot_identity.clone())
             .collect::<Vec<_>>();
         let mask_plan_ids = self
             .graphical
@@ -371,7 +371,7 @@ impl MaskControl {
             actions.push("wear");
         }
         // Speech-only is reached by an actual doff of the previously eligible
-        // native graphical Form, not by rewriting Body meaning.
+        // native graphical Plot, not by rewriting Body meaning.
         if mode == PatchbayMaskMode::Speech {
             let native = prepare_stage(
                 Adapter::Native,
@@ -385,7 +385,7 @@ impl MaskControl {
             )?
             .planned_mask
             .mask
-            .form_identity;
+            .plot_identity;
             wardrobe = wardrobe
                 .wear(wardrobe.revision, native.clone())
                 .and_then(|next| next.doff(next.revision, &native))
@@ -416,7 +416,7 @@ impl MaskControl {
             )?,
             wardrobe_revision: scoped.wardrobe.revision,
             preference: scoped.wardrobe.preference.clone(),
-            worn_mask_forms: scoped.wardrobe.worn.clone(),
+            worn_mask_plots: scoped.wardrobe.worn.clone(),
             application_plan_id: body_plan.plan_id.clone(),
             mask_plan_ids,
             route_disposition: "selected-executed-route",
@@ -463,12 +463,12 @@ impl MaskControl {
 }
 
 pub(super) fn patchbay_selector(plan: &BodyPlan) -> Result<BodyFaceSelector, ()> {
-    let resident = crate::native_workset::resident(crate::native_workset::NativeForm::Patchbay)
+    let resident = crate::native_workset::resident(crate::native_workset::NativePlot::Patchbay)
         .map_err(|_| ())?;
     let partition = plan
-        .forms
+        .plots
         .iter()
-        .find(|partition| partition.form == resident)
+        .find(|partition| partition.plot == resident)
         .ok_or(())?;
     let placement = partition
         .plan
@@ -481,9 +481,9 @@ pub(super) fn patchbay_selector(plan: &BodyPlan) -> Result<BodyFaceSelector, ()>
         })
         .ok_or(())?;
     Ok(BodyFaceSelector {
-        form: Some(ResidentForm::new(
+        plot: Some(ResidentPlot::new(
             resident.source_document_id,
-            resident.checked_form_id,
+            resident.checked_plot_id,
         )),
         source_placement_id: placement.placement_id.clone(),
     })
@@ -505,7 +505,7 @@ pub(super) fn prepare_stage(
 ) -> Result<MaskStage, ()> {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    install_mask_form_value_aliases(&mut startup).map_err(|_| ())?;
+    install_mask_plot_value_aliases(&mut startup).map_err(|_| ())?;
     for projection in [
         renderer_kind_projection(),
         face_interaction_kind_projection(),
@@ -530,19 +530,19 @@ pub(super) fn prepare_stage(
     }
     let (source, entry) = match adapter {
         Adapter::Native => (
-            include_str!("../../../forms/native-graphical-mask/main.conduit"),
+            include_str!("../../../plots/native-graphical-mask/main.conduit"),
             "native-graphical",
         ),
         Adapter::Speech => (
-            include_str!("../../../forms/spoken-mask/main.conduit"),
+            include_str!("../../../plots/spoken-mask/main.conduit"),
             "spoken",
         ),
     };
     let checked =
         check_syntax_document(&parse_syntax_document(source), &startup).map_err(|_| ())?;
     let authoring =
-        expand_canonical_form_for_authoring(&checked, entry, &catalog).map_err(|_| ())?;
-    let mask = MaskForm::admit(&authoring).map_err(|_| ())?;
+        expand_canonical_plot_for_authoring(&checked, entry, &catalog).map_err(|_| ())?;
+    let mask = MaskPlot::admit(&authoring).map_err(|_| ())?;
     let advertisement = renderer_host(adapter, host_id, boot_id, generation, surface_provider);
     let placements =
         default_expanded_placements(&authoring.expanded, core::slice::from_ref(&advertisement))
@@ -604,7 +604,7 @@ pub(super) fn prepare_stage(
     )
     .map_err(|_| ())?;
     Ok(MaskStage {
-        planned_mask: PlannedMaskForm::admit(&mask, &plan).map_err(|_| ())?,
+        planned_mask: PlannedMaskPlot::admit(&mask, &plan).map_err(|_| ())?,
         target: target.into(),
     })
 }
@@ -816,24 +816,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn native_mask_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
+    fn native_mask_is_the_exact_ordinary_mask_plot_and_keeps_its_branched_plan() {
         let host = HostId::from("conduitos/test-host");
         let boot = conduit_core::BootId::from("conduitos/test-boot");
         let control = MaskControl::graphical(host, boot, None).unwrap();
         let stage = control.graphical.as_ref().unwrap();
 
-        assert_eq!(stage.planned_mask.mask.form_name, "native-graphical");
+        assert_eq!(stage.planned_mask.mask.plot_name, "native-graphical");
         assert_eq!(
             stage.planned_mask.plan.source_document_id,
-            stage.planned_mask.mask.form_identity.source_document_id
+            stage.planned_mask.mask.plot_identity.source_document_id
         );
         assert_eq!(
-            stage.planned_mask.plan.checked_form_id,
-            stage.planned_mask.mask.form_identity.checked_form_id
+            stage.planned_mask.plan.checked_plot_id,
+            stage.planned_mask.mask.plot_identity.checked_plot_id
         );
         assert_eq!(
-            stage.planned_mask.plan.expanded_form_id,
-            stage.planned_mask.mask.form_identity.expanded_form_id
+            stage.planned_mask.plan.expanded_plot_id,
+            stage.planned_mask.mask.plot_identity.expanded_plot_id
         );
         assert_eq!(
             [
@@ -878,7 +878,7 @@ mod tests {
 
         let topology = control
             .topology(BodyFaceSelector {
-                form: None,
+                plot: None,
                 source_placement_id: conduit_core::PlacementId::from("application/presentation"),
             })
             .unwrap();
@@ -894,7 +894,7 @@ mod tests {
     }
 
     #[test]
-    fn spoken_mask_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
+    fn spoken_mask_is_the_exact_ordinary_mask_plot_and_keeps_its_branched_plan() {
         let host = HostId::from("conduitos/test-host");
         let boot = conduit_core::BootId::from("conduitos/test-boot");
         let mut control = MaskControl::graphical(host, boot, None).unwrap();
@@ -902,18 +902,18 @@ mod tests {
         let stage = control.speech.as_ref().unwrap();
 
         assert!(control.graphical.is_none());
-        assert_eq!(stage.planned_mask.mask.form_name, "spoken");
+        assert_eq!(stage.planned_mask.mask.plot_name, "spoken");
         assert_eq!(
             stage.planned_mask.plan.source_document_id,
-            stage.planned_mask.mask.form_identity.source_document_id
+            stage.planned_mask.mask.plot_identity.source_document_id
         );
         assert_eq!(
-            stage.planned_mask.plan.checked_form_id,
-            stage.planned_mask.mask.form_identity.checked_form_id
+            stage.planned_mask.plan.checked_plot_id,
+            stage.planned_mask.mask.plot_identity.checked_plot_id
         );
         assert_eq!(
-            stage.planned_mask.plan.expanded_form_id,
-            stage.planned_mask.mask.form_identity.expanded_form_id
+            stage.planned_mask.plan.expanded_plot_id,
+            stage.planned_mask.mask.plot_identity.expanded_plot_id
         );
         assert_eq!(
             stage

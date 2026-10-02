@@ -1,8 +1,8 @@
 use conduit_audio::TimingFeedback;
-use conduit_form::rust_binding::{
+use conduit_plot::rust_binding::{
     generate_rust_bindings_with_external_bindings, ExternalNativeRustBinding, RustBindingOptions,
 };
-use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
         &catalog,
     )
     .expect("education semantic Types must check");
-    let conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
+    let conduit_plot::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
         schema, ..
     } = timing_type.shape()
     else {

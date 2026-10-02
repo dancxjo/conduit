@@ -36,7 +36,7 @@ pub(super) fn install(
             maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         }],
         // Charge each delivery the whole fixed adapter envelope conservatively;
-        // even a one-Form Body must admit its tables, Signs and retained editor.
+        // even a one-Plot Body must admit its tables, Signs and retained editor.
         vec![
             resource_requirement(
                 "conduit.resource/runtime-memory@1",

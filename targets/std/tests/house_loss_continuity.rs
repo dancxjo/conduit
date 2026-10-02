@@ -1,18 +1,18 @@
 use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyFormPlan, BodyMembership, BodyPlan, BodyPlayIdentity,
+    AuthenticatedHostObservation, Body, BodyMembership, BodyPlan, BodyPlayIdentity, BodyPlotPlan,
     HostPresenceClock, HostPresenceClockScale, HostPresenceState, HostPresenceTable,
-    MembershipProofId, PartId, ResidentForm,
+    MembershipProofId, PartId, ResidentPlot,
 };
 use conduit_core::{
     BootId, HostId, LinkBindingId, ObservationKind, OfferGeneration, SignId, TerminalDisposition,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_std_host::{StdHost, StdHostConfig, ThreadTimer};
 
-const GREET: &str = include_str!("../../../forms/greet/main.conduit");
+const GREET: &str = include_str!("../../../plots/greet/main.conduit");
 
 fn host(role: &str) -> StdHost {
     StdHost::new_with_config(StdHostConfig {
@@ -22,19 +22,19 @@ fn host(role: &str) -> StdHost {
     })
 }
 
-fn planned_greet(host: &StdHost, entry: &str) -> (ResidentForm, conduit_core::Plan) {
+fn planned_greet(host: &StdHost, entry: &str) -> (ResidentPlot, conduit_core::Plan) {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles).unwrap();
     let syntax = parse_syntax_document(GREET);
     assert_eq!(syntax.round_trip(), GREET);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, entry, &profiles).unwrap();
+    let expanded = expand_canonical_plot(&checked, entry, &profiles).unwrap();
     let plan = host.plan_expanded_local(&expanded).unwrap();
     (
-        ResidentForm::new(
+        ResidentPlot::new(
             plan.source_document_id.clone(),
-            plan.checked_form_id.clone(),
+            plan.checked_plot_id.clone(),
         ),
         plan,
     )
@@ -76,31 +76,31 @@ fn attach(
 }
 
 #[test]
-fn one_house_keeps_unrelated_form_running_after_another_host_is_lost() {
+fn one_house_keeps_unrelated_plot_running_after_another_host_is_lost() {
     let lost_host = host("conversation");
     let mut continuing_host = host("status");
     let (conversation, conversation_plan) = planned_greet(&lost_host, "welcome");
     let (status, status_plan) = planned_greet(&continuing_host, "default-welcome");
     let body = Body::born(
         conversation.source_document_id.clone(),
-        conversation.checked_form_id.clone(),
+        conversation.checked_plot_id.clone(),
         1,
         SignId::from("sign/rosehip-born"),
     )
     .unwrap()
-    .admit_form(status.clone(), SignId::from("sign/rosehip-status-admitted"))
+    .admit_plot(status.clone(), SignId::from("sign/rosehip-status-admitted"))
     .unwrap();
     let body_id = body.body_id.clone();
     let wake = body.wake(1, SignId::from("sign/rosehip-wake")).unwrap().1;
     let body_plan = BodyPlan::seal(
         &wake,
         vec![
-            BodyFormPlan {
-                form: conversation,
+            BodyPlotPlan {
+                plot: conversation,
                 plan: conversation_plan,
             },
-            BodyFormPlan {
-                form: status,
+            BodyPlotPlan {
+                plot: status,
                 plan: status_plan.clone(),
             },
         ],
@@ -154,7 +154,7 @@ fn one_house_keeps_unrelated_form_running_after_another_host_is_lost() {
     assert_eq!(presence.leases[1].state, HostPresenceState::Available);
     assert!(membership.parts[0].current.is_none());
     assert!(membership.parts[1].current.is_some());
-    assert_eq!(body_plan.forms.len(), 2);
+    assert_eq!(body_plan.plots.len(), 2);
 
     let mut output = Vec::with_capacity(4_096);
     let report = continuing_host
@@ -163,7 +163,7 @@ fn one_house_keeps_unrelated_form_running_after_another_host_is_lost() {
             &mut output,
             &mut ThreadTimer,
         )
-        .expect("unrelated status Form remains executable on its available host");
+        .expect("unrelated status Plot remains executable on its available host");
     assert!(String::from_utf8(output).unwrap().contains("HelloTravis"));
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),

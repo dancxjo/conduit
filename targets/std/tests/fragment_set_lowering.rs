@@ -1,11 +1,11 @@
 //! Numeric composition proof only; production body-wide execution is separate.
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
 use conduit_plan_lowering::{
     fragment_set::{lower_local_fragment_set, FragmentSetBounds, FragmentSetError},
     lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PROFILE},
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
 };
 
 fn plans() -> (conduit_core::Plan, conduit_core::Plan) {
@@ -17,10 +17,10 @@ fn plans() -> (conduit_core::Plan, conduit_core::Plan) {
     let host = conduit_std_host::StdHost::new();
     let make = |source: &str| {
         let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-        let expanded = expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
+        let expanded = expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
         host.plan_expanded_local(&expanded).unwrap()
     };
-    let source = include_str!("../../../forms/clock/main.conduit");
+    let source = include_str!("../../../plots/clock/main.conduit");
     (make(source), make(&source.replace("1s", "2s")))
 }
 

@@ -5,7 +5,7 @@ use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
     MeasurementHysteresis, MeasurementHysteresisProfile, MeasurementThresholdDecision,
-    MeasurementThresholdState, MeasurementThresholdStateCode, MeasurementThresholdTransition,
+    MeasurementThresholdState, MeasurementThresholdStateForm, MeasurementThresholdTransition,
     MeasurementWireRefusal,
 };
 
@@ -128,11 +128,11 @@ pub fn decode_measurement_threshold_decision(
 }
 
 const fn state_byte(state: MeasurementThresholdState) -> u8 {
-    MeasurementThresholdStateCode::encode(state)[0]
+    MeasurementThresholdStateForm::encode(state)[0]
 }
 
 fn decode_state(value: u8) -> Result<MeasurementThresholdState, MeasurementWireRefusal> {
-    MeasurementThresholdStateCode::decode(&[value]).map_err(|_| MeasurementWireRefusal::Malformed)
+    MeasurementThresholdStateForm::decode(&[value]).map_err(|_| MeasurementWireRefusal::Malformed)
 }
 
 fn put_text(output: &mut Vec<u8>, value: &str) -> Result<(), MeasurementWireRefusal> {

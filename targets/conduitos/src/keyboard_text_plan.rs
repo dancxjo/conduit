@@ -3,21 +3,21 @@
 use alloc::{collections::BTreeMap, format, vec};
 
 use conduit_core::{
-    bind_active_play, resource_requirement, ActivePlayIdentity, ArtifactId, BaseImplementationId,
-    CapabilityId, ExecutionProfileId, HostAdvertisement, ImplementationId, Plan,
+    ActivePlayIdentity, ArtifactId, BaseImplementationId, CapabilityId, ExecutionProfileId,
+    HostAdvertisement, ImplementationId, Plan, bind_active_play, resource_requirement,
 };
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
+    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
 };
 
 use crate::{
     identity::BootIdentities,
     keyboard_offer::{KEYBOARD_IMPLEMENTATION, PS2_KEYBOARD_IMPLEMENTATION},
     offer::HostOffer,
-    ordinary_plan::{advertisement, PreparationError},
+    ordinary_plan::{PreparationError, advertisement},
 };
 
-pub const FORM_SOURCE: &str = "form conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: presentation/text\n    keyboard.key >> keymap.key\n    keymap.text >> upper.source\n    upper.text >> show.text\n}\n";
+pub const PLOT_SOURCE: &str = "plot conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: presentation/text\n    keyboard.key >> keymap.key\n    keymap.text >> upper.source\n    upper.text >> show.text\n}\n";
 pub const KEYMAP_IMPLEMENTATION: &str = "conduitos/kernel-keymap@1";
 pub const KEYMAP_EXECUTION_PROFILE: &str = "conduitos/portable-input-cooperative@1";
 const PLACEMENTS: usize = 4;
@@ -27,26 +27,26 @@ pub struct PreparedKeyboardTextPlay {
     pub advertisement: HostAdvertisement,
     pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
     pub active_play: ActivePlayIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct KeyboardTextFormIdentity {
+pub struct KeyboardTextPlotIdentity {
     pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+    pub expanded_plot_id: conduit_core::ExpandedPlotId,
 }
 
-/// Check the IMAGE-embedded platform-neutral Form without selecting a host,
+/// Check the IMAGE-embedded platform-neutral Plot without selecting a host,
 /// producing a plan, or admitting any runtime effect.
-pub fn checked_form_identity() -> Result<KeyboardTextFormIdentity, PreparationError> {
-    let form = checked_expanded_form()?;
-    Ok(KeyboardTextFormIdentity {
-        source_document_id: form.source_document_id,
-        checked_form_id: form.checked_form_id,
-        expanded_form_id: form.expanded_form_id,
+pub fn checked_plot_identity() -> Result<KeyboardTextPlotIdentity, PreparationError> {
+    let plot = checked_expanded_plot()?;
+    Ok(KeyboardTextPlotIdentity {
+        source_document_id: plot.source_document_id,
+        checked_plot_id: plot.checked_plot_id,
+        expanded_plot_id: plot.expanded_plot_id,
     })
 }
 
@@ -60,12 +60,12 @@ pub fn prepare(
     }
     let mut advertisement = advertisement(identities, offer, build_id)?;
     append_keymap_offer(&mut advertisement, build_id);
-    let form = checked_expanded_form()?;
+    let plot = checked_expanded_plot()?;
     let hosts = [advertisement.clone()];
-    let placements = default_expanded_placements(&form, &hosts)
+    let placements = default_expanded_placements(&plot, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_expanded_canonical_with_options(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -86,8 +86,8 @@ pub fn prepare(
     Ok(PreparedKeyboardTextPlay {
         advertisement,
         source_document_id: plan.source_document_id.clone(),
-        checked_form_id: plan.checked_form_id.clone(),
-        expanded_form_id: plan.expanded_form_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
         plan,
         active_play,
     })
@@ -231,20 +231,20 @@ pub(crate) fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_i
     advertisement.capabilities.push(keymap);
 }
 
-fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
-    let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
+fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, PreparationError> {
+    let syntax = conduit_plot::parse_syntax_document(PLOT_SOURCE);
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
+        .map_err(|_| PreparationError::PlotRejected)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|_| PreparationError::FormRejected)?;
-    conduit_form::expand_canonical_form(&checked, "conduitos-keyboard-upper", &profile)
-        .map_err(|_| PreparationError::FormRejected)
+        .map_err(|_| PreparationError::PlotRejected)?;
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|_| PreparationError::PlotRejected)?;
+    conduit_plot::expand_canonical_plot(&checked, "conduitos-keyboard-upper", &profile)
+        .map_err(|_| PreparationError::PlotRejected)
 }
 
 #[cfg(test)]
@@ -288,27 +288,31 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_form_defaults_keymap_and_seals_exact_four_gear_path() {
+    fn unchanged_plot_defaults_keymap_and_seals_exact_four_gear_path() {
         let (identities, offer) = fixture();
         let prepared = prepare(&identities, &offer, "build").unwrap();
-        assert!(!FORM_SOURCE.contains("conduit-intl"));
-        assert!(!FORM_SOURCE.contains("usb"));
+        assert!(!PLOT_SOURCE.contains("conduit-intl"));
+        assert!(!PLOT_SOURCE.contains("usb"));
         assert_eq!(prepared.plan.fragments[0].placements.len(), PLACEMENTS);
         assert_eq!(prepared.plan.fragments[0].connections.len(), CONNECTIONS);
     }
 
     #[test]
-    fn ps2_keyboard_with_one_hardware_operation_slot_plans_the_same_portable_form() {
+    fn ps2_keyboard_with_one_hardware_operation_slot_plans_the_same_portable_plot() {
         let (identities, mut offer) = fixture();
         let keyboard = &mut offer.keyboard.as_mut().unwrap().realization;
         keyboard.mechanism = crate::keyboard_offer::KeyboardMechanism::Ps2;
         keyboard.operation_slots = 1;
         keyboard.report_buffers = 1;
         let prepared = prepare(&identities, &offer, "build").unwrap();
-        assert!(prepared.plan.fragments[0]
-            .placements
-            .iter()
-            .any(|placement| placement.implementation_id.as_str() == PS2_KEYBOARD_IMPLEMENTATION));
+        assert!(
+            prepared.plan.fragments[0]
+                .placements
+                .iter()
+                .any(
+                    |placement| placement.implementation_id.as_str() == PS2_KEYBOARD_IMPLEMENTATION
+                )
+        );
         let keymap = prepared.plan.fragments[0]
             .placements
             .iter()
@@ -337,25 +341,23 @@ mod tests {
         let mut stale = fixture().1;
         stale.boot_id = [9; 32];
         assert!(validate(&prepared.plan, &prepared.advertisement, &stale, "build").is_err());
-        let unsupported = FORM_SOURCE.replace(
+        let unsupported = PLOT_SOURCE.replace(
             "keymap: input/keymap",
             "keymap: input/keymap(layout = \"host-locale\")",
         );
-        let syntax = conduit_form::parse_syntax_document(&unsupported);
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let syntax = conduit_plot::parse_syntax_document(&unsupported);
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
         conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
             .unwrap();
         conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
             .unwrap();
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        assert!(conduit_form::expand_canonical_form(
-            &checked,
-            "conduitos-keyboard-upper",
-            &profile,
-        )
-        .is_err());
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        assert!(
+            conduit_plot::expand_canonical_plot(&checked, "conduitos-keyboard-upper", &profile,)
+                .is_err()
+        );
     }
 
     #[test]
@@ -372,11 +374,11 @@ mod tests {
         let (identities, offer) = fixture();
         let mut advertisement = advertisement(&identities, &offer, "build").unwrap();
         append_keymap_offer(&mut advertisement, "build");
-        let form = checked_expanded_form().unwrap();
+        let plot = checked_expanded_plot().unwrap();
         let hosts = [advertisement];
-        let placements = default_expanded_placements(&form, &hosts).unwrap();
+        let placements = default_expanded_placements(&plot, &hosts).unwrap();
         let underprovisioned = plan_expanded_canonical_with_options(
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -395,7 +397,7 @@ mod tests {
     }
 
     #[test]
-    fn authored_form_contains_only_portable_meaning() {
+    fn authored_plot_contains_only_portable_meaning() {
         for forbidden in [
             "xhci",
             "pci",
@@ -419,7 +421,7 @@ mod tests {
             "layout",
             "locale",
         ] {
-            assert!(!FORM_SOURCE.to_ascii_lowercase().contains(forbidden));
+            assert!(!PLOT_SOURCE.to_ascii_lowercase().contains(forbidden));
         }
     }
 }

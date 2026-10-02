@@ -3,7 +3,7 @@ use conduit_ai::{
     TemporalRetrievalIntent, TemporalSource,
 };
 use conduit_core::TemporalRelation;
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn provenance() -> TemporalProvenance {
     TemporalProvenance {

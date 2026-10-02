@@ -18,7 +18,7 @@ function startServer() {
 
 test("bounded collections are manifested without numbered static slot farms", async () => {
   const html = await readFile("targets/browser/patchbay-workbench/assets/index.html", "utf8");
-  const renderer = await readFile("forms/patchbay/workbench/browser/shared-presentation.js", "utf8");
+  const renderer = await readFile("plots/patchbay/workbench/browser/shared-presentation.js", "utf8");
   expect(html).not.toMatch(/data-application-slot="[^"]+-\d+"/);
   expect(html.match(/data-application-collection=/g)?.length).toBeGreaterThan(10);
   expect(html.length).toBeLessThan(24_000);
@@ -39,12 +39,12 @@ test("Patchbay has one stable Library and one contextual Inspect surface", async
     await expect(page.locator("#palette")).toBeHidden();
     await expect(page.locator("#inspector")).toBeHidden();
     await expect(page.locator("#library-query")).toHaveCount(1);
-    await expect(page.locator("#form-query,#gear-query,#body-form-query")).toHaveCount(0);
+    await expect(page.locator("#plot-query,#gear-query,#body-plot-query")).toHaveCount(0);
     await expect(page.locator("#toggle-parts,#toggle-truth,#toggle-structured")).toHaveCount(0);
     await expect(page.locator("#structured-navigator")).toBeAttached();
     await expect(page.locator("#deep-inspection")).toBeAttached();
     await expect(page.locator("#lens-label")).toHaveText("BODY · STRUCTURE");
-    await expect(page.getByRole("button", { name: "Form", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Plot", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Realization", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Debug", exact: true })).toBeVisible();
 

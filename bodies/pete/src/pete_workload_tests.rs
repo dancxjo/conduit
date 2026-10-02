@@ -2,27 +2,27 @@ use super::*;
 use conduit_body::Body;
 use conduit_core::SignId;
 
-fn resident(workload: &ReviewedPeteWorkload, role: PeteWorkloadRole) -> &PeteResidentForm {
+fn resident(workload: &ReviewedPeteWorkload, role: PeteWorkloadRole) -> &PeteResidentPlot {
     workload
-        .resident_forms
+        .resident_plots
         .iter()
         .find(|resident| resident.role == role)
         .unwrap()
 }
 
 #[test]
-fn pete_birth_uses_five_ordinary_non_actuating_forms_without_seed_privilege() {
+fn pete_birth_uses_five_ordinary_non_actuating_plots_without_seed_privilege() {
     let workload = reviewed_pete_workload().unwrap();
     assert_eq!(workload.initial.len(), 5);
     assert!(!workload.initial.contains(&workload.navigation));
     assert!(workload
-        .resident_forms
+        .resident_plots
         .iter()
         .filter(|resident| !resident.may_request_motion)
-        .all(|resident| workload.initial.contains(&resident.form)));
+        .all(|resident| workload.initial.contains(&resident.plot)));
 
     let body =
-        Body::born_with_forms(workload.initial.clone(), 8, SignId::from("pete/body-born")).unwrap();
+        Body::born_with_plots(workload.initial.clone(), 8, SignId::from("pete/body-born")).unwrap();
     assert_eq!(body.workload_revision, 0);
     assert_eq!(body.workset, workload.initial);
 
@@ -31,7 +31,7 @@ fn pete_birth_uses_five_ordinary_non_actuating_forms_without_seed_privilege() {
     assert!(with_navigation.contains(&workload.navigation));
     let body_identity = body.body_id.clone();
     let embodied = body
-        .admit_form(
+        .admit_plot(
             workload.navigation.clone(),
             SignId::from("pete/navigation-admitted"),
         )
@@ -42,7 +42,7 @@ fn pete_birth_uses_five_ordinary_non_actuating_forms_without_seed_privilege() {
 }
 
 #[test]
-fn exact_form_requirements_and_reused_non_pete_forms_are_inspectable() {
+fn exact_plot_requirements_and_reused_non_pete_plots_are_inspectable() {
     let workload = reviewed_pete_workload().unwrap();
     let requires = |role, kind: &str| {
         resident(&workload, role)
@@ -86,12 +86,12 @@ fn exact_form_requirements_and_reused_non_pete_forms_are_inspectable() {
 #[test]
 fn authored_meaning_has_no_deployment_role_or_mechanism_facts() {
     for source in [
-        PETE_SITUATION_FORM_SOURCE,
-        PETE_MEMORY_FORM_SOURCE,
-        BOUNDED_TYPED_HISTORY_FORM_SOURCE,
-        HOUSE_CONVERSATION_FORM_SOURCE,
-        BOUNDED_NAVIGATION_FORM_SOURCE,
-        HOMEOSTASIS_FORM_SOURCE,
+        PETE_SITUATION_PLOT_SOURCE,
+        PETE_MEMORY_PLOT_SOURCE,
+        BOUNDED_TYPED_HISTORY_PLOT_SOURCE,
+        HOUSE_CONVERSATION_PLOT_SOURCE,
+        BOUNDED_NAVIGATION_PLOT_SOURCE,
+        HOMEOSTASIS_PLOT_SOURCE,
     ] {
         for forbidden in [
             "forebrain",
@@ -105,7 +105,7 @@ fn authored_meaning_has_no_deployment_role_or_mechanism_facts() {
         ] {
             assert!(
                 !source.contains(forbidden),
-                "authored form contains {forbidden}"
+                "authored plot contains {forbidden}"
             );
         }
     }

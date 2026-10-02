@@ -1,16 +1,16 @@
 use super::{
-    default_placements, parse_placements, plan, plan_validated_form, plan_with_authority_grants,
+    default_placements, parse_placements, plan, plan_validated_plot, plan_with_authority_grants,
     plan_with_connection_limits, plan_with_line_offers, planned_keep_state, startup_order,
     PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
 };
 use conduit_core::{
     authority_grant, kind_id, mandatory_sign_storage_requirement, present_authority_requirement,
     process_owned_line_offer, verify_plan, verify_plan_fragment, ArtifactId, BaseImplementationId,
-    CancellationPolicy, CapabilityLimits, ExpandedFormId, GearId, HostAdvertisement, HostId,
+    CancellationPolicy, CapabilityLimits, ExpandedPlotId, GearId, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId, StartupDependency,
     TerminalPolicy, PROTOCOL_VERSION,
 };
-use conduit_form::parse_with_startup;
+use conduit_plot::parse_with_startup;
 use conduit_signal::{
     pulse_contract_revision, pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
     pulse_resource_requirements, show_contract_revision, show_execution_profile,
@@ -24,13 +24,13 @@ use std::collections::BTreeMap;
 
 mod protected_resource_tests;
 
-fn form() -> conduit_form::CheckedForm {
+fn plot() -> conduit_plot::CheckedPlot {
     parse_with_startup(
-            "form signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse >> show\n}\n",
+            "plot signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse >> show\n}\n",
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
-        .expect("form must parse")
+        .expect("plot must parse")
 }
 
 fn host() -> HostAdvertisement {
@@ -94,8 +94,8 @@ fn host() -> HostAdvertisement {
     }
 }
 
-fn resource_port_form() -> conduit_form::CheckedForm {
-    let mut checked = form();
+fn resource_port_plot() -> conduit_plot::CheckedPlot {
+    let mut checked = plot();
     let class_id = checked
         .gears
         .iter()
@@ -123,13 +123,13 @@ fn resource_port_form() -> conduit_form::CheckedForm {
 }
 
 fn plan_resource_fixture(
-    checked: &conduit_form::CheckedForm,
+    checked: &conduit_plot::CheckedPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
 ) -> Result<conduit_core::Plan, PlannerError> {
     let connection_bases = BTreeMap::new();
     let line_candidates = BTreeMap::new();
-    plan_validated_form(
+    plan_validated_plot(
         checked,
         hosts,
         placements,
@@ -148,7 +148,7 @@ fn plan_resource_fixture(
 
 #[test]
 fn local_resource_cord_seals_exact_source_binding_without_bearer_material() {
-    let checked = resource_port_form();
+    let checked = resource_port_plot();
     let planned = plan_resource_fixture(
         &checked,
         &[host()],
@@ -190,7 +190,7 @@ fn local_resource_cord_seals_exact_source_binding_without_bearer_material() {
 
 #[test]
 fn resource_cord_refuses_cross_host_before_line_selection() {
-    let checked = resource_port_form();
+    let checked = resource_port_plot();
     let first = host();
     let mut second = host();
     second.host_id = HostId::from("std-host-2");
@@ -222,9 +222,9 @@ fn resource_cord_refuses_cross_host_before_line_selection() {
 #[test]
 fn retained_duration_derives_exact_state_plan_truth() {
     let ordinary = plan(
-        &form(),
+        &plot(),
         &[host()],
-        &default_placements(&form(), &[host()]).unwrap(),
+        &default_placements(&plot(), &[host()]).unwrap(),
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
@@ -287,7 +287,7 @@ fn parses_block_placement_file() {
 
 #[test]
 fn default_placement_uses_hosts() {
-    let placements = default_placements(&form(), &[host()]).expect("placements must work");
+    let placements = default_placements(&plot(), &[host()]).expect("placements must work");
     assert_eq!(placements.by_gear.len(), 2);
 }
 
@@ -303,7 +303,7 @@ fn default_placement_uses_capabilities_across_hosts() {
     sink.capabilities
         .retain(|offer| offer.kind_id.as_str() == SHOW_KIND);
 
-    let placements = default_placements(&form(), &[source, sink]).expect("placements must work");
+    let placements = default_placements(&plot(), &[source, sink]).expect("placements must work");
     assert_eq!(
         placements.by_gear[&GearId::from("signal-demo/pulse")].host_id,
         HostId::from("std-source")
@@ -316,27 +316,27 @@ fn default_placement_uses_capabilities_across_hosts() {
 
 #[test]
 fn planning_binds_exact_contract_profile_and_every_port() {
-    let form = form();
+    let plot = plot();
     let host = host();
     let placements =
-        default_placements(&form, std::slice::from_ref(&host)).expect("placements must resolve");
+        default_placements(&plot, std::slice::from_ref(&host)).expect("placements must resolve");
     let plan = plan(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .expect("exact plan resolves");
-    assert_eq!(plan.source_document_id, form.source_document_id);
-    assert_eq!(plan.checked_form_id, form.checked_form_id);
-    assert_eq!(plan.expanded_form_id, form.expanded_form_id);
+    assert_eq!(plan.source_document_id, plot.source_document_id);
+    assert_eq!(plan.checked_plot_id, plot.checked_plot_id);
+    assert_eq!(plan.expanded_plot_id, plot.expanded_plot_id);
     assert!(plan.fragments.iter().all(|fragment| {
-        fragment.source_document_id == form.source_document_id
-            && fragment.checked_form_id == form.checked_form_id
-            && fragment.expanded_form_id == form.expanded_form_id
+        fragment.source_document_id == plot.source_document_id
+            && fragment.checked_plot_id == plot.checked_plot_id
+            && fragment.expanded_plot_id == plot.expanded_plot_id
     }));
     for placement in &plan.fragments[0].placements {
-        let gear = form
+        let gear = plot
             .gears
             .iter()
             .find(|gear| gear.gear_id == placement.gear_id)
@@ -453,22 +453,22 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
         .push(conduit_core::KindSemanticLaw::TerminalTransduction(
             profile.clone(),
         ));
-    let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
     catalog.insert_kind(pulse.clone()).unwrap();
     catalog
         .insert_kind(conduit_signal::show_semantic_contract())
         .unwrap();
-    let form = conduit_form::parse(
-        "form signal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse >> show\n}\n",
+    let plot = conduit_plot::parse(
+        "plot signal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse >> show\n}\n",
         &catalog,
     )
     .unwrap();
     let mut host = host();
     host.capabilities[0].inputs = pulse.inputs.clone();
     host.capabilities[0].semantic_contract = pulse.semantic_contract();
-    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let placements = default_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let planned = plan(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -485,7 +485,7 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
 
 #[test]
 fn line_mechanism_policy_neither_selects_nor_authorizes_capability_base_providers() {
-    let form = form();
+    let plot = plot();
     let mut host = host();
     host.bases.push(conduit_core::BaseProviderAdvertisement {
         base_id: conduit_core::HostBaseId::from("base/pulse-clock"),
@@ -498,9 +498,9 @@ fn line_mechanism_policy_neither_selects_nor_authorizes_capability_base_provider
         capability_ids: vec![conduit_core::CapabilityId::from("pulse-1")],
         resource_pool_ids: vec![],
     });
-    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let placements = default_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let plan = plan(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from(
@@ -528,18 +528,18 @@ fn line_mechanism_policy_neither_selects_nor_authorizes_capability_base_provider
 }
 
 #[test]
-fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
-    let form = parse_with_startup(
-        include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
+fn unchanged_signal_plot_plans_entirely_onto_pico_local_advertisement() {
+    let plot = parse_with_startup(
+        include_str!("../../../proof/fixtures/plots/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
-    .expect("unchanged Signal demo form must parse");
+    .expect("unchanged Signal demo plot must parse");
     let host = pico_local_advertisement();
     assert_eq!(host.host_id.as_str(), PICO_LOCAL_HOST_ID);
 
-    let placements = default_placements(&form, std::slice::from_ref(&host))
-        .expect("Pico advertisement covers the exact Signal form");
+    let placements = default_placements(&plot, std::slice::from_ref(&host))
+        .expect("Pico advertisement covers the exact Signal plot");
     assert_eq!(placements.by_gear.len(), 2);
     assert!(placements.by_gear.values().all(|choice| {
         choice.host_id == host.host_id
@@ -550,7 +550,7 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
     }));
 
     let plan = plan_with_connection_limits(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -605,12 +605,12 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
 
 #[test]
 fn planning_rejects_cyclic_startup_dependencies() {
-    let form = form();
+    let plot = plot();
     let host = host();
     let placements =
-        default_placements(&form, std::slice::from_ref(&host)).expect("placements must resolve");
+        default_placements(&plot, std::slice::from_ref(&host)).expect("placements must resolve");
     let plan = plan(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -629,11 +629,11 @@ fn planning_rejects_cyclic_startup_dependencies() {
 
 #[test]
 fn admitted_host_input_source_breaks_only_its_runtime_response_cycle() {
-    let form = form();
+    let plot = plot();
     let host = host();
-    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let placements = default_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let plan = plan(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -664,11 +664,11 @@ fn admitted_host_input_source_breaks_only_its_runtime_response_cycle() {
 
 #[test]
 fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
-    let form = form();
+    let plot = plot();
     let host = host();
-    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let placements = default_placements(&plot, std::slice::from_ref(&host)).unwrap();
     let plan = plan(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -682,14 +682,14 @@ fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
 
 #[test]
 fn planning_rejects_invalid_host_call_requirements() {
-    let form = form();
+    let plot = plot();
     let mut host = host();
     host.capabilities[0].host_calls[0].maximum_in_flight = 0;
     let placements =
-        default_placements(&form, std::slice::from_ref(&host)).expect("placements still resolve");
+        default_placements(&plot, std::slice::from_ref(&host)).expect("placements still resolve");
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&host),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -700,15 +700,15 @@ fn planning_rejects_invalid_host_call_requirements() {
 
 #[test]
 fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
-    let form = form();
+    let plot = plot();
 
     let mut advertised = host();
     advertised.capabilities[0].resource_requirements[0].units = 0;
-    let placements = default_placements(&form, std::slice::from_ref(&advertised))
+    let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements still resolve");
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -720,11 +720,11 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
     advertised
         .resources
         .retain(|resource| resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS);
-    let placements = default_placements(&form, std::slice::from_ref(&advertised))
+    let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements still resolve");
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -738,11 +738,11 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
         conduit_core::PRESENTATION_RESOURCE_CLASS,
         4,
     ));
-    let placements = default_placements(&form, std::slice::from_ref(&advertised))
+    let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements still resolve");
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -752,11 +752,11 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
 
     let mut advertised = host();
     advertised.capabilities[1].resource_requirements[0].units = 5;
-    let placements = default_placements(&form, std::slice::from_ref(&advertised))
+    let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements still resolve");
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -769,11 +769,11 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
     advertised.capabilities[0].resource_requirements[0].units = u32::MAX;
     advertised.capabilities[1].resource_requirements[0] =
         conduit_core::resource_requirement(conduit_core::TIMER_RESOURCE_CLASS, 1);
-    let placements = default_placements(&form, std::slice::from_ref(&advertised))
+    let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements still resolve");
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -784,7 +784,7 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
 
 #[test]
 fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants() {
-    let form = form();
+    let plot = plot();
     let mut invalid = host();
     invalid.capabilities[1].authority_requirements = vec![conduit_core::AuthorityRequirement {
         contract_id: conduit_core::AuthorityContractId::from(
@@ -795,11 +795,11 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
         ),
         subject_kind: kind_id(SIGNAL_PRESENTATION_KIND),
     }];
-    let invalid_placements = default_placements(&form, std::slice::from_ref(&invalid))
+    let invalid_placements = default_placements(&plot, std::slice::from_ref(&invalid))
         .expect("placements resolve before authority validation");
     assert!(matches!(
         plan_with_authority_grants(
-            &form,
+            &plot,
             std::slice::from_ref(&invalid),
             &invalid_placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -811,12 +811,12 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
     let mut advertised = host();
     let requirement = present_authority_requirement(kind_id(SIGNAL_PRESENTATION_KIND));
     advertised.capabilities[1].authority_requirements = vec![requirement.clone()];
-    let placements = default_placements(&form, std::slice::from_ref(&advertised))
+    let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements resolve without implying authority");
 
     assert!(matches!(
         plan_with_authority_grants(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -834,7 +834,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
     );
     assert!(matches!(
         plan_with_authority_grants(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -854,7 +854,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
     duplicate_scope.grant_id = conduit_core::AuthorityGrantId::from("grant/show-alternate");
     assert!(matches!(
         plan_with_authority_grants(
-            &form,
+            &plot,
             std::slice::from_ref(&advertised),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -864,7 +864,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
     ));
 
     let plan = plan_with_authority_grants(
-        &form,
+        &plot,
         std::slice::from_ref(&advertised),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
@@ -884,7 +884,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
 
 #[test]
 fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
-    let form = form();
+    let plot = plot();
     let source = host();
     let mut sink = host();
     sink.host_id = HostId::from("remote-host");
@@ -910,7 +910,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     };
     assert!(matches!(
         plan_with_line_offers(
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.proof/frame@1")],
@@ -934,21 +934,21 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     let mut stale = exact.clone();
     stale.binding.sink.boot_id = conduit_core::BootId::from("stale-boot");
     assert!(matches!(
-        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[stale]),
+        plan_with_line_offers(&plot, &hosts, &placements, &[], 4, 64, &[stale]),
         Err(PlannerError::LineOfferMissing(_))
     ));
 
     let mut unavailable = exact.clone();
     unavailable.availability.availability = conduit_core::LineAvailability::Unavailable;
     assert!(matches!(
-        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[unavailable],),
+        plan_with_line_offers(&plot, &hosts, &placements, &[], 4, 64, &[unavailable],),
         Err(PlannerError::LineOfferUnavailable(_))
     ));
 
     let mut underbounded = exact.clone();
     underbounded.binding.limits.maximum_buffered_bytes = 63;
     assert!(matches!(
-        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[underbounded],),
+        plan_with_line_offers(&plot, &hosts, &placements, &[], 4, 64, &[underbounded],),
         Err(PlannerError::LineOfferUnavailable(_))
     ));
 
@@ -960,7 +960,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     alternate.availability.binding_id = alternate.binding.binding_id.clone();
     assert!(matches!(
         plan_with_line_offers(
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[],
@@ -974,7 +974,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     let mut invalid = exact.clone();
     invalid.binding.base_instance_id = conduit_core::BaseInstanceId::from("");
     assert!(matches!(
-        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[invalid]),
+        plan_with_line_offers(&plot, &hosts, &placements, &[], 4, 64, &[invalid]),
         Err(PlannerError::InvalidLineOffer(_))
     ));
 
@@ -984,7 +984,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     );
     assert!(matches!(
         plan_with_line_offers(
-            &form,
+            &plot,
             &hosts,
             &placements,
             &[],
@@ -999,7 +999,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     invalid_authority.binding.authority =
         conduit_core::LinkAuthorityReference::Grant(conduit_core::AuthorityGrantId::from(""));
     assert!(matches!(
-        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[invalid_authority],),
+        plan_with_line_offers(&plot, &hosts, &placements, &[], 4, 64, &[invalid_authority],),
         Err(PlannerError::InvalidLineOffer(_))
     ));
 
@@ -1011,7 +1011,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
         conduit_core::AuthorityGrantId::from("grant/source-remote"),
     );
     let plan = plan_with_line_offers(
-        &form,
+        &plot,
         &hosts,
         &placements,
         &[],
@@ -1030,7 +1030,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
 
 #[test]
 fn planning_link_binding_mutations_change_fragment_identity() {
-    let form = form();
+    let plot = plot();
     let source = host();
     let mut sink = host();
     sink.host_id = HostId::from("remote-host");
@@ -1064,7 +1064,7 @@ fn planning_link_binding_mutations_change_fragment_identity() {
         4,
         64,
     );
-    let original = plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[link])
+    let original = plan_with_line_offers(&plot, &hosts, &placements, &[], 4, 64, &[link])
         .expect("remote plan resolves")
         .fragments[0]
         .clone();
@@ -1118,20 +1118,20 @@ fn planning_link_binding_mutations_change_fragment_identity() {
 }
 
 #[test]
-fn planning_verification_rejects_each_top_level_form_identity_mutation() {
-    let form = form();
+fn planning_verification_rejects_each_top_level_plot_identity_mutation() {
+    let plot = plot();
     let host = host();
     let placements =
-        default_placements(&form, std::slice::from_ref(&host)).expect("placements must resolve");
+        default_placements(&plot, std::slice::from_ref(&host)).expect("placements must resolve");
     let original = plan(
-        &form,
+        &plot,
         std::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .expect("exact plan resolves");
 
-    let mut source_changed = form.clone();
+    let mut source_changed = plot.clone();
     source_changed.source_document_id = SourceDocumentId::from("changed-source");
     let source_plan = plan(
         &source_changed,
@@ -1142,8 +1142,8 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
     .expect("source-identity plan resolves");
     assert_ne!(original.plan_id, source_plan.plan_id);
 
-    let mut checked_changed = form.clone();
-    checked_changed.checked_form_id = conduit_core::CheckedFormId::from("changed-checked");
+    let mut checked_changed = plot.clone();
+    checked_changed.checked_plot_id = conduit_core::CheckedPlotId::from("changed-checked");
     assert!(matches!(
         plan(
             &checked_changed,
@@ -1151,11 +1151,11 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
         ),
-        Err(PlannerError::InvalidFormIdentity(_))
+        Err(PlannerError::InvalidPlotIdentity(_))
     ));
 
-    let mut expanded_changed = form.clone();
-    expanded_changed.expanded_form_id = ExpandedFormId::from("changed-expanded");
+    let mut expanded_changed = plot.clone();
+    expanded_changed.expanded_plot_id = ExpandedPlotId::from("changed-expanded");
     assert!(matches!(
         plan(
             &expanded_changed,
@@ -1163,7 +1163,7 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
         ),
-        Err(PlannerError::InvalidFormIdentity(_))
+        Err(PlannerError::InvalidPlotIdentity(_))
     ));
 
     let mut mutated = original.clone();
@@ -1171,27 +1171,27 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
     assert!(!verify_plan(&mutated));
 
     let mut mutated = original.clone();
-    mutated.checked_form_id = conduit_core::CheckedFormId::from("mutated-checked");
+    mutated.checked_plot_id = conduit_core::CheckedPlotId::from("mutated-checked");
     assert!(!verify_plan(&mutated));
 
     let mut mutated = original;
-    mutated.expanded_form_id = ExpandedFormId::from("mutated-expanded");
+    mutated.expanded_plot_id = ExpandedPlotId::from("mutated-expanded");
     assert!(!verify_plan(&mutated));
 }
 
 #[test]
 fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
-    let form = form();
+    let plot = plot();
     let original_host = host();
-    let placements = default_placements(&form, std::slice::from_ref(&original_host))
+    let placements = default_placements(&plot, std::slice::from_ref(&original_host))
         .expect("placements must resolve");
 
     let mut mismatched_kind = original_host.clone();
     mismatched_kind.capabilities[0].kind_id = kind_id("mutated/flow-pulse");
-    assert!(!form.gears[0].accepts_realization(&mismatched_kind.capabilities[0]));
+    assert!(!plot.gears[0].accepts_realization(&mismatched_kind.capabilities[0]));
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&mismatched_kind),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -1204,7 +1204,7 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
         conduit_core::KindIdentity::from("mutated/flow-pulse@1");
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&mismatched_revision),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -1212,16 +1212,16 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
         Err(PlannerError::WrongKindContractRevision(_))
     ));
 
-    let mut structural_form = form.clone();
-    structural_form.gears[0].kind_contract_revision =
+    let mut structural_plot = plot.clone();
+    structural_plot.gears[0].kind_contract_revision =
         conduit_core::KindIdentity::from(conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT);
-    assert!(structural_form.gears[0].accepts_realization(&mismatched_revision.capabilities[0]));
+    assert!(structural_plot.gears[0].accepts_realization(&mismatched_revision.capabilities[0]));
 
     let mut mismatched_temporal = original_host.clone();
     mismatched_temporal.capabilities[0].outputs[0].temporal = conduit_core::PortTemporal::Current;
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&mismatched_temporal),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")]
@@ -1241,7 +1241,7 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
         });
     assert!(matches!(
         plan(
-            &form,
+            &plot,
             std::slice::from_ref(&mismatched_ports),
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")]
@@ -1252,13 +1252,13 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
 
 #[test]
 fn planning_rejects_unknown_host() {
-    let form = form();
+    let plot = plot();
     let placements = parse_placements(
             "placements 0\nsignal-demo/pulse:\n    host = \"missing\"\n    capability = \"pulse-1\"\nsignal-demo/show:\n    host = \"missing\"\n    capability = \"stdout-show-1\"\n",
         )
         .expect("placements should parse");
     let error = plan(
-        &form,
+        &plot,
         &[host()],
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],

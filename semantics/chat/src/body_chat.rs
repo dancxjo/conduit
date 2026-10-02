@@ -1,22 +1,22 @@
 //! Provider-neutral, bounded Body Chat prompt and conversation state.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::vec;
 use alloc::{collections::VecDeque, format, string::String, vec::Vec};
 use conduit_core::CapabilityLimits;
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use conduit_core::{
     kind_id, port_id, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
-#[cfg(feature = "form-catalog")]
-use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+#[cfg(feature = "plot-catalog")]
+use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleForm,
     BodyConversationalSummary,
 };
 
@@ -24,8 +24,8 @@ pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
 pub const BODY_CONVERSATION_CONTEXT_KIND: &str = "body/conversation-context";
 pub const BODY_CONVERSATION_CONTEXT_REVISION: &str = "conduit.body/conversation-context@2";
 pub const BODY_CHAT_PROMPT_REVISION: &str = "conduit.body/chat-prompt@3";
-pub const BODY_CHAT_FORM_KIND: &str = "body-chat";
-pub const BODY_CHAT_FORM_REVISION: &str = "conduit.body/chat-form@3";
+pub const BODY_CHAT_PLOT_KIND: &str = "body-chat";
+pub const BODY_CHAT_PLOT_REVISION: &str = "conduit.body/chat-plot@3";
 pub const MAXIMUM_BODY_CHAT_HISTORY_ITEMS: usize = 16;
 pub const MAXIMUM_BODY_CHAT_CONTEXT_BYTES: usize = 32_768;
 pub const MAXIMUM_BODY_CHAT_PROMPT_BYTES: usize = 4_096;
@@ -33,7 +33,7 @@ pub const BODY_CONVERSATIONAL_SUMMARY_SCHEMA: &str = "conduit.body/conversationa
 pub const MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_BYTES: usize = 1_024;
 pub const MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_ITEMS: usize =
     conduit_body::MAXIMUM_CONVERSATION_HOSTS
-        + conduit_body::MAXIMUM_CONVERSATION_FORMS
+        + conduit_body::MAXIMUM_CONVERSATION_PLOTS
         + conduit_body::MAXIMUM_CONVERSATION_LINES;
 
 impl BodyConversationalSummary {
@@ -51,7 +51,7 @@ impl BodyConversationalSummary {
             "idle"
         };
         let summary = Self::new(
-            count(context.active_forms.len())?,
+            count(context.active_plots.len())?,
             context.display_name.clone(),
             execution.into(),
             "awake".into(),
@@ -96,7 +96,7 @@ impl BodyConversationalSummary {
             || !matches!(self.execution().as_str(), "idle" | "planned" | "playing")
             || usize::from(*self.present_hosts()) + usize::from(*self.offline_hosts())
                 > conduit_body::MAXIMUM_CONVERSATION_HOSTS
-            || usize::from(*self.active_forms()) > conduit_body::MAXIMUM_CONVERSATION_FORMS
+            || usize::from(*self.active_plots()) > conduit_body::MAXIMUM_CONVERSATION_PLOTS
             || usize::from(*self.ready_lines())
                 + usize::from(*self.unavailable_lines())
                 + usize::from(*self.unknown_lines())
@@ -123,7 +123,7 @@ impl Serialize for BodyConversationalSummary {
         record.serialize_field("lifecycle", self.lifecycle())?;
         record.serialize_field("present_hosts", self.present_hosts())?;
         record.serialize_field("offline_hosts", self.offline_hosts())?;
-        record.serialize_field("active_forms", self.active_forms())?;
+        record.serialize_field("active_plots", self.active_plots())?;
         record.serialize_field("execution", self.execution())?;
         record.serialize_field("ready_lines", self.ready_lines())?;
         record.serialize_field("unavailable_lines", self.unavailable_lines())?;
@@ -139,7 +139,7 @@ struct BodyConversationalSummaryWire {
     lifecycle: String,
     present_hosts: u16,
     offline_hosts: u16,
-    active_forms: u16,
+    active_plots: u16,
     execution: String,
     ready_lines: u16,
     unavailable_lines: u16,
@@ -153,7 +153,7 @@ impl<'de> Deserialize<'de> for BodyConversationalSummary {
     {
         let wire = BodyConversationalSummaryWire::deserialize(deserializer)?;
         Self::new(
-            wire.active_forms,
+            wire.active_plots,
             wire.display_name,
             wire.execution,
             wire.lifecycle,
@@ -253,7 +253,7 @@ fn validate_context(
     if context.display_name.is_empty()
         || context.display_name.len() > conduit_body::MAXIMUM_BODY_DISPLAY_NAME_BYTES
         || context.hosts.len() > conduit_body::MAXIMUM_CONVERSATION_HOSTS
-        || context.active_forms.len() > conduit_body::MAXIMUM_CONVERSATION_FORMS
+        || context.active_plots.len() > conduit_body::MAXIMUM_CONVERSATION_PLOTS
         || context.lines.len() > conduit_body::MAXIMUM_CONVERSATION_LINES
         || context.recent_sign_ids.len() > conduit_body::MAXIMUM_CONVERSATION_SIGNS
         || context.lines.iter().any(|line| line.line_id.is_empty())
@@ -326,7 +326,7 @@ impl BodyChatPromptState {
             digest.update(model_context_sha256);
             digest.update(message.get().as_bytes());
             for item in &recent_history {
-                digest.update(BodyChatRoleCode::encode(*item.role()));
+                digest.update(BodyChatRoleForm::encode(*item.role()));
                 digest.update(item.text().get().as_bytes());
             }
             let request_identity = format!("body-chat-request/{:x}", digest.finalize());
@@ -386,7 +386,7 @@ fn decode_message(bytes: &[u8]) -> Result<BodyChatMessage, BodyChatRefusal> {
     BodyChatMessage::new(text.into()).map_err(|_| BodyChatRefusal::MessageBoundExceeded)
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn body_chat_prompt_definition() -> KindProjection {
     KindProjection {
         kind_id: kind_id(BODY_CHAT_PROMPT_KIND),
@@ -417,7 +417,7 @@ pub fn body_chat_prompt_definition() -> KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn body_conversation_context_definition() -> KindProjection {
     KindProjection {
         kind_id: kind_id(BODY_CONVERSATION_CONTEXT_KIND),
@@ -434,7 +434,7 @@ pub fn body_conversation_context_definition() -> KindProjection {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn port(name: &str, kind: &str, temporal: PortTemporal) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
@@ -444,7 +444,7 @@ fn port(name: &str, kind: &str, temporal: PortTemporal) -> PortDescriptor {
         abnormal_kind: None,
     }
 }
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn output(name: &str, kind: &str) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
@@ -455,7 +455,7 @@ fn output(name: &str, kind: &str) -> PortDescriptor {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_body_chat_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -479,13 +479,13 @@ pub fn install_body_chat_catalog(
         .insert_kind(body_conversation_context_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
-        kind: BODY_CHAT_FORM_KIND.into(),
+        kind: BODY_CHAT_PLOT_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
         .insert(KindProjection {
-            kind_id: kind_id(BODY_CHAT_FORM_KIND),
-            kind_contract_revision: KindIdentity::from(BODY_CHAT_FORM_REVISION),
+            kind_id: kind_id(BODY_CHAT_PLOT_KIND),
+            kind_contract_revision: KindIdentity::from(BODY_CHAT_PLOT_REVISION),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
@@ -501,12 +501,12 @@ pub fn body_chat_prompt_limits() -> CapabilityLimits {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn body_chat_prompt_semantic_contract() -> Kind {
     semantic_contract(body_chat_prompt_definition(), body_chat_prompt_limits())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn body_conversation_context_semantic_contract() -> Kind {
     semantic_contract(
         body_conversation_context_definition(),
@@ -518,7 +518,7 @@ pub fn body_conversation_context_semantic_contract() -> Kind {
     )
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 fn semantic_contract(definition: KindProjection, limits: CapabilityLimits) -> Kind {
     Kind {
         startup_parameters: vec![],

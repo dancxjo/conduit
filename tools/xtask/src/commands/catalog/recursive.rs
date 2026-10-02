@@ -66,10 +66,10 @@ fn coverage(host_profile: &str, plan: &conduit_core::Plan) -> Vec<Coverage> {
         .collect()
 }
 
-fn identity(back: &conduit_core::FormBack) -> String {
+fn identity(back: &conduit_core::PlotBack) -> String {
     format!(
         "canonical-back:{}:{}",
         back.source_document_id.as_str(),
-        back.checked_form_id.as_str()
+        back.checked_plot_id.as_str()
     )
 }

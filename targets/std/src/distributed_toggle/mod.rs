@@ -25,8 +25,8 @@ pub struct PhysicalLightSwitchKernel {
 impl PhysicalLightSwitchKernel {
     pub fn prepare() -> Result<Self, String> {
         Ok(Self {
-            source: DistributedToggleSource::prepare_form(include_str!(
-                "../../../../proof/fixtures/forms/physical-light-switch-runtime.conduit"
+            source: DistributedToggleSource::prepare_plot(include_str!(
+                "../../../../proof/fixtures/plots/physical-light-switch-runtime.conduit"
             ))?,
         })
     }

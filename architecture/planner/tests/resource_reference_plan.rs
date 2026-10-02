@@ -5,12 +5,12 @@ use conduit_core::{
     HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
     PortTemporal, PROTOCOL_VERSION, RESOURCE_REFERENCE_INFO_ID,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
-    KindSignature, ProfileCatalog, StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindProjection,
+    KindSignature, ProfileCatalog, StartupCatalog,
 };
 use std::collections::BTreeMap;
 
@@ -100,7 +100,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
 }
 
 #[test]
-fn exact_resource_reference_kind_survives_checked_form_and_plan_without_locator_or_content() {
+fn exact_resource_reference_kind_survives_checked_plot_and_plan_without_locator_or_content() {
     let definitions = [
         definition(SOURCE_KIND, PortDirection::Output),
         definition(SINK_KIND, PortDirection::Input),
@@ -116,9 +116,9 @@ fn exact_resource_reference_kind_survives_checked_form_and_plan_without_locator_
             .unwrap();
         profile.insert(definition.clone()).unwrap();
     }
-    let source = "form content_pipeline {\n source: content/reference-source\n sink: content/reference-consumer\n source >> sink\n}\n";
+    let source = "plot content_pipeline {\n source: content/reference-source\n sink: content/reference-consumer\n source >> sink\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "content_pipeline", &profile).unwrap();
+    let expanded = expand_canonical_plot(&checked, "content_pipeline", &profile).unwrap();
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/content"),

@@ -1,4 +1,4 @@
-//! Canonical Form catalog and exact hosted seam for bounded jobs.
+//! Canonical Plot catalog and exact hosted seam for bounded jobs.
 
 use alloc::{
     string::{String, ToString},
@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindProjection, KindSignature};
+use conduit_plot::{KindProjection, KindSignature};
 
 use crate::{JobLifecycleEvent, JobOutput, JobOutputProfile, JobRequest, JobResourceUsage};
 
@@ -70,8 +70,8 @@ pub fn job_semantic_contracts() -> Vec<Kind> {
 }
 
 pub fn install_job_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (name, value_type) in job_registered_types() {
         startup
@@ -85,8 +85,8 @@ pub fn install_job_catalogs(
 }
 
 fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
     contract: Kind,
 ) -> Result<(), String> {
     startup

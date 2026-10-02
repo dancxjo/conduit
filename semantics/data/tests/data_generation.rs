@@ -20,9 +20,9 @@ fn generated_generic_generation_value_preserves_concrete_text_meaning() {
     let value = DataGenerationTextValue::new(namespace("notes"), "portable".into()).unwrap();
     assert_eq!(value.value(), "portable");
     assert_eq!(value.namespace().digest(), namespace("notes").digest());
-    let encoded = conduit_form::rust_binding::NativeRustBinding::encode(value.clone()).unwrap();
+    let encoded = conduit_plot::rust_binding::NativeRustBinding::encode(value.clone()).unwrap();
     assert_eq!(
-        <DataGenerationTextValue as conduit_form::rust_binding::NativeRustBinding>::decode(
+        <DataGenerationTextValue as conduit_plot::rust_binding::NativeRustBinding>::decode(
             &encoded
         )
         .unwrap(),

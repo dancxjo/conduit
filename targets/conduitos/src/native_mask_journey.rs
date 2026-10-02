@@ -4,10 +4,10 @@ use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, Wake};
 use conduit_core::{BootId, HostId, PlanId, SignId};
 use conduit_presentation::{
-    AdmittedMaskFormRoutes, BodyMaskWardrobe, ManifestationLifecycle, MaskJourneyAction,
+    AdmittedMaskPlotRoutes, BodyMaskWardrobe, ManifestationLifecycle, MaskJourneyAction,
     MaskJourneyEmbodiment, MaskShow, MaskShowDisposition, MaskWardrobe, MaskWardrobeAction,
-    MaskWardrobeControl, MaskWardrobeLifetime, Presentation, SealedMaskFormRoute,
-    SelectedMaskFormRoute, actualize_mask_journey,
+    MaskWardrobeControl, MaskWardrobeLifetime, Presentation, SealedMaskPlotRoute,
+    SelectedMaskPlotRoute, actualize_mask_journey,
 };
 use serde::Serialize;
 
@@ -18,7 +18,7 @@ pub struct NativeMaskJourneyObservation {
     pub action_id: &'static str,
     pub concrete_event: &'static str,
     pub presentation_id: String,
-    pub selected_mask_form_id: Option<String>,
+    pub selected_mask_plot_id: Option<String>,
     pub plan_id: PlanId,
     pub selected_route_id: Option<String>,
     pub show_id: Option<String>,
@@ -46,7 +46,7 @@ pub(super) fn actualize(
         None,
     )?;
     let alternate_is_speech =
-        speech_alternate.planned_mask.mask.form_identity != initial.planned_mask.mask.form_identity;
+        speech_alternate.planned_mask.mask.plot_identity != initial.planned_mask.mask.plot_identity;
     let alternate = if alternate_is_speech {
         speech_alternate
     } else {
@@ -111,9 +111,9 @@ struct NativeJourney<'a> {
     replacement: MaskStage,
     restored: MaskStage,
     initial_plan: BodyPlan,
-    initial_routes: AdmittedMaskFormRoutes,
+    initial_routes: AdmittedMaskPlotRoutes,
     replacement_plan: BodyPlan,
-    replacement_routes: AdmittedMaskFormRoutes,
+    replacement_routes: AdmittedMaskPlotRoutes,
     control: MaskWardrobeControl,
     show: Option<MaskShow>,
     receipts: Vec<String>,
@@ -132,7 +132,7 @@ impl<'a> NativeJourney<'a> {
         initial_show: &MaskShow,
         initial_receipt: &crate::native_mask_play::NativeMaskPlayReceipt,
     ) -> Result<Self, ()> {
-        let initial_mask = initial.planned_mask.mask.form_identity.clone();
+        let initial_mask = initial.planned_mask.mask.plot_identity.clone();
         let selector = application_plan
             .mask_topologies
             .first()
@@ -156,9 +156,9 @@ impl<'a> NativeJourney<'a> {
             vec![initial_mask.clone()],
         )
         .map_err(|_| ())?;
-        let selected = SelectedMaskFormRoute {
+        let selected = SelectedMaskPlotRoute {
             route_id: route_id(initial),
-            mask_form: initial_mask,
+            mask_plot: initial_mask,
             plan_id: initial_plan.plan_id.clone(),
         };
         let control = MaskWardrobeControl::new(
@@ -207,11 +207,11 @@ impl<'a> NativeJourney<'a> {
             action_id: action.id(),
             concrete_event,
             presentation_id: self.presentation.identity.as_str().into(),
-            selected_mask_form_id: self
+            selected_mask_plot_id: self
                 .control
                 .selected
                 .as_ref()
-                .map(|selected| selected.mask_form.expanded_form_id.as_str().into()),
+                .map(|selected| selected.mask_plot.expanded_plot_id.as_str().into()),
             plan_id: self.control.active_plan_id.clone(),
             selected_route_id: self
                 .control
@@ -234,7 +234,7 @@ impl MaskJourneyEmbodiment for NativeJourney<'_> {
         let event = match action {
             MaskJourneyAction::InspectInitialShow => "inspected-executed-native-show",
             MaskJourneyAction::WearAlternateMask => {
-                let mask = self.alternate.planned_mask.mask.form_identity.clone();
+                let mask = self.alternate.planned_mask.mask.plot_identity.clone();
                 self.control
                     .apply(
                         self.control.scoped_wardrobe.wardrobe.revision,
@@ -245,7 +245,7 @@ impl MaskJourneyEmbodiment for NativeJourney<'_> {
                 "wore-alternate-mask"
             }
             MaskJourneyAction::PreferAlternateMask => {
-                let mask = self.alternate.planned_mask.mask.form_identity.clone();
+                let mask = self.alternate.planned_mask.mask.plot_identity.clone();
                 // The primary route became unavailable within the already
                 // sealed Body Plan. Preference now selects its admitted peer.
                 self.initial_routes = admitted_routes(
@@ -341,7 +341,7 @@ impl MaskJourneyEmbodiment for NativeJourney<'_> {
             }
             MaskJourneyAction::InspectReplannedShow => "inspected-replacement-plan-show",
             MaskJourneyAction::DoffAlternateMask => {
-                let alternate = self.alternate.planned_mask.mask.form_identity.clone();
+                let alternate = self.alternate.planned_mask.mask.plot_identity.clone();
                 let evidence = self
                     .control
                     .apply(
@@ -387,7 +387,7 @@ fn body_plan_with_masks(
         .collect();
     BodyPlan::seal_with_masks(
         wake,
-        application_plan.forms.clone(),
+        application_plan.plots.clone(),
         vec![BodyMaskTopology { face, chains }],
     )
     .map_err(|_| ())
@@ -397,16 +397,16 @@ fn admitted_routes(
     body_plan: &BodyPlan,
     stages: &[&MaskStage],
     availability: &[bool],
-) -> Result<AdmittedMaskFormRoutes, ()> {
+) -> Result<AdmittedMaskPlotRoutes, ()> {
     if stages.len() != availability.len() {
         return Err(());
     }
     let routes = stages
         .iter()
         .zip(availability)
-        .map(|(stage, available)| SealedMaskFormRoute {
+        .map(|(stage, available)| SealedMaskPlotRoute {
             route_id: route_id(stage),
-            mask_form: stage.planned_mask.mask.form_identity.clone(),
+            mask_plot: stage.planned_mask.mask.plot_identity.clone(),
             plan_id: body_plan.plan_id.clone(),
             placement_ids: stage
                 .planned_mask
@@ -423,7 +423,7 @@ fn admitted_routes(
         .iter()
         .map(|stage| stage.planned_mask.clone())
         .collect::<Vec<_>>();
-    AdmittedMaskFormRoutes::new(body_plan, &masks, routes).map_err(|_| ())
+    AdmittedMaskPlotRoutes::new(body_plan, &masks, routes).map_err(|_| ())
 }
 
 fn route_id(stage: &MaskStage) -> String {

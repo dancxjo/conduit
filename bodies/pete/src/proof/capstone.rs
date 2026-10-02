@@ -18,7 +18,7 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-pub const PETE_CAPSTONE_FORM_NAME: &str = "pete-capstone";
+pub const PETE_CAPSTONE_PLOT_NAME: &str = "pete-capstone";
 pub const CAPSTONE_SERIALIZED_CLIENT_RESOURCE: &str =
     "pete.resource/create1-serialized-operation-client@1";
 pub const CAPSTONE_WATCHDOG_RESOURCE: &str = "pete.resource/independent-watchdog@1";
@@ -213,7 +213,7 @@ pub fn capstone_plan(
     now_tick: u64,
 ) -> Result<conduit_core::Plan, PlannerError> {
     let (_, profile) = crate::catalogs().expect("fixed Pete catalogs are valid");
-    let checked = conduit_form::parse(PETE_CAPSTONE_FORM, &profile)
+    let checked = conduit_plot::parse(PETE_CAPSTONE_FORM, &profile)
         .expect("capstone source is canonical and mechanism-free");
     let host = capstone_advertisement(evidence, now_tick).map_err(|error| {
         PlannerError::InvalidPlanningObservation(format!("capstone advertisement: {error:?}"))
@@ -267,7 +267,7 @@ fn ready_resources(host: &HostAdvertisement) -> Vec<ResourceObservation> {
         .collect()
 }
 
-pub const PETE_CAPSTONE_FORM: &str = r#"form pete-capstone {
+pub const PETE_CAPSTONE_FORM: &str = r#"plot pete-capstone {
     bump: robotics/observe-bump
     requested: robotics/velocity-intent(linear-microunits = 100000, angular-microunits = 0)
     stopped: robotics/velocity-intent(linear-microunits = 0, angular-microunits = 0)

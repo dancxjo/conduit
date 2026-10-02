@@ -12,7 +12,7 @@ use crate::{
 
 pub const BODY_CONVERSATION_CONTEXT_VALUE_KIND: &str = "body/conversation-context@2";
 pub const MAXIMUM_CONVERSATION_HOSTS: usize = crate::MAX_BODY_PARTS;
-pub const MAXIMUM_CONVERSATION_FORMS: usize = crate::MAX_BODY_FORMS;
+pub const MAXIMUM_CONVERSATION_PLOTS: usize = crate::MAX_BODY_PLOTS;
 pub const MAXIMUM_CONVERSATION_LINES: usize = 32;
 pub const MAXIMUM_CONVERSATION_SIGNS: usize = 16;
 pub const MAXIMUM_BODY_DISPLAY_NAME_BYTES: usize = 128;
@@ -50,7 +50,7 @@ pub struct BodyConversationContext {
     pub wake_sequence: u64,
     pub basis: BodyConversationContextBasis,
     pub hosts: Vec<BodyConversationHost>,
-    pub active_forms: Vec<String>,
+    pub active_plots: Vec<String>,
     pub current_plan_id: Option<PlanId>,
     pub active_play_id: Option<ActivePlayId>,
     pub lines: Vec<BodyConversationLine>,
@@ -65,7 +65,7 @@ pub enum BodyConversationContextRefusal {
     WrongPresenceBody,
     WrongPlan,
     HostCapacityExceeded,
-    FormCapacityExceeded,
+    PlotCapacityExceeded,
     LineCapacityExceeded,
     InvalidLine,
 }
@@ -118,8 +118,8 @@ impl BodyConversationContext {
         if presence.leases.len() > MAXIMUM_CONVERSATION_HOSTS {
             return Err(BodyConversationContextRefusal::HostCapacityExceeded);
         }
-        if wake.workset.len() > MAXIMUM_CONVERSATION_FORMS {
-            return Err(BodyConversationContextRefusal::FormCapacityExceeded);
+        if wake.workset.len() > MAXIMUM_CONVERSATION_PLOTS {
+            return Err(BodyConversationContextRefusal::PlotCapacityExceeded);
         }
         let playing = wake
             .plans
@@ -192,11 +192,11 @@ impl BodyConversationContext {
                     present: lease.state == HostPresenceState::Available,
                 })
                 .collect(),
-            active_forms: wake
+            active_plots: wake
                 .workset
-                .forms()
+                .plots()
                 .iter()
-                .map(|form| form.source_document_id.as_str().into())
+                .map(|plot| plot.source_document_id.as_str().into())
                 .collect(),
             current_plan_id,
             active_play_id,
@@ -211,12 +211,12 @@ mod tests {
     use super::*;
     use crate::{HostPresenceClock, HostPresenceClockScale};
     use alloc::{format, vec};
-    use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+    use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
 
     fn awake(name: &str) -> (Body, Wake, HostPresenceTable) {
         let body = Body::born(
             SourceDocumentId::from(format!("source/{name}")),
-            CheckedFormId::from(format!("checked/{name}")),
+            CheckedPlotId::from(format!("checked/{name}")),
             1,
             SignId::from(format!("sign/{name}/born")),
         )
@@ -252,7 +252,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(context.wake_sequence, 4);
-        assert_eq!(context.active_forms, vec!["source/roseau"]);
+        assert_eq!(context.active_plots, vec!["source/roseau"]);
     }
 
     #[test]

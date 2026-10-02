@@ -13,9 +13,6 @@ use conduit_core::{
     PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition, ValuePayload,
     PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{
-    CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
-};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
@@ -28,6 +25,9 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_planner::{default_placements, plan_with_options, PlannerError, PlanningOptions};
+use conduit_plot::{
+    CheckedPlot, KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
+};
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::time::Duration;
@@ -455,14 +455,14 @@ pub fn advertisement(
 }
 
 pub fn plan_local(
-    form: &CheckedForm,
+    plot: &CheckedPlot,
     host: &HostAdvertisement,
 ) -> Result<conduit_core::Plan, PlannerError> {
     let hosts = core::slice::from_ref(host);
-    let placements = default_placements(form, hosts)?;
+    let placements = default_placements(plot, hosts)?;
     let base_choices = BTreeMap::new();
     plan_with_options(
-        form,
+        plot,
         hosts,
         &placements,
         &[conduit_core::BaseImplementationId::from(
@@ -1203,8 +1203,8 @@ mod tests {
     use conduit_core::{
         bind_sign, BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
     };
-    use conduit_form::parse;
     use conduit_plan_lowering::lowering::{lower_plan_fragment, ExecutionIdentityError};
+    use conduit_plot::parse;
     use std::time::Duration;
 
     #[derive(Default)]
@@ -1219,33 +1219,33 @@ mod tests {
     }
 
     fn planned_fixture() -> (HostAdvertisement, PlanFragment) {
-        let form = parse(
-            include_str!("../../../proof/fixtures/forms/kernel-multivalue.conduit"),
+        let plot = parse(
+            include_str!("../../../proof/fixtures/plots/kernel-multivalue.conduit"),
             &profile_catalog(),
         )
-        .expect("typed multi-value form parses");
+        .expect("typed multi-value plot parses");
         let host = advertisement(
             HostId::from("std-kernel-multivalue"),
             BootId::from("std-kernel-multivalue-boot"),
             OfferGeneration(1),
         );
-        let plan = plan_local(&form, &host).expect("typed multi-value form plans");
+        let plan = plan_local(&plot, &host).expect("typed multi-value plot plans");
         (host, plan.fragments[0].clone())
     }
 
     #[test]
-    fn exact_multi_value_form_plans_and_lowers_all_numeric_tables() {
-        let form = parse(
-            include_str!("../../../proof/fixtures/forms/kernel-multivalue.conduit"),
+    fn exact_multi_value_plot_plans_and_lowers_all_numeric_tables() {
+        let plot = parse(
+            include_str!("../../../proof/fixtures/plots/kernel-multivalue.conduit"),
             &profile_catalog(),
         )
-        .expect("typed multi-value form parses");
+        .expect("typed multi-value plot parses");
         let host = advertisement(
             HostId::from("std-kernel-multivalue"),
             BootId::from("std-kernel-multivalue-boot"),
             OfferGeneration(1),
         );
-        let plan = plan_local(&form, &host).expect("typed multi-value form plans");
+        let plan = plan_local(&plot, &host).expect("typed multi-value plot plans");
         let lowered = lower_plan_fragment(&plan.fragments[0]).expect("fragment lowers");
         assert_eq!(lowered.nodes.len(), 6);
         assert_eq!(lowered.cords.len(), 5);
@@ -1257,7 +1257,7 @@ mod tests {
     }
 
     #[test]
-    fn exact_multi_value_form_executes_real_host_calls_through_kernel() {
+    fn exact_multi_value_plot_executes_real_host_calls_through_kernel() {
         let (host, fragment) = planned_fixture();
         let mut output = Vec::with_capacity(65_536);
         let mut timer = VirtualTimer {

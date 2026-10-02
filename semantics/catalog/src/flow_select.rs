@@ -1,6 +1,6 @@
 //! Exact bounded selection by one reviewed Value-to-Boolean predicate.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -22,7 +22,7 @@ pub const FLOW_SELECT_OUTPUT_PORT: &str = "selected";
 
 /// Specializes `flow/select` for the exact item accepted by a reviewed
 /// Value-to-Boolean predicate. The selected predicate and its realization are
-/// checked Form and Plan truth; this contract owns only coordinator meaning.
+/// checked Plot and Plan truth; this contract owns only coordinator meaning.
 pub fn flow_select_semantic_contract(
     item: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
@@ -128,15 +128,15 @@ fn require_finite(value: &CheckedValueContract, role: &'static str) -> Result<()
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_flow_select_kind(
     item: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
     maximum_items: u16,
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    startup.insert(conduit_form::KindSignature {
+    startup.insert(conduit_plot::KindSignature {
         kind: FLOW_SELECT_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;

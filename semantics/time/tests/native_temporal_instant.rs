@@ -1,5 +1,5 @@
 use conduit_core::{TemporalRelation, TemporalRelationError};
-use conduit_form::rust_binding::{NativeBindingRefusal, NativeRustBinding};
+use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 use conduit_time::{
     NativeTemporalInstant, NativeTemporalScale, TemporalInstantAdapterRefusal,
     MAXIMUM_TEMPORAL_IDENTITY_BYTES,

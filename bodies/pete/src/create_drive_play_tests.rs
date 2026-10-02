@@ -14,7 +14,7 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-const FORM: &str = r#"form move_body {
+const PLOT: &str = r#"plot move_body {
     drive: robotics/drive-differential(ttl-ms = 250)
 }
 "#;
@@ -123,7 +123,7 @@ fn planned() -> conduit_core::Plan {
         capability_id: CapabilityId::from(CREATE_DRIVE_CAPABILITY),
     }];
     let (_, profile) = crate::catalogs().unwrap();
-    let checked = conduit_form::parse(FORM, &profile).unwrap();
+    let checked = conduit_plot::parse(PLOT, &profile).unwrap();
     plan_selected_realizations_with_characteristics_and_authority(
         &checked,
         SelectedRealizationPlanning {

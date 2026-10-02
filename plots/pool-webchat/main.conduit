@@ -1,0 +1,16 @@
+# Dynamic chat semantics. Line selection belongs to the plan/host and is
+# deliberately absent from this authored plot.
+plot chat/peer (
+    recv: ChatMessage...| >> send: ChatMessage...|
+) {
+}
+
+plot pool-webchat {
+    pool peers: chat/peer(size = 32)
+    merge: flow/merge(peers)
+    room: chat/room(peers)
+    fan: flow/fan(peers)
+
+    merge.message >> room.recv
+    room.send >> fan.message
+}

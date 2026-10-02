@@ -3,7 +3,7 @@
 use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
 };
-use conduit_form::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::BoundedSequence;
 use conduit_time::{
     CivilFoldPolicy, CivilGapPolicy, CivilOccurrenceResolution, CivilResolutionChoice,
     CivilResolutionPolicy, LocalDate, LocalDateTime, LocalTime, MonotonicClockIdentity,

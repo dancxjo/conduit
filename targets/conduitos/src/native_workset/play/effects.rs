@@ -9,7 +9,7 @@ impl NativeWorksetPlay {
         request: HostCallRequest,
         binding: Binding,
     ) -> Result<(), PlayRefusal> {
-        let form = usize::from(binding.form);
+        let plot = usize::from(binding.plot);
         let input = self
             .scheduler
             .host_value(request.input.value)
@@ -17,7 +17,7 @@ impl NativeWorksetPlay {
         match binding.effect {
             Effect::Keymap => {
                 let event = KeyEvent::decode(input).map_err(|_| PlayRefusal::Kernel)?;
-                match self.keymaps[form].apply(event) {
+                match self.keymaps[plot].apply(event) {
                     KeymapDisposition::Text(text) => {
                         let mut utf8 = [0; 4];
                         self.output(request, Some(text.encode_utf8(&mut utf8)))
@@ -35,7 +35,7 @@ impl NativeWorksetPlay {
                 self.output(request, Some(text.as_bytes()))
             }
             Effect::Edit => {
-                let output = match self.editors[form]
+                let output = match self.editors[plot]
                     .as_mut()
                     .ok_or(PlayRefusal::Kernel)?
                     .apply(input)
@@ -52,13 +52,13 @@ impl NativeWorksetPlay {
             Effect::Presentation => {
                 let text = NativePresentation::new(input)?;
                 self.output(request, None)?;
-                if self.presentations[form].replace(text).is_some() {
+                if self.presentations[plot].replace(text).is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
                 Ok(())
             }
             Effect::Application => {
-                let application = self.applications[form]
+                let application = self.applications[plot]
                     .as_mut()
                     .ok_or(PlayRefusal::Kernel)?;
                 let (view, authority_request) = match application {
@@ -89,17 +89,17 @@ impl NativeWorksetPlay {
                         )
                     }
                 };
-                if authority_request.is_some() && self.application_requests[form].is_some() {
+                if authority_request.is_some() && self.application_requests[plot].is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
-                self.application_requests[form] = authority_request;
+                self.application_requests[plot] = authority_request;
                 self.output(request, Some(&view))
             }
             Effect::ApplicationPresentation => {
                 let view = conduit_presentation::ApplicationView::decode(input)
                     .map_err(|_| PlayRefusal::Kernel)?;
                 self.output(request, None)?;
-                if self.application_views[form].replace(view).is_some() {
+                if self.application_views[plot].replace(view).is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
                 Ok(())

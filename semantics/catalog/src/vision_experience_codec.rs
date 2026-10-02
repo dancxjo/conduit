@@ -2,7 +2,6 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{KindId, StructuredInfoRefusal, StructuredInfoValue, TemporalScale};
-use conduit_form::rust_binding::{BoundedSequence, NativeBindingRefusal, NativeRustBinding};
 use conduit_human::{
     ImageRegion, MotionObservation, ObjectObservation, TrackObservation, VisibleTextObservation,
     VisualEvidenceClass, VisualExperience as HumanVisualExperience,
@@ -10,6 +9,7 @@ use conduit_human::{
     VisualImpression as HumanVisualImpression,
     VisualImpressionDisposition as HumanImpressionDisposition, VisualObservationProvenance,
 };
+use conduit_plot::rust_binding::{BoundedSequence, NativeBindingRefusal, NativeRustBinding};
 use conduit_presentation::{
     VisionMotionObservation, VisionMotionsFour, VisionObjectObservation, VisionObjectObservations,
     VisionObservationEvidenceClass, VisionObservationProvenance, VisionObservationSigns,

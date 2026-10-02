@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{ChordInfo, ControlChordModifier};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn assert_copy<T: Copy + Ord + core::hash::Hash>() {}
 

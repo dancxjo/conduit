@@ -20,14 +20,14 @@ const APPLICATION_THEME: &[u8] = include_bytes!("../assets/conduit.css");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
-const INITIAL_BODY_FORMS: &str = concat!(
-    include_str!("../../../../forms/morse-network/main.conduit"),
+const INITIAL_BODY_PLOTS: &str = concat!(
+    include_str!("../../../../plots/morse-network/main.conduit"),
     "\n",
-    include_str!("../../../../forms/memory-lantern/main.conduit"),
+    include_str!("../../../../plots/memory-lantern/main.conduit"),
     "\n",
-    include_str!("../../../../forms/desk-telegraph/main.conduit"),
+    include_str!("../../../../plots/desk-telegraph/main.conduit"),
     "\n",
-    include_str!("../../../../forms/button-across-room/main.conduit"),
+    include_str!("../../../../plots/button-across-room/main.conduit"),
 );
 const MAX_RUNTIME_BYTES: usize = 8 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
@@ -130,12 +130,12 @@ impl BrowserHostServer {
         let request = std::str::from_utf8(&request[..length])
             .map_err(|_| "browser Host request was not UTF-8".to_owned())?;
         let request_line = request.lines().next();
-        if request_line == Some("GET /forms/initial-body.conduit HTTP/1.1") {
+        if request_line == Some("GET /plots/initial-body.conduit HTTP/1.1") {
             return self.write_response(
                 stream,
                 "200 OK",
                 "text/plain; charset=utf-8",
-                INITIAL_BODY_FORMS.as_bytes(),
+                INITIAL_BODY_PLOTS.as_bytes(),
             );
         }
         if let Some(application) = &self.application {

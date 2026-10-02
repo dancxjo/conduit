@@ -1,21 +1,21 @@
 use crate::prelude::*;
 use crate::{
-    default_placements_unvalidated, plan_validated_form,
-    plan_validated_form_with_connection_limits, ConnectionEndpoints, ConnectionQueueLimits,
+    default_placements_unvalidated, plan_validated_plot,
+    plan_validated_plot_with_connection_limits, ConnectionEndpoints, ConnectionQueueLimits,
     PlacementChoices, PlannerError, PlanningOptions,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    AdmittedLine, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement,
-    LineAvailability, Plan, PlannedForePort, PlannedGear, PlannedSharedPool, PoolMemberLimits,
+    AdmittedLine, AuthorityGrant, BaseImplementationId, HostAdvertisement, LineAvailability, Plan,
+    PlannedForePort, PlannedGear, PlannedSharedPool, PlotIdentity, PoolMemberLimits,
     PoolRealizationEnvelope, ResourceBinding, SharedPoolId, SharedPoolSelectionPolicy,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
-use conduit_form::{
-    expand_canonical_form, expand_canonical_form_for_authoring_with_backs,
-    expand_canonical_form_with_backs, CanonicalBackCatalog, CheckedForm, CheckedSyntaxDocument,
-    ExpandedAuthoringForm, ExpandedCanonicalForm, ProfileCatalog,
+use conduit_plot::{
+    expand_canonical_plot, expand_canonical_plot_for_authoring_with_backs,
+    expand_canonical_plot_with_backs, CanonicalBackCatalog, CheckedPlot, CheckedSyntaxDocument,
+    ExpandedAuthoringPlot, ExpandedCanonicalPlot, ProfileCatalog,
 };
 
 mod activations;
@@ -44,10 +44,10 @@ impl Ord for ForeBoundaryKey {
     }
 }
 
-/// Plans an open ordinary Form and seals every external Fore binding into the
+/// Plans an open ordinary Plot and seals every external Fore binding into the
 /// immutable Plan. Every binding needs an exact finite queue budget.
 pub fn plan_expanded_authoring_with_options(
-    form: &ExpandedAuthoringForm,
+    plot: &ExpandedAuthoringPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
@@ -55,8 +55,8 @@ pub fn plan_expanded_authoring_with_options(
     boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
     let mut plan =
-        plan_expanded_canonical_with_options(&form.expanded, hosts, placements, bases, options)?;
-    let expected = form
+        plan_expanded_canonical_with_options(&plot.expanded, hosts, placements, bases, options)?;
+    let expected = plot
         .input_bindings
         .iter()
         .map(|binding| ForeBoundaryKey {
@@ -64,7 +64,7 @@ pub fn plan_expanded_authoring_with_options(
             front_port_id: binding.front_port_id.clone(),
             track: binding.track,
         })
-        .chain(form.output_bindings.iter().map(|binding| ForeBoundaryKey {
+        .chain(plot.output_bindings.iter().map(|binding| ForeBoundaryKey {
             direction: conduit_core::PortDirection::Output,
             front_port_id: binding.front_port_id.clone(),
             track: binding.track,
@@ -72,7 +72,7 @@ pub fn plan_expanded_authoring_with_options(
         .collect::<BTreeSet<_>>()
         .len();
     if expected != boundary_limits.len() {
-        return Err(PlannerError::InvalidFormIdentity(
+        return Err(PlannerError::InvalidPlotIdentity(
             "every external Fore binding requires one exact queue limit".into(),
         ));
     }
@@ -80,13 +80,13 @@ pub fn plan_expanded_authoring_with_options(
     for (direction, bindings, descriptors) in [
         (
             conduit_core::PortDirection::Input,
-            form.input_bindings.as_slice(),
-            form.front.inputs(),
+            plot.input_bindings.as_slice(),
+            plot.front.inputs(),
         ),
         (
             conduit_core::PortDirection::Output,
-            form.output_bindings.as_slice(),
-            form.front.outputs(),
+            plot.output_bindings.as_slice(),
+            plot.front.outputs(),
         ),
     ] {
         for binding in bindings {
@@ -99,21 +99,21 @@ pub fn plan_expanded_authoring_with_options(
                 && (direction != conduit_core::PortDirection::Input
                     || binding.track != conduit_core::ConnectionTrack::Payload)
             {
-                return Err(PlannerError::InvalidFormIdentity(format!(
+                return Err(PlannerError::InvalidPlotIdentity(format!(
                     "external Fore port '{}' track '{}' has unsupported multiple internal bindings",
                     binding.front_port_id.as_str(),
                     binding.track.as_str(),
                 )));
             }
             let limits = boundary_limits.get(&key).ok_or_else(|| {
-                PlannerError::InvalidFormIdentity(format!(
+                PlannerError::InvalidPlotIdentity(format!(
                     "external Fore port '{}' track '{}' has no queue limit",
                     binding.front_port_id.as_str(),
                     binding.track.as_str(),
                 ))
             })?;
             if limits.item_capacity == 0 || limits.byte_capacity == 0 {
-                return Err(PlannerError::InvalidFormIdentity(format!(
+                return Err(PlannerError::InvalidPlotIdentity(format!(
                     "external Fore port '{}' has a zero queue limit",
                     binding.front_port_id.as_str(),
                 )));
@@ -122,7 +122,7 @@ pub fn plan_expanded_authoring_with_options(
                 .iter()
                 .find(|port| port.port_id == binding.front_port_id)
                 .ok_or_else(|| {
-                    PlannerError::InvalidFormIdentity("external Fore descriptor is missing".into())
+                    PlannerError::InvalidPlotIdentity("external Fore descriptor is missing".into())
                 })?;
             let value_contract = (!matches!(
                 binding.track,
@@ -138,7 +138,7 @@ pub fn plan_expanded_authoring_with_options(
                         conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
                     }
                 };
-                form.front
+                plot.front
                     .value_contracts()
                     .iter()
                     .find(|contract| contract.location == location)
@@ -155,7 +155,7 @@ pub fn plan_expanded_authoring_with_options(
                         .any(|placement| placement.gear_id == binding.gear_id)
                 })
                 .ok_or_else(|| {
-                    PlannerError::InvalidFormIdentity("external Fore placement is missing".into())
+                    PlannerError::InvalidPlotIdentity("external Fore placement is missing".into())
                 })?;
             let placement = fragment
                 .placements
@@ -169,7 +169,7 @@ pub fn plan_expanded_authoring_with_options(
             .iter()
             .find(|port| port.port_id == binding.gear_port_id)
             .ok_or_else(|| {
-                PlannerError::InvalidFormIdentity("external Fore internal port is missing".into())
+                PlannerError::InvalidPlotIdentity("external Fore internal port is missing".into())
             })?;
             let internal_matches = match binding.track {
                 conduit_core::ConnectionTrack::Payload => {
@@ -195,7 +195,7 @@ pub fn plan_expanded_authoring_with_options(
                 }
             };
             if !internal_matches {
-                return Err(PlannerError::InvalidFormIdentity(format!(
+                return Err(PlannerError::InvalidPlotIdentity(format!(
                     "external Fore port '{}' does not match its selected Back",
                     binding.front_port_id.as_str(),
                 )));
@@ -232,7 +232,7 @@ pub fn plan_expanded_authoring_with_options(
                     .find(|contract| contract.location == internal_location)
                     .map(|contract| contract.contract.clone());
                 if internal_contract != value_contract {
-                    return Err(PlannerError::InvalidFormIdentity(format!(
+                    return Err(PlannerError::InvalidPlotIdentity(format!(
                         "external Fore port '{}' value contract does not match its selected Back",
                         binding.front_port_id.as_str(),
                     )));
@@ -273,10 +273,10 @@ pub fn plan_expanded_authoring_with_options(
     }
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
-            FormIdentity {
+            PlotIdentity {
                 source_document_id: plan.source_document_id,
-                checked_form_id: plan.checked_form_id,
-                expanded_form_id: plan.expanded_form_id,
+                checked_plot_id: plan.checked_plot_id,
+                expanded_plot_id: plan.expanded_plot_id,
             },
             plan.completion_policy,
             plan.realization_backs,
@@ -294,7 +294,7 @@ pub enum CanonicalRealizationMode {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedCanonicalRealization {
     pub mode: CanonicalRealizationMode,
-    pub expanded: ExpandedCanonicalForm,
+    pub expanded: ExpandedCanonicalPlot,
     pub placements: PlacementChoices,
     pub plan: Plan,
 }
@@ -319,14 +319,14 @@ pub enum CanonicalRealizationSelectionError {
 #[allow(clippy::too_many_arguments)]
 pub fn plan_canonical_realization_with_options(
     document: &CheckedSyntaxDocument,
-    form_name: &str,
+    plot_name: &str,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<PlannedCanonicalRealization, CanonicalRealizationSelectionError> {
-    let direct = expand_canonical_form(document, form_name, catalog).map_err(|error| {
+    let direct = expand_canonical_plot(document, plot_name, catalog).map_err(|error| {
         CanonicalRealizationSelectionError::InvalidDirectExpansion(error.to_string())
     })?;
     match plan_default_candidate(direct, hosts, bases, options) {
@@ -337,7 +337,7 @@ pub fn plan_canonical_realization_with_options(
             plan,
         }),
         Err(direct_error) => {
-            let recursive = expand_canonical_form_with_backs(document, form_name, catalog, backs)
+            let recursive = expand_canonical_plot_with_backs(document, plot_name, catalog, backs)
                 .map_err(|error| {
                 CanonicalRealizationSelectionError::InvalidRecursiveExpansion {
                     direct: direct_error.clone(),
@@ -362,11 +362,11 @@ pub fn plan_canonical_realization_with_options(
 }
 
 fn plan_default_candidate(
-    expanded: ExpandedCanonicalForm,
+    expanded: ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
-) -> Result<(ExpandedCanonicalForm, PlacementChoices, Plan), PlannerError> {
+) -> Result<(ExpandedCanonicalPlot, PlacementChoices, Plan), PlannerError> {
     let placements = default_expanded_placements(&expanded, hosts)?;
     let plan = plan_expanded_canonical_with_options(&expanded, hosts, &placements, bases, options)?;
     Ok((expanded, placements, plan))
@@ -380,109 +380,109 @@ pub struct SharedPoolPlanningRequirement {
 }
 
 pub fn default_expanded_placements(
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
-    form.validate_expansion()
-        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-    default_placements_unvalidated(&form.gears, hosts)
+    plot.validate_expansion()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    default_placements_unvalidated(&plot.gears, hosts)
 }
 
 mod default_queues;
 pub use default_queues::plan_expanded_canonical;
 
 pub fn plan_expanded_canonical_with_options(
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
-    form.validate_expansion()
-        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-    let planning_form = CheckedForm {
-        source_document_id: form.source_document_id.clone(),
-        checked_form_id: form.checked_form_id.clone(),
-        expanded_form_id: form.expanded_form_id.clone(),
-        name: form.name.clone(),
-        completion: form.completion,
-        gears: form.gears.clone(),
-        connections: form.connections.clone(),
+    plot.validate_expansion()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    let planning_plot = CheckedPlot {
+        source_document_id: plot.source_document_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
+        expanded_plot_id: plot.expanded_plot_id.clone(),
+        name: plot.name.clone(),
+        completion: plot.completion,
+        gears: plot.gears.clone(),
+        connections: plot.connections.clone(),
         exports: Vec::new(),
-        nested_forms: Vec::new(),
+        nested_plots: Vec::new(),
     };
-    let mut plan = plan_validated_form(&planning_form, hosts, placements, bases, options)?;
-    attach_source_spans(form, &mut plan)?;
+    let mut plan = plan_validated_plot(&planning_plot, hosts, placements, bases, options)?;
+    attach_source_spans(plot, &mut plan)?;
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
-            conduit_core::FormIdentity {
-                source_document_id: form.source_document_id.clone(),
-                checked_form_id: form.checked_form_id.clone(),
-                expanded_form_id: form.expanded_form_id.clone(),
+            conduit_core::PlotIdentity {
+                source_document_id: plot.source_document_id.clone(),
+                checked_plot_id: plot.checked_plot_id.clone(),
+                expanded_plot_id: plot.expanded_plot_id.clone(),
             },
-            crate::plan_completion_policy(form.completion),
-            form.realization_backs.clone(),
+            crate::plan_completion_policy(plot.completion),
+            plot.realization_backs.clone(),
             plan.fragments,
         ),
     )
 }
 
 pub fn plan_expanded_canonical_with_connection_limits(
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
-    form.validate_expansion()
-        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-    let planning_form = CheckedForm {
-        source_document_id: form.source_document_id.clone(),
-        checked_form_id: form.checked_form_id.clone(),
-        expanded_form_id: form.expanded_form_id.clone(),
-        name: form.name.clone(),
-        completion: form.completion,
-        gears: form.gears.clone(),
-        connections: form.connections.clone(),
+    plot.validate_expansion()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    let planning_plot = CheckedPlot {
+        source_document_id: plot.source_document_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
+        expanded_plot_id: plot.expanded_plot_id.clone(),
+        name: plot.name.clone(),
+        completion: plot.completion,
+        gears: plot.gears.clone(),
+        connections: plot.connections.clone(),
         exports: Vec::new(),
-        nested_forms: Vec::new(),
+        nested_plots: Vec::new(),
     };
-    let mut plan = plan_validated_form_with_connection_limits(
-        &planning_form,
+    let mut plan = plan_validated_plot_with_connection_limits(
+        &planning_plot,
         hosts,
         placements,
         bases,
         options,
         connection_limits,
     )?;
-    attach_source_spans(form, &mut plan)?;
+    attach_source_spans(plot, &mut plan)?;
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
-            conduit_core::FormIdentity {
-                source_document_id: form.source_document_id.clone(),
-                checked_form_id: form.checked_form_id.clone(),
-                expanded_form_id: form.expanded_form_id.clone(),
+            conduit_core::PlotIdentity {
+                source_document_id: plot.source_document_id.clone(),
+                checked_plot_id: plot.checked_plot_id.clone(),
+                expanded_plot_id: plot.expanded_plot_id.clone(),
             },
-            crate::plan_completion_policy(form.completion),
-            form.realization_backs.clone(),
+            crate::plan_completion_policy(plot.completion),
+            plot.realization_backs.clone(),
             plan.fragments,
         ),
     )
 }
 
-fn attach_source_spans(form: &ExpandedCanonicalForm, plan: &mut Plan) -> Result<(), PlannerError> {
+fn attach_source_spans(plot: &ExpandedCanonicalPlot, plan: &mut Plan) -> Result<(), PlannerError> {
     for placement in plan
         .fragments
         .iter_mut()
         .flat_map(|fragment| &mut fragment.placements)
     {
-        let provenance = form
+        let provenance = plot
             .provenance
             .iter()
             .find(|entry| entry.gear_id == placement.gear_id.as_str())
             .ok_or_else(|| {
-                PlannerError::InvalidFormIdentity(format!(
+                PlannerError::InvalidPlotIdentity(format!(
                     "expanded Gear '{}' has no exact source provenance",
                     placement.gear_id.as_str()
                 ))
@@ -490,26 +490,26 @@ fn attach_source_spans(form: &ExpandedCanonicalForm, plan: &mut Plan) -> Result<
         let span = provenance.source_span;
         let span = conduit_core::SourceSpan {
             start: span.start.try_into().map_err(|_| {
-                PlannerError::InvalidFormIdentity("source span start exceeds u64".into())
+                PlannerError::InvalidPlotIdentity("source span start exceeds u64".into())
             })?,
             end: span.end.try_into().map_err(|_| {
-                PlannerError::InvalidFormIdentity("source span end exceeds u64".into())
+                PlannerError::InvalidPlotIdentity("source span end exceeds u64".into())
             })?,
             line: span.line.try_into().map_err(|_| {
-                PlannerError::InvalidFormIdentity("source span line exceeds u64".into())
+                PlannerError::InvalidPlotIdentity("source span line exceeds u64".into())
             })?,
             column: span.column.try_into().map_err(|_| {
-                PlannerError::InvalidFormIdentity("source span column exceeds u64".into())
+                PlannerError::InvalidPlotIdentity("source span column exceeds u64".into())
             })?,
             end_line: span.end_line.try_into().map_err(|_| {
-                PlannerError::InvalidFormIdentity("source span end line exceeds u64".into())
+                PlannerError::InvalidPlotIdentity("source span end line exceeds u64".into())
             })?,
             end_column: span.end_column.try_into().map_err(|_| {
-                PlannerError::InvalidFormIdentity("source span end column exceeds u64".into())
+                PlannerError::InvalidPlotIdentity("source span end column exceeds u64".into())
             })?,
         };
         if !span.is_valid() {
-            return Err(PlannerError::InvalidFormIdentity(
+            return Err(PlannerError::InvalidPlotIdentity(
                 "expanded Gear source span is invalid".into(),
             ));
         }
@@ -519,15 +519,15 @@ fn attach_source_spans(form: &ExpandedCanonicalForm, plan: &mut Plan) -> Result<
 }
 
 pub fn plan_expanded_canonical_with_shared_pools(
-    form: &ExpandedCanonicalForm,
+    plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     requirements: &BTreeMap<SharedPoolId, SharedPoolPlanningRequirement>,
 ) -> Result<Plan, PlannerError> {
-    let mut plan = plan_expanded_canonical_with_options(form, hosts, placements, bases, options)?;
-    if form.shared_pools.len() != requirements.len() {
+    let mut plan = plan_expanded_canonical_with_options(plot, hosts, placements, bases, options)?;
+    if plot.shared_pools.len() != requirements.len() {
         return Err(PlannerError::InvalidSharedPool(
             "every expanded shared pool requires one exact planning requirement".into(),
         ));
@@ -578,8 +578,8 @@ pub fn plan_expanded_canonical_with_shared_pools(
         .iter()
         .flat_map(|fragment| &fragment.placements)
         .collect::<Vec<_>>();
-    let mut planned_pools = Vec::with_capacity(form.shared_pools.len());
-    for pool in &form.shared_pools {
+    let mut planned_pools = Vec::with_capacity(plot.shared_pools.len());
+    for pool in &plot.shared_pools {
         let requirement = requirements.get(&pool.pool_id).ok_or_else(|| {
             PlannerError::InvalidSharedPool(format!(
                 "shared pool '{}' has no planning requirement",
@@ -811,11 +811,11 @@ pub fn plan_expanded_canonical_with_shared_pools(
             plan.fragments.push(conduit_core::PlanFragment {
                 plan_id: conduit_core::PlanId::from(""),
                 fragment_id: conduit_core::FragmentId::from(""),
-                source_document_id: form.source_document_id.clone(),
-                checked_form_id: form.checked_form_id.clone(),
-                expanded_form_id: form.expanded_form_id.clone(),
-                completion_policy: crate::plan_completion_policy(form.completion),
-                realization_backs: form.realization_backs.clone(),
+                source_document_id: plot.source_document_id.clone(),
+                checked_plot_id: plot.checked_plot_id.clone(),
+                expanded_plot_id: plot.expanded_plot_id.clone(),
+                completion_policy: crate::plan_completion_policy(plot.completion),
+                realization_backs: plot.realization_backs.clone(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
                 offer_generation: host.offer_generation,
@@ -845,12 +845,12 @@ pub fn plan_expanded_canonical_with_shared_pools(
         fragment.shared_pools = planned_pools.clone();
     }
     Ok(conduit_core::seal_plan_with_completion(
-        FormIdentity {
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
-            expanded_form_id: form.expanded_form_id.clone(),
+        PlotIdentity {
+            source_document_id: plot.source_document_id.clone(),
+            checked_plot_id: plot.checked_plot_id.clone(),
+            expanded_plot_id: plot.expanded_plot_id.clone(),
         },
-        crate::plan_completion_policy(form.completion),
+        crate::plan_completion_policy(plot.completion),
         plan.fragments,
     ))
 }

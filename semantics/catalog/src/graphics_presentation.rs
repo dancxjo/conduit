@@ -60,12 +60,12 @@ pub fn bitmap_presentation_contract() -> StandardKindContract {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_graphics_presentation_catalog(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::KindSignature;
+    use conduit_plot::KindSignature;
     let contract = graphics_presentation_contract();
     startup.insert(KindSignature {
         kind: GRAPHICS_PRESENTATION_KIND.to_string(),

@@ -1,5 +1,5 @@
-use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
-use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -9,9 +9,9 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("robotics semantic Types must check");
-    let generated = generate_rust_bindings_with_codes(
+    let generated = generate_rust_bindings_with_forms(
         &checked.native_types,
-        &checked.codes,
+        &checked.type_forms,
         &RustBindingOptions {
             copy_record_types: [
                 "AccelerationObservation".into(),
@@ -106,7 +106,7 @@ fn main() {
             ..RustBindingOptions::default()
         },
     )
-    .expect("robotics semantic Types and codes must generate exact Rust bindings");
+    .expect("robotics semantic Types and Forms must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated robotics bindings");

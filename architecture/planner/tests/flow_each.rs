@@ -4,17 +4,17 @@ use conduit_core::{
     ImplementationId, KindIdentity, OfferGeneration, PlannedActivationEffectMultiplicity,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
-};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use std::collections::BTreeMap;
 
 const SOURCE: &str = "
-form text/normalize (
+plot text/normalize (
  >> value: Text
  mapped: Text >>
 ) {
@@ -23,7 +23,7 @@ form text/normalize (
  normalize.mapped >> mapped
 }
 
-form flow/each (
+plot flow/each (
  item: type
  result: type
  transform: kind (
@@ -38,7 +38,7 @@ form flow/each (
  each.mapped >> mapped
 }
 
-form main {
+plot main {
  each: flow/each(item = Text, result = Text, transform = text/normalize)
 }
 ";
@@ -167,7 +167,7 @@ fn host() -> HostAdvertisement {
 fn authored_each_plans_one_exact_ordinary_child_plan() {
     let (startup, profile) = catalogs();
     let document = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
-    let authoring = expand_canonical_form_for_authoring(&document, "main", &profile).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&document, "main", &profile).unwrap();
     let hosts = [host()];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let empty_bases = BTreeMap::new();

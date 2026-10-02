@@ -1,9 +1,9 @@
-#![cfg(feature = "form-catalog")]
+#![cfg(feature = "plot-catalog")]
 
 mod common;
 
 use common::{
-    available_mask_show, checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE,
+    available_mask_show, checked_renderer_plot, host, plan_for, presentation, WAYLAND_RESOURCE,
 };
 use conduit_presentation::{
     FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal,
@@ -14,9 +14,9 @@ use conduit_presentation::{
 };
 
 fn basis(available: bool) -> (Presentation, MaskShow) {
-    let form = checked_renderer_form();
+    let plot = checked_renderer_plot();
     let plan = plan_for(
-        &form,
+        &plot,
         host(
             "language-host",
             "language-boot",
@@ -27,7 +27,7 @@ fn basis(available: bool) -> (Presentation, MaskShow) {
             WAYLAND_RESOURCE,
         ),
     );
-    let base = presentation(&form, &plan);
+    let base = presentation(&plot, &plan);
     let availability = if available {
         PresentationActionAvailability::Available
     } else {
@@ -46,7 +46,7 @@ fn basis(available: bool) -> (Presentation, MaskShow) {
         vec![PresentationAction {
             identity: "message/send".into(),
             intent: "message/send".into(),
-            target: "patchbay/form".into(),
+            target: "patchbay/plot".into(),
             name: "Send".into(),
             arguments: vec![FaceActionArgument::text(
                 "message/input".into(),
@@ -86,7 +86,7 @@ fn proposal(
 fn proposed(value_kind: &str, action_id: &str) -> GenerativeInteractionDisposition {
     GenerativeInteractionDisposition::Proposed(ProposedFaceInteraction {
         action_id: action_id.into(),
-        target: "patchbay/form".into(),
+        target: "patchbay/plot".into(),
         arguments: vec![FaceInteractionArgument {
             name: "message/input".into(),
             value_kind: value_kind.into(),
@@ -109,7 +109,7 @@ fn exact_language_proposal_resolves_to_the_ordinary_interaction_contract() {
         &presentation,
         &show,
         "message/send",
-        "patchbay/form",
+        "patchbay/plot",
         vec![FaceInteractionArgument {
             name: "message/input".into(),
             value_kind: UTF8_TEXT_VALUE_KIND.into(),

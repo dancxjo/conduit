@@ -1,7 +1,7 @@
 //! Explicit adapters between native portable time meaning and core clock machinery.
 
 use conduit_core::TemporalRelationError;
-use conduit_form::rust_binding::NativeBindingRefusal;
+use conduit_plot::rust_binding::NativeBindingRefusal;
 
 use crate::generated::{TemporalInstant, TemporalScale};
 

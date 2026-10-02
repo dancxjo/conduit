@@ -5,8 +5,8 @@ use conduit_core::{
     HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId, KindIdentity,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
@@ -33,7 +33,7 @@ pub(super) fn checked_plan(
     basis: &ObligationBasis,
 ) -> Result<
     (
-        conduit_form::ExpandedCanonicalForm,
+        conduit_plot::ExpandedCanonicalPlot,
         conduit_core::Plan,
         HostAdvertisement,
     ),
@@ -41,7 +41,7 @@ pub(super) fn checked_plan(
 > {
     let (startup, profiles) = catalogs().map_err(|_| ObligationRefusal::StepFailed)?;
     let source = format!(
-        "form proof-catalog-obligation {{\n    obligation: {SOURCE_KIND}(\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\")\n    execute: {EXECUTE_KIND}\n    obligation >> execute\n}}\n",
+        "plot proof-catalog-obligation {{\n    obligation: {SOURCE_KIND}(\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\")\n    execute: {EXECUTE_KIND}\n    obligation >> execute\n}}\n",
         basis.source_commit,
         basis.command,
         basis.tool,
@@ -53,7 +53,7 @@ pub(super) fn checked_plan(
     let syntax = parse_syntax_document(&source);
     let checked =
         check_syntax_document(&syntax, &startup).map_err(|_| ObligationRefusal::StepFailed)?;
-    let expanded = expand_canonical_form(&checked, "proof-catalog-obligation", &profiles)
+    let expanded = expand_canonical_plot(&checked, "proof-catalog-obligation", &profiles)
         .map_err(|_| ObligationRefusal::StepFailed)?;
     let advertisement = advertisement();
     let hosts = [advertisement.clone()];

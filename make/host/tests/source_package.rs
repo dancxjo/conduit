@@ -20,7 +20,7 @@ fn manifest(
         exports: vec![SourcePackageExport {
             public_name: format!("{id}/main"),
             source_path: "src/main.conduit".into(),
-            kind: SourceExportKind::Form,
+            kind: SourceExportKind::Plot,
         }],
         dependencies,
         content_files: vec!["src/main.conduit".into()],
@@ -66,8 +66,8 @@ fn canonical_lock_keeps_package_semantics_content_and_carrier_distinct() {
             version_requirement: leaf.package_version.clone(),
         }],
     );
-    let leaf_content = b"form vector { }.";
-    let root_content = b"form lesson { }.";
+    let leaf_content = b"plot vector { }.";
+    let root_content = b"plot lesson { }.";
     let lock = SourcePackageLock {
         schema: SOURCE_PACKAGE_LOCK_SCHEMA.into(),
         roots: vec![root.package_id.clone()],
@@ -135,7 +135,7 @@ fn manifests_and_locks_refuse_ambient_or_ambiguous_package_truth() {
     );
 
     let manifest = manifest("example/package", "1.0.0", vec![]);
-    let content = b"form package { }.";
+    let content = b"plot package { }.";
     let mut package = locked(
         &manifest,
         content,
@@ -234,7 +234,7 @@ fn cycles_and_inexact_dependency_resolutions_refuse() {
 #[test]
 fn identical_content_crosses_carriers_and_locked_cache_validates_offline() {
     let manifest = manifest("portable/tone", "1.2.3", vec![]);
-    let content = b"form tone { }.";
+    let content = b"plot tone { }.";
     let local = locked(
         &manifest,
         content,

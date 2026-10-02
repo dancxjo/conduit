@@ -15,7 +15,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn source(version: u8) -> SourceRef {
     SourceRef {

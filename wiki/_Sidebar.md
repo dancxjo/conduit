@@ -5,7 +5,7 @@
 - [[Architecture tour|Architecture-tour]]
 - [[Conduitese]]
 - [[Conduitese by example|Conduitese-by-example]]
-- [[Form diagrams|Form-diagrams]]
+- [[Plot diagrams|Plot-diagrams]]
 - [[Glossary]]
 
 ### Use
@@ -21,7 +21,7 @@
 
 - [[Current language surface|Current-language-surface]]
 - [[Architecture]]
-- [[Forms and flow|Forms-and-flow]]
+- [[Plots and flow|Plots-and-flow]]
 - [[Types and state|Types-and-state]]
 - [[Terminals and concurrency|Terminals-and-concurrency]]
 - [[Effects and realization|Effects-and-realization]]

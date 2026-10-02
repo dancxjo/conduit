@@ -34,8 +34,8 @@ for useful Conduit software.
 
 ## Meaning, specialization, and realization
 
-Every checked executable form has explicit finite semantic/resource capacities
-after specialization. A reusable form may parameterize capacities instead of
+Every checked executable plot has explicit finite semantic/resource capacities
+after specialization. A reusable plot may parameterize capacities instead of
 copying an algorithm for each size. Checking chooses exact finite values;
 checked/expanded identity retains those values. Planning then binds exact
 finite implementation, storage, queues, outstanding operations, resources,
@@ -133,10 +133,10 @@ be hidden through retries, wrapping, silent truncation or automatic replan.
 
 ## Replanning and state continuity
 
-Distinguish authored form family/source identity, checked/specialized form
+Distinguish authored plot family/source identity, checked/specialized plot
 identity, state identity/generation, plan identity, and play identity. Replacing
 a realization changes plan/play truth without necessarily changing checked
-form identity. Changing a semantic capacity may change the checked and expanded
+plot identity. Changing a semantic capacity may change the checked and expanded
 identities even when the higher-level workload continues.
 
 Under #2691, continuity transfer is finite, typed and explicitly admitted. An

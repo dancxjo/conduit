@@ -12,7 +12,7 @@ use conduit_pete::{
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 pub(super) const AVR_HOST_ID: &str = "host/avr-promicro/create1";
-const CONTACT_FORM: &str = "form contact_sample {\n contact: robotics/observe-contact\n}\n";
+const CONTACT_FORM: &str = "plot contact_sample {\n contact: robotics/observe-contact\n}\n";
 
 pub(super) struct PlannedContact {
     pub(super) assigned: Vec<u8>,
@@ -31,10 +31,10 @@ pub(super) fn plan_contact(boot_id: &str) -> Result<PlannedContact, Box<dyn std:
         return Err("AVR planning requires the observed avr-XXXXXXXX Boot identity".into());
     }
     let (startup, profile) = catalogs()?;
-    let syntax = conduit_form::parse_syntax_document(CONTACT_FORM);
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("AVR contact Form check refused: {error:?}"))?;
-    let expanded = conduit_form::expand_canonical_form(&checked, "contact_sample", &profile)?;
+    let syntax = conduit_plot::parse_syntax_document(CONTACT_FORM);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|error| format!("AVR contact Plot check refused: {error:?}"))?;
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "contact_sample", &profile)?;
     let evidence = CreateObservationEvidence {
         host_id: HostId::from(AVR_HOST_ID),
         boot_id: BootId::from(boot_id),
@@ -63,7 +63,7 @@ pub(super) fn plan_contact(boot_id: &str) -> Result<PlannedContact, Box<dyn std:
         &[BaseImplementationId::from("conduit.base/local@1")],
     )?;
     if plan.fragments.len() != 1 {
-        return Err("AVR contact Form did not plan to one exact fragment".into());
+        return Err("AVR contact Plot did not plan to one exact fragment".into());
     }
     let fragment = &plan.fragments[0];
     let lowered = lower_plan_fragment(fragment)
@@ -100,7 +100,7 @@ mod tests {
     use conduit_core::{decode_assigned_activation, decode_assigned_single_source};
 
     #[test]
-    fn ordinary_form_plans_to_the_exact_generic_avr_projection() {
+    fn ordinary_plot_plans_to_the_exact_generic_avr_projection() {
         for forbidden in ["avr", "create", "uart", "host", "boot", "gpio"] {
             assert!(!CONTACT_FORM.contains(forbidden));
         }

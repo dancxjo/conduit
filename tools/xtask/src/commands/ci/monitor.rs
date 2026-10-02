@@ -91,7 +91,7 @@ fn validate(
     max_requests: u32,
 ) -> Result<(), String> {
     if repository.split_once('/').is_none() {
-        return Err("--repo must use owner/name form".into());
+        return Err("--repo must use owner/name plot".into());
     }
     if tracked_runs.is_empty() || tracked_runs.contains(&0) {
         return Err("at least one nonzero run ID is required".into());

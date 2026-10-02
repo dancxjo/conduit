@@ -3,7 +3,7 @@ use conduit_ai::{
     RelationResultProfile, RelationVariableIdentities, RelationVariableIdentity,
     SupportedRelationQuery,
 };
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn assert_native_round_trip(value: RelationResultProfile) {
     let structured = value.clone().into_structured().unwrap();

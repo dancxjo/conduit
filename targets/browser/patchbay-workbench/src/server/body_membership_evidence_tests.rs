@@ -316,18 +316,18 @@ fn reconciliation_compares_exact_wake_events_not_only_their_record_references() 
 fn selected_host_departure_retains_unsatisfied_wake_without_rewriting_the_plan() {
     let mut server = crate::server::body_execution_proposal::tests::proposed_server();
     let observer = server.body_workload.as_ref().unwrap().evidence().clone();
-    let forms = server
+    let plots = server
         .body_planning
         .as_ref()
         .unwrap()
         .current_plan()
-        .forms
+        .plots
         .clone();
     let planning = conduit_body::BodyPlanningSession::start(
         &observer.body,
         1,
         "sign/running-wake".into(),
-        forms,
+        plots,
         "sign/plan".into(),
         1,
         "sign/play".into(),

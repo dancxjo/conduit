@@ -1,6 +1,6 @@
 //! Finite realization-only Lenia region work and deterministic joining.
 //!
-//! These identities belong to a selected plan, never to an authored form.
+//! These identities belong to a selected plan, never to an authored plot.
 
 use alloc::{vec, vec::Vec};
 

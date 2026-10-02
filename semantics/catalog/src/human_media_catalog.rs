@@ -1,6 +1,6 @@
 //! Portable camera and microphone acquisition/use catalog contracts.
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
@@ -142,12 +142,12 @@ pub fn microphone_clip_source_semantic_contract() -> Kind {
     }
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub fn install_microphone_clip_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_plot::{KindProjection, KindSignature};
 
     startup.insert(KindSignature {
         kind: MICROPHONE_CLIP_SOURCE_KIND.into(),
@@ -165,12 +165,12 @@ pub fn install_microphone_clip_catalogs(
         .map_err(|error| error.to_string())
 }
 
-#[cfg(feature = "form-catalog")]
+#[cfg(feature = "plot-catalog")]
 pub(crate) fn install_camera_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_plot::{KindProjection, KindSignature};
 
     for contract in [
         camera_source_semantic_contract(),
@@ -193,13 +193,13 @@ pub(crate) fn install_camera_catalogs(
     Ok(())
 }
 
-#[cfg(all(test, feature = "form-catalog"))]
+#[cfg(all(test, feature = "plot-catalog"))]
 mod tests {
     use super::*;
 
     #[test]
-    fn camera_summary_form_is_browser_neutral_and_has_one_exact_typed_cord() {
-        let source = include_str!("../../../forms/camera-summary/main.conduit");
+    fn camera_summary_plot_is_browser_neutral_and_has_one_exact_typed_cord() {
+        let source = include_str!("../../../plots/camera-summary/main.conduit");
         let lower = source.to_ascii_lowercase();
         for forbidden in [
             "browser",
@@ -213,18 +213,18 @@ mod tests {
             "url",
             "host",
         ] {
-            assert!(!lower.contains(forbidden), "Form contains {forbidden}");
+            assert!(!lower.contains(forbidden), "Plot contains {forbidden}");
         }
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         install_camera_catalogs(&mut startup, &mut profile).unwrap();
-        let checked = conduit_form::check_syntax_document(
-            &conduit_form::parse_syntax_document(source),
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
             &startup,
         )
         .unwrap();
         let expanded =
-            conduit_form::expand_canonical_form(&checked, "camera-summary", &profile).unwrap();
+            conduit_plot::expand_canonical_plot(&checked, "camera-summary", &profile).unwrap();
         assert_eq!(expanded.gears.len(), 2);
         assert_eq!(expanded.connections.len(), 1);
         assert_eq!(
@@ -237,18 +237,18 @@ mod tests {
 
     #[test]
     fn microphone_clip_capture_is_portable_and_explicitly_triggered() {
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
         conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
         install_microphone_clip_catalogs(&mut startup, &mut profile).unwrap();
-        let checked = conduit_form::check_syntax_document(
-            &conduit_form::parse_syntax_document(
-                "form capture {\n microphone: media/capture-microphone-clip\n \"capture\" >> microphone.request\n}\n",
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(
+                "plot capture {\n microphone: media/capture-microphone-clip\n \"capture\" >> microphone.request\n}\n",
             ),
             &startup,
         )
         .unwrap();
-        let expanded = conduit_form::expand_canonical_form(&checked, "capture", &profile).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot(&checked, "capture", &profile).unwrap();
         assert_eq!(expanded.gears.len(), 2);
         let microphone = expanded
             .gears

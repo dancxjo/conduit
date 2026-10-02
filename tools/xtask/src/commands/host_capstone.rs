@@ -6,13 +6,13 @@ use conduit_core::{
     BaseInstanceId, BaseLifecycle, BaseProviderEntry, BootId, CapabilityId, GearId, HostBaseId,
     HostBaseKindId, HostId, HostProfileId, OfferGeneration, SignId,
 };
-use conduit_form::{parse, ProfileCatalog};
 use conduit_host_make::{
     bind_runtime_offer, build_default_host_image, check_host_configuration,
     parse_host_configuration_conduit, BoundHostAdvertisement, BuildInputs, HostProfile,
     MakeCatalog, RuntimeFacts, RuntimeOfferInputs,
 };
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
+use conduit_plot::{parse, ProfileCatalog};
 use conduit_presentation::{
     renderer_kind_projection, Manifestation, ManifestationAdmission, ManifestationLifecycle,
     ManifestationSet, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
@@ -33,8 +33,8 @@ pub(super) use command::run;
 mod manifestations;
 use manifestations::{identity_refusals, manifestation_for, mark_replaced};
 
-const FORM_SOURCE: &str =
-    "form shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
+const PLOT_SOURCE: &str =
+    "plot shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 const NATIVE_PROFILE: &str =
     include_str!("../../../../targets/conduitos/profiles/conduitos-native.host.conduit");
 const BROWSER_PROFILE: &str =
@@ -111,10 +111,10 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
     )?;
     let missing_live_presenter = missing_live.advertisement().capabilities.is_empty();
 
-    let form = checked_form()?;
+    let plot = checked_plot()?;
     let body = Body::born(
-        form.source_document_id.clone(),
-        form.checked_form_id.clone(),
+        plot.source_document_id.clone(),
+        plot.checked_plot_id.clone(),
         1,
         SignId::from("capstone/body-born"),
     )
@@ -147,10 +147,10 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
             ),
         ]),
     };
-    let accepted_plan = plan(&form, &advertisements, &choices, &[]).map_err(debug_error)?;
+    let accepted_plan = plan(&plot, &advertisements, &choices, &[]).map_err(debug_error)?;
     let admission = ManifestationAdmission::from_plan(&accepted_plan).map_err(debug_error)?;
     let initial = presentation(
-        &form,
+        &plot,
         &body,
         &wake.wake_id,
         &accepted_plan,
@@ -163,7 +163,7 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
     let membership_before_refusals = membership.clone();
     let plan_before_refusals = accepted_plan.clone();
     let presentation_before_refusals = initial.clone();
-    let headless_graphical_placement = headless_placement_refuses(&form, &advertisements);
+    let headless_graphical_placement = headless_placement_refuses(&plot, &advertisements);
     let (stale_boot, stale_generation, cross_wired_manifestation) =
         identity_refusals(&initial, &accepted_plan, &initial_manifestations);
     require(
@@ -185,7 +185,7 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
     )?;
     let interaction_manifestation_id = interaction_manifestation.manifestation_id.as_str().into();
     let revised = presentation(
-        &form,
+        &plot,
         &body,
         &wake.wake_id,
         &accepted_plan,
@@ -344,12 +344,12 @@ fn bind_profile(
     .map_err(debug_error)
 }
 
-fn checked_form() -> Result<conduit_form::CheckedForm, Box<dyn std::error::Error>> {
+fn checked_plot() -> Result<conduit_plot::CheckedPlot, Box<dyn std::error::Error>> {
     let mut catalog = ProfileCatalog::new();
     catalog
         .insert(renderer_kind_projection())
         .map_err(debug_error)?;
-    parse(FORM_SOURCE, &catalog).map_err(debug_error)
+    parse(PLOT_SOURCE, &catalog).map_err(debug_error)
 }
 
 fn admit_hosts(
@@ -398,7 +398,7 @@ fn admit_hosts(
 }
 
 fn presentation(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     body: &Body,
     wake_id: &conduit_body::WakeId,
     plan: &conduit_core::Plan,
@@ -411,16 +411,16 @@ fn presentation(
         PresentationBasis {
             body_id: Some(body.body_id.clone()),
             wake_id: Some(wake_id.clone()),
-            source_document_id: Some(form.source_document_id.clone()),
-            checked_form_id: Some(form.checked_form_id.clone()),
-            expanded_form_id: Some(form.expanded_form_id.clone()),
+            source_document_id: Some(plot.source_document_id.clone()),
+            checked_plot_id: Some(plot.checked_plot_id.clone()),
+            expanded_plot_id: Some(plot.expanded_plot_id.clone()),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,
             sign_ids: vec![SignId::from(sign)],
         },
         vec![PresentationSubject {
             identity: "front/main".into(),
-            role: PresentationRole::Form,
+            role: PresentationRole::Plot,
             name: "One shared semantic Front".into(),
         }],
         vec![],
@@ -472,7 +472,7 @@ fn realize(
 }
 
 fn headless_placement_refuses(
-    form: &conduit_form::CheckedForm,
+    plot: &conduit_plot::CheckedPlot,
     advertisements: &[conduit_core::HostAdvertisement],
 ) -> bool {
     let choices = PlacementChoices {
@@ -493,7 +493,7 @@ fn headless_placement_refuses(
             ),
         ]),
     };
-    plan(form, advertisements, &choices, &[]).is_err()
+    plan(plot, advertisements, &choices, &[]).is_err()
 }
 
 fn require(condition: bool, detail: &str) -> Result<(), Box<dyn std::error::Error>> {

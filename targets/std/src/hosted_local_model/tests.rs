@@ -8,7 +8,7 @@ use conduit_core::{
     BootId, HostId, OfferGeneration, PoolRealizationEnvelope, PoolRealizationHealth,
     ResourceBinding, SignId,
 };
-use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
+use conduit_plot::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 use std::collections::BTreeMap;
 
 struct FakeLocalModel {
@@ -312,7 +312,7 @@ fn local_model_pool_observation_binds_current_provider_and_resource_truth() {
 }
 
 #[test]
-fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
+fn ordinary_plot_planning_selects_only_the_exact_local_model_offer() {
     let host = StdHost::new_with_local_model(
         config(),
         StdHostComposition::minimal(),
@@ -326,10 +326,10 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles).unwrap();
-    let source = "form generation (\n request: llm/generation-request@1 >> result: llm/generated-result@1\n) {\n model: llm/generate\n request >> model.request\n model.result >> result\n}\n";
+    let source = "plot generation (\n request: llm/generation-request@1 >> result: llm/generated-result@1\n) {\n model: llm/generate\n request >> model.request\n model.result >> result\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authoring =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "generation", &profiles)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "generation", &profiles)
             .unwrap();
     let plan = host.plan_expanded_local(&authoring.expanded).unwrap();
     assert_eq!(plan.fragments.len(), 1);
@@ -376,14 +376,14 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
 
     let classify = conduit_ai::llm_contract(conduit_ai::LLM_CLASSIFY_KIND).unwrap();
     let unsupported = format!(
-        "form classification (\n request: {} >> result: {}\n) {{\n model: {}\n request >> model.request\n model.result >> result\n}}\n",
+        "plot classification (\n request: {} >> result: {}\n) {{\n model: {}\n request >> model.request\n model.result >> result\n}}\n",
         classify.inputs[0].value_kind.as_str(),
         classify.outputs[0].value_kind.as_str(),
         conduit_ai::LLM_CLASSIFY_KIND,
     );
     let checked = check_syntax_document(&parse_syntax_document(&unsupported), &startup).unwrap();
     let authoring =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "classification", &profiles)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "classification", &profiles)
             .unwrap();
     assert!(host.plan_expanded_local(&authoring.expanded).is_err());
 }
@@ -404,10 +404,10 @@ fn house_prompt_projection_plans_the_exact_std_realization() {
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles).unwrap();
-    let source = "form prompt-only (\n >> detection: AddressDetection\n >> context: HouseContext\n request_value: llm/generation-request@1 >>\n) {\n request: house/context-to-prompt\n detection >> request.detection\n context >> request.context\n request.request >> request_value\n}\n";
+    let source = "plot prompt-only (\n >> detection: AddressDetection\n >> context: HouseContext\n request_value: llm/generation-request@1 >>\n) {\n request: house/context-to-prompt\n detection >> request.detection\n context >> request.context\n request.request >> request_value\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
-        conduit_form::expand_canonical_form_for_authoring(&checked, "prompt-only", &profiles)
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "prompt-only", &profiles)
             .unwrap();
     let plan = host.plan_expanded_local(&authored.expanded).unwrap();
     let placements = &plan.fragments[0].placements;
@@ -449,11 +449,11 @@ fn plan_and_play(profile: LocalModelKindProfile) {
         contract.outputs[0].value_kind.as_str(),
     );
     let source = format!(
-        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 4096, 4096, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
+        "plot run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 4096, 4096, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
         profile.kind()
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-    let expanded = conduit_form::expand_canonical_form(&checked, "run", &profiles).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "run", &profiles).unwrap();
     let hosts = vec![host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
     let connection_bases = BTreeMap::new();
@@ -494,7 +494,7 @@ fn all_six_l3_profiles_execute_through_ordinary_plan_and_play() {
 
 #[cfg(feature = "local-model-proof")]
 #[test]
-fn checked_house_form_executes_through_the_ordinary_local_model_play() {
+fn checked_house_plot_executes_through_the_ordinary_local_model_play() {
     let mut capabilities =
         crate::installed_std::test_local_model_io::house_source_offers().to_vec();
     capabilities.push(crate::installed_std::recorded_speech_back::offer());

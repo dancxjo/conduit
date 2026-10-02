@@ -101,7 +101,7 @@ pub use implementation::{
 pub use info::*;
 pub use interop::*;
 pub use kind_effects::*;
-pub use plan_realization::FormBack;
+pub use plan_realization::PlotBack;
 pub use planned_activation::*;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
@@ -193,8 +193,8 @@ identity_type!(ImplementationId);
 identity_type!(ArtifactId);
 identity_type!(CharacteristicId);
 identity_type!(SourceDocumentId);
-identity_type!(CheckedFormId);
-identity_type!(ExpandedFormId);
+identity_type!(CheckedPlotId);
+identity_type!(ExpandedPlotId);
 identity_type!(PlanId);
 identity_type!(ActivePlayId);
 identity_type!(SignId);
@@ -259,10 +259,10 @@ identity_type!(ExternalManifestationId);
 pub struct OfferGeneration(pub u64);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FormIdentity {
+pub struct PlotIdentity {
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub checked_plot_id: CheckedPlotId,
+    pub expanded_plot_id: ExpandedPlotId,
 }
 
 /// Exact authored UTF-8 extent retained as provenance, not semantic meaning.
@@ -716,7 +716,7 @@ pub struct PlannedResourceConnection {
     pub source_binding: ResourceBinding,
 }
 
-/// One finite external binding of an ordinary Form's checked Front.
+/// One finite external binding of an ordinary Plot's checked Front.
 ///
 /// This is plan truth, not ambient host wiring: planning seals the exact
 /// internal placement and Port which an admitted caller may feed or observe.
@@ -774,12 +774,12 @@ pub struct PlanFragment {
     pub plan_id: PlanId,
     pub fragment_id: FragmentId,
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub checked_plot_id: CheckedPlotId,
+    pub expanded_plot_id: ExpandedPlotId,
     #[serde(default)]
     pub completion_policy: PlanCompletionPolicy,
     #[serde(default)]
-    pub realization_backs: Vec<FormBack>,
+    pub realization_backs: Vec<PlotBack>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -811,14 +811,14 @@ pub struct PlanFragment {
 pub struct Plan {
     pub plan_id: PlanId,
     pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub checked_plot_id: CheckedPlotId,
+    pub expanded_plot_id: ExpandedPlotId,
     #[serde(default)]
     pub completion_policy: PlanCompletionPolicy,
-    /// Exact reusable Forms selected while expanding high-level Kinds.
-    /// Empty means the checked form reached primitive implementations directly.
+    /// Exact reusable Plots selected while expanding high-level Kinds.
+    /// Empty means the checked plot reached primitive implementations directly.
     #[serde(default)]
-    pub realization_backs: Vec<FormBack>,
+    pub realization_backs: Vec<PlotBack>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub activations: Vec<PlannedActivationEntry>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -826,17 +826,17 @@ pub struct Plan {
     pub fragments: Vec<PlanFragment>,
 }
 
-pub fn seal_plan(form_identity: FormIdentity, fragments: Vec<PlanFragment>) -> Plan {
-    seal_plan_with_completion(form_identity, PlanCompletionPolicy::Live, fragments)
+pub fn seal_plan(plot_identity: PlotIdentity, fragments: Vec<PlanFragment>) -> Plan {
+    seal_plan_with_completion(plot_identity, PlanCompletionPolicy::Live, fragments)
 }
 
 pub fn seal_plan_with_completion(
-    form_identity: FormIdentity,
+    plot_identity: PlotIdentity,
     completion_policy: PlanCompletionPolicy,
     fragments: Vec<PlanFragment>,
 ) -> Plan {
     seal_plan_with_realization_backs_and_completion(
-        form_identity,
+        plot_identity,
         completion_policy,
         Vec::new(),
         fragments,
@@ -844,12 +844,12 @@ pub fn seal_plan_with_completion(
 }
 
 pub fn seal_plan_with_realization_backs(
-    form_identity: FormIdentity,
-    realization_backs: Vec<FormBack>,
+    plot_identity: PlotIdentity,
+    realization_backs: Vec<PlotBack>,
     fragments: Vec<PlanFragment>,
 ) -> Plan {
     seal_plan_with_realization_backs_and_completion(
-        form_identity,
+        plot_identity,
         PlanCompletionPolicy::Live,
         realization_backs,
         fragments,
@@ -857,13 +857,13 @@ pub fn seal_plan_with_realization_backs(
 }
 
 pub fn seal_plan_with_realization_backs_and_completion(
-    form_identity: FormIdentity,
+    plot_identity: PlotIdentity,
     completion_policy: PlanCompletionPolicy,
-    realization_backs: Vec<FormBack>,
+    realization_backs: Vec<PlotBack>,
     fragments: Vec<PlanFragment>,
 ) -> Plan {
     seal_plan_with_activations(
-        form_identity,
+        plot_identity,
         completion_policy,
         realization_backs,
         Vec::new(),
@@ -872,14 +872,14 @@ pub fn seal_plan_with_realization_backs_and_completion(
 }
 
 pub fn seal_plan_with_activations(
-    form_identity: FormIdentity,
+    plot_identity: PlotIdentity,
     completion_policy: PlanCompletionPolicy,
-    realization_backs: Vec<FormBack>,
+    realization_backs: Vec<PlotBack>,
     activations: Vec<PlannedActivation>,
     fragments: Vec<PlanFragment>,
 ) -> Plan {
     seal_plan_with_activation_entries(
-        form_identity,
+        plot_identity,
         completion_policy,
         realization_backs,
         activations
@@ -891,18 +891,18 @@ pub fn seal_plan_with_activations(
 }
 
 pub fn seal_plan_with_activation_entries(
-    form_identity: FormIdentity,
+    plot_identity: PlotIdentity,
     completion_policy: PlanCompletionPolicy,
-    mut realization_backs: Vec<FormBack>,
+    mut realization_backs: Vec<PlotBack>,
     activations: Vec<PlannedActivationEntry>,
     mut fragments: Vec<PlanFragment>,
 ) -> Plan {
     realization_backs.sort();
     for fragment in &mut fragments {
         fragment.plan_id = PlanId::from("");
-        fragment.source_document_id = form_identity.source_document_id.clone();
-        fragment.checked_form_id = form_identity.checked_form_id.clone();
-        fragment.expanded_form_id = form_identity.expanded_form_id.clone();
+        fragment.source_document_id = plot_identity.source_document_id.clone();
+        fragment.checked_plot_id = plot_identity.checked_plot_id.clone();
+        fragment.expanded_plot_id = plot_identity.expanded_plot_id.clone();
         fragment.completion_policy = completion_policy;
         fragment.realization_backs = realization_backs.clone();
         fragment.fragment_id = compute_fragment_id(fragment);
@@ -919,7 +919,7 @@ pub fn seal_plan_with_activation_entries(
         .collect::<Vec<_>>();
     commitments.sort();
     let plan_id = compute_plan_id(
-        &form_identity,
+        &plot_identity,
         &realization_backs,
         &activations,
         &commitments,
@@ -931,9 +931,9 @@ pub fn seal_plan_with_activation_entries(
     }
     Plan {
         plan_id,
-        source_document_id: form_identity.source_document_id,
-        checked_form_id: form_identity.checked_form_id,
-        expanded_form_id: form_identity.expanded_form_id,
+        source_document_id: plot_identity.source_document_id,
+        checked_plot_id: plot_identity.checked_plot_id,
+        expanded_plot_id: plot_identity.expanded_plot_id,
         completion_policy,
         realization_backs,
         activations,
@@ -947,10 +947,10 @@ pub fn verify_plan(plan: &Plan) -> bool {
 }
 
 pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
-    let form_identity = FormIdentity {
+    let plot_identity = PlotIdentity {
         source_document_id: plan.source_document_id.clone(),
-        checked_form_id: plan.checked_form_id.clone(),
-        expanded_form_id: plan.expanded_form_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
     };
     let mut commitments = plan
         .fragments
@@ -969,11 +969,11 @@ pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
                 && !back.kind_id.as_str().is_empty()
                 && !back.kind_contract_revision.as_str().is_empty()
                 && !back.source_document_id.as_str().is_empty()
-                && !back.checked_form_id.as_str().is_empty()
+                && !back.checked_plot_id.as_str().is_empty()
         })
         && plan.plan_id
             == compute_plan_id(
-                &form_identity,
+                &plot_identity,
                 &plan.realization_backs,
                 &plan.activations,
                 &commitments,
@@ -983,8 +983,8 @@ pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
         && plan.fragments.iter().all(|fragment| {
             fragment.plan_id == plan.plan_id
                 && fragment.source_document_id == plan.source_document_id
-                && fragment.checked_form_id == plan.checked_form_id
-                && fragment.expanded_form_id == plan.expanded_form_id
+                && fragment.checked_plot_id == plan.checked_plot_id
+                && fragment.expanded_plot_id == plan.expanded_plot_id
                 && fragment.completion_policy == plan.completion_policy
                 && fragment.realization_backs == plan.realization_backs
         })
@@ -1215,10 +1215,10 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
     let mut commitments = fragment.plan_fragments.clone();
     commitments.sort();
     compute_plan_id(
-        &FormIdentity {
+        &PlotIdentity {
             source_document_id: fragment.source_document_id.clone(),
-            checked_form_id: fragment.checked_form_id.clone(),
-            expanded_form_id: fragment.expanded_form_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
         },
         &fragment.realization_backs,
         &[],

@@ -482,7 +482,7 @@ fn complete_two_fronts_evidence(root: &Path) {
     let mut evidence = EvidenceManifest::new(
         root,
         Path::new(env!("CARGO_MANIFEST_DIR")),
-        "journey-one-form-two-fronts",
+        "journey-one-plot-two-fronts",
         "journey-gallery",
     )
     .unwrap();
@@ -501,7 +501,7 @@ fn complete_two_fronts_evidence(root: &Path) {
                 },
                 required: true,
                 provenance: EvidenceProvenance {
-                    scenario_id: "one-form-two-fronts.front-door@1".into(),
+                    scenario_id: "one-plot-two-fronts.front-door@1".into(),
                     presentation_id: Some(presentation.into()),
                     presentation_revision: Some("1".into()),
                     plan_id: Some(
@@ -648,21 +648,21 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read(site_root.join(format!("commits/{commit}/patchbay/overview.png"))).unwrap()
     );
     let two_fronts_page =
-        fs::read_to_string(site_root.join("current/one-form-two-fronts/index.html")).unwrap();
-    assert!(two_fronts_page.contains("One form, Two Fronts"));
+        fs::read_to_string(site_root.join("current/one-plot-two-fronts/index.html")).unwrap();
+    assert!(two_fronts_page.contains("One plot, Two Fronts"));
     assert!(two_fronts_page.contains("One meaning, two manifestations"));
     assert!(two_fronts_page.contains("Pixel equality, physical display output"));
     assert!(two_fronts_page.contains("What Conduit established"));
     assert!(two_fronts_page.contains("What it does not prove"));
-    assert!(two_fronts_page.contains("cargo xtask prove one-form-two-fronts"));
+    assert!(two_fronts_page.contains("cargo xtask prove one-plot-two-fronts"));
     assert!(two_fronts_page.contains("presentation/two-fronts"));
     assert_eq!(
-        fs::read(site_root.join("current/one-form-two-fronts/native.png")).unwrap(),
-        fs::read(site_root.join(format!("commits/{commit}/one-form-two-fronts/native.png")))
+        fs::read(site_root.join("current/one-plot-two-fronts/native.png")).unwrap(),
+        fs::read(site_root.join(format!("commits/{commit}/one-plot-two-fronts/native.png")))
             .unwrap()
     );
     assert!(site_root
-        .join("current/one-form-two-fronts/manifest.json")
+        .join("current/one-plot-two-fronts/manifest.json")
         .is_file());
     assert!(site_root
         .join(format!("commits/{commit}/manifest.json"))

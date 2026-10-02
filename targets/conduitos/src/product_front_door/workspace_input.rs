@@ -56,7 +56,7 @@ impl PendingInput {
 }
 
 /// Tab changes foreground membership without replacing the admitted play.
-/// Release is consumed too, so it cannot become an unmatched Form input.
+/// Release is consumed too, so it cannot become an unmatched Plot input.
 pub(super) fn select(
     event: KeyEvent,
     journey: &mut ProductJourney,
@@ -66,7 +66,7 @@ pub(super) fn select(
     }
     if event.transition() == KeyTransition::Pressed {
         journey
-            .select_next_form(journey.revision())
+            .select_next_plot(journey.revision())
             .map_err(|error| error.as_str())?;
     }
     Ok(Some(event.transition() == KeyTransition::Pressed))

@@ -13,8 +13,8 @@ struct HistoryProgram {
     fixture: String,
     entry: String,
     source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
+    checked_plot_id: String,
+    expanded_plot_id: String,
 }
 
 #[test]
@@ -40,18 +40,18 @@ fn conduit_inspect_reports_locked_v1_identities() {
             .filter_map(|line| line.split_once(' '))
             .collect::<std::collections::BTreeMap<_, _>>();
 
-        assert_eq!(fields.get("Form"), Some(&expected.entry.as_str()));
+        assert_eq!(fields.get("Plot"), Some(&expected.entry.as_str()));
         assert_eq!(
             fields.get("source"),
             Some(&expected.source_document_id.as_str())
         );
         assert_eq!(
             fields.get("checked"),
-            Some(&expected.checked_form_id.as_str())
+            Some(&expected.checked_plot_id.as_str())
         );
         assert_eq!(
             fields.get("expanded"),
-            Some(&expected.expanded_form_id.as_str())
+            Some(&expected.expanded_plot_id.as_str())
         );
     }
 }
