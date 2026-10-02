@@ -2,8 +2,8 @@ use conduit_ai::{
     AnswerSpan, Candidate, Chunk, ChunkIdentity, CitationIndices, ContextBudgetCost, ContextItem,
     ContextSelection, ContextSelectionOutcome, ContextSelectionRationale, ContextTruncationReason,
     ExtractionLineage, GroundedClaim, GroundedResult, GroundingDisposition, ModelResultProvenance,
-    RagSemanticRefusal, RetrievalIntent, RetrievalMode, SourceRef, SourceSpan, SourceSpanUnit,
-    TemporalRetrievalIntent,
+    RagSemanticRefusal, RetrievalIntent, RetrievalIntentIdentity, RetrievalMode, RetrievalModes,
+    SourceRef, SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -45,14 +45,19 @@ fn source(version: u8) -> SourceRef {
 }
 
 fn intent() -> RetrievalIntent {
-    RetrievalIntent {
-        identity: "retrieval/project-history".into(),
-        modes: vec![
-            RetrievalMode::Semantic,
-            RetrievalMode::Boundary(TemporalRetrievalIntent::EarliestEvidence),
-        ],
-        maximum_candidates: 8,
-    }
+    RetrievalIntent::new(
+        RetrievalIntentIdentity::new("retrieval/project-history".into()).unwrap(),
+        RetrievalModes::new(
+            BoundedSequence::try_from_iter([
+                RetrievalMode::Semantic,
+                RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap(),
+            ])
+            .unwrap(),
+        )
+        .unwrap(),
+        8,
+    )
+    .unwrap()
 }
 
 fn lineage(version: u8, start: u64, end: u64) -> ExtractionLineage {
@@ -105,8 +110,15 @@ fn exact_source_version_span_and_transform_lineage_derive_chunk_identity() {
 fn temporal_boundary_intent_is_typed_and_bounded() {
     assert_eq!(intent().validate(), Ok(()));
     assert!(conduit_ai::TemporalRetrievalWindow::new(9, 2).is_err());
-    let mut duplicate = intent();
-    duplicate.modes = vec![RetrievalMode::Exact, RetrievalMode::Exact];
+    let duplicate = RetrievalIntent::new(
+        RetrievalIntentIdentity::new("retrieval/duplicate".into()).unwrap(),
+        RetrievalModes::new(
+            BoundedSequence::try_from_iter([RetrievalMode::Exact, RetrievalMode::Exact]).unwrap(),
+        )
+        .unwrap(),
+        8,
+    )
+    .unwrap();
     assert_eq!(
         duplicate.validate(),
         Err(RagSemanticRefusal::DuplicateRetrievalMode)

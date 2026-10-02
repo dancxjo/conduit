@@ -6,14 +6,15 @@ use conduit_ai::{
     MechanismScore, ModelDerivedResult, ModelRefusal, ModelResultDisposition,
     ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim,
     RerankScore, RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
-    RetrievalMechanism, RetrievalMode, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
-    SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
+    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrieverIdentity,
+    SelectedContextCost, SelectedContextItem, SelectedContextRationale, SourceRef, SourceSpan,
+    SourceSpanUnit, StructuredContext,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn source(version: u8) -> SourceRef {
     SourceRef {
@@ -86,11 +87,13 @@ fn fixture_request() -> GroundedAnswerRequest {
     ];
     GroundedAnswerRequest {
         identity: "request/project-history/7".into(),
-        retrieval_intent: RetrievalIntent {
-            identity: "intent/project-history".into(),
-            modes: vec![RetrievalMode::Exact],
-            maximum_candidates: 8,
-        },
+        retrieval_intent: RetrievalIntent::new(
+            RetrievalIntentIdentity::new("intent/project-history".into()).unwrap(),
+            RetrievalModes::new(BoundedSequence::try_from_iter([RetrievalMode::Exact]).unwrap())
+                .unwrap(),
+            8,
+        )
+        .unwrap(),
         context: StructuredContext {
             policy_identity: "context/reranked-diverse@1".into(),
             token_accounting_profile: "tokens/exact-fixture@1".into(),

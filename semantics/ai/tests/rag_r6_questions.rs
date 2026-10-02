@@ -7,15 +7,16 @@ use conduit_ai::{
     HybridRetrievalOutcome, LlmDeterminismProfile, MechanismScore, ModelDerivedResult,
     ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting, ProposedClaimSupport,
     ProposedGroundedClaim, RerankingPolicy, RerankingReceipt, RerankingStrategy,
-    RetrievalMechanism, RetrievalMode, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan,
-    SourceSpanUnit, StageCandidate, StructuredContext, TemporalContext, TemporalEvidenceBatch,
-    TemporalEvidenceCandidate, TemporalProvenance, TemporalReference, TemporalRetrievalIntent,
-    TemporalSource, TemporalValidity,
+    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrievalStage,
+    RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate, StructuredContext,
+    TemporalContext, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalProvenance,
+    TemporalReference, TemporalRetrievalIntent, TemporalSource, TemporalValidity,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_form::rust_binding::BoundedSequence;
 
 const DECISION_AT: u64 = 1_000;
 
@@ -187,11 +188,12 @@ fn temporal_evidence(case: &QueryCase) -> TemporalEvidenceBatch {
 }
 
 fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> RetrievalExplanation {
-    let intent = conduit_ai::RetrievalIntent {
-        identity: case.identity.into(),
-        modes: case.modes.clone(),
-        maximum_candidates: 16,
-    };
+    let intent = conduit_ai::RetrievalIntent::new(
+        RetrievalIntentIdentity::new(case.identity.into()).unwrap(),
+        RetrievalModes::new(BoundedSequence::try_from_iter(case.modes.clone()).unwrap()).unwrap(),
+        16,
+    )
+    .unwrap();
     intent.validate().unwrap();
     let stages = stages(case, vector_identity);
     let temporal_evidence = temporal_evidence(case);
@@ -353,7 +355,9 @@ fn cases() -> Vec<QueryCase> {
         },
         QueryCase {
             identity: "query/latest",
-            modes: vec![RetrievalMode::Temporal(TemporalRetrievalIntent::LatestEvidence)],
+            modes: vec![
+                RetrievalMode::temporal(TemporalRetrievalIntent::LatestEvidence).unwrap(),
+            ],
             hard_filter: Some(TemporalRetrievalIntent::LatestEvidence),
             evidence: vec![
                 evidence(2, 1, "commit/old", "repository", "R4 merged.", (700, TemporalValidity::Historical, Some(799), None)),
@@ -366,9 +370,10 @@ fn cases() -> Vec<QueryCase> {
         },
         QueryCase {
             identity: "query/duration",
-            modes: vec![RetrievalMode::Boundary(
+            modes: vec![RetrievalMode::boundary(
                 TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap(),
-            )],
+            )
+            .unwrap()],
             hard_filter: Some(
                 TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap(),
             ),
@@ -383,9 +388,10 @@ fn cases() -> Vec<QueryCase> {
         },
         QueryCase {
             identity: "query/historical",
-            modes: vec![RetrievalMode::Temporal(
+            modes: vec![RetrievalMode::temporal(
                 TemporalRetrievalIntent::state_valid_at(250).unwrap(),
-            )],
+            )
+            .unwrap()],
             hard_filter: Some(TemporalRetrievalIntent::state_valid_at(250).unwrap()),
             evidence: vec![
                 evidence(6, 1, "sign/state-a", "sign", "R2 was active.", (200, TemporalValidity::Historical, Some(299), None)),
@@ -398,7 +404,10 @@ fn cases() -> Vec<QueryCase> {
         },
         QueryCase {
             identity: "query/stale",
-            modes: vec![RetrievalMode::Metadata, RetrievalMode::Temporal(TemporalRetrievalIntent::LatestEvidence)],
+            modes: vec![
+                RetrievalMode::Metadata,
+                RetrievalMode::temporal(TemporalRetrievalIntent::LatestEvidence).unwrap(),
+            ],
             hard_filter: None,
             evidence: vec![
                 evidence(8, 1, "status/current", "sign", "R5 is accepted.", (800, TemporalValidity::Current, None, None)),
@@ -415,12 +424,13 @@ fn cases() -> Vec<QueryCase> {
             modes: vec![
                 RetrievalMode::Exact,
                 RetrievalMode::Metadata,
-                RetrievalMode::Temporal(
+                RetrievalMode::temporal(
                     TemporalRetrievalIntent::evidence_within(
                         conduit_ai::TemporalRetrievalWindow::new(850, 950).unwrap(),
                     )
                     .unwrap(),
-                ),
+                )
+                .unwrap(),
             ],
             hard_filter: None,
             evidence: vec![
@@ -441,13 +451,16 @@ fn all_six_query_classes_retain_bounded_machine_readable_explanations() {
     let receipts = cases().iter().map(|case| execute(case, "model/local-a@1", "vector/index-a@7")).collect::<Vec<_>>();
     assert_eq!(receipts.len(), 6);
     for receipt in &receipts {
-        assert!(!receipt.intent.modes.is_empty());
+        assert!(!receipt.intent.modes().get().is_empty());
         assert!(!receipt.stages.is_empty());
         assert!(!receipt.metadata_filters.is_empty());
         assert!(!receipt.fused.is_empty());
         assert!(!receipt.reranking.candidates.is_empty());
         assert!(!receipt.context.items.is_empty());
-        assert_eq!(receipt.answer.request_identity, format!("request/{}", receipt.intent.identity));
+        assert_eq!(
+            receipt.answer.request_identity,
+            format!("request/{}", receipt.intent.identity().get())
+        );
         for citation in &receipt.answer.citations {
             assert!(receipt.context.items.iter().any(|item| {
                 let chunk = &item.reranked.candidate.chunk;

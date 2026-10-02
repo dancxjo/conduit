@@ -11,12 +11,10 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     ChunkIdentity, ContextBudgetCost, ContextSelectionOutcome, ContextSelectionRationale,
-    GroundedClaim, GroundingDisposition, ModelResultProvenance, RetrievalScore, SourceSpan,
-    SourceSpanUnit, TemporalRetrievalIntent,
+    GroundedClaim, GroundingDisposition, ModelResultProvenance, RetrievalIntent, RetrievalMode,
+    RetrievalScore, SourceSpan, SourceSpanUnit,
 };
 
-pub const MAXIMUM_RETRIEVAL_MODES: usize = 8;
-pub const MAXIMUM_RETRIEVAL_CANDIDATES: u16 = 1_024;
 pub const MAXIMUM_TRANSFORM_LINEAGE: usize = 16;
 pub const MAXIMUM_CONTEXT_ITEMS: usize = 64;
 pub const MAXIMUM_CITATIONS: usize = 128;
@@ -26,20 +24,6 @@ pub const MAXIMUM_GROUNDING_LIMITATIONS: usize = 32;
 pub const MAXIMUM_RAG_IDENTITY_BYTES: usize = 256;
 pub const MAXIMUM_RAG_TEXT_BYTES: usize = 2_048;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RetrievalMode {
-    Semantic,
-    Exact,
-    Metadata,
-    Temporal(TemporalRetrievalIntent),
-    Boundary(TemporalRetrievalIntent),
-}
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RetrievalIntent {
-    pub identity: String,
-    pub modes: Vec<RetrievalMode>,
-    pub maximum_candidates: u16,
-}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceRef {
     pub resource: BoundedResourceRef,
@@ -103,12 +87,8 @@ pub struct GroundedResult {
 pub enum RagSemanticRefusal {
     EmptyIdentity,
     IdentityTooLarge,
-    EmptyIntent,
-    TooManyRetrievalModes,
     DuplicateRetrievalMode,
     InvalidTemporalIntent,
-    CandidateLimitZero,
-    CandidateLimitExceeded,
     InvalidResourceReference,
     SpanOutsideSource,
     MissingItemExtent,
@@ -135,28 +115,21 @@ pub enum RagSemanticRefusal {
 
 impl RetrievalIntent {
     pub fn validate(&self) -> Result<(), RagSemanticRefusal> {
-        validate_identity(&self.identity)?;
-        if self.modes.is_empty() {
-            return Err(RagSemanticRefusal::EmptyIntent);
-        }
-        if self.modes.len() > MAXIMUM_RETRIEVAL_MODES {
-            return Err(RagSemanticRefusal::TooManyRetrievalModes);
-        }
-        for (index, mode) in self.modes.iter().enumerate() {
-            if self.modes[index + 1..].contains(mode) {
+        let modes = self.modes().get();
+        for (index, mode) in modes.iter().enumerate() {
+            if modes.as_slice()[index + 1..].contains(mode) {
                 return Err(RagSemanticRefusal::DuplicateRetrievalMode);
             }
-            if let RetrievalMode::Temporal(intent) | RetrievalMode::Boundary(intent) = mode {
+            let temporal_intent = match mode {
+                RetrievalMode::Temporal(payload) => Some(payload.intent()),
+                RetrievalMode::Boundary(payload) => Some(payload.intent()),
+                _ => None,
+            };
+            if let Some(intent) = temporal_intent {
                 intent
                     .validate()
                     .map_err(|_| RagSemanticRefusal::InvalidTemporalIntent)?;
             }
-        }
-        if self.maximum_candidates == 0 {
-            return Err(RagSemanticRefusal::CandidateLimitZero);
-        }
-        if self.maximum_candidates > MAXIMUM_RETRIEVAL_CANDIDATES {
-            return Err(RagSemanticRefusal::CandidateLimitExceeded);
         }
         Ok(())
     }
@@ -285,7 +258,7 @@ impl<T> Candidate<T> {
         if self.rank == 0 {
             return Err(RagSemanticRefusal::RankZero);
         }
-        if self.rank > intent.maximum_candidates {
+        if self.rank > *intent.maximum_candidates() {
             return Err(RagSemanticRefusal::RankExceedsIntent);
         }
         if self.retrieval_basis.is_empty() {

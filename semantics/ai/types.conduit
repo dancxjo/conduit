@@ -265,6 +265,26 @@ type TemporalRetrievalIntent =
         window: TemporalRetrievalWindow
     }
 
+type RetrievalMode =
+    semantic
+    | exact
+    | metadata
+    | temporal {
+        intent: TemporalRetrievalIntent
+    }
+    | boundary {
+        intent: TemporalRetrievalIntent
+    }
+
+type RetrievalModes = sequence RetrievalMode in 1..=8
+type RetrievalIntentIdentity = Text <= 256B not in [""]
+
+type RetrievalIntent = {
+    identity: RetrievalIntentIdentity
+    modes: RetrievalModes
+    maximum_candidates: U16 in 1..=1024
+}
+
 type TemporalValidity =
     current
     | historical
