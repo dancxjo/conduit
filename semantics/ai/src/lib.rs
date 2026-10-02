@@ -11,7 +11,7 @@ mod generated {
 pub use generated::{
     BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, ClassificationLabel,
     ClassificationLabels, CompatibleMetrics, ContextOmissionReason, ContextOrderingPolicy,
-    ContextRedundancyPolicy, ContextSelectionRationale, ContextSelectionRefusal,
+    ContextRedundancyPolicy, ContextSelectionPolicy, ContextSelectionRationale, ContextSelectionRefusal,
     ConfidencePermille, ContextTruncationReason, DataHandling, DrawRelationship, DrawRelationshipCorrelated,
     DynamicsRefusal, EmbeddingNormalization, EmbodimentStage, EntityBoundary,
     EvaluationDisposition, EvaluationPolicy, ExactVectorSearchRefusal, ExtractedField,
