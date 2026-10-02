@@ -1,6 +1,8 @@
 use conduit_ai::{
     AnswerSpan, CitationIndices, ContextBudgetCost, ContextSelectionOutcome,
-    ContextTruncationReason, GroundedClaim, RetrievalScore, SourceSpan, SourceSpanUnit,
+    ContextTruncationReason, GroundedClaim, RetrievalIntent, RetrievalIntentIdentity,
+    RetrievalMode, RetrievalModes, RetrievalScore, SourceSpan, SourceSpanUnit,
+    TemporalRetrievalIntent,
 };
 use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
@@ -67,4 +69,43 @@ fn grounded_claim_owns_a_nonempty_bounded_citation_list() {
     let rust = include_str!("../src/rag_semantics.rs");
     assert!(!rust.contains(concat!("pub struct ", "GroundedClaim")));
     assert!(!rust.contains("ClaimWithoutCitation"));
+}
+
+#[test]
+fn retrieval_intent_owns_its_modes_identity_and_candidate_ceiling() {
+    let modes = RetrievalModes::new(
+        BoundedSequence::try_from_iter([
+            RetrievalMode::Semantic,
+            RetrievalMode::Exact,
+            RetrievalMode::Metadata,
+            RetrievalMode::temporal(TemporalRetrievalIntent::LatestEvidence).unwrap(),
+            RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap(),
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+    round_trip(
+        RetrievalIntent::new(
+            RetrievalIntentIdentity::new("x".repeat(256)).unwrap(),
+            modes,
+            1_024,
+        )
+        .unwrap(),
+    );
+
+    assert!(RetrievalIntentIdentity::new(String::new()).is_err());
+    assert!(RetrievalIntentIdentity::new("x".repeat(257)).is_err());
+    assert!(RetrievalModes::new(BoundedSequence::new()).is_err());
+    assert!(RetrievalIntent::new(
+        RetrievalIntentIdentity::new("intent/x".into()).unwrap(),
+        RetrievalModes::new(BoundedSequence::try_from_iter([RetrievalMode::Exact]).unwrap())
+            .unwrap(),
+        0,
+    )
+    .is_err());
+    assert!(!include_str!("../src/rag_semantics.rs")
+        .contains(concat!("pub struct ", "RetrievalIntent")));
+    assert!(
+        !include_str!("../src/rag_semantics.rs").contains(concat!("pub enum ", "RetrievalMode"))
+    );
 }

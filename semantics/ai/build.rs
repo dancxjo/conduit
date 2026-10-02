@@ -44,6 +44,7 @@ fn main() {
                 "ContextSelectionOutcome".into(),
                 "ContextSelectionDisposition".into(),
                 "MissingModalityPolicy".into(),
+                "RetrievalMode".into(),
             ]
             .into(),
             serde_record_types: [
@@ -221,6 +222,14 @@ fn main() {
                         "chunk_identity".into(),
                         "score_micros".into(),
                         "work_units".into(),
+                    ],
+                ),
+                (
+                    "RetrievalIntent".into(),
+                    vec![
+                        "identity".into(),
+                        "modes".into(),
+                        "maximum_candidates".into(),
                     ],
                 ),
                 (

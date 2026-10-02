@@ -7,9 +7,10 @@ use conduit_ai::{
     MechanismScore, ModelDerivedResult, ModelResultDisposition, ModelResultProvenance,
     ModelWorkAccounting, ProposedClaimSupport, ProposedGroundedClaim, RerankScore,
     RerankedCandidate, RerankingProofClass, RetrievalContribution, RetrievalIntent,
-    RetrievalMechanism, RetrievalMode, RetrieverIdentity, SelectedContextCost, SelectedContextItem,
-    SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, StructuredContext,
-    TemporalProvenance, TemporalRetrievalIntent, TemporalRetrievalWindow, TemporalSource,
+    RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes, RetrieverIdentity,
+    SelectedContextCost, SelectedContextItem, SelectedContextRationale, SourceRef, SourceSpan,
+    SourceSpanUnit, StructuredContext, TemporalProvenance, TemporalRetrievalIntent,
+    TemporalRetrievalWindow, TemporalSource,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -18,6 +19,18 @@ use conduit_core::{
 use conduit_form::rust_binding::BoundedSequence;
 
 const ANSWER: &[u8] = b"Recent summary is unsafe; project origin is April.";
+
+fn retrieval_intent(
+    identity: &str,
+    modes: impl IntoIterator<Item = RetrievalMode>,
+) -> RetrievalIntent {
+    RetrievalIntent::new(
+        RetrievalIntentIdentity::new(identity.into()).unwrap(),
+        RetrievalModes::new(BoundedSequence::try_from_iter(modes).unwrap()).unwrap(),
+        8,
+    )
+    .unwrap()
+}
 
 fn selected(version: u8, rank: u16, text: &str) -> SelectedContextItem {
     let chunk = Chunk::new(
@@ -95,13 +108,10 @@ fn request(disposition: ContextSelectionDisposition) -> GroundedAnswerRequest {
     ];
     GroundedAnswerRequest {
         identity: "request/r5".into(),
-        retrieval_intent: RetrievalIntent {
-            identity: "intent/project-origin".into(),
-            modes: vec![RetrievalMode::Boundary(
-                TemporalRetrievalIntent::EarliestEvidence,
-            )],
-            maximum_candidates: 8,
-        },
+        retrieval_intent: retrieval_intent(
+            "intent/project-origin",
+            [RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap()],
+        ),
         context: StructuredContext {
             policy_identity: "context/reranked-diverse@1".into(),
             token_accounting_profile: "tokens/exact-fixture@1".into(),
@@ -209,23 +219,20 @@ fn old_observation_origin_and_valid_at_intents_keep_temporal_truth() {
         Ok(TemporalRelation::Present)
     );
     for intent in [
-        RetrievalIntent {
-            identity: "intent/origin".into(),
-            modes: vec![RetrievalMode::Boundary(
-                TemporalRetrievalIntent::EarliestEvidence,
-            )],
-            maximum_candidates: 8,
-        },
-        RetrievalIntent {
-            identity: "intent/valid-at".into(),
-            modes: vec![RetrievalMode::Temporal(
+        retrieval_intent(
+            "intent/origin",
+            [RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap()],
+        ),
+        retrieval_intent(
+            "intent/valid-at",
+            [RetrievalMode::temporal(
                 TemporalRetrievalIntent::evidence_within(
                     TemporalRetrievalWindow::new(200, 300).unwrap(),
                 )
                 .unwrap(),
-            )],
-            maximum_candidates: 8,
-        },
+            )
+            .unwrap()],
+        ),
     ] {
         assert_eq!(intent.validate(), Ok(()));
     }
@@ -236,10 +243,8 @@ fn injection_and_unsupported_first_rank_cannot_gain_authority_or_support() {
     let request = request(ContextSelectionDisposition::Complete);
     assert_eq!(request.context.items[0].reranked.reranked_rank, 1);
     assert_eq!(
-        request.retrieval_intent.modes,
-        vec![RetrievalMode::Boundary(
-            TemporalRetrievalIntent::EarliestEvidence
-        )]
+        request.retrieval_intent.modes().get().as_slice(),
+        [RetrievalMode::boundary(TemporalRetrievalIntent::EarliestEvidence).unwrap()]
     );
     let claims = vec![
         ProposedGroundedClaim {
