@@ -76,7 +76,10 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert!(born.wake_id.is_none() && born.plan_id.is_none());
     front_door.observe_journey(born.clone()).unwrap();
     let born_presentation = front_door.presentation().unwrap();
-    assert!(born_presentation.basis.body_id.is_none());
+    assert_eq!(born_presentation.basis.body_id, born.body_id);
+    assert!(born_presentation.basis.wake_id.is_none());
+    assert!(born_presentation.basis.plan_id.is_none());
+    assert!(born_presentation.basis.active_play_id.is_none());
     assert_current_action(&front_door, JourneyAction::Wake);
     assert!(
         born_presentation
