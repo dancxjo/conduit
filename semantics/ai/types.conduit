@@ -306,6 +306,19 @@ type ClockBasis =
         identity: ClockIdentity
     }
 
+type TemporalProvenance = {
+    event_at: U64?
+    valid_from: U64?
+    valid_until: U64?
+    observed_at: U64?
+    recorded_at: U64?
+    ingested_at: U64?
+    retrieved_at: U64
+    reference_at: U64
+    clock_basis: ClockBasis
+    uncertainty_millis: U64?
+}
+
 type TemporalReference = {
     reference_at: U64
     clock_basis: ClockBasis
