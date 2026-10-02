@@ -126,6 +126,8 @@ fn run_make(target: MakeTarget, opts: &GlobalOpts) -> Result<(), Box<dyn std::er
         MakeTarget::PicoLocal(mut args) => run_pico(opts, &mut args, true),
         MakeTarget::Conduitos(args) => commands::conduitos::run(args, opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        MakeTarget::Handbook(args) => commands::handbook::run_handbook(args),
+        MakeTarget::PagesRoot(args) => commands::handbook::run_pages_root(args),
         MakeTarget::UnifontSubset(args) => commands::unifont_subset::run(args),
         MakeTarget::PaletteIcons(args) => commands::palette_icons::run(args),
         MakeTarget::StartupCue(args) => commands::audio::cue::render(opts, &args.output),
