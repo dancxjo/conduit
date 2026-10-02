@@ -1,7 +1,7 @@
 //! Current Workspace acceptance using real guest input and QMP captures.
 //! Retired Tour chapter progress is not a substitute for this application.
 use super::{
-    ConduitosArch, ConduitosError, hid_qmp, image, journey_input, journey_records, profile::Paths,
+    ConduitosArch, ConduitosError, hid_qmp, journey_input, journey_records, profile::Paths,
     report::git_head,
 };
 use crate::cli::GlobalOpts;
@@ -23,15 +23,6 @@ struct WorkspaceScenario {
 struct WorkspaceAction {
     id: String,
     capture: String,
-}
-
-pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    if opts.dry_run {
-        return Err(refusal("real QEMU execution is required"));
-    }
-    let paths = Paths::new(ConduitosArch::X86_64)?;
-    let image = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
-    execute_supplied(opts, &paths.iso, image.iso_sha256)
 }
 
 pub(super) fn execute_supplied(
