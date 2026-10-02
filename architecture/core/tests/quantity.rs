@@ -121,6 +121,54 @@ fn percentage_and_dimensionless_one_convert_without_float_truth() {
 }
 
 #[test]
+fn civil_and_medieval_time_units_convert_exactly() {
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::Moment).convert(QuantityUnit::Second),
+        Ok(Quantity::new(90, QuantityUnit::Second))
+    );
+    assert_eq!(
+        Quantity::new(40, QuantityUnit::Moment).convert(QuantityUnit::Hour),
+        Ok(Quantity::new(1, QuantityUnit::Hour))
+    );
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::Fortnight).convert(QuantityUnit::Day),
+        Ok(Quantity::new(14, QuantityUnit::Day))
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("3moment"),
+        Ok(Quantity::new(3, QuantityUnit::Moment))
+    );
+}
+
+#[test]
+fn uncommon_engineering_historical_and_scientific_units_are_exact() {
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::Furlong).convert(QuantityUnit::Chain),
+        Ok(Quantity::new(10, QuantityUnit::Chain))
+    );
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::League).convert(QuantityUnit::Mile),
+        Ok(Quantity::new(3, QuantityUnit::Mile))
+    );
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::Inch).convert(QuantityUnit::Micrometer),
+        Ok(Quantity::new(25_400, QuantityUnit::Micrometer))
+    );
+    assert_eq!(
+        Quantity::new(8, QuantityUnit::Bit).convert(QuantityUnit::Byte),
+        Ok(Quantity::new(1, QuantityUnit::Byte))
+    );
+    assert_eq!(
+        Quantity::new(60, QuantityUnit::Arcsecond).convert(QuantityUnit::Arcminute),
+        Ok(Quantity::new(1, QuantityUnit::Arcminute))
+    );
+    assert_eq!(
+        QuantityUnit::AstronomicalUnit.semantic_id(),
+        "length/astronomical-unit"
+    );
+}
+
+#[test]
 fn canonical_multiplication_overflow_is_explicit() {
     assert_eq!(
         Quantity::new(i64::MAX, QuantityUnit::Second).convert(QuantityUnit::Nanosecond),
@@ -223,11 +271,11 @@ fn form_literals_refuse_missing_unknown_inexact_and_overflowing_parts() {
         Err(QuantityLiteralRefusal::MissingUnit)
     );
     assert_eq!(
-        Quantity::parse_form_literal("17fortnight"),
+        Quantity::parse_form_literal("17parsec"),
         Err(QuantityLiteralRefusal::UnknownUnit)
     );
     assert_eq!(
-        Quantity::parse_form_literal("0.1ns"),
+        Quantity::parse_form_literal("0.1ps"),
         Err(QuantityLiteralRefusal::Inexact)
     );
     assert_eq!(
