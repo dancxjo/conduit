@@ -566,6 +566,58 @@ type RelationCandidateOutput = {
     sample_count: U32
 }
 
+type RelationDigest = collection U8 = 32
+type RelationQueryIdentity = collection U8 = 32
+type RelationIdentity = Text <= 128B not in [""]
+type RelationSemanticRole = Text <= 128B not in [""]
+
+type RelationVariable = {
+    identity: RelationIdentity
+    semantic_role: RelationSemanticRole
+    value: ModelValueConstraint
+}
+
+type RelationVariables = sequence RelationVariable in 1..=32
+type SupportedRelationQueries = sequence SupportedRelationQuery in 1..=64
+
+type ModelRelationSignature = {
+    identity: Text <= 128B not in [""]
+    compatibility_version: U32 in 1..=4294967295
+    callable_signature_identity: RelationDigest
+    variables: RelationVariables
+    supported_queries: SupportedRelationQueries
+}
+
+type RelationValue =
+    tensor {
+        value: TensorValue
+    }
+    | sampled_signal {
+        value: SampledSignal
+    }
+
+type RelationEvidence = {
+    variable: RelationVariableIdentity
+    value: RelationValue
+}
+
+type RelationEvidenceValues = sequence RelationEvidence in 1..=32
+
+type RelationQuery = {
+    identity: RelationQueryIdentity
+    artifact_identity: RelationDigest
+    checkpoint_identity: RelationDigest?
+    relation_signature_identity: RelationDigest
+    evidence: RelationEvidenceValues
+    targets: RelationVariableIdentities
+    mode: RelationQueryMode
+    requested_result: RelationResultProfile
+    randomness: RandomnessProfile
+    admitted_work_units: U64 in 1..=18446744073709551615
+    maximum_output_bytes: U64 in 1..=18446744073709551615
+}
+
+
 type ModelCachePolicy =
     no_cache
     | bounded {

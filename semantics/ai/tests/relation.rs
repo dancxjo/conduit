@@ -7,7 +7,7 @@ use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
-use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
 fn constraint() -> ModelValueConstraint {
     ModelValueConstraint::sampled_signal(
@@ -86,24 +86,27 @@ fn artifact(signature: &ModelSignature) -> ModelArtifact {
 
 fn relation(signature: &ModelSignature) -> ModelRelationSignature {
     let probabilistic = RelationResultProfile::probabilistic(4).unwrap();
-    ModelRelationSignature {
-        identity: "tongues/joint-relation".into(),
-        compatibility_version: 1,
-        callable_signature_identity: signature.semantic_digest().unwrap(),
-        variables: [
+    ModelRelationSignature::from_parts(
+        "tongues/joint-relation".into(),
+        1,
+        signature.semantic_digest().unwrap(),
+        [
             "acoustic-observation",
             "articulatory-observation",
             "latent-dynamics",
             "speaker-context",
         ]
         .into_iter()
-        .map(|identity| RelationVariable {
-            identity: identity.into(),
-            semantic_role: format!("tongues/{identity}"),
-            value: constraint(),
+        .map(|identity| {
+            RelationVariable::from_parts(
+                identity.into(),
+                format!("tongues/{identity}"),
+                constraint(),
+            )
+            .unwrap()
         })
         .collect(),
-        supported_queries: vec![
+        vec![
             SupportedRelationQuery::new(
                 variables(&["acoustic-observation"]),
                 variables(&["articulatory-observation"]),
@@ -132,7 +135,8 @@ fn relation(signature: &ModelSignature) -> ModelRelationSignature {
             )
             .unwrap(),
         ],
-    }
+    )
+    .unwrap()
 }
 
 fn variables(values: &[&str]) -> RelationVariableIdentities {
@@ -143,6 +147,10 @@ fn variables(values: &[&str]) -> RelationVariableIdentities {
 }
 
 fn signal(byte: u8) -> SampledSignal {
+    signal_with_role(byte, TensorAxisRole::Feature)
+}
+
+fn signal_with_role(byte: u8, feature_role: TensorAxisRole) -> SampledSignal {
     let bytes = vec![byte; 24];
     SampledSignal {
         clock_identity: "corpus/aligned".into(),
@@ -164,7 +172,7 @@ fn signal(byte: u8) -> SampledSignal {
                     unit: Some(conduit_core::QuantityUnit::Millisecond),
                 },
                 TensorAxis {
-                    role: TensorAxisRole::Feature,
+                    role: feature_role,
                     identity: Some("observation".into()),
                     unit: None,
                 },
@@ -184,22 +192,44 @@ fn query(
     mode: RelationQueryMode,
     byte: u8,
 ) -> RelationQuery {
-    RelationQuery {
-        identity: [byte.max(1); 32],
-        artifact_identity: artifact.content_identity(),
-        checkpoint_identity: Some([82; 32]),
-        relation_signature_identity: relation.semantic_digest().unwrap(),
-        evidence: vec![RelationEvidence {
-            variable: evidence.into(),
-            value: RelationValue::SampledSignal(signal(byte)),
-        }],
-        targets: vec![target.into()],
+    query_with_signal(
+        artifact,
+        relation,
+        evidence,
+        target,
         mode,
-        requested_result: RelationResultProfile::probabilistic(4).unwrap(),
-        randomness: RandomnessProfile::explicit_seed(42).unwrap(),
-        admitted_work_units: 80,
-        maximum_output_bytes: 200,
-    }
+        byte,
+        signal(byte),
+    )
+}
+
+fn query_with_signal(
+    artifact: &ModelArtifact,
+    relation: &ModelRelationSignature,
+    evidence: &str,
+    target: &str,
+    mode: RelationQueryMode,
+    byte: u8,
+    signal: SampledSignal,
+) -> RelationQuery {
+    RelationQuery::from_parts(
+        [byte.max(1); 32],
+        artifact.content_identity(),
+        Some([82; 32]),
+        relation.semantic_digest().unwrap(),
+        vec![RelationEvidence::from_parts(
+            evidence.into(),
+            RelationValue::sampled_signal(signal).unwrap(),
+        )
+        .unwrap()],
+        vec![target.into()],
+        mode,
+        RelationResultProfile::probabilistic(4).unwrap(),
+        RandomnessProfile::explicit_seed(42).unwrap(),
+        80,
+        200,
+    )
+    .unwrap()
 }
 
 fn candidate(target: &str, byte: u8) -> HostRelationTerminal {
@@ -221,6 +251,72 @@ fn candidate(target: &str, byte: u8) -> HostRelationTerminal {
             device_profile: "cpu/f32".into(),
         },
     }))
+}
+
+#[test]
+fn native_relation_family_round_trips_and_owns_intrinsic_bounds() {
+    let callable = callable_signature();
+    let artifact = artifact(&callable);
+    let relation = relation(&callable);
+    let query = query(
+        &artifact,
+        &relation,
+        "acoustic-observation",
+        "articulatory-observation",
+        RelationQueryMode::InferPosterior,
+        17,
+    );
+    let structured = relation.clone().into_structured().unwrap();
+    assert_eq!(
+        ModelRelationSignature::from_structured(structured).unwrap(),
+        relation
+    );
+    let structured = query.clone().into_structured().unwrap();
+    assert_eq!(RelationQuery::from_structured(structured).unwrap(), query);
+
+    assert!(
+        RelationVariable::from_parts("x".repeat(129), "relation/value@1".into(), constraint(),)
+            .is_err()
+    );
+    assert!(ModelRelationSignature::from_parts(
+        "relation/too-many-variables@1".into(),
+        1,
+        callable.semantic_digest().unwrap(),
+        (0..33)
+            .map(|index| {
+                RelationVariable::from_parts(
+                    format!("v-{index}"),
+                    "relation/value@1".into(),
+                    constraint(),
+                )
+                .unwrap()
+            })
+            .collect(),
+        vec![SupportedRelationQuery::from_parts(
+            vec!["v-0".into()],
+            vec!["v-1".into()],
+            RelationQueryMode::InferPosterior,
+            RelationResultProfile::Deterministic,
+            1,
+            1,
+        )
+        .unwrap()],
+    )
+    .is_err());
+    assert!(RelationQuery::from_parts(
+        [1; 32],
+        artifact.content_identity(),
+        None,
+        relation.semantic_digest().unwrap(),
+        Vec::new(),
+        vec!["articulatory-observation".into()],
+        RelationQueryMode::InferPosterior,
+        RelationResultProfile::Deterministic,
+        RandomnessProfile::Deterministic,
+        1,
+        1,
+    )
+    .is_err());
 }
 
 #[test]
@@ -292,16 +388,6 @@ fn missing_is_not_zero_and_undeclared_reverse_or_singleton_refuses() {
     assert!(relation
         .realize(&artifact, &zero, candidate("articulatory-observation", 91))
         .is_ok());
-    let mut missing = zero.clone();
-    missing.evidence.clear();
-    assert_eq!(
-        relation.realize(
-            &artifact,
-            &missing,
-            candidate("articulatory-observation", 91)
-        ),
-        Err(RelationRefusal::UnsupportedQuery)
-    );
     let unsupported = query(
         &artifact,
         &relation,
@@ -330,18 +416,15 @@ fn missing_is_not_zero_and_undeclared_reverse_or_singleton_refuses() {
         Err(RelationRefusal::UnsupportedQuery)
     );
 
-    let mut wrong_shape = query(
+    let wrong_shape = query_with_signal(
         &artifact,
         &relation,
         "acoustic-observation",
         "articulatory-observation",
         RelationQueryMode::InferPosterior,
         15,
+        signal_with_role(15, TensorAxisRole::Channel),
     );
-    let RelationValue::SampledSignal(value) = &mut wrong_shape.evidence[0].value else {
-        unreachable!()
-    };
-    value.samples.axes[1].role = TensorAxisRole::Channel;
     assert_eq!(
         relation.realize(
             &artifact,
