@@ -10,9 +10,11 @@ extern crate alloc;
 
 mod actions;
 mod draft;
+mod face;
 pub mod names;
 mod presentation;
 
 pub use actions::{BirthActionOutcome, BirthActions};
 pub use draft::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
+pub use face::{BirthFaceBasis, BirthFaceRefusal};
 pub use presentation::BirthPresentation;
