@@ -93,7 +93,7 @@ families are explicit exceptions.
 | Scope | P payloads to migrate | Non-P exceptions and class | Current blocker |
 |---|---|---|---|
 | `semantics/audio/**` | pitch, note/control events, tone intent, PCM semantic profiles/frame headers, channel layout, gate and terminal meaning | prepared renderers and implementation state are M; `PcmClip`, `PcmClipFrame`, `PcmClipError`, and `SoundInfoError` are borrowed codec views or codec/conversion failures and are W | none; the portable family is native and generated |
-| `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery and presentation state | browser-family installers and state machines are M; fixtures are C | bounded records and terminal review |
+| `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery, live-conversation evidence and presentation state | browser-family installers, prompt/state machines and delivery realizations are M; structured-value views and fixtures are C | none; the portable family is native and generated |
 | `semantics/data/**` | observations, provenance, measurements, windows, thresholds, plots, tensors, datasets, cadence/continuity, quantity-mapping policy and data-reference domain values | stores/prepared stores and operators are M; wire/codec refusals are W; corpus fixtures are C | remaining payload records, bounded collections and references |
 | Data file-copy terminal result | `semantics/data/types.conduit` | generated at build time; Catalog consumes the generated schema | yes | yes | file-copy contract and hosted copy behavior |
 | Reminder occurrence | `semantics/time/types.conduit` | generated at build time; Catalog consumes the generated schema | yes | yes | reminder fixture/delivery Form contracts |

@@ -15,9 +15,12 @@ pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
     BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
     DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
+    LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
+    LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
     MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
     MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
     MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
+    RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
 mod body_chat;
@@ -120,7 +123,7 @@ mod native_type_tests {
     }
 
     #[test]
-    fn message_attachments_keep_the_existing_leaf_bound_and_resource_contract() {
+    fn message_attachments_keep_the_authored_text_bound_and_resource_contract() {
         let reference = BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest([1; 32]),
             content_profile: KindId::from("messaging/attachment-content@1"),
@@ -134,12 +137,8 @@ mod native_type_tests {
                 expires_at: None,
             },
         };
-        let attachment = MessageAttachment::new(
-            reference,
-            "f".repeat(conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES),
-            "text/plain".into(),
-        )
-        .unwrap();
+        let attachment =
+            MessageAttachment::new(reference, "f".repeat(4_096), "text/plain".into()).unwrap();
         let structured = attachment.clone().into_structured().unwrap();
         assert_eq!(
             MessageAttachment::from_structured(structured).unwrap(),
@@ -147,7 +146,7 @@ mod native_type_tests {
         );
         assert!(MessageAttachment::new(
             attachment.content().clone(),
-            "f".repeat(conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES + 1),
+            "f".repeat(4_097),
             "text/plain".into(),
         )
         .is_err());
