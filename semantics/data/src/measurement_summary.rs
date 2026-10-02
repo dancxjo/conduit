@@ -13,7 +13,7 @@ pub fn summarize_measurement_window(
     let first = samples
         .first()
         .ok_or(MeasurementSummaryRefusal::EmptyWindow)?;
-    let unit = window.profile().unit;
+    let unit = window.profile().range.minimum.unit();
     let mut minimum = first.value.value();
     let mut maximum = minimum;
     let mut sum = 0_i128;

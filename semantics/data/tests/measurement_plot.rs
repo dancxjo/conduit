@@ -8,7 +8,6 @@ use conduit_form::{
 fn window(count: usize) -> BoundedMeasurementWindow {
     let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
         capacity: 8,
-        unit: QuantityUnit::Millivolt,
         range: MeasurementRange {
             minimum: Quantity::new(-100, QuantityUnit::Millivolt),
             maximum: Quantity::new(100, QuantityUnit::Millivolt),

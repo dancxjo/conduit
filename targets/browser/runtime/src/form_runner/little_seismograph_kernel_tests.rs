@@ -301,7 +301,6 @@ fn canonical_processing_runs_window_summary_hysteresis_and_plot_in_one_play() {
         conduit_data::measurement_window_profile_type(),
         conduit_data::encode_measurement_window_profile(&MeasurementWindowProfile {
             capacity: 2,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, QuantityUnit::Millivolt),

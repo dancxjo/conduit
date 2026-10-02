@@ -123,7 +123,6 @@ mod tests {
         assert_eq!(offer.limits, semantic.limits);
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 3,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, QuantityUnit::Millivolt),
@@ -176,7 +175,6 @@ mod tests {
         assert_eq!(execute(&malformed), Err(failure(2)));
         let empty = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 1,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, QuantityUnit::Millivolt),
                 maximum: Quantity::new(1, QuantityUnit::Millivolt),

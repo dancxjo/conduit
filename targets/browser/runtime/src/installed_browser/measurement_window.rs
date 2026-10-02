@@ -360,7 +360,6 @@ mod tests {
     fn profile() -> MeasurementWindowProfile {
         MeasurementWindowProfile {
             capacity: 2,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, QuantityUnit::Millivolt),

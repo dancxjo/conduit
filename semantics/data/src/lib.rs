@@ -17,14 +17,14 @@ pub use generated::{
     MeasurementPlotRefusal, MeasurementPlotSeries, MeasurementRange, MeasurementSample,
     MeasurementSummary, MeasurementSummaryRefusal, MeasurementThresholdDecision,
     MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
-    MeasurementThresholdStateCode, MeasurementThresholdTransition, MeasurementWindowRefusal,
-    NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScalarComparison, ScientificObservationRefusal, SignalContinuity,
-    SignalContinuityClockReset, SignalContinuityDiscontinuous, TabularColumnSpec,
-    TabularColumnType, TabularOptionalText, TabularPersonRow, TabularPersonRowSlot,
-    TabularPersonRowsFour, TabularQueryCompletion, TabularQueryError, TabularQueryOutcomeFour,
-    TabularQueryResultFour, TabularQueryStatus, TabularSchemaFour, TensorAxisRole,
-    TensorAxisRoleOther, TensorElement, TensorRefusal,
+    MeasurementThresholdStateCode, MeasurementThresholdTransition, MeasurementWindowProfile,
+    MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
+    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
+    ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
+    SignalContinuityDiscontinuous, TabularColumnSpec, TabularColumnType, TabularOptionalText,
+    TabularPersonRow, TabularPersonRowSlot, TabularPersonRowsFour, TabularQueryCompletion,
+    TabularQueryError, TabularQueryOutcomeFour, TabularQueryResultFour, TabularQueryStatus,
+    TabularSchemaFour, TensorAxisRole, TensorAxisRoleOther, TensorElement, TensorRefusal,
 };
 
 mod data_catalog;

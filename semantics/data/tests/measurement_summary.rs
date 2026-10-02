@@ -8,7 +8,6 @@ use conduit_form::{
 fn profile() -> MeasurementWindowProfile {
     MeasurementWindowProfile {
         capacity: 4,
-        unit: QuantityUnit::Millivolt,
         range: MeasurementRange {
             minimum: Quantity::new(i64::MIN, QuantityUnit::Millivolt),
             maximum: Quantity::new(i64::MAX, QuantityUnit::Millivolt),

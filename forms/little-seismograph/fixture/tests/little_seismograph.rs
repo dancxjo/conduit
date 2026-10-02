@@ -103,7 +103,6 @@ fn sample(value: i64, ticks: u64) -> MeasurementSample {
 fn deterministic_source_runs_the_exact_processing_pipeline() {
     let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
         capacity: 4,
-        unit: QuantityUnit::Millivolt,
         range: MeasurementRange {
             minimum: Quantity::new(-100, QuantityUnit::Millivolt),
             maximum: Quantity::new(100, QuantityUnit::Millivolt),
