@@ -247,6 +247,16 @@ fn main() {
                     ],
                 ),
                 (
+                    "TrainingObjective".into(),
+                    vec![
+                        "role".into(),
+                        "weight_millionths".into(),
+                        "configuration_identity".into(),
+                        "output_identity".into(),
+                        "participation".into(),
+                    ],
+                ),
+                (
                     "StochasticProvenance".into(),
                     vec![
                         "model_artifact_identity".into(),

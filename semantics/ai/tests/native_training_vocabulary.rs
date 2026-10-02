@@ -1,8 +1,9 @@
 use conduit_ai::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, ModelComputeLifecycle, ModelComputeOperation,
     ModelComputeRefusal, ModelSignatureRefusal, ObjectiveParticipation, PortableComputeClass,
-    RelationQueryMode, RelationRefusal, TrainingRefusal, TrainingResourceEnvelope,
-    VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
+    RelationQueryMode, RelationRefusal, TrainingObjective, TrainingObjectiveIdentity,
+    TrainingRefusal, TrainingResourceEnvelope, VectorIndexHealth, VectorIndexMaintenanceKind,
+    VectorIndexResourceRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -16,6 +17,32 @@ where
 
 #[test]
 fn training_vocabularies_round_trip_through_native_types() {
+    let objective_identity = |value: &str| TrainingObjectiveIdentity::new(value.into()).unwrap();
+    let objective = TrainingObjective::new(
+        objective_identity("acoustic-reconstruction"),
+        1_000_000,
+        objective_identity("tongues/acoustic-reconstruction@1"),
+        objective_identity("loss/acoustic"),
+        ObjectiveParticipation::Optimize,
+    )
+    .unwrap();
+    let structured = objective.clone().into_structured().unwrap();
+    assert_eq!(
+        TrainingObjective::from_structured(structured).unwrap(),
+        objective
+    );
+    assert!(TrainingObjective::new(
+        objective_identity("invalid-zero-weight"),
+        0,
+        objective_identity("tongues/invalid-zero-weight@1"),
+        objective_identity("loss/invalid"),
+        ObjectiveParticipation::Optimize,
+    )
+    .is_err());
+    assert!(
+        !include_str!("../src/training.rs").contains(concat!("pub struct ", "TrainingObjective"))
+    );
+
     assert_round_trip(
         TrainingResourceEnvelope::new(4096, 1_048_576, 2, 4096, 65_536, 3, 10_000, 16_384, 1)
             .unwrap(),
