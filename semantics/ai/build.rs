@@ -59,9 +59,11 @@ fn main() {
             .into(),
             copy_record_types: [
                 "CompatibleMetrics".into(),
+                "ContextOmission".into(),
                 "IntegrationAccuracy".into(),
                 "IntegrationResourceEnvelope".into(),
                 "RerankObservation".into(),
+                "SelectedContextCost".into(),
                 "GeneratedTextFlowEvidence".into(),
                 "LlmWorkBounds".into(),
                 "ModelWorkAccounting".into(),
@@ -72,9 +74,11 @@ fn main() {
             ]
             .into(),
             copy_record_value_getters: [
+                "ContextOmission".into(),
                 "IntegrationAccuracy".into(),
                 "IntegrationResourceEnvelope".into(),
                 "RerankObservation".into(),
+                "SelectedContextCost".into(),
                 "LlmWorkBounds".into(),
                 "ShadowResourceEnvelope".into(),
                 "SourceExtractionLimits".into(),
@@ -87,10 +91,12 @@ fn main() {
             ]
             .into(),
             public_record_fields: [
+                "ContextOmission".into(),
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
                 "IntegrationAccuracy".into(),
                 "ModelWorkAccounting".into(),
+                "SelectedContextCost".into(),
                 "TemporalReference".into(),
                 "ValidatedExtraction".into(),
             ]
@@ -108,6 +114,10 @@ fn main() {
                         "maximum_tokens".into(),
                         "maximum_work_units".into(),
                     ],
+                ),
+                (
+                    "ContextOmission".into(),
+                    vec!["chunk_identity".into(), "reason".into()],
                 ),
                 (
                     "FiniteClassification".into(),
@@ -238,6 +248,10 @@ fn main() {
                         "maximum_output_bytes".into(),
                         "maximum_work_units".into(),
                     ],
+                ),
+                (
+                    "SelectedContextCost".into(),
+                    vec!["bytes".into(), "tokens".into(), "work_units".into()],
                 ),
                 (
                     "ShadowResourceEnvelope".into(),
