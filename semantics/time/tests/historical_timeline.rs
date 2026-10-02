@@ -75,7 +75,10 @@ fn exact_typed_resources_time_origin_and_sequence_are_retained() {
         history.entry(1).unwrap().origin,
         HistoricalEntryOrigin::OperatorAuthored
     );
-    assert_eq!(history.entry(1).unwrap().event_time, time(6));
+    assert_eq!(
+        history.entry(1).unwrap().event_time,
+        time(6).try_into().unwrap()
+    );
 }
 
 #[test]

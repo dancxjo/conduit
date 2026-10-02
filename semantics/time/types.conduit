@@ -366,6 +366,43 @@ type HistoricalOverflowPolicy =
 
 code time/historical-overflow-policy = HistoricalOverflowPolicy as u8
 
+type HistoricalTimelineEntry = {
+    sequence: U64
+    identity: Text <= 128B not in [""]
+    event-time: TemporalInstant
+    origin: HistoricalEntryOrigin
+    value: ResourceRef
+}
+
+type HistoricalRetentionGap = {
+    first-sequence: U64
+    last-sequence: U64
+    entries: U64 in 1..=64
+    referenced-bytes: U64 in 1..=67108864
+    where .first-sequence <= .last-sequence
+}
+
+type HistoricalTimelineCommand =
+    append {
+        identity: Text <= 128B not in [""]
+        event-time: TemporalInstant
+        origin: HistoricalEntryOrigin
+        value: ResourceRef
+    }
+    | remove {
+        sequence: U64
+    }
+    | clear
+
+type HistoricalTimelineOutcome =
+    appended {
+        sequence: U64
+    }
+    | removed HistoricalTimelineEntry
+    | cleared {
+        revision: U64
+    }
+
 type ReplayPolicy =
     step
     | original-timing

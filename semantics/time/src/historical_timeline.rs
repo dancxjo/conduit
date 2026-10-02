@@ -6,7 +6,10 @@ use conduit_core::{
     MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES,
 };
 
-use crate::{HistoricalEntryOrigin, HistoricalOverflowPolicy};
+use crate::{
+    HistoricalEntryOrigin, HistoricalOverflowPolicy, HistoricalRetentionGap,
+    HistoricalTimelineEntry,
+};
 
 pub const MAXIMUM_HISTORICAL_TIMELINE_ENTRIES: usize = 64;
 pub const MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES: usize = 128;
@@ -14,23 +17,6 @@ pub const MAXIMUM_HISTORICAL_REFERENCED_BYTES: u64 = 64 * 1024 * 1024;
 
 pub const HISTORICAL_TIMELINE_KIND: &str = "history/bounded-typed";
 pub const HISTORICAL_TIMELINE_CONTRACT_REVISION: &str = "conduit.history/bounded-typed@1";
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HistoricalTimelineEntry {
-    pub sequence: u64,
-    pub identity: String,
-    pub event_time: TemporalInstant,
-    pub origin: HistoricalEntryOrigin,
-    pub value: BoundedResourceRef,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct HistoricalRetentionGap {
-    pub first_sequence: u64,
-    pub last_sequence: u64,
-    pub entries: u64,
-    pub referenced_bytes: u64,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct TimelineSlot {
@@ -154,7 +140,9 @@ impl BoundedHistoricalTimeline {
         self.slots[tail].entry = Some(HistoricalTimelineEntry {
             sequence: self.next_sequence,
             identity,
-            event_time,
+            event_time: event_time
+                .try_into()
+                .map_err(|_| HistoricalTimelineRefusal::InvalidEventTime)?,
             origin,
             value,
         });
@@ -373,7 +361,9 @@ impl BoundedHistoricalTimeline {
             {
                 return Err(HistoricalTimelineRefusal::InvalidSnapshot);
             }
-            timeline.validate_entry(&entry.identity, &entry.event_time, &entry.value)?;
+            let event_time = conduit_core::TemporalInstant::try_from(entry.event_time.clone())
+                .map_err(|_| HistoricalTimelineRefusal::InvalidEventTime)?;
+            timeline.validate_entry(&entry.identity, &event_time, &entry.value)?;
             if timeline.length == timeline.slots.len()
                 || timeline.referenced_bytes + entry.value.extent.bytes
                     > timeline.maximum_referenced_bytes

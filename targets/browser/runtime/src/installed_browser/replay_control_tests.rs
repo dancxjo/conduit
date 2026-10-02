@@ -161,7 +161,9 @@ fn replay_timeline() -> Vec<u8> {
             clock_basis: "memory/event-clock".into(),
             resolution_ticks: 1,
             uncertainty_ticks: 0,
-        },
+        }
+        .try_into()
+        .unwrap(),
         origin: conduit_time::HistoricalEntryOrigin::OperatorAuthored,
         value: BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest([1; 32]),

@@ -162,17 +162,19 @@ fn fragment() -> PlanFragment {
 fn append_command() -> Vec<u8> {
     let mut command = [0; conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES];
     let length = conduit_time::encode_historical_timeline_command_into(
-        &conduit_time::HistoricalTimelineCommand::Append {
-            identity: "memory/one".into(),
-            event_time: TemporalInstant {
+        &conduit_time::HistoricalTimelineCommand::append(
+            TemporalInstant {
                 ticks: 100,
                 scale: TemporalScale::Milliseconds,
                 clock_basis: "history/event-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
-            origin: conduit_time::HistoricalEntryOrigin::OperatorAuthored,
-            value: BoundedResourceRef {
+            }
+            .try_into()
+            .unwrap(),
+            "memory/one".into(),
+            conduit_time::HistoricalEntryOrigin::OperatorAuthored,
+            BoundedResourceRef {
                 identity: ResourceSemanticIdentity::from_digest([1; 32]),
                 content_profile: conduit_core::kind_id("value/text"),
                 access_class: ResourceClassId::from("conduit.resource/history-value@1"),
@@ -185,7 +187,8 @@ fn append_command() -> Vec<u8> {
                     expires_at: None,
                 },
             },
-        },
+        )
+        .unwrap(),
         &mut command,
     )
     .unwrap();
