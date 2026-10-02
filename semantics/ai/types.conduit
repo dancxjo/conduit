@@ -333,6 +333,20 @@ type RelationResultProfile =
         maximum_samples: U32 in 1..=4294967295
     }
 
+type RelationVariableIdentity = Text <= 128B not in [""]
+type RelationVariableIdentities = sequence RelationVariableIdentity in 1..=32
+
+type SupportedRelationQuery = {
+    evidence_variables: RelationVariableIdentities
+    target_variables: RelationVariableIdentities
+    mode: RelationQueryMode
+    result_profile: RelationResultProfile
+    maximum_work_units: U64
+    maximum_output_bytes: U64
+    where .maximum_work_units > 0
+    where .maximum_output_bytes > 0
+}
+
 type ModelCachePolicy =
     no_cache
     | bounded {

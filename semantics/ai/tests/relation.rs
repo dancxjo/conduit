@@ -96,35 +96,42 @@ fn relation(signature: &ModelSignature) -> ModelRelationSignature {
         })
         .collect(),
         supported_queries: vec![
-            SupportedRelationQuery {
-                evidence_variables: vec!["acoustic-observation".into()],
-                target_variables: vec!["articulatory-observation".into()],
-                mode: RelationQueryMode::InferPosterior,
-                result_profile: probabilistic.clone(),
-                maximum_work_units: 100,
-                maximum_output_bytes: 256,
-            },
-            SupportedRelationQuery {
-                evidence_variables: vec!["articulatory-observation".into()],
-                target_variables: vec!["acoustic-observation".into()],
-                mode: RelationQueryMode::DecodeGenerate,
-                result_profile: probabilistic.clone(),
-                maximum_work_units: 100,
-                maximum_output_bytes: 256,
-            },
-            SupportedRelationQuery {
-                evidence_variables: vec![
-                    "acoustic-observation".into(),
-                    "articulatory-observation".into(),
-                ],
-                target_variables: vec!["latent-dynamics".into()],
-                mode: RelationQueryMode::InferPosterior,
-                result_profile: probabilistic,
-                maximum_work_units: 100,
-                maximum_output_bytes: 256,
-            },
+            SupportedRelationQuery::new(
+                variables(&["acoustic-observation"]),
+                variables(&["articulatory-observation"]),
+                RelationQueryMode::InferPosterior,
+                probabilistic.clone(),
+                100,
+                256,
+            )
+            .unwrap(),
+            SupportedRelationQuery::new(
+                variables(&["articulatory-observation"]),
+                variables(&["acoustic-observation"]),
+                RelationQueryMode::DecodeGenerate,
+                probabilistic.clone(),
+                100,
+                256,
+            )
+            .unwrap(),
+            SupportedRelationQuery::new(
+                variables(&["acoustic-observation", "articulatory-observation"]),
+                variables(&["latent-dynamics"]),
+                RelationQueryMode::InferPosterior,
+                probabilistic,
+                100,
+                256,
+            )
+            .unwrap(),
         ],
     }
+}
+
+fn variables(values: &[&str]) -> RelationVariableIdentities {
+    let values = values
+        .iter()
+        .map(|value| RelationVariableIdentity::new((*value).into()).unwrap());
+    RelationVariableIdentities::new(BoundedSequence::try_from_iter(values).unwrap()).unwrap()
 }
 
 fn signal(byte: u8) -> SampledSignal {

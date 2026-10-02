@@ -80,8 +80,8 @@ impl ModelRelationSignature {
             .iter()
             .find(|pattern| pattern.matches(query))
             .ok_or(RelationRefusal::UnsupportedQuery)?;
-        if query.admitted_work_units > pattern.maximum_work_units
-            || query.maximum_output_bytes > pattern.maximum_output_bytes
+        if query.admitted_work_units > *pattern.maximum_work_units()
+            || query.maximum_output_bytes > *pattern.maximum_output_bytes()
         {
             return Err(RelationRefusal::WorkBoundExceeded);
         }
@@ -128,29 +128,21 @@ impl ModelRelationSignature {
 
 impl SupportedRelationQuery {
     fn validate_for(&self, signature: &ModelRelationSignature) -> Result<(), RelationRefusal> {
-        if self.evidence_variables.is_empty()
-            || self.target_variables.is_empty()
-            || self.evidence_variables.len() > MAXIMUM_RELATION_VALUES
-            || self.target_variables.len() > MAXIMUM_RELATION_VALUES
-            || self.maximum_work_units == 0
-            || self.maximum_output_bytes == 0
-            || duplicate(self.evidence_variables.iter())
-            || duplicate(self.target_variables.iter())
-            || self
-                .evidence_variables
-                .iter()
-                .any(|value| self.target_variables.contains(value))
+        let evidence = self.evidence_variables().get().as_slice();
+        let targets = self.target_variables().get().as_slice();
+        if duplicate_native(evidence)
+            || duplicate_native(targets)
+            || evidence.iter().any(|value| targets.contains(value))
         {
             return Err(RelationRefusal::InvalidPattern);
         }
-        for identity in self.evidence_variables.iter().chain(&self.target_variables) {
-            text(identity)?;
-            if signature.variable(identity).is_none() {
+        for identity in evidence.iter().chain(targets) {
+            if signature.variable(identity.get()).is_none() {
                 return Err(RelationRefusal::UnknownVariable);
             }
         }
         if matches!(
-            &self.result_profile,
+            self.result_profile(),
             RelationResultProfile::Probabilistic(profile) if *profile.maximum_samples() == 0
         ) {
             return Err(RelationRefusal::InvalidPattern);
@@ -159,23 +151,29 @@ impl SupportedRelationQuery {
     }
 
     fn same_query(&self, other: &Self) -> bool {
-        self.mode == other.mode
-            && same_set(&self.evidence_variables, &other.evidence_variables)
-            && same_set(&self.target_variables, &other.target_variables)
+        self.mode() == other.mode()
+            && same_native_set(
+                self.evidence_variables().get().as_slice(),
+                other.evidence_variables().get().as_slice(),
+            )
+            && same_native_set(
+                self.target_variables().get().as_slice(),
+                other.target_variables().get().as_slice(),
+            )
     }
 
     fn matches(&self, query: &RelationQuery) -> bool {
-        self.mode == query.mode
-            && self.result_profile == query.requested_result
-            && same_set(
-                &self.evidence_variables,
+        self.mode() == &query.mode
+            && self.result_profile() == &query.requested_result
+            && native_matches_strings(
+                self.evidence_variables().get().as_slice(),
                 &query
                     .evidence
                     .iter()
                     .map(|value| value.variable.clone())
                     .collect::<Vec<_>>(),
             )
-            && same_set(&self.target_variables, &query.targets)
+            && native_matches_strings(self.target_variables().get().as_slice(), &query.targets)
     }
 }
 
@@ -351,6 +349,24 @@ fn validate_constraint(value: &ModelValueConstraint) -> Result<(), RelationRefus
 
 fn same_set(left: &[String], right: &[String]) -> bool {
     left.len() == right.len() && left.iter().all(|value| right.contains(value))
+}
+
+fn same_native_set(left: &[RelationVariableIdentity], right: &[RelationVariableIdentity]) -> bool {
+    left.len() == right.len() && left.iter().all(|value| right.contains(value))
+}
+
+fn native_matches_strings(left: &[RelationVariableIdentity], right: &[String]) -> bool {
+    left.len() == right.len()
+        && left
+            .iter()
+            .all(|value| right.iter().any(|candidate| candidate == value.get()))
+}
+
+fn duplicate_native(values: &[RelationVariableIdentity]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .any(|(index, value)| values[index + 1..].contains(value))
 }
 
 fn duplicate<'a>(values: impl Iterator<Item = &'a String>) -> bool {

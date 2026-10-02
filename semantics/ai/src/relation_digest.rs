@@ -32,12 +32,12 @@ impl ModelRelationSignature {
         );
         bytes.extend_from_slice(&(self.supported_queries.len() as u64).to_le_bytes());
         for pattern in &self.supported_queries {
-            push_sorted_text(&mut bytes, &pattern.evidence_variables);
-            push_sorted_text(&mut bytes, &pattern.target_variables);
-            bytes.push(mode_tag(pattern.mode));
-            push_profile(&mut bytes, &pattern.result_profile);
-            bytes.extend_from_slice(&pattern.maximum_work_units.to_le_bytes());
-            bytes.extend_from_slice(&pattern.maximum_output_bytes.to_le_bytes());
+            push_sorted_native_text(&mut bytes, pattern.evidence_variables());
+            push_sorted_native_text(&mut bytes, pattern.target_variables());
+            bytes.push(mode_tag(*pattern.mode()));
+            push_profile(&mut bytes, pattern.result_profile());
+            bytes.extend_from_slice(&pattern.maximum_work_units().to_le_bytes());
+            bytes.extend_from_slice(&pattern.maximum_output_bytes().to_le_bytes());
         }
         Ok(semantic_digest("ai/model-relation-signature@1", &bytes))
     }
@@ -85,6 +85,19 @@ impl RelationQuery {
 
 fn push_sorted_text(output: &mut Vec<u8>, values: &[String]) {
     let mut values = values.iter().collect::<Vec<_>>();
+    values.sort();
+    output.extend_from_slice(&(values.len() as u64).to_le_bytes());
+    for value in values {
+        push_text(output, value);
+    }
+}
+
+fn push_sorted_native_text(output: &mut Vec<u8>, values: &RelationVariableIdentities) {
+    let mut values = values
+        .get()
+        .iter()
+        .map(RelationVariableIdentity::get)
+        .collect::<Vec<_>>();
     values.sort();
     output.extend_from_slice(&(values.len() as u64).to_le_bytes());
     for value in values {

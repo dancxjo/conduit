@@ -5,7 +5,8 @@ use conduit_data::{SampledSignal, TensorValue};
 
 use crate::{
     ModelValueConstraint, ProbabilisticDisposition, RandomnessProfile, RelationQueryMode,
-    RelationRefusal, RelationResultProfile, RelationTerminal,
+    RelationRefusal, RelationResultProfile, RelationTerminal, RelationVariableIdentities,
+    RelationVariableIdentity, SupportedRelationQuery,
 };
 
 #[path = "relation_digest.rs"]
@@ -22,16 +23,6 @@ pub struct RelationVariable {
     pub identity: String,
     pub semantic_role: String,
     pub value: ModelValueConstraint,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SupportedRelationQuery {
-    pub evidence_variables: Vec<String>,
-    pub target_variables: Vec<String>,
-    pub mode: RelationQueryMode,
-    pub result_profile: RelationResultProfile,
-    pub maximum_work_units: u64,
-    pub maximum_output_bytes: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
