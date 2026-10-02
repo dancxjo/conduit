@@ -1,18 +1,27 @@
 //! Finite observations of a process on an explicit source clock.
 
 use alloc::{boxed::Box, string::String, vec::Vec};
-use conduit_core::{semantic_digest, Quantity, QuantityUnit, TemporalInstant, TemporalScale};
+use conduit_core::{semantic_digest, Quantity, QuantityUnit, TemporalScale};
 
-use crate::{SampledSignalRefusal, SignalContinuity, TensorAxisRole, TensorValue};
+use crate::{SampledSignalRefusal, SignalContinuity, SignalStart, TensorAxisRole, TensorValue};
 
 pub const SAMPLED_SIGNAL_INFO_ID: &str = "data/sampled-signal@1";
 pub const MAXIMUM_SIGNAL_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_SIGNAL_PARTS: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SignalStart {
-    SampleIndex(u64),
-    Instant(TemporalInstant),
+impl SignalStart {
+    pub fn at_sample(index: u64) -> Self {
+        Self::sample_index(index).expect("every U64 sample index is valid")
+    }
+
+    pub fn at_instant(
+        instant: conduit_core::TemporalInstant,
+    ) -> Result<Self, SampledSignalRefusal> {
+        let instant = instant
+            .try_into()
+            .map_err(|_| SampledSignalRefusal::InvalidStart)?;
+        Self::instant(instant).map_err(|_| SampledSignalRefusal::InvalidStart)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,6 +83,7 @@ impl SampledSignal {
         match &self.start {
             SignalStart::SampleIndex(_) => {}
             SignalStart::Instant(instant) => instant
+                .value()
                 .validate()
                 .map_err(|_| SampledSignalRefusal::InvalidStart)?,
         }
@@ -134,26 +144,35 @@ impl SampledSignal {
             return Err(SampledSignalRefusal::WindowOutOfBounds);
         }
         let start = match &self.start {
-            SignalStart::SampleIndex(index) => SignalStart::SampleIndex(
+            SignalStart::SampleIndex(index) => SignalStart::at_sample(
                 index
+                    .index()
                     .checked_add(offset)
                     .ok_or(SampledSignalRefusal::TemporalOverflow)?,
             ),
             SignalStart::Instant(instant) => match &self.cadence {
                 SignalCadence::Regular { samples, per }
-                    if *samples == 1 && per.unit() == instant.scale.quantity_unit() =>
+                    if *samples == 1
+                        && per.unit()
+                            == conduit_core::TemporalScale::from(*instant.value().scale())
+                                .quantity_unit() =>
                 {
                     let delta = u64::try_from(per.value())
                         .map_err(|_| SampledSignalRefusal::TemporalOverflow)?
                         .checked_mul(offset)
                         .ok_or(SampledSignalRefusal::TemporalOverflow)?;
-                    SignalStart::Instant(TemporalInstant {
-                        ticks: instant
+                    let core: conduit_core::TemporalInstant = instant
+                        .value()
+                        .clone()
+                        .try_into()
+                        .map_err(|_| SampledSignalRefusal::InvalidStart)?;
+                    SignalStart::at_instant(conduit_core::TemporalInstant {
+                        ticks: core
                             .ticks
                             .checked_add(delta)
                             .ok_or(SampledSignalRefusal::TemporalOverflow)?,
-                        ..instant.clone()
-                    })
+                        ..core
+                    })?
                 }
                 _ => return Err(SampledSignalRefusal::InvalidCadence),
             },
@@ -189,9 +208,14 @@ impl SampledSignal {
         match &self.start {
             SignalStart::SampleIndex(index) => {
                 bytes.push(0);
-                bytes.extend_from_slice(&index.to_le_bytes());
+                bytes.extend_from_slice(&index.index().to_le_bytes());
             }
             SignalStart::Instant(instant) => {
+                let instant: conduit_core::TemporalInstant = instant
+                    .value()
+                    .clone()
+                    .try_into()
+                    .map_err(|_| SampledSignalRefusal::InvalidStart)?;
                 bytes.push(1);
                 bytes.extend_from_slice(&instant.ticks.to_le_bytes());
                 bytes.push(scale_tag(instant.scale));
@@ -249,8 +273,8 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
     if !matches!(first.start, SignalStart::SampleIndex(_)) {
         return Err(SampledSignalRefusal::IncompatibleSignals);
     }
-    let mut next = match first.start {
-        SignalStart::SampleIndex(index) => index,
+    let mut next = match &first.start {
+        SignalStart::SampleIndex(index) => *index.index(),
         _ => unreachable!(),
     };
     let mut count = 0_u64;
@@ -265,10 +289,10 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
         {
             return Err(SampledSignalRefusal::IncompatibleSignals);
         }
-        let SignalStart::SampleIndex(start) = part.start else {
+        let SignalStart::SampleIndex(start) = &part.start else {
             return Err(SampledSignalRefusal::IncompatibleSignals);
         };
-        if start != next {
+        if *start.index() != next {
             return Err(SampledSignalRefusal::NoncontiguousSignals);
         }
         next = next

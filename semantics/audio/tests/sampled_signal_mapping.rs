@@ -31,7 +31,7 @@ fn every_pcm_representation_maps_losslessly_to_the_generic_clock_contract() {
         let signal = pcm_as_sampled_signal(header, &payload).unwrap();
         signal.validate().unwrap();
         assert_eq!(signal.clock_identity, "audio/pcm-clock/17");
-        assert_eq!(signal.start, SignalStart::SampleIndex(120));
+        assert_eq!(signal.start, SignalStart::at_sample(120));
         assert_eq!(
             signal.cadence,
             SignalCadence::Regular {

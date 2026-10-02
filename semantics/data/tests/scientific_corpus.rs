@@ -42,7 +42,7 @@ fn f32_tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) 
 fn signal(clock: &str, channels: u64, value: f32) -> SampledSignal {
     SampledSignal {
         clock_identity: clock.into(),
-        start: SignalStart::SampleIndex(0),
+        start: SignalStart::at_sample(0),
         cadence: SignalCadence::Regular {
             samples: 100,
             per: Quantity::new(1, QuantityUnit::Second),

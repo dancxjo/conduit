@@ -180,6 +180,14 @@ type SignalContinuity =
         prior-clock: Text <= 128B not in [""]
     }
 
+type SignalStart =
+    sample-index {
+        index: U64
+    }
+    | instant {
+        value: TemporalInstant
+    }
+
 type RangePolicy =
     refuse
     | clamp

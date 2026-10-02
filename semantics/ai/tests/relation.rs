@@ -130,7 +130,7 @@ fn signal(byte: u8) -> SampledSignal {
     let bytes = vec![byte; 24];
     SampledSignal {
         clock_identity: "corpus/aligned".into(),
-        start: SignalStart::SampleIndex(0),
+        start: SignalStart::at_sample(0),
         cadence: SignalCadence::Regular {
             samples: 1,
             per: conduit_core::Quantity::new(1, conduit_core::QuantityUnit::Millisecond),

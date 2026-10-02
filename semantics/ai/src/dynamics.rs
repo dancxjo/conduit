@@ -343,7 +343,7 @@ impl IntegrationCandidate {
             .map_err(|_| DynamicsRefusal::InvalidTrajectory)?;
         if self.trajectory.clock_identity != contract.sampling.clock_identity
             || self.trajectory.sample_count != contract.sampling.coordinates.len() as u64
-            || !matches!(self.trajectory.start, SignalStart::SampleIndex(0))
+            || !matches!(&self.trajectory.start, SignalStart::SampleIndex(start) if *start.index() == 0)
         {
             return Err(DynamicsRefusal::InvalidTrajectory);
         }

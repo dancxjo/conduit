@@ -22,7 +22,7 @@ pub fn pcm_as_sampled_signal(
     };
     Ok(SampledSignal {
         clock_identity: format!("audio/pcm-clock/{}", header.clock_id()),
-        start: SignalStart::SampleIndex(header.start_frame()),
+        start: SignalStart::at_sample(header.start_frame()),
         cadence: SignalCadence::Regular {
             samples: u64::from(header.sample_rate_hz()),
             per: Quantity::new(1, QuantityUnit::Second),
@@ -76,7 +76,7 @@ pub fn sampled_signal_as_pcm(
         .and_then(|value| value.parse::<u64>().ok())
         .filter(|value| *value != 0)
         .ok_or(SoundInfoError::OutOfRange("pcm-clock-identity"))?;
-    let SignalStart::SampleIndex(start_frame) = signal.start else {
+    let SignalStart::SampleIndex(start_frame) = &signal.start else {
         return Err(SoundInfoError::OutOfRange("pcm-start"));
     };
     let SignalCadence::Regular { samples, per } = signal.cadence else {
@@ -118,7 +118,7 @@ pub fn sampled_signal_as_pcm(
         layout,
         frame_count,
         clock_id,
-        start_frame,
+        *start_frame.index(),
         discontinuity,
     )?;
     header.validate_payload(payload)?;
