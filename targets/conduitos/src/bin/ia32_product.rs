@@ -263,6 +263,13 @@ extern "C" fn conduitos_ia32_product_rust_entry(
             host.as_bytes(),
             boot.as_bytes(),
         );
+        // Keep the completed VGA writes before debugcon publication even though
+        // the port-I/O primitive declares no ordinary memory access.
+        core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
+        // Publish completion only after every volatile VGA cell write returns.
+        arch::present(b"CONDUIT_IA32_VGA_RECEIPT_WRITTEN ");
+        arch::present(boot.as_bytes());
+        arch::present(b"\n");
     }
     loop {
         unsafe { core::arch::asm!("hlt", options(nomem, nostack)) }
