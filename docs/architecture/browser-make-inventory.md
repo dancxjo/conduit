@@ -4,6 +4,17 @@ The authoritative configurable inventory is [`BROWSER_IMPLEMENTATIONS`](../../ta
 
 Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `conduit.browser/reviewed-distribution@1` / `browser-runtime-superset.wasm`, and carries finite instance and buffered-byte limits. The shared artifact may contain all implementations, but PROFILE admission and current runtime truth remain separate gates.
 
+The `cargo xtask make host release --platform browser` recipe builds the entire
+WASM dependency graph with size optimization
+(`opt-level = z`) and thin LTO. The reviewed superset measured 9,463,432 bytes
+with that recipe; fat LTO with one codegen unit still measured 8,735,379 bytes.
+The native server and browser bootstrap therefore admit runtime artifacts up to
+16 MiB. This download bound is separate from the unchanged 8 MiB page-profile
+heap allowance. Body Play reserves a finite 2,176 KiB value arena before
+execution: the reviewed resident Theremin workload requires 2,150,400 bytes
+under the current native structured contracts. Larger workloads still fail
+ordinary capacity admission.
+
 | Runtime mechanism | Make classification | Runtime prerequisite truth |
 | --- | --- | --- |
 | DOM presentation | selectable structural and portable presentation bases | initialized surface |

@@ -14,7 +14,7 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
-  await expect(birth.locator('[data-application-component="plot-field"]')).toHaveCount(4);
+  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
   await expect(birth.locator('[data-application-key="initial-plots"]')).toHaveAttribute("data-application-component", "choice-group");
   for (const checkbox of await birth.getByRole("checkbox").all()) {
     if (await checkbox.isChecked()) await checkbox.uncheck();

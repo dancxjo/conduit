@@ -18,9 +18,11 @@ pub(crate) const BROWSER_HOST_CALL_BINDINGS: usize =
     MAXIMUM_BROWSER_GEARS * BROWSER_HOST_CALLS_PER_GEAR as usize;
 pub(crate) const BROWSER_PENDING_REQUESTS: usize = MAXIMUM_BROWSER_GEARS;
 pub(crate) const BROWSER_VALUE_ITEMS: u16 = 160;
-// The continuous-audio path retains several admitted 4 KiB PCM queue slots alongside the
-// ordinary resident workspace Plots. Keep the exact arena finite at the next 128 KiB tier.
-pub(crate) const BROWSER_TOTAL_VALUE_BYTES: u32 = 640 * 1_024;
+// The native structured contracts admit up to 256 KiB per value. The reviewed
+// resident Theremin Body requires 2,150,400 bytes, including retained PCM and
+// pointer values; reserve the next 128 KiB tier before Play. This value arena
+// remains inside the browser profile's 8 MiB heap allowance.
+pub(crate) const BROWSER_TOTAL_VALUE_BYTES: u32 = 2_176 * 1_024;
 pub(crate) const BROWSER_SIGN_ITEMS: u16 = 256;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
