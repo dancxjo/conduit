@@ -46,6 +46,11 @@ impl NativeCompositor {
             cursor_visible: self.cursor.is_some(),
             focus_visible: self.focused_surface.is_some(),
         };
+        for (index, surface) in self.surfaces.iter_mut().enumerate() {
+            if scanout_pixels[index] > 0 {
+                surface.input_ready = true;
+            }
+        }
         self.scanout_pixels = scanout_pixels;
         self.damage.clear();
         Ok(receipt)
@@ -81,7 +86,7 @@ pub(super) fn compose_damage(
                 let selected = surfaces
                     .iter()
                     .enumerate()
-                    .filter(|(_, surface)| surface.visible && surface.is_ready())
+                    .filter(|(_, surface)| surface.visible && surface.is_raster_ready())
                     .filter(|(_, surface)| contains(surface, x, y))
                     .max_by_key(|(index, surface)| (surface.z, *index));
                 let mut pixel = if let Some((index, surface)) = selected {
@@ -128,7 +133,7 @@ pub(super) fn compose_damage(
 fn focus_pixel(surfaces: &[CompositorSurface], id: &str, x: u32, y: u32) -> bool {
     surfaces
         .iter()
-        .find(|surface| surface.surface_id == id && surface.visible && surface.is_ready())
+        .find(|surface| surface.surface_id == id && surface.visible && surface.is_raster_ready())
         .is_some_and(|surface| {
             let left = i64::from(surface.bounds.x);
             let top = i64::from(surface.bounds.y);
