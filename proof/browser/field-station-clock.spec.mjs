@@ -80,7 +80,8 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
       maximum_bytes: 8,
       constraints: [
         { CanonicalMembership: { members: [[65, 66, 49, 50], [67, 68, 51, 52]] } },
-        { TextPattern: { start_state: 0, maximum_input_characters: 8 } },
+        { TextPattern: { anchored_start: true, anchored_end: true, negated: false,
+          pattern: { start_state: 0, maximum_input_characters: 8 } } },
       ],
     },
   });

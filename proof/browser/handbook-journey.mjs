@@ -23,7 +23,7 @@ export async function beginHandbookJourney() {
   return {
     async capture(page, { id, title, action, observation }) {
       const screenshot = `${steps.length + 1}-${id}.png`;
-      await page.screenshot({ path: path.join(directory, screenshot), fullPage: true });
+      await page.screenshot({ path: path.join(directory, screenshot) });
       steps.push({ id, title, action, observation, screenshot,
         sha256: digest(await readFile(path.join(directory, screenshot))) });
     },
