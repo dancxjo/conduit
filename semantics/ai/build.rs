@@ -61,6 +61,7 @@ fn main() {
                 "CompatibleMetrics".into(),
                 "IntegrationAccuracy".into(),
                 "IntegrationResourceEnvelope".into(),
+                "RerankObservation".into(),
                 "GeneratedTextFlowEvidence".into(),
                 "LlmWorkBounds".into(),
                 "ModelWorkAccounting".into(),
@@ -73,6 +74,7 @@ fn main() {
             copy_record_value_getters: [
                 "IntegrationAccuracy".into(),
                 "IntegrationResourceEnvelope".into(),
+                "RerankObservation".into(),
                 "LlmWorkBounds".into(),
                 "ShadowResourceEnvelope".into(),
                 "SourceExtractionLimits".into(),
@@ -173,6 +175,14 @@ fn main() {
                         "maximum_output_bytes".into(),
                         "maximum_work_units".into(),
                         "maximum_history_items".into(),
+                    ],
+                ),
+                (
+                    "RerankObservation".into(),
+                    vec![
+                        "chunk_identity".into(),
+                        "score_micros".into(),
+                        "work_units".into(),
                     ],
                 ),
                 (
