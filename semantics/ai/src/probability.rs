@@ -205,7 +205,7 @@ impl MeanCovariance {
         if dimension > MAXIMUM_COVARIANCE_DIMENSION {
             return Err(ProbabilityRefusal::CovarianceDimensionOverflow);
         }
-        if self.covariance.dimensions != [dimension, dimension]
+        if self.covariance.dimensions.as_slice() != [dimension, dimension]
             || !matches!(
                 self.covariance.element,
                 TensorElement::F32 | TensorElement::F64

@@ -357,10 +357,10 @@ impl IntegrationCandidate {
             .flat_map(|value| value.to_le_bytes())
             .collect::<Vec<_>>();
         if coordinates.element != TensorElement::I64
-            || coordinates.dimensions != [contract.sampling.coordinates.len() as u64]
+            || coordinates.dimensions.as_slice() != [contract.sampling.coordinates.len() as u64]
             || coordinates.axes[0].unit != Some(contract.interval.unit)
             || coordinates.content_digest != tensor_content_digest(&expected_coordinates)
-            || !matches!(&coordinates.backing, TensorBacking::Inline(bytes) if bytes == &expected_coordinates)
+            || !matches!(&coordinates.backing, TensorBacking::Inline(bytes) if bytes.as_slice() == expected_coordinates)
         {
             return Err(DynamicsRefusal::InvalidTrajectory);
         }
@@ -373,8 +373,10 @@ impl IntegrationCandidate {
             .byte_count()
             .map_err(|_| DynamicsRefusal::InvalidTrajectory)?;
         if self.trajectory.samples.element != request.initial_state.value.element
-            || self.trajectory.samples.dimensions[1..] != request.initial_state.value.dimensions
-            || self.trajectory.samples.axes[1..] != request.initial_state.value.axes
+            || self.trajectory.samples.dimensions.as_slice()[1..]
+                != request.initial_state.value.dimensions.as_slice()[..]
+            || self.trajectory.samples.axes.as_slice()[1..]
+                != request.initial_state.value.axes.as_slice()[..]
             || sample_bytes
                 .checked_add(coordinate_bytes)
                 .is_none_or(|bytes| bytes > contract.resources.maximum_output_bytes)

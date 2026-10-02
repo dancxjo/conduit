@@ -4,6 +4,7 @@ use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn tensor(
     element: TensorElement,
@@ -13,10 +14,10 @@ fn tensor(
 ) -> TensorValue {
     TensorValue {
         element,
-        dimensions,
-        axes,
+        dimensions: BoundedSequence::try_from_iter(dimensions).unwrap(),
+        axes: BoundedSequence::try_from_iter(axes).unwrap(),
         content_digest: tensor_content_digest(&bytes),
-        backing: TensorBacking::Inline(bytes),
+        backing: TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap()),
     }
 }
 
@@ -257,7 +258,7 @@ fn exact_grid_stale_state_resource_bounds_and_unsupported_sde_refuse() {
         .flat_map(i64::to_le_bytes)
         .collect::<Vec<_>>();
     coordinates.content_digest = tensor_content_digest(&wrong);
-    coordinates.backing = TensorBacking::Inline(wrong);
+    coordinates.backing = TensorBacking::Inline(BoundedBytes::new(&wrong).unwrap());
     assert_eq!(
         contract.realize(
             &request,

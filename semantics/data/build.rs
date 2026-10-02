@@ -58,12 +58,14 @@ fn main() {
                 "DataGenerationDigest".into(),
                 "DatasetExampleIdentity".into(),
                 "ScientificObservationIdentity".into(),
+                "TensorResourceIdentity".into(),
             ]
             .into(),
             hash_nominal_types: [
                 "DataGenerationDigest".into(),
                 "DatasetExampleIdentity".into(),
                 "ScientificObservationIdentity".into(),
+                "TensorResourceIdentity".into(),
             ]
             .into(),
             copy_record_value_getters: ["DataGenerationNamespace".into()].into(),
@@ -79,6 +81,9 @@ fn main() {
                 "MeasurementWindowProfile".into(),
                 "SignalWindow".into(),
                 "SignalSummary".into(),
+                "TensorAxis".into(),
+                "TensorSummary".into(),
+                "TensorValue".into(),
             ]
             .into(),
             record_constructor_names: [("DataGenerationNamespace".into(), "from_digest".into())]

@@ -91,7 +91,7 @@ impl SampledSignal {
                 coordinates
                     .validate()
                     .map_err(|_| SampledSignalRefusal::InvalidCadence)?;
-                if coordinates.dimensions != [self.sample_count]
+                if coordinates.dimensions.as_slice() != [self.sample_count]
                     || coordinates.axes[0].role != TensorAxisRole::Time
                 {
                     return Err(SampledSignalRefusal::InvalidCadence);
@@ -270,7 +270,7 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
             || part.cadence != first.cadence
             || part.samples.element != first.samples.element
             || part.samples.axes != first.samples.axes
-            || part.samples.dimensions[1..] != first.samples.dimensions[1..]
+            || part.samples.dimensions.as_slice()[1..] != first.samples.dimensions.as_slice()[1..]
             || !matches!(part.continuity, SignalContinuity::Continuous)
         {
             return Err(SampledSignalRefusal::IncompatibleSignals);
@@ -295,8 +295,8 @@ pub fn concatenate(parts: &[SampledSignal]) -> Result<ConcatenatedSignal, Sample
         cadence: first.cadence.clone(),
         sample_count: count,
         element: first.samples.element,
-        sample_shape: first.samples.dimensions[1..].to_vec(),
-        axes: first.samples.axes.clone(),
+        sample_shape: first.samples.dimensions.as_slice()[1..].to_vec(),
+        axes: first.samples.axes.iter().cloned().collect(),
         source_parts: digests,
     })
 }

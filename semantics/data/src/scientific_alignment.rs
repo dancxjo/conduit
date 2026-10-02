@@ -139,9 +139,10 @@ impl CalibrationTransform {
             .validate()
             .map_err(|_| ScientificAlignmentRefusal::InvalidCalibration)?;
         if !matches!(self.linear.element, TensorElement::F32 | TensorElement::F64)
-            || self.linear.dimensions != [target.axes.len() as u64, source.axes.len() as u64]
+            || self.linear.dimensions.as_slice()
+                != [target.axes.len() as u64, source.axes.len() as u64]
             || self.translation.element != self.linear.element
-            || self.translation.dimensions != [target.axes.len() as u64]
+            || self.translation.dimensions.as_slice() != [target.axes.len() as u64]
         {
             return Err(ScientificAlignmentRefusal::CalibrationShapeMismatch);
         }

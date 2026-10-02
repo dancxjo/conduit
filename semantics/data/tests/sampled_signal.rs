@@ -1,5 +1,6 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::*;
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
     let payload = vec![0_u8; usize::try_from(count * channels * 4).unwrap()];
@@ -14,8 +15,8 @@ fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
         continuity: SignalContinuity::Continuous,
         samples: TensorValue {
             element: TensorElement::F32,
-            dimensions: vec![count, channels],
-            axes: vec![
+            dimensions: BoundedSequence::try_from_iter([count, channels]).unwrap(),
+            axes: BoundedSequence::try_from_iter([
                 TensorAxis {
                     role: TensorAxisRole::Time,
                     identity: Some("observation".into()),
@@ -26,9 +27,10 @@ fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
                     identity: Some("channel".into()),
                     unit: Some(QuantityUnit::One),
                 },
-            ],
+            ])
+            .unwrap(),
             content_digest: tensor_content_digest(&payload),
-            backing: TensorBacking::Inline(payload),
+            backing: TensorBacking::Inline(BoundedBytes::new(&payload).unwrap()),
         },
     }
 }
@@ -43,7 +45,7 @@ fn independently_clocked_audio_f0_and_articulation_do_not_invent_segments() {
         assert!(!format!("{:?}", value.summary().unwrap()).contains("phone"));
     }
     assert_ne!(audio.semantic_digest(), f0.semantic_digest());
-    assert_eq!(articulation.samples.dimensions, [8, 2]);
+    assert_eq!(articulation.samples.dimensions.as_slice(), [8, 2]);
 }
 
 #[test]

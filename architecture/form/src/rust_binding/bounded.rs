@@ -56,6 +56,22 @@ impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
         self.values.iter()
     }
 
+    pub fn as_slice(&self) -> &[T] {
+        &self.values
+    }
+
+    pub fn first(&self) -> Option<&T> {
+        self.values.first()
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        self.values.pop()
+    }
+
+    pub fn truncate(&mut self, length: usize) {
+        self.values.truncate(length);
+    }
+
     pub fn last(&self) -> Option<&T> {
         self.values.last()
     }
@@ -132,6 +148,12 @@ impl<T, const MAXIMUM: usize> core::ops::Index<usize> for BoundedSequence<T, MAX
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.values[index]
+    }
+}
+
+impl<T, const MAXIMUM: usize> core::ops::IndexMut<usize> for BoundedSequence<T, MAXIMUM> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.values[index]
     }
 }
 

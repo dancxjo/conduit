@@ -3,7 +3,7 @@ use conduit_core::{
     ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_data::*;
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
 fn example_pages<const N: usize>(
     identities: [[u8; 32]; N],
@@ -73,17 +73,15 @@ fn f32_tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) 
         .collect::<Vec<_>>();
     TensorValue {
         element: TensorElement::F32,
-        dimensions,
-        axes: roles
-            .into_iter()
-            .map(|role| TensorAxis {
-                role,
-                identity: None,
-                unit: Some(QuantityUnit::Millimeter),
-            })
-            .collect(),
+        dimensions: BoundedSequence::try_from_iter(dimensions).unwrap(),
+        axes: BoundedSequence::try_from_iter(roles.into_iter().map(|role| TensorAxis {
+            role,
+            identity: None,
+            unit: Some(QuantityUnit::Millimeter),
+        }))
+        .unwrap(),
         content_digest: tensor_content_digest(&bytes),
-        backing: TensorBacking::Inline(bytes),
+        backing: TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap()),
     }
 }
 
@@ -145,8 +143,8 @@ fn observation_set() -> ObservationSet {
             observation_identity: [2; 32],
             mask: TensorValue {
                 element: TensorElement::U8,
-                dimensions: vec![2, 2],
-                axes: vec![
+                dimensions: BoundedSequence::try_from_iter([2, 2]).unwrap(),
+                axes: BoundedSequence::try_from_iter([
                     TensorAxis {
                         role: TensorAxisRole::Time,
                         identity: None,
@@ -157,9 +155,10 @@ fn observation_set() -> ObservationSet {
                         identity: None,
                         unit: None,
                     },
-                ],
+                ])
+                .unwrap(),
                 content_digest: tensor_content_digest(&mask_bytes),
-                backing: TensorBacking::Inline(mask_bytes),
+                backing: TensorBacking::Inline(BoundedBytes::new(&mask_bytes).unwrap()),
             },
         }],
     }
@@ -284,7 +283,7 @@ fn clock_calibration_and_missingness_mismatches_refuse() {
         Err(ScientificObservationRefusal::ClockMismatch)
     );
     set = observation_set();
-    set.missing_data[0].mask.dimensions = vec![4];
+    set.missing_data[0].mask.dimensions = BoundedSequence::try_from_iter([4]).unwrap();
     set.missing_data[0].mask.axes.truncate(1);
     assert_eq!(
         set.validate(),
