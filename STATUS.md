@@ -126,6 +126,16 @@ Their presence is not an additional physical or release acceptance claim:
   speech or physical-speaker proof, and retained historical evidence keeps the
   mechanism it actually recorded.
 
+- **Runtime speech artifacts:** an explicitly selected local eSpeak NG provider
+  realizes `speech/synthesize` through ordinary checked plots, planning, and
+  kernel Host Calls. Its executable, engine library, voice data, resource, and
+  process authority are bound before execution. A spoken Mask can retain its
+  actual WAV and correlate its PCM digest with the acknowledged Show. The
+  existing text and PCM bounds still apply; oversized speech refuses rather
+  than truncating. This is produced-audio evidence, not speaker playback,
+  human hearing, or a refreshed Three Bodies documentary. See
+  [runtime speech](docs/proof/runtime-speech.md) for the supported proof entrance.
+
 - **Startup plots (#3152):** the optional browser Startup Chime and separate
   First wake Chime run through the ordinary planner and kernel. The generic
   first-wake source uses retained body biography across later wakes and fresh

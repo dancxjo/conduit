@@ -111,6 +111,10 @@ mod speech_commit;
 #[cfg(feature = "speech")]
 pub use speech_commit::*;
 #[cfg(feature = "speech")]
+mod espeak_speech;
+#[cfg(feature = "speech")]
+pub use espeak_speech::*;
+#[cfg(feature = "speech")]
 mod speech_synthesis;
 #[cfg(feature = "speech")]
 pub use speech_synthesis::*;

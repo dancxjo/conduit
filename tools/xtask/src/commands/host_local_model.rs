@@ -49,6 +49,7 @@ pub(super) fn prove(
     admitted_memory_mib: u32,
     orifina_presenter: bool,
     journey_documentary: bool,
+    speech: &super::host_speech::SpeechOptions,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
@@ -59,6 +60,7 @@ pub(super) fn prove(
         }
         return Ok(());
     }
+    let speech = speech.discover()?;
     let adapter = OllamaDiscovery::discover_at(ollama_endpoint, model)?.initialize(
         admitted_memory_mib,
         vec![
@@ -83,8 +85,23 @@ pub(super) fn prove(
         }
     });
     let receipt = conduit_std_host::local_model_proof::run(adapter, &presenter_requests)?;
-    if let Some(journey) = journey.as_ref() {
-        super::host_local_model_journey::write(journey, &receipt)?;
+    if let Some(journey) = journey.as_ref().filter(|_| journey_documentary) {
+        if let Err(error) =
+            super::host_local_model_journey::write(journey, &receipt, speech.as_ref())
+        {
+            // Preserve the actual provider outcomes even when a later
+            // documentary requirement cannot be met. This is no sealed track.
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string(&serde_json::json!({
+                        "local_model": receipt,
+                        "documentary_error": error.to_string(),
+                    }))?
+                );
+            }
+            return Err(error);
+        }
     }
     if opts.json {
         println!(
