@@ -337,6 +337,15 @@ type GroundedAnswerDisposition =
     | insufficient_evidence
     | conflicting_evidence
 
+type GroundedAnswerPolicy = {
+    identity: Text <= 256B not in [""]
+    answer_kind: Text <= 256B not in [""]
+    maximum_output_bytes: U32 in 1..=262144
+    maximum_claims: U16 in 1..=64
+    maximum_citations: U16 in 1..=128
+    maximum_work_units: U64 in 1..=1000000
+}
+
 type InterpretationProvenance =
     model_derived
 

@@ -327,14 +327,15 @@ fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> Ret
             limitation: "Finite context omitted required current evidence.".into(),
         }
     };
-    let answer = GroundedAnswerPolicy {
-        identity: "grounding/exact-context-citations@1".into(),
-        answer_kind: "value/text-utf8@1".into(),
-        maximum_output_bytes: 16_384,
-        maximum_claims: 16,
-        maximum_citations: 32,
-        maximum_work_units: 4_096,
-    }
+    let answer = GroundedAnswerPolicy::new(
+        "grounding/exact-context-citations@1".into(),
+        "value/text-utf8@1".into(),
+        16_384,
+        16,
+        32,
+        4_096,
+    )
+    .unwrap()
     .assemble(&request, &assessment, &model, &claims)
     .unwrap();
     RetrievalExplanation {

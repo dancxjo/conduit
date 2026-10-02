@@ -13,6 +13,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn source(version: u8) -> SourceRef {
     SourceRef {
@@ -110,14 +111,35 @@ fn fixture_request() -> GroundedAnswerRequest {
 }
 
 fn policy() -> GroundedAnswerPolicy {
-    GroundedAnswerPolicy {
-        identity: "grounding/exact-context-citations@1".into(),
-        answer_kind: "value/text-utf8@1".into(),
-        maximum_output_bytes: 1_024,
-        maximum_claims: 8,
-        maximum_citations: 8,
-        maximum_work_units: 64,
-    }
+    GroundedAnswerPolicy::new(
+        "grounding/exact-context-citations@1".into(),
+        "value/text-utf8@1".into(),
+        1_024,
+        8,
+        8,
+        64,
+    )
+    .unwrap()
+}
+
+#[test]
+fn grounded_answer_policy_is_native_and_intrinsically_bounded() {
+    let policy = policy();
+    assert_eq!(
+        GroundedAnswerPolicy::from_structured(policy.clone().into_structured().unwrap()).unwrap(),
+        policy
+    );
+    assert!(GroundedAnswerPolicy::new(
+        "grounding/too-many-claims@1".into(),
+        "value/text-utf8@1".into(),
+        1_024,
+        65,
+        8,
+        64,
+    )
+    .is_err());
+    assert!(!include_str!("../src/grounded_answer.rs")
+        .contains("pub struct GroundedAnswerPolicy"));
 }
 
 fn model_result(
@@ -329,23 +351,15 @@ fn forged_context_accounting_and_every_policy_bound_fail_closed() {
         ),
         Err(GroundedAnswerRefusal::ContextAccountingMismatch)
     );
-    for mutate in [
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_output_bytes = 0,
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_claims = 0,
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_citations = 0,
-        |policy: &mut GroundedAnswerPolicy| policy.maximum_work_units = 0,
-    ] {
-        let request = fixture_request();
-        let mut policy = policy();
-        mutate(&mut policy);
-        assert_eq!(
-            policy.assemble(
-                &request,
-                &GroundingInputAssessment::Sufficient,
-                &model_result("model/a", "run/1", ModelResultDisposition::Produced),
-                &supported_claims(&request),
-            ),
-            Err(GroundedAnswerRefusal::InvalidBound)
-        );
+    for bounds in [(0, 8, 8, 64), (1_024, 0, 8, 64), (1_024, 8, 0, 64), (1_024, 8, 8, 0)] {
+        assert!(GroundedAnswerPolicy::new(
+            "grounding/invalid-bound@1".into(),
+            "value/text-utf8@1".into(),
+            bounds.0,
+            bounds.1,
+            bounds.2,
+            bounds.3,
+        )
+        .is_err());
     }
 }

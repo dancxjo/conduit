@@ -17,7 +17,7 @@ pub use generated::{
     EvaluationDisposition, EvaluationPolicy, ExactVectorSearchRefusal, ExtractedField,
     ExtractionFields, ExtractionKey, ExtractionValue, FiniteClassification, FiniteF32,
     FusionStrategy, FusionStrategyReciprocalRank, GeneratedTextFlowRefusal,
-    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundedAnswerRefusal,
+    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal,
     GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
     HumanAssessmentDisposition, HybridRetrievalOfferInvalidity, IntegrationAccuracy,
     IntegrationTerminal, InterpretationDisposition, InterpretationInvalidity,

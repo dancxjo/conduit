@@ -219,14 +219,15 @@ fn model_result() -> ModelDerivedResult {
 }
 
 fn policy() -> GroundedAnswerPolicy {
-    GroundedAnswerPolicy {
-        identity: "grounding/pete-memory@1".into(),
-        answer_kind: "value/text-utf8@1".into(),
-        maximum_output_bytes: 128,
-        maximum_claims: 2,
-        maximum_citations: 2,
-        maximum_work_units: 16,
-    }
+    GroundedAnswerPolicy::new(
+        "grounding/pete-memory@1".into(),
+        "value/text-utf8@1".into(),
+        128,
+        2,
+        2,
+        16,
+    )
+    .unwrap()
 }
 
 fn candidates() -> Vec<PeteRetrievalCandidate> {

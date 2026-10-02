@@ -1,10 +1,9 @@
 //! Grounded answer assembly from one admitted context and ordinary LLM result.
 
 use crate::{
-    llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, GroundedAnswerRefusal,
-    ModelDerivedResult, ModelResultDisposition, ModelResultProvenance, RetrievalIntent,
-    StructuredContext, LLM_GENERATE_KIND, MAXIMUM_CITATIONS, MAXIMUM_GROUNDED_ANSWER_BYTES,
-    MAXIMUM_GROUNDED_CLAIMS, MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
+    llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, GroundedAnswerPolicy,
+    GroundedAnswerRefusal, ModelDerivedResult, ModelResultDisposition, ModelResultProvenance, RetrievalIntent,
+    StructuredContext, LLM_GENERATE_KIND, MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
 };
 use alloc::{string::String, vec::Vec};
 
@@ -15,16 +14,6 @@ pub struct GroundedAnswerRequest {
     pub identity: String,
     pub retrieval_intent: RetrievalIntent,
     pub context: StructuredContext,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GroundedAnswerPolicy {
-    pub identity: String,
-    pub answer_kind: String,
-    pub maximum_output_bytes: u32,
-    pub maximum_claims: u16,
-    pub maximum_citations: u16,
-    pub maximum_work_units: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,7 +71,6 @@ impl GroundedAnswerPolicy {
         model_result: &ModelDerivedResult,
         proposed_claims: &[ProposedGroundedClaim],
     ) -> Result<GroundedAnswer, GroundedAnswerRefusal> {
-        self.validate()?;
         validate_request(request)?;
         let contract = llm_contract(LLM_GENERATE_KIND).expect("generate contract is catalogued");
         model_result
@@ -99,10 +87,10 @@ impl GroundedAnswerPolicy {
                 model_result.disposition,
             ));
         }
-        if model_result.payload.len() > self.maximum_output_bytes as usize {
+        if model_result.payload.len() > *self.maximum_output_bytes() as usize {
             return Err(GroundedAnswerRefusal::OutputBoundExceeded);
         }
-        if model_result.accounting.work_units > self.maximum_work_units {
+        if model_result.accounting.work_units > *self.maximum_work_units() {
             return Err(GroundedAnswerRefusal::WorkBoundExceeded);
         }
         if model_result.accounting.context_items != request.context.items.len() as u64 {
@@ -111,7 +99,7 @@ impl GroundedAnswerPolicy {
         if proposed_claims.is_empty() {
             return Err(GroundedAnswerRefusal::EmptyClaims);
         }
-        if proposed_claims.len() > usize::from(self.maximum_claims) {
+        if proposed_claims.len() > usize::from(*self.maximum_claims()) {
             return Err(GroundedAnswerRefusal::ClaimLimitExceeded);
         }
         let mut citations = Vec::new();
@@ -132,7 +120,7 @@ impl GroundedAnswerPolicy {
                         let index = match citations.iter().position(|item| item == citation) {
                             Some(index) => index,
                             None => {
-                                if citations.len() >= usize::from(self.maximum_citations) {
+                                if citations.len() >= usize::from(*self.maximum_citations()) {
                                     return Err(GroundedAnswerRefusal::CitationLimitExceeded);
                                 }
                                 citations.push(citation.clone());
@@ -189,12 +177,12 @@ impl GroundedAnswerPolicy {
         };
         Ok(GroundedAnswer {
             provenance: ModelResultProvenance::ModelDerived,
-            policy_identity: self.identity.clone(),
+            policy_identity: self.identity().clone(),
             request_identity: request.identity.clone(),
             context_policy_identity: request.context.policy_identity.clone(),
             model_implementation_identity: model_result.implementation_identity.clone(),
             model_run_identity: model_result.run_identity.clone(),
-            answer_kind: self.answer_kind.clone(),
+            answer_kind: self.answer_kind().clone(),
             answer: model_result.payload.clone(),
             disposition,
             claims,
@@ -203,22 +191,6 @@ impl GroundedAnswerPolicy {
         })
     }
 
-    fn validate(&self) -> Result<(), GroundedAnswerRefusal> {
-        validate_identity(&self.identity)?;
-        validate_identity(&self.answer_kind)?;
-        if self.maximum_output_bytes == 0
-            || self.maximum_output_bytes as usize > MAXIMUM_GROUNDED_ANSWER_BYTES
-            || self.maximum_claims == 0
-            || usize::from(self.maximum_claims) > MAXIMUM_GROUNDED_CLAIMS
-            || self.maximum_citations == 0
-            || usize::from(self.maximum_citations) > MAXIMUM_CITATIONS
-            || self.maximum_work_units == 0
-            || self.maximum_work_units > MAXIMUM_GROUNDED_ANSWER_WORK_UNITS
-        {
-            return Err(GroundedAnswerRefusal::InvalidBound);
-        }
-        Ok(())
-    }
 }
 
 fn validate_request(request: &GroundedAnswerRequest) -> Result<(), GroundedAnswerRefusal> {

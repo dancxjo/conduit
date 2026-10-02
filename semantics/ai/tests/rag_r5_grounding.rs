@@ -116,14 +116,15 @@ fn request(disposition: ContextSelectionDisposition) -> GroundedAnswerRequest {
 }
 
 fn policy() -> GroundedAnswerPolicy {
-    GroundedAnswerPolicy {
-        identity: "grounding/exact-context-citations@1".into(),
-        answer_kind: "value/text-utf8@1".into(),
-        maximum_output_bytes: 1_024,
-        maximum_claims: 8,
-        maximum_citations: 8,
-        maximum_work_units: 64,
-    }
+    GroundedAnswerPolicy::new(
+        "grounding/exact-context-citations@1".into(),
+        "value/text-utf8@1".into(),
+        1_024,
+        8,
+        8,
+        64,
+    )
+    .unwrap()
 }
 
 fn model(disposition: ModelResultDisposition, context_items: usize) -> ModelDerivedResult {
