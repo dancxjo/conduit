@@ -2,10 +2,11 @@ use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     ClockRelation, ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal,
     FullWindowPolicy, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
-    MeasurementSummaryRefusal, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
-    MeasurementThresholdState, MeasurementThresholdTransition, MeasurementWindowRefusal,
-    NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
+    MeasurementHysteresisProfile, MeasurementRange, MeasurementSummaryRefusal,
+    MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
+    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
+    ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -15,6 +16,25 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn measurement_range_and_hysteresis_profile_are_native_records() {
+    let range = MeasurementRange {
+        minimum: Quantity::new(-20, QuantityUnit::Celsius),
+        maximum: Quantity::new(50, QuantityUnit::Celsius),
+    };
+    assert_round_trip(range);
+
+    let policy = MeasurementThresholdPolicy::new(
+        Quantity::new(18, QuantityUnit::Celsius),
+        Quantity::new(24, QuantityUnit::Celsius),
+    )
+    .unwrap();
+    assert_round_trip(MeasurementHysteresisProfile {
+        policy,
+        initial_state: MeasurementThresholdState::Below,
+    });
 }
 
 #[test]

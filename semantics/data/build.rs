@@ -29,13 +29,20 @@ fn main() {
                 "DataGenerationNamespace".into(),
                 "MeasurementPlotPoint".into(),
                 "MeasurementPlotProfile".into(),
+                "MeasurementRange".into(),
+                "MeasurementHysteresisProfile".into(),
                 "MeasurementThresholdPolicy".into(),
             ]
             .into(),
             copy_nominal_types: ["DataGenerationDigest".into()].into(),
             hash_nominal_types: ["DataGenerationDigest".into()].into(),
             copy_record_value_getters: ["DataGenerationNamespace".into()].into(),
-            public_record_fields: ["MeasurementPlotProfile".into()].into(),
+            public_record_fields: [
+                "MeasurementHysteresisProfile".into(),
+                "MeasurementPlotProfile".into(),
+                "MeasurementRange".into(),
+            ]
+            .into(),
             record_constructor_names: [("DataGenerationNamespace".into(), "from_digest".into())]
                 .into(),
             record_constructor_orders: [(
