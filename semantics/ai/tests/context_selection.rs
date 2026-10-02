@@ -2,17 +2,17 @@ use conduit_ai::{
     retrieval_paths, temporal_relation, Chunk, ClockBasis, ContextCandidate, ContextOmissionReason,
     ContextOrderingPolicy, ContextRedundancyPolicy, ContextSelectionDisposition,
     ContextSelectionPolicy, ContextSelectionRefusal, ContextTemporalEvidence, EntityBoundary,
-    ExtractedSourceValue, ExtractionLineage, HybridCandidate, MechanismScore, RerankObservation,
-    RerankScore, RerankingPolicy, RerankingProofClass, RerankingRefusal, RerankingStrategy,
-    RetrievalContribution, RetrievalMechanism, RetrieverIdentity, SelectedContextRationale,
-    SourceRef, SourceSpan, SourceSpanUnit, TemporalContext, TemporalProvenance, TemporalSource,
-    TemporalValidity,
+    ExtractedSourceValue, ExtractionLineage, HybridCandidate, MechanismScore, RagIdentity,
+    RerankObservation, RerankScore, RerankingPolicy, RerankingProofClass, RerankingRefusal,
+    RerankingStrategy, RetrievalContribution, RetrievalMechanism, RetrieverIdentity,
+    SelectedContextRationale, SourceRef, SourceSpan, SourceSpanUnit, TemporalContext,
+    TemporalProvenance, TemporalSource, TemporalValidity, TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalRelation,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn chunk(version: u8, start: u64, text: &str) -> Chunk<ExtractedSourceValue> {
     Chunk::new(
@@ -33,8 +33,8 @@ fn chunk(version: u8, start: u64, text: &str) -> Chunk<ExtractedSourceValue> {
                 },
             },
             span: SourceSpan::new(SourceSpanUnit::Bytes, start, start + text.len() as u64).unwrap(),
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(text.as_bytes().to_vec()),

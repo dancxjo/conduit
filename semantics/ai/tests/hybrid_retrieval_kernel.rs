@@ -5,14 +5,15 @@ mod hybrid_plan;
 
 use conduit_ai::{
     Chunk, ExtractedSourceValue, ExtractionLineage, FusionStrategy, HybridFusionPolicy,
-    HybridRetrievalReceipt, MechanismScore, RetrievalMechanism, RetrievalStage, RetrieverIdentity,
-    SourceRef, SourceSpan, SourceSpanUnit, StageCandidate,
+    HybridRetrievalReceipt, MechanismScore, RagIdentity, RetrievalMechanism, RetrievalStage,
+    RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate, TransformProfiles,
 };
 use conduit_core::{
     bind_active_play, bind_sign, verify_plan, BoundedResourceRef, ConfigurationValue, KindId,
     ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
     ResourceVersionIdentity,
 };
+use conduit_form::rust_binding::BoundedSequence;
 use conduit_kernel::{
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
@@ -170,8 +171,8 @@ fn chunk() -> Chunk<ExtractedSourceValue> {
                 },
             },
             span: SourceSpan::new(SourceSpanUnit::Bytes, 0, 14).unwrap(),
-            extraction_profile: "extract/text-utf8@1".into(),
-            transform_profiles: vec![],
+            extraction_profile: RagIdentity::new("extract/text-utf8@1".into()).unwrap(),
+            transform_profiles: TransformProfiles::new(BoundedSequence::new()).unwrap(),
             parent_chunk: None,
         },
         ExtractedSourceValue::Text(b"project origin".to_vec()),

@@ -139,7 +139,10 @@ fn utf8_text_extraction_is_deterministic_bounded_and_lineage_exact() {
     for chunk in &first.chunks {
         chunk.validate().unwrap();
         assert_eq!(chunk.lineage.source, source);
-        assert_eq!(chunk.lineage.extraction_profile, "extract/text-utf8@1");
+        assert_eq!(
+            chunk.lineage.extraction_profile.get(),
+            "extract/text-utf8@1"
+        );
         assert!(chunk.lineage.span.end() - chunk.lineage.span.start() <= 8);
         let ExtractedSourceValue::Text(value) = &chunk.value else {
             panic!("text profile emitted another value family");
@@ -220,7 +223,7 @@ fn structured_and_non_text_metadata_profiles_preserve_item_ranges() {
     .unwrap();
     assert_eq!(receipt.chunks.len(), 1);
     assert_eq!(
-        receipt.chunks[0].lineage.extraction_profile,
+        receipt.chunks[0].lineage.extraction_profile.get(),
         "extract/resource-metadata@1"
     );
     assert!(matches!(

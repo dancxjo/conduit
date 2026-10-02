@@ -155,6 +155,7 @@ fn main() {
                 "Citation".into(),
                 "ContextOmission".into(),
                 "ExtractedField".into(),
+                "ExtractionLineage".into(),
                 "FiniteClassification".into(),
                 "IntegrationAccuracy".into(),
                 "ModelWorkAccounting".into(),
