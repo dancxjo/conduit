@@ -15,6 +15,8 @@ struct Transaction {
     installation: Installation,
     #[serde(default)]
     last_execution: Option<serde_json::Value>,
+    #[serde(default)]
+    admissions: Option<conduit_body::AdmissionManager>,
 }
 
 pub(super) fn recover(root: &Path) -> Result<(), String> {
@@ -81,12 +83,16 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
             "last_execution": transaction.last_execution
         }),
     )?;
+    if let Some(manager) = &transaction.admissions {
+        write_json_atomic(&root.join("body/owner-admissions.json"), manager)?;
+    }
     write_json_atomic(&root.join("installation.json"), &transaction.installation)
 }
 pub(super) fn retain(
     root: &Path,
     biography: &BodyBiographyEvidence,
     last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
 ) -> Result<(), String> {
     if serde_json::to_vec(&last_execution)
         .map_err(|e| e.to_string())?
@@ -124,7 +130,15 @@ pub(super) fn retain(
         biography: biography.clone(),
         installation,
         last_execution: last_execution.cloned(),
+        admissions: admissions.cloned(),
     };
+    if serde_json::to_vec(&transaction)
+        .map_err(|e| e.to_string())?
+        .len() as u64
+        > MAXIMUM_STATE
+    {
+        return Err("owner transaction storage bound exhausted".into());
+    }
     write_json_atomic(&directory.join("owner-transaction.json"), &transaction)?;
     recover(root)
 }
@@ -183,6 +197,23 @@ pub(super) fn execution(root: &Path) -> Result<Option<serde_json::Value>, String
     }
 }
 
+/// Continuity keys are retained with the same recoverable biography transaction.
+pub(super) fn admissions(
+    root: &Path,
+    body: &conduit_body::BodyId,
+) -> Result<Option<conduit_body::AdmissionManager>, String> {
+    let path = root.join("body/owner-admissions.json");
+    if !path.exists() {
+        return Ok(None);
+    }
+    let manager: conduit_body::AdmissionManager =
+        serde_json::from_slice(&bounded_read(&path, MAXIMUM_STATE)?).map_err(|e| e.to_string())?;
+    if &manager.body_id != body {
+        return Err("retained admissions belong to another Body".into());
+    }
+    Ok(Some(manager))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -217,7 +248,12 @@ mod tests {
             "Retained".into(),
         )
         .unwrap();
-        retain(&root, &evidence, None).unwrap();
+        let manager = conduit_body::AdmissionManager::new(body.body_id.clone()).unwrap();
+        retain(&root, &evidence, None, Some(&manager)).unwrap();
+        assert_eq!(
+            admissions(&root, &body.body_id).unwrap(),
+            Some(manager.clone())
+        );
         let retained_installation = read_installation(&root.join("installation.json")).unwrap();
         write_json_atomic(
             &root.join("body/owner-transaction.json"),
@@ -226,12 +262,14 @@ mod tests {
                 biography: evidence.clone(),
                 installation: retained_installation,
                 last_execution: None,
+                admissions: Some(manager.clone()),
             },
         )
         .unwrap();
         fs::write(root.join("body/biography.json"), b"interrupted write").unwrap();
         assert_eq!(load(&root).unwrap().unwrap().body_id, body.body_id);
         assert!(!root.join("body/owner-transaction.json").exists());
+        assert_eq!(admissions(&root, &body.body_id).unwrap(), Some(manager));
         fs::write(root.join("body/biography.json"), b"corrupt").unwrap();
         assert!(load(&root).is_err());
         let raw: Installation =

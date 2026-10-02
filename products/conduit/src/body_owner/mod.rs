@@ -14,8 +14,15 @@ const MAXIMUM_REQUEST: u64 = 4096;
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
     Inspect,
+    AdmitBrowser {
+        expected_host_id: String,
+        new_host_verifying_key: Option<[u8; 32]>,
+        maximum_millis: u64,
+    },
     Plan,
-    Run { maximum_millis: u64 },
+    Run {
+        maximum_millis: u64,
+    },
     Lull,
     Close,
 }
@@ -74,6 +81,18 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                 .and_then(|request| {
                     match request {
                         Request::Inspect => {}
+                        Request::AdmitBrowser {
+                            expected_host_id,
+                            new_host_verifying_key,
+                            maximum_millis,
+                        } => {
+                            owner.admit_browser(
+                                &root,
+                                &expected_host_id,
+                                new_host_verifying_key,
+                                maximum_millis,
+                            )?;
+                        }
                         Request::Plan => owner.plan(&checked)?,
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
