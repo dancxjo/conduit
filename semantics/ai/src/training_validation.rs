@@ -61,7 +61,7 @@ impl TrainingBatch {
             || self
                 .example_identities
                 .iter()
-                .any(|item| !split.examples.contains(item))
+                .any(|item| !split.identities().any(|identity| identity.get() == item))
             || self.example_identities.contains(&[0; 32])
             || has_duplicate_digest(&self.example_identities)
         {

@@ -4,7 +4,9 @@ use conduit_core::{
     semantic_digest, BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_data::{prove_splits_disjoint, DatasetDescriptor, DatasetSplitMembership};
+use conduit_data::{
+    prove_splits_disjoint, DatasetDescriptor, DatasetExampleIdentity, DatasetSplitMembership,
+};
 use conduit_form::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -231,13 +233,13 @@ impl Pb2007Slice {
                 PB2007_SLICE_BYTES.len() as u64,
             ),
             shards: BoundedSequence::try_from_iter(self.utterances.iter().map(|value| {
-                    resource(
-                        example_identity(&value.identity),
-                        "data/paired-observation-shard@1",
-                        16,
-                    )
-                }))
-                .expect("the reviewed corpus has at most 64 shards"),
+                resource(
+                    example_identity(&value.identity),
+                    "data/paired-observation-shard@1",
+                    16,
+                )
+            }))
+            .expect("the reviewed corpus has at most 64 shards"),
             split_identities: BoundedSequence::try_from_iter([
                 "train".into(),
                 "validation".into(),
@@ -251,12 +253,16 @@ impl Pb2007Slice {
             .map(|split| DatasetSplitMembership {
                 dataset_identity,
                 split_identity: split.clone(),
-                examples: self
-                    .utterances
-                    .iter()
-                    .filter(|value| &value.split == split)
-                    .map(|value| example_identity(&value.identity))
-                    .collect(),
+                examples: DatasetSplitMembership::pages(
+                    self.utterances
+                        .iter()
+                        .filter(|value| &value.split == split)
+                        .map(|value| {
+                            DatasetExampleIdentity::new(example_identity(&value.identity))
+                                .expect("an example identity is exactly 32 bytes")
+                        }),
+                )
+                .expect("the reviewed split fits its bounded membership pages"),
             })
             .collect();
         Ok((descriptor, splits))

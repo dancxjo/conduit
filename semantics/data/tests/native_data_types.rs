@@ -1,15 +1,15 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     ClockRelation, ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal,
-    FullWindowPolicy, MathScalarRefusal, MeasurementHysteresisProfile,
-    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementRange, MeasurementSample,
-    MeasurementSummaryRefusal, MeasurementThresholdPolicy, MeasurementThresholdRefusal,
-    MeasurementThresholdState, MeasurementThresholdTransition, MeasurementWindowRefusal,
-    NormalizedQuantityRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScalarComparison, SignalContinuity, SignalStart, SignalWindow,
-    TensorAxisRole, TensorElement,
+    DatasetExampleIdentity, DatasetSplitMembership, FullWindowPolicy, MathScalarRefusal,
+    MeasurementHysteresisProfile, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
+    MeasurementRange, MeasurementSample, MeasurementSummaryRefusal, MeasurementThresholdPolicy,
+    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
+    MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
+    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison, SignalContinuity,
+    SignalStart, SignalWindow, TensorAxisRole, TensorElement,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 
 fn assert_round_trip<T>(value: T)
@@ -73,6 +73,19 @@ fn sampled_signal_start_uses_the_native_temporal_instant() {
         source_offset: 9,
         sample_count: 3,
         start: SignalStart::at_sample(9),
+    });
+}
+
+#[test]
+fn dataset_split_membership_uses_native_bounded_identity_pages() {
+    let page = DatasetSplitMembership::page(
+        [[1; 32], [2; 32]].map(|identity| DatasetExampleIdentity::new(identity).unwrap()),
+    )
+    .unwrap();
+    assert_owned_round_trip(DatasetSplitMembership {
+        dataset_identity: [7; 32],
+        split_identity: "train".into(),
+        examples: BoundedSequence::try_from_iter([page]).unwrap(),
     });
 }
 
