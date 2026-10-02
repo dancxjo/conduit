@@ -169,6 +169,41 @@ fn uncommon_engineering_historical_and_scientific_units_are_exact() {
 }
 
 #[test]
+fn si_and_named_derived_quantities_share_exact_dimension_laws() {
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::Kilogram).convert(QuantityUnit::Gram),
+        Ok(Quantity::new(1_000, QuantityUnit::Gram))
+    );
+    assert_eq!(
+        Quantity::new(8, QuantityUnit::Ounce).convert(QuantityUnit::Microgram),
+        Ok(Quantity::new(226_796_185, QuantityUnit::Microgram))
+    );
+    assert_eq!(
+        Quantity::new(5, QuantityUnit::Acre).convert(QuantityUnit::SquareMillimeter),
+        Ok(Quantity::new(
+            20_234_282_112,
+            QuantityUnit::SquareMillimeter
+        ))
+    );
+    assert_eq!(
+        Quantity::new(1_000, QuantityUnit::Liter).convert(QuantityUnit::CubicMeter),
+        Ok(Quantity::new(1, QuantityUnit::CubicMeter))
+    );
+    assert_eq!(
+        Quantity::new(36, QuantityUnit::KilometerPerHour).convert(QuantityUnit::MeterPerSecond),
+        Ok(Quantity::new(10, QuantityUnit::MeterPerSecond))
+    );
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::KilowattHour).convert(QuantityUnit::Kilojoule),
+        Ok(Quantity::new(3_600, QuantityUnit::Kilojoule))
+    );
+    assert_eq!(
+        Quantity::new(760, QuantityUnit::Torr).convert(QuantityUnit::Pascal),
+        Ok(Quantity::new(101_325, QuantityUnit::Pascal))
+    );
+}
+
+#[test]
 fn canonical_multiplication_overflow_is_explicit() {
     assert_eq!(
         Quantity::new(i64::MAX, QuantityUnit::Second).convert(QuantityUnit::Nanosecond),
