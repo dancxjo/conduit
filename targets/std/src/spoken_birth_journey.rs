@@ -188,12 +188,11 @@ fn validate_event(event: &SpokenEventEvidence) -> Result<(), String> {
         || event.speech.sign_count == 0
         || event.speech.kernel_event_count == 0
         || !matches!(
-            event.speech.outcome,
-            SpeechOutcome::WavArtifact {
-                wav_bytes: 1..,
-                ref wav_sha256,
-                ref pcm_sha256,
-            } if wav_sha256.len() == 64 && pcm_sha256.len() == 64
+            &event.speech.outcome,
+            SpeechOutcome::WavArtifact(payload)
+                if *payload.wav_bytes() > 0
+                    && payload.wav_sha256().get().len() == 64
+                    && payload.pcm_sha256().get().len() == 64
         )
     {
         return Err("Tongues spoken event evidence is incomplete".into());

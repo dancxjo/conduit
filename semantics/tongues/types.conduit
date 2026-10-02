@@ -92,3 +92,49 @@ type HouseGenerationRequest = {
     encoded-request: Text <= 128KiB not in [""]
     maximum-output-bytes: U64 in 1..=65536
 }
+
+type SpeechOutputCondition =
+    primary-playback
+    | degraded-wav-artifact
+
+type SpeechDigest = Text <= 64B not in [""]
+type SpeechSignReason = Text <= 256B not in [""]
+
+type SpeechOutcome =
+    played {
+        pcm-sha256: SpeechDigest
+    }
+    | wav-artifact {
+        wav-bytes: U32
+        wav-sha256: SpeechDigest
+        pcm-sha256: SpeechDigest
+    }
+    | format-mismatch
+    | pressure
+    | cancelled
+    | underrun
+    | implementation-unavailable
+    | base-denied
+    | base-lost
+    | device-failure
+
+type SpeechSign =
+    synthesized {
+        pcm-bytes: U32
+        pcm-sha256: SpeechDigest
+    }
+    | presented {
+        condition: SpeechOutputCondition
+    }
+    | degraded {
+        wav-bytes: U32
+        wav-sha256: SpeechDigest
+    }
+    | refused {
+        reason: SpeechSignReason
+    }
+    | failed {
+        reason: SpeechSignReason
+    }
+    | cancelled
+    | terminal

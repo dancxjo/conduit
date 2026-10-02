@@ -1,4 +1,4 @@
-use crate::{plan_speech_text, OutputCondition, SPECIMEN_TEXT};
+use crate::{plan_speech_text, OutputCondition, SpeechOutcome, SPECIMEN_TEXT};
 use conduit_kernel::scheduler::{
     FixedScheduler, SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
@@ -29,26 +29,6 @@ type SpeechScheduler = FixedScheduler<
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpeechFault {
     None,
-    FormatMismatch,
-    Pressure,
-    Cancelled,
-    Underrun,
-    ImplementationUnavailable,
-    BaseDenied,
-    BaseLost,
-    DeviceFailure,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SpeechOutcome {
-    Played {
-        pcm_sha256: String,
-    },
-    WavArtifact {
-        wav_bytes: u32,
-        wav_sha256: String,
-        pcm_sha256: String,
-    },
     FormatMismatch,
     Pressure,
     Cancelled,
@@ -293,16 +273,18 @@ pub fn run_speech_text(
                     let digest = sha256(&pcm);
                     outcome = Some(match condition {
                         OutputCondition::PrimaryPlayback => {
-                            SpeechOutcome::Played { pcm_sha256: digest }
+                            SpeechOutcome::played(crate::SpeechDigest::new(digest).map_err(debug)?)
+                                .map_err(debug)?
                         }
                         OutputCondition::DegradedWavArtifact => {
                             let bytes = wav(&pcm);
                             debug_assert!(bytes.starts_with(b"RIFF"));
-                            SpeechOutcome::WavArtifact {
-                                wav_bytes: u32::try_from(bytes.len()).map_err(debug)?,
-                                wav_sha256: sha256(&bytes),
-                                pcm_sha256: digest,
-                            }
+                            SpeechOutcome::wav_artifact(
+                                crate::SpeechDigest::new(digest).map_err(debug)?,
+                                u32::try_from(bytes.len()).map_err(debug)?,
+                                crate::SpeechDigest::new(sha256(&bytes)).map_err(debug)?,
+                            )
+                            .map_err(debug)?
                         }
                     });
                 }
@@ -473,12 +455,12 @@ mod tests {
     #[test]
     fn production_kernel_runs_primary_and_degraded_conditions() {
         let primary = run_speech(OutputCondition::PrimaryPlayback, SpeechFault::None).unwrap();
-        assert!(matches!(primary.outcome, SpeechOutcome::Played { .. }));
+        assert!(matches!(primary.outcome, SpeechOutcome::Played(_)));
         assert!(primary.sign_count > 0);
         assert!(primary.kernel_event_count > 0);
         let degraded = run_speech(OutputCondition::DegradedWavArtifact, SpeechFault::None).unwrap();
         match degraded.outcome {
-            SpeechOutcome::WavArtifact { wav_bytes, .. } => assert_eq!(wav_bytes, 1_260),
+            SpeechOutcome::WavArtifact(payload) => assert_eq!(*payload.wav_bytes(), 1_260),
             _ => panic!("wrong outcome"),
         }
     }
@@ -537,9 +519,9 @@ mod tests {
             SpeechFault::None,
         )
         .unwrap();
-        let SpeechOutcome::WavArtifact { wav_bytes, .. } = receipt.outcome else {
+        let SpeechOutcome::WavArtifact(payload) = receipt.outcome else {
             panic!("maximum admitted text must produce the degraded artifact");
         };
-        assert!(wav_bytes <= crate::MAXIMUM_PCM_BYTES);
+        assert!(*payload.wav_bytes() <= crate::MAXIMUM_PCM_BYTES);
     }
 }
