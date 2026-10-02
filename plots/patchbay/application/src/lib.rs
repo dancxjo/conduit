@@ -177,8 +177,18 @@ impl PatchbayActivePlot {
     }
 }
 
+/// Representation delivery, not a change to the resident graph or authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PatchbayCanvasDelivery {
+    /// Include a bounded graph for a renderer that consumes application canvases.
+    InlineGraph,
+    /// Retain exact textual inspection for renderers without inline graph support.
+    TextInspection,
+}
+
 pub struct PatchbayApplicationPort {
     plots: Vec<PatchbayActivePlot>,
+    canvas_delivery: PatchbayCanvasDelivery,
     body_plan_id: PlanId,
     active_play_id: Option<ActivePlayId>,
     revision: u32,
@@ -221,6 +231,7 @@ impl PatchbayApplicationPort {
         }
         Ok(Self {
             plots,
+            canvas_delivery: PatchbayCanvasDelivery::InlineGraph,
             body_plan_id,
             active_play_id,
             revision: 1,
@@ -229,6 +240,12 @@ impl PatchbayApplicationPort {
             edit_requested: false,
             mask_topology: None,
         })
+    }
+
+    /// Choose the representation supported by the admitted renderer at preparation.
+    pub fn with_canvas_delivery(mut self, delivery: PatchbayCanvasDelivery) -> Self {
+        self.canvas_delivery = delivery;
+        self
     }
 
     pub fn set_mask_topology(&mut self, topology: PatchbayMaskTopology) {

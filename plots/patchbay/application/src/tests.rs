@@ -71,10 +71,21 @@ fn active_body_opens_as_a_simple_plot_list_before_graph_inspection() {
     assert!(initial
         .nodes
         .iter()
-        .any(|node| node.key == "active-plot-status-1"
-            && node
-                .text
-                .contains("Playing · foreground · checked checked/patchbay")));
+        .any(|node| node.key == "active-plot-status-1" && node.text.eq("Playing · foreground")));
+    let disclosure = initial
+        .nodes
+        .iter()
+        .position(|node| {
+            node.component == ApplicationComponent::Disclosure && node.key == "exact-evidence"
+        })
+        .unwrap() as u8;
+    assert!(initial.nodes.iter().any(|node| node.key == "checked-plot-1"
+        && node.text.contains("checked/patchbay")
+        && node.parent == Some(disclosure)));
+    assert!(initial
+        .nodes
+        .iter()
+        .any(|node| node.key == "body-play" && node.parent == Some(disclosure)));
     assert!(!initial.nodes.iter().any(|node| node.key == "subject"));
     assert!(initial
         .nodes

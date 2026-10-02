@@ -5,7 +5,7 @@
 - [[Architecture tour|Architecture-tour]]
 - [[Conduitese]]
 - [[Conduitese by example|Conduitese-by-example]]
-- [[Plot diagrams|Form-diagrams]]
+- [[Plot diagrams|Plot-diagrams]]
 - [[Glossary]]
 
 ### Use

@@ -584,7 +584,7 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
     assert!(index.contains(&commit));
     assert!(index.contains("latest 32 published source commits"));
-    assert!(index.contains("Publication source:"));
+    assert!(index.contains("Retained gallery source:"));
     assert!(!index.contains("Current accepted main:"));
     assert!(index.contains("Choose what you want to do"));
     assert!(index.contains("Technical examples"));

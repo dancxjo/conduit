@@ -1,3 +1,4 @@
+import { beginHandbookJourney } from "./handbook-journey.mjs";
 import { expect, test } from "@playwright/test";
 import { openStaticProfile, stageStaticApplications } from "./static-body-application-support.mjs";
 
@@ -25,6 +26,7 @@ function renewed(first, next) {
 
 test("static Handbook applications retain independent local Bodies through use, navigation, exclusion, reset and browser restart", async ({}, testInfo) => {
   testInfo.setTimeout(180_000);
+  const journey = await beginHandbookJourney();
   const site = await stageStaticApplications();
   const origin = new URL(site.url).origin;
   const application = new URL("handbook/", site.url).href;
@@ -40,6 +42,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     const opening = await page.evaluate(() => globalThis.__conduitApplication.opening);
     expect(opening.recovered).toBe(false);
     expect(opening.birthState).toBe("Lulled");
+    await journey.capture(page, { id: "open", title: "Open your own Handbook",
+      action: "Open the static Handbook in a fresh browser profile.",
+      observation: "The Handbook creates a local Body, then wakes its resident application. The page offers lessons, editable source, and lifecycle controls." });
     await page.screenshot({ path: testInfo.outputPath("01-handbook-first-open.png"), fullPage: true });
 
     await page.getByRole("link", { name: "Start here", exact: true }).click();
@@ -66,6 +71,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(afterRefusal.bodyId).toBe(beforeRefusal.bodyId);
     expect(afterRefusal.playId).toBe(beforeRefusal.playId);
     expect(afterRefusal.installedPlots).toEqual(beforeRefusal.installedPlots);
+    await journey.capture(page, { id: "check", title: "Check an unfinished edit",
+      action: "Open Start here, choose the clock lesson, enter unfinished source, and press Try in my Handbook.",
+      observation: "Live highlighting follows the Unicode edit. The checker reports a refusal; the existing Body, Play, and installed workset remain unchanged." });
     await editor.fill(originalSource);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     await expect.poll(async () => { const state = await current(page); return state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot); }).toBe(true);
@@ -73,6 +81,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(example.bodyId).toBe(first.bodyId);
     expect(example.selectedPlot).toBeTruthy();
     expect(example.installedPlots.some(plot => plot.checked_plot_id === example.selectedPlot)).toBe(true);
+    await journey.capture(page, { id: "try", title: "Run the clock lesson",
+      action: "Restore the clock source and press Try in my Handbook.",
+      observation: "The checked clock joins the same Body and runs through a newly admitted Plan and Play." });
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).first().click();
     await page.locator(".handbook-show").getByRole("button", { name: /clock-demo|A clock you can stop/i }).click();
     const graph = page.locator(".handbook-show [data-checked-plot-id]:visible");
@@ -89,6 +100,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(inspected.bodyId).toBe(first.bodyId);
     expect(inspected.selectedPlot).toEqual(example.selectedPlot);
     expect(inspected.foreground.checked_plot_id).not.toBe(example.selectedPlot);
+    await journey.capture(page, { id: "inspect", title: "Inspect the running clock",
+      action: "Press Open in Patchbay, choose the clock, focus its output port, and press Enter.",
+      observation: "The resident Patchbay shows the clock's gears, ports, and cord. Its selected output port and graph identities belong to this Body's actual Plan and Play." });
     await page.screenshot({ path: testInfo.outputPath("02-real-patchbay.png"), fullPage: true });
 
     const originalExample = example;
@@ -106,6 +120,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(example.installedPlots).toHaveLength(originalExample.installedPlots.length);
     expect(example.installedPlots.some(plot => plot.checked_plot_id === originalExample.selectedPlot)).toBe(false);
     expect(example.installedPlots.some(plot => plot.checked_plot_id === example.selectedPlot)).toBe(true);
+    await journey.capture(page, { id: "edit", title: "Change the clock's timing",
+      action: "Change time/every(1s) to time/every(2s), then press Try in my Handbook.",
+      observation: "The same Body replaces the clock with the newly checked source and admits a new Plan and Play. The workset does not grow with a duplicate clock." });
     await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "Turn keystrokes into text" });
     await expect(editor).not.toHaveValue(editedSource);
     await expect(page.getByLabel("Choose an example", { exact: true })).toBeEnabled();
@@ -124,6 +141,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     const lulled = await current(page);
     expect(lulled.bodyId).toBe(first.bodyId);
     expect(lulled.playId ?? null).toBeNull();
+    await journey.capture(page, { id: "lull", title: "Bring the Body to rest",
+      action: "After checking that the edit survives switching lessons and inspecting the new graph, press Lull.",
+      observation: "Execution ends and Wake becomes available. The Body retains the edited clock without an active Play." });
     await page.getByRole("button", { name: "Wake", exact: true }).click();
     const awake = await ready(page);
     expect(awake.playId).not.toBe(inspected.playId);
@@ -134,6 +154,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(reloaded.selectedPlot).toEqual(example.selectedPlot);
     expect(reloaded.installedPlots).toEqual(example.installedPlots);
     expect(reloaded.foreground).toEqual(inspected.foreground);
+    await journey.capture(page, { id: "recover", title: "Return to your edited clock",
+      action: "Press Wake, then reload the page.",
+      observation: "The same Host and Body return with a fresh Boot, Plan, and Play. The two-second source, installed workset, and foreground selection survive." });
 
     const competitor = await session.context.newPage();
     await competitor.goto(application);
@@ -184,6 +207,8 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(distinct.hostId).not.toBe(retained.hostId);
     expect(distinct.bodyId).not.toBe(retained.bodyId);
     session.assertClean();
+    await journey.finish({ opening, first, beforeRefusal, afterRefusal, originalExample,
+      edited: example, inspected, lulled, reloaded, independent, reset, retained, distinct });
   } finally {
     await session?.context.close();
     await site.close();

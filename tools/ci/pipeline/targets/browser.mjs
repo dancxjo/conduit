@@ -48,7 +48,10 @@ export function browser(directory) {
   const before = inventory(product);
   const handbookBefore = inventory('target/handbook-static');
   const clockBefore = inventory('target/handbook-static-second');
-  command('node', ['--test', ...[
+  command('node', ['--test',
+    ...readdirSync('targets/browser/sdk').filter(name => name.endsWith('.test.mjs')).map(name => `targets/browser/sdk/${name}`),
+    'targets/browser/tools/static-application-csp.test.mjs',
+    'proof/browser/application-graph-canvas.test.mjs', ...[
     'browser-body-input', 'browser-body-host', 'workspace-handoff', 'browser-plot-effects',
     'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'physical-host-workflow',
     'creche-release-catalog',
@@ -71,7 +74,7 @@ export function browser(directory) {
   writeFileSync(path.join(directory, 'proof-scope.json'), JSON.stringify({
     product: 'workspace/', project: 'chromium', workers: 1, retries: 0, specs: SPECS,
     additionalProof: 'Workspace WCAG 2.2 AA and local asset/link smoke',
-    website: 'Homepage, handbook, journeys, Field Station captures, shared navigation and responsive layout',
-    excluded: 'Cross-target download/deployment, Patchbay, physical/HIL, other browser projects; mixed-membership requires the absent browser-parts-capstone binary',
+    website: 'Homepage, durable static Handbook with resident Patchbay and live source editing, journeys, Field Station captures, shared navigation and responsive layout',
+    excluded: 'Cross-target download/deployment, standalone Patchbay workbench, physical/HIL, other browser projects; mixed-membership requires the absent browser-parts-capstone binary',
   }, null, 2));
 }

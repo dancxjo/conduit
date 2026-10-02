@@ -33,6 +33,12 @@ export async function startApplication(application) {
   let busy = false;
   let foreground = null;
   const surfaces = new Map();
+  const updateControls = () => {
+    root.querySelector('[data-wake]').disabled = Boolean(play);
+    root.querySelector('[data-lull]').disabled = !play;
+    root.querySelector('[data-example]').disabled = !snapshot?.evidence.body.workset.plots
+      .some(plot => plot.checked_plot_id === selected?.checkedPlotId);
+  };
   const show = identity => {
     foreground = identity;
     for (const [id, output] of surfaces) output.hidden = id !== identity;
@@ -54,8 +60,7 @@ export async function startApplication(application) {
     const truth = await readTruth();
     root.querySelector('[data-identities]').textContent = JSON.stringify(truth, null, 2);
     status.textContent = `Your Handbook is ${truth.lifecycle.toLowerCase()}. Play: ${truth.execution}.`;
-    root.querySelector('[data-wake]').disabled = Boolean(play);
-    root.querySelector('[data-lull]').disabled = !play;
+    updateControls();
     return truth;
   };
   const wake = async () => {
@@ -93,8 +98,7 @@ export async function startApplication(application) {
     finally {
       busy = false;
       controls.forEach(control => control.disabled = false);
-      root.querySelector('[data-wake]').disabled = Boolean(play);
-      root.querySelector('[data-lull]').disabled = !play;
+      updateControls();
     }
   };
   const selectExample = async () => {
@@ -135,8 +139,7 @@ export async function startApplication(application) {
       opening: Object.freeze({ recovered, birthState, snapshot: opening }) });
     await current();
     controls.forEach(control => control.disabled = false);
-    root.querySelector('[data-wake]').disabled = Boolean(play);
-    root.querySelector('[data-lull]').disabled = !play;
+    updateControls();
     selector.addEventListener('change', () => operate(selectExample));
     root.querySelector('[data-try]').addEventListener('click', () => operate(async () => {
       const result = await host.plot(source.value).check();

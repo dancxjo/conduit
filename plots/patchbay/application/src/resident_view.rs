@@ -24,10 +24,12 @@ impl PatchbayApplicationPort {
             actions.push(mask::action());
         }
         let canvas_action = actions.len();
-        actions.push(ApplicationAction {
-            id: resident_canvas::SELECT_SUBJECT.into(),
-            event: ApplicationEventKind::Change,
-        });
+        if self.canvas_delivery == PatchbayCanvasDelivery::InlineGraph {
+            actions.push(ApplicationAction {
+                id: resident_canvas::SELECT_SUBJECT.into(),
+                event: ApplicationEventKind::Change,
+            });
+        }
         let mut nodes = vec![
             node(
                 None,
@@ -101,15 +103,17 @@ impl PatchbayApplicationPort {
         if let Some(index) = self.selected_plot {
             let plot = &self.plots[index];
             let inspection = self.inspection()?;
-            nodes.push(node(
-                Some(1),
-                ApplicationComponent::PatchbayCanvas,
-                "resident-graph",
-                "Plot connections",
-                &self.canvas()?,
-                65_536,
-                Some(canvas_action as u8),
-            ));
+            if self.canvas_delivery == PatchbayCanvasDelivery::InlineGraph {
+                nodes.push(node(
+                    Some(1),
+                    ApplicationComponent::PatchbayCanvas,
+                    "resident-graph",
+                    "Plot connections",
+                    &self.canvas()?,
+                    65_536,
+                    Some(canvas_action as u8),
+                ));
+            }
             evidence.push(node(
                 Some(1),
                 ApplicationComponent::Status,
@@ -145,11 +149,11 @@ impl PatchbayApplicationPort {
                 ),
                 node(
                     Some(1),
-                    ApplicationComponent::Paragraph,
+                    ApplicationComponent::CodeBlock,
                     "facts",
-                    &inspection.exact_facts.join(" · "),
-                    "",
-                    0,
+                    "Selected subject facts",
+                    &inspection.exact_facts.join("\n"),
+                    2048,
                     None,
                 ),
                 node(

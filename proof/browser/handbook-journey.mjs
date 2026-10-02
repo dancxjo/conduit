@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const repository = fileURLToPath(new URL("../..", import.meta.url));
-const directory = path.join(repository, "target/journeys/field-station-clock");
+const directory = path.join(repository, "target/journeys/handbook");
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 
-export async function beginFieldStationJourney() {
+export async function beginHandbookJourney() {
   const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repository, encoding: "utf8" }).trim();
   if (!/^[0-9a-f]{40}$/.test(sourceCommit)
     || (process.env.CONDUIT_CHECKOUT_SHA && process.env.CONDUIT_CHECKOUT_SHA !== sourceCommit)) {
@@ -37,8 +37,8 @@ export async function beginFieldStationJourney() {
       await writeFile(path.join(directory, evidencePath), evidenceBytes);
       const manifest = {
         schema: "conduit.user-journey/v1",
-        title: "Keep a Field Station clock through a reload",
-        summary: "Open a clock, reload its page while preserving its Body, then lull it through the visible control.",
+        title: "Try a clock, inspect it, and keep your changes",
+        summary: "Open your local Handbook, check and run a clock, inspect its resident Patchbay, edit its timing, then lull and recover the same Body.",
         sourceCommit,
         environment: "Chromium",
         steps,
