@@ -10,8 +10,8 @@ and beside the code it describes; old checkpoints have a separate history index.
 3. [Conduitese](../wiki/Conduitese.md) and [annotated examples](../wiki/Conduitese-by-example.md): learn the language through source
 4. [Glossary](../wiki/Glossary.md): short definitions grouped by role
 
-The [handbook](../wiki/Home.md) is also published as the
-[GitHub wiki](https://github.com/dancxjo/conduit/wiki).
+The [handbook source](../wiki/Home.md) is rendered by the website build as the
+[handbook](https://dancxjo.github.io/conduit/handbook/).
 
 ## Run, build, and inspect
 
@@ -61,9 +61,12 @@ beside their owners. `STATUS` summarizes capability and proof limits, while the
 roadmap points to unfinished work. Historical checkpoints belong under
 `docs/history/`, not in the current reading path.
 
-Edit wiki pages in repository `wiki/`. The publication workflow mirrors `dev`
-to the separate GitHub wiki; direct wiki edits do not become a second source.
-A draft PR is not a wiki publication or accepted release.
+Edit handbook pages and diagrams in repository `wiki/`, through a pull request
+to `dev`. The website build renders those sources. Maintain the separate
+[GitHub wiki](https://github.com/dancxjo/conduit/wiki) manually as a short
+signpost to the [main website](https://dancxjo.github.io/conduit/); it is not a
+handbook mirror or build input. A draft PR is not a website publication or
+accepted release.
 
 Keep commands on `conduit` or `cargo xtask`, link changing inventories rather
 than copying counts, and distinguish checked syntax from proposals and target

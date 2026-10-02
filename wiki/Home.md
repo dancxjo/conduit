@@ -2,8 +2,9 @@
 
 The website build renders this handbook at `/conduit/handbook/` with guided
 navigation, canonical syntax highlighting, and the generated Plot diagrams.
-This repository-owned Markdown remains the single authored source and the
-GitHub Wiki remains its lightweight mirror.
+This repository-owned Markdown and its diagrams remain the handbook's authored
+source. The separate GitHub wiki is maintained manually as a short signpost to
+the [main website](https://dancxjo.github.io/conduit/).
 
 **One continuing computer, made from the computers you have.**
 
@@ -62,8 +63,9 @@ and portable representation `form`. The paired migration in
 executable `form` and representation `code` declarations are rejected.
 Published products may still lag that development surface.
 
-The wiki is published from
+The website handbook is built from
 [`wiki/` on `dev`](https://github.com/dancxjo/conduit/tree/dev/wiki).
-Contribute edits there through a pull request; direct wiki edits are overwritten
-by the repository's publication workflow. [[Canon governance|Canon-governance]]
+Contribute handbook edits there through a pull request. The separate GitHub wiki
+is not mirrored from this directory or used as a build input.
+[[Canon governance|Canon-governance]]
 retains design authority and provenance without making old issues the reading order.

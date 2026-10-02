@@ -79,8 +79,10 @@ examples and their limits.
 | Make a change | [Contributing](CONTRIBUTING.md) and the [repository map](docs/repository-layout.md) |
 
 The [documentation index](docs/README.md) is the full map. The
-[GitHub wiki](https://github.com/dancxjo/conduit/wiki) publishes the learning and
-language pages from this repository's `wiki/` directory.
+[website handbook](https://dancxjo.github.io/conduit/handbook/) is built from
+the Markdown and diagrams in this repository's `wiki/` directory. The separate
+[GitHub wiki](https://github.com/dancxjo/conduit/wiki) is maintained manually as
+a short signpost to the [main website](https://dancxjo.github.io/conduit/).
 
 ## Boundaries that matter
 

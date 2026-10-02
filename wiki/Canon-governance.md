@@ -55,5 +55,7 @@ restart its campaign. Current verticals prove the current language under their
 own acceptance criteria.
 
 Edit this handbook in repository `wiki/`, through a pull request to `dev`.
-The publication workflow mirrors it to the separate GitHub wiki; a draft PR
-does not publish those pages.
+The website build renders these pages and their diagrams. Maintain the separate
+GitHub wiki manually as a short signpost to the
+[main website](https://dancxjo.github.io/conduit/); it is not a handbook mirror
+or build input. A draft PR does not publish the website handbook.
