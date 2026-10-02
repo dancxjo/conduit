@@ -752,10 +752,13 @@ type InterpretationInvalidity =
     | text_bound_exceeded
     | missing_hypothesis
     | too_many_implications
-    | invalid_confidence
     | fabricated_evidence_reference
     | resolved_evidence_marked_unresolved
     | invalid_temporal_context
+
+type ProfileReportedConfidence = {
+    score_permille: U16 in 0..=1000
+}
 
 type ContextSelectionRefusal =
     empty_identity

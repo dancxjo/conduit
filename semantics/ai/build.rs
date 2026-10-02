@@ -40,12 +40,14 @@ fn main() {
                 "FiniteClassification".into(),
                 "ValidatedExtraction".into(),
                 "ModelWorkAccounting".into(),
+                "ProfileReportedConfidence".into(),
             ]
             .into(),
             copy_record_types: [
                 "CompatibleMetrics".into(),
                 "IntegrationAccuracy".into(),
                 "ModelWorkAccounting".into(),
+                "ProfileReportedConfidence".into(),
             ]
             .into(),
             copy_record_value_getters: ["IntegrationAccuracy".into()].into(),

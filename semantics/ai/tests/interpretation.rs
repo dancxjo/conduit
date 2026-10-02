@@ -4,6 +4,7 @@ use conduit_ai::{
     ProfileReportedConfidence, TemporalReference, TemporalRetrievalIntent,
 };
 use conduit_core::SignId;
+use conduit_form::rust_binding::NativeRustBinding;
 
 fn request() -> InterpretationRequest {
     InterpretationRequest {
@@ -65,9 +66,7 @@ fn interpretation() -> ModelInterpretation {
             SignId::from("sign/peer/unreachable/8"),
         ],
         unresolved_evidence: Vec::new(),
-        confidence: Some(ProfileReportedConfidence {
-            score_permille: 700,
-        }),
+        confidence: Some(ProfileReportedConfidence::new(700).unwrap()),
         implications: vec!["ask whether a fresh carrier observation exists".into()],
         disposition: InterpretationDisposition::Interpreted,
     }
@@ -112,14 +111,25 @@ fn insufficient_and_contradictory_evidence_and_modest_scores_are_explicit() {
         result.disposition = disposition;
         assert_eq!(result.validate_against(&request), Ok(()));
     }
-    let mut invalid = interpretation();
-    invalid.confidence = Some(ProfileReportedConfidence {
-        score_permille: 1_001,
-    });
-    assert_eq!(
-        invalid.validate_against(&request),
-        Err(InterpretationInvalidity::InvalidConfidence)
-    );
+    assert!(ProfileReportedConfidence::new(1_001).is_err());
+}
+
+#[test]
+fn profile_reported_confidence_is_native_and_exactly_bounded() {
+    for score_permille in [0, 1_000] {
+        let confidence = ProfileReportedConfidence::new(score_permille).unwrap();
+        assert_eq!(*confidence.score_permille(), score_permille);
+        assert_eq!(
+            ProfileReportedConfidence::from_structured(
+                confidence.into_structured().unwrap(),
+            )
+            .unwrap(),
+            confidence
+        );
+    }
+    assert!(ProfileReportedConfidence::new(1_001).is_err());
+    assert!(!include_str!("../src/interpretation.rs")
+        .contains("pub struct ProfileReportedConfidence"));
 }
 
 #[test]

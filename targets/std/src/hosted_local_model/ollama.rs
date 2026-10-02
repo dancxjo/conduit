@@ -545,14 +545,19 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     "contradictory" => InterpretationDisposition::ContradictoryEvidence,
                     _ => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
+                let confidence = match wire.confidence_permille {
+                    Some(score_permille) => match ProfileReportedConfidence::new(score_permille) {
+                        Ok(confidence) => Some(confidence),
+                        Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                    },
+                    None => None,
+                };
                 let result = ModelInterpretation {
                     provenance: InterpretationProvenance::ModelDerived,
                     hypothesis: wire.hypothesis,
                     referenced_evidence,
                     unresolved_evidence,
-                    confidence: wire
-                        .confidence_permille
-                        .map(|score_permille| ProfileReportedConfidence { score_permille }),
+                    confidence,
                     implications: wire.implications,
                     disposition,
                 };

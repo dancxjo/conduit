@@ -71,9 +71,9 @@ impl HostedLocalModelAdapter for FakeLocalModel {
                         .map(|evidence| evidence.sign_id.clone())
                         .collect(),
                     unresolved_evidence: Vec::new(),
-                    confidence: Some(conduit_ai::ProfileReportedConfidence {
-                        score_permille: 700,
-                    }),
+                    confidence: Some(
+                        conduit_ai::ProfileReportedConfidence::new(700).unwrap(),
+                    ),
                     implications: vec!["seek a fresh carrier observation".into()],
                     disposition: conduit_ai::InterpretationDisposition::Interpreted,
                 })
