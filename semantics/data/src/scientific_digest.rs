@@ -37,27 +37,24 @@ impl ScientificObservation {
             }
         }
         match &self.provenance {
-            ObservationProvenance::Measured {
-                source,
-                measurement_profile,
-            } => {
+            ObservationProvenance::Measured(provenance) => {
                 bytes.push(0);
                 bytes.extend_from_slice(
-                    &source
+                    &provenance
+                        .source()
                         .semantic_digest()
                         .map_err(|_| ScientificObservationRefusal::MissingSource)?,
                 );
-                push_text(&mut bytes, measurement_profile);
+                push_text(&mut bytes, provenance.measurement_profile());
             }
-            ObservationProvenance::Derived {
-                source_observations,
-                transform_identity,
-                realization_profile,
-            } => {
+            ObservationProvenance::Derived(provenance) => {
                 bytes.push(1);
-                push_digests(&mut bytes, source_observations);
-                push_text(&mut bytes, transform_identity);
-                push_text(&mut bytes, realization_profile);
+                push_len(&mut bytes, provenance.source_observations().len());
+                for identity in provenance.source_observations() {
+                    bytes.extend_from_slice(identity.get());
+                }
+                push_text(&mut bytes, provenance.transform_identity());
+                push_text(&mut bytes, provenance.realization_profile());
             }
         }
         Ok(semantic_digest("science/observation@1", &bytes))
