@@ -2,7 +2,10 @@ use alloc::{string::String, vec::Vec};
 use conduit_data::DatasetSplitMembership;
 
 use super::*;
-use crate::{ModelArtifact, ModelRuntimeRealization, MutableModelState};
+use crate::{
+    ModelArtifact, ModelRuntimeRealization, MutableModelState, TrainStepRequest, TrainingBatch,
+    TrainingSession,
+};
 
 impl TrainingState {
     pub(super) fn validate_for(
@@ -36,30 +39,43 @@ impl TrainingBatch {
         nonzero(self.identity)?;
         nonzero(self.dataset_identity)?;
         text(&self.split_identity)?;
-        if self.dataset_identity != split.dataset_identity
+        let example_identities = self.example_identities_iter().collect::<Vec<_>>();
+        let present_modalities = self.present_modality_strings().collect::<Vec<_>>();
+        if self.example_identities.get().iter().any(|page| {
+            page.get().as_slice().is_empty()
+                || page.get().as_slice().len() % core::mem::size_of::<[u8; 32]>() != 0
+        }) || self.dataset_identity != split.dataset_identity
             || self.split_identity != split.split_identity
-            || self.example_identities.is_empty()
-            || self
-                .example_identities
+            || example_identities.is_empty()
+            || example_identities
                 .iter()
-                .any(|item| !split.identities().any(|identity| identity.get() == item))
-            || self.example_identities.contains(&[0; 32])
-            || has_duplicate_digest(&self.example_identities)
+                .any(|item| !split.identities().any(|identity| *identity.get() == **item))
+            || example_identities.contains(&&[0; 32])
+            || example_identities
+                .iter()
+                .enumerate()
+                .any(|(index, value)| example_identities[index + 1..].contains(value))
         {
             return Err(TrainingRefusal::InvalidBatch);
         }
-        if self.example_identities.len() > session.resources.maximum_batch_items() as usize
+        if example_identities.len() > session.resources.maximum_batch_items() as usize
             || self.encoded_bytes == 0
             || self.encoded_bytes > session.resources.maximum_batch_bytes()
-            || self.present_modalities.is_empty()
-            || self.present_modalities.len() > MAXIMUM_BATCH_MODALITIES
-            || has_duplicate_text(&self.present_modalities)
+            || present_modalities.is_empty()
+            || present_modalities.len() > MAXIMUM_BATCH_MODALITIES
+            || present_modalities
+                .iter()
+                .enumerate()
+                .any(|(index, value)| present_modalities[index + 1..].contains(value))
         {
             return Err(TrainingRefusal::BatchBoundExceeded);
         }
-        for modality in &self.present_modalities {
+        for modality in &present_modalities {
             text(modality)?;
-            if !session.model_modalities.contains(modality) {
+            if !session
+                .model_modality_strings()
+                .any(|candidate| candidate == *modality)
+            {
                 return Err(TrainingRefusal::InvalidBatch);
             }
         }
@@ -72,8 +88,8 @@ impl TrainingBatch {
             }
             _ => {}
         }
-        for modality in &session.model_modalities {
-            if self.present_modalities.contains(modality) {
+        for modality in session.model_modality_strings() {
+            if present_modalities.contains(&modality) {
                 continue;
             }
             match &session.missing_modality_policy {
@@ -130,7 +146,7 @@ impl HostStepCandidate {
         {
             return Err(TrainingRefusal::InvalidCandidate);
         }
-        validate_metrics(&self.metrics, &session.objectives)?;
+        validate_metrics(&self.metrics, session.objectives_slice())?;
         if self.consumed_work_units == 0 || self.consumed_work_units > request.admitted_work_units {
             return Err(TrainingRefusal::WorkBoundExceeded);
         }
@@ -264,13 +280,6 @@ pub(super) fn nonzero(value: [u8; 32]) -> Result<(), TrainingRefusal> {
 }
 
 pub(super) fn has_duplicate_text(values: &[String]) -> bool {
-    values
-        .iter()
-        .enumerate()
-        .any(|(index, value)| values[index + 1..].contains(value))
-}
-
-fn has_duplicate_digest(values: &[[u8; 32]]) -> bool {
     values
         .iter()
         .enumerate()

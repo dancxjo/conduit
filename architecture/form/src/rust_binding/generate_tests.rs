@@ -35,6 +35,8 @@ type OptionalDigest = Digest?
 
 type DigestSet = sequence Digest <= 16
 
+type RawDigestPage = sequence collection U8 = 32 in 1..=2
+
 type Observation = {
     identity: Digest
     source: OptionalDigest
@@ -741,6 +743,12 @@ mod generated_round_trip {
         ).unwrap();
         let encoded = observation.clone().encode().unwrap();
         assert_eq!(Observation::decode(&encoded).unwrap(), observation);
+
+        let mut raw_digests = BoundedSequence::<[u8; 32], 2>::new();
+        raw_digests.push([9; 32]).unwrap();
+        let raw_page = RawDigestPage::new(raw_digests).unwrap();
+        let encoded = raw_page.clone().encode().unwrap();
+        assert_eq!(RawDigestPage::decode(&encoded).unwrap(), raw_page);
 
         let mut history = BoundedSequence::<String, 2>::new();
         history.push("prior".into()).unwrap();

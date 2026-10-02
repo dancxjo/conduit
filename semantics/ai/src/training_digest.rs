@@ -21,12 +21,12 @@ impl TrainingSession {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.identity);
         bytes.extend_from_slice(&self.base_artifact_identity);
-        push_optional_digest(&mut bytes, self.base_checkpoint_identity);
+        push_optional_digest(&mut bytes, self.base_checkpoint_digest());
         bytes.extend_from_slice(&self.dataset_manifest_identity);
         bytes.extend_from_slice(&self.split_membership_identity);
         push_text(&mut bytes, &self.objective_profile);
-        push_len(&mut bytes, self.objectives.len());
-        for objective in &self.objectives {
+        push_len(&mut bytes, self.objectives_slice().len());
+        for objective in self.objectives_slice() {
             push_text(&mut bytes, objective.role().get());
             bytes.extend_from_slice(&objective.weight_millionths().to_le_bytes());
             push_text(&mut bytes, objective.configuration_identity().get());
@@ -38,9 +38,9 @@ impl TrainingSession {
         }
         push_randomness(&mut bytes, &self.randomness);
         push_text(&mut bytes, &self.precision_profile);
-        push_len(&mut bytes, self.model_modalities.len());
-        for modality in &self.model_modalities {
-            push_text(&mut bytes, modality);
+        push_len(&mut bytes, self.model_modalities.get().len());
+        for modality in self.model_modalities.get() {
+            push_text(&mut bytes, modality.get());
         }
         push_missing_modality_policy(&mut bytes, &self.missing_modality_policy);
         let resources = self.resources;
@@ -83,10 +83,14 @@ impl TrainingBatch {
         bytes.extend_from_slice(&self.identity);
         bytes.extend_from_slice(&self.dataset_identity);
         push_text(&mut bytes, &self.split_identity);
-        push_digests(&mut bytes, &self.example_identities);
-        push_len(&mut bytes, self.present_modalities.len());
-        for modality in &self.present_modalities {
-            push_text(&mut bytes, modality);
+        let example_count = self.example_identities_iter().count();
+        push_len(&mut bytes, example_count);
+        for identity in self.example_identities_iter() {
+            bytes.extend_from_slice(identity);
+        }
+        push_len(&mut bytes, self.present_modalities.get().len());
+        for modality in self.present_modalities.get() {
+            push_text(&mut bytes, modality.get());
         }
         bytes.extend_from_slice(&self.encoded_bytes.to_le_bytes());
         bytes.push(match self.order {
@@ -212,13 +216,6 @@ fn push_optional_digest(output: &mut Vec<u8>, value: Option<[u8; 32]>) {
             output.push(1);
             output.extend_from_slice(&value);
         }
-    }
-}
-
-fn push_digests(output: &mut Vec<u8>, values: &[[u8; 32]]) {
-    push_len(output, values.len());
-    for value in values {
-        output.extend_from_slice(value);
     }
 }
 
