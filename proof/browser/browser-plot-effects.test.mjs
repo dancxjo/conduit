@@ -135,3 +135,29 @@ test("typed Host denial is correlated without stopping unrelated pending work", 
   assert.deepEqual(refusals, [{ play: "body-play/one", placement: "audio", sequence: 0, disposition: 1, detail: 2 }]);
   assert.deepEqual(host.received, [{ play: "body-play/one", placement: "keyboard", sequence: 0, length: 1 }]);
 });
+
+
+test("retirement aborts pending effects and fences late completions from a successor kernel", async () => {
+  const host = fixture([waiting], []);
+  const controller = new AbortController();
+  let effectSignal, finish;
+  const running = drainBrowserEffects({ ...host, initialProgress: { ...effect("application"), effect_kind: "application-event" },
+    signal: controller.signal,
+    perform: (_, signal) => { effectSignal = signal; return new Promise(resolve => { finish = resolve; }); },
+  });
+  controller.abort();
+  assert.equal(effectSignal.aborted, true);
+  assert.equal(await running, undefined);
+  finish(Uint8Array.of(7));
+  await Promise.resolve();
+  assert.deepEqual(host.received, []);
+});
+
+test("synchronous retirement at the waiting boundary cannot strand its wake promise", async () => {
+  const host = fixture([waiting], []);
+  const controller = new AbortController();
+  assert.equal(await drainBrowserEffects({ ...host, initialProgress: effect("timer"), signal: controller.signal,
+    perform: () => new Promise(() => {}), onWaiting: () => controller.abort(),
+  }), undefined);
+  assert.deepEqual(host.received, []);
+});

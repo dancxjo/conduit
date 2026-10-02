@@ -78,14 +78,21 @@ export function createPitchTonePerformer(window) {
 // Shared page-Host dispatch for effects requested by the one WASM kernel.
 // It does not plan work or schedule semantic operations.
 export async function drainBrowserEffects({ api, initialProgress, readOutput, perform,
-  isCurrent = () => true, onWaiting = () => {}, bridge = null }) {
+  isCurrent = () => true, onWaiting = () => {}, bridge = null, signal }) {
   if (!bridge) throw new Error("browser runtime bridge is required");
   const effects = new Map();
   let wake = null;
   let progress = initialProgress;
+  const current = () => !signal?.aborted && isCurrent();
+  const retire = () => {
+    for (const pending of effects.values()) pending.controller.abort();
+    wake?.();
+    wake = null;
+  };
+  signal?.addEventListener("abort", retire, { once: true });
   const capacity = api.conduit_browser_plot_pending_capacity();
   try {
-    while (isCurrent()) {
+    while (current()) {
       while (progress.effect_kind) {
         const effect = progress;
         const key = JSON.stringify([effect.active_play_id, effect.placement_id,
@@ -135,11 +142,12 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
       let completed = [...effects.values()].find((effect) => effect.ready);
       if (!completed) {
         onWaiting([...effects.values()].map(({ effect }) => effect));
+        if (!current()) return;
         await new Promise((resolve) => { wake = resolve; });
-        if (!isCurrent()) return;
+        if (!current()) return;
         completed = [...effects.values()].find((effect) => effect.ready);
       }
-      if (!isCurrent()) return;
+      if (!current()) return;
       effects.delete(completed.key);
       if (completed.error && !(completed.error instanceof BrowserHostEffectRefusal)) throw completed.error;
       const { effect, output = new Uint8Array() } = completed;
@@ -164,9 +172,10 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
       }
       progress = readOutput();
     }
-    return isCurrent() ? progress : undefined;
+    return current() ? progress : undefined;
   } finally {
-    for (const pending of effects.values()) pending.controller.abort();
+    signal?.removeEventListener("abort", retire);
+    retire();
     effects.clear();
   }
 }

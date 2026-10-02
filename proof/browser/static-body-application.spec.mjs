@@ -109,6 +109,8 @@ test("static Handbook applications retain independent local Bodies through use, 
     const editedSource = originalSource.replace("time/every(1s)", "time/every(2s)");
     expect(editedSource).not.toBe(originalSource);
     await editor.fill(editedSource);
+    await expect(page.locator("[data-check]")).toHaveText("Edited source — not checked or applied yet. Try it to check and apply the change.");
+    await expect(graph).toHaveAttribute("data-checked-plot-id", originalExample.selectedPlot);
     await expect(highlighting).toHaveText(editedSource, { useInnerText: false });
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     await expect.poll(async () => (await current(page)).selectedPlot).not.toBe(originalExample.selectedPlot);

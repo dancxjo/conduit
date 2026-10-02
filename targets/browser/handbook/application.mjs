@@ -12,7 +12,7 @@ export async function startApplication(application) {
     <label>Choose an example <select aria-label="Choose an example"></select></label>
     <p data-lesson></p><label for="handbook-source">Plot source</label><textarea id="handbook-source" spellcheck="false" aria-label="Plot source"></textarea>
     <p data-check role="status"></p><button data-try>Try in my Handbook</button>
-    <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords that produced the result.</p>
+    <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords of the installed example. Unapplied edits stay in the editor.</p>
     <section class="handbook-show" tabindex="0" aria-label="Running example"></section>
     <details><summary>Your body and browser</summary><p data-durability></p><pre data-identities></pre>
       <button data-release>Release this tab</button><button data-reset>Start my Handbook over</button>
@@ -31,6 +31,7 @@ export async function startApplication(application) {
   })) });
   let host, body, play, checked, editor, selected, snapshot;
   let busy = false;
+  let playFailure = null;
   let foreground = null;
   const surfaces = new Map();
   const updateControls = () => {
@@ -60,11 +61,16 @@ export async function startApplication(application) {
     const truth = await readTruth();
     root.querySelector('[data-identities]').textContent = JSON.stringify(truth, null, 2);
     status.textContent = `Your Handbook is ${truth.lifecycle.toLowerCase()}. Play: ${truth.execution}.`;
+    if (playFailure) {
+      status.textContent += ` ${playFailure.code ?? 'PlayExecutionFailed'}: ${playFailure.message}`;
+      status.dataset.refused = 'true';
+    }
     updateControls();
     return truth;
   };
   const wake = async () => {
     if (play) return;
+    playFailure = null;
     surface.replaceChildren(); surfaces.clear();
     play = await body.wake({ root: surface, presentationRootFor({ checkedPlotId }) {
       if (!surfaces.has(checkedPlotId)) {
@@ -80,15 +86,16 @@ export async function startApplication(application) {
       if (play === active && !busy) await current();
     }, async error => {
       if (play !== active) return;
-      await current();
-      status.textContent += ` ${error.code ?? 'PlayExecutionFailed'}: ${error.message}`;
-      status.dataset.refused = 'true';
+      // The active control operation will render after its transition settles.
+      // Preserve a real failure without queuing a stale observer inside it.
+      playFailure = error;
+      if (!busy) await current();
     }).catch(error => {
       status.textContent = `${error.code ?? 'Refused'}: ${error.message}`;
       status.dataset.refused = 'true';
     });
   };
-  const lull = async () => { if (play) { await body.lull(); play = null; } };
+  const lull = async () => { if (play) { await body.lull(); play = null; playFailure = null; } };
   const operate = async action => {
     if (busy) return;
     busy = true;
@@ -123,6 +130,10 @@ export async function startApplication(application) {
     const opening = await body.current();
     const birthState = opening.evidence.body.state;
     editor = host.attachEditor(source);
+    source.addEventListener('input', () => {
+      delete checkStatus.dataset.refusalCode;
+      checkStatus.textContent = 'Edited source — not checked or applied yet. Try it to check and apply the change.';
+    });
     for (const plot of specification.plots.filter(plot => plot.lesson)) {
       const option = document.createElement('option'); option.value = plot.name; option.textContent = plot.title; selector.append(option);
     }
