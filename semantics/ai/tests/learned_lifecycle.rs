@@ -32,12 +32,7 @@ fn contract() -> ShadowContract {
         baseline: realization(None, 3),
         candidate: realization(Some(4), 5),
         shared_input_set_identity: [12; 32],
-        resources: ShadowResourceEnvelope {
-            maximum_runs: 4,
-            maximum_input_bytes: 1024,
-            maximum_output_bytes: 1024,
-            maximum_work_units: 100,
-        },
+        resources: ShadowResourceEnvelope::new(4, 1024, 1024, 100).unwrap(),
         candidate_output_route: "observation/interpretation-shadow".into(),
         protected_effect_routes: vec!["effect/protected-actuator".into()],
     }

@@ -1093,6 +1093,17 @@ type IntegrationResourceEnvelope = {
     where .memory_ceiling_bytes > 0
 }
 
+type ShadowResourceEnvelope = {
+    maximum_runs: U32
+    maximum_input_bytes: U64
+    maximum_output_bytes: U64
+    maximum_work_units: U64
+    where .maximum_runs > 0
+    where .maximum_input_bytes > 0
+    where .maximum_output_bytes > 0
+    where .maximum_work_units > 0
+}
+
 type EmbodimentStage =
     perception_only
     | expressive
