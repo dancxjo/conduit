@@ -17,6 +17,8 @@ form hello {
 }.
 ```
 
+![The hello form as connected gears](assets/sample-diagrams/hello.svg)
+
 A form is not a deployment recipe. It does not have to say which process, operating system, transport, device, library, or machine performs each piece of work.
 
 It says what work is required and how that work relates.

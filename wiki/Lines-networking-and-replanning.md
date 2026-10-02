@@ -45,6 +45,8 @@ form network-resolution (
 }
 ```
 
+![The network resolution form as connected gears](assets/sample-diagrams/network-resolution.svg)
+
 Here connection and DNS meaning are themselves the subject of the form.
 
 That is different from a portable button/indicator form whose cord merely happens to cross a network during realization.

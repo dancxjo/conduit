@@ -99,6 +99,8 @@ form clock-demo {
 }
 ```
 
+![The clock demo form as connected gears](assets/sample-diagrams/clock-demo.svg)
+
 can quiesce and resume.
 
 A finite-on-drain form:
@@ -111,6 +113,8 @@ form upper (
     input >> text/upper >> output
 }.
 ```
+
+![The finite upper form as connected gears](assets/sample-diagrams/upper.svg)
 
 turns structural drain into semantic completion.
 

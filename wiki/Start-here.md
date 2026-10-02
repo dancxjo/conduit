@@ -34,6 +34,8 @@ form hello {
 }.
 ```
 
+![The hello form as connected gears](assets/sample-diagrams/hello.svg)
+
 Read it left to right:
 
 1. the literal produces text;
