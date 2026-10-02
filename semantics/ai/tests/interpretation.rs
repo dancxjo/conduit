@@ -40,14 +40,7 @@ fn model_request_carries_typed_reference_and_retrieval_intent() {
 
 #[test]
 fn invalid_clock_and_query_window_refuse_before_interpretation() {
-    let mut invalid_clock = request();
-    invalid_clock.temporal_reference.clock_basis = conduit_ai::ClockBasis::MonotonicMilliseconds {
-        identity: String::new(),
-    };
-    assert_eq!(
-        invalid_clock.validate(),
-        Err(InterpretationInvalidity::InvalidTemporalContext)
-    );
+    assert!(conduit_ai::ClockIdentity::new(String::new()).is_err());
 
     let mut reversed = request();
     reversed.temporal_intent = Some(TemporalRetrievalIntent::EvidenceWithin { start: 20, end: 10 });

@@ -1,25 +1,11 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, TemporalScale};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    EntityBoundary, TemporalContextRefusal, TemporalSource, TemporalValidity,
-    TemporalWindowRelation, TransitionDirection,
+    ClockBasis, EntityBoundary, TemporalContextRefusal, TemporalReference, TemporalSource,
+    TemporalValidity, TemporalWindowRelation, TransitionDirection,
 };
-
-pub const MAXIMUM_CLOCK_IDENTITY_BYTES: usize = 128;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ClockBasis {
-    UnixEpochMilliseconds,
-    MonotonicMilliseconds { identity: String },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalReference {
-    pub reference_at: u64,
-    pub clock_basis: ClockBasis,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalProvenance {
@@ -56,7 +42,6 @@ pub struct TemporalContext {
 
 impl TemporalProvenance {
     pub fn validate(&self) -> Result<(), TemporalContextRefusal> {
-        validate_clock_basis(&self.clock_basis)?;
         if self
             .valid_from
             .zip(self.valid_until)
@@ -163,26 +148,14 @@ impl TemporalProvenance {
 
 impl TemporalReference {
     pub fn validate(&self) -> Result<(), TemporalContextRefusal> {
-        validate_clock_basis(&self.clock_basis)
+        Ok(())
     }
-}
-
-fn validate_clock_basis(clock_basis: &ClockBasis) -> Result<(), TemporalContextRefusal> {
-    if let ClockBasis::MonotonicMilliseconds { identity } = clock_basis {
-        if identity.is_empty() {
-            return Err(TemporalContextRefusal::EmptyClockIdentity);
-        }
-        if identity.len() > MAXIMUM_CLOCK_IDENTITY_BYTES {
-            return Err(TemporalContextRefusal::ClockIdentityTooLarge);
-        }
-    }
-    Ok(())
 }
 
 fn canonical_clock_basis(clock_basis: &ClockBasis) -> String {
     match clock_basis {
         ClockBasis::UnixEpochMilliseconds => String::from(conduit_core::UNIX_UTC_CLOCK_BASIS),
-        ClockBasis::MonotonicMilliseconds { identity } => identity.clone(),
+        ClockBasis::MonotonicMilliseconds(value) => value.identity().get().as_str().to_string(),
     }
 }
 

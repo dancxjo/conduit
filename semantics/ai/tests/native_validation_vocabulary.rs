@@ -45,8 +45,6 @@ fn ai_validation_vocabulary_has_native_identity_and_exact_round_trips() {
     }
 
     for value in [
-        TemporalContextRefusal::EmptyClockIdentity,
-        TemporalContextRefusal::ClockIdentityTooLarge,
         TemporalContextRefusal::ReversedValidityInterval,
         TemporalContextRefusal::RetrievalAfterReference,
         TemporalContextRefusal::ClockBasisMismatch,

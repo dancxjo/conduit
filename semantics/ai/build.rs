@@ -25,6 +25,7 @@ fn main() {
             serde_nominal_types: [
                 "ClassificationLabel".into(),
                 "ClassificationLabels".into(),
+                "ClockIdentity".into(),
                 "ConfidencePermille".into(),
                 "ExtractionFields".into(),
                 "ExtractionKey".into(),
@@ -41,6 +42,7 @@ fn main() {
                 "ValidatedExtraction".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
+                "TemporalReference".into(),
             ]
             .into(),
             copy_record_types: [
@@ -56,6 +58,7 @@ fn main() {
                 "FiniteClassification".into(),
                 "IntegrationAccuracy".into(),
                 "ModelWorkAccounting".into(),
+                "TemporalReference".into(),
                 "ValidatedExtraction".into(),
             ]
             .into(),
@@ -111,12 +114,20 @@ fn main() {
                 ),
             ]
             .into(),
-            serde_variant_orders: [(
-                "SourceExtractionProfile".into(),
-                ["text_utf8", "structured_items", "resource_metadata"]
-                    .map(String::from)
-                    .into(),
-            )]
+            serde_variant_orders: [
+                (
+                    "ClockBasis".into(),
+                    ["unix_epoch_milliseconds", "monotonic_milliseconds"]
+                        .map(String::from)
+                        .into(),
+                ),
+                (
+                    "SourceExtractionProfile".into(),
+                    ["text_utf8", "structured_items", "resource_metadata"]
+                        .map(String::from)
+                        .into(),
+                ),
+            ]
             .into(),
             ..RustBindingOptions::default()
         },
