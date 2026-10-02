@@ -23,7 +23,12 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
-            serde_variant_exclusions: ["ReplayCommand".into()].into(),
+            serde_variant_exclusions: [
+                "HistoricalTimelineCommand".into(),
+                "HistoricalTimelineOutcome".into(),
+                "ReplayCommand".into(),
+            ]
+            .into(),
             serde_record_types: [
                 "AvailabilityBasis".into(),
                 "AvailabilityInterval".into(),
@@ -31,6 +36,7 @@ fn main() {
                 "CandidateConflict".into(),
                 "CivilTrigger".into(),
                 "ElapsedTrigger".into(),
+                "HistoricalRetentionGap".into(),
                 "LocalDate".into(),
                 "LocalDateTime".into(),
                 "LocalTime".into(),
@@ -62,6 +68,7 @@ fn main() {
                 "CivilResolutionPolicy".into(),
                 "LocalDate".into(),
                 "LocalTime".into(),
+                "HistoricalRetentionGap".into(),
                 "MonotonicDuration".into(),
                 "PulseObservation".into(),
                 "RhythmState".into(),
@@ -110,6 +117,8 @@ fn main() {
                 "CalendarEvent".into(),
                 "CivilTrigger".into(),
                 "ElapsedTrigger".into(),
+                "HistoricalRetentionGap".into(),
+                "HistoricalTimelineEntry".into(),
                 "HistoricalReplayEntry".into(),
                 "LocalDateTime".into(),
                 "MeetingCandidate".into(),

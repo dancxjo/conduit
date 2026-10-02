@@ -4,8 +4,8 @@ use alloc::string::String;
 use conduit_core::{semantic_digest, BoundedResourceRef, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedHistoricalTimeline, HistoricalEntryOrigin, HistoricalEntryOriginCode,
-    HistoricalTimelineEntry, HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES,
+    BoundedHistoricalTimeline, HistoricalEntryOriginCode, HistoricalTimelineCommand,
+    HistoricalTimelineOutcome, HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES,
 };
 
 pub const HISTORICAL_TIMELINE_COMMAND_INFO_ID: &str = "history/timeline-command@1";
@@ -13,31 +13,6 @@ pub const HISTORICAL_TIMELINE_COMMAND_VERSION: u8 = 1;
 pub const MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES: usize = 1_024;
 const MAGIC: [u8; 4] = *b"CHTC";
 const DIGEST_BYTES: usize = 32;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-// The largest variants are deliberately inline: their exact finite bound is
-// preferable to hidden heap indirection at the future Play boundary.
-#[allow(clippy::large_enum_variant)]
-pub enum HistoricalTimelineCommand {
-    Append {
-        identity: String,
-        event_time: TemporalInstant,
-        origin: HistoricalEntryOrigin,
-        value: BoundedResourceRef,
-    },
-    Remove {
-        sequence: u64,
-    },
-    Clear,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(clippy::large_enum_variant)]
-pub enum HistoricalTimelineOutcome {
-    Appended { sequence: u64 },
-    Removed(HistoricalTimelineEntry),
-    Cleared { revision: u64 },
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HistoricalTimelineCommandCodecRefusal {
@@ -61,22 +36,36 @@ impl BoundedHistoricalTimeline {
         command: HistoricalTimelineCommand,
     ) -> Result<HistoricalTimelineOutcome, HistoricalTimelineRefusal> {
         match command {
-            HistoricalTimelineCommand::Append {
-                identity,
-                event_time,
-                origin,
-                value,
-            } => self
-                .append(identity, event_time, origin, value)
-                .map(|sequence| HistoricalTimelineOutcome::Appended { sequence }),
-            HistoricalTimelineCommand::Remove { sequence } => self
-                .remove(sequence)
-                .map(HistoricalTimelineOutcome::Removed),
+            HistoricalTimelineCommand::Append(payload) => self
+                .append(
+                    payload.identity().clone(),
+                    payload
+                        .event_time()
+                        .clone()
+                        .try_into()
+                        .map_err(|_| HistoricalTimelineRefusal::InvalidEventTime)?,
+                    *payload.origin(),
+                    payload.value().clone(),
+                )
+                .map(|sequence| {
+                    HistoricalTimelineOutcome::appended(sequence).expect("u64 sequence is native")
+                }),
+            HistoricalTimelineCommand::Remove(payload) => {
+                self.remove(*payload.sequence()).map(|entry| {
+                    HistoricalTimelineOutcome::removed(
+                        entry.event_time,
+                        entry.identity,
+                        entry.origin,
+                        entry.sequence,
+                        entry.value,
+                    )
+                    .expect("validated timeline entry is native")
+                })
+            }
             HistoricalTimelineCommand::Clear => {
                 self.clear()?;
-                Ok(HistoricalTimelineOutcome::Cleared {
-                    revision: self.clear_revision(),
-                })
+                Ok(HistoricalTimelineOutcome::cleared(self.clear_revision())
+                    .expect("u64 revision is native"))
             }
         }
     }
@@ -90,12 +79,11 @@ pub fn encode_historical_timeline_command_into(
     writer.bytes(&MAGIC)?;
     writer.u8(HISTORICAL_TIMELINE_COMMAND_VERSION)?;
     match command {
-        HistoricalTimelineCommand::Append {
-            identity,
-            event_time,
-            origin,
-            value,
-        } => {
+        HistoricalTimelineCommand::Append(payload) => {
+            let identity = payload.identity();
+            let event_time = payload.event_time();
+            let origin = payload.origin();
+            let value = payload.value();
             if identity.is_empty() || identity.len() > MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES {
                 return Err(HistoricalTimelineCommandCodecRefusal::InvalidIdentity);
             }
@@ -108,16 +96,16 @@ pub fn encode_historical_timeline_command_into(
             writer.u8(0)?;
             writer.text(identity)?;
             writer.u64(event_time.ticks)?;
-            writer.u8(encode_scale(event_time.scale))?;
+            writer.u8(encode_scale(event_time.scale.into()))?;
             writer.text(&event_time.clock_basis)?;
             writer.u64(event_time.resolution_ticks)?;
             writer.u64(event_time.uncertainty_ticks)?;
             writer.u8(HistoricalEntryOriginCode::encode(*origin)[0])?;
             writer.length_prefixed(&resource)?;
         }
-        HistoricalTimelineCommand::Remove { sequence } => {
+        HistoricalTimelineCommand::Remove(payload) => {
             writer.u8(1)?;
-            writer.u64(*sequence)?;
+            writer.u64(*payload.sequence())?;
         }
         HistoricalTimelineCommand::Clear => writer.u8(2)?,
     }
@@ -164,16 +152,18 @@ pub fn decode_historical_timeline_command(
                 .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidCommand)?;
             let value = BoundedResourceRef::decode(cursor.length_prefixed()?)
                 .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidResource)?;
-            HistoricalTimelineCommand::Append {
+            HistoricalTimelineCommand::append(
+                event_time
+                    .try_into()
+                    .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidTime)?,
                 identity,
-                event_time,
                 origin,
                 value,
-            }
+            )
+            .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidCommand)?
         }
-        1 => HistoricalTimelineCommand::Remove {
-            sequence: cursor.u64()?,
-        },
+        1 => HistoricalTimelineCommand::remove(cursor.u64()?)
+            .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidCommand)?,
         2 => HistoricalTimelineCommand::Clear,
         _ => return Err(HistoricalTimelineCommandCodecRefusal::InvalidCommand),
     };

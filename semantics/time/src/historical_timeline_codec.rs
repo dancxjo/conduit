@@ -69,7 +69,7 @@ pub fn encode_historical_timeline_into(
         writer.u64(entry.sequence)?;
         writer.text(&entry.identity)?;
         writer.u64(entry.event_time.ticks)?;
-        writer.u8(encode_scale(entry.event_time.scale))?;
+        writer.u8(encode_scale(entry.event_time.scale.into()))?;
         writer.text(&entry.event_time.clock_basis)?;
         writer.u64(entry.event_time.resolution_ticks)?;
         writer.u64(entry.event_time.uncertainty_ticks)?;
@@ -152,7 +152,13 @@ pub fn decode_historical_timeline(
         entries.push(HistoricalTimelineEntry {
             sequence,
             identity,
-            event_time,
+            event_time: event_time
+                .try_into()
+                .map_err(|_| {
+                    HistoricalTimelineCodecRefusal::Timeline(
+                        HistoricalTimelineRefusal::InvalidEventTime,
+                    )
+                })?,
             origin,
             value: resource,
         });
