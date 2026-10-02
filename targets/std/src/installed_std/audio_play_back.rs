@@ -16,6 +16,7 @@ pub(super) static AUDIO_PLAY_FACTORY: BackFactory = BackFactory {
 };
 
 pub(super) struct AudioPlayBack {
+    work: super::audio_stream_budget::AudioStreamBudget,
     pending: Option<RequestId>,
     next_request: u32,
     drain_marker: ValueRef,
@@ -24,7 +25,11 @@ pub(super) struct AudioPlayBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for AudioPlayBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
                 return step_fail(60);
@@ -46,11 +51,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioPlayBack {
         }
 
         if let Some(value) = io.input(PortId(0)) {
-            if self.pending.is_some()
-                || self.closed
-                || self.next_request
-                    >= u32::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS)
-            {
+            if self.pending.is_some() || self.closed || self.next_request >= self.work.blocks {
                 return step_fail(60);
             }
             let Ok(input) = BoundedValueRef::new(
@@ -59,6 +60,15 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioPlayBack {
             ) else {
                 return step_fail(62);
             };
+            let Some(encoded) = input_bytes.input(PortId(0)) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 185,
+                });
+            };
+            if let Err(failure) = self.work.frame(encoded) {
+                return StepOutcome::Fail(failure);
+            }
             let request = RequestId(self.next_request);
             let Some(next) = self.next_request.checked_add(1) else {
                 return step_fail(62);
@@ -113,7 +123,9 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     Ok(BackBudget {
         value_items: 1,
         value_bytes: DRAIN_MARKER.len() as u32,
-        host_requests: usize::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) + 1,
+        host_requests: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?
+            .blocks as usize
+            + 1,
         sign_items: 64,
         maximum_value_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
     })
@@ -128,6 +140,7 @@ fn prepare(
         .store(&DRAIN_MARKER)
         .map_err(|error| format!("store audio/play drain marker: {error:?}"))?;
     Ok(InstalledBack::AudioPlay(AudioPlayBack {
+        work: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?,
         pending: None,
         next_request: 0,
         drain_marker,
@@ -168,13 +181,14 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
                 || binding.boot_id != placement.boot_id
                 || binding.capability_id != placement.capability_id
         })
-        || !placement.configuration.is_empty()
+        || placement.configuration.len() != 2
     {
         return Err(
             "planned audio/play identity/resource/authority does not match installation"
                 .to_string(),
         );
     }
+    super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?;
     Ok(())
 }
 
@@ -296,6 +310,7 @@ mod tests {
     #[test]
     fn input_is_serialized_and_close_requests_exact_drain() {
         let mut operation = AudioPlayBack {
+            work: super::super::audio_stream_budget::AudioStreamBudget::playback_for_test(),
             pending: None,
             next_request: 0,
             drain_marker: ValueRef {
@@ -306,14 +321,26 @@ mod tests {
             draining: false,
             closed: false,
         };
+        let header = conduit_audio::PcmFrameHeader::new(
+            conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
+            48000,
+            conduit_audio::PcmChannelLayout::StereoLeftRight,
+            1,
+            1,
+            0,
+            false,
+        )
+        .unwrap();
+        let mut encoded = header.encode().to_vec();
+        encoded.extend_from_slice(&[0; 4]);
         let value = ValueRef {
             slot: 2,
             generation: 1,
-            byte_len: 100,
+            byte_len: encoded.len() as u32,
         };
         let mut io = StepIo::test_frame([Some(value)], [false], [None], None, 8);
         assert_eq!(
-            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            operation.step(&mut io, &StepInputBytes::test_frame([Some(&encoded)], None)),
             StepOutcome::Progress
         );
         assert_eq!(

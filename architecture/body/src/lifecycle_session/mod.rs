@@ -10,6 +10,8 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{bind_sign, AuthorityGrantId, BootId, HostId, SignId};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "authenticated-admission")]
+mod browser_admission;
 mod continuity;
 mod flow;
 mod membership;

@@ -18,6 +18,7 @@ pub(super) static FACTORY: BackFactory = BackFactory {
 };
 
 pub(super) struct WavArtifactBack {
+    work: super::audio_stream_budget::AudioStreamBudget,
     pending: Option<RequestId>,
     next_request: u32,
     drain_marker: ValueRef,
@@ -26,7 +27,11 @@ pub(super) struct WavArtifactBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for WavArtifactBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
                 return step_fail(181);
@@ -48,11 +53,7 @@ impl<const PORTS: usize> StepBack<PORTS> for WavArtifactBack {
         }
 
         if let Some(value) = io.input(PortId(0)) {
-            if self.pending.is_some()
-                || self.closed
-                || self.next_request
-                    >= u32::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS)
-            {
+            if self.pending.is_some() || self.closed || self.next_request >= self.work.blocks {
                 return step_fail(181);
             }
             let Ok(input) = BoundedValueRef::new(
@@ -61,6 +62,15 @@ impl<const PORTS: usize> StepBack<PORTS> for WavArtifactBack {
             ) else {
                 return step_fail(183);
             };
+            let Some(encoded) = input_bytes.input(PortId(0)) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 185,
+                });
+            };
+            if let Err(failure) = self.work.frame(encoded) {
+                return StepOutcome::Fail(failure);
+            }
             let request = RequestId(self.next_request);
             let Some(next) = self.next_request.checked_add(1) else {
                 return step_fail(183);
@@ -120,7 +130,9 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         value_bytes: DRAIN_MARKER.len() as u32
             + conduit_std_offers::audio_write_wav_artifact_offer().host_calls[0]
                 .maximum_input_bytes,
-        host_requests: usize::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) + 1,
+        host_requests: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?
+            .blocks as usize
+            + 1,
         sign_items: 64,
         maximum_value_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
     })
@@ -135,6 +147,7 @@ fn prepare(
         .store(&DRAIN_MARKER)
         .map_err(|error| format!("store WAV artifact drain marker: {error:?}"))?;
     Ok(InstalledBack::WavArtifact(WavArtifactBack {
+        work: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?,
         pending: None,
         next_request: 0,
         drain_marker,
@@ -176,12 +189,13 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
                 || binding.boot_id != placement.boot_id
                 || binding.capability_id != placement.capability_id
         })
-        || !placement.configuration.is_empty()
+        || placement.configuration.len() != 2
     {
         return Err(
             "planned WAV artifact identity/resource/authority differs from installation".into(),
         );
     }
+    super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?;
     Ok(())
 }
 
@@ -198,9 +212,12 @@ pub(super) fn prepare_session(
     {
         return Err("planned WAV artifact destination is stale or differs from selection".into());
     }
-    Ok(crate::hosted_wav_artifact::WavArtifactSession::prepare(
+    let work = super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?;
+    crate::hosted_wav_artifact::WavArtifactSession::prepare_bounded(
         selected.clone(),
-    ))
+        work.blocks,
+        work.millis,
+    )
 }
 
 pub(super) fn execute(

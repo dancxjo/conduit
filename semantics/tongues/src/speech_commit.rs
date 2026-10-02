@@ -13,7 +13,7 @@ use std::{string::String, vec, vec::Vec};
 use crate::{SpeakableSegment, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionContract};
 
 pub const SPEECH_COMMIT_KIND: &str = "speech/commit-generated-text";
-pub const SPEECH_COMMIT_REVISION: &str = "conduit.speech/commit-generated-text@1";
+pub const SPEECH_COMMIT_REVISION: &str = "conduit.speech/commit-generated-text@2";
 pub const SPEAKABLE_TEXT_VALUE_KIND: &str = "speech/speakable-text@1";
 pub const MAXIMUM_PENDING_SPEECH_BYTES: usize = 1_024;
 pub const MAXIMUM_SPEAKABLE_SEGMENT_BYTES: usize = 1_024;
@@ -224,6 +224,25 @@ pub fn speech_commit_contract() -> SpeechRecognitionContract {
             max_queue_bytes: SPEECH_COMMIT_QUEUE_BYTES,
         },
     }
+}
+
+/// The closing generated-text Flow has an explicit finite envelope. The
+/// unchanged Tongues pending-text budget applies across deltas before commit.
+pub fn speech_commit_semantic_contract() -> conduit_core::Kind {
+    let mut kind = speech_commit_contract().into_semantic_capability_contract();
+    kind.semantic_laws
+        .push(conduit_core::KindSemanticLaw::ValueContracts(vec![
+            conduit_core::FrontValueContract {
+                location: conduit_core::FrontValueLocation::Input(port_id("generated")),
+                contract: conduit_core::CheckedValueContract::new(
+                    kind_id(conduit_text::TEXT_VALUE_KIND),
+                    MAXIMUM_PENDING_SPEECH_BYTES as u32,
+                    vec![],
+                )
+                .expect("finite speech commitment text"),
+            },
+        ]));
+    kind
 }
 
 fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {

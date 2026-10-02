@@ -5,6 +5,10 @@ use conduit_presentation::*;
 use std::path::Path;
 
 fn presentation() -> Presentation {
+    presentation_with_text("Ready.")
+}
+
+pub(super) fn presentation_with_text(text: &str) -> Presentation {
     let body = Body::born(
         SourceDocumentId::from("source/presentation-fixture"),
         CheckedPlotId::from("checked/presentation-fixture"),
@@ -33,7 +37,7 @@ fn presentation() -> Presentation {
         vec![],
         vec![PresentationText {
             subject: "body/current".into(),
-            text: "Ready.".into(),
+            text: text.into(),
         }],
         vec![],
         vec![PresentationDisclosure {
@@ -44,7 +48,7 @@ fn presentation() -> Presentation {
     .unwrap()
 }
 
-fn retained(presentation: Presentation) -> GeneratedManifestationCandidate {
+pub(super) fn retained(presentation: Presentation) -> GeneratedManifestationCandidate {
     let request = GenerativePresenterRequest::from_presentation(
         "request/retained".into(),
         GenerativePresenterPolicy {
@@ -156,4 +160,73 @@ fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
     );
     std::fs::remove_file(destination).unwrap();
     std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+#[ignore = "requires installed eSpeak NG; validates real streaming Mask audio using an explicitly fixture Presenter candidate"]
+fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
+    let words = "This Body keeps the clock you started. Change the interval, then inspect the connections to see how your action reaches the running work. You can pause the Body without erasing its history. When you return, inspect the current host and the new plan before starting again. If a presentation host disappears, the Body must show what stopped and which admitted route can continue. Your preference chooses among available Masks; it never invents a missing host.";
+    let engine = std::fs::canonicalize("/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1").unwrap();
+    let discovery = crate::hosted_speech_synthesis::EspeakDiscovery::inspect(
+        Path::new("/usr/bin/espeak-ng"),
+        Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
+        "en-us",
+        &[engine],
+    )
+    .unwrap();
+    let directory = std::env::temp_dir().join(format!(
+        "conduit-streamed-mask-proof-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let destination = directory.join("chapter.wav");
+    let face = presentation_with_text(words);
+    let candidate = retained(face.clone());
+    let result = execute_retained_manifestation_mask_with_streaming_espeak(
+        "streamed-spoken-proof",
+        "streamed-spoken-proof",
+        face.clone(),
+        candidate.clone(),
+        discovery,
+        &destination,
+    )
+    .unwrap();
+    let shown = &result.execution.shown;
+    assert_eq!(shown.show.show.lifecycle, ManifestationLifecycle::Available);
+    assert_eq!(shown.artifact.plan_id, result.execution.plan.plan_id);
+    assert!((20 * 48000..=30 * 48000).contains(&shown.artifact.frames));
+    assert_eq!(result.artifact.pcm_sha256, shown.artifact.content_sha256);
+    let voices: Vec<_> = result
+        .execution
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .filter(|p| p.kind_id.as_str() == "speech/synthesize-stream")
+        .collect();
+    assert_eq!(voices.len(), 1);
+    assert_eq!(
+        voices[0].implementation_id.as_str(),
+        conduit_std_offers::ESPEAK_STREAM_IMPLEMENTATION
+    );
+    for (name, value) in [
+        ("face.json", serde_json::to_value(&face).unwrap()),
+        (
+            "fixture-candidate.json",
+            serde_json::to_value(&candidate).unwrap(),
+        ),
+        (
+            "plan.json",
+            serde_json::to_value(&result.execution.plan).unwrap(),
+        ),
+        ("show.json", serde_json::to_value(shown).unwrap()),
+    ] {
+        std::fs::write(
+            directory.join(name),
+            serde_json::to_vec_pretty(&value).unwrap(),
+        )
+        .unwrap();
+    }
+    std::fs::write(directory.join("words.txt"), words).unwrap();
+    eprintln!("Actual streamed Mask audio retained at {} (fixture wording; no live model or playback claim)", directory.display());
 }

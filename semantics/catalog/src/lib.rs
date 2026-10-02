@@ -326,7 +326,8 @@ mod sound_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use sound_catalog::{
     install_audio_capture_push_to_talk_catalog, install_audio_continuous_tone_catalog,
-    install_audio_gain_catalog, install_audio_tone_catalog, install_sound_catalogs,
+    install_audio_gain_catalog, install_audio_play_catalog, install_audio_tone_catalog,
+    install_sound_catalogs,
 };
 #[cfg(feature = "plot-catalog")]
 mod structured_music_plot;

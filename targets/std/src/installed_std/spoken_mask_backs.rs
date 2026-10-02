@@ -22,6 +22,11 @@ pub(super) static GENERATED_SPEECH_FACTORY: BackFactory = BackFactory {
     budget: adapter_budget,
     prepare: prepare_generated_speech,
 };
+pub(super) static GENERATED_STREAM_SPEECH_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::GENERATED_STREAM_SPEECH_IMPLEMENTATION,
+    budget: adapter_budget,
+    prepare: prepare_generated_speech,
+};
 pub(super) static SPOKEN_ARTIFACT_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION,
     budget: artifact_budget,
@@ -39,6 +44,7 @@ pub(super) static NO_INTERACTION_FACTORY: BackFactory = BackFactory {
 };
 
 pub(super) struct SpokenArtifactBack {
+    work: super::audio_stream_budget::AudioStreamBudget,
     pending: Option<RequestId>,
     next_request: u32,
     drain_marker: ValueRef,
@@ -46,7 +52,11 @@ pub(super) struct SpokenArtifactBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for SpokenArtifactBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) || outcome.failure.is_some() {
                 return outcome.failure.map_or_else(|| fail(31), StepOutcome::Fail);
@@ -74,8 +84,14 @@ impl<const PORTS: usize> StepBack<PORTS> for SpokenArtifactBack {
                 _ => fail(32),
             }
         } else if let Some(value) = io.input(PortId(0)) {
-            if self.pending.is_some() || self.closing {
+            if self.pending.is_some() || self.closing || self.next_request >= self.work.blocks {
                 return fail(33);
+            }
+            let Some(encoded) = input_bytes.input(PortId(0)) else {
+                return fail(33);
+            };
+            if let Err(failure) = self.work.frame(encoded) {
+                return StepOutcome::Fail(failure);
             }
             let Ok(input) = BoundedValueRef::new(
                 value,
@@ -139,10 +155,7 @@ fn prepare_generated_speech(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate(
-        placement,
-        conduit_std_offers::GENERATED_SPEECH_IMPLEMENTATION,
-    )?;
+    validate(placement, placement.implementation_id.as_str())?;
     Ok(InstalledBack::SpokenGeneratedSpeech(
         GeneratedManifestationToSpeechBack::new(
             conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
@@ -163,6 +176,7 @@ fn prepare_artifact(
         .store(&[0])
         .map_err(|error| format!("store spoken artifact drain marker: {error:?}"))?;
     Ok(InstalledBack::SpokenArtifact(SpokenArtifactBack {
+        work: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?,
         pending: None,
         next_request: 0,
         drain_marker,
@@ -195,6 +209,7 @@ fn prepare_no_interaction(
 fn validate(placement: &PlannedGear, implementation: &str) -> Result<(), String> {
     let offer = conduit_std_offers::spoken_mask_offers()
         .into_iter()
+        .chain([conduit_std_offers::generated_stream_speech_offer()])
         .find(|offer| offer.implementation.implementation_id.as_str() == implementation)
         .ok_or_else(|| "unknown spoken Mask implementation".to_string())?;
     if placement.kind_id != offer.kind_id
@@ -205,7 +220,7 @@ fn validate(placement: &PlannedGear, implementation: &str) -> Result<(), String>
         || placement.execution_profile_id != offer.implementation.execution_profile_id
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.host_calls != offer.host_calls
-        || !placement.configuration.is_empty()
+        || placement.configuration.len() != offer.semantic_contract.configuration.len()
     {
         return Err("planned spoken Mask stage differs from installed realization".into());
     }
@@ -231,7 +246,9 @@ fn artifact_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     Ok(BackBudget {
         value_items: 2,
         value_bytes: 4_097,
-        host_requests: usize::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) + 1,
+        host_requests: super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?
+            .blocks as usize
+            + 1,
         sign_items: 64,
         maximum_value_bytes: 4_096,
     })
@@ -299,7 +316,15 @@ pub(super) fn prepare_artifact_hosts(
                 return Err("spoken Mask artifact destination is stale".into());
             }
             Ok(Some(SpokenArtifactHost {
-                session: crate::hosted_wav_artifact::WavArtifactSession::prepare(selection.clone()),
+                session: {
+                    let work =
+                        super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?;
+                    crate::hosted_wav_artifact::WavArtifactSession::prepare_bounded(
+                        selection.clone(),
+                        work.blocks,
+                        work.millis,
+                    )?
+                },
                 plan_id: fragment.plan_id.clone(),
                 active_play_id: active_play.active_play_id.clone(),
                 placement_id: placement.placement_id.clone(),

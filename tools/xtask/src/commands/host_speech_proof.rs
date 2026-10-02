@@ -25,6 +25,9 @@ pub(super) struct SpeechProofRequest {
     pub voice: String,
     #[arg(long, default_value = "Hello.")]
     pub text: String,
+    /// Use committed segments and incremental PCM with a 30-second work allowance.
+    #[arg(long)]
+    pub stream: bool,
     /// New directory for the exact Plot, Plan, WAV, and execution receipt.
     #[arg(long)]
     pub output: PathBuf,
@@ -38,11 +41,16 @@ pub(super) fn prove(
     request: SpeechProofRequest,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if request.text.is_empty()
-        || request.text.len() > conduit_tongues::MAXIMUM_TEXT_BYTES as usize
-        || request.text.contains('\0')
-    {
-        return Err("speech text must be nonempty UTF-8 of at most 256 bytes, without NUL".into());
+    let maximum_text = if request.stream {
+        1024
+    } else {
+        conduit_tongues::MAXIMUM_TEXT_BYTES as usize
+    };
+    if request.text.is_empty() || request.text.len() > maximum_text || request.text.contains('\0') {
+        return Err(format!(
+            "speech text must be nonempty UTF-8 of at most {maximum_text} bytes, without NUL"
+        )
+        .into());
     }
     if request.output.exists() {
         return Err("speech proof output must be a new directory".into());
@@ -79,13 +87,18 @@ pub(super) fn prove(
         config.boot_id.clone(),
         config.offer_generation,
         "grant/xtask-real-speech".into(),
-        Duration::from_secs(10),
+        Duration::from_secs(if request.stream { 30 } else { 10 }),
     )?;
-    let source = format!("plot real_speech {{\n voice: speech/synthesize(maximum-output-bytes = 131072)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: audio/play\n {} >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n", serde_json::to_string(&request.text)?);
+    let source = if request.stream {
+        "plot real_speech (\n >> text: Text...| <= 1024B\n) {\n commit: speech/commit-generated-text\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n text >> commit.generated\n commit.segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n".to_owned()
+    } else {
+        format!("plot real_speech {{\n voice: speech/synthesize(maximum-output-bytes = 131072)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: audio/play\n {} >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n", serde_json::to_string(&request.text)?)
+    };
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .map_err(|error| format!("check real speech Plot: {error:?}"))?;
@@ -108,9 +121,27 @@ pub(super) fn prove(
     let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
         .map_err(|error| format!("place real speech: {error:?}"))?;
     let grants = [
-        host.speech_synthesis_authority_grant()?,
+        if request.stream {
+            host.streaming_speech_authority_grant()?
+        } else {
+            host.speech_synthesis_authority_grant()?
+        },
         host.wav_artifact_authority_grant("grant/xtask-speech-wav")?,
     ];
+    let mut boundaries = BTreeMap::new();
+    if request.stream {
+        boundaries.insert(
+            conduit_planner::ForeBoundaryKey {
+                direction: conduit_core::PortDirection::Input,
+                front_port_id: "text".into(),
+                track: conduit_core::ConnectionTrack::Payload,
+            },
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 1024,
+            },
+        );
+    }
     let plan = conduit_planner::plan_expanded_authoring_with_options(
         &authoring,
         &hosts,
@@ -120,12 +151,16 @@ pub(super) fn prove(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
+            connection_byte_capacity: if request.stream {
+                2048
+            } else {
+                conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
+            },
             authority_grants: &grants,
             protected_resource_grants: &[],
             line_offers: &[],
         },
-        &BTreeMap::new(),
+        &boundaries,
     )
     .map_err(|error| format!("plan real speech: {error:?}"))?;
     if plan.fragments.len() != 1 {
@@ -136,7 +171,28 @@ pub(super) fn prove(
         &request.output.join("plan.json"),
         &serde_json::to_vec_pretty(&plan)?,
     )?;
-    let report = host.run_fragment_to(plan.fragments[0].clone(), &mut Vec::new(), &mut NoTimer)?;
+    write_new(&request.output.join("words.txt"), request.text.as_bytes())?;
+    struct NoOutput;
+    impl conduit_std_host::ExternalForeOutputAdapter for NoOutput {
+        fn deliver(&mut self, _: conduit_std_host::ExternalForeDelivery) -> Result<(), String> {
+            Err("speech proof has no external output port".into())
+        }
+    }
+    let report = if request.stream {
+        host.run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[conduit_std_host::ExternalForeInput {
+                front_port_id: "text".into(),
+                track: conduit_core::ConnectionTrack::Payload,
+                bytes: request.text.as_bytes().to_vec(),
+            }],
+            &mut NoOutput,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )?
+    } else {
+        host.run_fragment_to(plan.fragments[0].clone(), &mut Vec::new(), &mut NoTimer)?
+    };
     if !matches!(
         report
             .observations
@@ -170,7 +226,7 @@ pub(super) fn prove(
     }
     let receipt = serde_json::json!({
         "schema":"conduit.tools/real-speech-proof@1", "proof_class":"host-execution-audio-artifact", "dry_run":false,
-        "effects_performed":true, "playback_performed":false, "human_listening_proved":false,
+        "streaming":request.stream, "effects_performed":true, "playback_performed":false, "human_listening_proved":false,
         "source_document_id":checked.source_document_id, "checked_plot_id":authoring.expanded.checked_plot_id,
         "provider_sha256":provider_digest, "text_sha256":format!("{:x}",Sha256::digest(request.text.as_bytes())),
         "host_id":hosts[0].host_id, "boot_id":hosts[0].boot_id, "plan_id":plan.plan_id,

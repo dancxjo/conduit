@@ -54,6 +54,8 @@ export interface BrowserSyntaxEditor {
 }
 
 export class BrowserHost {
+  /** Public proof material for first admission; contains no signing secret. */
+  admissionIdentity(): Readonly<{ hostId: string; bootId: string; verifyingKey: readonly number[] }>;
   /** Attach native syntax highlighting while preserving the accessible textarea. */
   attachEditor(textarea: HTMLTextAreaElement): BrowserSyntaxEditor;
   /** Return the bounded canonical Rust syntax projection, or throw on refusal. */

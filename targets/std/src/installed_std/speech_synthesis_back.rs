@@ -8,6 +8,11 @@ use conduit_kernel::{
     ValueRef, ValueStorage,
 };
 
+pub(super) static ESPEAK_STREAM_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::ESPEAK_STREAM_IMPLEMENTATION,
+    budget,
+    prepare,
+};
 pub(super) static ESPEAK_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION,
     budget,
@@ -102,7 +107,7 @@ impl<const PORTS: usize> StepBack<PORTS> for SpeechSynthesisBack {
                 return step_fail(FailureCode::InvalidLifecycle, 8);
             }
             let maximum = if self.streaming {
-                conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES
+                conduit_tongues::MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES as u32
             } else {
                 conduit_tongues::MAXIMUM_TEXT_BYTES
             };
@@ -168,7 +173,12 @@ pub(super) fn maximum_output_bytes(placement: &PlannedGear) -> Result<u32, Strin
         .ok_or_else(|| "speech synthesis output bound is missing".to_string())?;
     let value = u32::try_from(value)
         .map_err(|_| "speech synthesis output bound does not fit the kernel".to_string())?;
-    if value == 0 || value > conduit_tongues::MAXIMUM_PCM_BYTES {
+    let maximum = if placement.kind_id.as_str() == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND {
+        conduit_tongues::MAXIMUM_STREAM_PCM_BYTES
+    } else {
+        conduit_tongues::MAXIMUM_PCM_BYTES
+    };
+    if value == 0 || value > maximum {
         return Err("speech synthesis output bound is outside the portable contract".into());
     }
     Ok(value)
@@ -177,9 +187,20 @@ pub(super) fn maximum_output_bytes(placement: &PlannedGear) -> Result<u32, Strin
 fn maximum_blocks(placement: &PlannedGear) -> Result<u16, String> {
     let bytes = maximum_output_bytes(placement)?;
     let payload_per_block = u32::from(conduit_std_offers::SPEECH_FRAMES_PER_BLOCK) * 2;
-    let blocks = u16::try_from(bytes.div_ceil(payload_per_block))
+    let partial_segment_blocks =
+        if placement.kind_id.as_str() == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND {
+            crate::hosted_speech_synthesis::streaming::StreamLimits::from_placement(placement)
+                .map_err(|error| error.to_string())?
+                .maximum_segments
+                - 1
+        } else {
+            0
+        };
+    let blocks = u16::try_from(bytes.div_ceil(payload_per_block) + partial_segment_blocks)
         .map_err(|_| "speech synthesis block bound does not fit the kernel".to_string())?;
-    if blocks > conduit_std_offers::SPEECH_MAXIMUM_BLOCKS {
+    if placement.kind_id.as_str() != conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND
+        && blocks > conduit_std_offers::SPEECH_MAXIMUM_BLOCKS
+    {
         return Err("speech synthesis block bound exceeds its execution profile".into());
     }
     Ok(blocks)
@@ -193,7 +214,8 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION => {
             conduit_std_offers::deterministic_streaming_speech_offer()
         }
-        conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION => {
+        conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION
+        | conduit_std_offers::ESPEAK_STREAM_IMPLEMENTATION => {
             let [resource] = placement.resources.as_slice() else {
                 return Err("planned speech provider resource is missing".into());
             };
@@ -201,7 +223,13 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
                 .content
                 .as_ref()
                 .ok_or("planned speech provider content is missing")?;
-            conduit_std_offers::espeak_speech_offer(content.contract.clone())
+            if placement.implementation_id.as_str()
+                == conduit_std_offers::ESPEAK_STREAM_IMPLEMENTATION
+            {
+                conduit_std_offers::espeak_streaming_offer(content.contract.clone())
+            } else {
+                conduit_std_offers::espeak_speech_offer(content.contract.clone())
+            }
         }
         _ => return Err("planned speech implementation is not installed".into()),
     };
@@ -213,11 +241,15 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
-        || placement.configuration.len() != 1
+        || placement.configuration.len() != offer.semantic_contract.configuration.len()
     {
         return Err("planned speech identity does not match its installation".into());
     }
-    if placement.implementation_id.as_str() == conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION {
+    if matches!(
+        placement.implementation_id.as_str(),
+        conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION
+            | conduit_std_offers::ESPEAK_STREAM_IMPLEMENTATION
+    ) {
         let resource = &placement.resources[0];
         if resource.class_id.as_str() != conduit_std_offers::ESPEAK_SPEECH_RESOURCE_CLASS
             || resource.units != 1
@@ -229,29 +261,37 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         return Err("deterministic speech proof requires no Host resource or authority".into());
     }
     maximum_output_bytes(placement)?;
+    if placement.kind_id.as_str() == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND {
+        crate::hosted_speech_synthesis::streaming::StreamLimits::from_placement(placement)
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
 fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
     let maximum_blocks = maximum_blocks(placement)?;
+    let maximum_input = placement
+        .host_calls
+        .first()
+        .ok_or("synthesis host call is missing")?
+        .maximum_input_bytes;
     Ok(BackBudget {
         // The source Text remains live until its first host completion while
         // that completion stores one output block. The continuation marker is
         // retained for all later pulls.
         value_items: 3,
-        value_bytes: 1
-            + conduit_tongues::MAXIMUM_TEXT_BYTES
-            + conduit_std_offers::SPEECH_PCM_BLOCK_BYTES,
+        value_bytes: 1 + maximum_input + conduit_std_offers::SPEECH_PCM_BLOCK_BYTES,
         host_requests: usize::from(maximum_blocks)
             + if placement.kind_id.as_str() == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND {
-                conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS
+                crate::hosted_speech_synthesis::streaming::StreamLimits::from_placement(placement)
+                    .map_err(|e| e.to_string())?
+                    .maximum_segments as usize
             } else {
                 1
             },
         sign_items: 64,
-        maximum_value_bytes: conduit_std_offers::SPEECH_PCM_BLOCK_BYTES
-            .max(conduit_tongues::MAXIMUM_TEXT_BYTES),
+        maximum_value_bytes: conduit_std_offers::SPEECH_PCM_BLOCK_BYTES.max(maximum_input),
     })
 }
 
@@ -352,186 +392,4 @@ pub(super) fn prepare_fake_hosts(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_kernel::{
-        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-        HostCallOutcome,
-    };
-
-    fn value(slot: u16, byte_len: u32) -> ValueRef {
-        ValueRef {
-            slot,
-            generation: 1,
-            byte_len,
-        }
-    }
-
-    fn input_step(
-        operation: &mut SpeechSynthesisBack,
-        value: ValueRef,
-    ) -> (StepOutcome, StepIo<1>) {
-        let mut io = StepIo::test_frame(
-            [Some(value)],
-            [false],
-            [Some(conduit_std_offers::SPEECH_PCM_BLOCK_BYTES)],
-            None,
-            8,
-        );
-        let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
-        (outcome, io)
-    }
-
-    fn completion_step(
-        operation: &mut SpeechSynthesisBack,
-        request: u32,
-        output: Option<BoundedValueRef>,
-    ) -> (StepOutcome, StepIo<1>) {
-        let mut io = StepIo::test_frame(
-            [None],
-            [false],
-            [Some(conduit_std_offers::SPEECH_PCM_BLOCK_BYTES)],
-            Some((
-                RequestId(request),
-                HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output,
-                    failure: None,
-                },
-            )),
-            8,
-        );
-        let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
-        (outcome, io)
-    }
-
-    #[test]
-    fn operation_pulls_one_block_only_after_each_emit_commits() {
-        let mut operation = SpeechSynthesisBack {
-            continuation: value(9, 1),
-            pending: None,
-            next_request: 0,
-            emitted_blocks: 0,
-            maximum_blocks: 2,
-            streaming: false,
-            input_closed: false,
-            started: false,
-            finished: false,
-        };
-        let (outcome, io) = input_step(&mut operation, value(1, 7));
-        assert_eq!(outcome, StepOutcome::Progress);
-        assert_eq!(
-            io.test_host_request().map(|request| request.0),
-            Some(RequestId(0))
-        );
-        let output = BoundedValueRef::new(
-            value(2, conduit_std_offers::SPEECH_PCM_BLOCK_BYTES),
-            conduit_std_offers::SPEECH_PCM_BLOCK_BYTES,
-        )
-        .unwrap();
-        let (outcome, io) = completion_step(&mut operation, 0, Some(output));
-        assert_eq!(outcome, StepOutcome::Progress);
-        assert_eq!(io.test_output(PortId(0)), Some(output.value));
-        assert_eq!(
-            io.test_host_request().map(|request| request.0),
-            Some(RequestId(1))
-        );
-    }
-
-    #[test]
-    fn operation_refuses_a_provider_block_beyond_the_admitted_count() {
-        let mut operation = SpeechSynthesisBack {
-            continuation: value(9, 1),
-            pending: Some(RequestId(2)),
-            next_request: 3,
-            emitted_blocks: 2,
-            maximum_blocks: 2,
-            streaming: false,
-            input_closed: false,
-            started: true,
-            finished: false,
-        };
-        let output =
-            BoundedValueRef::new(value(3, 1), conduit_std_offers::SPEECH_PCM_BLOCK_BYTES).unwrap();
-        assert!(matches!(
-            completion_step(&mut operation, 2, Some(output)).0,
-            StepOutcome::Fail(Failure {
-                code: FailureCode::WorkBudgetExhausted,
-                ..
-            })
-        ));
-    }
-
-    #[test]
-    fn streaming_operation_synthesizes_ordered_segments_until_input_closes() {
-        let mut operation = SpeechSynthesisBack {
-            continuation: value(9, 1),
-            pending: None,
-            next_request: 0,
-            emitted_blocks: 0,
-            maximum_blocks: 4,
-            streaming: true,
-            input_closed: false,
-            started: false,
-            finished: false,
-        };
-        let (outcome, io) = input_step(&mut operation, value(1, 128));
-        assert_eq!(outcome, StepOutcome::Progress);
-        assert_eq!(
-            io.test_host_request().map(|request| request.0),
-            Some(RequestId(0))
-        );
-        assert_eq!(
-            completion_step(&mut operation, 0, None).0,
-            StepOutcome::Progress
-        );
-        let (outcome, io) = input_step(&mut operation, value(2, 128));
-        assert_eq!(outcome, StepOutcome::Progress);
-        assert_eq!(
-            io.test_host_request().map(|request| request.0),
-            Some(RequestId(1))
-        );
-        assert_eq!(
-            completion_step(&mut operation, 1, None).0,
-            StepOutcome::Progress
-        );
-        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
-        assert_eq!(
-            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
-            StepOutcome::Complete
-        );
-        assert!(io.test_consumed_closed(PortId(0)));
-        assert!(io.test_discards().contains(&Some(operation.continuation)));
-    }
-
-    #[test]
-    fn fake_provider_emits_three_canonical_contiguous_profile_blocks() {
-        let blocks: [Vec<u8>; 3] = core::array::from_fn(|index| {
-            let header = conduit_audio::PcmFrameHeader::new(
-                conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
-                22_050,
-                conduit_audio::PcmChannelLayout::Mono,
-                4,
-                0x5350_4545_4348,
-                index as u64 * 4,
-                false,
-            )
-            .unwrap();
-            header.encode_frame(&[0; 8]).unwrap()
-        });
-        let mut host = FakeSpeechHost {
-            blocks,
-            next: 0,
-            active: false,
-        };
-        for (index, input) in [b"Rosehip".as_slice(), &[0], &[0]].into_iter().enumerate() {
-            let block = host.execute(input).unwrap().unwrap();
-            let (header, payload) = conduit_audio::PcmFrameHeader::decode_frame(block).unwrap();
-            assert_eq!(header.sample_rate_hz, 22_050);
-            assert_eq!(header.layout, conduit_audio::PcmChannelLayout::Mono);
-            assert_eq!(header.start_frame, index as u64 * 4);
-            assert_eq!(payload.len(), 8);
-        }
-        assert_eq!(host.execute(&[0]).unwrap(), None);
-    }
-}
+mod tests;
