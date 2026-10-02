@@ -163,8 +163,8 @@ impl TrainingCheckpointReceipt {
 fn push_metrics(output: &mut Vec<u8>, values: &[crate::TrainingMetric]) {
     push_len(output, values.len());
     for value in values {
-        push_text(output, &value.output_identity);
-        output.extend_from_slice(&value.value_millionths.to_le_bytes());
+        push_text(output, value.output_identity().get());
+        output.extend_from_slice(&value.value_millionths().to_le_bytes());
     }
 }
 

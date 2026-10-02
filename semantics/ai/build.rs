@@ -257,6 +257,10 @@ fn main() {
                     ],
                 ),
                 (
+                    "TrainingMetric".into(),
+                    vec!["output_identity".into(), "value_millionths".into()],
+                ),
+                (
                     "StochasticProvenance".into(),
                     vec![
                         "model_artifact_identity".into(),

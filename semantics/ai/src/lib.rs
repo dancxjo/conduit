@@ -57,7 +57,7 @@ pub use generated::{
     RelationVariableIdentities, RelationVariableIdentity,
     TemporalContextRefusal, TemporalEvidenceSelectionRefusal, TemporalInterpretationRefusal,
     TemporalReference, TemporalSource, TemporalValidity, TemporalWindowRelation, TrainStepFailure,
-    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingObjective,
+    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingMetric, TrainingObjective,
     TrainingObjectiveIdentity, TrainingRefusal, TrainingResourceEnvelope, TransitionDirection,
     ValidatedExtraction, VectorIndexHealth,
     VectorIndexMaintenanceKind, VectorIndexResourceRefusal,

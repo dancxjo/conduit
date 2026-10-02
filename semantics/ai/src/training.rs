@@ -6,7 +6,7 @@ use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
 use crate::{
     BatchOrder, CheckpointPolicy, EvaluationPolicy, MissingModalityPolicy, ModelArtifact,
-    MutableModelState, ObjectiveParticipation, RandomnessProfile, TrainStepFailure,
+    MutableModelState, ObjectiveParticipation, RandomnessProfile, TrainStepFailure, TrainingMetric,
     TrainingObjective, TrainingRefusal, TrainingResourceEnvelope,
 };
 
@@ -68,12 +68,6 @@ pub struct TrainingState {
     pub initial_generation: u64,
     pub completed_steps: u64,
     pub consumed_work_units: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrainingMetric {
-    pub output_identity: String,
-    pub value_millionths: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

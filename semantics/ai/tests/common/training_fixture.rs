@@ -202,13 +202,15 @@ pub fn batch(step: u8, modalities: &[&str]) -> TrainingBatch {
 
 pub fn metrics(step: u8) -> Vec<TrainingMetric> {
     vec![
-        TrainingMetric {
-            output_identity: "loss/acoustic".into(),
-            value_millionths: 1_000_000 - i64::from(step) * 100_000,
-        },
-        TrainingMetric {
-            output_identity: "loss/plausibility".into(),
-            value_millionths: 500_000 - i64::from(step) * 10_000,
-        },
+        TrainingMetric::new(
+            TrainingObjectiveIdentity::new("loss/acoustic".into()).unwrap(),
+            1_000_000 - i64::from(step) * 100_000,
+        )
+        .unwrap(),
+        TrainingMetric::new(
+            TrainingObjectiveIdentity::new("loss/plausibility".into()).unwrap(),
+            500_000 - i64::from(step) * 10_000,
+        )
+        .unwrap(),
     ]
 }
