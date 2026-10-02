@@ -1,11 +1,11 @@
-/// Allocation-free storage for a semantically bounded sequence.
+/// Storage for a semantically bounded sequence.
 ///
-/// `Option<T>` is representation machinery only; it is never semantic truth
-/// and never appears in canonical Conduit encoding.
+/// The exact payload is heap-backed so a generous authored maximum does not
+/// inflate every generated value's stack frame. `MAXIMUM` remains the semantic
+/// capacity and is enforced on every construction path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedSequence<T, const MAXIMUM: usize> {
-    values: [Option<T>; MAXIMUM],
-    length: usize,
+    values: alloc::vec::Vec<T>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,17 +16,15 @@ pub enum BoundedSequenceCapacityRefusal {
 impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
     pub fn new() -> Self {
         Self {
-            values: core::array::from_fn(|_| None),
-            length: 0,
+            values: alloc::vec::Vec::new(),
         }
     }
 
     pub fn push(&mut self, value: T) -> Result<(), T> {
-        let Some(slot) = self.values.get_mut(self.length) else {
+        if self.values.len() == MAXIMUM {
             return Err(value);
-        };
-        *slot = Some(value);
-        self.length += 1;
+        }
+        self.values.push(value);
         Ok(())
     }
 
@@ -42,22 +40,55 @@ impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
         Ok(bounded)
     }
 
-    pub const fn len(&self) -> usize {
-        self.length
+    pub fn len(&self) -> usize {
+        self.values.len()
     }
 
-    pub const fn is_empty(&self) -> bool {
-        self.length == 0
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
     }
 
     pub const fn capacity(&self) -> usize {
         MAXIMUM
     }
 
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = &T> {
-        self.values[..self.length]
-            .iter()
-            .map(|value| value.as_ref().expect("active bounded-sequence prefix"))
+    pub fn iter(&self) -> core::slice::Iter<'_, T> {
+        self.values.iter()
+    }
+
+    pub fn binary_search(&self, value: &T) -> Result<usize, usize>
+    where
+        T: Ord,
+    {
+        let mut left = 0;
+        let mut right = self.values.len();
+        while left < right {
+            let middle = left + (right - left) / 2;
+            match self[middle].cmp(value) {
+                core::cmp::Ordering::Less => left = middle + 1,
+                core::cmp::Ordering::Greater => right = middle,
+                core::cmp::Ordering::Equal => return Ok(middle),
+            }
+        }
+        Err(left)
+    }
+
+    pub fn binary_search_by_key<B: Ord>(
+        &self,
+        key: &B,
+        mut projection: impl FnMut(&T) -> B,
+    ) -> Result<usize, usize> {
+        let mut left = 0;
+        let mut right = self.values.len();
+        while left < right {
+            let middle = left + (right - left) / 2;
+            match projection(&self[middle]).cmp(key) {
+                core::cmp::Ordering::Less => left = middle + 1,
+                core::cmp::Ordering::Greater => right = middle,
+                core::cmp::Ordering::Equal => return Ok(middle),
+            }
+        }
+        Err(left)
     }
 }
 
@@ -69,10 +100,66 @@ impl<T, const MAXIMUM: usize> Default for BoundedSequence<T, MAXIMUM> {
 
 impl<T, const MAXIMUM: usize> IntoIterator for BoundedSequence<T, MAXIMUM> {
     type Item = T;
-    type IntoIter = core::iter::Flatten<core::array::IntoIter<Option<T>, MAXIMUM>>;
+    type IntoIter = alloc::vec::IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.values.into_iter().flatten()
+        self.values.into_iter()
+    }
+}
+
+impl<'a, T, const MAXIMUM: usize> IntoIterator for &'a BoundedSequence<T, MAXIMUM> {
+    type Item = &'a T;
+    type IntoIter = core::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.values.iter()
+    }
+}
+
+impl<T, const MAXIMUM: usize> core::ops::Index<usize> for BoundedSequence<T, MAXIMUM> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.values[index]
+    }
+}
+
+impl<T: serde::Serialize, const MAXIMUM: usize> serde::Serialize for BoundedSequence<T, MAXIMUM> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_seq(self.iter())
+    }
+}
+
+impl<'de, T: serde::Deserialize<'de>, const MAXIMUM: usize> serde::Deserialize<'de>
+    for BoundedSequence<T, MAXIMUM>
+{
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Visitor<T, const MAXIMUM: usize>(core::marker::PhantomData<T>);
+
+        impl<'de, T: serde::Deserialize<'de>, const MAXIMUM: usize> serde::de::Visitor<'de>
+            for Visitor<T, MAXIMUM>
+        {
+            type Value = BoundedSequence<T, MAXIMUM>;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                write!(formatter, "at most {MAXIMUM} values")
+            }
+
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut sequence: A,
+            ) -> Result<Self::Value, A::Error> {
+                let mut result = BoundedSequence::new();
+                while let Some(value) = sequence.next_element()? {
+                    result
+                        .push(value)
+                        .map_err(|_| serde::de::Error::invalid_length(MAXIMUM + 1, &self))?;
+                }
+                Ok(result)
+            }
+        }
+
+        deserializer.deserialize_seq(Visitor::<T, MAXIMUM>(core::marker::PhantomData))
     }
 }
 
@@ -105,6 +192,19 @@ impl<const MAXIMUM: usize> BoundedBytes<MAXIMUM> {
     }
 }
 
+impl<const MAXIMUM: usize> serde::Serialize for BoundedBytes<MAXIMUM> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_bytes(self.as_slice())
+    }
+}
+
+impl<'de, const MAXIMUM: usize> serde::Deserialize<'de> for BoundedBytes<MAXIMUM> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = <alloc::vec::Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+        Self::new(&value).ok_or_else(|| serde::de::Error::custom("byte value exceeds its bound"))
+    }
+}
+
 /// Finite UTF-8 whose semantic bound is expressed in bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedText<const MAXIMUM: usize>(BoundedBytes<MAXIMUM>);
@@ -120,6 +220,19 @@ impl<const MAXIMUM: usize> BoundedText<MAXIMUM> {
 
     pub const fn capacity(&self) -> usize {
         MAXIMUM
+    }
+}
+
+impl<const MAXIMUM: usize> serde::Serialize for BoundedText<MAXIMUM> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de, const MAXIMUM: usize> serde::Deserialize<'de> for BoundedText<MAXIMUM> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = <alloc::string::String as serde::Deserialize>::deserialize(deserializer)?;
+        Self::new(&value).ok_or_else(|| serde::de::Error::custom("text value exceeds its bound"))
     }
 }
 

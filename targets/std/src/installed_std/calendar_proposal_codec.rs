@@ -1,6 +1,7 @@
 //! Exact conversion between structured calendar request Info and core semantics.
 
 use conduit_core::{StructuredFieldValue, StructuredInfoValue, StructuredInfoValueShape};
+use conduit_form::rust_binding::BoundedSequence;
 use conduit_time::{
     AvailabilityBasis, AvailabilityInterval, AvailabilityState, MeetingCandidate,
     MeetingProposalRequest, NamedTimeZone, ParticipantAvailability, TemporalBoundary,
@@ -31,8 +32,8 @@ pub(super) fn decode(value: &StructuredInfoValue) -> Result<DecodedCalendarPropo
         request: MeetingProposalRequest {
             identity: text(field(fields, "identity")?)?,
             reference_at: instant(field(fields, "reference_at")?)?,
-            participant_identities,
-            candidates,
+            participant_identities: bounded(participant_identities)?,
+            candidates: bounded(candidates)?,
             maximum_results: u16_value(field(fields, "maximum_results")?)?,
         },
         availability,
@@ -68,8 +69,12 @@ fn participant_availability(
             observed_at: instant(field(fields, "observed_at")?)?,
             usable_until: instant(field(fields, "usable_until")?)?,
         },
-        intervals,
+        intervals: bounded(intervals)?,
     })
+}
+
+fn bounded<T, const MAXIMUM: usize>(values: Vec<T>) -> Result<BoundedSequence<T, MAXIMUM>, String> {
+    BoundedSequence::try_from_iter(values).map_err(|_| "calendar value exceeds its bound".into())
 }
 
 fn availability_interval(value: &StructuredInfoValue) -> Result<AvailabilityInterval, String> {

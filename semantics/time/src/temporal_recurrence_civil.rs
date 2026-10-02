@@ -27,19 +27,19 @@ impl RecurrenceDefinition {
     ) -> Result<Vec<RecurrenceOccurrence>, RecurrenceRefusal> {
         self.validate()?;
         request.validate()?;
-        let RecurrenceRule::CivilWeekdays {
-            first_date,
-            local_time,
-            zone,
-            weekdays,
-            excluded_dates,
-        } = &self.rule
-        else {
+        let RecurrenceRule::CivilWeekdays(rule) = &self.rule else {
             return Err(RecurrenceRefusal::WrongWindowKind);
         };
-        let RecurrenceWindow::Wall { start, end } = &request.window else {
+        let first_date = rule.first_date();
+        let local_time = rule.local_time();
+        let zone = rule.zone();
+        let weekdays = rule.weekdays();
+        let excluded_dates = rule.excluded_dates();
+        let RecurrenceWindow::Wall(window) = &request.window else {
             return Err(RecurrenceRefusal::WrongWindowKind);
         };
+        let start = window.start();
+        let end = window.end();
         validate_resolution_set(resolutions, self.maximum_occurrences)?;
 
         let mut occurrences = Vec::with_capacity(request.maximum_results as usize);
@@ -48,7 +48,7 @@ impl RecurrenceDefinition {
         for ordinal in 0..self.maximum_occurrences {
             date = next_selected_date(date, *weekdays, &mut scanned_days)?;
             if self.until.as_ref().is_some_and(|until| {
-                matches!(until, RecurrenceUntil::CivilDate(value) if date_key(date) > date_key(*value))
+                matches!(until, RecurrenceUntil::CivilDate(value) if date_key(date) > date_key(*value.value()))
             }) {
                 break;
             }
@@ -57,23 +57,27 @@ impl RecurrenceDefinition {
                 .is_ok();
             if self.excluded_ordinals.binary_search(&ordinal).is_err() && !date_is_excluded {
                 let supplied = find_resolution(resolutions, ordinal)?;
-                let local = LocalDateTime::new(date, *local_time);
+                let local = LocalDateTime::new(date, *local_time)
+                    .map_err(|_| RecurrenceRefusal::InvalidRule)?;
                 let choices = choose_resolution(supplied, &local, zone, policy)?;
                 for (instant, choice, suffix) in choices {
                     if wall_in_window(&instant, start, end)? {
                         if occurrences.len() == request.maximum_results as usize {
                             return Err(RecurrenceRefusal::WorkLimitExceeded);
                         }
-                        occurrences.push(self.occurrence_with_suffix(
-                            ordinal,
-                            OccurrenceInstant::Civil {
-                                local,
-                                zone: zone.clone(),
-                                instant,
-                                resolution: choice,
-                            },
-                            suffix,
-                        )?);
+                        occurrences.push(
+                            self.occurrence_with_suffix(
+                                ordinal,
+                                OccurrenceInstant::civil(
+                                    instant,
+                                    local.clone(),
+                                    choice,
+                                    zone.clone(),
+                                )
+                                .map_err(|_| RecurrenceRefusal::InvalidCivilResolution)?,
+                                suffix,
+                            )?,
+                        );
                     }
                 }
             }
@@ -127,33 +131,37 @@ fn choose_resolution<'a>(
         | ZonedResolution::Ambiguous { local, zone, .. }
         | ZonedResolution::Nonexistent { local, zone, .. } => (local, zone),
     };
-    if local != expected_local || zone != expected_zone {
+    let local =
+        LocalDateTime::try_from(*local).map_err(|_| RecurrenceRefusal::InvalidCivilResolution)?;
+    let zone = crate::NamedTimeZone::try_from(zone.clone())
+        .map_err(|_| RecurrenceRefusal::InvalidCivilResolution)?;
+    if &local != expected_local || &zone != expected_zone {
         return Err(RecurrenceRefusal::CivilResolutionMismatch);
     }
     let mut selected = Vec::with_capacity(2);
     match resolution {
         ZonedResolution::Unique { instant, .. } => {
-            selected.push((instant.clone(), CivilResolutionChoice::Unique, ""));
+            selected.push((native_instant(instant)?, CivilResolutionChoice::Unique, ""));
         }
         ZonedResolution::Ambiguous { earlier, later, .. } => match policy.fold() {
             CivilFoldPolicy::Earlier => selected.push((
-                earlier.clone(),
+                native_instant(earlier)?,
                 CivilResolutionChoice::FoldEarlier,
                 "/fold/earlier",
             )),
             CivilFoldPolicy::Later => selected.push((
-                later.clone(),
+                native_instant(later)?,
                 CivilResolutionChoice::FoldLater,
                 "/fold/later",
             )),
             CivilFoldPolicy::Both => {
                 selected.push((
-                    earlier.clone(),
+                    native_instant(earlier)?,
                     CivilResolutionChoice::FoldEarlier,
                     "/fold/earlier",
                 ));
                 selected.push((
-                    later.clone(),
+                    native_instant(later)?,
                     CivilResolutionChoice::FoldLater,
                     "/fold/later",
                 ));
@@ -167,12 +175,12 @@ fn choose_resolution<'a>(
         } => match policy.gap() {
             CivilGapPolicy::Skip => {}
             CivilGapPolicy::UseBefore => selected.push((
-                gap_before.clone(),
+                native_instant(gap_before)?,
                 CivilResolutionChoice::GapBefore,
                 "/gap/before",
             )),
             CivilGapPolicy::UseAfter => selected.push((
-                gap_after.clone(),
+                native_instant(gap_after)?,
                 CivilResolutionChoice::GapAfter,
                 "/gap/after",
             )),
@@ -180,6 +188,12 @@ fn choose_resolution<'a>(
         },
     }
     Ok(selected)
+}
+
+fn native_instant(
+    value: &conduit_core::TemporalInstant,
+) -> Result<TemporalInstant, RecurrenceRefusal> {
+    TemporalInstant::try_from(value.clone()).map_err(|_| RecurrenceRefusal::InvalidCivilResolution)
 }
 
 fn wall_in_window(

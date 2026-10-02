@@ -1,54 +1,16 @@
 //! Deterministic bounded evaluation of supplied meeting candidates.
 
-use alloc::{string::String, vec::Vec};
-use serde::{Deserialize, Serialize};
+use alloc::vec::Vec;
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    AvailabilityState, CalendarRefusal, CandidateConflict, MeetingProposalRefusal,
-    ParticipantAvailability, TemporalInstant, TemporalRelation, TemporalWindow,
+    AvailabilityState, CalendarRefusal, CandidateConflict, MeetingProposal, MeetingProposalRefusal,
+    MeetingProposalRequest, ParticipantAvailability, ProposedMeetingSlot, RejectedMeetingSlot,
+    TemporalRelation, TemporalWindow,
 };
 
 pub const MAXIMUM_MEETING_CANDIDATES: usize = 64;
 pub const MAXIMUM_PROPOSAL_PARTICIPANTS: usize = 64;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MeetingCandidate {
-    pub identity: String,
-    pub interval: TemporalWindow,
-    pub rationale: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MeetingProposalRequest {
-    pub identity: String,
-    pub reference_at: TemporalInstant,
-    pub participant_identities: Vec<String>,
-    pub candidates: Vec<MeetingCandidate>,
-    pub maximum_results: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ProposedMeetingSlot {
-    pub candidate_identity: String,
-    pub interval: TemporalWindow,
-    pub rationale: String,
-    pub tentative_participants: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RejectedMeetingSlot {
-    pub candidate_identity: String,
-    pub conflicts: Vec<CandidateConflict>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MeetingProposal {
-    pub identity: String,
-    pub reference_at: TemporalInstant,
-    pub availability_basis_identities: Vec<String>,
-    pub candidates: Vec<ProposedMeetingSlot>,
-    pub rejected: Vec<RejectedMeetingSlot>,
-}
 
 impl MeetingProposalRequest {
     pub fn propose(
@@ -90,12 +52,12 @@ impl MeetingProposalRequest {
                     candidate_identity: candidate.identity.clone(),
                     interval: candidate.interval.clone(),
                     rationale: candidate.rationale.clone(),
-                    tentative_participants: tentative,
+                    tentative_participants: bounded(tentative),
                 });
             } else if !conflicts.is_empty() {
                 rejected.push(RejectedMeetingSlot {
                     candidate_identity: candidate.identity.clone(),
-                    conflicts,
+                    conflicts: bounded(conflicts),
                 });
             }
         }
@@ -105,12 +67,14 @@ impl MeetingProposalRequest {
         Ok(MeetingProposal {
             identity: self.identity.clone(),
             reference_at: self.reference_at.clone(),
-            availability_basis_identities: availability
-                .iter()
-                .map(|value| value.basis.identity.clone())
-                .collect(),
-            candidates: accepted,
-            rejected,
+            availability_basis_identities: bounded(
+                availability
+                    .iter()
+                    .map(|value| value.basis.identity.clone())
+                    .collect(),
+            ),
+            candidates: bounded(accepted),
+            rejected: bounded(rejected),
         })
     }
 
@@ -123,8 +87,9 @@ impl MeetingProposalRequest {
             || self.participant_identities.len() > MAXIMUM_PROPOSAL_PARTICIPANTS
             || self
                 .participant_identities
-                .windows(2)
-                .any(|pair| pair[0] >= pair[1])
+                .iter()
+                .zip(self.participant_identities.iter().skip(1))
+                .any(|(left, right)| left >= right)
             || self.candidates.is_empty()
             || self.candidates.len() > MAXIMUM_MEETING_CANDIDATES
             || self.maximum_results == 0
@@ -148,8 +113,9 @@ impl MeetingProposalRequest {
             .iter()
             .enumerate()
             .any(|(index, candidate)| {
-                self.candidates[..index]
+                self.candidates
                     .iter()
+                    .take(index)
                     .any(|earlier| earlier.identity == candidate.identity)
             })
         {
@@ -157,6 +123,10 @@ impl MeetingProposalRequest {
         }
         Ok(())
     }
+}
+
+fn bounded<T, const MAXIMUM: usize>(values: Vec<T>) -> BoundedSequence<T, MAXIMUM> {
+    BoundedSequence::try_from_iter(values).expect("validated family bound")
 }
 
 fn state_during(

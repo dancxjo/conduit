@@ -1,3 +1,4 @@
+use conduit_core::{TemporalInstant as CoreTemporalInstant, TemporalScale as CoreTemporalScale};
 use conduit_time::*;
 mod common;
 
@@ -5,9 +6,9 @@ fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
     HistoricalReplayEntry {
         sequence: ticks,
         identity: identity.into(),
-        event_time: TemporalInstant {
+        event_time: CoreTemporalInstant {
             ticks,
-            scale: TemporalScale::Milliseconds,
+            scale: CoreTemporalScale::Milliseconds,
             clock_basis: "observation-clock".into(),
             resolution_ticks: 2,
             uncertainty_ticks: 1,

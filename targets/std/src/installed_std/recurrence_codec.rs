@@ -1,9 +1,9 @@
 //! Exact conversion between structured recurrence Info and core temporal semantics.
 
 use conduit_core::{
-    BootId, HostId, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
 };
+use conduit_form::rust_binding::BoundedSequence;
 use conduit_time::{
     CivilFoldPolicy, CivilGapPolicy, CivilOccurrenceResolution, CivilResolutionChoice,
     CivilResolutionPolicy, LocalDate, LocalDateTime, LocalTime, MonotonicClockIdentity,
@@ -29,9 +29,11 @@ pub(super) fn decode(value: &StructuredInfoValue) -> Result<DecodedRecurrence, S
         rule: rule(field(fields, "rule")?)?,
         maximum_occurrences: u32_value(field(fields, "maximum_occurrences")?)?,
         until: until(field(fields, "until")?)?,
-        excluded_ordinals: slots(field(fields, "excluded_ordinals")?, "exclude")?
-            .map(|(_, payload)| u32_value(payload))
-            .collect::<Result<_, _>>()?,
+        excluded_ordinals: bounded(
+            slots(field(fields, "excluded_ordinals")?, "exclude")?
+                .map(|(_, payload)| u32_value(payload))
+                .collect::<Result<Vec<_>, _>>()?,
+        )?,
     };
     let expansion = RecurrenceExpansion {
         maximum_results: u32_value(field(fields, "maximum_results")?)?,
@@ -74,18 +76,17 @@ fn rule(value: &StructuredInfoValue) -> Result<RecurrenceRule, String> {
     let (tag, payload) = variant(value)?;
     let fields = record(payload)?;
     match tag {
-        "one_shot" => Ok(RecurrenceRule::OneShot {
-            at: instant(field(fields, "at")?)?,
-        }),
+        "one_shot" => RecurrenceRule::one_shot(instant(field(fields, "at")?)?)
+            .map_err(|error| format!("recurrence rule refusal: {error:?}")),
         "fixed_elapsed" => {
             let first = monotonic(field(fields, "first")?)?;
-            Ok(RecurrenceRule::FixedElapsed {
-                every: MonotonicDuration::new(
-                    count_value(field(fields, "every_ticks")?)?,
-                    first.clock().scale(),
-                ),
-                first,
-            })
+            let every = MonotonicDuration::new(
+                count_value(field(fields, "every_ticks")?)?,
+                *first.clock().scale(),
+            )
+            .map_err(|error| format!("recurrence duration refusal: {error:?}"))?;
+            RecurrenceRule::fixed_elapsed(every, first)
+                .map_err(|error| format!("recurrence rule refusal: {error:?}"))
         }
         "civil_weekdays" => {
             let zone = NamedTimeZone::new(
@@ -93,15 +94,19 @@ fn rule(value: &StructuredInfoValue) -> Result<RecurrenceRule, String> {
                 text(field(fields, "rule_set")?)?,
             )
             .map_err(|error| format!("recurrence zone refusal: {error:?}"))?;
-            Ok(RecurrenceRule::CivilWeekdays {
-                first_date: date(field(fields, "first_date")?)?,
-                local_time: time(field(fields, "local_time")?)?,
-                zone,
-                weekdays: weekdays(count_value(field(fields, "weekdays")?)?)?,
-                excluded_dates: slots(field(fields, "excluded_dates")?, "exclude")?
+            let excluded_dates = bounded(
+                slots(field(fields, "excluded_dates")?, "exclude")?
                     .map(|(_, payload)| date(payload))
-                    .collect::<Result<_, _>>()?,
-            })
+                    .collect::<Result<Vec<_>, _>>()?,
+            )?;
+            RecurrenceRule::civil_weekdays(
+                excluded_dates,
+                date(field(fields, "first_date")?)?,
+                time(field(fields, "local_time")?)?,
+                weekdays(count_value(field(fields, "weekdays")?)?)?,
+                zone,
+            )
+            .map_err(|error| format!("recurrence rule refusal: {error:?}"))
         }
         _ => Err("unknown recurrence rule".into()),
     }
@@ -111,9 +116,15 @@ fn until(value: &StructuredInfoValue) -> Result<Option<RecurrenceUntil>, String>
     let (tag, payload) = variant(value)?;
     match tag {
         "none" => Ok(None),
-        "wall" => Ok(Some(RecurrenceUntil::Wall(instant(payload)?))),
-        "monotonic" => Ok(Some(RecurrenceUntil::Monotonic(monotonic(payload)?))),
-        "civil_date" => Ok(Some(RecurrenceUntil::CivilDate(date(payload)?))),
+        "wall" => RecurrenceUntil::wall(instant(payload)?)
+            .map(Some)
+            .map_err(|error| format!("recurrence until refusal: {error:?}")),
+        "monotonic" => RecurrenceUntil::monotonic(monotonic(payload)?)
+            .map(Some)
+            .map_err(|error| format!("recurrence until refusal: {error:?}")),
+        "civil_date" => RecurrenceUntil::civil_date(date(payload)?)
+            .map(Some)
+            .map_err(|error| format!("recurrence until refusal: {error:?}")),
         _ => Err("unknown recurrence until boundary".into()),
     }
 }
@@ -122,14 +133,16 @@ fn window(value: &StructuredInfoValue) -> Result<RecurrenceWindow, String> {
     let (tag, payload) = variant(value)?;
     let fields = record(payload)?;
     match tag {
-        "wall" => Ok(RecurrenceWindow::Wall {
-            start: instant(field(fields, "start")?)?,
-            end: instant(field(fields, "end")?)?,
-        }),
-        "monotonic" => Ok(RecurrenceWindow::Monotonic {
-            start: monotonic(field(fields, "start")?)?,
-            end: monotonic(field(fields, "end")?)?,
-        }),
+        "wall" => RecurrenceWindow::wall(
+            instant(field(fields, "end")?)?,
+            instant(field(fields, "start")?)?,
+        )
+        .map_err(|error| format!("recurrence window refusal: {error:?}")),
+        "monotonic" => RecurrenceWindow::monotonic(
+            monotonic(field(fields, "end")?)?,
+            monotonic(field(fields, "start")?)?,
+        )
+        .map_err(|error| format!("recurrence window refusal: {error:?}")),
         _ => Err("unknown recurrence window".into()),
     }
 }
@@ -142,29 +155,45 @@ fn resolution_payload(
     let local = LocalDateTime::new(
         date(field(fields, "local_date")?)?,
         time(field(fields, "local_time")?)?,
-    );
+    )
+    .map_err(|error| format!("civil local-time refusal: {error:?}"))?;
     let zone = NamedTimeZone::new(
         text(field(fields, "zone")?)?,
         text(field(fields, "rule_set")?)?,
     )
     .map_err(|error| format!("civil resolution zone refusal: {error:?}"))?;
+    let local: conduit_core::LocalDateTime = local
+        .try_into()
+        .map_err(|_| "civil local-time adapter refusal")?;
+    let zone: conduit_core::NamedTimeZone =
+        zone.try_into().map_err(|_| "civil zone adapter refusal")?;
     let resolution = match tag {
         "unique" => ZonedResolution::Unique {
             local,
             zone,
-            instant: instant(field(fields, "instant")?)?,
+            instant: instant(field(fields, "instant")?)?
+                .try_into()
+                .map_err(|_| "civil instant adapter refusal")?,
         },
         "ambiguous" => ZonedResolution::Ambiguous {
             local,
             zone,
-            earlier: instant(field(fields, "earlier")?)?,
-            later: instant(field(fields, "later")?)?,
+            earlier: instant(field(fields, "earlier")?)?
+                .try_into()
+                .map_err(|_| "civil instant adapter refusal")?,
+            later: instant(field(fields, "later")?)?
+                .try_into()
+                .map_err(|_| "civil instant adapter refusal")?,
         },
         "nonexistent" => ZonedResolution::Nonexistent {
             local,
             zone,
-            gap_before: instant(field(fields, "gap_before")?)?,
-            gap_after: instant(field(fields, "gap_after")?)?,
+            gap_before: instant(field(fields, "gap_before")?)?
+                .try_into()
+                .map_err(|_| "civil instant adapter refusal")?,
+            gap_after: instant(field(fields, "gap_after")?)?
+                .try_into()
+                .map_err(|_| "civil instant adapter refusal")?,
         },
         _ => return Err("unknown civil occurrence resolution".into()),
     };
@@ -198,6 +227,10 @@ fn slots<'a>(
     Ok(parsed.into_iter().filter(|(tag, _)| *tag != "unused"))
 }
 
+fn bounded<T, const MAXIMUM: usize>(values: Vec<T>) -> Result<BoundedSequence<T, MAXIMUM>, String> {
+    BoundedSequence::try_from_iter(values).map_err(|_| "recurrence value exceeds its bound".into())
+}
+
 fn instant(value: &StructuredInfoValue) -> Result<TemporalInstant, String> {
     let fields = record(value)?;
     Ok(TemporalInstant {
@@ -212,29 +245,28 @@ fn instant(value: &StructuredInfoValue) -> Result<TemporalInstant, String> {
 fn monotonic(value: &StructuredInfoValue) -> Result<MonotonicInstant, String> {
     let fields = record(value)?;
     let clock = MonotonicClockIdentity::new(
-        HostId::from(text(field(fields, "host")?)?),
-        BootId::from(text(field(fields, "boot")?)?),
         text(field(fields, "basis")?)?,
-        scale(field(fields, "scale")?)?,
+        text(field(fields, "boot")?)?,
+        text(field(fields, "host")?)?,
         count_value(field(fields, "resolution_ticks")?)?,
+        scale(field(fields, "scale")?)?,
         count_value(field(fields, "uncertainty_ticks")?)?,
     )
     .map_err(|error| format!("monotonic clock refusal: {error:?}"))?;
-    MonotonicInstant::new(count_value(field(fields, "ticks")?)?, clock)
+    MonotonicInstant::new(clock, count_value(field(fields, "ticks")?)?)
         .map_err(|error| format!("monotonic instant refusal: {error:?}"))
 }
 
 pub(super) fn occurrence_instant(value: &OccurrenceInstant) -> Result<StructuredInfoValue, String> {
     let value_type = conduit_semantic_catalog::recurrence_occurrence_instant_type();
     let (tag, payload) = match value {
-        OccurrenceInstant::Wall(value) => ("wall", instant_value(value)?),
-        OccurrenceInstant::Monotonic(value) => ("monotonic", monotonic_value(value)?),
-        OccurrenceInstant::Civil {
-            local,
-            zone,
-            instant,
-            resolution,
-        } => {
+        OccurrenceInstant::Wall(value) => ("wall", instant_value(value.value())?),
+        OccurrenceInstant::Monotonic(value) => ("monotonic", monotonic_value(value.value())?),
+        OccurrenceInstant::Civil(value) => {
+            let local = value.local();
+            let zone = value.zone();
+            let instant = value.instant();
+            let resolution = value.resolution();
             let payload_type = match &value_type.shape() {
                 conduit_core::StructuredInfoTypeShape::Variant { cases, .. } => cases
                     .iter()
@@ -250,11 +282,11 @@ pub(super) fn occurrence_instant(value: &OccurrenceInstant) -> Result<Structured
                     value_field("instant", instant_value(instant)?),
                     value_field(
                         "local_date",
-                        leaf("time/local-date@1", &format_date(local.date))?,
+                        leaf("time/local-date@1", &format_date(local.date.clone()))?,
                     ),
                     value_field(
                         "local_time",
-                        leaf("time/local-time@1", &format_time(local.time))?,
+                        leaf("time/local-time@1", &format_time(local.time.clone()))?,
                     ),
                     value_field(
                         "resolution",
@@ -293,12 +325,12 @@ fn monotonic_value(value: &MonotonicInstant) -> Result<StructuredInfoValue, Stri
         conduit_semantic_catalog::recurrence_monotonic_type(),
         vec![
             value_field("basis", leaf("value/text", clock.basis_id())?),
-            value_field("boot", leaf("value/text", clock.boot_id().as_str())?),
-            value_field("host", leaf("value/text", clock.host_id().as_str())?),
-            value_field("resolution_ticks", count(clock.resolution_ticks())?),
-            value_field("scale", leaf("time/scale@1", scale_name(clock.scale()))?),
-            value_field("ticks", count(value.ticks())?),
-            value_field("uncertainty_ticks", count(clock.uncertainty_ticks())?),
+            value_field("boot", leaf("value/text", clock.boot_id())?),
+            value_field("host", leaf("value/text", clock.host_id())?),
+            value_field("resolution_ticks", count(*clock.resolution_ticks())?),
+            value_field("scale", leaf("time/scale@1", scale_name(*clock.scale()))?),
+            value_field("ticks", count(*value.ticks())?),
+            value_field("uncertainty_ticks", count(*clock.uncertainty_ticks())?),
         ],
     )
     .map_err(structured)
