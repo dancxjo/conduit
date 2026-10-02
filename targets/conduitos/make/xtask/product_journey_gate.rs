@@ -1,7 +1,7 @@
 //! Current Workspace keyboard journey over the retained product IMAGE; never rebuilds it.
 use super::{
-    ConduitosArch, ConduitosError, profile::Paths, report::git_head,
-    target_build::verify_artifact_digest, workspace_proof,
+    profile::Paths, report::git_head, target_build::verify_artifact_digest, workspace_proof,
+    ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use conduit_host_make::BuildManifest;

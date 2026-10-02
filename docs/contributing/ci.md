@@ -95,6 +95,10 @@ Build proof for firmware and boards without CI hardware remains **build proof
 only**. Executable smoke, browser execution, and ConduitOS emulator boot are
 separate classes. None is physical or human acceptance. Browser coverage names
 its actual executed specs; cross-device enactment remains separate work.
+LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
+emulators before boot because their large-page translation can corrupt the
+bootloader's module handoff.
+
 The x86_64 lane also exercises the current Workspace against the same retained
 product IMAGE: zero-Body arrival, naming and plot selection, birth into rest,
 explicit Wake, Memory Lantern input, the shared Tutorial, pagination, lull and

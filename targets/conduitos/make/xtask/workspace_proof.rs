@@ -1,11 +1,11 @@
 //! Current Workspace acceptance using real guest input and QMP captures.
 //! Retired Tour chapter progress is not a substitute for this application.
 use super::{
-    ConduitosArch, ConduitosError, hid_qmp, journey_input, journey_records, profile::Paths,
-    report::git_head,
+    hid_qmp, journey_input, journey_records, profile::Paths, report::git_head, ConduitosArch,
+    ConduitosError,
 };
 use crate::cli::GlobalOpts;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{
     fs,
     path::Path,

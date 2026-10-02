@@ -13,8 +13,8 @@ use conduit_presentation::{
 use crate::display::DisplayError;
 use crate::product_journey::{JourneyProjection, JourneyStatus};
 
-mod arrival;
 mod application_layout;
+mod arrival;
 mod home;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
