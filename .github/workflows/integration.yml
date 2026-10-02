@@ -1,0 +1,16 @@
+name: Integration
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: integration
+  cancel-in-progress: false
+jobs:
+  proof:
+    uses: ./.github/workflows/ci.yml
+    with:
+      sha: ${{ github.sha }}
+      base: all

@@ -58,6 +58,8 @@ package_test_shard!(
         "conduit-midi",
         "conduit-presentation",
         "conduit-protected-line",
+        "conduit-process",
+        "conduit-purpose",
         "conduit-robotics",
         "conduit-body",
         "conduit-birth-plot",

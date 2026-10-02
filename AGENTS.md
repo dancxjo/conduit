@@ -112,7 +112,8 @@ explicitly changes that contract. A diagnostic retry does not make flaky proof
 acceptable. Report missing tools, devices, credentials, and human proof precisely.
 
 Stable `main` receives only the automated `release/<captured-dev-sha>` train
-after its exact final head passes exhaustive promotion. Never push directly to
+after its exact source passes full integration and the publisher verifies the
+retained artifacts and identical accepted tree. Never push directly to
 `main` or open an ordinary feature/documentation/maintenance PR against it.
 A candidate passing is not stable acceptance. Use the
 [CI guide](docs/contributing/ci.md) for current integration and promotion behavior;

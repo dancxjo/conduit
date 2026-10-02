@@ -1,0 +1,153 @@
+name: Prove source
+on:
+  workflow_call:
+    inputs:
+      sha:
+        type: string
+        required: true
+      base:
+        type: string
+        required: true
+permissions:
+  contents: read
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  RUSTUP_TOOLCHAIN: 1.98.1
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.scan.outputs.matrix }}
+      docs-only: ${{ steps.scan.outputs.docs-only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt,clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install CI validation tools
+        run: cargo xtask ci pipeline setup-ci
+      - name: Scan changed targets
+        id: scan
+        env:
+          BASE: ${{ inputs.base }}
+          SHA: ${{ inputs.sha }}
+        run: cargo xtask ci pipeline scan "$BASE" "$SHA"
+      - name: Check patch, formatting, repository and CI invariants
+        env:
+          BASE: ${{ inputs.base }}
+          SHA: ${{ inputs.sha }}
+        run: cargo xtask ci pipeline preflight "${BASE/all/$SHA}"
+  unit:
+    needs: preflight
+    if: needs.preflight.outputs.docs-only != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [foundation, hosts, products, lint]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: unit-${{ matrix.shard }}
+          cache-on-failure: false
+      - name: Install native test prerequisites
+        run: cargo xtask ci pipeline setup-unit
+      - name: Prove portable meaning
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: cargo xtask ci pipeline unit "$SHARD"
+  target:
+    needs: [preflight, unit]
+    if: needs.preflight.outputs.docs-only != 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
+    name: target / ${{ matrix.id }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rust-src,llvm-tools-preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: target-${{ matrix.id }}
+          cache-on-failure: false
+      - name: Acquire target tools
+        env:
+          TARGET: ${{ matrix.id }}
+        run: cargo xtask ci pipeline setup "$TARGET"
+      - name: Build, prove, and retain the exact product
+        env:
+          TARGET: ${{ matrix.id }}
+          SHA: ${{ inputs.sha }}
+        run: cargo xtask ci pipeline target "$TARGET" "$SHA"
+      - name: Preserve product executable modes
+        env:
+          TARGET: ${{ matrix.id }}
+        run: tar -cf "target/$TARGET.tar" -C target/pipeline "$TARGET"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: product-${{ matrix.id }}
+          path: target/${{ matrix.id }}.tar
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.id }}
+          path: |
+            proof/browser/test-results/
+            target/conduitos/live/
+          if-no-files-found: ignore
+          retention-days: 7
+  complete:
+    if: ${{ always() }}
+    needs: [preflight, unit, target]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every selected lane
+        env:
+          PREFLIGHT: ${{ needs.preflight.result }}
+          DOCS_ONLY: ${{ needs.preflight.outputs.docs-only }}
+          UNIT: ${{ needs.unit.result }}
+          TARGET: ${{ needs.target.result }}
+        run: |
+          test "$PREFLIGHT" = success
+          if test "$DOCS_ONLY" != true; then
+            test "$UNIT" = success
+            test "$TARGET" = success
+          fi

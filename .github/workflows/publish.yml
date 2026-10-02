@@ -1,0 +1,51 @@
+name: Publish tested products
+on:
+  workflow_run:
+    workflows: [Integration]
+    types: [completed]
+    branches: [dev]
+permissions:
+  contents: read
+concurrency:
+  group: publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+          pattern: product-*
+          merge-multiple: true
+          path: target/incoming
+      - name: Restore tested products
+        run: |
+          mkdir -p target/bundle
+          for archive in target/incoming/*.tar; do
+            tar -xf "$archive" -C target/bundle
+          done
+      - name: Verify, promote through PR, and publish without rebuilding
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: cargo xtask ci pipeline publish "$RUN_ID" target/bundle
