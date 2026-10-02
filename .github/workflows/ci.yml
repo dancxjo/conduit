@@ -115,6 +115,7 @@ jobs:
       - name: Acquire target tools
         env:
           TARGET: ${{ matrix.id }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: cargo xtask ci pipeline setup "$TARGET"
       - name: Build, prove, and retain the exact product
         env:
