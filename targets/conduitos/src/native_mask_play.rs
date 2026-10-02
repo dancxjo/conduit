@@ -1,13 +1,17 @@
 //! Bounded execution of one ordinary Mask Plot through its plan-sealed Fore.
 
+mod prepared;
+#[cfg(test)]
+mod tests;
+pub use prepared::PreparedNativeMaskPlay;
+
 use alloc::{string::String, vec::Vec};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, RemoteIngressOutcome, RemoteTerminalDisposition, SchedulerStatus,
-    StepBack, StepInputBytes, StepIo, StepOutcome,
+    CordSpec, FixedScheduler, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallId, HostCallOutcome, PortId, RequestId, SignSink,
+    HostCallDisposition, HostCallId, PortId, RequestId,
 };
 use conduit_plan_lowering::lowering::{
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment, lower_plan_fragment,
@@ -47,6 +51,10 @@ pub struct NativeMaskPlayReceipt {
     pub presentation_id: String,
     pub presentation_revision: u64,
     pub show_value_id: String,
+    pub scanout_frame_sequence: u64,
+    pub scanout_pixels_written: u32,
+    pub display_base_id: conduit_core::HostBaseId,
+    pub surface_id: String,
     pub kernel_signs: u16,
     pub fore_endpoints: u16,
 }
@@ -63,6 +71,9 @@ pub enum NativeMaskPlayError {
     HostComplete,
     ForeOutput,
     Value,
+    PendingRenderer,
+    RendererMismatch,
+    RendererFailed,
 }
 
 enum MaskBack {
@@ -181,149 +192,14 @@ struct ShowValue<'a> {
     show_value_id: &'a str,
 }
 
+/// An unacknowledged renderer cannot produce a Show. Call `PreparedNativeMaskPlay`
+/// and complete it with compositor-owned scanout evidence instead.
 pub fn run(
-    planned: &PlannedMaskPlot,
-    presentation: &Presentation,
-    play_sequence: u64,
+    _planned: &PlannedMaskPlot,
+    _presentation: &Presentation,
+    _play_sequence: u64,
 ) -> Result<NativeMaskPlayReceipt, NativeMaskPlayError> {
-    presentation
-        .validate()
-        .map_err(|_| NativeMaskPlayError::Presentation)?;
-    let fragment = planned
-        .plan
-        .fragments
-        .first()
-        .ok_or(NativeMaskPlayError::Plan)?;
-    let active = conduit_core::bind_active_play(
-        &planned.plan.plan_id,
-        &fragment.host_id,
-        &fragment.boot_id,
-        play_sequence,
-    );
-    let presentation_bytes =
-        serde_json::to_vec(presentation).map_err(|_| NativeMaskPlayError::Value)?;
-    if presentation_bytes.len() > MAX_MASK_VALUE_BYTES {
-        return Err(NativeMaskPlayError::Value);
-    }
-    let show_value_id = show_value_id(planned, presentation, &active);
-    let show_bytes = serde_json::to_vec(&ShowValue {
-        schema: "conduit.presentation/show-value@1",
-        mask_plan_id: planned.plan.plan_id.as_str(),
-        active_play_id: active.active_play_id.as_str(),
-        presentation_id: presentation.identity.as_str(),
-        presentation_revision: presentation.revision,
-        show_value_id: &show_value_id,
-    })
-    .map_err(|_| NativeMaskPlayError::Value)?;
-    let lowered = lower_plan_fragment(fragment).map_err(|_| NativeMaskPlayError::Plan)?;
-    let mut scheduler = scheduler(fragment, &lowered)?;
-    let face_fore = lowered
-        .fore_ports
-        .iter()
-        .find(|port| {
-            port.direction == conduit_core::PortDirection::Input
-                && port.front_port_id.as_str() == "face"
-        })
-        .ok_or(NativeMaskPlayError::Shape)?;
-    match scheduler
-        .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &presentation_bytes)
-        .map_err(|_| NativeMaskPlayError::ForeAdmit)?
-    {
-        RemoteIngressOutcome::Accepted { sequence: 0 } => {}
-        _ => return Err(NativeMaskPlayError::Kernel),
-    }
-    scheduler
-        .close_remote_input(face_fore.endpoint, face_fore.cord)
-        .map_err(|_| NativeMaskPlayError::ForeClose)?;
-    let show_fore = lowered
-        .fore_ports
-        .iter()
-        .find(|port| {
-            port.direction == conduit_core::PortDirection::Output
-                && port.front_port_id.as_str() == "show"
-        })
-        .ok_or(NativeMaskPlayError::Shape)?;
-    let interaction_fore = lowered
-        .fore_ports
-        .iter()
-        .find(|port| {
-            port.direction == conduit_core::PortDirection::Output
-                && port.front_port_id.as_str() == "interaction"
-        })
-        .ok_or(NativeMaskPlayError::Shape)?;
-    let mut observed_show = false;
-    for _ in 0..64 {
-        while let Some(request) = scheduler.next_host_request() {
-            let value = scheduler
-                .store_host_value(&show_bytes)
-                .map_err(|_| NativeMaskPlayError::Value)?;
-            let value = BoundedValueRef::new(value, show_bytes.len() as u32)
-                .map_err(|_| NativeMaskPlayError::Value)?;
-            scheduler
-                .complete_host_call(
-                    request.node,
-                    request.request,
-                    HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output: Some(value),
-                        failure: None,
-                    },
-                )
-                .map_err(|_| NativeMaskPlayError::HostComplete)?;
-        }
-        while let Some(offer) = scheduler
-            .remote_egress_offer(show_fore.endpoint, show_fore.cord)
-            .map_err(|_| NativeMaskPlayError::ForeOutput)?
-        {
-            if observed_show
-                || scheduler
-                    .host_value(offer.value)
-                    .map_err(|_| NativeMaskPlayError::Value)?
-                    != show_bytes
-            {
-                return Err(NativeMaskPlayError::Value);
-            }
-            scheduler
-                .remote_egress_accept(show_fore.endpoint, show_fore.cord, offer.sequence)
-                .and_then(|_| {
-                    scheduler.remote_egress_delivered(
-                        show_fore.endpoint,
-                        show_fore.cord,
-                        offer.sequence,
-                    )
-                })
-                .map_err(|_| NativeMaskPlayError::ForeOutput)?;
-            observed_show = true;
-        }
-        match scheduler.step().map_err(|_| NativeMaskPlayError::Kernel)? {
-            SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Drained if observed_show => {
-                if scheduler
-                    .remote_egress_terminal_disposition(
-                        interaction_fore.endpoint,
-                        interaction_fore.cord,
-                    )
-                    .map_err(|_| NativeMaskPlayError::ForeOutput)?
-                    != Some(RemoteTerminalDisposition::NormalClose)
-                {
-                    return Err(NativeMaskPlayError::ForeOutput);
-                }
-                return Ok(NativeMaskPlayReceipt {
-                    mask_plan_id: planned.plan.plan_id.clone(),
-                    active_play_id: active.active_play_id,
-                    presentation_id: presentation.identity.as_str().into(),
-                    presentation_revision: presentation.revision,
-                    show_value_id,
-                    kernel_signs: scheduler.signs().len(),
-                    fore_endpoints: lowered.fore_ports.len() as u16,
-                });
-            }
-            SchedulerStatus::Drained | SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
-                return Err(NativeMaskPlayError::Kernel);
-            }
-        }
-    }
-    Err(NativeMaskPlayError::Kernel)
+    Err(NativeMaskPlayError::PendingRenderer)
 }
 
 fn show_value_id(
