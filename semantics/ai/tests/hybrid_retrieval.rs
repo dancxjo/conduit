@@ -2,9 +2,9 @@ use conduit_ai::{
     Chunk, ClockBasis, EntityBoundary, ExtractionLineage, FusionStrategy, HybridFusionPolicy,
     HybridRetrievalOutcome, HybridRetrievalRefusal, MechanismScore, RagIdentity,
     RetrievalMechanism, RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit,
-    StageCandidate, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalProvenance,
-    TemporalReference, TemporalRetrievalIntent, TemporalSource, TemporalValidity,
-    TransformProfiles,
+    StageCandidate, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceCandidates,
+    TemporalEvidenceIdentity, TemporalProvenance, TemporalReference, TemporalRetrievalIntent,
+    TemporalSource, TemporalValidity, TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -110,24 +110,28 @@ fn evidence(complete: bool) -> TemporalEvidenceBatch {
             reference_at: 1_000,
             clock_basis: ClockBasis::UnixEpochMilliseconds,
         },
-        candidates: vec![
-            TemporalEvidenceCandidate {
-                identity: "summary/recent".into(),
-                provenance: provenance(900),
-                source: TemporalSource::Event,
-                boundary: None,
-                transition: None,
-                validity: TemporalValidity::Current,
-            },
-            TemporalEvidenceCandidate {
-                identity: "project/created".into(),
-                provenance: provenance(100),
-                source: TemporalSource::Event,
-                boundary: Some(EntityBoundary::Created),
-                transition: None,
-                validity: TemporalValidity::Historical,
-            },
-        ],
+        candidates: TemporalEvidenceCandidates::new(
+            BoundedSequence::try_from_iter([
+                TemporalEvidenceCandidate {
+                    identity: TemporalEvidenceIdentity::new("summary/recent".into()).unwrap(),
+                    provenance: provenance(900),
+                    source: TemporalSource::Event,
+                    boundary: None,
+                    transition: None,
+                    validity: TemporalValidity::Current,
+                },
+                TemporalEvidenceCandidate {
+                    identity: TemporalEvidenceIdentity::new("project/created".into()).unwrap(),
+                    provenance: provenance(100),
+                    source: TemporalSource::Event,
+                    boundary: Some(EntityBoundary::Created),
+                    transition: None,
+                    validity: TemporalValidity::Historical,
+                },
+            ])
+            .unwrap(),
+        )
+        .unwrap(),
         earliest_history_complete: complete,
     }
 }
@@ -218,9 +222,18 @@ fn vector_lexical_metadata_and_temporal_paths_fuse_with_exact_provenance() {
 #[test]
 fn recent_semantic_page_cannot_masquerade_as_historical_origin() {
     let mut recent_only = evidence(false);
-    recent_only
-        .candidates
-        .retain(|candidate| candidate.identity == "summary/recent");
+    recent_only.candidates = TemporalEvidenceCandidates::new(
+        BoundedSequence::try_from_iter(
+            recent_only
+                .candidates
+                .get()
+                .iter()
+                .filter(|candidate| candidate.identity.get() == "summary/recent")
+                .cloned(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     assert_eq!(
         policy(true).fuse(&combined_stages(), Some(&recent_only)),
         Ok(HybridRetrievalOutcome::NeedEarlierHistory)

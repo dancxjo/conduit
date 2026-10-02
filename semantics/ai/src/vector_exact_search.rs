@@ -2,11 +2,13 @@
 
 use alloc::{collections::BTreeSet, string::String, vec::Vec};
 use conduit_core::ResourceBinding;
+use conduit_form::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     canonical_hit_order, EntityBoundary, ExactVectorSearchRefusal, MetadataFilter, SimilarityHit,
-    SimilarityQuery, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceSelection,
+    SimilarityQuery, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceCandidates,
+    TemporalEvidenceIdentity, TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal,
     TemporalReference, TemporalSource, TemporalValidity, TransitionDirection, VectorIndexHandle,
     VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState, VectorRecord,
     VectorSearchProofClass, MAXIMUM_VECTOR_INDEX_MEMBERS,
@@ -172,31 +174,51 @@ fn temporal_matches<'a, T>(
             reference_at: first.reference_at,
             clock_basis: first.clock_basis.clone(),
         },
-        candidates: candidates
-            .iter()
-            .map(|candidate| {
-                let provenance = candidate
-                    .record
-                    .temporal_provenance
-                    .clone()
-                    .ok_or(ExactVectorSearchRefusal::TemporalProvenanceRequired)?;
-                Ok(TemporalEvidenceCandidate {
-                    identity: candidate.record.source_identity.clone(),
-                    provenance,
-                    source: candidate.temporal_source,
-                    boundary: candidate.boundary,
-                    transition: candidate.transition,
-                    validity: candidate.validity,
-                })
-            })
-            .collect::<Result<Vec<_>, ExactVectorSearchRefusal>>()?,
+        candidates: TemporalEvidenceCandidates::new(
+            BoundedSequence::try_from_iter(
+                candidates
+                    .iter()
+                    .map(|candidate| {
+                        let provenance = candidate
+                            .record
+                            .temporal_provenance
+                            .clone()
+                            .ok_or(ExactVectorSearchRefusal::TemporalProvenanceRequired)?;
+                        Ok(TemporalEvidenceCandidate {
+                            identity: TemporalEvidenceIdentity::new(
+                                candidate.record.source_identity.clone(),
+                            )
+                            .map_err(|_| ExactVectorSearchRefusal::TemporalProvenanceRequired)?,
+                            provenance,
+                            source: candidate.temporal_source,
+                            boundary: candidate.boundary,
+                            transition: candidate.transition,
+                            validity: candidate.validity,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, ExactVectorSearchRefusal>>()?,
+            )
+            .map_err(|_| {
+                ExactVectorSearchRefusal::Temporal(
+                    TemporalEvidenceSelectionRefusal::TooManyCandidates,
+                )
+            })?,
+        )
+        .map_err(|_| {
+            ExactVectorSearchRefusal::Temporal(TemporalEvidenceSelectionRefusal::EmptyCandidates)
+        })?,
         earliest_history_complete,
     };
     let selected = batch
         .select(intent)
         .map_err(ExactVectorSearchRefusal::Temporal)?;
     let identities: BTreeSet<String> = match selected {
-        TemporalEvidenceSelection::Selected { identities } => identities.into_iter().collect(),
+        TemporalEvidenceSelection::Selected(payload) => payload
+            .identities()
+            .get()
+            .iter()
+            .map(|identity| identity.get().clone())
+            .collect(),
         TemporalEvidenceSelection::NeedEarlierHistory => {
             return Err(ExactVectorSearchRefusal::EarlierHistoryRequired)
         }

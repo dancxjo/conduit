@@ -319,6 +319,33 @@ type TemporalProvenance = {
     uncertainty_millis: U64?
 }
 
+type TemporalEvidenceIdentity = Text <= 256B not in [""]
+type TemporalEvidenceIdentities = sequence TemporalEvidenceIdentity in 1..=128
+
+type TemporalEvidenceCandidate = {
+    identity: TemporalEvidenceIdentity
+    provenance: TemporalProvenance
+    source: TemporalSource
+    boundary: EntityBoundary?
+    transition: TransitionDirection?
+    validity: TemporalValidity
+}
+
+type TemporalEvidenceCandidates = sequence TemporalEvidenceCandidate in 1..=128
+
+type TemporalEvidenceBatch = {
+    reference: TemporalReference
+    candidates: TemporalEvidenceCandidates
+    earliest_history_complete: Boolean
+}
+
+type TemporalEvidenceSelection =
+    selected {
+        identities: TemporalEvidenceIdentities
+    }
+    | need_earlier_history
+    | boundary_unavailable
+
 type TemporalReference = {
     reference_at: U64
     clock_basis: ClockBasis

@@ -1,40 +1,15 @@
 //! Finite boundary-oriented selection over exact temporal evidence.
 
-use alloc::{string::String, vec, vec::Vec};
-use serde::{Deserialize, Serialize};
+use alloc::{vec, vec::Vec};
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    EntityBoundary, TemporalEvidenceSelectionRefusal, TemporalProvenance, TemporalReference,
-    TemporalRetrievalIntent, TemporalSource, TemporalValidity, TransitionDirection,
+    TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceIdentities,
+    TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent,
 };
 
 pub const MAXIMUM_TEMPORAL_EVIDENCE_CANDIDATES: usize = 128;
 pub const MAXIMUM_TEMPORAL_EVIDENCE_IDENTITY_BYTES: usize = 256;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalEvidenceCandidate {
-    pub identity: String,
-    pub provenance: TemporalProvenance,
-    pub source: TemporalSource,
-    pub boundary: Option<EntityBoundary>,
-    pub transition: Option<TransitionDirection>,
-    pub validity: TemporalValidity,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalEvidenceBatch {
-    pub reference: TemporalReference,
-    pub candidates: Vec<TemporalEvidenceCandidate>,
-    /// True only when no earlier evidence page exists for this retrieval scope.
-    pub earliest_history_complete: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalEvidenceSelection {
-    Selected { identities: Vec<String> },
-    NeedEarlierHistory,
-    BoundaryUnavailable,
-}
 
 impl TemporalEvidenceBatch {
     pub fn select(
@@ -49,7 +24,7 @@ impl TemporalEvidenceBatch {
         }
 
         let mut matches = Vec::new();
-        for candidate in &self.candidates {
+        for candidate in self.candidates.get() {
             let instant = candidate
                 .provenance
                 .source_instant(candidate.source)
@@ -58,7 +33,11 @@ impl TemporalEvidenceBatch {
                 matches.push((instant, candidate.identity.clone()));
             }
         }
-        matches.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+        matches.sort_by(|left, right| {
+            left.0
+                .cmp(&right.0)
+                .then_with(|| left.1.get().cmp(right.1.get()))
+        });
 
         if matches.is_empty() {
             return Ok(
@@ -80,7 +59,14 @@ impl TemporalEvidenceBatch {
             }
             _ => matches.into_iter().map(|(_, identity)| identity).collect(),
         };
-        Ok(TemporalEvidenceSelection::Selected { identities })
+        Ok(TemporalEvidenceSelection::selected(
+            TemporalEvidenceIdentities::new(
+                BoundedSequence::try_from_iter(identities)
+                    .expect("selection cannot exceed the checked 128-candidate batch"),
+            )
+            .expect("selection always contains at least one identity"),
+        )
+        .expect("a checked identity sequence is a valid selection"))
     }
 
     fn validate(
@@ -93,20 +79,20 @@ impl TemporalEvidenceBatch {
         intent
             .validate()
             .map_err(|_| TemporalEvidenceSelectionRefusal::InvalidIntent)?;
-        if self.candidates.is_empty() {
+        if self.candidates.get().is_empty() {
             return Err(TemporalEvidenceSelectionRefusal::EmptyCandidates);
         }
-        if self.candidates.len() > MAXIMUM_TEMPORAL_EVIDENCE_CANDIDATES {
+        if self.candidates.get().len() > MAXIMUM_TEMPORAL_EVIDENCE_CANDIDATES {
             return Err(TemporalEvidenceSelectionRefusal::TooManyCandidates);
         }
-        for (index, candidate) in self.candidates.iter().enumerate() {
-            if candidate.identity.is_empty() {
+        for (index, candidate) in self.candidates.get().iter().enumerate() {
+            if candidate.identity.get().is_empty() {
                 return Err(TemporalEvidenceSelectionRefusal::EmptyIdentity);
             }
-            if candidate.identity.len() > MAXIMUM_TEMPORAL_EVIDENCE_IDENTITY_BYTES {
+            if candidate.identity.get().len() > MAXIMUM_TEMPORAL_EVIDENCE_IDENTITY_BYTES {
                 return Err(TemporalEvidenceSelectionRefusal::IdentityTooLarge);
             }
-            if self.candidates[index + 1..]
+            if self.candidates.get().as_slice()[index + 1..]
                 .iter()
                 .any(|other| other.identity == candidate.identity)
             {
@@ -176,8 +162,12 @@ fn needs_earlier_history(intent: &TemporalRetrievalIntent) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ClockBasis;
-    use alloc::{string::ToString, vec};
+    use crate::{
+        ClockBasis, EntityBoundary, TemporalEvidenceCandidates, TemporalEvidenceIdentity,
+        TemporalProvenance, TemporalReference, TemporalSource, TemporalValidity,
+    };
+    use alloc::{format, string::String, vec};
+    use conduit_form::rust_binding::NativeRustBinding;
 
     fn provenance(event_at: u64, valid_until: Option<u64>) -> TemporalProvenance {
         TemporalProvenance {
@@ -196,7 +186,7 @@ mod tests {
 
     fn candidate(identity: &str, event_at: u64) -> TemporalEvidenceCandidate {
         TemporalEvidenceCandidate {
-            identity: identity.to_string(),
+            identity: TemporalEvidenceIdentity::new(identity.into()).unwrap(),
             provenance: provenance(event_at, None),
             source: TemporalSource::Event,
             boundary: None,
@@ -211,9 +201,68 @@ mod tests {
                 reference_at: 1_000,
                 clock_basis: ClockBasis::UnixEpochMilliseconds,
             },
-            candidates,
+            candidates: TemporalEvidenceCandidates::new(
+                BoundedSequence::try_from_iter(candidates).unwrap(),
+            )
+            .unwrap(),
             earliest_history_complete: complete,
         }
+    }
+
+    fn selected(identities: &[&str]) -> TemporalEvidenceSelection {
+        TemporalEvidenceSelection::selected(
+            TemporalEvidenceIdentities::new(
+                BoundedSequence::try_from_iter(
+                    identities
+                        .iter()
+                        .map(|identity| TemporalEvidenceIdentity::new((*identity).into()).unwrap()),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn temporal_evidence_family_is_native_and_exactly_bounded() {
+        let evidence = candidate("evidence/one", 100);
+        let structured = evidence.clone().into_structured().unwrap();
+        assert_eq!(
+            TemporalEvidenceCandidate::from_structured(structured).unwrap(),
+            evidence
+        );
+        let batch = batch(vec![evidence], true);
+        let structured = batch.clone().into_structured().unwrap();
+        assert_eq!(
+            TemporalEvidenceBatch::from_structured(structured).unwrap(),
+            batch
+        );
+        let selection = selected(&["evidence/one"]);
+        let structured = selection.clone().into_structured().unwrap();
+        assert_eq!(
+            TemporalEvidenceSelection::from_structured(structured).unwrap(),
+            selection
+        );
+        assert_eq!(
+            serde_json::from_str::<TemporalEvidenceSelection>(
+                &serde_json::to_string(&selection).unwrap()
+            )
+            .unwrap(),
+            selection
+        );
+        assert_eq!(
+            serde_json::to_value(&selection).unwrap(),
+            serde_json::json!({"Selected": {"identities": ["evidence/one"]}})
+        );
+        assert!(TemporalEvidenceIdentity::new(String::new()).is_err());
+        assert!(TemporalEvidenceIdentity::new("x".repeat(256)).is_ok());
+        assert!(TemporalEvidenceIdentity::new("x".repeat(257)).is_err());
+        assert!(TemporalEvidenceCandidates::new(BoundedSequence::new()).is_err());
+        assert!(BoundedSequence::<_, 128>::try_from_iter(
+            (0..129).map(|index| candidate(&format!("evidence/{index}"), index))
+        )
+        .is_err());
     }
 
     #[test]
@@ -240,15 +289,11 @@ mod tests {
             evidence.select(
                 &TemporalRetrievalIntent::duration_since(EntityBoundary::Created).unwrap(),
             ),
-            Ok(TemporalEvidenceSelection::Selected {
-                identities: vec!["project/created".to_string()]
-            })
+            Ok(selected(&["project/created"]))
         );
         assert_eq!(
             evidence.select(&TemporalRetrievalIntent::LatestEvidence),
-            Ok(TemporalEvidenceSelection::Selected {
-                identities: vec!["summary/recent".to_string()]
-            })
+            Ok(selected(&["summary/recent"]))
         );
     }
 
@@ -263,19 +308,11 @@ mod tests {
         let evidence = batch(vec![candidate("state/C", 401), state_b, state_a], true);
         assert_eq!(
             evidence.select(&TemporalRetrievalIntent::state_valid_at(300).unwrap()),
-            Ok(TemporalEvidenceSelection::Selected {
-                identities: vec!["state/B".to_string()]
-            })
+            Ok(selected(&["state/B"]))
         );
         assert_eq!(
             evidence.select(&TemporalRetrievalIntent::EventOrdering),
-            Ok(TemporalEvidenceSelection::Selected {
-                identities: vec![
-                    "state/A".to_string(),
-                    "state/B".to_string(),
-                    "state/C".to_string(),
-                ]
-            })
+            Ok(selected(&["state/A", "state/B", "state/C"]))
         );
     }
 
