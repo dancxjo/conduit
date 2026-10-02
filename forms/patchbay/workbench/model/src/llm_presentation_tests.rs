@@ -117,7 +117,7 @@ fn result(contract: &LlmSemanticContract) -> ModelDerivedResult {
         implementation_identity: "ollama/gpt-oss:20b/q4".into(),
         request_identity: "request/observe/3".into(),
         run_identity: "run/observe/3".into(),
-        confidence: Some(ConfidencePermille(900)),
+        confidence: Some(ConfidencePermille::new(900).unwrap()),
         disposition: ModelResultDisposition::Produced,
         determinism: LlmDeterminismProfile::ProviderNondeterministic,
         accounting: ModelWorkAccounting {

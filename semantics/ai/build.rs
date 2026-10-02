@@ -15,11 +15,17 @@ fn main() {
         &RustBindingOptions {
             boxed_variant_payloads: ["TrainingLifecyclePhase.active_step".into()].into(),
             derive_serde_for_variants: true,
-            copy_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
+            copy_nominal_types: [
+                "ConfidencePermille".into(),
+                "FiniteF32".into(),
+                "NonnegativeFiniteF32".into(),
+            ]
+            .into(),
             hash_nominal_types: ["FiniteF32".into(), "NonnegativeFiniteF32".into()].into(),
             serde_nominal_types: [
                 "ClassificationLabel".into(),
                 "ClassificationLabels".into(),
+                "ConfidencePermille".into(),
                 "ExtractionFields".into(),
                 "ExtractionKey".into(),
                 "ExtractionValue".into(),
@@ -33,14 +39,21 @@ fn main() {
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
                 "ValidatedExtraction".into(),
+                "ModelWorkAccounting".into(),
             ]
             .into(),
-            copy_record_types: ["CompatibleMetrics".into(), "IntegrationAccuracy".into()].into(),
+            copy_record_types: [
+                "CompatibleMetrics".into(),
+                "IntegrationAccuracy".into(),
+                "ModelWorkAccounting".into(),
+            ]
+            .into(),
             copy_record_value_getters: ["IntegrationAccuracy".into()].into(),
             public_record_fields: [
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
                 "IntegrationAccuracy".into(),
+                "ModelWorkAccounting".into(),
                 "ValidatedExtraction".into(),
             ]
             .into(),
