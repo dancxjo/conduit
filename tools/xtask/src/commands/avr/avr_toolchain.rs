@@ -6,6 +6,7 @@ use std::{
 
 use super::{require_success, sha256_file};
 
+#[path = "avr_toolchain/core_receipt.rs"]
 mod core_receipt;
 
 pub(super) const CLI_VERSION: &str = "1.5.1";

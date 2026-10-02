@@ -184,4 +184,5 @@ fn inventory(
 }
 
 #[cfg(test)]
+#[path = "core_receipt/tests.rs"]
 mod tests;

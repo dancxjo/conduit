@@ -24,6 +24,9 @@ export function acquisitionIdentity(target, { root = process.cwd(), env = proces
     ...['tools/ci/pipeline/setup.mjs', 'tools/ci/pipeline/targets/setup.mjs', 'tools/ci/pipeline/targets/common.mjs',
       'tools/ci/pipeline/targets.mjs', 'proof/browser/package-lock.json', 'rust-toolchain.toml',
       'tools/xtask/src/commands/avr/avr_toolchain.rs', 'tools/xtask/src/commands/avr/rust_firmware.rs',
+      'tools/xtask/src/commands/avr/rust_toolchain.rs', 'tools/xtask/src/commands/avr/setup.rs',
+      'tools/xtask/src/commands/avr/tool_support.rs', 'tools/xtask-dispatch/src/tool_setup.rs',
+      'tools/xtask/src/process/tool_command.rs',
       'targets/rp2040/firmware/pico-w-signal/make/xtask/firmware.rs',
       'targets/rp2040/firmware/pico-w-signal/make/xtask/doctor.rs'].map(name => path.join(root, name)),
   ].filter(existsSync).sort();

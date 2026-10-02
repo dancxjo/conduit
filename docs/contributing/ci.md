@@ -46,6 +46,9 @@ the pinned Playwright package. Pico radio assets are already versioned source
 and are verified without downloading them again. AVR checks its retained core
 and compiler identities before repeating setup. Cargo-installed tools and ESP
 compilers retain their exact version and content checks on cache restoration.
+The AVR check and Pico doctor use the dependency-light xtask dispatcher and
+the same target-owned verification modules as the full tooling, so acquiring
+tools does not compile the product workspace.
 
 Acquisition caches are separate from compiler and product artifacts. Their
 keys include the runner image, platform, architecture, and checked-in tool
