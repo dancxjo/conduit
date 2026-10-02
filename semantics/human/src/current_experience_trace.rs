@@ -2,18 +2,14 @@
 
 use alloc::vec::Vec;
 
-use crate::{CurrentExperience, ExperienceItem, ExperienceRelation};
+use crate::{
+    CurrentExperience, CurrentExperienceInspectionError, ExperienceItem, ExperienceRelation,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CurrentExperienceTrace {
     pub item: ExperienceItem,
     pub relationships: Vec<ExperienceRelation>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CurrentExperienceInspectionError {
-    EmptyItemIdentity,
-    UnknownItem,
 }
 
 /// Trace one exact semantic experience item to its retained source references

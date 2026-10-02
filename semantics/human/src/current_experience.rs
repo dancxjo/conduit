@@ -8,8 +8,7 @@ use conduit_core::{
 
 use crate::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
-    ExperienceTemporalRole,
+    ExperienceRefusal, ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRole,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,34 +80,6 @@ pub struct CurrentExperience {
     items: Vec<ExperienceItem>,
     relationships: Vec<ExperienceRelation>,
     encoded_bytes: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceRefusal {
-    InvalidLimits,
-    EmptyIdentity,
-    DuplicateIdentity,
-    ItemCapacity,
-    TemporalRoleCapacity,
-    DomainCapacity,
-    ModelDerivedCapacity,
-    SelectedMemoryCapacity,
-    ItemBytes,
-    EncodedBytes,
-    SourceCapacity,
-    DuplicateSource,
-    RelationshipCapacity,
-    UnknownRelationshipEndpoint,
-    DuplicateRelationship,
-    ConflictAlternativeCapacity,
-    InvalidEpistemicCombination,
-    IdentityBytes,
-    InvalidSource,
-    InvalidTime,
-    InvalidTemporalContext,
-    TemporalClassification(ExperienceTemporalRefusal),
-    TemporalRoleMismatch,
-    ArithmeticOverflow,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

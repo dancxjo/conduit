@@ -27,6 +27,10 @@ fn main() {
             serde_variant_exclusions: [
                 "ChordInfo".into(),
                 "ControlChordModifier".into(),
+                "CurrentExperienceInspectionError".into(),
+                "ExperienceRefusal".into(),
+                "ExperienceSourceRefusal".into(),
+                "ExperienceUpdateRefusal".into(),
                 "KeymapDisposition".into(),
                 "VisualExperienceRefusal".into(),
                 "VisualImpressionRefusal".into(),

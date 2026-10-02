@@ -5,8 +5,8 @@ use conduit_core::{KindId, SignId, TemporalInstant};
 
 use crate::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceItem,
-    ExperienceOrigin, ExperienceSourceRef, ExperienceTemporalRole, ObjectObservation,
-    VisualImpression, VisualImpressionRefusal, VisualObservationRefusal,
+    ExperienceOrigin, ExperienceSourceRef, ExperienceSourceRefusal, ExperienceTemporalRole,
+    ObjectObservation, VisualImpression,
 };
 
 pub const MAXIMUM_UTTERANCE_BYTES: usize = 2_048;
@@ -51,17 +51,6 @@ pub struct SelectedRecollection {
     pub recorded_at: TemporalInstant,
     pub original_sources: Vec<ExperienceSourceRef>,
     pub certainty: ExperienceCertainty,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceSourceRefusal {
-    InvalidVisualObservation(VisualObservationRefusal),
-    InvalidVisualImpression(VisualImpressionRefusal),
-    EmptyValue,
-    ValueBound,
-    InvalidIdentity,
-    InvalidTime,
-    SourceBound,
 }
 
 pub fn visual_object_experience(
