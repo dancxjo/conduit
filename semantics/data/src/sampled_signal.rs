@@ -2,9 +2,11 @@
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{semantic_digest, Quantity, QuantityUnit, TemporalScale};
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    SampledSignalRefusal, SignalContinuity, SignalStart, SignalWindow, TensorAxisRole, TensorValue,
+    SampledSignalRefusal, SignalContinuity, SignalStart, SignalSummary, SignalWindow,
+    TensorAxisRole, TensorValue,
 };
 
 pub const SAMPLED_SIGNAL_INFO_ID: &str = "data/sampled-signal@1";
@@ -55,17 +57,6 @@ pub struct ConcatenatedSignal {
     pub sample_shape: Vec<u64>,
     pub axes: Vec<crate::TensorAxis>,
     pub source_parts: Vec<[u8; 32]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignalSummary {
-    pub clock_identity: String,
-    pub start: SignalStart,
-    pub sample_count: u64,
-    pub continuity: SignalContinuity,
-    pub shape: Vec<u64>,
-    pub bytes: u64,
-    pub content_digest: [u8; 32],
 }
 
 impl SampledSignal {
@@ -186,7 +177,8 @@ impl SampledSignal {
             start: self.start.clone(),
             sample_count: self.sample_count,
             continuity: self.continuity.clone(),
-            shape: self.samples.dimensions.clone(),
+            shape: BoundedSequence::try_from_iter(self.samples.dimensions.iter().copied())
+                .map_err(|_| SampledSignalRefusal::TensorInvalid)?,
             bytes: self
                 .samples
                 .byte_count()

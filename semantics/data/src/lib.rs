@@ -22,7 +22,7 @@ pub use generated::{
     QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
     ScientificCorpusRefusal, ScientificCorpusRefusalObservation, ScientificObservationRefusal,
     SignalContinuity, SignalContinuityClockReset, SignalContinuityDiscontinuous, SignalStart,
-    SignalStartInstant, SignalStartSampleIndex, SignalWindow, TabularColumnSpec,
+    SignalStartInstant, SignalStartSampleIndex, SignalSummary, SignalWindow, TabularColumnSpec,
     TabularColumnType, TabularOptionalText,
     TabularPersonRow, TabularPersonRowSlot, TabularPersonRowsFour, TabularQueryCompletion,
     TabularQueryError, TabularQueryOutcomeFour, TabularQueryResultFour, TabularQueryStatus,
