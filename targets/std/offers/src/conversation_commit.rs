@@ -10,9 +10,9 @@ pub const RECOGNIZED_TURN_COMMIT_IMPLEMENTATION: &str = "std/recognized-turn-com
 pub const RECOGNIZED_TURN_COMMIT_ARTIFACT: &str = "conduit-std-host/recognized-turn-commit@1";
 pub const RECOGNIZED_TURN_COMMIT_OPERATION: &str = "conduit.host/recognized-turn-commit@1";
 
-pub const GENERATED_SPEECH_COMMIT_PROFILE: &str = "std/generated-speech-commit-kernel@1";
-pub const GENERATED_SPEECH_COMMIT_IMPLEMENTATION: &str = "std/generated-speech-commit@1";
-pub const GENERATED_SPEECH_COMMIT_ARTIFACT: &str = "conduit-std-host/generated-speech-commit@1";
+pub const GENERATED_SPEECH_COMMIT_PROFILE: &str = "std/generated-speech-commit-kernel@2";
+pub const GENERATED_SPEECH_COMMIT_IMPLEMENTATION: &str = "std/generated-speech-commit@2";
+pub const GENERATED_SPEECH_COMMIT_ARTIFACT: &str = "conduit-std-host/generated-speech-commit@2";
 pub const GENERATED_SPEECH_PUSH_OPERATION: &str = "conduit.host/generated-speech-push@1";
 pub const GENERATED_SPEECH_DRAIN_OPERATION: &str = "conduit.host/generated-speech-drain@1";
 pub const GENERATED_SPEECH_CLOSE_OPERATION: &str = "conduit.host/generated-speech-close@1";
@@ -47,37 +47,61 @@ pub fn generated_speech_commit_offer() -> CapabilityOffer {
         maximum_input_bytes: input,
         maximum_output_bytes: conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES,
     };
-    BackOfferBuilder::new(
-        conduit_tongues::speech_commit_contract().into_semantic_capability_contract(),
+    let mut offer = BackOfferBuilder::new(
+        conduit_tongues::speech_commit_semantic_contract(),
         Back {
-            capability_id: CapabilityId::from("std-generated-speech-commit-v1"),
+            capability_id: CapabilityId::from("std-generated-speech-commit-v2"),
             execution_profile_id: ExecutionProfileId::from(GENERATED_SPEECH_COMMIT_PROFILE),
             implementation_id: ImplementationId::from(GENERATED_SPEECH_COMMIT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(GENERATED_SPEECH_COMMIT_ARTIFACT),
             host_calls: vec![
                 operation(
                     GENERATED_SPEECH_PUSH_OPERATION,
-                    conduit_tongues::MAXIMUM_TEXT_BYTES,
+                    conduit_tongues::MAXIMUM_PENDING_SPEECH_BYTES as u32,
                 ),
                 operation(
                     GENERATED_SPEECH_DRAIN_OPERATION,
-                    conduit_tongues::MAXIMUM_TEXT_BYTES,
+                    conduit_tongues::MAXIMUM_PENDING_SPEECH_BYTES as u32,
                 ),
                 operation(
                     GENERATED_SPEECH_CLOSE_OPERATION,
-                    conduit_tongues::MAXIMUM_TEXT_BYTES,
+                    conduit_tongues::MAXIMUM_PENDING_SPEECH_BYTES as u32,
                 ),
             ],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
     )
-    .build()
+    .build();
+    offer.host_calls.sort();
+    offer
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn installed_commit_covers_its_exact_semantic_text_envelope() {
+        let offer = generated_speech_commit_offer();
+        assert_eq!(
+            offer.kind_contract_revision.as_str(),
+            "conduit.speech/commit-generated-text@2"
+        );
+        let front = offer.checked_front();
+        let contract = front
+            .value_contract(&conduit_core::FrontValueLocation::Input(
+                conduit_core::port_id("generated"),
+            ))
+            .unwrap();
+        assert!(contract.validate(&vec![b'x'; 1024]).is_ok());
+        assert!(contract.validate(&vec![b'x'; 1025]).is_err());
+        assert!(offer
+            .host_calls
+            .iter()
+            .all(|call| call.maximum_input_bytes == 1024));
+        assert!(offer.host_calls.windows(2).all(|pair| pair[0] < pair[1]));
+    }
 
     #[test]
     fn commit_offers_preserve_portable_fronts_and_finite_host_calls() {
