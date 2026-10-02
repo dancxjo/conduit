@@ -13,6 +13,10 @@ fn channel(name: &str) -> InteractionValue {
     InteractionValue::new(KindId::from(CHANNEL_KIND), name.as_bytes().to_vec()).unwrap()
 }
 
+fn values(values: Vec<InteractionValue>) -> InteractionProposalPayload {
+    InteractionProposalPayload::selected(values).unwrap()
+}
+
 fn option(name: &str) -> InteractionOption {
     InteractionOption {
         identity: format!("channel/{name}"),
@@ -58,8 +62,8 @@ fn volume_contract() -> InteractionContract {
 }
 
 fn decode_quantity(value: &InteractionValue) -> Quantity {
-    assert_eq!(value.value_kind, KindId::from(QUANTITY_INFO_ID));
-    Quantity::decode(&value.canonical_bytes).unwrap()
+    assert_eq!(value.kind(), QUANTITY_INFO_ID);
+    Quantity::decode(value.bytes()).unwrap()
 }
 
 #[test]
@@ -77,14 +81,14 @@ fn executable_many_choice_flow_emits_values_and_rejects_invalid_combinations() {
         &contract,
         &state,
         1,
-        InteractionProposalPayload::Values(vec![channel("left"), channel("right")]),
+        values(vec![channel("left"), channel("right")]),
     )
     .unwrap();
     let valid = HumanInteractionProposal::new(
         &contract,
         &state,
         2,
-        InteractionProposalPayload::Values(vec![channel("center"), channel("left")]),
+        values(vec![channel("center"), channel("left")]),
     )
     .unwrap();
     let mut flow = TypedInteractionFlow::new(contract, state, Some(rules), 2, 2).unwrap();
@@ -118,17 +122,10 @@ fn executable_single_choice_flow_carries_the_typed_value_not_an_option_index() {
         vec![channel("left")],
     )
     .unwrap();
-    let proposal = HumanInteractionProposal::new(
-        &contract,
-        &state,
-        1,
-        InteractionProposalPayload::Values(vec![channel("right")]),
-    )
-    .unwrap();
-    assert_eq!(
-        proposal.payload,
-        InteractionProposalPayload::Values(vec![channel("right")])
-    );
+    let proposal =
+        HumanInteractionProposal::new(&contract, &state, 1, values(vec![channel("right")]))
+            .unwrap();
+    assert_eq!(proposal.payload, values(vec![channel("right")]));
     let mut flow = TypedInteractionFlow::new(contract, state, None, 1, 1).unwrap();
     flow.admit(proposal).unwrap();
 }
@@ -237,20 +234,11 @@ fn exact_mapping_refuses_unrepresentable_precision_instead_of_coercing() {
 fn bounded_flow_preserves_stale_duplicate_pressure_and_cancellation() {
     let contract = channels_contract();
     let state = channels_state(&contract);
-    let proposal = HumanInteractionProposal::new(
-        &contract,
-        &state,
-        7,
-        InteractionProposalPayload::Values(vec![channel("center")]),
-    )
-    .unwrap();
-    let next = HumanInteractionProposal::new(
-        &contract,
-        &state,
-        8,
-        InteractionProposalPayload::Values(vec![channel("right")]),
-    )
-    .unwrap();
+    let proposal =
+        HumanInteractionProposal::new(&contract, &state, 7, values(vec![channel("center")]))
+            .unwrap();
+    let next = HumanInteractionProposal::new(&contract, &state, 8, values(vec![channel("right")]))
+        .unwrap();
     let mut flow = TypedInteractionFlow::new(contract.clone(), state.clone(), None, 1, 1).unwrap();
     flow.admit(proposal.clone()).unwrap();
     let replacement =
@@ -269,13 +257,9 @@ fn bounded_flow_preserves_stale_duplicate_pressure_and_cancellation() {
         flow.cancel_front().unwrap().outcome,
         InteractionApplicationOutcome::Cancelled
     );
-    let stale = HumanInteractionProposal::new(
-        &contract,
-        &state,
-        9,
-        InteractionProposalPayload::Values(vec![channel("center")]),
-    )
-    .unwrap();
+    let stale =
+        HumanInteractionProposal::new(&contract, &state, 9, values(vec![channel("center")]))
+            .unwrap();
     flow.replace_current(replacement).unwrap();
     assert_eq!(flow.admit(stale), Err(InteractionRefusal::StaleState));
 }
@@ -297,7 +281,7 @@ fn relative_flow_keeps_delta_distinct_from_absolute_scalar() {
         &contract,
         &state,
         1,
-        InteractionProposalPayload::Relative(delta),
+        InteractionProposalPayload::relative_value(delta).unwrap(),
     )
     .unwrap();
     let mut flow = TypedInteractionFlow::new(contract, state, None, 1, 1).unwrap();

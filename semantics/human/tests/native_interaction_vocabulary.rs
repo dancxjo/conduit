@@ -1,9 +1,9 @@
 use conduit_core::{KindId, QuantityUnit};
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
-    BoundKind, InteractionApplicationOutcome, InteractionFamily, InteractionRefusal,
-    InteractionTypeDigest, InteractionValueKind, OptionAvailability, RealizationRangePolicy,
-    ScalarQuantization,
+    BoundKind, InteractionApplicationOutcome, InteractionFamily, InteractionProposalPayload,
+    InteractionRefusal, InteractionTypeDigest, InteractionValue, InteractionValueKind,
+    OptionAvailability, RealizationRangePolicy, ScalarQuantization,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -101,4 +101,25 @@ fn interaction_family_is_one_payload_rich_native_type() {
     assert!(InteractionValueKind::new("k".repeat(129)).is_err());
     assert_round_trip(InteractionTypeDigest::new([255; 32]).unwrap());
     assert!(!include_str!("../src/human_interaction.rs").contains("pub enum InteractionFamily"));
+}
+
+#[test]
+fn interaction_values_and_proposal_payloads_are_native_and_exactly_bounded() {
+    let kind = KindId::from("interaction/value@1");
+    let empty = InteractionValue::new(kind.clone(), Vec::new()).unwrap();
+    let maximum = InteractionValue::new(kind.clone(), vec![7; 65_536]).unwrap();
+    assert_round_trip(empty.clone());
+    assert_round_trip(maximum.clone());
+    assert_eq!(
+        InteractionValue::new(kind, vec![0; 65_537]),
+        Err(InteractionRefusal::ValueBoundExceeded)
+    );
+
+    assert_round_trip(InteractionProposalPayload::Activate);
+    assert_round_trip(InteractionProposalPayload::selected(vec![empty.clone(), maximum]).unwrap());
+    assert_round_trip(InteractionProposalPayload::relative_value(empty).unwrap());
+
+    let source = include_str!("../src/human_interaction.rs");
+    assert!(!source.contains("pub struct InteractionValue"));
+    assert!(!source.contains("pub enum InteractionProposalPayload"));
 }

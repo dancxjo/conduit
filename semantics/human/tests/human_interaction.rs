@@ -23,6 +23,14 @@ fn quantity(value: i64, unit: QuantityUnit) -> InteractionValue {
     .unwrap()
 }
 
+fn values(values: Vec<InteractionValue>) -> InteractionProposalPayload {
+    InteractionProposalPayload::selected(values).unwrap()
+}
+
+fn relative_payload(value: InteractionValue) -> InteractionProposalPayload {
+    InteractionProposalPayload::relative_value(value).unwrap()
+}
+
 fn option(identity: &str, bytes: &[u8]) -> InteractionOption {
     InteractionOption {
         identity: identity.into(),
@@ -149,14 +157,14 @@ fn action_boolean_absolute_and_relative_semantics_remain_distinct() {
         &absolute,
         &absolute_state,
         0,
-        InteractionProposalPayload::Values(vec![quantity(445, QuantityUnit::Hertz)])
+        values(vec![quantity(445, QuantityUnit::Hertz)])
     )
     .is_ok());
     assert!(HumanInteractionProposal::new(
         &relative,
         &relative_state,
         0,
-        InteractionProposalPayload::Relative(quantity(5, QuantityUnit::Hertz))
+        relative_payload(quantity(5, QuantityUnit::Hertz))
     )
     .is_ok());
     assert_eq!(
@@ -164,7 +172,7 @@ fn action_boolean_absolute_and_relative_semantics_remain_distinct() {
             &relative,
             &relative_state,
             0,
-            InteractionProposalPayload::Values(vec![quantity(5, QuantityUnit::Hertz)])
+            values(vec![quantity(5, QuantityUnit::Hertz)])
         ),
         Err(InteractionRefusal::WrongValueKind)
     );
@@ -201,26 +209,23 @@ fn structured_and_bounded_text_values_use_ordinary_canonical_info() {
     let structured = StructuredInfoValue::leaf(value_type.clone(), b"alpha".to_vec()).unwrap();
     let interaction_value = InteractionValue::structured(&structured).unwrap();
     assert_eq!(
-        interaction_value.canonical_bytes,
+        interaction_value.bytes(),
         structured.canonical_bytes().unwrap()
     );
     let contract = InteractionContract::new(
         "interaction/structured",
         InteractionFamily::structured_value(
-            interaction_value.value_kind.clone(),
+            KindId::from(interaction_value.kind()),
             value_type.semantic_digest().unwrap(),
             1_024,
         ),
     )
     .unwrap();
     let state = InteractionCurrentState::new(&contract, 0, None, vec![]).unwrap();
-    assert!(HumanInteractionProposal::new(
-        &contract,
-        &state,
-        0,
-        InteractionProposalPayload::Values(vec![interaction_value])
-    )
-    .is_ok());
+    assert!(
+        HumanInteractionProposal::new(&contract, &state, 0, values(vec![interaction_value]))
+            .is_ok()
+    );
 
     let text = InteractionContract::new(
         "interaction/message",
@@ -232,7 +237,7 @@ fn structured_and_bounded_text_values_use_ordinary_canonical_info() {
         &text,
         &text_state,
         0,
-        InteractionProposalPayload::Values(vec![value(TEXT_INFO_ID, b"hello")])
+        values(vec![value(TEXT_INFO_ID, b"hello")])
     )
     .is_ok());
     assert_eq!(
@@ -240,7 +245,7 @@ fn structured_and_bounded_text_values_use_ordinary_canonical_info() {
             &text,
             &text_state,
             1,
-            InteractionProposalPayload::Values(vec![value(TEXT_INFO_ID, &[0xff])])
+            values(vec![value(TEXT_INFO_ID, &[0xff])])
         ),
         Err(InteractionRefusal::MalformedValue)
     );
@@ -255,7 +260,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
         &contract,
         &state,
         1,
-        InteractionProposalPayload::Values(vec![value(WAVEFORM_KIND, b"sine")]),
+        values(vec![value(WAVEFORM_KIND, b"sine")]),
     )
     .unwrap();
     let fresh =
@@ -269,7 +274,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
             &contract,
             &state,
             2,
-            InteractionProposalPayload::Values(vec![value(WAVEFORM_KIND, b"noise")])
+            values(vec![value(WAVEFORM_KIND, b"noise")])
         ),
         Err(InteractionRefusal::RemovedOption)
     );
@@ -288,7 +293,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
             &contract,
             &unavailable,
             3,
-            InteractionProposalPayload::Values(vec![value(WAVEFORM_KIND, b"sine")])
+            values(vec![value(WAVEFORM_KIND, b"sine")])
         ),
         Err(InteractionRefusal::UnavailableOption)
     );
@@ -297,7 +302,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
             &contract,
             &state,
             4,
-            InteractionProposalPayload::Values(vec![value("wrong/kind@1", b"sine")])
+            values(vec![value("wrong/kind@1", b"sine")])
         ),
         Err(InteractionRefusal::WrongValueKind)
     );
@@ -322,7 +327,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
             &scalar,
             &scalar_state,
             0,
-            InteractionProposalPayload::Values(vec![quantity(101, QuantityUnit::Percent)])
+            values(vec![quantity(101, QuantityUnit::Percent)])
         ),
         Err(InteractionRefusal::OutOfRange)
     );
@@ -331,7 +336,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
             &scalar,
             &scalar_state,
             1,
-            InteractionProposalPayload::Values(vec![quantity(52, QuantityUnit::Percent)])
+            values(vec![quantity(52, QuantityUnit::Percent)])
         ),
         Err(InteractionRefusal::UnsupportedGranularity)
     );
@@ -396,18 +401,13 @@ fn many_choice_identity_treats_selection_order_as_non_semantic() {
         InteractionCurrentState::new(&contract, 1, Some(domain), vec![b.clone(), a.clone()])
             .unwrap();
     assert_eq!(state_ab.state_identity, state_ba.state_identity);
-    let proposal_ab = HumanInteractionProposal::new(
-        &contract,
-        &state_ab,
-        1,
-        InteractionProposalPayload::Values(vec![a, b.clone()]),
-    )
-    .unwrap();
+    let proposal_ab =
+        HumanInteractionProposal::new(&contract, &state_ab, 1, values(vec![a, b.clone()])).unwrap();
     let proposal_ba = HumanInteractionProposal::new(
         &contract,
         &state_ab,
         1,
-        InteractionProposalPayload::Values(vec![b, value(WAVEFORM_KIND, b"triangle")]),
+        values(vec![b, value(WAVEFORM_KIND, b"triangle")]),
     )
     .unwrap();
     assert_eq!(proposal_ab.proposal_identity, proposal_ba.proposal_identity);
@@ -427,7 +427,7 @@ fn canonical_contract_state_proposal_and_result_vectors_are_deterministic() {
         &contract,
         &state,
         12,
-        InteractionProposalPayload::Values(vec![value(WAVEFORM_KIND, b"pulse")]),
+        values(vec![value(WAVEFORM_KIND, b"pulse")]),
     )
     .unwrap();
     let result = conduit_human::InteractionApplicationResult::new(

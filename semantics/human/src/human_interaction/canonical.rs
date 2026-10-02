@@ -96,8 +96,8 @@ pub(super) fn values(output: &mut Vec<u8>, items: &[InteractionValue]) {
 }
 
 pub(super) fn encode_value(output: &mut Vec<u8>, value: &InteractionValue) {
-    field(output, value.value_kind.as_str().as_bytes());
-    field(output, &value.canonical_bytes);
+    field(output, value.kind().as_bytes());
+    field(output, value.bytes());
 }
 
 pub(super) fn field(output: &mut Vec<u8>, value: &[u8]) {

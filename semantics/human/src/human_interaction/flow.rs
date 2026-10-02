@@ -46,10 +46,7 @@ impl InteractionSelectionRules {
             if rule.values.len() < 2
                 || rule.values.len() > maximum_options
                 || rule.values.len() > MAXIMUM_INTERACTION_SELECTIONS
-                || rule
-                    .values
-                    .iter()
-                    .any(|value| value.value_kind.as_str() != value_kind)
+                || rule.values.iter().any(|value| value.kind() != value_kind)
             {
                 return Err(InteractionRefusal::InvalidContract);
             }
@@ -84,7 +81,7 @@ impl InteractionSelectionRules {
         if self.mutually_exclusive.iter().any(|rule| {
             rule.values
                 .iter()
-                .filter(|value| selected.contains(value))
+                .filter(|value| selected.get().as_slice().contains(value))
                 .take(2)
                 .count()
                 > 1

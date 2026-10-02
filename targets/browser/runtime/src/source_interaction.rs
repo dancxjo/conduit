@@ -36,7 +36,7 @@ pub(super) fn admit_source(
         &contract,
         &current,
         sequence,
-        InteractionProposalPayload::Values(vec![value]),
+        InteractionProposalPayload::selected(vec![value]).map_err(debug_error)?,
     )
     .map_err(debug_error)?;
     let mut flow = TypedInteractionFlow::new(contract.clone(), current.clone(), None, 1, 1)
@@ -112,22 +112,24 @@ mod tests {
             &contract,
             &current,
             1,
-            InteractionProposalPayload::Values(vec![InteractionValue::new(
+            InteractionProposalPayload::selected(vec![InteractionValue::new(
                 KindId::from(conduit_human::TEXT_INFO_ID),
                 b"one".to_vec(),
             )
-            .unwrap()]),
+            .unwrap()])
+            .unwrap(),
         )
         .unwrap();
         let next = HumanInteractionProposal::new(
             &contract,
             &current,
             2,
-            InteractionProposalPayload::Values(vec![InteractionValue::new(
+            InteractionProposalPayload::selected(vec![InteractionValue::new(
                 KindId::from(conduit_human::TEXT_INFO_ID),
                 b"two".to_vec(),
             )
-            .unwrap()]),
+            .unwrap()])
+            .unwrap(),
         )
         .unwrap();
         let mut flow = TypedInteractionFlow::new(contract, current, None, 1, 1).unwrap();
