@@ -190,16 +190,17 @@ fn context_candidates() -> Vec<ContextCandidate> {
 }
 
 fn selection_policy() -> ContextSelectionPolicy {
-    ContextSelectionPolicy {
-        identity: "context/chronological-diverse@1".into(),
-        token_accounting_profile: "tokens/fixture-exact@1".into(),
-        redundancy: ContextRedundancyPolicy::OnePerReviewedGroup,
-        ordering: ContextOrderingPolicy::ChronologicalOldestFirst,
-        maximum_items: 2,
-        maximum_bytes: 64,
-        maximum_tokens: 8,
-        maximum_work_units: 8,
-    }
+    ContextSelectionPolicy::new(
+        "context/chronological-diverse@1".into(),
+        "tokens/fixture-exact@1".into(),
+        ContextRedundancyPolicy::OnePerReviewedGroup,
+        ContextOrderingPolicy::ChronologicalOldestFirst,
+        2,
+        64,
+        8,
+        8,
+    )
+    .unwrap()
 }
 
 #[test]
@@ -309,10 +310,17 @@ fn finite_context_is_chronological_diverse_structured_and_inspectable() {
 
 #[test]
 fn finite_token_budget_makes_each_truncation_inspectable() {
-    let mut policy = selection_policy();
-    policy.redundancy = ContextRedundancyPolicy::KeepAll;
-    policy.maximum_items = 8;
-    policy.maximum_tokens = 4;
+    let policy = ContextSelectionPolicy::new(
+        "context/token-truncation@1".into(),
+        "tokens/fixture-exact@1".into(),
+        ContextRedundancyPolicy::KeepAll,
+        ContextOrderingPolicy::ChronologicalOldestFirst,
+        8,
+        64,
+        4,
+        8,
+    )
+    .unwrap();
     let context = policy.select(&context_candidates()).unwrap();
     assert_eq!(context.items.len(), 1);
     let ContextSelectionDisposition::Omitted { candidates } = context.disposition else {
@@ -327,18 +335,25 @@ fn finite_token_budget_makes_each_truncation_inspectable() {
 #[test]
 fn every_budget_and_required_annotation_fails_closed() {
     let candidates = context_candidates();
-    for mutate in [
-        |policy: &mut ContextSelectionPolicy| policy.maximum_items = 0,
-        |policy: &mut ContextSelectionPolicy| policy.maximum_bytes = 0,
-        |policy: &mut ContextSelectionPolicy| policy.maximum_tokens = 0,
-        |policy: &mut ContextSelectionPolicy| policy.maximum_work_units = 0,
-    ] {
-        let mut policy = selection_policy();
-        mutate(&mut policy);
-        assert_eq!(
-            policy.select(&candidates),
-            Err(ContextSelectionRefusal::InvalidBound)
-        );
+    let policy = selection_policy();
+    assert_eq!(
+        ContextSelectionPolicy::from_structured(policy.clone().into_structured().unwrap()).unwrap(),
+        policy
+    );
+    assert!(!include_str!("../src/context_selection.rs")
+        .contains("pub struct ContextSelectionPolicy"));
+    for bounds in [(0, 64, 8, 8), (2, 0, 8, 8), (2, 64, 0, 8), (2, 64, 8, 0)] {
+        assert!(ContextSelectionPolicy::new(
+            "context/invalid-bound@1".into(),
+            "tokens/fixture-exact@1".into(),
+            ContextRedundancyPolicy::KeepAll,
+            ContextOrderingPolicy::ChronologicalOldestFirst,
+            bounds.0,
+            bounds.1,
+            bounds.2,
+            bounds.3,
+        )
+        .is_err());
     }
 
     let mut missing_temporal = candidates.clone();

@@ -255,16 +255,17 @@ fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> Ret
             }
         })
         .collect::<Vec<_>>();
-    let context = ContextSelectionPolicy {
-        identity: "context/r6-bounded@1".into(),
-        token_accounting_profile: "tokens/exact-fixture@1".into(),
-        redundancy: ContextRedundancyPolicy::KeepAll,
-        ordering: ContextOrderingPolicy::ChronologicalOldestFirst,
-        maximum_items: case.maximum_items,
-        maximum_bytes: 16_384,
-        maximum_tokens: 4_096,
-        maximum_work_units: 64,
-    }
+    let context = ContextSelectionPolicy::new(
+        "context/r6-bounded@1".into(),
+        "tokens/exact-fixture@1".into(),
+        ContextRedundancyPolicy::KeepAll,
+        ContextOrderingPolicy::ChronologicalOldestFirst,
+        case.maximum_items,
+        16_384,
+        4_096,
+        64,
+    )
+    .unwrap()
     .select(&candidates)
     .unwrap();
     let request = GroundedAnswerRequest {

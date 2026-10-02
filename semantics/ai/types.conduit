@@ -250,6 +250,17 @@ type ContextOrderingPolicy =
     reranked
     | chronological_oldest_first
 
+type ContextSelectionPolicy = {
+    identity: Text <= 256B not in [""]
+    token_accounting_profile: Text <= 256B not in [""]
+    redundancy: ContextRedundancyPolicy
+    ordering: ContextOrderingPolicy
+    maximum_items: U16 in 1..=64
+    maximum_bytes: U32 in 1..=1048576
+    maximum_tokens: U32 in 1..=262144
+    maximum_work_units: U32 in 1..=1048576
+}
+
 type SelectedContextRationale =
     reranked
     | temporal_chronology

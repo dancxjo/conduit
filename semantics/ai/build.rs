@@ -59,6 +59,19 @@ fn main() {
             .into(),
             record_constructor_orders: [
                 (
+                    "ContextSelectionPolicy".into(),
+                    vec![
+                        "identity".into(),
+                        "token_accounting_profile".into(),
+                        "redundancy".into(),
+                        "ordering".into(),
+                        "maximum_items".into(),
+                        "maximum_bytes".into(),
+                        "maximum_tokens".into(),
+                        "maximum_work_units".into(),
+                    ],
+                ),
+                (
                     "FiniteClassification".into(),
                     vec!["label".into(), "allowed_labels".into()],
                 ),
