@@ -1,5 +1,6 @@
 use conduit_ai::{
-    DrawRelationship, LogScoreKind, ProbabilisticDisposition, ProbabilityRefusal, RandomnessProfile,
+    DrawRelationship, LogScoreKind, ProbabilisticDisposition, ProbabilityDigest,
+    ProbabilityRefusal, RandomnessProfile, StochasticProvenance,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -48,6 +49,19 @@ fn probability_vocabulary_has_native_identity_and_exact_round_trips() {
     ] {
         round_trip(value);
     }
+
+    round_trip(
+        StochasticProvenance::new(
+            ProbabilityDigest::new([1; 32]).unwrap(),
+            Some(ProbabilityDigest::new([2; 32]).unwrap()),
+            ProbabilityDigest::new([3; 32]).unwrap(),
+            RandomnessProfile::explicit_seed(42).unwrap(),
+            DrawRelationship::Independent,
+        )
+        .unwrap(),
+    );
+    assert!(!include_str!("../src/probability.rs")
+        .contains(concat!("pub struct ", "StochasticProvenance")));
 }
 
 #[test]

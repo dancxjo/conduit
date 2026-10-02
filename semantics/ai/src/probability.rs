@@ -4,22 +4,14 @@ use alloc::vec::Vec;
 use conduit_data::{SampledSignal, TensorElement, TensorValue};
 
 use crate::{
-    DrawRelationship, LogScoreKind, ProbabilisticDisposition, ProbabilityRefusal, RandomnessProfile,
+    LogScoreKind, ProbabilisticDisposition, ProbabilityRefusal, RandomnessProfile,
+    StochasticProvenance,
 };
 
 pub const MAXIMUM_PROBABILITY_SAMPLES: usize = 64;
 pub const MAXIMUM_TRAJECTORY_ALTERNATIVES: usize = 32;
 pub const MAXIMUM_COVARIANCE_DIMENSION: u64 = 256;
 pub const NORMALIZED_WEIGHT_UNITS: u64 = 1_000_000_000;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StochasticProvenance {
-    pub model_artifact_identity: [u8; 32],
-    pub checkpoint_identity: Option<[u8; 32]>,
-    pub query_identity: [u8; 32],
-    pub randomness: RandomnessProfile,
-    pub draws: DrawRelationship,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProbabilitySample {
@@ -92,9 +84,13 @@ pub struct ProbabilitySummary {
 
 impl StochasticProvenance {
     pub fn validate(&self) -> Result<(), ProbabilityRefusal> {
-        nonzero(self.model_artifact_identity)?;
-        nonzero(self.query_identity)?;
-        if self.checkpoint_identity == Some([0; 32]) {
+        nonzero(*self.model_artifact_identity().get())?;
+        nonzero(*self.query_identity().get())?;
+        if self
+            .checkpoint_identity()
+            .as_ref()
+            .is_some_and(|identity| identity.get() == &[0; 32])
+        {
             return Err(ProbabilityRefusal::MissingIdentity);
         }
         Ok(())
@@ -281,9 +277,9 @@ fn summary(
     ProbabilitySummary {
         claim_profile,
         result_count: count as u32,
-        model_artifact_identity: provenance.model_artifact_identity,
-        query_identity: provenance.query_identity,
-        randomness: provenance.randomness.clone(),
+        model_artifact_identity: *provenance.model_artifact_identity().get(),
+        query_identity: *provenance.query_identity().get(),
+        randomness: provenance.randomness().clone(),
         disposition: disposition.clone(),
     }
 }

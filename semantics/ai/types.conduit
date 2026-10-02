@@ -480,6 +480,16 @@ type DrawRelationship =
         profile: Text <= 128B not in [""]
     }
 
+type ProbabilityDigest = collection U8 = 32
+
+type StochasticProvenance = {
+    model_artifact_identity: ProbabilityDigest
+    checkpoint_identity: ProbabilityDigest?
+    query_identity: ProbabilityDigest
+    randomness: RandomnessProfile
+    draws: DrawRelationship
+}
+
 type ProbabilisticDisposition =
     exact
     | approximate {

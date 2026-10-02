@@ -175,6 +175,16 @@ fn main() {
                     ],
                 ),
                 (
+                    "StochasticProvenance".into(),
+                    vec![
+                        "model_artifact_identity".into(),
+                        "checkpoint_identity".into(),
+                        "query_identity".into(),
+                        "randomness".into(),
+                        "draws".into(),
+                    ],
+                ),
+                (
                     "ValidatedExtraction".into(),
                     vec!["schema_identity".into(), "fields".into()],
                 ),
