@@ -150,10 +150,10 @@ pub(super) fn emit_journey_sign(
         json_identity(projection.last_request_id.as_deref()),
     );
     arch::early_write(line.as_bytes());
-    if let Some(mask) = &projection.mask {
-        if let Ok(json) = serde_json::to_string(mask) {
-            arch::early_write(format!("CONDUIT_MASK_SIGN {json}\n").as_bytes());
-        }
+    if let Some(mask) = &projection.mask
+        && let Ok(json) = serde_json::to_string(mask)
+    {
+        arch::early_write(format!("CONDUIT_MASK_SIGN {json}\n").as_bytes());
     }
 }
 

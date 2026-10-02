@@ -4,12 +4,14 @@ use alloc::{boxed::Box, format, vec};
 use conduit_core::{CapabilityOffer, HostCallRequirement, resource_requirement};
 
 pub(super) enum NativeApplication {
+    Tutorial(super::tutorial_application::TutorialApplication),
     Tour(Box<conduit_tour_model::TourApplicationPort>),
     Patchbay(PatchbayTargets),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NativeApplicationRequest {
+    Tutorial(super::tutorial_application::TutorialAction),
     RunTour { chapter: u8, stage: u8 },
     OpenPatchbay,
     EditCurrent(patchbay_application::PatchbayApplicationRequest),

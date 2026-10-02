@@ -236,7 +236,11 @@ impl ProductJourney {
         let input_owners =
             core::array::from_fn(|index| prepared.input_owners().get(index).cloned());
         let kernel = Box::new(
-            native_workset::NativeWorksetPlay::prepare(&prepared).map_err(JourneyError::Workset)?,
+            native_workset::NativeWorksetPlay::prepare_with_biography(
+                &prepared,
+                self.biography.as_ref().ok_or(JourneyError::BodyAbsent)?,
+            )
+            .map_err(JourneyError::Workset)?,
         );
         let plan = prepared.into_plan();
         self.wake = Some(
@@ -276,6 +280,16 @@ impl ProductJourney {
                 SignId::from(format!("conduitos/product/playing/{}", self.revision)),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
+        let biography = self.prepare_biography(
+            self.body.as_ref().ok_or(JourneyError::BodyAbsent)?,
+            Some(&wake),
+            self.membership.as_ref().ok_or(JourneyError::Membership)?,
+        )?;
+        self.kernel
+            .as_mut()
+            .ok_or(JourneyError::Kernel)?
+            .refresh_tutorial(&biography)
+            .map_err(JourneyError::Play)?;
         self.kernel
             .as_mut()
             .ok_or(JourneyError::Kernel)?
@@ -293,6 +307,7 @@ impl ProductJourney {
         }
         self.wake = Some(wake);
         self.play = Some(play.clone());
+        self.biography = Some(biography);
         // This plot has no checked completion witness. Its initial structural
         // drain leaves the admitted play resident and awaiting later input.
         self.status = JourneyStatus::QuiescentAwaitingInput;
@@ -360,7 +375,11 @@ impl ProductJourney {
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
         let mut kernel = Box::new(
-            native_workset::NativeWorksetPlay::prepare(&prepared).map_err(JourneyError::Workset)?,
+            native_workset::NativeWorksetPlay::prepare_with_biography(
+                &prepared,
+                self.biography.as_ref().ok_or(JourneyError::BodyAbsent)?,
+            )
+            .map_err(JourneyError::Workset)?,
         );
         kernel.start().map_err(JourneyError::Play)?;
         let topology = control
@@ -429,6 +448,11 @@ impl ProductJourney {
                 SignId::from(format!("conduitos/product/body-retained/{}", self.revision)),
             )
             .map_err(|_| JourneyError::InvalidTransition)?;
+        self.prepare_biography(
+            &retained,
+            Some(&lulled),
+            self.membership.as_ref().ok_or(JourneyError::Membership)?,
+        )?;
         // Prepare the biography transition first; publish it only after the
         // actual kernel has retired every pending operation and owned value.
         if let Some(kernel) = self.kernel.as_mut() {

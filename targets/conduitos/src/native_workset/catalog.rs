@@ -50,7 +50,7 @@ impl NativePlot {
         match self {
             Self::KeyboardCanvas => "Keyboard canvas",
             Self::MemoryLantern => "Memory Lantern",
-            Self::Tour => "Tour",
+            Self::Tour => "Tutorial",
             Self::Patchbay => "Patchbay",
         }
     }

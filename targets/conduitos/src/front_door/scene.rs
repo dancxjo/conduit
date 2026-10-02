@@ -69,6 +69,7 @@ impl FrontDoor {
                     .map(|plot| plot.title)
                     .ok_or(Error::Scene)?,
                 self.application_view.as_ref(),
+                self.application_viewport,
                 self.refusal.as_ref().map(|refusal| refusal.reason()),
                 display,
             );
