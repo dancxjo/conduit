@@ -110,6 +110,8 @@ async function fixture(t) {
     } else if (endpoint === 'releases/7/assets?per_page=100') result = state.assets;
     else if (endpoint === 'releases/7' && method === 'PATCH') {
       state.releases[0].draft = false;
+      state.releases[0].make_latest = fields.make_latest;
+      if (fields.make_latest === 'true') state.latestTag = state.releases[0].tag_name;
       result = state.releases[0];
     } else if (endpoint === `commits/release-${source}`) result = { sha: state.tagSha ?? accepted };
     else assert.fail(`Unexpected API operation ${method} ${endpoint}`);
@@ -131,6 +133,8 @@ test('promotes a release PR and publishes verified artifacts with separate sourc
   assert.equal(result.mainSha, accepted);
   assert.equal(result.treeSha, tree);
   assert.equal(f.state.releases[0].draft, false);
+  assert.equal(f.state.releases[0].make_latest, 'true');
+  assert.equal(f.state.latestTag, `release-${source}`);
   assert.equal(f.state.uploads, 2);
   const statusIndex = f.state.calls.findIndex(call => call[2] === `repos/${repository}/statuses/${source}`);
   const mergeIndex = f.state.calls.findIndex(call => call[2] === `repos/${repository}/pulls/9/merge`);
@@ -278,4 +282,20 @@ test('tag movement while assets upload prevents publishing the draft', async t =
   f.state.moveTagDuringUpload = true;
   await assert.rejects(f.publish(), /tag changed before publication/);
   assert.equal(f.state.releases[0].draft, true);
+});
+
+
+test('resuming a historical draft preserves the newer latest release', async t => {
+  const f = await fixture(t);
+  f.state.failUpload = 2;
+  await assert.rejects(f.publish(), /upload failure/);
+  assert.equal(f.state.releases[0].draft, true);
+  // Another tested batch has since advanced main and published successfully.
+  f.state.main = '8'.repeat(40);
+  f.state.latestTag = 'release-newer-tested-source';
+  await f.publish();
+  assert.equal(f.state.releases[0].draft, false);
+  assert.equal(f.state.releases[0].make_latest, 'false');
+  assert.equal(f.state.latestTag, 'release-newer-tested-source');
+  assert.equal(f.state.assets.length, 2);
 });

@@ -205,7 +205,13 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
         }
       }
       if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Release tag changed before publication');
-      if (release.draft) api(`${base}/releases/${release.id}`, 'PATCH', { draft: false });
+      if (release.draft) {
+        // A historical draft may resume after a newer batch has reached main.
+        // Retain its artifacts without moving the latest release backward.
+        api(`${base}/releases/${release.id}`, 'PATCH', {
+          draft: false, make_latest: main() === accepted ? 'true' : 'false',
+        });
+      }
       if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Published tag does not identify accepted main');
       if (output) await appendFile(output, `main-sha=${accepted}\nsource-sha=${source}\n`);
       return { sourceSha: source, mainSha: accepted, treeSha: sourceTree, tag, manifest };
