@@ -68,7 +68,7 @@ Plan or a running Play.
 
 ```js
 const clock = host.plot(`
-clock {
+plot clock {
   every: time/every(1s)
   tick: presentation/tick
   every >> tick

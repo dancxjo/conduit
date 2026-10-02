@@ -1075,7 +1075,7 @@ zero model-level stake
 
 ---
 
-## 26. Vision, Experience, purpose, and Fulfillment plot one coherent life
+## 26. Vision, Experience, purpose, and Fulfillment form one coherent life
 
 These ideas become especially powerful together.
 

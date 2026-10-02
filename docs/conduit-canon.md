@@ -333,7 +333,7 @@ forge or overwrite that authoritative truth.
 A Mask is an ordinary planned plot that consumes one exact Face revision and
 produces one finite Show. Graphical, deterministic-linear, spoken, generative,
 tactile, and future masks all receive the same semantic grammar. A mask may
-project disclosure, navigation, wording, layout, or medium-specific plot, but
+project disclosure, navigation, wording, layout, or medium-specific presentation, but
 it may not redefine the Face's facts or authority.
 
 Projection chooses which truth matters now. Semantic composition says how

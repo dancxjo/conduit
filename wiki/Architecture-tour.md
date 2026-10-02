@@ -168,18 +168,18 @@ A **wake** is a period of active availability. A **lull** preserves the body's c
 
 This distinction lets the architecture answer “what stayed the same?” without using process lifetime as a proxy for identity.
 
-## Information has meaning and code
+## Information has meaning and form
 
 A **type** says what a value means; **info** is one value of that type.
-A **code** states an exact portable encoding without changing the meaning.
+A **form** states an exact portable representation without changing the meaning.
 
 ```text
 type = meaning
 info = typed value
-code = encoding contract
+form = representation contract
 ```
 
-For example, a finite variant can use a compact byte code. The assigned tag is
+For example, a finite variant can use a compact byte form. The assigned tag is
 a compatibility fact, not the meaning of the variant itself. Current support
 and examples belong in [[the language reference|Current-language-surface]].
 

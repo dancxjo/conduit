@@ -41,7 +41,7 @@ body birth itself consumes checked ordinary plots as the initial workload under 
 
 Do not invent another parser or embed TOML/YAML blobs inside `.conduit`.
 
-The exact **existing** host/body grammar is implemented. New fields/declaration plots needed for richer mask/resource/facility composition must be earned as minimal general extensions, not treated as permission to redesign the document roles.
+The exact **existing** host/body grammar is implemented. New fields or declaration shapes needed for richer mask/resource/facility composition must be earned as minimal general extensions, not treated as permission to redesign the document roles.
 
 Provenance: #1752, #1780, #2284. Living native/host pressure test: #4117.
 

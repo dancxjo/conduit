@@ -40,7 +40,7 @@ cargo xtask prove journey workspace
 ```
 
 Run its pinned Chromium acceptance journey after installing the prerequisites in
-[the browser proof guide](../../proof/browser/README.md):
+[the browser proof guide](../../../proof/browser/README.md):
 
 ```sh
 cargo xtask prove journey workspace --check
@@ -115,7 +115,7 @@ transition and preserves the previous evidence. Long-lived history compaction is
 not provided by this slice.
 
 Startup is the installed plots waking. Browser arrival now includes the original
-[Startup Chime and reusable first-wake source](../../plots/startup-chime/README.md).
+[Startup Chime and reusable first-wake source](../../../plots/startup-chime/README.md).
 The default cue is optional, uses the existing kernel and admitted host effects,
 and can settle idle without any graphical plot. Native audio support and stable
 acceptance are not claimed by the browser proof.
