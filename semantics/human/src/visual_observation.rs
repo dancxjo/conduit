@@ -5,7 +5,10 @@ use conduit_core::{
     ArtifactId, BaseImplementationId, BaseInstanceId, KindId, SignId, TemporalInstant,
 };
 
-use crate::{ImageObservationReference, ImageObservationRefusal, ImageRegion, VisualEvidenceClass};
+use crate::{
+    ImageObservationReference, ImageObservationRefusal, ImageRegion, VisualEvidenceClass,
+    VisualObservationRefusal,
+};
 
 pub const MAXIMUM_VISUAL_LABEL_BYTES: usize = 128;
 pub const MAXIMUM_VISIBLE_TEXT_BYTES: usize = 512;
@@ -173,24 +176,6 @@ impl TrackObservation {
         }
         self.provenance.validate()
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VisualObservationRefusal {
-    InvalidImage,
-    WrongImageProfile,
-    InvalidImageDimensions,
-    ImageTooLarge,
-    InvalidRegion,
-    EmptyText,
-    TextBound,
-    ConfidenceBound,
-    EmptyIdentity,
-    IdentityBound,
-    InvalidObservationTime,
-    WrongEvidenceClass,
-    ObservationRefBound,
-    DuplicateObservationRef,
 }
 
 fn validate_image(

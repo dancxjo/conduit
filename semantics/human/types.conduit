@@ -252,6 +252,50 @@ type VisualExperienceRelationKind =
     | supports
     | contradicts
 
+type VisualObservationRefusal =
+    invalid-image
+    | wrong-image-profile
+    | invalid-image-dimensions
+    | image-too-large
+    | invalid-region
+    | empty-text
+    | text-bound
+    | confidence-bound
+    | empty-identity
+    | identity-bound
+    | invalid-observation-time
+    | wrong-evidence-class
+    | observation-ref-bound
+    | duplicate-observation-ref
+
+type VisualImpressionRefusal =
+    invalid-source-image
+    | empty-text
+    | text-bound
+    | empty-identity
+    | identity-bound
+    | observation-ref-bound
+    | duplicate-observation-ref
+    | invalid-truncation
+    | wrong-evidence-class
+    | invalid-provenance VisualObservationRefusal
+
+type VisualExperienceRefusal =
+    invalid-limits
+    | invalid-source-image
+    | wrong-source-image
+    | observation-capacity
+    | observation-kind-capacity
+    | text-capacity
+    | duplicate-observation
+    | invalid-observation VisualObservationRefusal
+    | invalid-impression VisualImpressionRefusal
+    | relation-capacity
+    | unknown-relation-endpoint
+    | self-relation
+    | duplicate-relation
+    | arithmetic-overflow
+
 type InteractionRefusal =
     invalid_identity
     | invalid_contract

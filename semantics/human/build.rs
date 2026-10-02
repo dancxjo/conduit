@@ -28,6 +28,9 @@ fn main() {
                 "ChordInfo".into(),
                 "ControlChordModifier".into(),
                 "KeymapDisposition".into(),
+                "VisualExperienceRefusal".into(),
+                "VisualImpressionRefusal".into(),
+                "VisualObservationRefusal".into(),
             ]
             .into(),
             copy_record_types: [
