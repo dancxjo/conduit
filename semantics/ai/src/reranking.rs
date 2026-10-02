@@ -10,6 +10,7 @@ use crate::{
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's payload-specialized carrier for the authored `RerankedCandidate<T>` Type family.
 pub struct RerankedCandidate {
     pub candidate: HybridCandidate<ExtractedSourceValue>,
     pub original_rank: u16,
@@ -18,6 +19,7 @@ pub struct RerankedCandidate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's payload-specialized carrier for the authored `RerankingReceipt<T>` Type family.
 pub struct RerankingReceipt {
     pub policy_identity: String,
     pub proof_class: RerankingProofClass,

@@ -128,6 +128,7 @@ fn main() {
                 "GroundedClaimSupport".into(),
                 "MissingModalityPolicy".into(),
                 "ModelValueConstraint".into(),
+                "PortableProposedClaimSupport".into(),
                 "RelationValue".into(),
                 "RetrievalMode".into(),
             ]
