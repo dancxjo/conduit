@@ -1,0 +1,171 @@
+name: Measure tool acquisition
+on:
+  pull_request:
+    branches: [dev]
+    types: [ready_for_review]
+    paths:
+      - '.github/workflows/acquisition.yml'
+      - '.github/workflows/ci.yml'
+      - 'tools/ci/pipeline/**'
+      - 'tools/xtask/src/commands/avr/**'
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'all, or comma-separated pipeline target IDs (also preflight,unit)'
+        type: string
+        default: 'unit,preflight,conduitos-ia32,browser,rp2040,avr,esp32-c3,esp32-s3'
+        required: true
+permissions:
+  contents: read
+env:
+  SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  RUSTUP_TOOLCHAIN: 1.98.1
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+jobs:
+  select:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - id: matrix
+        env:
+          SELECTION: ${{ inputs.targets || 'unit,preflight,conduitos-ia32,browser,rp2040,avr,esp32-c3,esp32-s3' }}
+        run: echo "matrix=$(node tools/ci/pipeline/acquisition/compare.mjs matrix "$SELECTION")" >> "$GITHUB_OUTPUT"
+  cold:
+    needs: [select]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.id }}
+      BENCHMARK_PHASE: cold
+      BENCHMARK_RUNNER: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve exact tool specification and curated cache paths
+        id: key
+        run: cargo xtask ci pipeline acquisition-key "$TARGET"
+      - name: Begin measurement
+        env:
+          BENCHMARK_KEY: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
+        run: node tools/ci/pipeline/acquisition/compare.mjs begin target/benchmark
+      - name: Restore exact run-scoped project cache
+        id: cache
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ steps.key.outputs.paths }}
+          key: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
+      - name: Record restore and require cold cache state
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        run: |
+          node tools/ci/pipeline/acquisition/compare.mjs restored target/benchmark
+          test "$CACHE_HIT" != true
+      - name: Acquire and verify real tools
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/ci/pipeline/acquisition/compare.mjs setup target/benchmark "$TARGET"
+      - name: Begin cache save measurement
+        run: node tools/ci/pipeline/acquisition/compare.mjs saving target/benchmark
+      - name: Save verified acquisition cache
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ steps.key.outputs.paths }}
+          key: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
+      - name: Record cache save
+        run: node tools/ci/pipeline/acquisition/compare.mjs saved target/benchmark
+      - name: Retain measurements and real command logs
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: acquisition-cold-${{ matrix.id }}
+          path: |
+            target/benchmark/
+            target/acquisition/${{ matrix.id }}.json
+          if-no-files-found: error
+          retention-days: 14
+  warm:
+    needs: [select, cold]
+    if: ${{ always() && needs.select.result == 'success' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.id }}
+      BENCHMARK_PHASE: warm
+      BENCHMARK_RUNNER: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve exact tool specification and curated cache paths
+        id: key
+        run: cargo xtask ci pipeline acquisition-key "$TARGET"
+      - name: Begin measurement
+        env:
+          BENCHMARK_KEY: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
+        run: node tools/ci/pipeline/acquisition/compare.mjs begin target/benchmark
+      - name: Restore exact run-scoped project cache
+        id: cache
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ steps.key.outputs.paths }}
+          key: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
+      - name: Record restore and require warm cache state
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        run: |
+          node tools/ci/pipeline/acquisition/compare.mjs restored target/benchmark
+          test "$CACHE_HIT" = true
+      - name: Acquire and verify real tools
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/ci/pipeline/acquisition/compare.mjs setup target/benchmark "$TARGET"
+      - name: Read cold measurement from this exact run
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: acquisition-cold-${{ matrix.id }}
+          path: target/cold
+      - name: Compare identities and real preparation costs
+        run: node tools/ci/pipeline/acquisition/compare.mjs compare target/cold/benchmark/benchmark.json target/benchmark/benchmark.json target/benchmark/comparison.json
+      - name: Retain measurements and real command logs
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: acquisition-warm-${{ matrix.id }}
+          path: |
+            target/benchmark/
+            target/acquisition/${{ matrix.id }}.json
+          if-no-files-found: error
+          retention-days: 14

@@ -6,6 +6,9 @@ use std::{
 
 use super::{require_success, sha256_file};
 
+#[path = "avr_toolchain/core_receipt.rs"]
+mod core_receipt;
+
 pub(super) const CLI_VERSION: &str = "1.5.1";
 pub(super) const ARDUINO_AVR_VERSION: &str = "1.8.8";
 pub(super) const SPARKFUN_AVR_VERSION: &str = "1.1.13";
@@ -79,6 +82,9 @@ pub(super) fn provision(root: &Path) -> Result<PathBuf, Box<dyn std::error::Erro
 }
 
 pub(super) fn verify_cores(cli: &Path, root: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    if core_receipt::verify(root)? {
+        return Ok(());
+    }
     let config = config_path(root);
     let update = Command::new(cli)
         .args(["core", "update-index", "--config-file"])
@@ -95,7 +101,7 @@ pub(super) fn verify_cores(cli: &Path, root: &Path) -> Result<(), Box<dyn std::e
             .output()?;
         require_success(&output, "pinned AVR core install")?;
     }
-    Ok(())
+    core_receipt::seal(cli, root)
 }
 
 pub(super) fn config_path(root: &Path) -> PathBuf {

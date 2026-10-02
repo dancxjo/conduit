@@ -18,8 +18,12 @@ mod proof {
     }
 }
 
+#[path = "../../xtask/src/process/tool_command.rs"]
+mod tool_command;
+
 mod process {
     use crate::proof::ProofClass;
+    pub use crate::tool_command::command_for;
 
     #[derive(Debug, Clone)]
     pub struct Step {
@@ -104,9 +108,17 @@ mod workspace;
 
 mod ci_dispatch;
 mod local_storage;
+mod tool_setup;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(setup) = tool_setup::route(&arguments) {
+        if let Err(error) = tool_setup::run(setup) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if let Some(options) = host_release_options(&arguments) {
         #[cfg(feature = "host-release")]
         {

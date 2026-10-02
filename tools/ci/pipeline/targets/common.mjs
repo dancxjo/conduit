@@ -1,3 +1,5 @@
+import { recordOperation } from '../acquisition/metrics.mjs';
+import { acquireApt } from '../acquisition/apt.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { closeSync, copyFileSync, mkdirSync, openSync, readSync, statSync } from 'node:fs';
@@ -6,10 +8,12 @@ import path from 'node:path';
 export const toolchain = () => process.env.RUSTUP_TOOLCHAIN || 'stable';
 export function command(program, args, options = {}) {
   console.log(`> ${program} ${args.join(' ')}`);
+  const started = performance.now();
   const result = spawnSync(program, args, {
     stdio: 'inherit', timeout: 45 * 60_000,
     env: { ...process.env, RUSTUP_TOOLCHAIN: toolchain() }, ...options,
   });
+  recordOperation({ kind: 'command', program, args, durationMs: performance.now() - started, outcome: result.error || result.status !== 0 ? 'failed' : 'success' });
   if (result.error || result.status !== 0) {
     throw new Error(`${program} ${args.join(' ')} failed: ${result.error?.message || result.status}`);
   }
@@ -27,13 +31,8 @@ export function acquire(program, args, options = {}) {
     return command(program, args, options);
   }
 }
-export function apt(...packages) {
-  const prefix = process.getuid?.() === 0 ? [] : ['sudo'];
-  const program = prefix.length ? 'sudo' : 'apt-get';
-  const args = prefix.length ? ['apt-get'] : [];
-  acquire(program, [...args, '-o', 'Acquire::Retries=0', 'update']);
-  acquire(program, [...args, '-o', 'Acquire::Retries=0', 'install', '-y', '--no-install-recommends', ...packages]);
-}
+export { acquireApt as aptPackages } from '../acquisition/apt.mjs';
+export function apt(...packages) { return acquireApt(packages); }
 export function rustTargets(...targets) {
   acquire('rustup', ['target', 'add', '--toolchain', toolchain(), ...targets]);
 }
