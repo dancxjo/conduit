@@ -34,12 +34,24 @@ fn checked_tutorial_plot_projects_current_body_truth_inside_its_admitted_play() 
     )
     .unwrap();
     assert!(view.nodes.iter().any(|node| {
-        node.text.contains("Purpose · exact readiness") && node.text.contains("not ready")
+        node.text.contains("Lifecycle evidence")
+            && node.text.contains("Not yet fulfilled")
+            && node.text.contains("Repair a real failed Wake")
+            && node.text.contains("Admit another host")
+            && node.text.contains("You can keep exploring")
     }));
     assert!(view
         .actions
         .iter()
         .any(|action| action.id == "body.use-current"));
+    assert!(view
+        .nodes
+        .iter()
+        .any(|node| node.text.contains("Explore this Body")));
+    assert!(view
+        .nodes
+        .iter()
+        .any(|node| node.text.contains("Try the current Plot")));
     assert_eq!(session.active_play_id, started.play.active_play_id);
     assert_eq!(started.play.body_id, body_id);
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");

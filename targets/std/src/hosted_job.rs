@@ -11,12 +11,9 @@ use conduit_semantic_catalog::{
     JobRequestRefusal, JobResourceUsage, JobStreamPressure, JobTerminalOutcome, JobText,
 };
 use std::collections::BTreeMap;
-use std::io::{self, Read};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
 use std::time::{Duration, Instant};
 
 #[derive(Debug)]
@@ -229,106 +226,85 @@ fn run_admitted_bounded_job(
         ));
     }
 
-    let mut command = Command::new(&executable.program);
-    command
-        .args(
-            request
-                .arguments()
-                .get()
-                .iter()
-                .map(|argument| argument.get()),
-        )
-        .env_clear()
-        .envs(
-            request
-                .environment()
-                .get()
-                .iter()
-                .map(|entry| (entry.name().get(), entry.value().get())),
-        )
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let mut child = match command.spawn() {
-        Ok(child) => child,
+    let arguments = request
+        .arguments()
+        .get()
+        .iter()
+        .map(|value| std::ffi::OsString::from(value.get()))
+        .collect::<Vec<_>>();
+    let environment = request
+        .environment()
+        .get()
+        .iter()
+        .map(|entry| {
+            (
+                std::ffi::OsString::from(entry.name().get()),
+                std::ffi::OsString::from(entry.value().get()),
+            )
+        })
+        .collect::<Vec<_>>();
+    let process = crate::hosted_process::ProcessRequest {
+        program: &executable.program,
+        arguments: &arguments,
+        environment: &environment,
+        stdin: &[],
+        maximum_stdout_bytes: *request.maximum_stdout_bytes() as usize,
+        maximum_stderr_bytes: *request.maximum_stderr_bytes() as usize,
+        timeout: Duration::from_millis(*request.timeout_millis()),
+        require_process_group: false,
+    };
+    use crate::hosted_process::{run_process, ProcessError, ProcessTerminal};
+    let report = match run_process(&process, || cancellation.is_cancelled()) {
+        Ok(report) => report,
         Err(error) => {
-            return Ok(empty_terminal_report(
-                lifecycle,
-                request,
-                started,
-                JobTerminalOutcome::failed(
+            let terminal = match error {
+                ProcessError::Launch(error) => JobTerminalOutcome::failed(
                     JobExitDisposition::Signal,
                     job_text(format!("launch refused: {error}")),
                 )
-                .expect("bounded launch-refusal outcome"),
-            ))
+                .expect("bounded launch refusal"),
+                ProcessError::InvalidRequest(message) | ProcessError::Unsupported(message) => {
+                    JobTerminalOutcome::provider_lost(job_text(message.into()))
+                        .expect("bounded provider loss")
+                }
+            };
+            return Ok(empty_terminal_report(lifecycle, request, started, terminal));
         }
     };
-    lifecycle.push(JobLifecycleEvent::Running);
-
-    let stdout = child.stdout.take().expect("piped stdout");
-    let stderr = child.stderr.take().expect("piped stderr");
-    let stdout_limit = *request.maximum_stdout_bytes() as usize;
-    let stderr_limit = *request.maximum_stderr_bytes() as usize;
-    let stdout_reader = thread::spawn(move || drain_bounded(stdout, stdout_limit));
-    let stderr_reader = thread::spawn(move || drain_bounded(stderr, stderr_limit));
-
-    let timeout = Duration::from_millis(*request.timeout_millis());
-    let terminal = loop {
-        if cancellation.is_cancelled() {
-            let _ = child.kill();
-            let _ = child.wait();
-            break JobTerminalOutcome::cancelled(job_text(
-                "cancelled by admitted caller".to_string(),
-            ))
-            .expect("bounded cancellation outcome");
+    if report.launched {
+        lifecycle.push(JobLifecycleEvent::Running);
+    }
+    let terminal = match report.terminal {
+        ProcessTerminal::Cancelled => {
+            JobTerminalOutcome::cancelled(job_text("cancelled by admitted caller".into()))
         }
-        if started.elapsed() >= timeout {
-            let _ = child.kill();
-            let _ = child.wait();
-            break JobTerminalOutcome::timed_out(
-                job_text("bounded execution deadline elapsed".to_string()),
-                *request.timeout_millis(),
-            )
-            .expect("bounded timeout outcome");
+        ProcessTerminal::TimedOut => JobTerminalOutcome::timed_out(
+            job_text("bounded execution deadline elapsed".into()),
+            *request.timeout_millis(),
+        ),
+        ProcessTerminal::Exited(status) if status.success() => {
+            JobTerminalOutcome::completed(exit_disposition(status))
         }
-        match child.try_wait() {
-            Ok(Some(status)) if status.success() => {
-                break JobTerminalOutcome::completed(exit_disposition(status))
-                    .expect("completed outcome")
-            }
-            Ok(Some(status)) => {
-                break JobTerminalOutcome::failed(
-                    exit_disposition(status),
-                    job_text("process returned a non-success disposition".to_string()),
-                )
-                .expect("bounded failure outcome")
-            }
-            Ok(None) => thread::sleep(Duration::from_millis(2)),
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                break JobTerminalOutcome::provider_lost(job_text(format!(
-                    "process provider lost: {error}"
-                )))
-                .expect("bounded provider-loss outcome");
-            }
+        ProcessTerminal::Exited(status) => JobTerminalOutcome::failed(
+            exit_disposition(status),
+            job_text("process returned a non-success disposition".into()),
+        ),
+        ProcessTerminal::ProviderLost(message) => {
+            JobTerminalOutcome::provider_lost(job_text(message))
         }
-    };
-
-    let stdout = stdout_reader.join().unwrap_or_default();
-    let stderr = stderr_reader.join().unwrap_or_default();
+    }
+    .expect("bounded process terminal outcome");
     let usage = JobResourceUsage::new(
-        elapsed_millis(started),
-        stderr.observed_bytes,
-        stdout.observed_bytes,
+        report.elapsed_millis,
+        report.stderr.observed_bytes,
+        report.stdout.observed_bytes,
     )
     .expect("bounded Job resource usage");
     lifecycle.push(JobLifecycleEvent::Terminal(terminal));
     Ok(HostedJobReport {
         lifecycle,
-        stdout: stdout.output(*request.stdout_profile()),
-        stderr: stderr.output(*request.stderr_profile()),
+        stdout: job_output(report.stdout, *request.stdout_profile()),
+        stderr: job_output(report.stderr, *request.stderr_profile()),
         usage,
     })
 }
@@ -395,42 +371,17 @@ fn exit_disposition(status: std::process::ExitStatus) -> JobExitDisposition {
         .unwrap_or(JobExitDisposition::Signal)
 }
 
-#[derive(Debug, Default)]
-struct DrainedOutput {
-    retained: Vec<u8>,
-    observed_bytes: u64,
-}
-
-impl DrainedOutput {
-    fn output(self, profile: conduit_semantic_catalog::JobOutputProfile) -> JobOutput {
-        let pressure = if self.observed_bytes > self.retained.len() as u64 {
-            JobStreamPressure::truncated(self.observed_bytes).expect("bounded stream pressure")
-        } else {
-            JobStreamPressure::WithinLimit
-        };
-        JobOutput::new(output_bytes(self.retained), None, pressure, profile)
-            .expect("bounded Job output")
-    }
-}
-
-fn drain_bounded(mut reader: impl Read, limit: usize) -> DrainedOutput {
-    let mut result = DrainedOutput::default();
-    let mut buffer = [0_u8; 4_096];
-    loop {
-        match reader.read(&mut buffer) {
-            Ok(0) => break,
-            Ok(read) => {
-                result.observed_bytes = result.observed_bytes.saturating_add(read as u64);
-                let remaining = limit.saturating_sub(result.retained.len());
-                result
-                    .retained
-                    .extend_from_slice(&buffer[..read.min(remaining)]);
-            }
-            Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
-            Err(_) => break,
-        }
-    }
-    result
+fn job_output(
+    output: crate::hosted_process::CapturedOutput,
+    profile: conduit_semantic_catalog::JobOutputProfile,
+) -> JobOutput {
+    let pressure = if output.observed_bytes > output.retained.len() as u64 {
+        JobStreamPressure::truncated(output.observed_bytes).expect("bounded stream pressure")
+    } else {
+        JobStreamPressure::WithinLimit
+    };
+    JobOutput::new(output_bytes(output.retained), None, pressure, profile)
+        .expect("bounded Job output")
 }
 
 pub fn executable_path_is_explicit(path: &Path) -> bool {
