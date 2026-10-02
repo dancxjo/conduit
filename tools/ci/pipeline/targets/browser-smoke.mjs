@@ -11,7 +11,8 @@ const entrance = await startStaticProduct(product, '/conduit/workspace/');
 let browser;
 try {
   browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('requestfailed', request => errors.push(`${request.url()}: ${request.failure()?.errorText}`));
