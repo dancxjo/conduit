@@ -172,12 +172,12 @@ test("contextual tutorial follows the real Body instead of retaining lesson prog
   await expect(tutorial).toBeHidden();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await expect(tutorial).toContainText('Wake this body');
-  await expect(tutorial).toContainText('Purpose · exact readiness');
-  await expect(tutorial).toContainText('not ready · 5 exact obligation(s) remain');
+  await expect(tutorial).toContainText('Lifecycle evidence');
+  await expect(tutorial).toContainText('Wake through an admitted plan and Play; Establish an exact current plan; Start ordinary plot work; Repair a real failed Wake; Admit another host.');
   await expect(tutorial.getByRole('button', { name: 'Wake the retained body' })).toBeVisible();
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
-  await expect(tutorial).toContainText('finite Body may remain awake');
-  await expect(tutorial).toContainText('not ready · 2 exact obligation(s) remain');
+  await expect(tutorial).toContainText('Explore this Body');
+  await expect(tutorial).toContainText('Additional lifecycle evidence remains: Repair a real failed Wake; Admit another host.');
   await page.getByRole('button', { name: 'lull body', exact: true }).click();
   await expect(tutorial).toContainText('Retained rest is not completion');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());

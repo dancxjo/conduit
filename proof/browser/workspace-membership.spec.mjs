@@ -36,7 +36,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await capture("body.awake", "The body is awake and its selected plot is playing.");
-  await page.getByRole("button", { name: "Use the current plot", exact: true }).click();
+  await page.getByRole("button", { name: "Try the current Plot", exact: true }).click();
   await page.locator('[data-inspect="lifecycle"]').click();
   await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
   await capture("body.inspected", "The body's own inspection panel reveals its lifecycle.");

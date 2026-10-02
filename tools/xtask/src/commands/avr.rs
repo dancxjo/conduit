@@ -8,7 +8,6 @@ use std::{
 
 use clap::{Args, Subcommand};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
@@ -19,6 +18,10 @@ mod observe;
 mod plan;
 mod release;
 mod rust_firmware;
+mod rust_toolchain;
+mod setup;
+mod tool_support;
+use tool_support::{require_success, sha256_file};
 mod rx_check;
 
 use avr_toolchain::{
@@ -241,7 +244,7 @@ fn run_check(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
-    rust_firmware::check(&root)?;
+    setup::check(&root)?;
     if !opts.quiet {
         println!("AVR boundary ready: {FQBN}");
     }
@@ -411,17 +414,6 @@ fn validate_sizes(flash: u64, sram: u64) -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 
-fn require_success(output: &Output, action: &str) -> Result<(), Box<dyn std::error::Error>> {
-    if output.status.success() {
-        return Ok(());
-    }
-    Err(format!(
-        "{action} failed: {}",
-        String::from_utf8_lossy(&output.stderr).trim()
-    )
-    .into())
-}
-
 fn upload_artifact(
     root: &Path,
     port: &Path,
@@ -462,10 +454,6 @@ fn wait_for_child_output(
         }
         thread::sleep(Duration::from_millis(10));
     }
-}
-
-fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
-    Ok(format!("{:x}", Sha256::digest(fs::read(path)?)))
 }
 
 fn git_head(root: &Path) -> Result<String, Box<dyn std::error::Error>> {

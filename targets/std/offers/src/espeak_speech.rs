@@ -145,9 +145,18 @@ mod tests {
     fn closure_changes_bind_resources_without_relabeling_the_compiled_adapter() {
         let first = espeak_speech_offer(content(2));
         let second = espeak_speech_offer(content(3));
-        assert_eq!(first.artifact_id, ArtifactId::from(ESPEAK_SPEECH_ARTIFACT));
-        assert_eq!(first.artifact_id, second.artifact_id);
-        assert_eq!(first.implementation_id, second.implementation_id);
+        assert_eq!(
+            first.implementation.artifact_id,
+            ArtifactId::from(ESPEAK_SPEECH_ARTIFACT)
+        );
+        assert_eq!(
+            first.implementation.artifact_id,
+            second.implementation.artifact_id
+        );
+        assert_eq!(
+            first.implementation.implementation_id,
+            second.implementation.implementation_id
+        );
         assert_ne!(first.resource_requirements, second.resource_requirements);
         assert_eq!(first.resource_requirements.len(), 1);
         assert_eq!(first.resource_requirements[0].units, 1);

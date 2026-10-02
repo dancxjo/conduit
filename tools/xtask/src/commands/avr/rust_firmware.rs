@@ -5,13 +5,12 @@ use std::{
 };
 
 use super::{
-    avr_toolchain::{avr_gcc_bin, config_path, provision, verify_cores},
+    avr_toolchain::{avr_gcc_bin, provision, verify_cores},
     metric, require_success,
 };
 
-pub(super) const RUST_TOOLCHAIN: &str = "nightly-2024-07-22";
-pub(super) const AVR_HAL_REVISION: &str = "0be252f2a899dbd687a26f8561048ce61854eaae";
-pub(super) const FIRMWARE: &str = "targets/avr/firmware/promicro-host";
+pub(super) use super::rust_toolchain::{provision_rust, RUST_TOOLCHAIN};
+pub(super) use super::setup::{AVR_HAL_REVISION, FIRMWARE};
 const ELF_NAME: &str = "conduit-avr-promicro-host.elf";
 const HEX_NAME: &str = "conduit-avr-promicro-host.hex";
 const RECEIVE_ONLY_BIN: &str = "conduit-avr-receive-only";
@@ -21,21 +20,6 @@ pub(super) struct RustFirmwareArtifact {
     pub(super) hex: PathBuf,
     pub(super) flash_bytes: u64,
     pub(super) sram_bytes: u64,
-}
-
-pub(super) fn provision_rust() -> Result<(), Box<dyn std::error::Error>> {
-    let output = Command::new("rustup")
-        .args([
-            "toolchain",
-            "install",
-            RUST_TOOLCHAIN,
-            "--profile",
-            "minimal",
-            "--component",
-            "rust-src",
-        ])
-        .output()?;
-    require_success(&output, "pinned Rust AVR toolchain install")
 }
 
 pub(super) fn build(root: &Path) -> Result<RustFirmwareArtifact, Box<dyn std::error::Error>> {
@@ -124,19 +108,4 @@ fn build_binary(
         flash_bytes: metric(&report, "Program:", "bytes")?,
         sram_bytes: metric(&report, "Data:", "bytes")?,
     })
-}
-
-pub(super) fn check(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    provision_rust()?;
-    let cli = provision(root)?;
-    verify_cores(&cli, root)?;
-    let gcc = avr_gcc_bin(root).join("avr-gcc");
-    if !gcc.is_file() {
-        return Err(format!("pinned AVR GCC is absent at {}", gcc.display()).into());
-    }
-    if !root.join(FIRMWARE).join("Cargo.lock").is_file() {
-        return Err("Rust AVR firmware lockfile is absent".into());
-    }
-    let _ = config_path(root);
-    Ok(())
 }
