@@ -177,7 +177,7 @@ impl AlignedTrainingView {
             &self
                 .derived_observation
                 .semantic_digest()
-                .map_err(ScientificAlignmentRefusal::Observation)?,
+                .map_err(ScientificAlignmentRefusal::from)?,
         );
         Ok(semantic_digest("science/aligned-training-view@1", &bytes))
     }

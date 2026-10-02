@@ -1,6 +1,6 @@
 use conduit_data::{
-    DataGenerationNamespaceRefusal, DataReferenceRefusal, ScientificCorpusRefusal,
-    ScientificObservationRefusal, TensorRefusal,
+    DataGenerationNamespaceRefusal, DataReferenceRefusal, ScientificAlignmentRefusal,
+    ScientificCorpusRefusal, ScientificObservationRefusal, TensorRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -19,6 +19,11 @@ fn corpus_refusal_keeps_nested_observation_meaning() {
             .unwrap(),
     );
     round_trip(ScientificCorpusRefusal::SplitLeakage);
+    round_trip(
+        ScientificAlignmentRefusal::observation(ScientificObservationRefusal::ClockMismatch)
+            .unwrap(),
+    );
+    round_trip(ScientificAlignmentRefusal::CalibrationShapeMismatch);
 }
 
 #[test]
