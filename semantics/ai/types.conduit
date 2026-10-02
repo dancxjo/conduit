@@ -207,6 +207,11 @@ type ModelWorkAccounting = {
     history_items: U64
 }
 
+type GeneratedTextChunk = {
+    sequence: U64 in 0..=4095
+    text: Text <= 4096B not in [""]
+}
+
 type TemporalSource =
     event
     | valid_from
