@@ -334,6 +334,16 @@ type AnswerSpan = {
     where .start < .end
 }
 
+type RetrievalScore = {
+    value_micros: I64
+}
+
+type ContextBudgetCost = {
+    bytes: U32
+    tokens: U32
+    where .bytes > 0 || .tokens > 0
+}
+
 type SourceExtractionProfile =
     text_utf8 {
         overlap_bytes: U32

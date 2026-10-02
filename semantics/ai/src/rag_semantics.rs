@@ -10,9 +10,9 @@ use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    AnswerSpan, ChunkIdentity, ContextSelectionRationale, ContextTruncationReason,
-    GroundingDisposition, ModelResultProvenance, SourceSpan, SourceSpanUnit,
-    TemporalRetrievalIntent,
+    AnswerSpan, ChunkIdentity, ContextBudgetCost, ContextSelectionRationale,
+    ContextTruncationReason, GroundingDisposition, ModelResultProvenance, RetrievalScore,
+    SourceSpan, SourceSpanUnit, TemporalRetrievalIntent,
 };
 
 pub const MAXIMUM_RETRIEVAL_MODES: usize = 8;
@@ -60,24 +60,12 @@ pub struct Chunk<T> {
     pub value: T,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RetrievalScore {
-    /// Scheme-specific ordering value. It is neither probability nor evidence.
-    pub value_micros: i64,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Candidate<T> {
     pub chunk: Chunk<T>,
     pub rank: u16,
     pub score: Option<RetrievalScore>,
     pub retrieval_basis: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ContextBudgetCost {
-    pub bytes: u32,
-    pub tokens: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -147,7 +135,6 @@ pub enum RagSemanticRefusal {
     EmptyRetrievalBasis,
     ContextItemLimitExceeded,
     EmptyTruncation,
-    EmptyBudget,
     CitationLimitExceeded,
     CitationNotInContext,
     AnswerTooLarge,
@@ -328,9 +315,6 @@ impl<T> Candidate<T> {
 impl<T> ContextItem<T> {
     pub fn validate_against(&self, intent: &RetrievalIntent) -> Result<(), RagSemanticRefusal> {
         self.candidate.validate_against(intent)?;
-        if self.budget.bytes == 0 && self.budget.tokens == 0 {
-            return Err(RagSemanticRefusal::EmptyBudget);
-        }
         Ok(())
     }
 }

@@ -220,10 +220,10 @@ fn validate_request(request: &GroundedAnswerRequest) -> Result<(), GroundedAnswe
             return Err(GroundedAnswerRefusal::DuplicateContextItem);
         }
         bytes = bytes
-            .checked_add(item.budget.bytes)
+            .checked_add(item.budget.bytes())
             .ok_or(GroundedAnswerRefusal::ArithmeticOverflow)?;
         tokens = tokens
-            .checked_add(item.budget.tokens)
+            .checked_add(item.budget.tokens())
             .ok_or(GroundedAnswerRefusal::ArithmeticOverflow)?;
         work_units = work_units
             .checked_add(item.budget.work_units)

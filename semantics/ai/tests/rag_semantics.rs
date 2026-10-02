@@ -73,10 +73,7 @@ fn context() -> ContextSelection<&'static str> {
                 retrieval_basis: "exact temporal boundary candidate".into(),
             },
             rationale: ContextSelectionRationale::BoundaryEvidence,
-            budget: ContextBudgetCost {
-                bytes: 30,
-                tokens: 8,
-            },
+            budget: ContextBudgetCost::new(30, 8).unwrap(),
         }],
         outcome: ContextSelectionOutcome::Complete,
     }
@@ -219,19 +216,8 @@ fn malformed_spans_ranks_budgets_and_claims_fail_closed() {
         Err(RagSemanticRefusal::RankZero)
     );
     context.items[0].candidate.rank = 1;
-    context.items[0].budget = ContextBudgetCost {
-        bytes: 0,
-        tokens: 0,
-    };
-    assert_eq!(
-        context.validate_against(&intent()),
-        Err(RagSemanticRefusal::EmptyBudget)
-    );
-
-    context.items[0].budget = ContextBudgetCost {
-        bytes: 30,
-        tokens: 8,
-    };
+    assert!(ContextBudgetCost::new(0, 0).is_err());
+    context.items[0].budget = ContextBudgetCost::new(30, 8).unwrap();
     context.outcome = ContextSelectionOutcome::Truncated {
         omitted_candidates: 0,
         reason: ContextTruncationReason::TokenBudget,
