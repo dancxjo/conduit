@@ -200,15 +200,16 @@ fn execute(case: &QueryCase, model_identity: &str, vector_identity: &str) -> Ret
     intent.validate().unwrap();
     let stages = stages(case, vector_identity);
     let temporal_evidence = temporal_evidence(case);
-    let outcome = HybridFusionPolicy {
-        identity: "fusion/r6-explicit-rrf@1".into(),
-        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
-        required_mechanisms: case.mechanisms.clone(),
-        temporal_hard_filter: case.hard_filter.clone(),
-        maximum_candidates_per_stage: 16,
-        maximum_output_candidates: 16,
-        maximum_total_work_units: 128,
-    }
+    let outcome = HybridFusionPolicy::from_parts(
+        "fusion/r6-explicit-rrf@1".into(),
+        FusionStrategy::reciprocal_rank(60).unwrap(),
+        case.mechanisms.clone(),
+        case.hard_filter.clone(),
+        16,
+        16,
+        128,
+    )
+    .unwrap()
     .fuse(&stages, Some(&temporal_evidence))
     .unwrap();
     let HybridRetrievalOutcome::Candidates(fused) = outcome else {

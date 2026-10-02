@@ -1,11 +1,13 @@
 //! Finite explicit fusion of independently produced retrieval candidates.
 
 use alloc::{string::String, vec::Vec};
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    Chunk, FusionStrategy, MechanismScore, RagSemanticRefusal, RetrievalMechanism,
-    RetrieverIdentity, TemporalEvidenceBatch, TemporalEvidenceSelection,
-    TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent, MAXIMUM_RAG_IDENTITY_BYTES,
+    Chunk, FusionStrategy, HybridFusionPolicy, HybridRequiredMechanisms, MechanismScore,
+    RagSemanticRefusal, RetrievalContribution, RetrievalMechanism, RetrieverIdentity,
+    TemporalEvidenceBatch, TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal,
+    TemporalRetrievalIntent, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_HYBRID_RETRIEVERS: usize = 8;
@@ -17,6 +19,7 @@ const FUSION_SCORE_SCALE: u64 = 1_000_000;
 /// A retriever-local observation. These values are retained for inspection
 /// and are never compared across mechanisms by the portable fusion policy.
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `StageCandidate<T>` Type family.
 pub struct StageCandidate<T> {
     pub chunk: Chunk<T>,
     pub rank: u16,
@@ -26,6 +29,7 @@ pub struct StageCandidate<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `RetrievalStage<T>` Type family.
 pub struct RetrievalStage<T> {
     pub retriever: RetrieverIdentity,
     pub candidates: Vec<StageCandidate<T>>,
@@ -33,27 +37,7 @@ pub struct RetrievalStage<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HybridFusionPolicy {
-    pub identity: String,
-    /// Adds the fixed fusion scale divided by the rank constant plus stage rank.
-    /// Provider scores remain inspection-only and incomparable.
-    pub strategy: FusionStrategy,
-    pub required_mechanisms: Vec<RetrievalMechanism>,
-    pub temporal_hard_filter: Option<TemporalRetrievalIntent>,
-    pub maximum_candidates_per_stage: u16,
-    pub maximum_output_candidates: u16,
-    pub maximum_total_work_units: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RetrievalContribution {
-    pub retriever: RetrieverIdentity,
-    pub stage_rank: u16,
-    pub score: Option<MechanismScore>,
-    pub temporal_evidence_identity: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `HybridCandidate<T>` Type family.
 pub struct HybridCandidate<T> {
     pub chunk: Chunk<T>,
     pub rank: u16,
@@ -62,6 +46,7 @@ pub struct HybridCandidate<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `HybridRetrievalOutcome<T>` Type family.
 pub enum HybridRetrievalOutcome<T> {
     Candidates(Vec<HybridCandidate<T>>),
     NeedEarlierHistory,
@@ -95,6 +80,33 @@ pub enum HybridRetrievalRefusal {
 }
 
 impl HybridFusionPolicy {
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_parts(
+        identity: String,
+        strategy: FusionStrategy,
+        required_mechanisms: Vec<RetrievalMechanism>,
+        temporal_hard_filter: Option<TemporalRetrievalIntent>,
+        maximum_candidates_per_stage: u16,
+        maximum_output_candidates: u16,
+        maximum_total_work_units: u32,
+    ) -> Result<Self, HybridRetrievalRefusal> {
+        let required_mechanisms = HybridRequiredMechanisms::new(
+            BoundedSequence::try_from_iter(required_mechanisms)
+                .map_err(|_| HybridRetrievalRefusal::TooManyStages)?,
+        )
+        .map_err(|_| HybridRetrievalRefusal::InvalidPolicyBound)?;
+        Self::new(
+            identity,
+            maximum_candidates_per_stage,
+            maximum_output_candidates,
+            maximum_total_work_units,
+            required_mechanisms,
+            strategy,
+            temporal_hard_filter,
+        )
+        .map_err(|_| HybridRetrievalRefusal::InvalidPolicyBound)
+    }
+
     pub fn fuse<T: Clone>(
         &self,
         stages: &[RetrievalStage<T>],
@@ -215,8 +227,9 @@ impl HybridFusionPolicy {
                 .validate()
                 .map_err(|_| HybridRetrievalRefusal::InvalidTemporalIntent)?;
         }
-        for (index, mechanism) in self.required_mechanisms.iter().enumerate() {
-            if self.required_mechanisms[index + 1..].contains(mechanism) {
+        let required_mechanisms = self.required_mechanisms.get();
+        for (index, mechanism) in required_mechanisms.iter().enumerate() {
+            if required_mechanisms.as_slice()[index + 1..].contains(mechanism) {
                 return Err(HybridRetrievalRefusal::DuplicateRequiredMechanism);
             }
             if !stages

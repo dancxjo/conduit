@@ -25,6 +25,7 @@ pub const MAXIMUM_RAG_IDENTITY_BYTES: usize = 256;
 pub const MAXIMUM_RAG_TEXT_BYTES: usize = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `Chunk<T>` Type family.
 pub struct Chunk<T> {
     pub identity: ChunkIdentity,
     pub lineage: ExtractionLineage,
@@ -32,6 +33,7 @@ pub struct Chunk<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `Candidate<T>` Type family.
 pub struct Candidate<T> {
     pub chunk: Chunk<T>,
     pub rank: u16,
@@ -40,6 +42,7 @@ pub struct Candidate<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `ContextItem<T>` Type family.
 pub struct ContextItem<T> {
     pub candidate: Candidate<T>,
     pub rationale: ContextSelectionRationale,
@@ -47,6 +50,7 @@ pub struct ContextItem<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Rust's generic carrier for the authored `ContextSelection<T>` Type family.
 pub struct ContextSelection<T> {
     pub items: Vec<ContextItem<T>>,
     pub outcome: ContextSelectionOutcome,

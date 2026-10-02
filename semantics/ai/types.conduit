@@ -302,6 +302,86 @@ type SimilarityHit<T> = {
     temporal_provenance: TemporalProvenance?
 }
 
+type Chunk<T> = {
+    identity: ChunkIdentity
+    lineage: ExtractionLineage
+    value: T
+}
+
+type Candidate<T> = {
+    chunk: Chunk<T>
+    rank: U16 in 1..=1024
+    score: RetrievalScore?
+    retrieval_basis: Text <= 2048B not in [""]
+}
+
+type ContextItem<T> = {
+    candidate: Candidate<T>
+    rationale: ContextSelectionRationale
+    budget: ContextBudgetCost
+}
+
+type ContextSelection<T> = {
+    items: sequence ContextItem<T> in 0..=64
+    outcome: ContextSelectionOutcome
+}
+
+type StageCandidate<T> = {
+    chunk: Chunk<T>
+    rank: U16 in 1..=1024
+    score: MechanismScore?
+    temporal_evidence_identity: TemporalEvidenceIdentity?
+}
+
+type RetrievalStage<T> = {
+    retriever: RetrieverIdentity
+    candidates: sequence StageCandidate<T> in 1..=1024
+    work_units: U32 in 1..=1048576
+}
+
+type RetrievalContribution = {
+    retriever: RetrieverIdentity
+    stage_rank: U16 in 1..=1024
+    score: MechanismScore?
+    temporal_evidence_identity: Text <= 256B not in [""]?
+}
+
+type HybridCandidate<T> = {
+    chunk: Chunk<T>
+    rank: U16 in 1..=1024
+    fusion_score_micros: U64
+    contributions: sequence RetrievalContribution in 1..=8
+}
+
+type HybridRetrievalOutcome<T> =
+    candidates sequence HybridCandidate<T> in 1..=1024
+    | need_earlier_history
+    | boundary_unavailable
+
+type ExactVectorSearchCandidate<T> = {
+    record: VectorRecord<T>
+    temporal_source: TemporalSource
+    boundary: EntityBoundary?
+    transition: TransitionDirection?
+    validity: TemporalValidity
+}
+
+type ExactVectorSearchResult<T> = {
+    proof_class: VectorSearchProofClass
+    index_generation: U64
+    admitted_work_units: U32 in 1..=1048576
+    candidate_count: U32 in 0..=65536
+    hits: sequence SimilarityHit<T> in 0..=1024
+}
+
+type VectorSearchValue<T> = {
+    proof_class: VectorSearchExecutionProofClass
+    index_generation: U64
+    admitted_work_units: U32 in 1..=1048576
+    candidate_count: U32 in 0..=65536
+    hits: sequence SimilarityHit<T> in 0..=1024
+}
+
 type ExtractionKey = Text <= 64B not in [""]
 type ExtractionValue = Text <= 1024B not in [""]
 
@@ -609,6 +689,18 @@ type FusionStrategy =
     reciprocal_rank {
         rank_constant: U16 in 1..=65535
     }
+
+type HybridRequiredMechanisms = sequence RetrievalMechanism in 0..=8
+
+type HybridFusionPolicy = {
+    identity: Text <= 256B not in [""]
+    strategy: FusionStrategy
+    required_mechanisms: HybridRequiredMechanisms
+    temporal_hard_filter: TemporalRetrievalIntent?
+    maximum_candidates_per_stage: U16 in 1..=1024
+    maximum_output_candidates: U16 in 1..=1024
+    maximum_total_work_units: U32 in 1..=1048576
+}
 
 type RelationResultProfile =
     deterministic
