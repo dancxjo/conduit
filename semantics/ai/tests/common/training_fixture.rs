@@ -84,8 +84,13 @@ pub fn corpus() -> (DatasetDescriptor, DatasetSplitMembership) {
         license_profile: Some("license/research-example@1".into()),
         example_count: 4,
         manifest: resource(3, CORPUS_MANIFEST_PROFILE, 1024),
-        shards: vec![resource(4, "data/corpus-shard@1", 8192)],
-        split_identities: vec!["train".into(), "evaluation".into()],
+        shards: BoundedSequence::try_from_iter([resource(4, "data/corpus-shard@1", 8192)])
+            .unwrap(),
+        split_identities: BoundedSequence::try_from_iter([
+            "train".into(),
+            "evaluation".into(),
+        ])
+        .unwrap(),
     };
     let split = DatasetSplitMembership {
         dataset_identity: dataset.identity,

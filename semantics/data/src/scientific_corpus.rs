@@ -1,26 +1,12 @@
 //! Large corpus identity, finite manifests, and stable split membership.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::BoundedResourceRef;
-
-use crate::{duplicate, nonzero, text, ScientificObservationRefusal};
+use crate::{duplicate, nonzero, text, DatasetDescriptor, ScientificObservationRefusal};
 
 pub const CORPUS_MANIFEST_PROFILE: &str = "data/corpus-manifest@1";
 pub const MAXIMUM_CORPUS_SHARDS: usize = 64;
 pub const MAXIMUM_DATASET_SPLITS: usize = 16;
 pub const MAXIMUM_SPLIT_MEMBERS_PER_RECORD: usize = 4096;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DatasetDescriptor {
-    pub identity: [u8; 32],
-    pub schema_profile: String,
-    pub citation_identity: Option<String>,
-    pub license_profile: Option<String>,
-    pub example_count: u64,
-    pub manifest: BoundedResourceRef,
-    pub shards: Vec<BoundedResourceRef>,
-    pub split_identities: Vec<String>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DatasetSplitMembership {
@@ -100,7 +86,12 @@ impl DatasetDescriptor {
             .split_identities
             .iter()
             .enumerate()
-            .any(|(index, split)| self.split_identities[index + 1..].contains(split))
+            .any(|(index, split)| {
+                self.split_identities
+                    .iter()
+                    .skip(index + 1)
+                    .any(|candidate| candidate == split)
+            })
         {
             return Err(ScientificCorpusRefusal::DuplicateSplit);
         }

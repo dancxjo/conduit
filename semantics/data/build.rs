@@ -38,6 +38,7 @@ fn main() {
             hash_nominal_types: ["DataGenerationDigest".into()].into(),
             copy_record_value_getters: ["DataGenerationNamespace".into()].into(),
             public_record_fields: [
+                "DatasetDescriptor".into(),
                 "MeasurementHysteresisProfile".into(),
                 "MeasurementPlotProfile".into(),
                 "MeasurementRange".into(),
