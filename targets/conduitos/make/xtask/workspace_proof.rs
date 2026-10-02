@@ -113,228 +113,231 @@ pub(super) fn execute_supplied(
             &mut child,
             Some(&paths.target.join("workspace-qmp.log")),
         )?;
-        let scenario: WorkspaceScenario =
-            serde_json::from_str(include_str!("../../../../proof/journeys/workspace.json"))
-                .map_err(|error| refusal(error.to_string()))?;
-        let mut completed_actions = Vec::new();
-        for action in &scenario.actions {
-            match action.id.as_str() {
-                "arrive" => {
-                    hid_qmp::wait_for_stage(
-                        &serial_path,
-                        &mut child,
-                        "CONDUIT_BOOT_STAGE front-door-ready",
-                        "workspace-arrival-timeout",
-                    )?;
-                    let before = journey_records::decode(
-                        &fs::read_to_string(&serial_path).map_err(io_error)?,
-                    )?;
-                    if before.iter().any(|record| record["body_id"].is_string()) {
-                        return Err(refusal(
-                            "arrival already owns a Body before the user births one",
-                        ));
+        let action_result = (|| {
+            let scenario: WorkspaceScenario =
+                serde_json::from_str(include_str!("../../../../proof/journeys/workspace.json"))
+                    .map_err(|error| refusal(error.to_string()))?;
+            let mut completed_actions = Vec::new();
+            for action in &scenario.actions {
+                match action.id.as_str() {
+                    "arrive" => {
+                        hid_qmp::wait_for_stage(
+                            &serial_path,
+                            &mut child,
+                            "CONDUIT_BOOT_STAGE front-door-ready",
+                            "workspace-arrival-timeout",
+                        )?;
+                        let before = journey_records::decode(
+                            &fs::read_to_string(&serial_path).map_err(io_error)?,
+                        )?;
+                        if before.iter().any(|record| record["body_id"].is_string()) {
+                            return Err(refusal(
+                                "arrival already owns a Body before the user births one",
+                            ));
+                        }
                     }
-                }
-                "configure-birth" => {
-                    for key in scenario.name.chars().map(|character| character.to_string()) {
-                        journey_input::key_pair(&mut qmp, &mut reader, &key, "workspace-name")?;
+                    "configure-birth" => {
+                        let mut completed_edits = 0;
+                        let mut edit = |key: &str| -> Result<(), ConduitosError> {
+                            journey_input::key_pair(
+                                &mut qmp,
+                                &mut reader,
+                                key,
+                                "workspace-edit-birth",
+                            )?;
+                            completed_edits += 1;
+                            hid_qmp::wait_for_stage_count(
+                                &serial_path,
+                                &mut child,
+                                "CONDUIT_CRECHE_CHECKPOINT edited",
+                                completed_edits,
+                                "workspace-birth-selection-timeout",
+                            )
+                        };
+                        for character in scenario.name.chars() {
+                            edit(&character.to_string())?;
+                        }
+                        // Ordinary Crèche controls select the same portable plots. Each
+                        // completed edit is observed before the next input is submitted.
+                        for _ in 0..4 {
+                            edit("tab")?;
+                        }
+                        edit("spc")?; // Omit Keyboard canvas.
+                        for _ in 0..3 {
+                            edit("tab")?;
+                        }
+                        edit("spc")?; // Omit Patchbay.
                     }
-                    // Choose the same two portable plots as the browser comparison. This
-                    // is ordinary Crèche input, never direct Body/workset manipulation.
-                    for _ in 0..4 {
+                    "birth" => {
+                        journey_input::key_pair(&mut qmp, &mut reader, "f3", "workspace-birth")?;
+                        journey_input::wait_status(&serial_path, &mut child, "born-lulled")?;
+                        let born_records = journey_records::decode(
+                            &fs::read_to_string(&serial_path).map_err(io_error)?,
+                        )?;
+                        if born_records.iter().any(|record| {
+                            matches!(
+                                record["status"].as_str(),
+                                Some("awake" | "planned" | "quiescent-awaiting-input")
+                            )
+                        }) {
+                            return Err(refusal(
+                                "birth automatically started execution before explicit Wake",
+                            ));
+                        }
+                    }
+                    "wake" => {
                         journey_input::key_pair(
                             &mut qmp,
                             &mut reader,
-                            "tab",
-                            "workspace-select-choice",
+                            "f10",
+                            "workspace-tutorial-wake",
+                        )?;
+                        journey_input::wait_status(
+                            &serial_path,
+                            &mut child,
+                            "quiescent-awaiting-input",
                         )?;
                     }
-                    journey_input::key_pair(
-                        &mut qmp,
-                        &mut reader,
-                        "spc",
-                        "workspace-omit-keyboard-canvas",
-                    )?;
-                    for _ in 0..3 {
+                    "use-current" => {
+                        let before = journey_records::decode(
+                            &fs::read_to_string(&serial_path).map_err(io_error)?,
+                        )?
+                        .len();
                         journey_input::key_pair(
                             &mut qmp,
                             &mut reader,
-                            "tab",
-                            "workspace-select-choice",
+                            "f10",
+                            "workspace-use-current-plot",
                         )?;
-                    }
-                    journey_input::key_pair(
-                        &mut qmp,
-                        &mut reader,
-                        "spc",
-                        "workspace-omit-patchbay",
-                    )?;
-                    hid_qmp::wait_for_stage_count(
-                        &serial_path,
-                        &mut child,
-                        "CONDUIT_CRECHE_CHECKPOINT edited",
-                        scenario.name.chars().count() + 9,
-                        "workspace-birth-selection-timeout",
-                    )?;
-                }
-                "birth" => {
-                    journey_input::key_pair(&mut qmp, &mut reader, "f3", "workspace-birth")?;
-                    journey_input::wait_status(&serial_path, &mut child, "born-lulled")?;
-                    let born_records = journey_records::decode(
-                        &fs::read_to_string(&serial_path).map_err(io_error)?,
-                    )?;
-                    if born_records.iter().any(|record| {
-                        matches!(
-                            record["status"].as_str(),
-                            Some("awake" | "planned" | "quiescent-awaiting-input")
-                        )
-                    }) {
-                        return Err(refusal(
-                            "birth automatically started execution before explicit Wake",
-                        ));
-                    }
-                }
-                "wake" => {
-                    journey_input::key_pair(
-                        &mut qmp,
-                        &mut reader,
-                        "f10",
-                        "workspace-tutorial-wake",
-                    )?;
-                    journey_input::wait_status(
-                        &serial_path,
-                        &mut child,
-                        "quiescent-awaiting-input",
-                    )?;
-                }
-                "use-current" => {
-                    journey_input::key_pair(
-                        &mut qmp,
-                        &mut reader,
-                        "f10",
-                        "workspace-use-current-plot",
-                    )?;
-                    for key in scenario
-                        .input
-                        .chars()
-                        .map(|character| character.to_string())
-                    {
-                        journey_input::key_pair(
-                            &mut qmp,
-                            &mut reader,
-                            &key,
-                            "workspace-type-text",
+                        journey_input::wait_for_record(
+                            &serial_path,
+                            &mut child,
+                            "workspace-selection-timeout",
+                            "working Plot selected",
+                            |serial| Ok(journey_records::decode(serial)?.len() > before),
                         )?;
+                        let mut typed = String::new();
+                        for character in scenario.input.chars() {
+                            journey_input::key_pair(
+                                &mut qmp,
+                                &mut reader,
+                                &character.to_string(),
+                                "workspace-type-text",
+                            )?;
+                            typed.push(character);
+                            journey_input::wait_for_record(
+                                &serial_path,
+                                &mut child,
+                                "workspace-text-timeout",
+                                &typed,
+                                |serial| {
+                                    Ok(journey_records::decode(serial)?.iter().any(|record| {
+                                        record["result"].as_str() == Some(typed.as_str())
+                                    }))
+                                },
+                            )?;
+                        }
                     }
-                    journey_input::wait_for_record(
-                        &serial_path,
-                        &mut child,
-                        "workspace-text-timeout",
-                        "hello",
-                        |serial| {
-                            Ok(journey_records::decode(serial)?.iter().any(|record| {
-                                record["result"].as_str() == Some(scenario.input.as_str())
-                            }))
-                        },
-                    )?;
-                }
-                "tutorial" => {
-                    let before = views(&fs::read_to_string(&serial_path).map_err(io_error)?)?.len();
-                    journey_input::key_pair(
-                        &mut qmp,
-                        &mut reader,
-                        "f9",
-                        "workspace-open-tutorial",
-                    )?;
-                    wait_view_count(&serial_path, &mut child, before + 1)?;
-                }
-                "read-all" => {
-                    let current = views(&fs::read_to_string(&serial_path).map_err(io_error)?)?;
-                    let pages = current
-                        .last()
-                        .and_then(|view| view["page_count"].as_u64())
-                        .filter(|pages| (1..=32).contains(pages))
-                        .ok_or_else(|| refusal("missing finite page count"))?;
-                    for page in 1..pages {
-                        let count =
+                    "tutorial" => {
+                        let before =
                             views(&fs::read_to_string(&serial_path).map_err(io_error)?)?.len();
                         journey_input::key_pair(
                             &mut qmp,
                             &mut reader,
-                            "pgdn",
-                            "workspace-read-next-page",
+                            "f9",
+                            "workspace-open-tutorial",
                         )?;
-                        wait_view_count(&serial_path, &mut child, count + 1)?;
-                        let observed = views(&fs::read_to_string(&serial_path).map_err(io_error)?)?;
-                        if observed.last().and_then(|view| view["page"].as_u64()) != Some(page) {
-                            return Err(refusal("reading did not reach the next current page"));
-                        }
-                        if page + 1 < pages {
-                            artifacts.capture(
+                        wait_view_count(&serial_path, &mut child, before + 1)?;
+                    }
+                    "read-all" => {
+                        let current = views(&fs::read_to_string(&serial_path).map_err(io_error)?)?;
+                        let pages = current
+                            .last()
+                            .and_then(|view| view["page_count"].as_u64())
+                            .filter(|pages| (1..=32).contains(pages))
+                            .ok_or_else(|| refusal("missing finite page count"))?;
+                        for page in 1..pages {
+                            let count =
+                                views(&fs::read_to_string(&serial_path).map_err(io_error)?)?.len();
+                            journey_input::key_pair(
                                 &mut qmp,
                                 &mut reader,
-                                &format!("{}-page-{}", action.capture, page + 1),
-                                true,
+                                "pgdn",
+                                "workspace-read-next-page",
                             )?;
+                            wait_view_count(&serial_path, &mut child, count + 1)?;
+                            let observed =
+                                views(&fs::read_to_string(&serial_path).map_err(io_error)?)?;
+                            if observed.last().and_then(|view| view["page"].as_u64()) != Some(page)
+                            {
+                                return Err(refusal("reading did not reach the next current page"));
+                            }
+                            if page + 1 < pages {
+                                artifacts.capture(
+                                    &mut qmp,
+                                    &mut reader,
+                                    &format!("{}-page-{}", action.capture, page + 1),
+                                    true,
+                                )?;
+                            }
                         }
                     }
+                    "lull" => {
+                        journey_input::key_pair(&mut qmp, &mut reader, "f7", "workspace-lull")?;
+                        journey_input::wait_status(&serial_path, &mut child, "lulled")?;
+                    }
+                    "fulfill" => {
+                        journey_input::key_pair(&mut qmp, &mut reader, "end", "workspace-finish")?;
+                        journey_input::wait_status(&serial_path, &mut child, "fulfilled")?;
+                    }
+                    unknown => {
+                        return Err(refusal(format!(
+                            "unsupported shared Workspace action: {unknown}"
+                        )));
+                    }
                 }
-                "lull" => {
-                    journey_input::key_pair(&mut qmp, &mut reader, "f7", "workspace-lull")?;
-                    journey_input::wait_status(&serial_path, &mut child, "lulled")?;
-                }
-                "fulfill" => {
-                    journey_input::key_pair(&mut qmp, &mut reader, "end", "workspace-finish")?;
-                    journey_input::wait_status(&serial_path, &mut child, "fulfilled")?;
-                }
-                unknown => {
-                    return Err(refusal(format!(
-                        "unsupported shared Workspace action: {unknown}"
-                    )));
-                }
+                artifacts.capture(
+                    &mut qmp,
+                    &mut reader,
+                    &action.capture,
+                    action.id != "arrive",
+                )?;
+                completed_actions.push(action.id.clone());
             }
-            artifacts.capture(
-                &mut qmp,
-                &mut reader,
-                &action.capture,
-                action.id != "arrive",
-            )?;
-            completed_actions.push(action.id.clone());
-        }
-        let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
-        let records = journey_records::decode(&serial)?;
-        let current_views = views(&serial)?;
-        validate(&records, &current_views, &scenario)?;
-        if child.try_wait().map_err(io_error)?.is_some() {
-            return Err(refusal("guest exited before harness shutdown"));
-        }
-        let last = records
-            .last()
-            .ok_or_else(|| refusal("missing final record"))?;
-        let proof = json!({
-            "schema":"conduit.conduitos/workspace-journey-proof@1",
-            "base_commit":git_head(&paths.root)?, "image_sha256":image_sha256,
-            "profile_id":last["profile_id"], "build_id":last["build_id"], "image_id":last["image_id"],
-            "host_id":last["host_id"], "boot_id":last["boot_id"], "body_id":last["body_id"],
-            "proof_class":"freestanding-emulator", "input":"real-qmp-keyboard",
-            "same_body_from_birth":true, "birth_requires_explicit_wake":true,
-            "result":scenario.input, "application":"tutorial", "actions":completed_actions, "records":records, "views":current_views,
-            "pointer_interaction_observed":false, "screen_free_interaction_observed":false,
-            "human_observation":false
-        });
-        fs::write(
-            paths.target.join("workspace-proof.json"),
-            serde_json::to_vec_pretty(&proof).map_err(|e| refusal(e.to_string()))?,
-        )
-        .map_err(io_error)
-    })();
-    if result.is_err() {
-        if let Ok((mut qmp, mut reader)) = hid_qmp::connect(&monitor_socket, &mut child) {
+            let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
+            let records = journey_records::decode(&serial)?;
+            let current_views = views(&serial)?;
+            validate(&records, &current_views, &scenario)?;
+            if child.try_wait().map_err(io_error)?.is_some() {
+                return Err(refusal("guest exited before harness shutdown"));
+            }
+            let last = records
+                .last()
+                .ok_or_else(|| refusal("missing final record"))?;
+            let proof = json!({
+                "schema":"conduit.conduitos/workspace-journey-proof@1",
+                "base_commit":git_head(&paths.root)?, "image_sha256":image_sha256,
+                "profile_id":last["profile_id"], "build_id":last["build_id"], "image_id":last["image_id"],
+                "host_id":last["host_id"], "boot_id":last["boot_id"], "body_id":last["body_id"],
+                "proof_class":"freestanding-emulator", "input":"real-qmp-keyboard",
+                "same_body_from_birth":true, "birth_requires_explicit_wake":true,
+                "result":scenario.input, "application":"tutorial", "actions":completed_actions, "records":records, "views":current_views,
+                "pointer_interaction_observed":false, "screen_free_interaction_observed":false,
+                "human_observation":false
+            });
+            fs::write(
+                paths.target.join("workspace-proof.json"),
+                serde_json::to_vec_pretty(&proof).map_err(|e| refusal(e.to_string()))?,
+            )
+            .map_err(io_error)
+        })();
+        if action_result.is_err() {
             if let Err(error) = artifacts.capture(&mut qmp, &mut reader, "failure", false) {
                 artifacts.diagnostic_failure(&error);
             }
         }
-    }
+        action_result
+    })();
     if child.try_wait().map_err(io_error)?.is_none() {
         child.kill().map_err(io_error)?;
     }
