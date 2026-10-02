@@ -9,8 +9,8 @@ import {
   searchForms,
   setFormSelected,
   toggleForm,
-} from "../../products/workspace/browser/reviewed-form-selection.mjs";
-import { initialFormSelectionNotice, selectedCanonicalSource } from "../../products/workspace/browser/body-bootstrap.mjs";
+} from "../../targets/browser/workspace/reviewed-form-selection.mjs";
+import { initialFormSelectionNotice, selectedCanonicalSource } from "../../targets/browser/workspace/body-bootstrap.mjs";
 
 const inventory = Object.freeze({
   schema: "conduit.creche/reviewed-form-inventory@1",
@@ -24,8 +24,8 @@ const inventory = Object.freeze({
 });
 
 test("Body Workspace owns bootstrap without Crèche source facades", async () => {
-  const workspace = await readFile(new URL("../../products/workspace/browser/workspace.mjs", import.meta.url), "utf8");
-  const descriptor = JSON.parse(await readFile(new URL("../../products/workspace/browser/workspace.application.template.json", import.meta.url), "utf8"));
+  const workspace = await readFile(new URL("../../targets/browser/workspace/workspace.mjs", import.meta.url), "utf8");
+  const descriptor = JSON.parse(await readFile(new URL("../../targets/browser/workspace/workspace.application.template.json", import.meta.url), "utf8"));
   assert.match(workspace, /\.\/body-bootstrap\.mjs/);
   assert.match(workspace, /\.\/reviewed-form-selection\.mjs/);
   assert.doesNotMatch(workspace, /products\/creche\/(?:browser\/)?(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)|\.\.\/\.\.\/creche\/browser\/(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)/);

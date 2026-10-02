@@ -307,7 +307,7 @@ fn bounded_capture_declarations_import_exact_provenance() {
       "outputs":[{
         "id":"patchbay.overview","kind":"screenshot","path":"overview.png",
         "media_type":"image/png","required":true,
-        "provenance":{"scenario_id":"patchbay-html.overview@1","step_id":"prove.browser-host.patchbay-html-matrix",
+        "provenance":{"scenario_id":"patchbay-html.overview@1","step_id":"prove.browser-host.conduit-browser-patchbay-workbench-matrix",
           "browser_engine":"chromium","browser_version":"1","viewport":"1440x1000","device_scale_factor":"1",
           "locale":"en-US","timezone":"UTC","presentation_id":"presentation","presentation_revision":"1",
           "plan_id":"plan","active_play_id":"play","manifestation_id":"manifestation",

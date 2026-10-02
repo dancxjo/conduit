@@ -569,7 +569,9 @@ fn declare_patchbay_capture_manifest(evidence: &mut EvidenceManifest) -> Result<
             required: true,
             provenance: EvidenceProvenance {
                 scenario_id: "patchbay-html.canonical-captures@1".into(),
-                step_id: Some("prove.browser-host.patchbay-html-matrix".into()),
+                step_id: Some(
+                    "prove.browser-host.conduit-browser-patchbay-workbench-matrix".into(),
+                ),
                 asserted_semantic_disposition: Some("five-canonical-states-asserted".into()),
                 ..Default::default()
             },

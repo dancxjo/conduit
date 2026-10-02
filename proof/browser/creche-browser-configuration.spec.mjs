@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { EXISTING_COMPUTER_BOUNDS } from "../../products/workspace/browser/creche-existing-computer.mjs";
+import { EXISTING_COMPUTER_BOUNDS } from "../../targets/browser/workspace/creche-existing-computer.mjs";
 import { startWorkspaceMachineProduct } from "./workspace-machine-test-actions.mjs";
 
 let entrance;

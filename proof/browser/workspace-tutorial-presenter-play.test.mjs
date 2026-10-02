@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { prepareWorkspaceTutorialPresenterPlay } from "../../products/workspace/browser/workspace-tutorial-presenter-play.mjs";
+import { prepareWorkspaceTutorialPresenterPlay } from "../../targets/browser/workspace/workspace-tutorial-presenter-play.mjs";
 
 function fixture() {
   const events = [];

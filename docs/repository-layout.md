@@ -23,17 +23,14 @@ Root Cargo metadata, toolchain/configuration files, licensing and contributor gu
 
 ## Products, bodies, and forms
 
-`products/conduit` owns the installed CLI entrance and `products/workspace` owns
-the primary body-centered product surface, including zero-body bootstrap and
-reviewed initial-workset selection. `forms/tour` owns the resident tutorial
-meaning while `docs/journeys/tour` owns its authored journey;
-`products/workspace` owns the browser Body encounter and target preparation,
-not another bootstrap state model; `products/patchbay` owns specialized
-inspection/editing implementations and compatibility entrances while Patchbay
-also runs as a resident form. These package boundaries do not create separate
-body, scheduler, lifecycle, or authority truths. There is no reserved empty
-`products/book` or `products/tour`: their historical routes and saved-state
-compatibility are retired pre-v1 application architecture.
+`products/conduit` is the sole installed product and distribution entrance.
+`forms/tour` owns resident tutorial meaning while `docs/journeys/tour` owns its
+authored journey. `forms/patchbay` owns the resident inspect/edit/debug Form and
+its workbench Mask contracts. Browser Workspace and Patchbay realizations live
+under `targets/browser`; they consume Body, Form, Face, Mask, Plan, and Play
+truth without creating separate product, scheduler, lifecycle, or authority
+universes. The retired Tour, Crèche, Home, Workspace, and Patchbay product
+shells have no reserved directories or compatibility packages.
 
 `bodies/pete` is a concrete robot body, with its own composition and configurations. The unfinished embodied-house specimen in #2293 belongs under `bodies/<specimen>` when its concrete composition is added; its existing semantic work does not establish a persistent live House.
 
@@ -54,17 +51,18 @@ to the selected Mask. Product state is never moved into Host assets merely to
 make staging convenient. Explicit package dependency declarations select
 finite bytes from their real owners.
 
-Legacy Tour, Crèche, Workspace, Home, and Patchbay compatibility packages still
-occupy `products/` while their useful Forms, journeys, make, and Mask
-machinery are extracted under [#4231](https://github.com/dancxjo/conduit/issues/4231).
-Their current directory placement is migration state, not a repository law or
-permission to create another application/runtime boundary.
+The browser target owns the concrete Workspace carrier and Patchbay workbench
+realization. Their portable meaning remains with resident Forms and semantic
+owners; target placement grants no authority to invent a second runtime.
 
 [Target-family ownership](../targets/README.md) defines the optional `host`, `runtime`, `offers`, `make`, `firmware`, `deployment`, `profiles`, `tools`, and `proof` responsibilities. No target gets empty directories for symmetry. Target host examples live under `targets/<family>/profiles/`; Pete configuration belongs in `bodies/pete/profiles/`; proof-only topologies belong in `proof/fixtures/bodies/`. Target setup and credential/flash helpers belong in `targets/<family>/tools/`.
 
 Conduit product integration tests live in `products/conduit/tests/`. Package tests stay with their package. Repository-wide proof suites live under `proof/`; Playwright metadata and dependencies belong in `proof/browser/`. Target-local proof appliances remain under their exact target only when their manufacturing/bring-up contract requires it.
 
-Documentation diagrams belong in `docs/assets/`. Product staging belongs in the respective `products/<name>/tools/`; landing-page staging belongs in `site/tools/`. Generic CI lifecycle and artifact helpers belong in `tools/ci/`. These are distinct responsibilities, not a replacement support dump.
+Documentation diagrams belong in `docs/assets/`. Target staging belongs with
+its exact `targets/<family>/tools/` owner; landing-page staging belongs in
+`site/tools/`. Generic CI lifecycle and artifact helpers belong in `tools/ci/`.
+These are distinct responsibilities, not a replacement support dump.
 
 ## Reuse and dependency direction
 

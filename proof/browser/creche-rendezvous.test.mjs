@@ -5,12 +5,12 @@ import {
   connectRendezvousHost,
   decodeRendezvousCode,
   openRemoteRendezvousCandidates,
-} from "../../products/workspace/browser/creche-rendezvous.mjs";
-import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/workspace/browser/rendezvous-cbor.mjs";
+} from "../../targets/browser/workspace/creche-rendezvous.mjs";
+import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../targets/browser/workspace/rendezvous-cbor.mjs";
 import {
   adaptBrowserDataChannelLine,
   adaptProtectedRelayLine,
-} from "../../products/workspace/browser/rendezvous-candidate-schedule.mjs";
+} from "../../targets/browser/workspace/rendezvous-candidate-schedule.mjs";
 
 test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();

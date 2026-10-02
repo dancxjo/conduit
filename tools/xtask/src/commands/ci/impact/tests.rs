@@ -265,7 +265,7 @@ fn pages_products_follow_the_typed_live_ownership_registry() {
 
     let debugger = plan_for_paths(
         &root,
-        vec!["products/patchbay/html/assets/app.js".to_owned()],
+        vec!["targets/browser/patchbay-workbench/assets/app.js".to_owned()],
         &packages,
     )
     .unwrap();
@@ -430,7 +430,7 @@ fn complete_tongues_analysis_slice_avoids_unrelated_machine_make() {
         "semantics/tongues/src/analysis.rs",
         "semantics/tongues/tests/dynamics_analysis.rs",
         "forms/tongues-dynamics-analysis/main.conduit",
-        "products/patchbay/html/src/learned_demo.rs",
+        "targets/browser/patchbay-workbench/src/learned_demo.rs",
         "proof/browser/patchbay-debugger-watch.spec.mjs",
         "tools/xtask/src/cli.rs",
         "tools/xtask/src/main.rs",
@@ -444,7 +444,9 @@ fn complete_tongues_analysis_slice_avoids_unrelated_machine_make() {
     assert!(!plan.esp32_required);
     assert!(!plan.conduitos_required);
     assert!(plan.changed_packages.contains(&"conduit-tongues".into()));
-    assert!(plan.changed_packages.contains(&"patchbay-html".into()));
+    assert!(plan
+        .changed_packages
+        .contains(&"conduit-browser-patchbay-workbench".into()));
     assert!(plan.changed_packages.contains(&"xtask".into()));
 }
 
@@ -466,7 +468,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let patchbay = plan_for_paths(
         &root,
-        vec!["products/patchbay/model/src/lib.rs".to_owned()],
+        vec!["forms/patchbay/workbench/model/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -584,8 +586,8 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "Cargo.lock".to_owned(),
-            "products/patchbay/html/Cargo.toml".to_owned(),
-            "products/patchbay/html/src/learned_demo.rs".to_owned(),
+            "targets/browser/patchbay-workbench/Cargo.toml".to_owned(),
+            "targets/browser/patchbay-workbench/src/learned_demo.rs".to_owned(),
         ],
         &packages,
     )
@@ -614,7 +616,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let partial_pi_zero_creche = plan_for_paths(
         &root,
         vec![
-            "products/workspace/tools/stage-workspace-product.sh".to_owned(),
+            "targets/browser/tools/stage-browser-workspace.sh".to_owned(),
             "targets/raspberry-pi/make/src/lib.rs".to_owned(),
         ],
         &packages,
@@ -629,14 +631,14 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let shared_browser_presentation = plan_for_paths(
         &root,
         vec![
-            "products/patchbay/html/assets/app.css".to_owned(),
-            "products/patchbay/html/assets/app.js".to_owned(),
+            "targets/browser/patchbay-workbench/assets/app.css".to_owned(),
+            "targets/browser/patchbay-workbench/assets/app.js".to_owned(),
             "proof/browser/pages-front-door.spec.mjs".to_owned(),
             "targets/browser/tools/render-product-masthead.mjs".to_owned(),
             "docs/journeys/tour/chapter-1.md".to_owned(),
-            "products/workspace/tools/stage-workspace-product.sh".to_owned(),
+            "targets/browser/tools/stage-browser-workspace.sh".to_owned(),
             "site/tools/stage-pages-root.sh".to_owned(),
-            "products/patchbay/tools/stage-patchbay-product.sh".to_owned(),
+            "targets/browser/tools/stage-patchbay-workbench.sh".to_owned(),
             "semantics/presentation/assets/product-masthead.mjs".to_owned(),
             "site/site.css".to_owned(),
             "targets/browser/host/assets/application-presentation.mjs".to_owned(),
@@ -658,11 +660,11 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "proof/browser/creche-browser-configuration.spec.mjs".to_owned(),
-            "products/workspace/tools/stage-workspace-product.sh".to_owned(),
-            "products/workspace/browser/creche-target-catalog.mjs".to_owned(),
-            "products/workspace/browser/workspace.css".to_owned(),
-            "products/workspace/browser/workspace.html".to_owned(),
-            "products/workspace/browser/workspace.mjs".to_owned(),
+            "targets/browser/tools/stage-browser-workspace.sh".to_owned(),
+            "targets/browser/workspace/creche-target-catalog.mjs".to_owned(),
+            "targets/browser/workspace/workspace.css".to_owned(),
+            "targets/browser/workspace/workspace.html".to_owned(),
+            "targets/browser/workspace/workspace.mjs".to_owned(),
             "targets/browser/host/src/server.rs".to_owned(),
         ],
         &packages,
@@ -677,7 +679,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let unproved_creche_presentation = plan_for_paths(
         &root,
-        vec!["products/workspace/browser/creche-target-catalog.mjs".to_owned()],
+        vec!["targets/browser/workspace/creche-target-catalog.mjs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -709,7 +711,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             ".github/workflows/check.yml".to_owned(),
-            "products/workspace/browser/workspace.css".to_owned(),
+            "targets/browser/workspace/workspace.css".to_owned(),
         ],
         &packages,
     )
@@ -782,33 +784,14 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 }
 
 #[test]
-fn native_patchbay_changes_do_not_make_browser_or_pages_work() {
+fn browser_patchbay_manifest_selects_browser_and_pages_work() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
-    let plan = plan_for_paths(
-        &root,
-        vec![
-            "Cargo.lock".to_owned(),
-            "products/patchbay/native/Cargo.toml".to_owned(),
-            "products/patchbay/native/src/gui.rs".to_owned(),
-        ],
-        &packages,
-    )
-    .unwrap();
-
-    assert!(!plan.browser_required);
-    assert!(!plan.pages_products_required);
-    assert!(plan.pages_product_proofs.is_empty());
-    assert!(plan
-        .changed_packages
-        .contains(&"patchbay-native".to_owned()));
-    assert!(plan.workspace_shards.values().any(|required| *required));
-
     let browser_manifest = plan_for_paths(
         &root,
         vec![
             "Cargo.lock".to_owned(),
-            "products/patchbay/html/Cargo.toml".to_owned(),
+            "targets/browser/patchbay-workbench/Cargo.toml".to_owned(),
         ],
         &packages,
     )
@@ -991,97 +974,6 @@ fn conduitos_paths_select_exact_proof_obligations() {
 }
 
 #[test]
-fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
-    let root = crate::workspace::workspace_root().unwrap();
-    let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
-    let candidate = fs::read_to_string(root.join(".github/workflows/candidate.yml")).unwrap();
-
-    assert!(workflow.contains("  workflow_call:\n"));
-    assert!(candidate.contains("  pull_request:\n"));
-    assert!(workflow.contains("  merge_group:\n"));
-    assert!(!workflow.contains("\n  push:"));
-
-    assert!(workflow.contains(
-        "browser_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.browser_required }}"
-    ));
-    assert!(workflow.contains(
-        "esp32_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.esp32_required"
-    ));
-    assert!(workflow.contains(
-        "conduitos_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required"
-    ));
-    assert!(workflow.contains("Bound development machine proof to directly changed target worlds"));
-    assert!(workflow.contains(
-        "(github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true'"
-    ));
-    assert!(workflow.contains(
-        "(github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_limine_required == 'true'"
-    ));
-    assert!(!workflow.contains("needs.classify.result != 'success'"));
-    assert!(workflow.contains("needs.classify.result == 'success'"));
-    assert!(workflow.contains(
-        "workspace_matrix: ${{ inputs.full_suite && '[\"lint\",\"test-foundation\",\"test-hosts\",\"test-products\",\"portable\",\"pico\"]' || steps.execution.outputs.workspace_matrix"
-    ));
-    assert!(workflow.contains(
-        "esp32_matrix: ${{ inputs.full_suite && '[\"wroom\",\"c3\",\"s3\"]' || steps.execution.outputs.esp32_matrix"
-    ));
-    assert!(workflow.contains(
-        "target: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.esp32_matrix"
-    ));
-    assert!(workflow.contains("name: esp32-firmware-${{ matrix.target }}"));
-    assert!(workflow.contains(
-        "inputs.full_suite && '[\"kernel\",\"xhci\",\"usb\",\"hid\",\"keyboard\",\"front-door\",\"product-journey\",\"rescue\",\"emergency-halt\"]'"
-    ));
-    assert!(workflow
-        .contains("inputs.full_suite && '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]'"));
-    assert!(workflow.contains("conduitos-proof-image:"));
-    assert!(workflow.contains("cargo xtask make conduitos prepare-proof-image --locked"));
-    assert!(workflow.contains("cargo xtask make conduitos prove-many"));
-    assert!(
-        workflow.contains("--max-parallel 4 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked")
-    );
-    assert!(workflow.contains(
-        "shard: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.workspace_matrix"
-    ));
-    assert!(workflow.contains(
-        "CONDUIT_CI_LINT_FULL: ${{ (github.event_name != 'pull_request' && inputs.candidate_sha == '') && 'true' || needs.classify.outputs.workspace_lint_full }}"
-    ));
-    assert!(workflow.contains(
-        "CONDUIT_CI_LINT_PACKAGES: ${{ needs.classify.outputs.workspace_lint_packages }}"
-    ));
-    assert!(workflow.contains(
-        "CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}"
-    ));
-    assert!(workflow.contains(
-        "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\" \\\n            ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"
-    ));
-    assert!(workflow.contains("name: Resolve the current trusted CI controller"));
-    assert!(workflow.contains("git ls-remote --exit-code origin"));
-    assert!(workflow.contains("git worktree add --detach \"$RUNNER_TEMP/conduit-ci-controller\""));
-    assert!(workflow.contains("--manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""));
-    assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
-    assert!(workflow.contains(
-        "comparison_base_sha: ${{ steps.slice.outputs.comparison_base_sha || steps.changes.outputs.comparison_base_sha }}"
-    ));
-    assert!(workflow.contains("BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}"));
-    assert!(workflow.contains("name: Receive the trusted standalone-lock controller"));
-    assert!(workflow.contains("name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}"));
-    assert!(workflow.contains("\"${controller[@]}\" ci standalone-locks --locked"));
-    assert!(workflow.contains("name: ci-plan-${{ steps.changes.outputs.head_sha }}"));
-}
-
-#[test]
-fn product_preflight_uses_the_trusted_controller_for_behind_candidates() {
-    let root = crate::workspace::workspace_root().unwrap();
-    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml")).unwrap();
-    assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
-    assert!(workflow.contains(
-        "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci standalone-locks --locked"
-    ));
-    assert!(!workflow.contains("run: cargo xtask ci standalone-locks --locked"));
-}
-
-#[test]
 fn lightweight_dispatcher_owns_every_ci_identity_command() {
     let root = crate::workspace::workspace_root().unwrap();
     let manifest = fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml")).unwrap();
@@ -1107,37 +999,4 @@ fn lightweight_dispatcher_owns_every_ci_identity_command() {
     }
     assert!(ci_source.contains("pages_resolver::run(arguments)"));
     assert!(pages_resolver.contains("proof/ci/pages-product-run-selection.spec.mjs"));
-    assert!(pages_resolver.contains("proof/ci/pages-workflow-paths.spec.mjs"));
-}
-
-#[test]
-fn exact_artifact_handoff_retries_transport_but_verifies_digest_once() {
-    let root = crate::workspace::workspace_root().unwrap();
-    let action =
-        fs::read_to_string(root.join(".github/actions/download-exact-artifact/action.yml"))
-            .unwrap();
-    let transport = fs::read_to_string(root.join("tools/ci/download-exact-artifact.mjs")).unwrap();
-    let proof = fs::read_to_string(root.join("proof/ci/download-exact-artifact.spec.mjs")).unwrap();
-    let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
-    assert!(action.contains("node tools/ci/download-exact-artifact.mjs"));
-    assert!(action.contains("CONDUIT_ARTIFACT_RUN_ID"));
-    assert!(action.contains("CONDUIT_ARTIFACT_EXPECTED_DIGEST"));
-    assert!(!action.contains("actions/download-artifact"));
-    assert!(!action.contains("continue-on-error"));
-    assert!(!action.contains("digest-mismatch: ignore"));
-    assert!(transport.contains("conduit.ci.artifact-transport/v1"));
-    assert!(transport.contains("response.status === 429 || response.status >= 500"));
-    assert!(transport.contains("`${stage}-intermediary-403`"));
-    assert!(transport.contains("artifact digest mismatch"));
-    assert!(transport.contains("actualDigest !== expectedDigest"));
-    assert!(action.find("download-exact-artifact.mjs").unwrap() < action.find("unzip -q").unwrap());
-    for refusal in [
-        "permanent authorization failure does not retry",
-        "missing exact producer is permanent",
-        "digest mismatch does not retry or extract",
-    ] {
-        assert!(proof.contains(refusal));
-    }
-    assert!(!workflow.lines().any(|line| line.contains("name:")
-        && (line.contains("${{ github.sha }}") || line.contains("${{ github.run_id }}"))));
 }

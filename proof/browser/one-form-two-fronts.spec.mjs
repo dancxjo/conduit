@@ -5,7 +5,7 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startJourneyEntrance() {
-  const child=spawn("target/debug/patchbay-html",["--one-form-two-fronts"],{stdio:["ignore","pipe","pipe"]});
+  const child=spawn("target/debug/conduit-browser-patchbay-workbench",["--one-form-two-fronts"],{stdio:["ignore","pipe","pipe"]});
   const errors=[];
   child.stderr.setEncoding("utf8");
   child.stderr.on("data",chunk=>errors.push(chunk));

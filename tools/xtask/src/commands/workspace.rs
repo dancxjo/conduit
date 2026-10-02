@@ -32,9 +32,9 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                 &[
                     "build",
                     "-p",
-                    "patchbay-html",
+                    "conduit-browser-patchbay-workbench",
                     "--bin",
-                    "patchbay-html",
+                    "conduit-browser-patchbay-workbench",
                     "-p",
                     "patchbay-native",
                     "--bin",
@@ -126,7 +126,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             "Stage the exact body arrival application",
             "sh",
             &[
-                "products/workspace/tools/stage-workspace-product.sh",
+                "targets/browser/tools/stage-browser-workspace.sh",
                 "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
                 "target/workspace-product",
                 "target/workspace-release-artifacts",

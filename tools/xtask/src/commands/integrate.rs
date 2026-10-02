@@ -48,7 +48,7 @@ const PATCHBAY_STEP: Step = Step::new(
     &[
         "test",
         "-p",
-        "patchbay-model",
+        "conduit-patchbay-workbench",
         "--test",
         "body_button_planning",
     ],
@@ -122,7 +122,7 @@ const CHECKS: &[IntegrationCheck] = &[
     IntegrationCheck {
         label: "Patchbay",
         step: &PATCHBAY_STEP,
-        reproduce: "cargo test -p patchbay-model --test body_button_planning",
+        reproduce: "cargo test -p conduit-patchbay-workbench --test body_button_planning",
     },
 ];
 

@@ -68,7 +68,7 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
     retainAt: process.env.CONDUIT_WORKSPACE_SPORE_OUTPUT,
   });
   expect(downloaded.filename).toMatch(/-conduitos-native\.iso$/);
-  const { readBodyProvisionedMedia } = await import("../../products/workspace/browser/creche-native-disk.mjs");
+  const { readBodyProvisionedMedia } = await import("../../targets/browser/workspace/creche-native-disk.mjs");
   const nativeIso = {
     isoMagic: new TextDecoder().decode(downloaded.bytes.subarray(32769, 32774)),
     bytes: downloaded.bytes.byteLength,

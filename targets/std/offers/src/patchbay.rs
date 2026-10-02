@@ -18,7 +18,7 @@ pub fn patchbay_presentation_offers() -> [CapabilityOffer; 4] {
                 capability: &capability,
                 execution_profile: "patchbay/presenter-kernel-hosted@1",
                 implementation: &implementation,
-                artifact: "patchbay-model/direct-presentation@1",
+                artifact: "conduit-patchbay-workbench/direct-presentation@1",
             },
             vec![present_host_call_requirement(
                 kind_id("presentation/patchbay-surface@1"),

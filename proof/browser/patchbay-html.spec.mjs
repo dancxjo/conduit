@@ -18,7 +18,7 @@ async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposit
     required:true,
     provenance:{
       scenario_id:`patchbay-html.${name}@1`,
-      step_id:"prove.browser-host.patchbay-html-matrix",
+      step_id:"prove.browser-host.conduit-browser-patchbay-workbench-matrix",
       browser_engine:"chromium",
       browser_version:browser.version(),
       viewport:`${viewport.width}x${viewport.height}`,
@@ -120,7 +120,7 @@ async function cordGeometry(page,snapshot) {
 }
 
 function startServer() {
-  const process = spawn("target/debug/patchbay-html", ["--documentary-fixture"], { stdio:["ignore","pipe","pipe"] });
+  const process = spawn("target/debug/conduit-browser-patchbay-workbench", ["--documentary-fixture"], { stdio:["ignore","pipe","pipe"] });
   const errors=[]; process.stderr.setEncoding("utf8"); process.stderr.on("data",chunk=>errors.push(chunk));
   const lines=createInterface({input:process.stdout});
   const url=new Promise((resolve,reject)=>{lines.once("line",line=>resolve(line.replace("PATCHBAY_HTML_URL=","")));process.once("exit",code=>reject(new Error(`Patchbay HTML exited ${code}: ${errors.join("")}`)));});

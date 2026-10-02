@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 function startServer() {
-  const process = spawn("target/debug/patchbay-html", ["--documentary-fixture"], { stdio: ["ignore", "pipe", "pipe"] });
+  const process = spawn("target/debug/conduit-browser-patchbay-workbench", ["--documentary-fixture"], { stdio: ["ignore", "pipe", "pipe"] });
   const errors = [];
   process.stderr.setEncoding("utf8");
   process.stderr.on("data", chunk => errors.push(chunk));
@@ -17,7 +17,7 @@ function startServer() {
 }
 
 test("bounded collections are manifested without numbered static slot farms", async () => {
-  const html = await readFile("products/patchbay/html/assets/index.html", "utf8");
+  const html = await readFile("targets/browser/patchbay-workbench/assets/index.html", "utf8");
   const renderer = await readFile("forms/patchbay/workbench/browser/shared-presentation.js", "utf8");
   expect(html).not.toMatch(/data-application-slot="[^"]+-\d+"/);
   expect(html.match(/data-application-collection=/g)?.length).toBeGreaterThan(10);

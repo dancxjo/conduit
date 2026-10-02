@@ -72,7 +72,7 @@ for checked examples and their limits.
 | Understand the idea | [Why Conduit](wiki/Why-Conduit.md), then the [architecture tour](wiki/Architecture-tour.md) |
 | Learn the language | [Conduitese](wiki/Conduitese.md), [examples](wiki/Conduitese-by-example.md), then [try forms](docs/try-forms.md) |
 | Find an exact contract | [Language reference](wiki/Current-language-surface.md), [glossary](wiki/Glossary.md), or [architecture reference](docs/architecture/README.md) |
-| Run a target or inspect a body | [Try Conduit](docs/try-conduit.md), [targets](targets/README.md), [Patchbay](products/patchbay/README.md) |
+| Run a target or inspect a body | [Try Conduit](docs/try-conduit.md), [targets](targets/README.md), [Patchbay workbench](forms/patchbay/workbench/README.md) |
 | See what works and what remains | [Current status](STATUS.md) and [roadmap](docs/roadmap.md) |
 | Make a change | [Contributing](CONTRIBUTING.md) and the [repository map](docs/repository-layout.md) |
 

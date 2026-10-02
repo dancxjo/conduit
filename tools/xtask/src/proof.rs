@@ -225,7 +225,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         required_tools_or_targets: &["cargo", "wasm32-unknown-unknown", "playwright", "chromium"],
         named_artifacts: &[
             "target/debug/patchbay-native",
-            "target/debug/patchbay-html",
+            "target/debug/conduit-browser-patchbay-workbench",
             "proof/browser/conduit_browser_runtime.wasm",
             "target/conduit-evidence/patchbay-front-door/manifest.json",
         ],

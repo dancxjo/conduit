@@ -153,8 +153,9 @@ fn tracked_repository_structure_has_explicit_owners() {
     validate_owners(&paths).unwrap();
     for owner in [
         "products/conduit",
-        "products/workspace",
-        "products/patchbay",
+        "targets/browser/workspace",
+        "targets/browser/patchbay-workbench",
+        "forms/patchbay/workbench",
         "bodies/pete",
         "proof/fixtures/forms",
     ] {
@@ -211,7 +212,7 @@ fn product_source_cannot_return_to_the_generic_browser_host() {
     validate_owners(&paths(&[
         "targets/browser/host/assets/application-presentation.mjs",
         "docs/journeys/tour/chapter-1.md",
-        "products/patchbay/html/assets/app.js",
+        "targets/browser/patchbay-workbench/assets/app.js",
     ]))
     .unwrap();
 }

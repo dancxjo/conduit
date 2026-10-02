@@ -13,7 +13,7 @@ async function startAuthoringEntrance() {
 }
 
 async function spawnEntrance(source) {
-  const child = spawn("target/debug/patchbay-html", ["--form", "Empty Form", source], {
+  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--form", "Empty Form", source], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];

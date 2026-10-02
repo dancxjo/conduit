@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readWorkspaceHandoff } from '../../products/workspace/browser/workspace-handoff.mjs';
-import { selectedReviewedSource } from '../../products/workspace/browser/reviewed-form-selection.mjs';
+import { readWorkspaceHandoff } from '../../targets/browser/workspace/workspace-handoff.mjs';
+import { selectedReviewedSource } from '../../targets/browser/workspace/reviewed-form-selection.mjs';
 
 const form = { name: 'notes', source_document_id: 'source/notes', checked_form_id: 'checked/notes' };
 const inventory = { forms: [form] };
@@ -25,7 +25,7 @@ test('birth admission preserves selected source bytes without admitting the whol
 
 
 test('long birth refusals retain their detail without overflowing a status label', async () => {
-  const { birthFeedbackNodes } = await import('../../products/workspace/browser/body-bootstrap.mjs');
+  const { birthFeedbackNodes } = await import('../../targets/browser/workspace/body-bootstrap.mjs');
   const reason = 'Exact typed-port mismatch: ' + '理由'.repeat(500);
   const nodes = birthFeedbackNodes(reason, 'failure-status');
   assert.equal(nodes.at(-1).value, reason);

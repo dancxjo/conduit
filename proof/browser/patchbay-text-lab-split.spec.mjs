@@ -29,7 +29,7 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
   const liveExit = exitOutcome(live);
   const base = await liveOutput.value;
 
-  const patchbay = spawn("target/debug/patchbay-html", ["--text-lab-split", base], {
+  const patchbay = spawn("target/debug/conduit-browser-patchbay-workbench", ["--text-lab-split", base], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const patchbayErrors = [];

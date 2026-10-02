@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { openWorkspacePlay } from "../../products/workspace/browser/workspace-play.mjs";
+import { openWorkspacePlay } from "../../targets/browser/workspace/workspace-play.mjs";
 
 const terminal = disposition => ({ schema: "conduit.tour/manifestation-receipt@3",
   disposition, active_play_id: "body-play", terminal_sign_id: `sign/${disposition}` });

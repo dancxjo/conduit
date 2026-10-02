@@ -53,10 +53,11 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
     ],
     input_prefixes: &[
         "docs/journeys/tour/",
-        "products/workspace/",
-        "products/patchbay/html/",
-        "products/patchbay/model/",
-        "products/patchbay/tools/",
+        "targets/browser/workspace/",
+        "targets/browser/patchbay-workbench/",
+        "forms/patchbay/workbench/model/",
+        "targets/browser/tools/stage-browser-workspace",
+        "targets/browser/tools/stage-patchbay-workbench",
         "semantics/presentation/assets/",
         "site/",
         "targets/browser/host/",
@@ -115,10 +116,10 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
         input_prefixes: &[
             "site/",
             "docs/journeys/tour/",
-            "products/workspace/browser/",
-            "products/workspace/tools/stage-workspace-product",
+            "targets/browser/workspace/",
+            "targets/browser/tools/stage-browser-workspace",
             "site/tools/stage-pages-root",
-            "products/patchbay/tools/stage-patchbay-product",
+            "targets/browser/tools/stage-patchbay-workbench",
         ],
     }];
 
@@ -197,8 +198,8 @@ mod product_source_tests {
         for path in [
             "targets/browser/host/assets/conduit.css",
             "docs/journeys/tour/chapter-1.md",
-            "products/workspace/browser/body-bootstrap.mjs",
-            "products/workspace/browser/reviewed-form-selection.mjs",
+            "targets/browser/workspace/body-bootstrap.mjs",
+            "targets/browser/workspace/reviewed-form-selection.mjs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"));
             assert!(!browser_presentation_proofs_for_path(path).is_empty());
@@ -206,10 +207,10 @@ mod product_source_tests {
     }
 
     #[test]
-    fn broad_product_and_site_roots_own_their_carrier_staging_tools() {
+    fn browser_target_and_site_roots_own_their_carrier_staging_tools() {
         for path in [
-            "products/workspace/tools/stage-workspace-product.mjs",
-            "products/patchbay/tools/stage-patchbay-product.mjs",
+            "targets/browser/tools/stage-browser-workspace.sh",
+            "targets/browser/tools/stage-patchbay-workbench.sh",
             "site/tools/stage-pages-root.mjs",
         ] {
             assert_eq!(
@@ -225,8 +226,8 @@ mod product_source_tests {
             "targets/browser/runtime/src/workspace_mask_tests.rs",
             "targets/browser/runtime/src/form_runner/tests.rs",
             "targets/browser/runtime/tests/presentation_offer_ownership.rs",
-            "products/patchbay/model/src/mask_control_tests.rs",
-            "products/patchbay/html/tests/server.rs",
+            "forms/patchbay/workbench/model/src/mask_control_tests.rs",
+            "targets/browser/patchbay-workbench/tests/server.rs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
         }
@@ -234,11 +235,7 @@ mod product_source_tests {
 
     #[test]
     fn native_semantics_do_not_select_the_browser_carrier() {
-        for path in [
-            "products/patchbay/native/Cargo.toml",
-            "products/patchbay/native/src/gui.rs",
-            "semantics/home/src/lib.rs",
-        ] {
+        for path in ["semantics/home/src/lib.rs", "targets/conduitos/src/main.rs"] {
             assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
             assert!(
                 browser_presentation_proofs_for_path(path).is_empty(),

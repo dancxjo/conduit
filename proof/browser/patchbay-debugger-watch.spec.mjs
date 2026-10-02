@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 
 function startServer() {
-  const child = spawn("target/debug/patchbay-html", ["--debugger-watch-fixture"], {
+  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--debugger-watch-fixture"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];
