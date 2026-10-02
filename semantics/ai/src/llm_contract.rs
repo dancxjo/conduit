@@ -5,7 +5,7 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome};
+use crate::{LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome, LlmWorkBounds};
 
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
 pub const LLM_STREAM_GENERATE_KIND: &str = "llm/generate-stream";
@@ -54,35 +54,27 @@ impl LlmDeterminismProfile {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LlmWorkBounds {
-    pub maximum_input_bytes: u64,
-    pub maximum_context_items: u64,
-    pub maximum_output_bytes: u64,
-    pub maximum_work_units: u64,
-    pub maximum_history_items: u64,
-}
-
 impl LlmWorkBounds {
-    pub const fn reviewed_default() -> Self {
-        Self {
-            maximum_input_bytes: MAXIMUM_LLM_INPUT_BYTES,
-            maximum_context_items: MAXIMUM_LLM_CONTEXT_ITEMS,
-            maximum_output_bytes: MAXIMUM_LLM_OUTPUT_BYTES,
-            maximum_work_units: MAXIMUM_LLM_WORK_UNITS,
-            maximum_history_items: MAXIMUM_LLM_HISTORY_ITEMS,
-        }
+    pub fn reviewed_default() -> Self {
+        Self::new(
+            MAXIMUM_LLM_INPUT_BYTES,
+            MAXIMUM_LLM_CONTEXT_ITEMS,
+            MAXIMUM_LLM_OUTPUT_BYTES,
+            MAXIMUM_LLM_WORK_UNITS,
+            MAXIMUM_LLM_HISTORY_ITEMS,
+        )
+        .expect("reviewed LLM work bounds satisfy their native constraints")
     }
 
     pub const fn valid(self) -> bool {
-        self.maximum_input_bytes > 0
-            && self.maximum_input_bytes <= MAXIMUM_LLM_INPUT_BYTES
-            && self.maximum_context_items <= MAXIMUM_LLM_CONTEXT_ITEMS
-            && self.maximum_output_bytes > 0
-            && self.maximum_output_bytes <= MAXIMUM_LLM_OUTPUT_BYTES
-            && self.maximum_work_units > 0
-            && self.maximum_work_units <= MAXIMUM_LLM_WORK_UNITS
-            && self.maximum_history_items <= MAXIMUM_LLM_HISTORY_ITEMS
+        self.maximum_input_bytes() > 0
+            && self.maximum_input_bytes() <= MAXIMUM_LLM_INPUT_BYTES
+            && self.maximum_context_items() <= MAXIMUM_LLM_CONTEXT_ITEMS
+            && self.maximum_output_bytes() > 0
+            && self.maximum_output_bytes() <= MAXIMUM_LLM_OUTPUT_BYTES
+            && self.maximum_work_units() > 0
+            && self.maximum_work_units() <= MAXIMUM_LLM_WORK_UNITS
+            && self.maximum_history_items() <= MAXIMUM_LLM_HISTORY_ITEMS
     }
 }
 
@@ -132,11 +124,11 @@ impl LlmSemanticContract {
             inputs: self.inputs,
             outputs: self.outputs,
             configuration: vec![
-                bound("maximum-input-bytes", bounds.maximum_input_bytes),
-                bound("maximum-context-items", bounds.maximum_context_items),
-                bound("maximum-output-bytes", bounds.maximum_output_bytes),
-                bound("maximum-work-units", bounds.maximum_work_units),
-                bound("maximum-history-items", bounds.maximum_history_items),
+                bound("maximum-input-bytes", bounds.maximum_input_bytes()),
+                bound("maximum-context-items", bounds.maximum_context_items()),
+                bound("maximum-output-bytes", bounds.maximum_output_bytes()),
+                bound("maximum-work-units", bounds.maximum_work_units()),
+                bound("maximum-history-items", bounds.maximum_history_items()),
             ],
             semantic_laws: Default::default(),
             limits: self.limits,
@@ -272,7 +264,7 @@ fn contract_with_temporal(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: (bounds.maximum_input_bytes + bounds.maximum_output_bytes) as u32,
+            max_queue_bytes: (bounds.maximum_input_bytes() + bounds.maximum_output_bytes()) as u32,
         },
     }
 }
@@ -306,11 +298,11 @@ pub fn install_llm_semantic_catalog(
         startup.insert(KindSignature {
             kind: kind.clone(),
             startup_parameters: vec![
-                parameter("maximum-input-bytes", bounds.maximum_input_bytes),
-                parameter("maximum-context-items", bounds.maximum_context_items),
-                parameter("maximum-output-bytes", bounds.maximum_output_bytes),
-                parameter("maximum-work-units", bounds.maximum_work_units),
-                parameter("maximum-history-items", bounds.maximum_history_items),
+                parameter("maximum-input-bytes", bounds.maximum_input_bytes()),
+                parameter("maximum-context-items", bounds.maximum_context_items()),
+                parameter("maximum-output-bytes", bounds.maximum_output_bytes()),
+                parameter("maximum-work-units", bounds.maximum_work_units()),
+                parameter("maximum-history-items", bounds.maximum_history_items()),
             ],
         })?;
         profile

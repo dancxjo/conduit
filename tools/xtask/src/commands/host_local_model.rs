@@ -103,9 +103,9 @@ pub(super) fn prove(
         );
         println!(
             "limits: input={} output={} work={} memory={}MiB in-flight={} queue={}/{}B cancellation={}",
-            offer.limits.work.maximum_input_bytes,
-            offer.limits.work.maximum_output_bytes,
-            offer.limits.work.maximum_work_units,
+            offer.limits.work.maximum_input_bytes(),
+            offer.limits.work.maximum_output_bytes(),
+            offer.limits.work.maximum_work_units(),
             offer.limits.admitted_memory_mib,
             offer.limits.maximum_in_flight,
             offer.limits.maximum_queue_items,

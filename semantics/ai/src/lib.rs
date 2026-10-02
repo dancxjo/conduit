@@ -25,6 +25,7 @@ pub use generated::{
     IntegrationTerminal, InterpretationDisposition, InterpretationInvalidity,
     InterpretationProvenance, LearnedLifecycleRefusal, LlmDeterminismProfile,
     LlmImplementationControl, LlmInterruptionReason, LlmPlanningRefusal, LlmTerminalOutcome,
+    LlmWorkBounds,
     LocalModelCachePolicy, LocalModelFailure, LocalModelKindProfile, LocalModelLifecycleState,
     LocalModelOfferInvalidity, LocalModelRefusal, LocalModelTerminal, LogScoreKind, MechanismScore,
     Metering, MissingModality, MissingModalityPolicy, MissingModalityPolicyPermitDeclared,

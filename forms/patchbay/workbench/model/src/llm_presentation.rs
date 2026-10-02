@@ -302,22 +302,22 @@ fn append_realization(content: &mut Content, truth: &LlmPatchbayTruth<'_>) {
         content.count(
             &truth.gear_identity,
             "maximum-input-bytes",
-            offer.limits.work.maximum_input_bytes,
+            offer.limits.work.maximum_input_bytes(),
         );
         content.count(
             &truth.gear_identity,
             "maximum-context-items",
-            offer.limits.work.maximum_context_items,
+            offer.limits.work.maximum_context_items(),
         );
         content.count(
             &truth.gear_identity,
             "maximum-output-bytes",
-            offer.limits.work.maximum_output_bytes,
+            offer.limits.work.maximum_output_bytes(),
         );
         content.count(
             &truth.gear_identity,
             "maximum-work-units",
-            offer.limits.work.maximum_work_units,
+            offer.limits.work.maximum_work_units(),
         );
     }
 }

@@ -141,13 +141,7 @@ fn documentary_offer() -> LocalModelOffer {
             quantization: "Q4_K_M".into(),
         },
         limits: LocalModelLimits {
-            work: LlmWorkBounds {
-                maximum_input_bytes: 4096,
-                maximum_context_items: 8,
-                maximum_output_bytes: 1024,
-                maximum_work_units: 8192,
-                maximum_history_items: 4,
-            },
+            work: LlmWorkBounds::new(4096, 8, 1024, 8192, 4).unwrap(),
             model_bytes: 8_000_000_000,
             admitted_memory_mib: 16_384,
             compute: conduit_ai::LocalModelComputeNeed {
