@@ -1,6 +1,6 @@
 use conduit_ai::{
     ordinary_rag_answer_offer, AnswerSpan, Chunk, Citation, ClockBasis, ContextOmission,
-    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
+    ContextOmissionReason, ContextOmissions, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionDisposition, ExtractedSourceValue, ExtractionLineage,
     GroundedAnswerDisposition, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedAnswerRequest,
     GroundedClaimSupport, GroundingInputAssessment, HybridCandidate, LlmDeterminismProfile,
@@ -15,6 +15,7 @@ use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalRelation,
 };
+use conduit_form::rust_binding::BoundedSequence;
 
 const ANSWER: &[u8] = b"Recent summary is unsafe; project origin is April.";
 
@@ -285,12 +286,19 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
         .candidate
         .chunk
         .identity;
-    let mut truncated_request = request(ContextSelectionDisposition::Omitted {
-        candidates: vec![ContextOmission {
-            chunk_identity: omitted,
-            reason: ContextOmissionReason::TokenBudget,
-        }],
-    });
+    let mut truncated_request = request(
+        ContextSelectionDisposition::omitted(
+            ContextOmissions::new(
+                BoundedSequence::try_from_iter([ContextOmission {
+                    chunk_identity: omitted,
+                    reason: ContextOmissionReason::TokenBudget,
+                }])
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    );
     truncated_request.context.items.truncate(1);
     truncated_request.context.used = truncated_request.context.items[0].budget;
     let claims = [ProposedGroundedClaim {
@@ -318,7 +326,7 @@ fn crucial_budget_omission_conflict_and_no_evidence_remain_explicit() {
     );
     assert!(matches!(
         truncated_request.context.disposition,
-        ContextSelectionDisposition::Omitted { .. }
+        ContextSelectionDisposition::Omitted(_)
     ));
     let conflict_request = request(ContextSelectionDisposition::Complete);
     assert_ne!(

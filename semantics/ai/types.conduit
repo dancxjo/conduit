@@ -309,6 +309,14 @@ type ContextOmission = {
     reason: ContextOmissionReason
 }
 
+type ContextOmissions = sequence ContextOmission in 1..=1024
+
+type ContextSelectionDisposition =
+    complete
+    | omitted {
+        candidates: ContextOmissions
+    }
+
 type SourceSpanUnit =
     bytes
     | items

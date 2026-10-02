@@ -2,13 +2,15 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::TemporalRelation;
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
-    ContextOmission, ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
-    ContextSelectionPolicy, ContextSelectionRefusal, EntityBoundary, ExtractedSourceValue,
-    RerankedCandidate, RerankingProofClass, RetrievalContribution, SelectedContextCost,
-    SelectedContextRationale, TemporalContext, TemporalProvenance, TemporalSource,
-    TemporalValidity, MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
+    ContextOmission, ContextOmissionReason, ContextOmissions, ContextOrderingPolicy,
+    ContextRedundancyPolicy, ContextSelectionDisposition, ContextSelectionPolicy,
+    ContextSelectionRefusal, EntityBoundary, ExtractedSourceValue, RerankedCandidate,
+    RerankingProofClass, RetrievalContribution, SelectedContextCost, SelectedContextRationale,
+    TemporalContext, TemporalProvenance, TemporalSource, TemporalValidity,
+    MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_CONTEXT_SELECTION_WORK_UNITS: u32 = 1_048_576;
@@ -44,12 +46,6 @@ pub struct SelectedContextItem {
     pub redundancy_group: Option<String>,
     pub rationale: SelectedContextRationale,
     pub budget: SelectedContextCost,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ContextSelectionDisposition {
-    Complete,
-    Omitted { candidates: Vec<ContextOmission> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -150,9 +146,14 @@ impl ContextSelectionPolicy {
             disposition: if omissions.is_empty() {
                 ContextSelectionDisposition::Complete
             } else {
-                ContextSelectionDisposition::Omitted {
-                    candidates: omissions,
-                }
+                ContextSelectionDisposition::omitted(
+                    ContextOmissions::new(
+                        BoundedSequence::try_from_iter(omissions)
+                            .expect("context policy limits omissions to 1,024 candidates"),
+                    )
+                    .expect("a nonempty bounded omission set is valid"),
+                )
+                .expect("a checked omission set makes a valid disposition")
             },
             used,
         })

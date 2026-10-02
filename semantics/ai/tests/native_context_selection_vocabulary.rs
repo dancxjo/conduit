@@ -1,8 +1,9 @@
 use conduit_ai::{
-    ChunkIdentity, ContextOmission, ContextOmissionReason, ContextOrderingPolicy,
-    ContextRedundancyPolicy, SelectedContextCost, SelectedContextRationale,
+    ChunkIdentity, ContextOmission, ContextOmissionReason, ContextOmissions, ContextOrderingPolicy,
+    ContextRedundancyPolicy, ContextSelectionDisposition, SelectedContextCost,
+    SelectedContextRationale,
 };
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn assert_round_trip<T>(value: T)
 where
@@ -26,6 +27,33 @@ fn context_selection_vocabularies_round_trip_through_their_native_types() {
         .contains(concat!("pub struct ", "SelectedContextCost")));
     assert!(!include_str!("../src/context_selection.rs")
         .contains(concat!("pub struct ", "ContextOmission")));
+    assert!(!include_str!("../src/context_selection.rs")
+        .contains(concat!("pub enum ", "ContextSelectionDisposition")));
+
+    let complete = ContextSelectionDisposition::Complete;
+    assert_eq!(
+        ContextSelectionDisposition::from_structured(complete.clone().into_structured().unwrap())
+            .unwrap(),
+        complete
+    );
+    let omitted = ContextSelectionDisposition::omitted(
+        ContextOmissions::new(
+            BoundedSequence::try_from_iter([ContextOmission::new(
+                ChunkIdentity::from_digest([9; 32]),
+                ContextOmissionReason::WorkBudget,
+            )
+            .unwrap()])
+            .unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        ContextSelectionDisposition::from_structured(omitted.clone().into_structured().unwrap())
+            .unwrap(),
+        omitted
+    );
+    assert!(ContextOmissions::new(BoundedSequence::new()).is_err());
 
     for policy in [
         ContextRedundancyPolicy::KeepAll,
