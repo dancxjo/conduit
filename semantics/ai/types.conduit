@@ -347,6 +347,13 @@ type SupportedRelationQuery = {
     where .maximum_output_bytes > 0
 }
 
+type RelationCandidateOutput = {
+    target_variable: RelationVariableIdentity
+    value_identity: ProbabilityDigest
+    disposition: ProbabilisticDisposition
+    sample_count: U32
+}
+
 type ModelCachePolicy =
     no_cache
     | bounded {

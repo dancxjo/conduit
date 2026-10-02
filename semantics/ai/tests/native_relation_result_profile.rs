@@ -1,5 +1,6 @@
 use conduit_ai::{
-    RelationQueryMode, RelationResultProfile, RelationVariableIdentities, RelationVariableIdentity,
+    ProbabilisticDisposition, ProbabilityDigest, RelationCandidateOutput, RelationQueryMode,
+    RelationResultProfile, RelationVariableIdentities, RelationVariableIdentity,
     SupportedRelationQuery,
 };
 use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
@@ -57,4 +58,22 @@ fn supported_relation_query_owns_finite_variables_and_positive_bounds() {
     .is_err());
     assert!(!include_str!("../src/relation.rs")
         .contains(concat!("pub struct ", "SupportedRelationQuery")));
+}
+
+#[test]
+fn relation_candidate_output_has_one_native_portable_shape() {
+    let output = RelationCandidateOutput::new(
+        RelationVariableIdentity::new("latent-state".into()).unwrap(),
+        ProbabilityDigest::new([7; 32]).unwrap(),
+        ProbabilisticDisposition::Exact,
+        1,
+    )
+    .unwrap();
+    let structured = output.clone().into_structured().unwrap();
+    assert_eq!(
+        RelationCandidateOutput::from_structured(structured).unwrap(),
+        output
+    );
+    assert!(!include_str!("../src/relation.rs")
+        .contains(concat!("pub struct ", "RelationCandidateOutput")));
 }

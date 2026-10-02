@@ -113,7 +113,12 @@ impl ModelRelationSignature {
             output_identities: candidate
                 .outputs
                 .iter()
-                .map(|output| (output.target_variable.clone(), output.value_identity))
+                .map(|output| {
+                    (
+                        output.target_variable().get().clone(),
+                        *output.value_identity().get(),
+                    )
+                })
                 .collect(),
             realization: candidate.realization,
         })))
@@ -227,27 +232,25 @@ impl RelationQuery {
 
 impl RelationCandidate {
     fn validate_for(&self, query: &RelationQuery) -> Result<(), RelationRefusal> {
+        let output_targets = self
+            .outputs
+            .iter()
+            .map(|value| value.target_variable().get().clone())
+            .collect::<Vec<_>>();
         if self.outputs.len() != query.targets.len()
-            || duplicate(self.outputs.iter().map(|value| &value.target_variable))
-            || !same_set(
-                &self
-                    .outputs
-                    .iter()
-                    .map(|value| value.target_variable.clone())
-                    .collect::<Vec<_>>(),
-                &query.targets,
-            )
+            || duplicate(output_targets.iter())
+            || !same_set(&output_targets, &query.targets)
         {
             return Err(RelationRefusal::InvalidResult);
         }
         for output in &self.outputs {
-            nonzero(output.value_identity)?;
-            match (&query.requested_result, &output.disposition) {
+            nonzero(*output.value_identity().get())?;
+            match (&query.requested_result, output.disposition()) {
                 (RelationResultProfile::Deterministic, ProbabilisticDisposition::Exact)
-                    if output.sample_count == 1 => {}
+                    if *output.sample_count() == 1 => {}
                 (RelationResultProfile::Probabilistic(profile), _)
-                    if output.sample_count > 0
-                        && output.sample_count <= *profile.maximum_samples() => {}
+                    if *output.sample_count() > 0
+                        && *output.sample_count() <= *profile.maximum_samples() => {}
                 _ => return Err(RelationRefusal::DeterminismMismatch),
             }
         }

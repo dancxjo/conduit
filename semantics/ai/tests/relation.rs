@@ -196,13 +196,13 @@ fn query(
 
 fn candidate(target: &str, byte: u8) -> HostRelationTerminal {
     HostRelationTerminal::Candidate(Box::new(RelationCandidate {
-        outputs: vec![RelationCandidateOutput {
-            target_variable: target.into(),
-            value_identity: [byte; 32],
-            disposition: ProbabilisticDisposition::approximate("conditional-samples".into())
-                .unwrap(),
-            sample_count: 4,
-        }],
+        outputs: vec![RelationCandidateOutput::new(
+            RelationVariableIdentity::new(target.into()).unwrap(),
+            ProbabilityDigest::new([byte; 32]).unwrap(),
+            ProbabilisticDisposition::approximate("conditional-samples".into()).unwrap(),
+            4,
+        )
+        .unwrap()],
         consumed_work_units: 60,
         encoded_output_bytes: 128,
         realization: RelationRealization {
