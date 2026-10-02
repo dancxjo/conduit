@@ -325,6 +325,7 @@ fn main() {
             command: Some(command),
         }) => match command {
             cli::BodyCommand::Birth => enter_birth(),
+            cli::BodyCommand::Own { source, state_dir, name } => durable_host::run_body_owner(&source, &state_dir, &name),
             _ => unreachable!("durable Body operations are dispatched above"),
         },
         Some(cli::Command::Check { plot, json }) => match diagnostics::run(&plot, json) {

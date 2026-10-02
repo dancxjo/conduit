@@ -13,6 +13,12 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+#[path = "body_owner/mod.rs"]
+mod owner;
+pub(crate) use owner::run as run_body_owner;
+#[path = "body_owner/lock.rs"]
+mod owner_lock;
+
 pub(crate) const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
 const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
@@ -80,7 +86,13 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         HostServiceCommand::Install {
             manifest,
             state_dir,
-        } => install_and_activate(&manifest, &state_dir).map(|installation| {
+            no_start,
+        } => (if no_start {
+            install_without_start(&manifest, &state_dir)
+        } else {
+            install_and_activate(&manifest, &state_dir)
+        })
+        .map(|installation| {
             println!(
                 "installed durable host {} from {}",
                 installation.host_id, installation.release_bundle_sha256
@@ -120,16 +132,12 @@ pub(crate) fn install_and_activate(
     manifest: &Path,
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install(manifest, state_dir)?;
+    let installation = install_without_start(manifest, state_dir)?;
     activate_service(state_dir)?;
-    Ok(InstalledHostIdentity {
-        host_id: installation.host_id,
-        release_bundle_sha256: installation.release_bundle_sha256,
-    })
+    Ok(installation)
 }
 
-#[cfg(test)]
-pub(crate) fn install_for_activation_test(
+pub(crate) fn install_without_start(
     manifest: &Path,
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
@@ -141,6 +149,7 @@ pub(crate) fn install_for_activation_test(
 }
 
 fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
+    let _body_ownership = owner_lock::body(state_dir)?;
     let evidence_bytes = bounded_read(evidence_path, 2 * 1024 * 1024)?;
     let evidence: conduit_body::BodyBiographyEvidence = serde_json::from_slice(&evidence_bytes)
         .map_err(|error| format!("Body biography evidence: {error}"))?;
@@ -292,6 +301,7 @@ fn release_file_name(file: &ReleaseFile) -> Result<&std::ffi::OsStr, String> {
 }
 
 fn run(state_dir: &Path) -> Result<(), String> {
+    let _ownership = owner_lock::acquire(state_dir)?;
     let (status, truth) = prepare_runtime(state_dir)?;
     println!(
         "durable host {} boot {} is running",
@@ -798,18 +808,23 @@ fn activate_service(_state_dir: &Path) -> Result<(), String> {
 }
 
 fn write_json_atomic(path: &Path, value: &impl Serialize) -> Result<(), String> {
-    let temporary = path.with_extension("tmp");
     let bytes = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
-    fs::write(&temporary, bytes)
-        .map_err(|error| format!("write {}: {error}", temporary.display()))?;
-    fs::rename(&temporary, path).map_err(|error| format!("commit {}: {error}", path.display()))
+    write_bytes_atomic(path, &bytes)
 }
 
 fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    use std::io::Write;
     let temporary = path.with_extension("tmp");
-    fs::write(&temporary, bytes)
-        .map_err(|error| format!("write {}: {error}", temporary.display()))?;
-    fs::rename(&temporary, path).map_err(|error| format!("commit {}: {error}", path.display()))
+    let mut file = fs::File::create(&temporary).map_err(|error| error.to_string())?;
+    file.write_all(bytes)
+        .and_then(|()| file.sync_all())
+        .map_err(|error| error.to_string())?;
+    fs::rename(&temporary, path).map_err(|error| format!("commit {}: {error}", path.display()))?;
+    #[cfg(unix)]
+    fs::File::open(path.parent().ok_or("state path has no parent")?)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|error| error.to_string())?;
+    Ok(())
 }
 
 fn bounded_read(path: &Path, maximum: u64) -> Result<Vec<u8>, String> {
@@ -925,6 +940,25 @@ mod tests {
         )
         .unwrap();
         (bundle.join("hosted-linux-x86_64.json"), state)
+    }
+
+    #[test]
+    fn no_start_install_retains_verified_image_without_creating_boot() {
+        let (manifest, state) = fixture();
+        dispatch(HostServiceCommand::Install {
+            manifest: manifest.clone(),
+            state_dir: state.clone(),
+            no_start: true,
+        })
+        .unwrap();
+        let installed = read_installation(&state.join("installation.json")).unwrap();
+        assert!(Path::new(&installed.product_executable).is_file());
+        assert!(installed.body_state.is_none());
+        assert!(!state.join("runtime.json").exists());
+        let again = install_without_start(&manifest, &state).unwrap();
+        assert_eq!(again.host_id, installed.host_id);
+        assert_eq!(again.release_bundle_sha256, installed.release_bundle_sha256);
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
     #[test]
