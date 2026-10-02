@@ -3,12 +3,13 @@
 use conduit_ai::{
     canonical_hit_order, EmbeddingProfile, EntityBoundary, MetadataFilter, SimilarityHit,
     SimilarityMetric, SimilarityQuery, TemporalEvidenceBatch, TemporalEvidenceCandidate,
-    TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalReference, TemporalSource,
-    TemporalValidity, TransitionDirection, VectorIndexHandle, VectorIndexMaintenanceKind,
-    VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState, VectorRecord,
-    VectorRefusal,
+    TemporalEvidenceCandidates, TemporalEvidenceIdentity, TemporalEvidenceSelection,
+    TemporalEvidenceSelectionRefusal, TemporalReference, TemporalSource, TemporalValidity,
+    TransitionDirection, VectorIndexHandle, VectorIndexMaintenanceKind, VectorIndexQueryAdmission,
+    VectorIndexResourceRefusal, VectorIndexState, VectorRecord, VectorRefusal,
 };
 use conduit_core::ResourceBinding;
+use conduit_form::rust_binding::BoundedSequence;
 use instant_distance::{Builder, HnswMap, Point, Search};
 use std::collections::BTreeSet;
 
@@ -453,32 +454,48 @@ fn eligible_sources<T>(
         .temporal_provenance
         .as_ref()
         .ok_or(HostedHnswRefusal::TemporalProvenanceRequired)?;
+    let candidates = filtered
+        .iter()
+        .map(|entry| {
+            Ok(TemporalEvidenceCandidate {
+                identity: TemporalEvidenceIdentity::new(entry.record.source_identity.clone())
+                    .map_err(|_| {
+                        HostedHnswRefusal::Temporal(
+                            TemporalEvidenceSelectionRefusal::IdentityTooLarge,
+                        )
+                    })?,
+                provenance: entry
+                    .record
+                    .temporal_provenance
+                    .clone()
+                    .ok_or(HostedHnswRefusal::TemporalProvenanceRequired)?,
+                source: entry.temporal_source,
+                boundary: entry.boundary,
+                transition: entry.transition,
+                validity: entry.validity,
+            })
+        })
+        .collect::<Result<Vec<_>, HostedHnswRefusal>>()?;
+    let candidates = BoundedSequence::try_from_iter(candidates).map_err(|_| {
+        HostedHnswRefusal::Temporal(TemporalEvidenceSelectionRefusal::TooManyCandidates)
+    })?;
     let batch = TemporalEvidenceBatch {
         reference: TemporalReference {
             reference_at: first.reference_at,
             clock_basis: first.clock_basis.clone(),
         },
-        candidates: filtered
-            .iter()
-            .map(|entry| {
-                Ok(TemporalEvidenceCandidate {
-                    identity: entry.record.source_identity.clone(),
-                    provenance: entry
-                        .record
-                        .temporal_provenance
-                        .clone()
-                        .ok_or(HostedHnswRefusal::TemporalProvenanceRequired)?,
-                    source: entry.temporal_source,
-                    boundary: entry.boundary,
-                    transition: entry.transition,
-                    validity: entry.validity,
-                })
-            })
-            .collect::<Result<Vec<_>, HostedHnswRefusal>>()?,
+        candidates: TemporalEvidenceCandidates::new(candidates).map_err(|_| {
+            HostedHnswRefusal::Temporal(TemporalEvidenceSelectionRefusal::InvalidProvenance)
+        })?,
         earliest_history_complete,
     };
     match batch.select(intent).map_err(HostedHnswRefusal::Temporal)? {
-        TemporalEvidenceSelection::Selected { identities } => Ok(identities.into_iter().collect()),
+        TemporalEvidenceSelection::Selected(selected) => Ok(selected
+            .identities()
+            .get()
+            .iter()
+            .map(|identity| identity.get().clone())
+            .collect()),
         TemporalEvidenceSelection::NeedEarlierHistory => {
             Err(HostedHnswRefusal::EarlierHistoryRequired)
         }

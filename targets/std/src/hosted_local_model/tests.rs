@@ -53,11 +53,13 @@ impl HostedLocalModelAdapter for FakeLocalModel {
                 .unwrap(),
             )
             .unwrap(),
-            conduit_ai::LLM_EMBED_KIND => serde_json::to_vec(&conduit_ai::FiniteEmbedding {
-                profile_identity: "fixture/embedding-3@1".into(),
-                dimensions: 3,
-                values: vec![0.25, -0.5, 1.0],
-            })
+            conduit_ai::LLM_EMBED_KIND => serde_json::to_vec(
+                &conduit_ai::FiniteEmbedding::from_values(
+                    "fixture/embedding-3@1".into(),
+                    vec![0.25, -0.5, 1.0],
+                )
+                .unwrap(),
+            )
             .unwrap(),
             conduit_ai::LLM_INTERPRET_KIND => {
                 let request: conduit_ai::InterpretationRequest =

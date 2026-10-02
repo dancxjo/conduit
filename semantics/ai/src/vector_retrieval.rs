@@ -154,14 +154,14 @@ impl Embedding {
         profile: EmbeddingProfile,
         embedding: FiniteEmbedding,
     ) -> Result<Self, VectorRefusal> {
-        if embedding.profile_identity != profile.identity {
+        if embedding.profile_identity().get() != &profile.identity {
             return Err(VectorRefusal::ProfileIdentityMismatch);
         }
         let result = Self {
             profile,
-            values: embedding.values,
+            values: embedding.values_f32(),
         };
-        if embedding.dimensions != result.profile.dimensions {
+        if *embedding.dimensions() != result.profile.dimensions {
             return Err(VectorRefusal::DimensionMismatch);
         }
         result.validate()?;
@@ -170,13 +170,10 @@ impl Embedding {
 
     pub fn validate(&self) -> Result<(), VectorRefusal> {
         self.profile.validate()?;
-        FiniteEmbedding {
-            profile_identity: self.profile.identity.clone(),
-            dimensions: self.profile.dimensions,
-            values: self.values.clone(),
-        }
-        .validate()
-        .map_err(|_: StructuredResultInvalidity| VectorRefusal::InvalidEmbedding)?;
+        FiniteEmbedding::from_values(self.profile.identity.clone(), self.values.clone())
+            .map_err(|_: StructuredResultInvalidity| VectorRefusal::InvalidEmbedding)?
+            .validate()
+            .map_err(|_: StructuredResultInvalidity| VectorRefusal::InvalidEmbedding)?;
         if self.profile.normalization == EmbeddingNormalization::UnitLength {
             let norm_squared = dot(&self.values, &self.values)?;
             if (norm_squared - 1.0).abs() > UNIT_NORM_TOLERANCE {
