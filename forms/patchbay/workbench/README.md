@@ -15,3 +15,9 @@ realizations. It names the requested profile and returns exact bounded Play,
 receipt and output evidence. The contract owns neither a Host implementation
 nor planning policy; hosted targets implement it without depending upward on a
 legacy Patchbay product model.
+
+`svg-mask` is the lightweight static workbench Mask. It projects exact checked
+Form Gears, named directional Ports, typed Cords, fan-in/fan-out junctions, and
+Form boundary bindings into SVG or Mermaid without introducing another graph,
+planner, or runtime. The `conduit diagram` entrance and documentation consumers
+use this resident owner rather than carrying private layout implementations.

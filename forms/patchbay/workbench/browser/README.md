@@ -19,3 +19,8 @@ raw Wasm exports, or Browser Host implementation modules.
 `BrowserBodyPreparation.inspection()`. It is read-only Mask interpretation: it
 neither imports a Host implementation nor plans, claims a Play, or treats a
 retained selection as current availability or physical proof.
+
+`svg-viewport.js` adds bounded fit, zoom, and pan interaction to an SVG produced
+by the resident lightweight Mask. It owns browser manifestation mechanics only;
+the SVG remains the exact checked Form projection and the module cannot edit,
+plan, or play it.
