@@ -13,10 +13,15 @@ impl StochasticProvenance {
     pub fn semantic_digest(&self) -> Result<[u8; 32], ProbabilityRefusal> {
         self.validate()?;
         let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.model_artifact_identity);
-        push_optional_digest(&mut bytes, self.checkpoint_identity);
-        bytes.extend_from_slice(&self.query_identity);
-        match &self.randomness {
+        bytes.extend_from_slice(self.model_artifact_identity().get());
+        push_optional_digest(
+            &mut bytes,
+            self.checkpoint_identity()
+                .as_ref()
+                .map(|identity| *identity.get()),
+        );
+        bytes.extend_from_slice(self.query_identity().get());
+        match self.randomness() {
             RandomnessProfile::Deterministic => bytes.push(0),
             RandomnessProfile::ExplicitSeed(payload) => {
                 bytes.push(1);
@@ -28,7 +33,7 @@ impl StochasticProvenance {
                 push_text(&mut bytes, payload.nonce());
             }
         }
-        match &self.draws {
+        match self.draws() {
             DrawRelationship::Independent => bytes.push(0),
             DrawRelationship::Correlated(payload) => {
                 bytes.push(1);

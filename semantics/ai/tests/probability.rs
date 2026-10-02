@@ -23,13 +23,14 @@ fn tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) -> T
 }
 
 fn provenance() -> StochasticProvenance {
-    StochasticProvenance {
-        model_artifact_identity: [1; 32],
-        checkpoint_identity: Some([2; 32]),
-        query_identity: [3; 32],
-        randomness: RandomnessProfile::explicit_seed(42).unwrap(),
-        draws: DrawRelationship::Independent,
-    }
+    StochasticProvenance::new(
+        ProbabilityDigest::new([1; 32]).unwrap(),
+        Some(ProbabilityDigest::new([2; 32]).unwrap()),
+        ProbabilityDigest::new([3; 32]).unwrap(),
+        RandomnessProfile::explicit_seed(42).unwrap(),
+        DrawRelationship::Independent,
+    )
+    .unwrap()
 }
 
 fn trajectory(value: f32) -> SampledSignal {
@@ -150,8 +151,8 @@ fn one_observation_yields_multiple_plausible_articulations_not_one_truth() {
     assert_eq!(alternatives.plausible_alternatives.len(), 3);
     assert_eq!(alternatives.summary().unwrap().result_count, 3);
     assert_eq!(
-        alternatives.provenance.randomness,
-        RandomnessProfile::explicit_seed(42).unwrap()
+        alternatives.provenance.randomness(),
+        &RandomnessProfile::explicit_seed(42).unwrap()
     );
     assert_ne!(alternatives.semantic_digest().unwrap(), [0; 32]);
 
