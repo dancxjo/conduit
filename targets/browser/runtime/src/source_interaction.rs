@@ -65,10 +65,7 @@ pub(super) fn admit_source(
 fn source_contract() -> Result<InteractionContract, String> {
     InteractionContract::new(
         "interaction/executable-tour-source",
-        InteractionFamily::Text {
-            maximum_bytes: SOURCE_INTERACTION_MAXIMUM_BYTES,
-            allow_empty: false,
-        },
+        InteractionFamily::text_value(SOURCE_INTERACTION_MAXIMUM_BYTES, false),
     )
     .map_err(debug_error)
 }

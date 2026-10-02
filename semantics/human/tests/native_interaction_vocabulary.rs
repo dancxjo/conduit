@@ -1,7 +1,9 @@
+use conduit_core::{KindId, QuantityUnit};
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
-    BoundKind, InteractionApplicationOutcome, InteractionRefusal, OptionAvailability,
-    RealizationRangePolicy, ScalarQuantization,
+    BoundKind, InteractionApplicationOutcome, InteractionFamily, InteractionRefusal,
+    InteractionTypeDigest, InteractionValueKind, OptionAvailability, RealizationRangePolicy,
+    ScalarQuantization,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -69,4 +71,34 @@ fn interaction_payloads_refuse_empty_and_oversize_identity_text() {
         assert!(InteractionApplicationOutcome::refused(text.clone()).is_err());
         assert!(InteractionApplicationOutcome::failed(text.clone()).is_err());
     }
+}
+
+#[test]
+fn interaction_family_is_one_payload_rich_native_type() {
+    let kind = KindId::from("interaction/value@1");
+    for family in [
+        InteractionFamily::Activate,
+        InteractionFamily::Boolean,
+        InteractionFamily::choice_one(kind.clone(), 4),
+        InteractionFamily::choice_many(kind.clone(), 8, 1, 3),
+        InteractionFamily::scalar_range(
+            QuantityUnit::Percent,
+            0,
+            BoundKind::Inclusive,
+            100,
+            BoundKind::Exclusive,
+            5,
+        ),
+        InteractionFamily::relative_range(QuantityUnit::One, -12, 12, 1),
+        InteractionFamily::text_value(4_096, false),
+        InteractionFamily::structured_value(kind, [7; 32], 8_192),
+    ] {
+        assert_round_trip(family);
+    }
+
+    assert_round_trip(InteractionValueKind::new("k".repeat(128)).unwrap());
+    assert!(InteractionValueKind::new(String::new()).is_err());
+    assert!(InteractionValueKind::new("k".repeat(129)).is_err());
+    assert_round_trip(InteractionTypeDigest::new([255; 32]).unwrap());
+    assert!(!include_str!("../src/human_interaction.rs").contains("pub enum InteractionFamily"));
 }

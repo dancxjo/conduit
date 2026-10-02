@@ -24,12 +24,7 @@ fn option(name: &str) -> InteractionOption {
 fn channels_contract() -> InteractionContract {
     InteractionContract::new(
         "interaction/channels",
-        InteractionFamily::ChooseMany {
-            value_kind: KindId::from(CHANNEL_KIND),
-            maximum_options: 4,
-            minimum_selections: 1,
-            maximum_selections: 3,
-        },
+        InteractionFamily::choice_many(KindId::from(CHANNEL_KIND), 4, 1, 3),
     )
     .unwrap()
 }
@@ -50,14 +45,14 @@ fn channels_state(contract: &InteractionContract) -> InteractionCurrentState {
 fn volume_contract() -> InteractionContract {
     InteractionContract::new(
         "interaction/volume",
-        InteractionFamily::Scalar {
-            unit: QuantityUnit::Millionth,
-            minimum: 0,
-            minimum_bound: BoundKind::Inclusive,
-            maximum: 1_000_000,
-            maximum_bound: BoundKind::Inclusive,
-            granularity: 1_000,
-        },
+        InteractionFamily::scalar_range(
+            QuantityUnit::Millionth,
+            0,
+            BoundKind::Inclusive,
+            1_000_000,
+            BoundKind::Inclusive,
+            1_000,
+        ),
     )
     .unwrap()
 }
@@ -110,10 +105,7 @@ fn executable_many_choice_flow_emits_values_and_rejects_invalid_combinations() {
 fn executable_single_choice_flow_carries_the_typed_value_not_an_option_index() {
     let contract = InteractionContract::new(
         "interaction/channel",
-        InteractionFamily::ChooseOne {
-            value_kind: KindId::from(CHANNEL_KIND),
-            maximum_options: 3,
-        },
+        InteractionFamily::choice_one(KindId::from(CHANNEL_KIND), 3),
     )
     .unwrap();
     let state = InteractionCurrentState::new(
@@ -292,12 +284,7 @@ fn bounded_flow_preserves_stale_duplicate_pressure_and_cancellation() {
 fn relative_flow_keeps_delta_distinct_from_absolute_scalar() {
     let contract = InteractionContract::new(
         "interaction/transpose",
-        InteractionFamily::RelativeAdjustment {
-            unit: QuantityUnit::One,
-            minimum_delta: -12,
-            maximum_delta: 12,
-            granularity: 1,
-        },
+        InteractionFamily::relative_range(QuantityUnit::One, -12, 12, 1),
     )
     .unwrap();
     let state = InteractionCurrentState::new(&contract, 0, None, vec![]).unwrap();

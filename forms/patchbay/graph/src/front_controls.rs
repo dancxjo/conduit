@@ -211,27 +211,27 @@ fn project_interaction(
                 QuantityUnit::One
             };
             (
-                InteractionFamily::Scalar {
+                InteractionFamily::scalar_range(
                     unit,
                     minimum,
-                    minimum_bound: BoundKind::Inclusive,
+                    BoundKind::Inclusive,
                     maximum,
-                    maximum_bound: BoundKind::Inclusive,
-                    granularity: 1,
-                },
+                    BoundKind::Inclusive,
+                    1,
+                ),
                 None,
                 quantity_value(value, unit)?,
             )
         }
         (ConfigurationValue::I64(value), KindConfigurationRule::I64Range { minimum, maximum }) => (
-            InteractionFamily::Scalar {
-                unit: QuantityUnit::Millionth,
-                minimum: *minimum,
-                minimum_bound: BoundKind::Inclusive,
-                maximum: *maximum,
-                maximum_bound: BoundKind::Inclusive,
-                granularity: 1,
-            },
+            InteractionFamily::scalar_range(
+                QuantityUnit::Millionth,
+                *minimum,
+                BoundKind::Inclusive,
+                *maximum,
+                BoundKind::Inclusive,
+                1,
+            ),
             None,
             quantity_value(*value, QuantityUnit::Millionth)?,
         ),
@@ -250,23 +250,20 @@ fn project_interaction(
                 return Ok(None);
             }
             (
-                InteractionFamily::Scalar {
-                    unit: *canonical_unit,
-                    minimum: *minimum,
-                    minimum_bound: BoundKind::Inclusive,
-                    maximum: *maximum,
-                    maximum_bound: BoundKind::Inclusive,
-                    granularity: 1,
-                },
+                InteractionFamily::scalar_range(
+                    *canonical_unit,
+                    *minimum,
+                    BoundKind::Inclusive,
+                    *maximum,
+                    BoundKind::Inclusive,
+                    1,
+                ),
                 None,
                 quantity_value(value.value(), *canonical_unit)?,
             )
         }
         (ConfigurationValue::Text(value), KindConfigurationRule::TextBytes { maximum }) => (
-            InteractionFamily::Text {
-                maximum_bytes: *maximum,
-                allow_empty: true,
-            },
+            InteractionFamily::text_value(*maximum, true),
             None,
             interaction_value(TEXT_INFO_ID, value.as_bytes())?,
         ),
@@ -288,11 +285,11 @@ fn project_interaction(
                 })
                 .collect::<Result<Vec<_>, PatchbayGraphError>>()?;
             (
-                InteractionFamily::ChooseOne {
-                    value_kind: value_kind.clone(),
-                    maximum_options: u16::try_from(values.len())
+                InteractionFamily::choice_one(
+                    value_kind.clone(),
+                    u16::try_from(values.len())
                         .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?,
-                },
+                ),
                 Some(InteractionDomain {
                     revision: 0,
                     options,
