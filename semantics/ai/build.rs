@@ -47,6 +47,7 @@ fn main() {
                 "ValidatedExtraction".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
+                "SourceExtractionLimits".into(),
                 "TemporalReference".into(),
             ]
             .into(),
@@ -57,11 +58,20 @@ fn main() {
                 "LlmWorkBounds".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
+                "SourceExtractionLimits".into(),
             ]
             .into(),
-            copy_record_value_getters: ["IntegrationAccuracy".into(), "LlmWorkBounds".into()]
-                .into(),
-            direct_checked_record_constructors: ["LlmWorkBounds".into()].into(),
+            copy_record_value_getters: [
+                "IntegrationAccuracy".into(),
+                "LlmWorkBounds".into(),
+                "SourceExtractionLimits".into(),
+            ]
+            .into(),
+            direct_checked_record_constructors: [
+                "LlmWorkBounds".into(),
+                "SourceExtractionLimits".into(),
+            ]
+            .into(),
             public_record_fields: [
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
@@ -152,6 +162,17 @@ fn main() {
                 (
                     "RetrieverIdentity".into(),
                     vec!["identity".into(), "mechanism".into()],
+                ),
+                (
+                    "SourceExtractionLimits".into(),
+                    vec![
+                        "maximum_source_bytes".into(),
+                        "maximum_source_items".into(),
+                        "maximum_chunk_bytes".into(),
+                        "maximum_chunks".into(),
+                        "maximum_output_bytes".into(),
+                        "maximum_work_units".into(),
+                    ],
                 ),
                 (
                     "ValidatedExtraction".into(),

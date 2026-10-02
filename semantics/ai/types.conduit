@@ -313,6 +313,15 @@ type SourceExtractionProfile =
         overlap_items: U32
     }
 
+type SourceExtractionLimits = {
+    maximum_source_bytes: U32 in 1..=4294967295
+    maximum_source_items: U32 in 1..=4294967295
+    maximum_chunk_bytes: U32 in 1..=4294967295
+    maximum_chunks: U32 in 1..=4294967295
+    maximum_output_bytes: U32 in 1..=4294967295
+    maximum_work_units: U32 in 1..=4294967295
+}
+
 type FusionStrategy =
     reciprocal_rank {
         rank_constant: U16 in 1..=65535

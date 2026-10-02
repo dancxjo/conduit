@@ -66,14 +66,7 @@ fn extract(
         &requirement(source),
         binding,
         SourceExtractionProfile::text_utf8(0).unwrap(),
-        SourceExtractionLimits {
-            maximum_source_bytes: 32,
-            maximum_source_items: 1,
-            maximum_chunk_bytes: 32,
-            maximum_chunks: 1,
-            maximum_output_bytes: 32,
-            maximum_work_units: 64,
-        },
+        SourceExtractionLimits::new(32, 1, 32, 1, 32, 64).unwrap(),
         &SourcePayload::Text(b"source text".to_vec()),
     )
 }
