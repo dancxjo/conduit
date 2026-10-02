@@ -184,22 +184,22 @@ pub fn project_llm_patchbay(
         content.text_property(
             &truth.gear_identity,
             "generated-flow-terminal",
-            format!("{:?}", flow.terminal),
+            format!("{:?}", flow.terminal()),
         );
         content.text_property(
             &truth.gear_identity,
             "generated-flow-chunks",
-            flow.chunks.to_string(),
+            flow.chunks().to_string(),
         );
         content.text_property(
             &truth.gear_identity,
             "generated-flow-bytes",
-            flow.generated_bytes.to_string(),
+            flow.generated_bytes().to_string(),
         );
         content.text_property(
             &truth.gear_identity,
             "generated-private-text-retained",
-            flow.retained_private_text.to_string(),
+            flow.retained_private_text().to_string(),
         );
     }
     append_candidate(&mut content, truth)?;

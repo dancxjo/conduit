@@ -40,6 +40,7 @@ fn main() {
                 "ExtractedField".into(),
                 "FiniteClassification".into(),
                 "GeneratedTextChunk".into(),
+                "GeneratedTextFlowEvidence".into(),
                 "ValidatedExtraction".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
@@ -49,6 +50,7 @@ fn main() {
             copy_record_types: [
                 "CompatibleMetrics".into(),
                 "IntegrationAccuracy".into(),
+                "GeneratedTextFlowEvidence".into(),
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
             ]
@@ -95,6 +97,15 @@ fn main() {
                 (
                     "GeneratedTextChunk".into(),
                     vec!["sequence".into(), "text".into()],
+                ),
+                (
+                    "GeneratedTextFlowEvidence".into(),
+                    vec![
+                        "chunks".into(),
+                        "generated_bytes".into(),
+                        "terminal".into(),
+                        "retained_private_text".into(),
+                    ],
                 ),
                 (
                     "IntegrationAccuracy".into(),

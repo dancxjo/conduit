@@ -326,12 +326,13 @@ fn stale_contract_invalid_offer_and_unbounded_stage_history_refuse() {
 #[test]
 fn generated_flow_is_visible_without_retaining_private_response_text() {
     let contract = llm_contract(conduit_ai::LLM_STREAM_GENERATE_KIND).unwrap();
-    let evidence = conduit_ai::GeneratedTextFlowEvidence {
-        chunks: 3,
-        generated_bytes: 42,
-        terminal: conduit_ai::GeneratedTextFlowTerminal::Cancelled,
-        retained_private_text: false,
-    };
+    let evidence = conduit_ai::GeneratedTextFlowEvidence::new(
+        3,
+        42,
+        conduit_ai::GeneratedTextFlowTerminal::Cancelled,
+        false,
+    )
+    .unwrap();
     let presentation = project_llm_patchbay(
         1,
         basis(),

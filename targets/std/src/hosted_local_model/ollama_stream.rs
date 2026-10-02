@@ -230,12 +230,7 @@ impl Drop for Session {
 pub(super) fn empty(
     terminal: conduit_ai::GeneratedTextFlowTerminal,
 ) -> conduit_ai::GeneratedTextFlowEvidence {
-    conduit_ai::GeneratedTextFlowEvidence {
-        chunks: 0,
-        generated_bytes: 0,
-        terminal,
-        retained_private_text: false,
-    }
+    conduit_ai::GeneratedTextFlowEvidence::new(0, 0, terminal, false).unwrap()
 }
 
 #[cfg(test)]
@@ -318,11 +313,11 @@ mod tests {
             "First sentence. Later text."
         );
         assert_eq!(
-            evidence.terminal,
+            *evidence.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::Completed
         );
-        assert_eq!(evidence.generated_bytes, 27);
-        assert!(!evidence.retained_private_text);
+        assert_eq!(*evidence.generated_bytes(), 27);
+        assert!(!*evidence.retained_private_text());
     }
 
     #[test]
@@ -335,14 +330,14 @@ mod tests {
             StreamingChunkDisposition::Backpressured
         });
         assert_eq!(
-            pressure.terminal,
+            *pressure.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::Backpressured
         );
         let cancelled = decode(Cursor::new(input), 64, &mut |_| {
             StreamingChunkDisposition::Cancel
         });
         assert_eq!(
-            cancelled.terminal,
+            *cancelled.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::Cancelled
         );
         let overflow = decode(
@@ -351,7 +346,7 @@ mod tests {
             &mut |_| StreamingChunkDisposition::Accepted,
         );
         assert_eq!(
-            overflow.terminal,
+            *overflow.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::OutputBoundExhausted
         );
         let lost = decode(
@@ -360,7 +355,7 @@ mod tests {
             &mut |_| StreamingChunkDisposition::Accepted,
         );
         assert_eq!(
-            lost.terminal,
+            *lost.terminal(),
             conduit_ai::GeneratedTextFlowTerminal::ProviderLost
         );
     }
