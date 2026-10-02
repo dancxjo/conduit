@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { acquire, apt, command, rustComponents, rustTargets, toolchain, xtask } from './common.mjs';
@@ -17,9 +17,17 @@ export function setup(target) {
     };
     rustTargets(...triples[arch]);
     rustComponents('rust-src', 'llvm-tools-preview');
-    // Local package installation replaces artifact-mediated tool bundles.
-    const packages = readFileSync('targets/conduitos/tools/conduitos-tools-packages.txt', 'utf8').trim().split(/\r?\n/);
-    apt(...packages);
+    // Install only the selected image's emulator and firmware carrier. The
+    // LoongArch runner uses Ubuntu 26, which does not publish ovmf-ia32.
+    const packages = {
+      x86_64: ['qemu-system-x86'],
+      ia32: ['qemu-system-x86', 'ovmf-ia32'],
+      aarch64: ['qemu-system-arm', 'qemu-efi-aarch64'],
+      riscv64: ['qemu-system-misc', 'u-boot-qemu'],
+      // The verifier acquires and hash-checks its pinned LoongArch UEFI ROM.
+      loongarch64: ['qemu-system-misc'],
+    };
+    apt('curl', 'tar', 'xorriso', ...packages[arch]);
   } else if (target.family === 'esp32') {
     if (target.id === 'esp32-c3') {
       acquire('rustup', ['toolchain', 'install', '1.91.1', '--profile', 'minimal', '--component', 'rust-src', '--target', 'riscv32imc-unknown-none-elf']);
