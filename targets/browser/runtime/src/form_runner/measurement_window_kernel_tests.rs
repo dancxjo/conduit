@@ -243,7 +243,9 @@ fn planned_browser_window_retains_exact_profile_samples_and_drop_evidence() {
                 clock_basis: "fixture-clock".into(),
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
-            },
+            }
+            .try_into()
+            .unwrap(),
             uncertainty: None,
         };
         let sample = leaf(

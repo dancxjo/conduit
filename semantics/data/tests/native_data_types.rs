@@ -2,13 +2,14 @@ use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     ClockRelation, ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal,
     FullWindowPolicy, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
-    MeasurementHysteresisProfile, MeasurementRange, MeasurementSummaryRefusal,
+    MeasurementHysteresisProfile, MeasurementRange, MeasurementSample, MeasurementSummaryRefusal,
     MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
     MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
     QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
     ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
+use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 
 fn assert_round_trip<T>(value: T)
 where
@@ -35,6 +36,23 @@ fn measurement_range_and_hysteresis_profile_are_native_records() {
         policy,
         initial_state: MeasurementThresholdState::Below,
     });
+}
+
+#[test]
+fn measurement_sample_uses_the_native_temporal_instant() {
+    let sample = MeasurementSample {
+        value: Quantity::new(21, QuantityUnit::Celsius),
+        observed_at: NativeTemporalInstant::new(
+            "sensor-clock".into(),
+            1,
+            NativeTemporalScale::Milliseconds,
+            42,
+            0,
+        )
+        .unwrap(),
+        uncertainty: Some(Quantity::new(1, QuantityUnit::Celsius)),
+    };
+    assert_owned_round_trip(sample);
 }
 
 #[test]

@@ -54,8 +54,18 @@ pub fn summarize_measurement_window(
     Ok(MeasurementSummary {
         unit,
         sample_count,
-        first_observed_at: first.observed_at.clone(),
-        last_observed_at: samples.last().unwrap().observed_at.clone(),
+        first_observed_at: first
+            .observed_at
+            .clone()
+            .try_into()
+            .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?,
+        last_observed_at: samples
+            .last()
+            .unwrap()
+            .observed_at
+            .clone()
+            .try_into()
+            .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?,
         minimum: Quantity::new(minimum, unit),
         maximum: Quantity::new(maximum, unit),
         range: Quantity::new(range, unit),

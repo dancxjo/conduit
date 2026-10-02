@@ -1,23 +1,14 @@
 //! Typed measurement samples and deterministic count-bounded window state.
 
 use alloc::vec::Vec;
-use conduit_core::{
-    Quantity, QuantityUnit, TemporalInstant, TemporalRelation, TemporalRelationError,
-};
+use conduit_core::{QuantityUnit, TemporalRelation, TemporalRelationError};
 
-use crate::{FullWindowPolicy, MeasurementRange, MeasurementWindowRefusal};
+use crate::{FullWindowPolicy, MeasurementRange, MeasurementSample, MeasurementWindowRefusal};
 
 pub const MEASUREMENT_SAMPLE_INFO_ID: &str = "data/measurement-sample@1";
 pub const MEASUREMENT_WINDOW_PROFILE_INFO_ID: &str = "data/measurement-window-profile@1";
 pub const MEASUREMENT_WINDOW_INFO_ID: &str = "data/measurement-window@1";
 pub const MAXIMUM_MEASUREMENT_WINDOW_SAMPLES: usize = 64;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MeasurementSample {
-    pub value: Quantity,
-    pub observed_at: TemporalInstant,
-    pub uncertainty: Option<Quantity>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MeasurementWindowProfile {

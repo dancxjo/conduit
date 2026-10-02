@@ -93,7 +93,9 @@ fn perform(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, S
         .map_err(|error| format!("measurement observation quantity: {error:?}"))?;
     let sample = MeasurementSample {
         value: quantity,
-        observed_at: configuration(placement)?,
+        observed_at: configuration(placement)?
+            .try_into()
+            .map_err(|error| format!("adapt measurement observation instant: {error:?}"))?,
         uncertainty: None,
     };
     let payload = conduit_data::encode_measurement_sample(&sample)

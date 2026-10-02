@@ -142,7 +142,9 @@ mod tests {
                         clock_basis: "browser-summary-clock".into(),
                         resolution_ticks: 1,
                         uncertainty_ticks: 0,
-                    },
+                    }
+                    .try_into()
+                    .unwrap(),
                     uncertainty: None,
                 })
                 .unwrap();

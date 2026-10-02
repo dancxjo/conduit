@@ -92,7 +92,9 @@ fn sample(value: i64, ticks: u64) -> MeasurementSample {
             clock_basis: "deterministic-source-clock".into(),
             resolution_ticks: 1,
             uncertainty_ticks: 0,
-        },
+        }
+        .try_into()
+        .unwrap(),
         uncertainty: Some(Quantity::new(1, QuantityUnit::Millivolt)),
     }
 }

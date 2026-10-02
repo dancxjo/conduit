@@ -14,7 +14,7 @@ pub use generated::{
     DataSaveTextTerminalCode, DatasetDescriptor, FileCopyOutcome, FileCopyResult, FullWindowPolicy,
     FullWindowPolicyCode, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotPoint,
     MeasurementPlotProfile, MeasurementPlotRefusal, MeasurementPlotSeries,
-    MeasurementHysteresisProfile, MeasurementRange, MeasurementSummaryRefusal,
+    MeasurementHysteresisProfile, MeasurementRange, MeasurementSample, MeasurementSummaryRefusal,
     MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
     MeasurementThresholdStateCode, MeasurementThresholdTransition, MeasurementWindowRefusal,
     NormalizedQuantityRefusal, QuantityMappingRefusal,

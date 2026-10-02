@@ -74,6 +74,12 @@ type MeasurementRange = {
     maximum: Quantity
 }
 
+type MeasurementSample = {
+    value: Quantity
+    observed-at: TemporalInstant
+    uncertainty: Quantity?
+}
+
 type MeasurementHysteresisProfile = {
     policy: MeasurementThresholdPolicy
     initial-state: MeasurementThresholdState
