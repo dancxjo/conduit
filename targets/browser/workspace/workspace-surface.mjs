@@ -1,5 +1,5 @@
 // Choose interaction affordances from the exact foreground partition when planned.
-export function configureWorkspaceInput(input, plot, partition) {
+export function configureWorkspaceInput(input, plot, partition, unavailableReason) {
   const placements = partition?.plan.fragments.flatMap(fragment => fragment.placements) ?? [];
   const kinds = new Set(partition ? placements.map(placement => placement.kind_id) : plot?.required_kinds ?? []);
   const keyboard = kinds.has('input/keyboard'), pointer = kinds.has('input/pointer-source'), button = kinds.has('input/button');
@@ -15,8 +15,9 @@ export function configureWorkspaceInput(input, plot, partition) {
   input.setAttribute('aria-label', `${acceptsInput ? 'Interact with' : 'Output of'} ${plot?.title ?? 'your plot'}`);
   input.tabIndex = input.disabled || !acceptsInput ? -1 : 0;
   const prompt = input.querySelector('.input-prompt');
-  prompt.hidden = !acceptsInput;
+  prompt.hidden = input.disabled || !acceptsInput;
   prompt.textContent = theremin ? 'Touch and glide.' : pointer ? 'Choose a position here.' : button ? 'Press here.' : 'Type to begin.';
+  if (input.disabled) return unavailableReason || 'This plot is not accepting input.';
   if (kinds.has('text/submit-lines')) return 'Type a message. Press Enter to send.';
   if (keyboard) return 'Type something. Your plot is listening.';
   if (theremin) return 'Glide left ↔ right for pitch. Move up toward the volume loop to mute; move down for a fuller voice.';

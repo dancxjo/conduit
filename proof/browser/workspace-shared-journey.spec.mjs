@@ -51,23 +51,60 @@ test('the shared Workspace journey from zero Body through explicit rest and fini
           await page.getByRole('navigation', { name: 'Your plots' }).getByRole('button', { name: 'Tutorial', exact: true }).click();
           await expect(tutorial).toContainText('Try a Plot, inspect what happened, then try again.');
           break;
-        case 'read-all':
-          await tutorial.getByText('Lifecycle evidence', { exact: true }).scrollIntoViewIfNeeded();
-          await expect(tutorial).toContainText('Not yet fulfilled');
+        case 'read-all': {
+          const lifecycle = tutorial.getByRole('status').filter({ hasText: /^Lifecycle evidence —/ });
+          await lifecycle.scrollIntoViewIfNeeded();
+          await expect(lifecycle).toBeVisible();
+          await expect(lifecycle).toContainText('Not yet fulfilled');
           break;
+        }
         case 'lull':
           await page.getByRole('button', { name: 'lull body', exact: true }).click();
           await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
           break;
-        case 'fulfill':
-          await page.getByRole('button', { name: 'Finish body', exact: true }).click();
+        case 'fulfill': {
+          const confirmation = page.waitForEvent('dialog').then(async dialog => {
+            expect(dialog.type()).toBe('confirm');
+            expect(dialog.message()).toContain('Finish this body permanently?');
+            await dialog.accept();
+          });
+          await Promise.all([
+            confirmation,
+            page.getByRole('button', { name: 'Finish body', exact: true }).click(),
+          ]);
           await expect(page.locator('[data-play-state]')).toHaveText('Fulfilled');
+          await expect(tutorial).toContainText('This Body is fulfilled. Inspect its retained biography');
+          await expect(tutorial).not.toContainText('Not yet fulfilled');
           break;
+        }
         default: throw new Error(`Unsupported shared Workspace action: ${action.id}`);
       }
       const state = bodyId ? await current() : undefined;
       if (bodyId) expect(state.body_id).toBe(bodyId);
-      observations.push({ action: action.id, state });
+      if (state && state.state !== 'AWAKE') {
+        await expect(page.locator('#plot-input')).toHaveAttribute('aria-disabled', 'true');
+        await expect(page.locator('#plot-input .input-prompt')).toBeHidden();
+        await expect(page.locator('[data-surface-invitation]')).toHaveText(
+          await page.locator('#surface-guidance').innerText(),
+        );
+      }
+      let mask;
+      if (state?.plan_id) {
+        mask = await page.evaluate(() => globalThis.__conduitWorkspace.maskObservation());
+        expect(mask.mask_show.show.lifecycle).toBe('Available');
+        expect(mask.mask_show.presentation_id).toBe(mask.presentation.identity);
+        expect(mask.mask_show.presentation_revision).toBe(mask.presentation.revision);
+        expect(mask.mask_show.presentation_plan_id).toBe(state.plan_id);
+        await expect(tutorial).toHaveAttribute('data-mask-show-id', mask.mask_show.show_id);
+        await expect(tutorial).toHaveAttribute('data-mask-plan-id', mask.planned_mask.plan.plan_id);
+        await expect(tutorial).toHaveAttribute('data-mask-play-id', mask.mask_play.active_play_id);
+        if (action.id === 'use-current') {
+          expect(mask.interaction.semantic_action.identity).toBe('body.use-current');
+          expect(mask.interaction.correlation.show_id).toBe(mask.mask_show.show_id);
+          expect(mask.interaction.correlation.presentation_revision).toBe(mask.presentation.revision);
+        }
+      }
+      observations.push({ action: action.id, state, mask });
       await page.screenshot({ path: testInfo.outputPath(`${action.capture}.png`), fullPage: true });
     });
   }
@@ -76,6 +113,7 @@ test('the shared Workspace journey from zero Body through explicit rest and fini
     contract: journey.schema,
     observations,
     input: 'real-browser-controls-and-keyboard',
+    shared_three_host_body_observed: false,
     screen_free_interaction_observed: false,
     human_observation: false,
   }, null, 2));

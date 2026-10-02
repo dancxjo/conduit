@@ -65,8 +65,8 @@ pub(super) fn birth_and_arrive(
             .select_plot(&tutorial, journey.revision())
             .map_err(|e| e.as_str())?;
     }
-    door.close_creche().map_err(|e| e.as_str())?;
     door.observe_product(journey).map_err(|e| e.as_str())?;
+    door.close_creche().map_err(|e| e.as_str())?;
     let receipt = presenter.present(door, display).map_err(|e| e.as_str())?;
     emit_journey_sign(&journey.projection(), make, &receipt);
     super::workspace_view_sign::emit(door, journey, &receipt)?;
