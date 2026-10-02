@@ -210,7 +210,6 @@ fn planned_browser_window_retains_exact_profile_samples_and_drop_evidence() {
         .unwrap();
     let profile = MeasurementWindowProfile {
         capacity: 2,
-        unit: QuantityUnit::Millivolt,
         range: MeasurementRange {
             minimum: Quantity::new(0, QuantityUnit::Millivolt),
             maximum: Quantity::new(100, QuantityUnit::Millivolt),

@@ -4,9 +4,9 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedMeasurementWindow, FullWindowPolicyCode, MAXIMUM_MEASUREMENT_PLOT_POINTS,
-    MAXIMUM_MEASUREMENT_WINDOW_SAMPLES, MeasurementPlotPoint, MeasurementPlotSeries,
+    BoundedMeasurementWindow, FullWindowPolicyCode, MeasurementPlotPoint, MeasurementPlotSeries,
     MeasurementRange, MeasurementSample, MeasurementSummary, MeasurementWindowProfile,
+    MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
 pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = 32_768;
@@ -27,9 +27,7 @@ pub fn encode_measurement_window(
     let profile = window.profile();
     let mut bytes = Vec::with_capacity(MAXIMUM_MEASUREMENT_WINDOW_BYTES.min(256));
     bytes.push(1);
-    bytes.push(
-        u8::try_from(profile.capacity).map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
-    );
+    bytes.push(profile.capacity);
     bytes.extend_from_slice(&FullWindowPolicyCode::encode(profile.full_policy));
     bytes.extend_from_slice(&profile.range.minimum.encode());
     bytes.extend_from_slice(&profile.range.maximum.encode());
@@ -80,10 +78,10 @@ pub fn decode_measurement_window(
     if count > capacity {
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
-    let unit = minimum.unit();
     let profile = MeasurementWindowProfile {
-        capacity,
-        unit,
+        capacity: capacity
+            .try_into()
+            .map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
         range: MeasurementRange { minimum, maximum },
         clock_basis,
         full_policy,
@@ -379,7 +377,6 @@ mod tests {
     fn bounded_window_and_plot_payloads_round_trip_exactly() {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 2,
-            unit: conduit_core::QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(-100, conduit_core::QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
@@ -413,7 +410,6 @@ mod tests {
     fn payload_decoder_rejects_truncation_and_trailing_bytes() {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 1,
-            unit: conduit_core::QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(0, conduit_core::QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),

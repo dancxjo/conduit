@@ -19,9 +19,7 @@ pub fn encode_measurement_window_profile(
         .map_err(|_| MeasurementWireRefusal::InvalidWindow)?;
     let mut bytes = Vec::with_capacity(64 + profile.clock_basis.len());
     bytes.push(1);
-    bytes.push(
-        u8::try_from(profile.capacity).map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
-    );
+    bytes.push(profile.capacity);
     bytes.extend_from_slice(&FullWindowPolicyCode::encode(profile.full_policy));
     bytes.extend_from_slice(&profile.range.minimum.encode());
     bytes.extend_from_slice(&profile.range.maximum.encode());
@@ -42,8 +40,8 @@ pub fn decode_measurement_window_profile(
     if input.u8()? != 1 {
         return Err(MeasurementWireRefusal::UnsupportedVersion);
     }
-    let capacity = usize::from(input.u8()?);
-    if capacity == 0 || capacity > MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
+    let capacity = input.u8()?;
+    if capacity == 0 || usize::from(capacity) > MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
     let full_policy = FullWindowPolicyCode::decode(&[input.u8()?])
@@ -52,7 +50,6 @@ pub fn decode_measurement_window_profile(
     let maximum = input.quantity()?;
     let profile = MeasurementWindowProfile {
         capacity,
-        unit: minimum.unit(),
         range: MeasurementRange { minimum, maximum },
         clock_basis: input.text()?,
         full_policy,
@@ -229,7 +226,6 @@ mod tests {
     fn profile_and_sample_payloads_round_trip_without_host_defaults() {
         let profile = MeasurementWindowProfile {
             capacity: 8,
-            unit: QuantityUnit::Millivolt,
             range: MeasurementRange {
                 minimum: Quantity::new(-100, QuantityUnit::Millivolt),
                 maximum: Quantity::new(100, QuantityUnit::Millivolt),

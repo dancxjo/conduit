@@ -80,6 +80,13 @@ type MeasurementSample = {
     uncertainty: Quantity?
 }
 
+type MeasurementWindowProfile = {
+    capacity: U8 in 1..=64
+    range: MeasurementRange
+    clock-basis: Text <= 128B not in [""]
+    full-policy: FullWindowPolicy
+}
+
 type MeasurementHysteresisProfile = {
     policy: MeasurementThresholdPolicy
     initial-state: MeasurementThresholdState

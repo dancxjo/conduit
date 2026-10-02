@@ -8,7 +8,6 @@ use conduit_form::{
 fn profile(policy: FullWindowPolicy) -> MeasurementWindowProfile {
     MeasurementWindowProfile {
         capacity: 3,
-        unit: QuantityUnit::Millivolt,
         range: MeasurementRange {
             minimum: Quantity::new(-2_000, QuantityUnit::Millivolt),
             maximum: Quantity::new(2_000, QuantityUnit::Millivolt),
@@ -166,7 +165,7 @@ fn reusable_window_has_an_exact_checked_form_contract() {
 #[test]
 fn capacity_and_profile_ranges_refuse_before_storage_exists() {
     let mut invalid = profile(FullWindowPolicy::Reject);
-    invalid.capacity = MAXIMUM_MEASUREMENT_WINDOW_SAMPLES + 1;
+    invalid.capacity = u8::try_from(MAXIMUM_MEASUREMENT_WINDOW_SAMPLES + 1).unwrap();
     assert_eq!(
         BoundedMeasurementWindow::new(invalid),
         Err(MeasurementWindowRefusal::CapacityOutOfBounds)
