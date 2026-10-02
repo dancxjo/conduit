@@ -1,3 +1,5 @@
+import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
+import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
@@ -8,7 +10,6 @@ const MAXIMUM_MODULE_BYTES = 256 * 1024;
 const MAXIMUM_FILES = 16;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
-const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
 const BROWSER_PARTICIPATION_KEY = Symbol("Conduit BrowserBodyParticipation");
 const BROWSER_PREPARATION_KEY = Symbol("Conduit BrowserBodyPreparation");
@@ -86,6 +87,9 @@ export class BrowserHost {
     return this.current();
   }
 
+  attachEditor(textarea) { return attachBrowserSyntaxEditor(textarea, this.#state.api); }
+  syntax(source) { return projectBrowserSyntax(source, this.#state.api); }
+
   plot(source) { return new BrowserPlot(source, this.#state.bridge); }
 
   async review(plots) {
@@ -124,7 +128,7 @@ export class BrowserHost {
 
   async birth({ name, plots }) {
     if (typeof name !== "string" || !Array.isArray(plots)) throw new TypeError("BrowserHost.birth requires a name and checked Plots");
-    return birthBrowserBody({
+    return this.#state.continuity.run("birth", () => birthBrowserBody({
       bridge: this.#state.bridge,
       host: this.id,
       boot: this.bootId,
@@ -132,7 +136,7 @@ export class BrowserHost {
       root: this.#state.root,
       membership: this.#state.membership,
       createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
-      acquireBodyHost: acquireBrowserBodyHost,
+      acquireBodyHost: acquireSdkBodyHost,
       storage: this.#state.storage,
       name,
       plots,
@@ -140,12 +144,12 @@ export class BrowserHost {
         if (this.#state.sequence >= Number.MAX_SAFE_INTEGER - 1) throw new RangeError("Body event sequence exhausted");
         return ++this.#state.sequence;
       },
-    });
+    }));
   }
 
   /** Recover the exact retained Body into this fresh Boot without resurrecting an old Play. */
   async recover() {
-    return recoverBrowserBody({
+    return this.#state.continuity.run("recover", () => recoverBrowserBody({
       bridge: this.#state.bridge,
       host: this.id,
       boot: this.bootId,
@@ -153,10 +157,13 @@ export class BrowserHost {
       root: this.#state.root,
       membership: this.#state.membership,
       createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
-      acquireBodyHost: acquireBrowserBodyHost,
+      acquireBodyHost: acquireSdkBodyHost,
       storage: this.#state.storage,
-    });
+    }));
   }
+
+  close() { return this.#state.continuity.close(); }
+  forget() { return this.#state.continuity.close(true); }
 }
 
 /** Current participation of this SDK Host incarnation in one external Body. */
@@ -324,10 +331,12 @@ export class BrowserPlay {
     return this.#completion;
   }
   async terminate() {
-    if (this.#failure) throw this.#failure;
+    // Retire the actual kernel even after dispatch refused. Keep the original
+    // failure on this handle and its rejected completion promise; the terminal
+    // receipt lets Body.lull/forget close execution through the ordinary runtime.
     const closed = this.#adapter.close();
     const receipt = closed.receipt ?? this.#terminal;
-    this.#terminal = receipt;
+    if (!this.#failure) this.#terminal = receipt;
     return receipt;
   }
 }
@@ -338,10 +347,10 @@ export class BrowserPlay {
  * compiles, discovers a CDN, or broadens its implementation selection.
  */
 export const Conduit = Object.freeze({
-  async browser({ root, bundleRoot = new URL("./bundle/", import.meta.url), profileId, durable = true } = {}) {
+  async browser({ root, bundleRoot = new URL("./bundle/", import.meta.url), profileId, durable = true, application } = {}) {
     try {
-      if (!root || !(root instanceof Element || root instanceof ShadowRoot)) {
-        refuse("InvalidRoot", "Conduit.browser requires one application-owned DOM root");
+      if (root !== undefined && !(root instanceof Element || root instanceof ShadowRoot)) {
+        refuse("InvalidRoot", "A supplied Browser Host root must be an application-owned DOM element or shadow root");
       }
       const base = sameOriginDirectory(bundleRoot);
       const pkg = await readJson(new URL("browser-sdk-package.json", base), MAXIMUM_MANIFEST_BYTES, "SDK package manifest");
@@ -393,10 +402,11 @@ export const Conduit = Object.freeze({
         refuse("HostIncarnationMismatch", "initialized membership does not match the admitted Host and Boot identity");
       }
       const implementationRegistry = boot.offers.map(({ implementation_id }) => implementation_id);
+      const continuityConfig = await applicationContinuity(application, pkg.bundle_sha256);
       const storage = durable && implementationRegistry.includes("browser/indexeddb@1") ? await openBrowserApplicationStorage(
-        "conduit.browser/sdk-body-continuity@1",
-        1,
-        pkg.bundle_sha256,
+        continuityConfig.identity,
+        continuityConfig.version,
+        continuityConfig.packageDigest,
         { implementationRegistry },
       ) : null;
       const state = {
@@ -409,17 +419,17 @@ export const Conduit = Object.freeze({
         bridge,
         membership: initialized.membership,
         storage,
+        continuity: createSdkContinuity({ storage, identity: continuityConfig.identity,
+          refusal: (code, message) => new InvalidLifecycleError({ code, message, operation: "BrowserHost.continuity" }) }),
         sequence: 0,
         boot,
         offers: Object.freeze(boot.offers.map((offer) => Object.freeze({ ...offer }))),
         async refresh() {
           this.boot = bootModule.refreshBrowserBootTruth(this.boot, await bootModule.observeBrowserHostEnvironment(globalThis));
           this.offers = Object.freeze(this.boot.offers.map((offer) => Object.freeze({ ...offer })));
-          renderHostRoot(root, this.hostId, this.boot.boot_id, this.boot.profile_id, this.offers);
         },
       };
       const host = new BrowserHost(BROWSER_HOST_KEY, state);
-      renderHostRoot(root, host.id, host.bootId, host.profileId, host.offers);
       return host;
     } catch (error) {
       if (error?.evidence?.schema === "conduit.browser/sdk-load-failure@1") throw error;
@@ -547,23 +557,15 @@ async function importVerifiedModule(bytes, expectedDigest, label) {
   } finally { URL.revokeObjectURL(url); }
 }
 
-function renderHostRoot(root, hostId, bootId, profileId, offers) {
-  mounted.get(root)?.remove();
-  const surface = document.createElement("section");
-  surface.dataset.conduitBrowserHost = "ready";
-  const heading = document.createElement("h2");
-  heading.textContent = "Conduit Browser Host";
-  const identities = document.createElement("dl");
-  for (const [label, value] of [["Host", hostId], ["Boot", bootId], ["Profile", profileId]]) {
-    const term = document.createElement("dt"); term.textContent = label;
-    const detail = document.createElement("dd"); detail.textContent = value;
-    identities.append(term, detail);
+// Current Body adapters acquire connected application surfaces before starting Play.
+// Host admission itself neither acquires these resources nor paints diagnostics.
+function acquireSdkBodyHost(options) {
+  if (!options.outputRoot?.isConnected || !options.inputTarget?.isConnected) {
+    throw new ResourceLossError({ code: "ApplicationSurfaceUnavailable", operation: "Body.wake",
+      message: "Browser Body execution requires a connected application-owned root supplied to Conduit.browser({ root })",
+      identities: { hostId: options.hostId, bootId: options.bootId } });
   }
-  const status = document.createElement("p");
-  status.textContent = `${offers.length} exact Browser implementation offer(s) admitted.`;
-  surface.append(heading, identities, status);
-  root.append(surface);
-  mounted.set(root, surface);
+  return acquireBrowserBodyHost(options);
 }
 
 function sameOriginDirectory(value) {

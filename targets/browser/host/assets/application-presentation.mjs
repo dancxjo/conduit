@@ -1,3 +1,4 @@
+import { decodeGraphCanvas, renderGraphCanvas } from "./application-graph-canvas.mjs";
 import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
 
 const VERSION = 10;
@@ -139,7 +140,7 @@ export function decodeApplicationView(input) {
     if (!(stateIdentity in NODE_STATES)) refuse("malformed-encoding");
     const state = NODE_STATES[stateIdentity];
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
+    const hasValue = (component === 11 && valueLength > 0) || component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
     if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((valueLength > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity)) || (valueLength === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
@@ -160,6 +161,7 @@ export function decodeApplicationView(input) {
     const depth = parent === null ? 1 : depths[parent] + 1;
     if (depth > MAX_DEPTH) refuse("too-deep");
     depths.push(depth);
+    if (component === 11 && value) decodeGraphCanvas(value);
     return Object.freeze({ parent, component, state, action, key, text, value, valueCapacity });
   });
   for (const [index, node] of nodes.entries()) {
@@ -224,7 +226,7 @@ export function encodeApplicationView(view) {
     const value = new TextEncoder().encode(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
+    const hasValue = (component === 11 && value.length > 0) || component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
       || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
@@ -286,9 +288,10 @@ function restoreInteraction(root, snapshot) {
   if (!snapshot) return;
   let target = Array.from(root.querySelectorAll("[data-application-key]"))
     .find((element) => element.dataset.applicationKey === snapshot.key && !element.disabled);
+  if (target && snapshot.subject) target = Array.from(target.querySelectorAll("[data-subject-identity]")).find(element => element.dataset.subjectIdentity === snapshot.subject) ?? target;
   if (!target) target = root.querySelector('[tabindex="0"]')
     ?? root.querySelector('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)');
-  if (!(target instanceof HTMLElement)) {
+  if (!(target instanceof HTMLElement) && !(target instanceof SVGElement)) {
     root.tabIndex = -1;
     target = root;
   }
@@ -346,6 +349,7 @@ export function manifestApplicationView(input, root, options = {}) {
   const activeNode = active?.closest?.("[data-application-key]");
   const interaction = activeNode ? {
     key: activeNode.dataset.applicationKey,
+    subject: active?.closest?.("[data-subject-identity]")?.dataset.subjectIdentity,
     selection: active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? {
       start: active.selectionStart ?? 0, end: active.selectionEnd ?? 0, direction: active.selectionDirection ?? "none",
     } : null,
@@ -491,7 +495,10 @@ export function manifestApplicationView(input, root, options = {}) {
       element.setAttribute("role", disposition === "failed" ? "alert" : "status");
       element.setAttribute("aria-live", disposition === "failed" ? "assertive" : "polite");
     }
-    if (node.component === 11) element.dataset.renderer = "patchbay";
+    if (node.component === 11) {
+      element.dataset.renderer = "patchbay";
+      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity));
+    }
     if (node.action !== null) {
       const action = view.actions[node.action];
       element.dataset.applicationAction = action.id;

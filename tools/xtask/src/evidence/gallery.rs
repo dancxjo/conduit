@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::three_body_actions::REQUIRED_ACTIONS;
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -11,10 +10,13 @@ use super::{
 };
 
 mod conduitos;
+mod landing;
 mod little_life;
 mod retention;
 mod two_fronts;
 mod verticals;
+
+use landing::{write_html, write_root_index};
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
 use little_life::{write_little_life_commit, write_little_life_current};
@@ -53,6 +55,23 @@ pub(super) struct GalleryIndex {
     current_commit: String,
     retention_commits: usize,
     commits: Vec<String>,
+}
+
+/// Refresh presentation around an existing publication without rewriting its
+/// source identities, evidence metadata, or retained captures.
+pub fn refresh_gallery(root: &Path) -> Result<(), String> {
+    reject_symlink_root(root)?;
+    if !root.join("gallery.json").is_file() {
+        return Err("gallery refresh requires an existing gallery.json".into());
+    }
+    let index = load_index(root)?;
+    validate_existing_tree(root, &index)?;
+    write_vertical_catalogue(root, &index.current_commit)?;
+    write_root_index(
+        root,
+        &index,
+        root.join("current/conduitos/x86_64/index.html").is_file(),
+    )
 }
 
 pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
@@ -329,119 +348,6 @@ fn write_current_pages(
     )
 }
 
-fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> Result<(), String> {
-    let history = index
-        .commits
-        .iter()
-        .map(|commit| {
-            let conduitos = if root
-                .join("commits")
-                .join(commit)
-                .join("conduitos/x86_64/index.html")
-                .is_file()
-            {
-                format!(" · <a href=\"commits/{commit}/conduitos/x86_64/\">ConduitOS x86_64</a>")
-            } else {
-                String::new()
-            };
-            let two_fronts = if root
-                .join("commits")
-                .join(commit)
-                .join("one-plot-two-fronts/index.html")
-                .is_file()
-            {
-                format!(
-                    " · <a href=\"commits/{commit}/one-plot-two-fronts/\">One plot, Two Fronts</a>"
-                )
-            } else {
-                String::new()
-            };
-            let little_life = if root
-                .join("commits")
-                .join(commit)
-                .join("little-life/index.html")
-                .is_file()
-            {
-                format!(" · <a href=\"commits/{commit}/little-life/\">Little Life</a>")
-            } else {
-                String::new()
-            };
-            let patchbay = if root
-                .join("commits")
-                .join(commit)
-                .join("patchbay/index.html")
-                .is_file()
-            {
-                format!(" · <a href=\"commits/{commit}/patchbay/\">Patchbay</a>")
-            } else {
-                String::new()
-            };
-            format!("<li><code>{commit}</code>{patchbay}{conduitos}{two_fronts}{little_life}</li>")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    let conduitos = if has_conduitos {
-        "\n<p><a href=\"current/conduitos/x86_64/\">Current x86_64 ConduitOS emulator console evidence</a></p>"
-    } else {
-        ""
-    };
-    let two_fronts = if root
-        .join("current/one-plot-two-fronts/index.html")
-        .is_file()
-    {
-        "\n<p><a href=\"current/one-plot-two-fronts/\">Current One plot, Two Fronts journey</a></p>"
-    } else {
-        ""
-    };
-    let little_life = if root.join("current/little-life/index.html").is_file() {
-        "\n<p><a href=\"current/little-life/\">Current Little Life evolution journey</a></p>"
-    } else {
-        ""
-    };
-    let patchbay = if root.join("current/patchbay/index.html").is_file() {
-        "\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>"
-    } else {
-        ""
-    };
-    let two_fronts_card = if root
-        .join("current/one-plot-two-fronts/index.html")
-        .is_file()
-    {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">Pinned Chromium + native software renderer</p><h2>One meaning, two fronts</h2><img src=\"current/one-plot-two-fronts/browser.png\" alt=\"Morse Network manifested in a browser\"><p>The same semantic Presentation crossed two rendering boundaries without changing identity.</p><p class=\"card-boundary\">Boundary: software-rendered native pixels and pinned Chromium; not physical display proof.</p><p><a class=\"primary\" href=\"current/one-plot-two-fronts/\">Follow the evidence</a></p></article>"
-    } else {
-        ""
-    };
-    let little_life_card = if root.join("current/little-life/index.html").is_file() {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">Deterministic hosted execution</p><h2>A tiny world lives</h2><img src=\"current/little-life/t032.png\" alt=\"Orbium scalar field at generation 32\"><p>A bounded seed changes through 32 real Plan/Play generations. Four accepted moments tell the story.</p><p class=\"card-boundary\">Boundary: semantic scalar-field output; not a native display or physical observation.</p><p><a class=\"primary\" href=\"current/little-life/\">See what happened</a></p></article>"
-    } else {
-        ""
-    };
-    let conduitos_card = if has_conduitos {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">QEMU · x86_64 · freestanding</p><h2>A computer is born</h2><p>A ConduitOS Body wakes, discovers its host, and reaches recognizable work in one validated console run.</p><p class=\"card-boundary\">Boundary: exact QEMU machine profile; not physical hardware.</p><p><a class=\"primary\" href=\"current/conduitos/x86_64/\">Follow the evidence</a></p></article>"
-    } else {
-        "<!-- conduit-conduitos-journey-card@1 -->"
-    };
-    let semantic_spine = format!(
-        "<ol class=\"semantic-spine\">{}</ol>",
-        REQUIRED_ACTIONS
-            .iter()
-            .map(|action| format!("<li>{}</li>", escape_html(action.title())))
-            .collect::<String>()
-    );
-    let body = format!(
-        "<header class=\"gallery-hero\"><p class=\"eyebrow\">Conduit's flagship proof</p><h1>One Journey.<br><em>Three Bodies.</em></h1><p class=\"lede\">One portable meaning, lived independently through radically different machinery. Follow a Body from birth to fulfillment—or turn the view sideways and compare the same semantic moment across all three.</p><div class=\"thesis\" aria-label=\"The Conduit thesis\"><span>Meaning stays</span><i aria-hidden=\"true\">→</i><span>machinery changes</span><i aria-hidden=\"true\">→</i><span>truth remains exact</span></div></header><main><p><a class=\"primary\" href=\"verticals/\">Browse every closed and upcoming vertical</a></p><!-- conduit-three-body-flagship@2 --><section class=\"flagship awaiting\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">The shared semantic spine</p><h2 id=\"flagship-title\">Birth to fulfillment, three times honestly</h2><p class=\"lede\">The publication appears here only when three independently verified biographies belong to this exact accepted commit.</p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div>{semantic_spine}<p class=\"boundary\"><strong>Evidence not yet admitted for this commit.</strong> No neighboring proof is promoted to fill an empty track.</p></section><!-- conduit-three-body-flagship:end --><section class=\"evidence-library\" aria-labelledby=\"library-title\"><p class=\"eyebrow\">The evidence library</p><h2 id=\"library-title\">Other true stories</h2><p class=\"section-intro\">Smaller proofs of particular boundaries. Each says exactly what happened—and what did not.</p><section class=\"cards\">{two_fronts_card}{little_life_card}{conduitos_card}</section></section><details class=\"history\"><summary>Provenance, accepted evidence, and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{two_fronts}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details></main>",
-        escape_html(&index.current_commit)
-    );
-    let body = body
-        .replace(
-            "Browse every closed and upcoming vertical",
-            "Browse the completed vertical journeys",
-        )
-        .replace("Current accepted main:", "Publication source:")
-        .replace("published main commits", "published source commits");
-    write_html(&root.join("index.html"), "Conduit evidence gallery", &body)
-}
-
 fn write_scenario_index(
     path: &Path,
     heading: &str,
@@ -526,18 +432,6 @@ pub(super) fn required_output<'a>(
         .iter()
         .find(|output| output.id == identity)
         .ok_or_else(|| format!("verified evidence lost required output '{identity}'"))
-}
-
-pub(super) fn write_html(path: &Path, title: &str, body: &str) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("cannot create gallery page directory: {error}"))?;
-    }
-    let document = format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><style>:root{{--ink:#f5f2e8;--muted:#afbbb3;--green:#77e6ad;--gold:#f5b95f;--coral:#ff806c;--blue:#73b9ff;--paper:#090e0c;--card:#131d18;--line:#31473c}}*{{box-sizing:border-box}}html{{scroll-behavior:smooth}}body{{margin:0 auto;max-width:96rem;padding:clamp(1rem,4vw,4rem);font:16px/1.6 ui-sans-serif,system-ui,sans-serif;background:radial-gradient(circle at 82% 3%,#193d2b 0,transparent 27rem),radial-gradient(circle at 8% 24%,#252016 0,transparent 24rem),var(--paper);color:var(--ink)}}a{{color:var(--green);text-underline-offset:.2em}}code{{overflow-wrap:anywhere}}h1{{max-width:13ch;font-size:clamp(3.5rem,9vw,8.5rem);line-height:.82;letter-spacing:-.07em;margin:.16em 0}}h1 em{{color:var(--green);font-style:normal}}h2{{font-size:clamp(2rem,4vw,4rem);line-height:1;letter-spacing:-.035em;margin:.25em 0}}h3{{font-size:1.35rem;margin:.3rem 0}}img{{display:block;max-width:100%;height:auto;border:1px solid var(--line)}}figure{{margin:0}}figcaption{{font-weight:700;margin-top:.35rem}}audio{{width:100%}}button,input{{font:inherit}}nav{{margin-bottom:2rem}}.gallery-hero{{min-height:72vh;display:flex;flex-direction:column;justify-content:center;padding:clamp(3rem,10vw,9rem) 0}}.lede{{font-size:clamp(1.15rem,2.4vw,1.65rem);max-width:54rem;color:var(--muted)}}.eyebrow,.step{{color:#a8e5c4;font-weight:850;letter-spacing:.14em;text-transform:uppercase;font-size:.76rem}}.thesis{{display:flex;flex-wrap:wrap;gap:.8rem 1.3rem;align-items:center;margin-top:2.5rem;color:var(--muted);font-weight:700}}.thesis i{{color:var(--gold);font-style:normal}}.flagship{{padding:clamp(1.4rem,4vw,4rem);border:1px solid var(--green);border-radius:1.5rem;background:linear-gradient(145deg,#15281fdd,#101713ee);box-shadow:0 2rem 7rem #0008;margin-bottom:clamp(5rem,10vw,10rem)}}.flagship.awaiting{{border-color:#7b6745}}.body-lanes{{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:2.5rem 0}}.body-lanes article{{min-height:12rem;padding:1.3rem;border:1px solid var(--line);border-radius:1rem;background:#0c1410;position:relative;overflow:hidden}}.body-lanes article::after{{content:\"\";position:absolute;inset:auto -20% -50% 25%;height:9rem;background:radial-gradient(circle,var(--green),transparent 68%);opacity:.18}}.body-lanes article:nth-child(2)::after{{background:radial-gradient(circle,var(--blue),transparent 68%)}}.body-lanes article:nth-child(3)::after{{background:radial-gradient(circle,var(--coral),transparent 68%)}}.body-lanes b{{display:grid;place-items:center;width:2.2rem;height:2.2rem;border:1px solid var(--green);border-radius:50%;color:var(--green)}}.body-lanes p{{color:var(--muted)}}.semantic-spine{{display:grid;grid-template-columns:repeat(15,minmax(4.4rem,1fr));gap:.35rem;padding:0;overflow:auto;list-style:none;counter-reset:moment}}.semantic-spine li{{counter-increment:moment;min-width:4.4rem;padding:.65rem .35rem;border-top:2px solid var(--green);color:var(--muted);font-size:.76rem}}.semantic-spine li::before{{content:counter(moment,decimal-leading-zero);display:block;color:var(--green);font-weight:800}}.evidence-library{{margin-bottom:5rem}}.section-intro{{max-width:45rem;color:var(--muted)}}.cards{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem;margin-top:2rem}}.journey-card,.media-card,.life-player,.checkpoint{{padding:clamp(1.15rem,2.5vw,1.75rem);border:1px solid var(--line);border-radius:1rem;background:linear-gradient(145deg,#17231d,var(--card))}}.journey-card img{{aspect-ratio:16/9;object-fit:cover}}.card-boundary{{color:var(--muted);font-size:.9rem}}.primary{{display:inline-block;padding:.7rem 1rem;background:var(--green);color:#08140e;border-radius:999px;font-weight:850;text-decoration:none}}.comparison{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem}}.identity-flow,.story-arrow{{margin:1.5rem 0;padding:1rem;text-align:center;display:grid;gap:.45rem;background:var(--card);border-radius:.75rem}}.story-path{{display:grid;gap:1rem;margin:2rem 0;counter-reset:story}}.checkpoint{{position:relative;border-left:.35rem solid var(--green)}}.checkpoint h2{{margin:.2rem 0 1rem}}.checkpoint dl{{grid-template-columns:minmax(8.5rem,12rem) minmax(0,1fr)}}.boundary{{padding:1rem;border-left:.3rem solid var(--gold);background:#2a2318}}.proof-grid{{display:grid;grid-template-columns:1fr 1fr;gap:1rem}}.proof-grid>section{{padding:1rem;background:var(--card);border-radius:.75rem}}.reproduce{{padding:1rem;background:#0a110e;border:1px solid var(--line);overflow:auto}}details{{margin:1.5rem 0;padding:1rem;border:1px solid var(--line);border-radius:.8rem}}summary{{cursor:pointer;font-weight:800}}.life-player{{max-width:46rem;margin:1.5rem auto}}.life-player img{{width:100%;image-rendering:pixelated}}.controls{{display:flex;gap:1rem}}.controls input{{flex:1}}dl{{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.4rem 1rem}}dt{{font-weight:700;color:var(--muted)}}dd{{margin:0}}@media(max-width:48rem){{.comparison,.cards,.proof-grid,.body-lanes{{grid-template-columns:1fr}}.body-lanes article{{min-height:8rem}}dl,.checkpoint dl{{grid-template-columns:1fr}}h1{{font-size:clamp(3.2rem,18vw,5.5rem)}}}}@media(prefers-reduced-motion:reduce){{*{{scroll-behavior:auto!important;animation:none!important;transition:none!important}}}}</style></head><body>{body}</body></html>",
-        escape_html(title)
-    );
-    fs::write(path, document).map_err(|error| format!("cannot write gallery page: {error}"))
 }
 
 fn write_json(path: &Path, value: &impl Serialize) -> Result<(), String> {

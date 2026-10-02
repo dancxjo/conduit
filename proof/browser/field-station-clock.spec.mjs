@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { prepareFieldStationPackage } from "./field-station-package.mjs";
+import { beginFieldStationJourney } from "./field-station-journey.mjs";
 
 test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(120_000);
@@ -7,6 +8,7 @@ test.beforeAll(async ({}, testInfo) => {
 });
 
 test("an external page recovers one Clock Body across a fresh Boot without resurrecting its Play", async ({ page }) => {
+  const journey = await beginFieldStationJourney();
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto("/proof/browser/field-station/");
@@ -20,6 +22,12 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   expect(first.recovered).toBe(false);
   expect(first.playState).toBe("playing");
   await expect(page.locator('[data-presentation-kind="presentation/tick"]')).toHaveText("0", { timeout: 15_000 });
+
+  await journey.capture(page, {
+    id: "open", title: "Open the clock",
+    action: "Open the Field Station page.",
+    observation: "The page automatically creates and wakes a Clock Body. Its first tick is visible, alongside the Clock Patchbay and exact runtime identities.",
+  });
 
   await page.reload();
   await expect(page.locator("#status")).toHaveText("Clock Body awake", { timeout: 15_000 });
@@ -72,7 +80,8 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
       maximum_bytes: 8,
       constraints: [
         { CanonicalMembership: { members: [[65, 66, 49, 50], [67, 68, 51, 52]] } },
-        { TextPattern: { start_state: 0, maximum_input_characters: 8 } },
+        { TextPattern: { anchored_start: true, anchored_end: true, negated: false,
+          pattern: { start_state: 0, maximum_input_characters: 8 } } },
       ],
     },
   });
@@ -91,6 +100,11 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   const tick = page.locator('[data-presentation-kind="presentation/tick"]');
   await expect(tick).toHaveText("0", { timeout: 15_000 });
   const manifestation = await tick.evaluate(element => ({ ...element.dataset }));
+  await journey.capture(page, {
+    id: "reload", title: "Reload the same Body",
+    action: "Reload the page using the browser.",
+    observation: "The clock is awake again. The Body and Host identities stay the same; the Boot, Wake, Plan, and Play identities are new. The page recovers the Body and starts a fresh Play.",
+  });
   await page.getByRole("button", { name: "Lull Clock Body", exact: true }).click();
   await expect(page.locator("#status")).toHaveText("Clock Body lulled");
   expect(manifestation).toMatchObject({
@@ -187,4 +201,11 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     active_play_id: running.identities.playId,
   }));
   expect(pageErrors).toEqual([]);
+  await expect(page.getByRole("button", { name: "Lull Clock Body", exact: true })).toBeDisabled();
+  await journey.capture(page, {
+    id: "lull", title: "Lull the clock",
+    action: "Click Lull Clock Body.",
+    observation: "The status changes to Clock Body lulled and the Lull button becomes disabled. The runtime receipt confirms cancellation of this Play and retention of the same Body in its Lulled state.",
+  });
+  await journey.finish({ first, afterReload: running, manifestation, afterLull: lulled });
 });

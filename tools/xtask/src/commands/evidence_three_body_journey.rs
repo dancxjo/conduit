@@ -24,6 +24,9 @@ use artifacts::verify_artifacts;
 mod contract;
 #[path = "evidence_three_body_journey_page.rs"]
 mod page;
+#[path = "evidence_three_body_journey_publication.rs"]
+mod publication;
+pub(super) use publication::{render_recorded, stage};
 #[path = "evidence_three_body_journey_support.rs"]
 mod support;
 use support::{
@@ -276,101 +279,6 @@ pub(super) fn run(
     let index = assemble_index(contract, tracks)?;
     publish(&index, &output)?;
     println!("THREE-BODY JOURNEY INDEX COMPLETE: {}", output.display());
-    Ok(())
-}
-
-pub(super) fn stage(
-    publication_root: PathBuf,
-    site_root: PathBuf,
-    expected_git_commit: String,
-) -> Result<(), String> {
-    if !valid_commit(&expected_git_commit) {
-        return Err("three-Body Journey staging requires an exact commit".into());
-    }
-    let index_path = publication_root.join("index.json");
-    let index: ThreeBodyJourneyIndex = read_bounded_json(&index_path)?;
-    if index.schema != INDEX_SCHEMA
-        || index.disposition != "complete"
-        || index.git_commit != expected_git_commit
-    {
-        return Err("three-Body Journey index is malformed or stale".into());
-    }
-    let contract = contract::canonical(&expected_git_commit);
-    let projected_tracks = validate_index(&index, &contract)?;
-    let mut tracks = Vec::with_capacity(projected_tracks.len());
-    for projected in &projected_tracks {
-        let track_path = publication_root
-            .join(&projected.track_id)
-            .join("track.json");
-        let retained: BodyTrack = read_bounded_json(&track_path)?;
-        if retained.actions != projected.actions
-            || projected.receipts.iter().any(|receipt| {
-                !retained.receipts.iter().any(|candidate| {
-                    serde_json::to_value(candidate).ok() == serde_json::to_value(receipt).ok()
-                })
-            })
-        {
-            return Err(format!(
-                "retained track '{}' diverges from its index",
-                projected.track_id
-            ));
-        }
-        verify_artifacts(&retained, &track_path)?;
-        tracks.push(retained);
-    }
-    validate(&contract, &tracks, &expected_git_commit)?;
-    if !publication_root.join("index.html").is_file() {
-        return Err("three-Body Journey publication lacks index.html".into());
-    }
-    let journeys = site_root.join("journeys");
-    let gallery_index = journeys.join("index.html");
-    let gallery_json = journeys.join("gallery.json");
-    if !gallery_index.is_file() || !gallery_json.is_file() {
-        return Err("Pages root lacks a built journeys gallery".into());
-    }
-    let gallery: serde_json::Value = read_bounded_json(&gallery_json)?;
-    if gallery
-        .get("current_commit")
-        .and_then(serde_json::Value::as_str)
-        != Some(expected_git_commit.as_str())
-    {
-        return Err("journeys gallery belongs to a different commit".into());
-    }
-    let current = journeys.join("current/three-bodies");
-    let historic = journeys
-        .join("commits")
-        .join(&expected_git_commit)
-        .join("three-bodies");
-    if current.exists() || historic.exists() {
-        return Err("three-Body Journey staging refuses overwrite".into());
-    }
-    copy_publication(&publication_root, &current)?;
-    copy_publication(&publication_root, &historic)?;
-    let mut html = std::fs::read_to_string(&gallery_index)
-        .map_err(|error| format!("read journeys gallery entrance: {error}"))?;
-    let start_marker = "<!-- conduit-three-body-flagship@2 -->";
-    let end_marker = "<!-- conduit-three-body-flagship:end -->";
-    let insertion = "<!-- conduit-three-body-flagship@2 --><section class=\"flagship admitted\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">Accepted three-Body Journey</p><h2 id=\"flagship-title\">The same meaning. Three radically different lives.</h2><p class=\"lede\">Three independently born Bodies traverse one shared semantic contract, each retaining its own machinery, identity, biography, and evidence.</p><p><a class=\"primary\" href=\"current/three-bodies/\">Enter the Journey</a></p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div><ol class=\"semantic-spine\"><li>Bootstrap</li><li>Birth</li><li>Useful work</li><li>Inspect initial Show</li><li>Wear alternate Mask</li><li>Prefer alternate Mask</li><li>Withdraw selected route</li><li>Inspect no Show</li><li>Add Face Host</li><li>Admit replacement Plan</li><li>Inspect replanned Show</li><li>Doff alternate Mask</li><li>Inspect restored Show</li><li>Break and recover</li><li>Rest and finish</li></ol><p class=\"boundary\"><strong>What this establishes:</strong> semantic portability with independent realization identities. It does not claim equal pixels, prose, timing, placement, or Body identity.</p></section><!-- conduit-three-body-flagship:end -->";
-    let start = html
-        .find(start_marker)
-        .ok_or("journeys gallery entrance lacks its flagship marker")?;
-    let end = html[start..]
-        .find(end_marker)
-        .map(|offset| start + offset + end_marker.len())
-        .ok_or("journeys gallery entrance lacks its flagship end marker")?;
-    html.replace_range(start..end, insertion);
-    let history_marker = format!("<li><code>{expected_git_commit}</code>");
-    let history_position = html
-        .find(&history_marker)
-        .and_then(|start| html[start..].find("</li>").map(|offset| start + offset))
-        .ok_or("journeys gallery entrance lacks exact-commit history")?;
-    html.insert_str(
-        history_position,
-        &format!(" · <a href=\"commits/{expected_git_commit}/three-bodies/\">Three Bodies</a>"),
-    );
-    std::fs::write(&gallery_index, html)
-        .map_err(|error| format!("write journeys gallery entrance: {error}"))?;
-    println!("STAGED three-Body Journey for {expected_git_commit}");
     Ok(())
 }
 

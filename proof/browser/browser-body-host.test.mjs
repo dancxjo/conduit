@@ -4,7 +4,7 @@ import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browse
 
 const ABI_IDENTITY = new TextEncoder().encode("conduit.browser/runtime-abi");
 
-function fixture({ timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
+function fixture({ applicationEvent = false, timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
   const memory = new WebAssembly.Memory({ initial: 8 });
   let length = 0, starts = 0, cancels = 0, polls = 0, completions = 0, request;
   const output = value => {
@@ -13,7 +13,7 @@ function fixture({ timer = false, timerEffects = timer ? 1 : 0, timerDuration = 
   };
   new Uint8Array(memory.buffer, 448 * 1024, ABI_IDENTITY.length).set(ABI_IDENTITY);
   const effect = index => ({ host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: `placement-${index}`, plan_id: "partition", request_sequence: index,
-    ...(timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : {
+    ...(applicationEvent ? { effect_kind: "application-event", checked_plot_id: "checked/application", request_sequence: index } : timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : {
       effect_kind: "manifestation", presentation_id: "presentation", observation_sequence: index,
       presentation_kind: "presentation/text", text,
     }) });
@@ -209,7 +209,8 @@ test("closing pending timer work settles the dispatcher and releases the owner",
   const running = owner.run();
   const closed = owner.close();
   assert.equal(closed.receipt.disposition, "cancelled");
-  await assert.rejects(running, /timer cancelled/);
+  assert.equal(await running, closed.receipt);
+  assert.equal(owner.close(), closed);
   assert.equal(f.count().cancels, 1);
   owner.close();
   assert.equal(f.count().cancels, 1);
@@ -298,4 +299,33 @@ test('the kernel-local template slot has one preparation owner and is released o
   next.close();
   resource.units = 2;
   assert.throws(() => acquireBrowserBodyHost(f), /exceeds local bounds/);
+});
+
+
+test("closing an application-event-only Play settles dispatch without a later user action", async () => {
+  const f = fixture({ applicationEvent: true });
+  const owner = acquireBrowserBodyHost(f);
+  owner.start(1);
+  const completion = owner.run();
+  const closed = owner.close();
+  assert.equal(closed.receipt.disposition, "cancelled");
+  assert.equal(await completion, closed.receipt);
+  assert.equal(owner.close(), closed);
+  assert.equal(f.count().cancels, 1);
+  const replacement = acquireBrowserBodyHost(f);
+  replacement.start(2);
+  replacement.close();
+});
+
+test("closing a failed dispatcher preserves its original rejection and returns a cancellation receipt", async () => {
+  const f = fixture({ text: null });
+  const owner = acquireBrowserBodyHost(f);
+  owner.start(1);
+  const completion = owner.run();
+  let original;
+  await assert.rejects(completion, error => { original = error; return /unsupported browser manifestation/.test(error.message); });
+  const closed = owner.close();
+  assert.equal(closed.receipt.disposition, "cancelled");
+  await assert.rejects(completion, error => error === original);
+  assert.equal(owner.close(), closed);
 });

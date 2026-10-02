@@ -74,3 +74,32 @@ fn handbook_shell_calls_its_sequence_sections_not_journeys() {
     assert!(!shell.contains("Journey 1 of 2"));
     assert!(!shell.contains("Continue the journey"));
 }
+
+#[test]
+fn handbook_shares_site_navigation_and_theme_without_external_parent_assets() {
+    let shell = page_shell(
+        "Home",
+        "Handbook",
+        "<p>Topics</p>",
+        "<p>Read</p>",
+        None,
+        None,
+    );
+    assert!(shell.contains(&crate::site::navigation("handbook")));
+    assert!(shell.contains(&format!("<style>{}</style>", crate::site::styles())));
+    assert!(shell.contains("aria-label=\"Handbook navigation\"><p>Topics</p>"));
+    assert!(!shell.contains("handbook-masthead"));
+    assert!(!shell.contains("href=\"../conduit.css\""));
+}
+
+#[test]
+fn authored_sidebar_destinations_have_handbook_sources() {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../wiki");
+    let sidebar = fs::read_to_string(source.join("_Sidebar.md")).unwrap();
+    for destination in wiki_link_order(&sidebar) {
+        assert!(
+            source.join(format!("{destination}.md")).is_file(),
+            "missing {destination}"
+        );
+    }
+}

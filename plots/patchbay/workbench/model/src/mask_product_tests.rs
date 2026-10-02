@@ -23,6 +23,8 @@ use conduit_presentation::{MaskWardrobeAction, MaskWardrobeControl};
 use patchbay_application::project_mask_inspection;
 
 struct Fixture {
+    body: conduit_body::Body,
+    wake: conduit_body::Wake,
     mask: MaskPlot,
     planned: PlannedMaskPlot,
     body_plan: BodyPlan,
@@ -177,10 +179,9 @@ fn fixture(available: bool) -> Fixture {
         SignId::from("sign/fixture-body-born"),
     )
     .unwrap();
-    let wake = body
+    let (body, wake) = body
         .wake(1, SignId::from("sign/fixture-body-woke"))
-        .unwrap()
-        .1;
+        .unwrap();
     let resident = ResidentPlot::new(
         mask.plot_identity.source_document_id.clone(),
         mask.plot_identity.checked_plot_id.clone(),
@@ -220,6 +221,8 @@ fn fixture(available: bool) -> Fixture {
         AdmittedMaskPlotRoutes::new(&body_plan, core::slice::from_ref(&planned), vec![route])
             .unwrap();
     Fixture {
+        body,
+        wake,
         mask,
         planned,
         body_plan,
@@ -230,14 +233,8 @@ fn fixture(available: bool) -> Fixture {
 #[test]
 fn wardrobe_control_and_inspection_use_one_real_plot_plan() {
     let fixture = fixture(true);
-    let body = conduit_body::Body::born(
-        fixture.mask.plot_identity.source_document_id.clone(),
-        fixture.mask.plot_identity.checked_plot_id.clone(),
-        1,
-        SignId::from("sign/body-born"),
-    )
-    .unwrap();
-    let (body, wake) = body.wake(1, SignId::from("sign/body-woke")).unwrap();
+    let body = fixture.body;
+    let wake = fixture.wake;
     let wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![], vec![]).unwrap();
     let scoped = BodyMaskWardrobe::new(body.body_id.clone(), None, wardrobe).unwrap();
     let mut control = MaskWardrobeControl::new(
@@ -328,14 +325,7 @@ fn wardrobe_control_and_inspection_use_one_real_plot_plan() {
 #[test]
 fn unavailable_real_plan_route_truthfully_requests_replacement() {
     let fixture = fixture(false);
-    let body = conduit_body::Body::born(
-        fixture.mask.plot_identity.source_document_id.clone(),
-        fixture.mask.plot_identity.checked_plot_id.clone(),
-        1,
-        SignId::from("sign/unavailable-body-born"),
-    )
-    .unwrap();
-    let body_id = body.body_id;
+    let body_id = fixture.body.body_id;
     let wardrobe = MaskWardrobe::new(
         MaskWardrobeLifetime::Body,
         vec![fixture.mask.plot_identity],

@@ -249,3 +249,76 @@ test("recover refuses retained Plot identities that no longer match canonical ch
   await assert.rejects(recoverBrowserBody({ bridge, host: "host/1", boot: "boot/fresh", membership: { advertisement: () => ({}) }, storage }),
     (error) => error.code === "DurablePlotIdentityMismatch" && error.identities.bootId === "boot/fresh");
 });
+
+test("closing a Body settles admitted selection before fencing stale handles", async () => {
+  const requests = [];
+  const snapshot = bodySnapshot(0);
+  const bridge = {
+    crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+    crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    crecheAttachHere: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    workspaceRequest(request) { requests.push(request); return { status: 0, outputJson: snapshot }; },
+  };
+  const checked = Object.freeze({ schema: "conduit.browser/checked-plot@1", name: "clock", source,
+    documentSource: source, sourceDocumentId: "sha256:source", checkedPlotId: "sha256:checked" });
+  const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1",
+    membership: { advertisement: () => ({}) }, name: "Clock", plots: [checked], sequence: () => 1 });
+  const selection = body.select(checked);
+  const close = body.close();
+  assert.equal(body.close(), close);
+  await selection;
+  await close;
+  assert.deepEqual(requests.find(request => request.action === "SelectPlot").plot,
+    { source_document_id: "sha256:source", checked_plot_id: "sha256:checked" });
+  const count = requests.length;
+  for (const operation of [() => body.current(), () => body.wake(), () => body.select(checked), () => body.install(checked)]) {
+    await assert.rejects(operation, error => error.code === "BodyClosed");
+  }
+  assert.equal(requests.length, count, "closed handles cannot mutate or read the runtime");
+});
+
+test("bundled edits retain reviewed presentation profiles and Patchbay projects exact foreground source", async () => {
+  const original = { slug: "clock", entry: "clock", title: "Clock", source, presentation_profile: 1 };
+  const bundle = JSON.stringify({ schema: "conduit.creche/reviewed-plot-bundle@2", plots: [original] });
+  const added = { ...plot, name: "second", source: "second {}", source_document_id: "source/second", checked_plot_id: "checked/second" };
+  let retained = bundle;
+  let projected;
+  let mismatched = false;
+  const snapshot = bodySnapshot(0);
+  snapshot.foreground = { source_document_id: "sha256:source", checked_plot_id: "sha256:checked" };
+  snapshot.evidence.body.workset.plots.push({ source_document_id: added.source_document_id, checked_plot_id: added.checked_plot_id });
+  const bridge = {
+    crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+    crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    crecheAttachHere: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    crecheReviewedInventory: () => ({ status: 0, outputJson: { plots: [plot, added] } }),
+    workspaceRequest(request) {
+      if (request.action === "ChangeWorkset") retained = request.source;
+      return { status: 0, outputJson: snapshot };
+    },
+    projectPatchbay(input) {
+      projected = input;
+      return { status: 0, outputJson: {
+        schema: "conduit.patchbay/checked-plot-projection@1",
+        source_document_id: mismatched ? added.source_document_id : plot.source_document_id,
+        checked_plot_id: mismatched ? added.checked_plot_id : plot.checked_plot_id,
+        front_inputs: [], front_outputs: [], gears: [], cords: [], realization_gears: [],
+        realization_cords: [], realization_backs: [], diagnostics: [],
+      } };
+    },
+  };
+  const checked = (entry, documentSource) => ({ schema: "conduit.browser/checked-plot@1", name: entry.name, source: entry.source, documentSource,
+    sourceDocumentId: entry.source_document_id, checkedPlotId: entry.checked_plot_id });
+  const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) },
+    name: "Bundle", plots: [checked(plot, bundle)], sequence: () => 1 });
+  const incoming = { slug: "second", entry: "second", source: added.source, presentation_profile: 3 };
+  const incomingBundle = JSON.stringify({ schema: "conduit.creche/reviewed-plot-bundle@2", plots: [incoming] });
+  await body.install(checked(added, incomingBundle));
+  assert.deepEqual(JSON.parse(retained).plots, [original, incoming]);
+  await body.patchbay();
+  assert.equal(projected, source);
+  mismatched = true;
+  await assert.rejects(body.patchbay(), error => error.code === "PatchbayPlotIdentityMismatch");
+  snapshot.foreground = null;
+  await assert.rejects(body.patchbay(), error => error.code === "PatchbayPlotIdentityMismatch");
+});

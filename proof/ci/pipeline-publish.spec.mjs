@@ -144,7 +144,7 @@ test('promotes a release PR and publishes verified artifacts with separate sourc
   assert.equal(manifest.testedSourceSha, source);
   assert.equal(manifest.acceptedMainSha, accepted);
   assert.equal(manifest.targets[0].proofClass, 'executable');
-  assert.equal(await readFile(f.output, 'utf8'), `main-sha=${accepted}\nsource-sha=${source}\n`);
+  assert.equal(await readFile(f.output, 'utf8'), `main-sha=${accepted}\nsource-sha=${source}\nsite-current=true\n`);
   assert.ok(!f.state.calls.some(call => call.includes('--clobber') || call.includes('cargo')));
   assert.ok(!f.state.calls.some(call => call.includes('PATCH') && call[2].includes('git/refs')));
 });
@@ -296,6 +296,7 @@ test('resuming a historical draft preserves the newer latest release', async t =
   await f.publish();
   assert.equal(f.state.releases[0].draft, false);
   assert.equal(f.state.releases[0].make_latest, 'false');
+  assert.match(await readFile(f.output, 'utf8'), /site-current=false\n$/);
   assert.equal(f.state.latestTag, 'release-newer-tested-source');
   assert.equal(f.state.assets.length, 2);
 });

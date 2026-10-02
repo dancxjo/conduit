@@ -458,5 +458,7 @@ type Interval = {
 The law belongs to the type and is enforced when generated bindings construct
 or decode a value. See the real
 [TextSpan declaration](https://github.com/dancxjo/conduit/blob/dev/semantics/language/types.conduit).
-This does not yet mean every consuming plot can erase an arithmetic check from
-that fact; [#4639](https://github.com/dancxjo/conduit/issues/4639) owns that work.
+Completed [#4639](https://github.com/dancxjo/conduit/issues/4639) carries this
+relation into consuming-plot arithmetic proofs: `.end - .start` can be proven
+safe, while `.end + 1` remains checked unless an upper bound justifies it.
+Only operations established safe by the proof lose their runtime check.

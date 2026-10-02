@@ -1,0 +1,54 @@
+{
+  "schema": "conduit.browser/application-package-template@1",
+  "application_id": "conduit.application/clock-lab",
+  "state_compatibility": {
+    "identity": "conduit.application/handbook-state",
+    "version": 1
+  },
+  "host_implementations": [
+    "browser/dom@1",
+    "browser/dom-presentation@1",
+    "browser/indexeddb@1"
+  ],
+  "resources": [
+    {
+      "role": "application-shell",
+      "kind": "content",
+      "path": "index.html",
+      "maximum_bytes": 131072
+    },
+    {
+      "role": "application-module",
+      "kind": "module",
+      "path": "application.mjs",
+      "maximum_bytes": 131072
+    },
+    {
+      "role": "birth-specification",
+      "kind": "content",
+      "path": "birth.json",
+      "maximum_bytes": 131072
+    },
+    {
+      "role": "clock-source",
+      "kind": "content",
+      "path": "clock.conduit",
+      "maximum_bytes": 131072,
+      "source": "../../../../plots/clock/main.conduit"
+    },
+    {
+      "role": "theme",
+      "kind": "style",
+      "path": "conduit.css",
+      "maximum_bytes": 131072,
+      "source": "../../host/assets/conduit.css"
+    },
+    {
+      "role": "site-style",
+      "kind": "style",
+      "path": "chrome.css",
+      "maximum_bytes": 131072,
+      "source": "../../../../site/chrome.css"
+    }
+  ]
+}

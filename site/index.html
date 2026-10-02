@@ -4,118 +4,51 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="Conduit makes one logical computer, a body, from one or many physical and virtual computers.">
-  <title>Conduit · One Program, Many Computers</title>
-  <link rel="stylesheet" href="./conduit.css">
+  <meta name="description" content="Learn what you can do with Conduit, follow recorded user journeys, and try it yourself.">
+  <title>Conduit · Start here</title>
   <link rel="stylesheet" href="./site.css">
 </head>
 <body data-application-theme="conduit.presentation/phosphor@1">
-  <a class="conduit-skip-link" href="#main-content">Skip to main content</a>
-  <!-- conduit-product-masthead -->
-
-  <main id="main-content" tabindex="-1">
-    <section class="hero" aria-labelledby="hero-title">
-      <p class="eyebrow">The body is the computer.</p>
-      <h1 id="hero-title">One Program, Many Computers</h1>
-      <p class="lede">Conduit lets you make a <strong>body</strong>, one logical computer, from the physical and virtual computers you actually have. A body can be one multicore machine or a changing collection of browsers, laptops, VMs, Raspberry Pis, microcontrollers, and other hosts.</p>
-      <p class="lede secondary">Its programs are <strong>plots</strong>: semantic graphs that describe what should happen without welding that meaning to the machines that happen to realize it now.</p>
-      <div class="hero-actions">
-        <a class="primary-action" href="/conduit/journeys/">Follow a real journey</a>
-        <a class="secondary-action" href="/conduit/handbook/">Read the handbook</a>
-        <a class="secondary-action" href="/conduit/workspace/">Open your body</a>
-        <a class="secondary-action" href="#get-conduit">Get Conduit</a>
+  <a class="conduit-skip-link" href="#main-content">Skip to content</a>
+  <!-- conduit-site-navigation -->
+  <main id="main-content" class="site-content" tabindex="-1">
+    <header class="home-intro">
+      <p class="eyebrow">Start here</p>
+      <h1>Put your computers<br>to work together.</h1>
+      <p class="lede">Conduit lets a program run on one computer or across several. A <em>body</em> keeps its identity and work together as you start it, change it, and return to it.</p>
+      <p class="lede">Start by watching someone use it. Then follow the guide or open Conduit and try the same actions yourself.</p>
+      <div class="home-actions"><a class="primary-action" href="/conduit/journeys/">Follow a journey</a><a href="/conduit/handbook/Start-here.html">Get started</a></div>
+    </header>
+    <section aria-labelledby="choose-title">
+      <h2 id="choose-title">Where would you like to start?</h2>
+      <div class="journey-cards">
+        <article class="journey-card"><p class="eyebrow">See it in use</p><h3><a href="/conduit/journeys/">Journeys</a></h3><p>Follow a task from start to finish: what to click or type, what appears, and what happens next. Screenshots and recordings come from the actual run.</p></article>
+        <article class="journey-card"><p class="eyebrow">Learn and look things up</p><h3><a href="/conduit/handbook/">Handbook</a></h3><p>Get started, learn the language, and find explanations of bodies, hosts, and programs. The handbook brings the former wiki into this site.</p></article>
+        <article class="journey-card"><p class="eyebrow">Try it yourself</p><h3><a href="/conduit/workspace/">Open Conduit</a></h3><p>Open the browser workspace to create a body, choose its work, and run it. Come back to the handbook when you need a hand.</p></article>
       </div>
-      <p class="hero-proof-note">Start with something that actually happened. Journeys turn accepted Conduit evidence into short, human-readable stories—and keep every exact receipt close at hand.</p>
     </section>
-
-    <section class="downloads" id="get-conduit" aria-labelledby="downloads-title">
-      <div class="section-heading">
-        <p class="eyebrow">Reviewed releases</p>
-        <h2 id="downloads-title">Run it here. Or boot the whole machine.</h2>
-        <p class="section-copy">These are the generic releases shipped with the current published Crèche. Choose an application host for a computer you already use, or a bootable ConduitOS image for the exact machine profile shown.</p>
-      </div>
-
+    <section id="get-conduit" aria-labelledby="downloads-title">
+      <h2 id="downloads-title">Download Conduit</h2>
+      <p>Choose a host for your operating system, or a ConduitOS image for an emulator. These links open the latest published release archives; extract the archive before running its contents.</p>
       <div class="download-groups">
-        <article class="download-group" aria-labelledby="host-downloads-title">
-          <header>
-            <p class="card-kicker">Existing computer</p>
-            <h3 id="host-downloads-title">Run a Conduit host</h3>
-            <p>Start with your current operating system. The same plots remain portable; this package supplies that platform's implementation.</p>
-          </header>
-          <div class="download-list">
-            <a href="/conduit/workspace/artifacts/conduit-linux-x86_64" download><span><strong>Linux</strong><small>x86_64 executable</small></span><b>Download</b></a>
-            <a href="/conduit/workspace/artifacts/conduit-windows-x86_64.exe" download><span><strong>Windows</strong><small>x86_64 executable</small></span><b>Download</b></a>
-            <a href="/conduit/workspace/artifacts/conduit-macos-aarch64" download><span><strong>macOS</strong><small>Apple silicon executable</small></span><b>Download</b></a>
-            <a href="/conduit/workspace/artifacts/index.html"><span><strong>Browser</strong><small>WASM host page</small></span><b>Open</b></a>
-          </div>
-        </article>
-
-        <article class="download-group" aria-labelledby="os-downloads-title">
-          <header>
-            <p class="card-kicker">Bootable media</p>
-            <h3 id="os-downloads-title">boot ConduitOS</h3>
-            <p>Hybrid ISO disk images built for one exact architecture and machine profile. Virtual-machine profiles require the named emulator and firmware.</p>
-          </header>
-          <div class="download-list">
-            <a href="/conduit/workspace/artifacts/conduitos-x86_64-pc.iso" download><span><strong>PC · x86_64</strong><small>Q35 · UEFI</small></span><b>ISO</b></a>
-            <a href="/conduit/workspace/artifacts/conduitos-ia32-pc.iso" download><span><strong>PC · IA-32</strong><small>Legacy PC profile</small></span><b>ISO</b></a>
-            <a href="/conduit/workspace/artifacts/conduitos-aarch64-virt.iso" download><span><strong>AArch64</strong><small>QEMU virt · UEFI</small></span><b>ISO</b></a>
-            <a href="/conduit/workspace/artifacts/conduitos-riscv64-virt.iso" download><span><strong>RISC-V 64</strong><small>QEMU virt · UEFI</small></span><b>ISO</b></a>
-            <a href="/conduit/workspace/artifacts/conduitos-loongarch64-virt.iso" download><span><strong>LoongArch64</strong><small>QEMU virt · UEFI</small></span><b>ISO</b></a>
-          </div>
-        </article>
+        <section><h3>On your computer</h3><ul class="download-list">
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/hosted-linux.tar.gz">Linux · x86_64</a></li>
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/hosted-windows.tar.gz">Windows · x86_64</a></li>
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/hosted-macos.tar.gz">macOS · Apple silicon</a></li>
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/browser.tar.gz">Browser package</a></li>
+        </ul></section>
+        <section><h3>Boot ConduitOS</h3><ul class="download-list">
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/conduitos-x86_64.tar.gz">PC · x86_64</a></li>
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/conduitos-ia32.tar.gz">PC · IA-32</a></li>
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/conduitos-aarch64.tar.gz">AArch64 · QEMU virt</a></li>
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/conduitos-riscv64.tar.gz">RISC-V 64 · QEMU virt</a></li>
+          <li><a href="https://github.com/dancxjo/conduit/releases/latest/download/conduitos-loongarch64.tar.gz">LoongArch64 · QEMU virt</a></li>
+        </ul></section>
       </div>
-
-      <aside class="download-boundary" aria-label="Download and installation boundary">
-        <strong>Want this body inside it?</strong>
-        <p>These links are generic reviewed releases. <a href="/conduit/workspace/">Birth a body in the Crèche</a> to select plots and prepare body-bound media. Downloading an image is not proof that it booted on your hardware; see the <a href="/conduit/current/conduitos/x86_64/">recorded QEMU journey</a> for the proof we publish today.</p>
-      </aside>
+      <p>For board firmware and the complete inventory, see <a href="https://github.com/dancxjo/conduit/releases/latest">all release files</a>. Read <a href="/conduit/handbook/ConduitOS-and-real-machines.html">the machine guide</a> before booting an image.</p>
     </section>
-
-    <section class="body-contrast" aria-labelledby="body-contrast-title">
-      <div class="section-heading">
-        <p class="eyebrow">Same idea, different scale</p>
-        <h2 id="body-contrast-title">The machine boundary is not the computer boundary.</h2>
-      </div>
-      <div class="body-examples">
-        <article class="body-card">
-          <header><span class="body-mark" aria-hidden="true">◆</span><div><p class="card-kicker">body A</p><h3>One physical computer</h3></div></header>
-          <div class="machine single-machine" role="img" aria-label="One machine with processor lanes, memory, storage, display, and devices"><span>8 CPU lanes</span><span>memory</span><span>storage</span><span>display + devices</span></div>
-          <p>Conduit can schedule several plots against one machine's finite resources. This is the operating-system-shaped case.</p>
-        </article>
-        <article class="body-card">
-          <header><span class="body-mark" aria-hidden="true">◆</span><div><p class="card-kicker">body B</p><h3>Several unlike computers</h3></div></header>
-          <div class="machine-grid" role="img" aria-label="Browser, laptop, virtual machine, and Pico participating in one body"><span>browser</span><span>laptop</span><span>VM</span><span>Pico</span></div>
-          <p>The same scheduling model can place compatible work across hosts and admitted lines. Distribution changes topology and cost, not the identity of the computer.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="model" aria-labelledby="model-title">
-      <div class="section-heading"><p class="eyebrow">A small mental model</p><h2 id="model-title">Programs are plots. The body carries the work.</h2></div>
-      <dl class="concepts">
-        <div><dt>plot</dt><dd>A program: connected semantic work.</dd></div>
-        <div><dt>body</dt><dd>The logical computer, made from one host or many.</dd></div>
-        <div><dt>host</dt><dd>One current running environment offering finite machinery.</dd></div>
-        <div><dt>plan</dt><dd>One exact admitted realization of the body's current work.</dd></div>
-      </dl>
-      <p class="model-copy">A body may run many plots. The architectural direction is one logical scheduler per body, planning all current work together rather than creating a separate scheduling universe for every program.</p>
-    </section>
-
-    <section class="doors" aria-labelledby="doors-title">
-      <div class="section-heading"><p class="eyebrow">One product</p><h2 id="doors-title">Start with the body.</h2><p class="section-copy">With no retained body, this entrance presents bounded setup. After birth, the same surface belongs to the body and its resident plots.</p></div>
-      <div class="door-grid">
-        <a class="door" href="/conduit/handbook/"><span>Learn</span><strong>Guided handbook</strong><p>Read Conduitese in pedagogical order with exact syntax highlighting and connected Plot diagrams.</p></a>
-        <a class="door" href="/conduit/workspace/"><span>Begin or return</span><strong>Your body</strong><p>Create it when no body is retained, then use, inspect, change, invite hosts to, lull, and wake that same body.</p></a>
-        <a class="door" href="/conduit/current/conduitos/x86_64/"><span>See it run</span><strong>ConduitOS journey</strong><p>Walk through the real QEMU acceptance checkpoints, from boot to Patchbay.</p></a>
-        <a class="door" href="/conduit/current-product.html"><span>Inspect</span><strong>Current product truth</strong><p>Compare development, accepted release, published Pages, and their exact proof receipts.</p></a>
-        <a class="door" href="https://github.com/dancxjo/conduit"><span>Build</span><strong>Source</strong><p>Read the repository, code, architecture, and contribution guide.</p></a>
-        <a class="door" href="https://github.com/dancxjo/conduit/blob/main/STATUS.md"><span>Verify</span><strong>What works today?</strong><p>See the exact accepted proof boundary before making a capability claim.</p></a>
-      </div>
-      <p class="model-copy">The tutorial and zero-body setup now belong to this body-centered surface. A temporary <a href="/conduit/patchbay/">standalone Patchbay</a> compatibility entrance remains available while that final product boundary converges.</p>
-    </section>
+    <section class="home-next" aria-labelledby="more-title"><h2 id="more-title">Go further</h2><p><a href="/conduit/handbook/Why-Conduit.html">Why Conduit?</a> explains the idea. <a href="/conduit/handbook/Conduitese-by-example.html">Conduitese by example</a> introduces writing programs. <a href="/conduit/handbook/Glossary.html">The glossary</a> explains unfamiliar words.</p><p>Conduit is experimental. Check <a href="/conduit/current-product.html">release and publication status</a> and the <a href="https://github.com/dancxjo/conduit/blob/main/STATUS.md">capability summary</a> for what currently works.</p></section>
   </main>
-
-  <footer><p>Conduit is experimental. The site explains the direction; <a href="https://github.com/dancxjo/conduit/blob/main/STATUS.md">STATUS.md</a> says what has actually been proved.</p></footer>
+  <footer class="site-content site-footer"><a href="https://github.com/dancxjo/conduit">Source and contributions</a> · <a href="/conduit/handbook/">Documentation</a></footer>
 </body>
 </html>

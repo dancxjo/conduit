@@ -38,6 +38,17 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Static browser applications (#4804):** `cargo xtask make body static`
+  packages the Handbook or another application as ordinary static files. The
+  Handbook uses the public Browser SDK to birth/recover an application-scoped
+  local body, run checked examples, edit with native live syntax highlighting,
+  and inspect the current resident Patchbay graph. Local Chromium acceptance
+  covers source replacement, reload/restart, independent browser profiles,
+  same-origin application isolation, tab ownership, and reset. New body identity
+  derivation includes its birth sign; retained legacy identities remain valid.
+  Protected integration, stable publication, and public verification remain
+  required before #4804 is complete.
+
 - **Native semantic Types and compact Forms (#4382, #4428):**
   Conduitese owns nominal scalar, record, variant, optional, data-reference,
   bounded-sequence, and refined primitive meaning. Rust bindings are generated

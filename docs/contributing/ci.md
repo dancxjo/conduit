@@ -86,10 +86,16 @@ creating a release, so a later workflow change on dev does not require granting
 the publisher permission to edit workflows. GitHub retains the complete run and
 check identities.
 
-This software release path does not regenerate documentary journeys or replace
-the existing `gh-pages` site. That separately retained evidence must not be
-relabelled as proof for a new software release. Tested browser products are
-included in the release bundle alongside the other targets.
+The browser lane assembles and checks the public website, including the tested
+Workspace and fresh Field Station Clock screenshots. Its sealed receipt includes
+the site and desktop/mobile browser checks. Publication deploys those same bytes
+to GitHub Pages after release acceptance; resuming an older release cannot replace
+the current site. No website build runs during publication.
+
+Older Three Bodies and technical recordings retain their original identities,
+media, and explicit capture limits. Updating their presentation does not turn
+them into execution proof for the new release. The website publication manifest
+records current source and retained history separately.
 
 ## Operation and validation
 
