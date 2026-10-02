@@ -34,10 +34,11 @@ fn every_pcm_representation_maps_losslessly_to_the_generic_clock_contract() {
         assert_eq!(signal.start, SignalStart::at_sample(120));
         assert_eq!(
             signal.cadence,
-            SignalCadence::Regular {
-                samples: 48_000,
-                per: conduit_core::Quantity::new(1, conduit_core::QuantityUnit::Second)
-            }
+            SignalCadence::regular(
+                conduit_core::Quantity::new(1, conduit_core::QuantityUnit::Second),
+                48_000,
+            )
+            .unwrap()
         );
         assert_eq!(signal.samples.element, element);
         assert_eq!(signal.samples.axes[0].role, TensorAxisRole::Time);

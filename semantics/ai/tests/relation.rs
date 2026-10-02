@@ -132,10 +132,11 @@ fn signal(byte: u8) -> SampledSignal {
     SampledSignal {
         clock_identity: "corpus/aligned".into(),
         start: SignalStart::at_sample(0),
-        cadence: SignalCadence::Regular {
-            samples: 1,
-            per: conduit_core::Quantity::new(1, conduit_core::QuantityUnit::Millisecond),
-        },
+        cadence: SignalCadence::regular(
+            conduit_core::Quantity::new(1, conduit_core::QuantityUnit::Millisecond),
+            1,
+        )
+        .unwrap(),
         sample_count: 3,
         continuity: SignalContinuity::Continuous,
         samples: TensorValue {

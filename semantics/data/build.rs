@@ -44,7 +44,11 @@ fn main() {
             rust_type_path: "conduit_time::NativeTemporalInstant",
         }],
         &RustBindingOptions {
-            boxed_variant_payloads: ["TabularQueryOutcomeFour.inline".into()].into(),
+            boxed_variant_payloads: [
+                "SignalCadence.irregular".into(),
+                "TabularQueryOutcomeFour.inline".into(),
+            ]
+            .into(),
             copy_record_types: [
                 "DataGenerationNamespace".into(),
                 "MeasurementPlotPoint".into(),
@@ -58,6 +62,7 @@ fn main() {
                 "DataGenerationDigest".into(),
                 "DatasetExampleIdentity".into(),
                 "ScientificObservationIdentity".into(),
+                "SignalIdentity".into(),
                 "TensorResourceIdentity".into(),
             ]
             .into(),
@@ -65,6 +70,7 @@ fn main() {
                 "DataGenerationDigest".into(),
                 "DatasetExampleIdentity".into(),
                 "ScientificObservationIdentity".into(),
+                "SignalIdentity".into(),
                 "TensorResourceIdentity".into(),
             ]
             .into(),
@@ -72,6 +78,7 @@ fn main() {
             public_record_fields: [
                 "DatasetDescriptor".into(),
                 "DatasetSplitMembership".into(),
+                "ConcatenatedSignal".into(),
                 "MeasurementHysteresisProfile".into(),
                 "MeasurementPlotProfile".into(),
                 "MeasurementRange".into(),
@@ -81,6 +88,7 @@ fn main() {
                 "MeasurementWindowProfile".into(),
                 "SignalWindow".into(),
                 "SignalSummary".into(),
+                "SampledSignal".into(),
                 "TensorAxis".into(),
                 "TensorSummary".into(),
                 "TensorValue".into(),

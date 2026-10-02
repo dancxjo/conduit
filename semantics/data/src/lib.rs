@@ -8,11 +8,11 @@ mod generated {
 }
 
 pub use generated::{
-    ClockRelation, ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationDigest,
-    DataGenerationNamespace, DataGenerationNamespaceRefusal, DataGenerationTextValue,
-    DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal, DataSaveTextTerminal,
-    DataSaveTextTerminalCode, DatasetDescriptor, DatasetExampleIdentity, DatasetExamplePage,
-    DatasetSplitMembership, FileCopyOutcome, FileCopyResult, FullWindowPolicy,
+    ClockRelation, ClockRelationQuality, ClockRelationQualityEstimated, ConcatenatedSignal,
+    DataGenerationDigest, DataGenerationNamespace, DataGenerationNamespaceRefusal,
+    DataGenerationTextValue, DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal,
+    DataSaveTextTerminal, DataSaveTextTerminalCode, DatasetDescriptor, DatasetExampleIdentity,
+    DatasetExamplePage, DatasetSplitMembership, FileCopyOutcome, FileCopyResult, FullWindowPolicy,
     FullWindowPolicyCode, MathScalarRefusal, MeasurementHysteresisProfile,
     MeasurementPlotOverflowPolicy, MeasurementPlotPoint, MeasurementPlotProfile,
     MeasurementPlotRefusal, MeasurementPlotSeries, MeasurementRange, MeasurementSample,
@@ -21,16 +21,17 @@ pub use generated::{
     MeasurementThresholdStateCode, MeasurementThresholdTransition, MeasurementWindowProfile,
     MeasurementWindowRefusal, NormalizedQuantityRefusal, ObservationProvenance,
     ObservationProvenanceDerived, ObservationProvenanceMeasured, QuantityMappingRefusal,
-    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
+    QuantizationPolicy, RangePolicy, SampledSignal, SampledSignalRefusal, ScalarComparison,
     ScientificAlignmentRefusal, ScientificAlignmentRefusalObservation, ScientificCorpusRefusal,
     ScientificCorpusRefusalObservation, ScientificObservationIdentity,
-    ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
-    SignalContinuityDiscontinuous, SignalStart, SignalStartInstant, SignalStartSampleIndex,
-    SignalSummary, SignalWindow, TabularColumnSpec, TabularColumnType, TabularOptionalText,
-    TabularPersonRow, TabularPersonRowSlot, TabularPersonRowsFour, TabularQueryCompletion,
-    TabularQueryError, TabularQueryOutcomeFour, TabularQueryResultFour, TabularQueryStatus,
-    TabularSchemaFour, TensorAxis, TensorAxisRole, TensorAxisRoleOther, TensorBacking,
-    TensorElement, TensorRefusal, TensorResourceIdentity, TensorSummary, TensorValue,
+    ScientificObservationRefusal, SignalCadence, SignalCadenceIrregular, SignalCadenceRegular,
+    SignalContinuity, SignalContinuityClockReset, SignalContinuityDiscontinuous, SignalIdentity,
+    SignalStart, SignalStartInstant, SignalStartSampleIndex, SignalSummary, SignalWindow,
+    TabularColumnSpec, TabularColumnType, TabularOptionalText, TabularPersonRow,
+    TabularPersonRowSlot, TabularPersonRowsFour, TabularQueryCompletion, TabularQueryError,
+    TabularQueryOutcomeFour, TabularQueryResultFour, TabularQueryStatus, TabularSchemaFour,
+    TensorAxis, TensorAxisRole, TensorAxisRoleOther, TensorBacking, TensorElement, TensorRefusal,
+    TensorResourceIdentity, TensorSummary, TensorValue,
 };
 
 mod data_catalog;

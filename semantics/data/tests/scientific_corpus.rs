@@ -89,10 +89,7 @@ fn signal(clock: &str, channels: u64, value: f32) -> SampledSignal {
     SampledSignal {
         clock_identity: clock.into(),
         start: SignalStart::at_sample(0),
-        cadence: SignalCadence::Regular {
-            samples: 100,
-            per: Quantity::new(1, QuantityUnit::Second),
-        },
+        cadence: SignalCadence::regular(Quantity::new(1, QuantityUnit::Second), 100).unwrap(),
         sample_count: 2,
         continuity: SignalContinuity::Continuous,
         samples: f32_tensor(

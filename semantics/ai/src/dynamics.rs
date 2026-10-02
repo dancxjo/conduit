@@ -347,9 +347,10 @@ impl IntegrationCandidate {
         {
             return Err(DynamicsRefusal::InvalidTrajectory);
         }
-        let SignalCadence::Irregular { coordinates } = &self.trajectory.cadence else {
+        let SignalCadence::Irregular(irregular) = &self.trajectory.cadence else {
             return Err(DynamicsRefusal::InvalidTrajectory);
         };
+        let coordinates = irregular.coordinates();
         let expected_coordinates = contract
             .sampling
             .coordinates

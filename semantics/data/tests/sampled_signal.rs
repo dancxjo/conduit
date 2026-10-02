@@ -7,10 +7,7 @@ fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
     SampledSignal {
         clock_identity: clock.into(),
         start: SignalStart::at_sample(start),
-        cadence: SignalCadence::Regular {
-            samples: 100,
-            per: Quantity::new(1, QuantityUnit::Second),
-        },
+        cadence: SignalCadence::regular(Quantity::new(1, QuantityUnit::Second), 100).unwrap(),
         sample_count: count,
         continuity: SignalContinuity::Continuous,
         samples: TensorValue {
@@ -66,7 +63,7 @@ fn concatenation_requires_exact_contiguity_and_compatible_descriptors() {
     let second = signal("clock/ema", 4, 4, 2);
     let joined = concatenate(&[first.clone(), second.clone()]).unwrap();
     assert_eq!(joined.sample_count, 8);
-    assert_eq!(joined.sample_shape, [2]);
+    assert_eq!(joined.sample_shape.as_slice(), [2]);
     assert_eq!(joined.source_parts.len(), 2);
     let mut gap = second.clone();
     gap.start = SignalStart::at_sample(5);
