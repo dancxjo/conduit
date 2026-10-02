@@ -4,7 +4,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_data::{SampledSignal, TensorValue};
 
 use crate::{
-    ModelValueConstraint, ProbabilisticDisposition, RandomnessProfile, RelationQueryMode,
+    ModelValueConstraint, RandomnessProfile, RelationCandidateOutput, RelationQueryMode,
     RelationRefusal, RelationResultProfile, RelationTerminal, RelationVariableIdentities,
     RelationVariableIdentity, SupportedRelationQuery,
 };
@@ -76,14 +76,6 @@ pub struct RelationCandidate {
     pub consumed_work_units: u64,
     pub encoded_output_bytes: u64,
     pub realization: RelationRealization,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RelationCandidateOutput {
-    pub target_variable: String,
-    pub value_identity: [u8; 32],
-    pub disposition: ProbabilisticDisposition,
-    pub sample_count: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -200,6 +200,15 @@ fn main() {
                     ],
                 ),
                 (
+                    "RelationCandidateOutput".into(),
+                    vec![
+                        "target_variable".into(),
+                        "value_identity".into(),
+                        "disposition".into(),
+                        "sample_count".into(),
+                    ],
+                ),
+                (
                     "RetrieverIdentity".into(),
                     vec!["identity".into(), "mechanism".into()],
                 ),
