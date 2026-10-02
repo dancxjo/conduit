@@ -23,7 +23,7 @@ use this resident owner rather than carrying private layout implementations.
 The installed product entrance is now simply `conduit`; Patchbay is not a
 separate product command. See the
 [current graphical ConduitOS journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
-for native Patchbay in use, or the [visual evidence guide](../../docs/visual-evidence.md)
+for native Patchbay in use, or the [visual evidence guide](../../../docs/visual-evidence.md)
 for browser captures and provenance.
 
 Patchbay is a resident inspect/edit/debug Plot over authoritative plot, plan,

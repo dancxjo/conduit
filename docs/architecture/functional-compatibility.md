@@ -168,7 +168,7 @@ Do not infer compatibility from declaration order, friendly names alone, or impl
 
 Catalog categories such as `text/`, `time/`, `flow/`, `web/`, or `llm/` remain useful organization and opt-in packaging boundaries.
 
-A host may advertise named kinds for discovery and signs, but planning eligibility is based on their checked fores plus other explicit planning requirements. Category prefixes and kind names do not plot a nominal type hierarchy.
+A host may advertise named kinds for discovery and signs, but planning eligibility is based on their checked fores plus other explicit planning requirements. Category prefixes and kind names do not form a nominal type hierarchy.
 
 A host compiled with an opt-in family still advertises only the exact realizations it can currently promise. Functional compatibility does not weaken runtime truth or finite limits.
 

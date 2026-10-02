@@ -19,10 +19,12 @@ A language rule changes when:
 4. implementation and migration work is scoped separately where needed
 
 Parser acceptance alone does not establish canonicality. An open proposal does
-not become implemented grammar because a learning page uses it. For example,
-[#4513](https://github.com/dancxjo/conduit/issues/4513) proposes executable
-`plot` → `plot` and representation `code` → `plot`; current source remains
-`plot` and `code` until the coordinated migration lands.
+not become implemented grammar because a learning page uses it. The paired
+vocabulary amendment in [#4513](https://github.com/dancxjo/conduit/issues/4513)
+was implemented by [#4800](https://github.com/dancxjo/conduit/pull/4800):
+executable `form` became `plot`, and representation `code` became `form`.
+Current development source uses `plot` and `form`; the former declaration
+spellings are rejected. Stable-release acceptance remains a separate claim.
 
 ## Review meaning and proof
 

@@ -14,8 +14,8 @@ the browser import the data through its admitted application package. The
 portable Rust model reads that same literal without a JavaScript interpreter.
 The catalog is authored source, not a generated native copy.
 
-The SHA-256 domain, JSON seed encoding, stock order, plot weights, and unsigned
-32-bit selection words retain the existing browser behavior. Suggestions fit
+The SHA-256 domain, JSON seed encoding, stock order, naming-pattern weights, and
+unsigned 32-bit selection words retain the existing browser behavior. Suggestions fit
 64 UTF-8 bytes, with at most 16 derivation attempts. Names are collision-tolerant
 metadata. Stock components stay within their named traditions; the original
 Elvish-inspired material is explicitly fantasy, not a historical naming claim.

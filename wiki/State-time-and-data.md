@@ -19,7 +19,7 @@ T...|   a closing flow
 $T      a current retained value
 ```
 
-Optionality composes with these plots, so `T?` and `$T?` remain distinct.
+Optionality composes with these temporal shapes, so `T?` and `$T?` remain distinct.
 
 ## keep means retained current truth
 

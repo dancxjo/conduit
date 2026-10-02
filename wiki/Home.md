@@ -56,9 +56,11 @@ product truth are separate; check the
 [current product surface](https://dancxjo.github.io/conduit/current-product.html)
 for exact identities.
 
-These pages teach current executable `plot` and `code` spelling. The
-`plot`/`plot` reassignment in [#4513](https://github.com/dancxjo/conduit/issues/4513)
-is a proposal, not a parser feature.
+These pages teach the implemented development vocabulary: executable `plot`
+and portable representation `form`. The paired migration in
+[#4800](https://github.com/dancxjo/conduit/pull/4800) landed on `dev`; former
+executable `form` and representation `code` declarations are rejected.
+Published products may still lag that development surface.
 
 The wiki is published from
 [`wiki/` on `dev`](https://github.com/dancxjo/conduit/tree/dev/wiki).

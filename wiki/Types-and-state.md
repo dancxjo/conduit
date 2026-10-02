@@ -16,7 +16,7 @@ The runtime promise is different:
 
 > **Semantic domains may be unbounded; execution resources may not be.**
 
-An actual value must still be representable by the selected code/back and admitted within finite resource envelopes. A semantically valid value that a particular host cannot represent is a representation/admission problem, not a reason to lie about the type's meaning.
+An actual value must still be representable by the selected form/back and admitted within finite resource envelopes. A semantically valid value that a particular host cannot represent is a representation/admission problem, not a reason to lie about the type's meaning.
 
 Variable-sized values and collections still need finite execution bounds. For example:
 
@@ -267,7 +267,7 @@ An empty sequence is a real zero-item sequence, not a fixed storage vector padde
 
 Encoding/validation must carry exact sequence type/bounds and actual item count, and remain allocation-free-capable for constrained targets.
 
-Exact authored sequence syntax beyond the accepted structural plots remains subject to parser/canon conformance; do not invent a second collection language.
+Exact authored sequence syntax beyond the accepted structural syntax remains subject to parser/canon conformance; do not invent a second collection language.
 
 Provenance: #3717, structured-info ancestry #1386/#1387.
 

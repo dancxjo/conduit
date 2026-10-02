@@ -5,6 +5,12 @@ checkpoints. They are not current setup instructions or a list of unfinished
 work. Use [current status](../../STATUS.md), the [roadmap](../roadmap.md), and
 [architecture reference](../architecture/README.md) for present work.
 
+Retained records may use `form` for an executable program and `code` for a
+portable representation. Current source calls those `plot` and `form`,
+respectively; see the [language migration audit](../architecture/plot-form-language-migration.md).
+Historical syntax, identifiers, paths, and receipts remain evidence of their
+named checkpoints, not aliases accepted by the current language.
+
 ## Acceptance and CI
 
 - [Recorded acceptance milestones](accepted-milestones.md): exact receipts and checkpoint-specific limits
@@ -33,7 +39,7 @@ Current PR and release procedures have one home in the
 
 - [Native shell](architecture/native-patchbay-shell.md)
 - [Topology projection](architecture/native-patchbay-topology.md)
-- [Form editor](architecture/native-patchbay-form-editor.md)
+- [Plot editor (historical “form editor”)](architecture/native-patchbay-form-editor.md)
 - [Plan and play control](architecture/native-patchbay-control.md)
 - [Primitive GUI](architecture/native-patchbay-gui.md)
 

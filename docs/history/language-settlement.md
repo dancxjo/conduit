@@ -9,6 +9,8 @@ Current language authority and amendment rules live in the
 [handbook governance page](../../wiki/Canon-governance.md). Use
 [STATUS](../../STATUS.md) for current capability and proof limits. The record
 below preserves its original terminology, rules, and provenance.
+In current source, executable `form` is `plot` and representation `code` is
+`form`; see the [language migration audit](../architecture/plot-form-language-migration.md).
 
 ---
 

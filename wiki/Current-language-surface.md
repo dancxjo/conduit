@@ -1,7 +1,8 @@
 # Current language surface
 
 This reference describes the checked development surface reviewed on
-**1 October 2026**. Source tests linked below establish grammar and checking;
+**1 October 2026**, with the Plot/Form vocabulary reviewed on **2 October 2026**.
+Source tests linked below establish grammar and checking;
 target tests establish the named execution paths. Published products can lag
 `dev`. Detailed semantic laws live on the topic pages in the sidebar.
 
@@ -12,7 +13,8 @@ target tests establish the named execution paths. Published products can lag
 - `form` declares a portable representation, separate from type identity
 - `host`, `body`, and `pack` declare construction or shipment truth, not live runtime state
 
-The paired `form` to `plot` and `code` to `form` migration is canonical.
+The paired executable `form` to `plot` and representation `code` to `form`
+migration is implemented on `dev` by [#4800](https://github.com/dancxjo/conduit/pull/4800).
 Both former declaration spellings are rejected rather than retained as aliases. See the
 [parser](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/surface_parser.rs)
 and [syntax tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/syntax_check_tests.rs).

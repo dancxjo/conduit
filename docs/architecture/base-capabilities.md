@@ -12,7 +12,7 @@ authority after plan and play admission.
 
 `conduit-core::BaseCapabilityTable` supplies the shared contract. Its issuer
 owns private key material and a bounded table. `BaseCapabilityHandle` has no
-public constructor, serialization, or bearer-revealing debug plot. Patchbay,
+public constructor, serialization, or bearer-revealing debug representation. Patchbay,
 signs, and logs may expose `CapabilityPossessionId`, exact scope, lifecycle, and
 accounting, but never bearer bytes or issuer key material.
 
