@@ -1,0 +1,317 @@
+{
+  "schema": "conduit.evidence/semantic-journey-contract@4",
+  "journey_id": "orifina/tutorial@1",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "actions": [
+    {
+      "action_id": "journey.bootstrap",
+      "action": "bootstrap",
+      "title": "Begin with no Body",
+      "what_happened": "One exact Host boot began a bounded bootstrap from truthful zero-Body state.",
+      "what_conduit_established": "Absence and the start of bootstrap were both retained, rather than inferred from later Birth.",
+      "concepts": [
+        "Body",
+        "Host",
+        "Boot"
+      ],
+      "required_receipt_assertions": [
+        "body-absent",
+        "bootstrap-started"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "journey.birth",
+      "action": "birth",
+      "title": "Birth and become usable",
+      "what_happened": "The bootstrap created a new Body and admitted its first wake.",
+      "what_conduit_established": "Birth and usability are exact lifecycle truth for this independent Body.",
+      "concepts": [
+        "Body",
+        "Wake",
+        "Sign"
+      ],
+      "required_receipt_assertions": [
+        "body-born",
+        "body-awake"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "journey.useful-work",
+      "action": "useful-work",
+      "title": "Do useful work",
+      "what_happened": "The Body exercised already admitted semantic work.",
+      "what_conduit_established": "An exact Plan and Play performed useful work; embodiment-specific inspection or revision may remain in detailed receipts.",
+      "concepts": [
+        "Body",
+        "Form",
+        "Plan",
+        "Play"
+      ],
+      "required_receipt_assertions": [
+        "standing-form-used"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-initial-show",
+      "action": "mask-inspect-initial-show",
+      "title": "Inspect the initial Show",
+      "what_happened": "The Body inspected its exact current Face, Mask route, Plan, and Show.",
+      "what_conduit_established": "The initial human-facing realization is producer evidence, not an inferred screenshot label.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.inspect-initial-show"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.wear-alternate",
+      "action": "mask-wear-alternate",
+      "title": "Wear an alternate Mask",
+      "what_happened": "The Body made a second ordinary Mask Form eligible in its revisioned wardrobe.",
+      "what_conduit_established": "Eligibility changed without mutating the immutable body-wide Plan.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.wear-alternate"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.prefer-alternate",
+      "action": "mask-prefer-alternate",
+      "title": "Prefer the alternate Mask",
+      "what_happened": "The Body preferred and selected an already-sealed alternate Mask route.",
+      "what_conduit_established": "Selection changed under the same body-wide Plan; no unsealed route was invented.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.prefer-alternate"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.withdraw-selected-route",
+      "action": "mask-withdraw-selected-route",
+      "title": "Withdraw the selected route",
+      "what_happened": "The selected sealed Mask route became unavailable.",
+      "what_conduit_established": "The Body retained NoShow rather than silently retaining an unavailable realization.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.withdraw-selected-route"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-unavailable-show",
+      "action": "mask-inspect-unavailable-show",
+      "title": "Inspect truthful unavailability",
+      "what_happened": "The Body inspected the interval in which no worn Mask was realizable.",
+      "what_conduit_established": "Lack of Show remained distinct from Face truth and from authority to replan.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.inspect-unavailable-show"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.add-face-host",
+      "action": "mask-add-face-host",
+      "title": "Add a Face Host",
+      "what_happened": "A new Host or Boot offered a possible Mask realization.",
+      "what_conduit_established": "Availability alone did not mutate the old Plan or create a Show.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.add-face-host"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.admit-replacement-plan",
+      "action": "mask-admit-replacement-plan",
+      "title": "Admit a replacement Plan",
+      "what_happened": "Authorized planning admitted a distinct body-wide replacement Plan.",
+      "what_conduit_established": "The replacement is a new immutable identity, not disguised same-Plan fallback.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.admit-replacement-plan"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-replanned-show",
+      "action": "mask-inspect-replanned-show",
+      "title": "Inspect the replanned Show",
+      "what_happened": "The Body inspected the Show realized by the replacement Plan.",
+      "what_conduit_established": "Face identity remained stable while realization identity changed.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.inspect-replanned-show"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.doff-alternate",
+      "action": "mask-doff-alternate",
+      "title": "Doff the alternate Mask",
+      "what_happened": "The Body removed the alternate Mask from its eligible wardrobe.",
+      "what_conduit_established": "A doffed Mask could not remain selected merely because its Back stayed available.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.doff-alternate"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-restored-show",
+      "action": "mask-inspect-restored-show",
+      "title": "Inspect the restored Show",
+      "what_happened": "The Body inspected its restored original Mask under the replacement Plan.",
+      "what_conduit_established": "The journey ended with exact Mask, route, Plan, and Show correlation.",
+      "concepts": [
+        "Body",
+        "Face",
+        "Mask",
+        "Plan",
+        "Show"
+      ],
+      "required_receipt_assertions": [
+        "mask-mask.inspect-restored-show"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "journey.break-recover",
+      "action": "break-and-recover",
+      "title": "Break and recovery outcome",
+      "what_happened": "The Body retained a real failure or refusal, plus an independently evidenced recovery where one existed.",
+      "what_conduit_established": "Failure remained failure; no later success was relabeled as recovery for a different obligation.",
+      "concepts": [
+        "Body",
+        "Refusal",
+        "Plan",
+        "Play"
+      ],
+      "required_receipt_assertions": [
+        "fault-observed"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    },
+    {
+      "action_id": "journey.rest-finish",
+      "action": "rest-and-finish",
+      "title": "Rest and finish",
+      "what_happened": "Explicit lifecycle actions ended the wake and then the Body biography.",
+      "what_conduit_established": "Lulled and Fulfilled remained distinct, ordered terminal truths.",
+      "concepts": [
+        "Body",
+        "Wake",
+        "Fulfilled"
+      ],
+      "required_receipt_assertions": [
+        "body-lulled",
+        "body-fulfilled"
+      ],
+      "non_claims": [
+        "not-body-identity-equality",
+        "not-pixel-wording-or-timing-equality"
+      ]
+    }
+  ]
+}

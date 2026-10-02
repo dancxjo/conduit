@@ -1,0 +1,21 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "hosted-generative",
+  "step_id": "mask.action-7",
+  "assertion": "mask-mask.inspect-replanned-show",
+  "source_facts": {
+    "action_id": "mask.inspect-replanned-show",
+    "concrete_event": "replacement ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show",
+    "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+    "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+    "receipt_ids": [
+      "artifact/wav/8053d103c2b2ae8baf666c23ee94b77f7d5b7b3229fa39fbfdf9aada117a0cf5",
+      "8053d103c2b2ae8baf666c23ee94b77f7d5b7b3229fa39fbfdf9aada117a0cf5",
+      "d4fa0b818cc53d46570b74f19736d94852da2f9550e4f825fb15a53b42fab474"
+    ],
+    "selected_mask_form_id": "405f019d2497f5cad2cf4d550faa8e9c5fbe16eacf91684596e0f7f167416016",
+    "selected_route_id": "route/orifina-spoken-replacement-plan/0",
+    "show_id": "show/4189952b0098014781f739659b796077f0974c2459204e4b829f9be4dc96e00f"
+  }
+}
