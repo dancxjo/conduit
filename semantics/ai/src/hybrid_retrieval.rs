@@ -110,7 +110,14 @@ impl HybridFusionPolicy {
                     .select(intent)
                     .map_err(HybridRetrievalRefusal::TemporalSelection)?
                 {
-                    TemporalEvidenceSelection::Selected { identities } => Some(identities),
+                    TemporalEvidenceSelection::Selected(payload) => Some(
+                        payload
+                            .identities()
+                            .get()
+                            .iter()
+                            .map(|identity| identity.get().clone())
+                            .collect::<Vec<_>>(),
+                    ),
                     TemporalEvidenceSelection::NeedEarlierHistory => {
                         return Ok(HybridRetrievalOutcome::NeedEarlierHistory)
                     }

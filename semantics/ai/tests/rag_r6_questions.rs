@@ -10,8 +10,8 @@ use conduit_ai::{
     RerankingStrategy, RetrievalIntentIdentity, RetrievalMechanism, RetrievalMode, RetrievalModes,
     RetrievalStage, RetrieverIdentity, SourceRef, SourceSpan, SourceSpanUnit, StageCandidate,
     StructuredContext, TemporalContext, TemporalEvidenceBatch, TemporalEvidenceCandidate,
-    TemporalProvenance, TemporalReference, TemporalRetrievalIntent, TemporalSource,
-    TemporalValidity, TransformProfiles,
+    TemporalEvidenceCandidates, TemporalEvidenceIdentity, TemporalProvenance, TemporalReference,
+    TemporalRetrievalIntent, TemporalSource, TemporalValidity, TransformProfiles,
 };
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
@@ -172,18 +172,20 @@ fn temporal_evidence(case: &QueryCase) -> TemporalEvidenceBatch {
             reference_at: DECISION_AT,
             clock_basis: ClockBasis::UnixEpochMilliseconds,
         },
-        candidates: case
-            .evidence
-            .iter()
-            .map(|item| TemporalEvidenceCandidate {
-                identity: item.label.into(),
-                provenance: item.provenance.clone(),
-                source: TemporalSource::Event,
-                boundary: item.boundary,
-                transition: None,
-                validity: item.validity,
-            })
-            .collect(),
+        candidates: TemporalEvidenceCandidates::new(
+            BoundedSequence::try_from_iter(case.evidence.iter().map(|item| {
+                TemporalEvidenceCandidate {
+                    identity: TemporalEvidenceIdentity::new(item.label.into()).unwrap(),
+                    provenance: item.provenance.clone(),
+                    source: TemporalSource::Event,
+                    boundary: item.boundary,
+                    transition: None,
+                    validity: item.validity,
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap(),
         earliest_history_complete: true,
     }
 }
@@ -480,8 +482,18 @@ fn all_six_query_classes_retain_bounded_machine_readable_explanations() {
     assert_eq!(receipts[2].context.items[0].temporal.as_ref().unwrap().evidence_identity, "docs/origin");
     assert_eq!(receipts[2].context.items[0].temporal.as_ref().unwrap().provenance.age(TemporalSource::Event), Ok(900));
     assert_eq!(receipts[3].context.items[0].temporal.as_ref().unwrap().context.validity, TemporalValidity::Historical);
-    assert!(receipts[4].temporal_evidence.candidates.iter().any(|item| item.validity == TemporalValidity::Current));
-    assert!(receipts[4].temporal_evidence.candidates.iter().any(|item| item.validity == TemporalValidity::Superseded));
+    assert!(receipts[4]
+        .temporal_evidence
+        .candidates
+        .get()
+        .iter()
+        .any(|item| item.validity == TemporalValidity::Current));
+    assert!(receipts[4]
+        .temporal_evidence
+        .candidates
+        .get()
+        .iter()
+        .any(|item| item.validity == TemporalValidity::Superseded));
     assert!(receipts[4].context.items.iter().any(|item| item.temporal.as_ref().unwrap().context.validity == TemporalValidity::UnknownWhetherCurrent));
     assert!(matches!(
         receipts[4].context.disposition,

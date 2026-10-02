@@ -82,6 +82,9 @@ fn main() {
                 "ExtractionValue".into(),
                 "FiniteF32".into(),
                 "NonnegativeFiniteF32".into(),
+                "TemporalEvidenceCandidates".into(),
+                "TemporalEvidenceIdentities".into(),
+                "TemporalEvidenceIdentity".into(),
             ]
             .into(),
             serde_variant_exclusions: [
@@ -108,6 +111,8 @@ fn main() {
                 "SourceExtractionLimits".into(),
                 "TemporalReference".into(),
                 "TemporalProvenance".into(),
+                "TemporalEvidenceBatch".into(),
+                "TemporalEvidenceCandidate".into(),
                 "TemporalRetrievalWindow".into(),
             ]
             .into(),
@@ -164,6 +169,8 @@ fn main() {
                 "SourceRef".into(),
                 "TemporalReference".into(),
                 "TemporalProvenance".into(),
+                "TemporalEvidenceBatch".into(),
+                "TemporalEvidenceCandidate".into(),
                 "ValidatedExtraction".into(),
             ]
             .into(),
