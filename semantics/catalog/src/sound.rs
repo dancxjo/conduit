@@ -1,4 +1,7 @@
 //! Host-neutral sound/music semantic waist.
+#[path = "sound_stream_bounds.rs"]
+mod stream_bounds;
+pub use stream_bounds::*;
 
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
@@ -58,11 +61,11 @@ pub const SYNTH_LFO_RATE_KEY: &str = "lfo-rate-millihertz";
 pub const SYNTH_LFO_DEPTH_KEY: &str = "lfo-depth-q16";
 pub const SYNTH_MASTER_GAIN_KEY: &str = "master-gain-q16";
 pub const SYNTH_STEAL_POLICY_KEY: &str = "voice-steal-policy";
-pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
+pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@2";
 pub const AUDIO_CAPTURE_PUSH_TO_TALK_REVISION: &str = "conduit.std/audio-capture-push-to-talk@1";
 pub const AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS_KEY: &str = "maximum-turn-millis";
 pub const AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS: u64 = 15_000;
-pub const AUDIO_CONVERT_PCM_PROFILE_REVISION: &str = "conduit.std/audio-convert-pcm-profile@1";
+pub const AUDIO_CONVERT_PCM_PROFILE_REVISION: &str = "conduit.std/audio-convert-pcm-profile@2";
 pub const AUDIO_CONVERT_OUTPUT_RATE_KEY: &str = "output-sample-rate-hz";
 pub const AUDIO_CONVERT_OUTPUT_LAYOUT_KEY: &str = "output-channel-layout";
 pub const AUDIO_PLAY_ALSA_PERIOD_FRAMES: u16 = 256;
@@ -214,16 +217,6 @@ fn text_one_of_configuration(
     }
 }
 
-pub fn audio_play_contract() -> StandardKindContract {
-    sink(
-        AUDIO_PLAY_KIND,
-        "Play audio",
-        "Consume bounded timestamped PCM through an exact selected playback resource.",
-        vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
-        audio_limits(),
-    )
-}
-
 pub fn audio_tone_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(AUDIO_TONE_KIND),
@@ -370,31 +363,6 @@ pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
         pico_manifestation_honest: false,
         example: "microphone: audio/capture-push-to-talk(maximum-turn-millis = 15000)"
             .to_string(),
-    }
-}
-
-pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
-    StandardKindContract {
-        kind_id: kind_id(AUDIO_CONVERT_PCM_PROFILE_KIND),
-        plain_name: "Convert PCM profile".to_string(),
-        summary: "Convert bounded PCM blocks to one explicitly selected sample rate and channel layout."
-            .to_string(),
-        inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
-        outputs: vec![port("converted", AUDIO_PCM_INFO_ID, PortDirection::Output)],
-        configuration: vec![
-            u64_configuration(AUDIO_CONVERT_OUTPUT_RATE_KEY, 48_000, 8_000, 192_000),
-            text_one_of_configuration(
-                AUDIO_CONVERT_OUTPUT_LAYOUT_KEY,
-                "stereo-left-right",
-                &["mono", "stereo-left-right"],
-            ),
-        ],
-        limits: audio_limits(),
-        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
-        hosted_implementation_required: true,
-        browser_manifestation_honest: false,
-        pico_manifestation_honest: false,
-        example: "convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")".to_string(),
     }
 }
 

@@ -9,6 +9,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{ffi::OsString, time::Duration};
 mod discovery;
+pub(crate) mod streaming;
 mod wav;
 pub use discovery::EspeakDiscovery;
 
@@ -174,6 +175,19 @@ impl EspeakSpeechAdapter {
             offer.capability_id,
         )
     }
+    pub fn streaming_offer(&self) -> CapabilityOffer {
+        conduit_std_offers::espeak_streaming_offer(self.discovery.content_requirement())
+    }
+    pub fn streaming_authority_grant(&self) -> AuthorityGrant {
+        let offer = self.streaming_offer();
+        authority_grant(
+            self.grant.as_str(),
+            &offer.authority_requirements[0],
+            self.host.clone(),
+            self.boot.clone(),
+            offer.capability_id,
+        )
+    }
     pub fn validate_placement(&self, placement: &PlannedGear) -> Result<u32, EspeakFailure> {
         if placement.host_id != self.host
             || placement.boot_id != self.boot
@@ -181,7 +195,13 @@ impl EspeakSpeechAdapter {
         {
             return Err(EspeakFailure::StaleProvider);
         }
-        let offer = self.offer();
+        let streaming =
+            placement.kind_id.as_str() == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND;
+        let offer = if streaming {
+            self.streaming_offer()
+        } else {
+            self.offer()
+        };
         if placement.kind_id != offer.kind_id
             || placement.kind_contract_revision != offer.kind_contract_revision
             || placement.capability_id != offer.capability_id
@@ -212,7 +232,11 @@ impl EspeakSpeechAdapter {
         let [authority] = placement.authority.as_slice() else {
             return Err(EspeakFailure::WrongAuthority);
         };
-        let grant = self.authority_grant();
+        let grant = if streaming {
+            self.streaming_authority_grant()
+        } else {
+            self.authority_grant()
+        };
         if authority.grant_id != grant.grant_id
             || authority.contract_id != grant.contract_id
             || authority.host_call_contract_id != grant.host_call_contract_id
@@ -223,18 +247,23 @@ impl EspeakSpeechAdapter {
         {
             return Err(EspeakFailure::WrongAuthority);
         }
-        let [configuration] = placement.configuration.as_slice() else {
-            return Err(EspeakFailure::InvalidLimits);
-        };
-        match (&*configuration.key, &configuration.value) {
-            ("maximum-output-bytes", ConfigurationValue::U64(bytes))
-                if *bytes > 0 && *bytes <= u64::from(conduit_tongues::MAXIMUM_PCM_BYTES) =>
-            {
-                Ok(*bytes as u32)
+        if streaming {
+            streaming::StreamLimits::from_placement(placement).map(|limits| limits.maximum_bytes)
+        } else {
+            let [configuration] = placement.configuration.as_slice() else {
+                return Err(EspeakFailure::InvalidLimits);
+            };
+            match (&*configuration.key, &configuration.value) {
+                ("maximum-output-bytes", ConfigurationValue::U64(bytes))
+                    if *bytes > 0 && *bytes <= u64::from(conduit_tongues::MAXIMUM_PCM_BYTES) =>
+                {
+                    Ok(*bytes as u32)
+                }
+                _ => Err(EspeakFailure::InvalidLimits),
             }
-            _ => Err(EspeakFailure::InvalidLimits),
         }
     }
+
     /// `pcm` is caller-owned storage admitted before Play. No playback occurs.
     pub fn synthesize_into(
         &self,

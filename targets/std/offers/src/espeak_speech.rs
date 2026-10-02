@@ -8,6 +8,9 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, ResourceContentRequirement,
 };
 
+pub const ESPEAK_STREAM_IMPLEMENTATION: &str = "std/espeak-ng-stream@2";
+pub const ESPEAK_STREAM_PROFILE: &str = "std/espeak-ng-stream-s16le-22050-mono@2";
+pub const ESPEAK_STREAM_OPERATION: &str = "conduit.host/espeak-ng-stream-next@2";
 pub const ESPEAK_SPEECH_PROFILE: &str = "std/espeak-ng-s16le-22050-mono@1";
 pub const ESPEAK_SPEECH_IMPLEMENTATION: &str = "std/espeak-ng-speech@1";
 pub const ESPEAK_SPEECH_ARTIFACT: &str = "conduit-std-host/espeak-ng-speech@1";
@@ -19,20 +22,45 @@ pub const ESPEAK_EXECUTE_AUTHORITY: &str = "conduit.authority/process-execute@1"
 /// Discovery supplies the verified bounded closure, not an ambient executable path.
 /// Ordinary planning selects its exact content and process authority before Play.
 pub fn espeak_speech_offer(provider: ResourceContentRequirement) -> CapabilityOffer {
-    let contract = conduit_tongues::synthesize_semantic_contract();
+    speech_offer(provider, false)
+}
+pub fn espeak_streaming_offer(provider: ResourceContentRequirement) -> CapabilityOffer {
+    speech_offer(provider, true)
+}
+fn speech_offer(provider: ResourceContentRequirement, streaming: bool) -> CapabilityOffer {
+    let contract = if streaming {
+        conduit_tongues::streaming_synthesize_semantic_contract()
+    } else {
+        conduit_tongues::synthesize_semantic_contract()
+    };
+    let implementation = if streaming {
+        ESPEAK_STREAM_IMPLEMENTATION
+    } else {
+        ESPEAK_SPEECH_IMPLEMENTATION
+    };
+    let profile = if streaming {
+        ESPEAK_STREAM_PROFILE
+    } else {
+        ESPEAK_SPEECH_PROFILE
+    };
+    let call = if streaming {
+        espeak_streaming_host_call()
+    } else {
+        espeak_speech_host_call()
+    };
     // Authority scopes the declared Host Call target, not the enclosing gear.
     let subject_kind = kind_id(conduit_audio::AUDIO_PCM_INFO_ID);
-    let operation = HostCallContractId::from(ESPEAK_SPEECH_OPERATION);
+    let operation = call.contract_id.clone();
     let mut resource = resource_requirement(ESPEAK_SPEECH_RESOURCE_CLASS, 1);
     resource.content = Some(provider);
     BackOfferBuilder::new(
         contract,
         Back {
-            capability_id: CapabilityId::from(ESPEAK_SPEECH_IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(ESPEAK_SPEECH_PROFILE),
-            implementation_id: ImplementationId::from(ESPEAK_SPEECH_IMPLEMENTATION),
+            capability_id: CapabilityId::from(implementation),
+            execution_profile_id: ExecutionProfileId::from(profile),
+            implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ESPEAK_SPEECH_ARTIFACT),
-            host_calls: vec![espeak_speech_host_call()],
+            host_calls: vec![call],
             resource_requirements: vec![resource],
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(ESPEAK_EXECUTE_AUTHORITY),
@@ -42,6 +70,13 @@ pub fn espeak_speech_offer(provider: ResourceContentRequirement) -> CapabilityOf
         },
     )
     .build()
+}
+
+pub fn espeak_streaming_host_call() -> HostCallRequirement {
+    let mut call = espeak_speech_host_call();
+    call.contract_id = HostCallContractId::from(ESPEAK_STREAM_OPERATION);
+    call.maximum_input_bytes = conduit_tongues::MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES as u32;
+    call
 }
 
 /// Static dispatch budget; provider-specific content is checked separately.

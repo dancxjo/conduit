@@ -2,6 +2,7 @@ mod address_detect_back;
 mod alife_backs;
 mod alife_host;
 mod audio_play_back;
+mod audio_stream_budget;
 mod audio_tone_back;
 mod back;
 mod back_capacity;
@@ -64,6 +65,8 @@ mod pacing_backs;
 mod pattern_comparison_back;
 mod pcm_profile_conversion_back;
 mod preparation;
+#[cfg(all(test, unix))]
+mod streaming_speech_tests;
 pub(super) use preparation::{
     lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
 };
@@ -944,7 +947,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
         }
-        while let Some(request) = scheduler.next_host_request() {
+        while !control.stop_requested() {
+            let Some(request) = scheduler.next_host_request() else {
+                break;
+            };
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read std host input: {error:?}"))?;
@@ -2207,9 +2213,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION => {
                         session.retain_generated_assessment(input).map(Some)
                     }
-                    conduit_std_offers::GENERATED_SPEECH_OPERATION => {
-                        session.validate_and_extract_speech(input).map(Some)
-                    }
+                    conduit_std_offers::GENERATED_SPEECH_OPERATION => session
+                        .validate_and_extract_speech_bounded(
+                            input,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map(Some),
                     conduit_std_offers::REGISTER_MANIFESTATION_OPERATION => session
                         .register_generated_manifestation(input)
                         .map(|()| None),
@@ -2628,6 +2637,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 contract.as_str(),
                 conduit_std_offers::DETERMINISTIC_SPEECH_OPERATION
                     | conduit_std_offers::ESPEAK_SPEECH_OPERATION
+                    | conduit_std_offers::ESPEAK_STREAM_OPERATION
             ) {
                 let host = speech_synthesis_hosts
                     .get_mut(usize::from(request.node.0))
@@ -3291,6 +3301,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     },
                 )
                 .map_err(|error| format!("complete std host-call: {error:?}"))?;
+        }
+        // A synchronous effect may observe a newly requested stop. Return to
+        // the ordinary cancellation owner before its cancelled completion can
+        // be interpreted as an unrelated Back failure, preserving the request.
+        if accepted_stop.is_none() && control.stop_requested() {
+            continue;
         }
         let status = match scheduler.step() {
             Ok(status) => status,

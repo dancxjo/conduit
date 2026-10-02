@@ -1,4 +1,6 @@
 //! Bounded process transport below provider-specific admission and semantics.
+pub(crate) mod stream;
+
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
 use std::path::Path;
@@ -22,7 +24,7 @@ pub(crate) enum ProcessError {
     Unsupported(&'static str),
     Launch(io::Error),
 }
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum ProcessTerminal {
     Exited(ExitStatus),
     TimedOut,
