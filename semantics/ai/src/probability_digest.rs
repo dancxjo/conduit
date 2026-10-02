@@ -137,18 +137,18 @@ impl LogProbability {
     pub fn semantic_digest(&self) -> Result<[u8; 32], ProbabilityRefusal> {
         self.validate()?;
         let mut extra = Vec::new();
-        extra.extend_from_slice(&self.natural_log_millionths.to_le_bytes());
-        extra.push(match self.score_kind {
+        extra.extend_from_slice(&self.natural_log_millionths().to_le_bytes());
+        extra.push(match self.score_kind() {
             LogScoreKind::ProbabilityMass => 0,
             LogScoreKind::Density => 1,
             LogScoreKind::UnnormalizedScore => 2,
         });
-        extra.extend_from_slice(&self.support_identity);
+        extra.extend_from_slice(self.support_identity().get());
         probabilistic_digest(
             "probability/log-score@1",
             &[],
-            &self.provenance,
-            &self.disposition,
+            self.provenance(),
+            self.disposition(),
             &extra,
         )
     }

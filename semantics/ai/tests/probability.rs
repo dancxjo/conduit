@@ -116,13 +116,14 @@ fn moments_covariance_log_scores_and_truncation_refuse_malformed_claims() {
         Err(ProbabilityRefusal::InvalidCovariance)
     );
 
-    let invalid_mass = LogProbability {
-        natural_log_millionths: 1,
-        score_kind: LogScoreKind::ProbabilityMass,
-        support_identity: [4; 32],
-        provenance: provenance(),
-        disposition: ProbabilisticDisposition::Exact,
-    };
+    let invalid_mass = LogProbability::new(
+        1,
+        LogScoreKind::ProbabilityMass,
+        ProbabilityDigest::new([4; 32]).unwrap(),
+        provenance(),
+        ProbabilisticDisposition::Exact,
+    )
+    .unwrap();
     assert_eq!(
         invalid_mass.validate(),
         Err(ProbabilityRefusal::InvalidLogProbability)

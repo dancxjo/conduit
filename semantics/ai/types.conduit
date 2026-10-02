@@ -519,6 +519,14 @@ type LogScoreKind =
     | density
     | unnormalized_score
 
+type LogProbability = {
+    natural_log_millionths: I64
+    score_kind: LogScoreKind
+    support_identity: ProbabilityDigest
+    provenance: StochasticProvenance
+    disposition: ProbabilisticDisposition
+}
+
 type ProbabilityRefusal =
     missing_identity
     | invalid_disposition
