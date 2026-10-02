@@ -60,12 +60,14 @@ fn main() {
                 "ModelWorkAccounting".into(),
                 "ProfileReportedConfidence".into(),
                 "SourceExtractionLimits".into(),
+                "ShadowResourceEnvelope".into(),
             ]
             .into(),
             copy_record_value_getters: [
                 "IntegrationAccuracy".into(),
                 "IntegrationResourceEnvelope".into(),
                 "LlmWorkBounds".into(),
+                "ShadowResourceEnvelope".into(),
                 "SourceExtractionLimits".into(),
             ]
             .into(),
@@ -206,6 +208,15 @@ fn main() {
                         "maximum_source_items".into(),
                         "maximum_chunk_bytes".into(),
                         "maximum_chunks".into(),
+                        "maximum_output_bytes".into(),
+                        "maximum_work_units".into(),
+                    ],
+                ),
+                (
+                    "ShadowResourceEnvelope".into(),
+                    vec![
+                        "maximum_runs".into(),
+                        "maximum_input_bytes".into(),
                         "maximum_output_bytes".into(),
                         "maximum_work_units".into(),
                     ],
