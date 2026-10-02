@@ -3,12 +3,11 @@ use super::{
     StreamingChunkDisposition,
 };
 use conduit_ai::{
-    ExtractedField, FiniteClassification, FiniteEmbedding, InterpretationDisposition,
-    InterpretationProvenance, InterpretationRequest, LlmDeterminismProfile, LlmWorkBounds,
-    LocalModelCachePolicy, LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState,
-    LocalModelLimits, LocalModelOffer, ModelDerivedResult, ModelInterpretation,
-    ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting, ProfileReportedConfidence,
-    ValidatedExtraction,
+    FiniteClassification, FiniteEmbedding, InterpretationDisposition, InterpretationProvenance,
+    InterpretationRequest, LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy,
+    LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits,
+    LocalModelOffer, ModelDerivedResult, ModelInterpretation, ModelResultDisposition,
+    ModelResultProvenance, ModelWorkAccounting, ProfileReportedConfidence, ValidatedExtraction,
 };
 use conduit_core::PlannedGear;
 use conduit_presentation::GenerativePresenterInput;
@@ -432,13 +431,13 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     Ok(wire) => wire,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                let result = FiniteClassification {
-                    label: wire.label,
-                    allowed_labels: vec!["conduit".into(), "other".into()],
+                let result = match FiniteClassification::from_strings(
+                    wire.label,
+                    vec!["conduit".into(), "other".into()],
+                ) {
+                    Ok(result) => result,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                if result.validate().is_err() {
-                    return LocalModelAdapterTerminal::InvalidStructuredResult;
-                }
                 let payload = match serde_json::to_vec(&result) {
                     Ok(payload) => payload,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
@@ -463,16 +462,13 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     Ok(wire) => wire,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                let result = ValidatedExtraction {
-                    schema_identity: "conduit-proof/subject@1".into(),
-                    fields: vec![ExtractedField {
-                        key: "subject".into(),
-                        value: wire.subject,
-                    }],
+                let result = match ValidatedExtraction::from_strings(
+                    "conduit-proof/subject@1".into(),
+                    vec![("subject".into(), wire.subject)],
+                ) {
+                    Ok(result) => result,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
-                if result.validate().is_err() {
-                    return LocalModelAdapterTerminal::InvalidStructuredResult;
-                }
                 let payload = match serde_json::to_vec(&result) {
                     Ok(payload) => payload,
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,

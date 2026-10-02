@@ -37,20 +37,21 @@ impl HostedLocalModelAdapter for FakeLocalModel {
             conduit_ai::LLM_GENERATE_KIND => {
                 b"The upstairs temperature is 21 degrees Celsius.".to_vec()
             }
-            conduit_ai::LLM_CLASSIFY_KIND => {
-                serde_json::to_vec(&conduit_ai::FiniteClassification {
-                    label: "conduit".into(),
-                    allowed_labels: vec!["conduit".into(), "other".into()],
-                })
-                .unwrap()
-            }
-            conduit_ai::LLM_EXTRACT_KIND => serde_json::to_vec(&conduit_ai::ValidatedExtraction {
-                schema_identity: "fixture/subject@1".into(),
-                fields: vec![conduit_ai::ExtractedField {
-                    key: "subject".into(),
-                    value: "Conduit".into(),
-                }],
-            })
+            conduit_ai::LLM_CLASSIFY_KIND => serde_json::to_vec(
+                &conduit_ai::FiniteClassification::from_strings(
+                    "conduit".into(),
+                    vec!["conduit".into(), "other".into()],
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            conduit_ai::LLM_EXTRACT_KIND => serde_json::to_vec(
+                &conduit_ai::ValidatedExtraction::from_strings(
+                    "fixture/subject@1".into(),
+                    vec![("subject".into(), "Conduit".into())],
+                )
+                .unwrap(),
+            )
             .unwrap(),
             conduit_ai::LLM_EMBED_KIND => serde_json::to_vec(&conduit_ai::FiniteEmbedding {
                 profile_identity: "fixture/embedding-3@1".into(),

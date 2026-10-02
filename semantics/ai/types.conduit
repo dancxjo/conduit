@@ -174,6 +174,29 @@ type CompatibleMetrics = {
     squared_euclidean_distance: Boolean
 }
 
+type ClassificationLabel = Text <= 64B not in [""]
+type ClassificationLabels = sequence ClassificationLabel in 1..=32
+
+type FiniteClassification = {
+    label: ClassificationLabel
+    allowed_labels: ClassificationLabels
+}
+
+type ExtractionKey = Text <= 64B not in [""]
+type ExtractionValue = Text <= 1024B not in [""]
+
+type ExtractedField = {
+    key: ExtractionKey
+    value: ExtractionValue
+}
+
+type ExtractionFields = sequence ExtractedField in 1..=32
+
+type ValidatedExtraction = {
+    schema_identity: Text not in [""]
+    fields: ExtractionFields
+}
+
 type TemporalSource =
     event
     | valid_from
