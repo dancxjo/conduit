@@ -12,14 +12,17 @@ use serde::{Deserialize, Serialize};
 pub const SPEECH_SYNTHESIZE_KIND: &str = "speech/synthesize";
 pub const SPEECH_SYNTHESIZE_REVISION: &str = "conduit.speech/synthesize@1";
 pub const SPEECH_SYNTHESIZE_STREAM_KIND: &str = "speech/synthesize-stream";
-pub const SPEECH_SYNTHESIZE_STREAM_REVISION: &str = "conduit.speech/synthesize-stream@1";
+pub const SPEECH_SYNTHESIZE_STREAM_REVISION: &str = "conduit.speech/synthesize-stream@2";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
-pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
+pub const AUDIO_PLAY_REVISION: &str = conduit_semantic_catalog::AUDIO_PLAY_REVISION;
 pub const TEXT_VALUE_KIND: &str = "value/text";
 pub const MAXIMUM_TEXT_BYTES: u32 = 256;
 /// At most about three seconds of signed 16-bit mono speech at 22.05 kHz.
 pub const MAXIMUM_PCM_BYTES: u32 = 131_072;
 pub const MAXIMUM_AUDIO_FRAMES: u32 = 16_384;
+/// Stream @2 admits total work separately from one in-flight PCM block.
+pub const MAXIMUM_STREAM_PCM_BYTES: u32 = 1_323_000;
+pub const MAXIMUM_STREAM_AUDIO_MILLIS: u32 = 30_000;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpeechContract {
@@ -93,8 +96,43 @@ pub fn synthesize_semantic_contract() -> Kind {
     synthesis_semantic_contract(synthesize_contract())
 }
 
+/// Stream @2 counts PCM payload bytes and decoded audio duration across all
+/// committed segments, without resetting either total at a segment boundary.
+/// Limits are ceilings: excess output is refused, never silently truncated.
+/// The selected back separately admits fixed per-block storage and finite work.
 pub fn streaming_synthesize_semantic_contract() -> Kind {
-    synthesis_semantic_contract(streaming_synthesize_contract())
+    let mut kind = synthesis_semantic_contract(streaming_synthesize_contract());
+    kind.configuration[0].rule = KindConfigurationRule::U64Range {
+        minimum: 1,
+        maximum: u64::from(MAXIMUM_STREAM_PCM_BYTES),
+    };
+    for (key, default, maximum) in [
+        (
+            "maximum-audio-millis",
+            3_000,
+            u64::from(MAXIMUM_STREAM_AUDIO_MILLIS),
+        ),
+        (
+            "maximum-segments",
+            crate::MAXIMUM_COMMITTED_SEGMENTS as u64,
+            crate::MAXIMUM_COMMITTED_SEGMENTS as u64,
+        ),
+    ] {
+        kind.startup_parameters.push(FrontStartupParameter {
+            name: key.into(),
+            value_type: kind_id("value/count"),
+            has_default: true,
+        });
+        kind.configuration.push(KindConfigurationField {
+            key: key.into(),
+            default_value: conduit_core::ConfigurationValue::U64(default),
+            rule: KindConfigurationRule::U64Range {
+                minimum: 1,
+                maximum,
+            },
+        });
+    }
+    kind
 }
 
 fn synthesis_semantic_contract(contract: SpeechContract) -> Kind {
@@ -111,17 +149,15 @@ fn synthesis_semantic_contract(contract: SpeechContract) -> Kind {
 }
 
 pub fn audio_play_contract() -> SpeechContract {
+    let kind =
+        conduit_semantic_catalog::audio_play_contract().into_semantic_contract(AUDIO_PLAY_REVISION);
     SpeechContract {
-        startup_parameters: Vec::new(),
-        kind_id: kind_id(AUDIO_PLAY_KIND),
-        kind_contract_revision: KindIdentity::from(AUDIO_PLAY_REVISION),
-        inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
-        outputs: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_PCM_BYTES,
-        },
+        startup_parameters: kind.startup_parameters,
+        kind_id: kind.kind_id,
+        kind_contract_revision: kind.kind_contract_revision,
+        inputs: kind.inputs,
+        outputs: kind.outputs,
+        limits: kind.limits,
     }
 }
 
@@ -131,16 +167,7 @@ pub fn install_speech_catalogs(
 ) -> Result<(), String> {
     install_speech_synthesis_catalog(startup, profile)?;
     install_speech_commit_catalog(startup, profile)?;
-    startup.insert(KindSignature {
-        kind: AUDIO_PLAY_KIND.into(),
-        startup_parameters: vec![],
-    })?;
-    profile
-        .insert_kind(
-            conduit_semantic_catalog::audio_play_contract()
-                .into_semantic_contract(AUDIO_PLAY_REVISION),
-        )
-        .map_err(|error| error.to_string())?;
+    conduit_semantic_catalog::install_audio_play_catalog(startup, profile)?;
     Ok(())
 }
 
@@ -154,7 +181,7 @@ pub fn install_speech_commit_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert_kind(contract.into_semantic_capability_contract())
+        .insert_kind(crate::speech_commit_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -172,22 +199,30 @@ fn install_contract(
     contract: SpeechContract,
     is_synthesis: bool,
 ) -> Result<(), String> {
-    startup.insert(KindSignature {
-        kind: contract.kind_id.as_str().into(),
-        startup_parameters: if is_synthesis {
-            vec![StartupParameterSignature {
-                name: "maximum-output-bytes".into(),
-                value_type: "Count".into(),
-                default: Some(MAXIMUM_PCM_BYTES.to_string()),
-            }]
+    let kind = if is_synthesis {
+        if contract.kind_id.as_str() == SPEECH_SYNTHESIZE_STREAM_KIND {
+            streaming_synthesize_semantic_contract()
         } else {
-            vec![]
-        },
+            synthesis_semantic_contract(contract)
+        }
+    } else {
+        contract.into_semantic_capability_contract()
+    };
+    startup.insert(KindSignature {
+        kind: kind.kind_id.as_str().into(),
+        startup_parameters: kind
+            .configuration
+            .iter()
+            .map(|field| StartupParameterSignature {
+                name: field.key.clone(),
+                value_type: "Count".into(),
+                default: match field.default_value {
+                    conduit_core::ConfigurationValue::U64(value) => Some(value.to_string()),
+                    _ => None,
+                },
+            })
+            .collect(),
     })?;
-    let mut kind = contract.into_semantic_capability_contract();
-    if is_synthesis {
-        kind.configuration = synthesis_semantic_contract(synthesize_contract()).configuration;
-    }
     profile.insert_kind(kind).map_err(|error| error.to_string())
 }
 

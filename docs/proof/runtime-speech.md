@@ -28,7 +28,7 @@ execution authority to the current host and boot. Text travels through stdin,
 never a shell or command-line arguments. The OS loader and system libraries
 remain part of the trusted host platform; this is not hostile-code confinement.
 
-The existing portable limits remain 256 UTF-8 text bytes and 131,072 PCM bytes.
+The single-shot portable limits remain 256 UTF-8 text bytes and 131,072 PCM bytes.
 At the selected 22,050 Hz mono S16 profile, the audio ceiling is about three
 seconds. Longer speech refuses with an output-capacity failure. It is never
 silently truncated. Cancellation, timeout, unavailable or changed providers,
@@ -36,12 +36,38 @@ and malformed output remain distinct failures.
 The process deadline covers engine execution and bounded retirement; the
 bounded provider-file verification before and after it is a separate step.
 
+For a longer utterance, add `--stream`. This authors the closing text Flow,
+canonical language-aware segment commit, `speech/synthesize-stream`, PCM
+conversion, and output with explicit aggregate work bounds. The entrance
+accepts up to 1024 UTF-8 bytes and admits at most 32 segments, 1,323,000 source
+PCM bytes, and 30 seconds of audio. For example, use the same provider arguments
+with:
+
+```sh
+--stream --text 'This Body keeps the clock you started. Change the interval, then inspect the connections to see how your action reaches the running work. You can pause the Body without erasing its history. When you return, inspect the current host and the new plan before starting again. If a presentation host disappears, the Body must show what stopped and which admitted route can continue. Your preference chooses among available Masks; it never invents a missing host.' \
+  --output target/streamed-speech
+```
+
+Text length alone cannot predict audio duration; exceeding an admitted audio
+bound refuses rather than truncating. These larger aggregate allowances do not
+increase instantaneous queue capacities. The engine's stdout is pulled in
+bounded blocks, and the WAV sink writes an admitted temporary file incrementally.
+Only completed output is published and acknowledged. Pressure stops draining;
+cancellation retires the process and incomplete artifact. This command proves
+the synthesis/output path, not a Body Face or a Mask Show.
+
+The streamed Mask uses a separate closing-Flow projection from an already
+validated outward Speech segment. Its 1024-byte semantic envelope and the
+commit contract's revised envelope are explicit. The existing single-shot
+Value projection remains distinct. A longer utterance does not mean unchecked
+model token deltas may become speech.
+
 To include runtime-produced speech in a current local-model documentary, add
 `--speech-executable`, `--speech-data`, `--speech-engine`, and optionally
 `--speech-voice` to `cargo xtask make host prove-local-model` together with
 `--orifina-presenter --journey-documentary`. This still requires an already-local
 model and an explicit `--admitted-memory-mib` limit. The retained current
-Presenter result passes through an ordinary spoken Mask; its WAV is bound to
+Presenter result passes through an ordinary streaming spoken Mask; its WAV is bound to
 the acknowledged Show. Reusing one state's audio for several views of that
 state does not claim another model inference or synthesis occurred.
 

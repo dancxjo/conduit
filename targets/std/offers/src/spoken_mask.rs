@@ -7,6 +7,8 @@ use conduit_core::{
 };
 
 pub const PRESENTATION_REQUEST_IMPLEMENTATION: &str = "std/spoken-mask-presentation-request@1";
+pub const GENERATED_STREAM_SPEECH_IMPLEMENTATION: &str =
+    "std/spoken-mask-generated-stream-speech@1";
 pub const GENERATED_SPEECH_IMPLEMENTATION: &str = "std/spoken-mask-generated-speech@1";
 pub const SPOKEN_ARTIFACT_IMPLEMENTATION: &str = "std/spoken-mask-wav-artifact@1";
 pub const ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-artifact-show@1";
@@ -152,6 +154,23 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             vec![],
         ),
     ]
+}
+
+/// Explicit closing-flow projection of one accepted outward Speech segment.
+/// Canonical committed segments perform segmentation after validation.
+pub fn generated_stream_speech_offer() -> CapabilityOffer {
+    semantic_offer(
+        conduit_presentation::GENERATED_MANIFESTATION_TO_SPEECH_STREAM_KIND,
+        "spoken-mask-generated-stream-speech",
+        GENERATED_STREAM_SPEECH_IMPLEMENTATION,
+        vec![call(
+            GENERATED_SPEECH_OPERATION,
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            1024,
+        )],
+        vec![],
+        vec![],
+    )
 }
 
 fn semantic_offer(

@@ -9,6 +9,7 @@ use conduit_kernel::{
 };
 
 pub(super) enum SpeechHost<'a> {
+    Streaming(Box<crate::hosted_speech_synthesis::streaming::StreamingSpeech<'a>>),
     Proof(speech_synthesis_back::FakeSpeechHost),
     Espeak {
         adapter: &'a EspeakSpeechAdapter,
@@ -32,6 +33,16 @@ pub(super) fn prepare_hosts<'a>(
         .map(|(placement, proof)| {
             if let Some(proof) = proof {
                 return Ok(Some(SpeechHost::Proof(proof)));
+            }
+            if placement.implementation_id.as_str()
+                == conduit_std_offers::ESPEAK_STREAM_IMPLEMENTATION
+            {
+                let adapter = adapter.ok_or("planned eSpeak stream provider is not initialized")?;
+                return crate::hosted_speech_synthesis::streaming::StreamingSpeech::prepare(
+                    adapter, placement,
+                )
+                .map(|stream| Some(SpeechHost::Streaming(Box::new(stream))))
+                .map_err(|e| e.to_string());
             }
             if placement.implementation_id.as_str()
                 != conduit_std_offers::ESPEAK_SPEECH_IMPLEMENTATION
@@ -62,6 +73,9 @@ impl SpeechHost<'_> {
         control: &crate::RunControl,
     ) -> Result<Option<&[u8]>, (HostCallDisposition, Failure)> {
         match self {
+            Self::Streaming(stream) => stream
+                .next(input, || control.stop_requested())
+                .map_err(|e| e.host_failure()),
             Self::Proof(host) => host
                 .execute(input)
                 .map_err(|_| failed(FailureCode::InvalidInput, 1)),

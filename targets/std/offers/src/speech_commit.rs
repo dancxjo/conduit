@@ -2,18 +2,17 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
-pub const SPEECH_COMMIT_STD_PROFILE: &str = "std/speech-commit@1";
-pub const SPEECH_COMMIT_STD_IMPLEMENTATION: &str = "std/speech-commit@1";
-pub const SPEECH_COMMIT_STD_ARTIFACT: &str = "conduit-std-host/speech-commit@1";
+pub const SPEECH_COMMIT_STD_PROFILE: &str = "std/speech-commit@2";
+pub const SPEECH_COMMIT_STD_IMPLEMENTATION: &str = "std/speech-commit@2";
+pub const SPEECH_COMMIT_STD_ARTIFACT: &str = "conduit-std-host/speech-commit@2";
 pub const SPEECH_COMMIT_PUSH_OPERATION: &str = "conduit.host/speech-commit-push@1";
 pub const SPEECH_COMMIT_NEXT_OPERATION: &str = "conduit.host/speech-commit-next@1";
 pub const SPEECH_COMMIT_CLOSE_OPERATION: &str = "conduit.host/speech-commit-close@1";
 
 pub fn speech_commit_std_offer() -> CapabilityOffer {
-    let contract = conduit_tongues::speech_commit_contract();
     let control = |contract_id| HostCallRequirement {
         contract_id: HostCallContractId::from(contract_id),
         target_kind: Some(kind_id(conduit_tongues::SPEECH_COMMIT_KIND)),
@@ -22,19 +21,9 @@ pub fn speech_commit_std_offer() -> CapabilityOffer {
         maximum_output_bytes: conduit_tongues::MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES as u32,
     };
     BackOfferBuilder::new(
-        Kind {
-            startup_parameters: Vec::new(),
-            shorthand: None,
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-            semantic_laws: Default::default(),
-            limits: contract.limits,
-        },
+        conduit_tongues::speech_commit_semantic_contract(),
         Back {
-            capability_id: CapabilityId::from("std-speech-commit-v1"),
+            capability_id: CapabilityId::from("std-speech-commit-v2"),
             execution_profile_id: ExecutionProfileId::from(SPEECH_COMMIT_STD_PROFILE),
             implementation_id: ImplementationId::from(SPEECH_COMMIT_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(SPEECH_COMMIT_STD_ARTIFACT),

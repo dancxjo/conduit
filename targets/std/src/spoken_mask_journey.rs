@@ -6,6 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
+mod graph;
 mod replay;
 mod retained_artifact;
 mod routes;
@@ -34,7 +35,8 @@ pub fn execute_retained_manifestation_mask(
     presentation: conduit_presentation::Presentation,
     retained: conduit_presentation::GeneratedManifestationCandidate,
 ) -> Result<SpokenMaskExecution, String> {
-    execute_mask(plot_name, execution_id, presentation, retained, None).map(|result| result.0)
+    execute_mask(plot_name, execution_id, presentation, retained, None, false)
+        .map(|result| result.0)
 }
 
 /// Run a retained Presenter result through real, explicitly selected eSpeak and
@@ -54,10 +56,36 @@ pub fn execute_retained_manifestation_mask_with_espeak(
         presentation,
         retained,
         Some((discovery, destination)),
+        false,
     )?;
     Ok(RetainedSpokenMaskExecution {
         execution,
         artifact: artifact.ok_or("real speech omitted retained artifact metadata")?,
+    })
+}
+
+/// Stream committed segments from an already validated Presenter candidate into
+/// one acknowledged ordinary Mask Show. The original candidate is revalidated
+/// against this exact Face; it is not an unvalidated model-token stream.
+pub fn execute_retained_manifestation_mask_with_streaming_espeak(
+    plot_name: &str,
+    execution_id: &str,
+    presentation: conduit_presentation::Presentation,
+    retained: conduit_presentation::GeneratedManifestationCandidate,
+    discovery: crate::hosted_speech_synthesis::EspeakDiscovery,
+    destination: &std::path::Path,
+) -> Result<RetainedSpokenMaskExecution, String> {
+    let (execution, artifact) = execute_mask(
+        plot_name,
+        execution_id,
+        presentation,
+        retained,
+        Some((discovery, destination)),
+        true,
+    )?;
+    Ok(RetainedSpokenMaskExecution {
+        execution,
+        artifact: artifact.ok_or("streamed Mask omitted acknowledged WAV")?,
     })
 }
 
@@ -70,6 +98,7 @@ fn execute_mask(
         crate::hosted_speech_synthesis::EspeakDiscovery,
         &std::path::Path,
     )>,
+    streaming: bool,
 ) -> Result<(SpokenMaskExecution, Option<RetainedWavArtifact>), String> {
     use conduit_core::{
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
@@ -144,56 +173,29 @@ fn execute_mask(
                 config.boot_id.clone(),
                 config.offer_generation,
                 conduit_core::AuthorityGrantId::from(format!("grant/{execution_id}/speech")),
-                std::time::Duration::from_secs(10),
+                std::time::Duration::from_secs(if streaming { 30 } else { 10 }),
             )
             .map_err(|error| error.to_string())?;
         host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
     } else {
         host.attach_deterministic_speech_and_wav_artifact(artifact)?;
     }
-    let maximum_output_bytes = if real_speech { 131_072 } else { 32_768 };
+    let maximum_output_bytes = if streaming {
+        1_323_000
+    } else if real_speech {
+        131_072
+    } else {
+        32_768
+    };
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
     conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
-    let source = format!(
-        r#"plot {plot_name} (
- >> face: Presentation
- interaction: FaceInteraction...| >>
- show: Show >>
-) {{
- request: presentation/adapt-generative-request
- language: llm/present(16384, 1, 4096, 16384, 0)
- envelope: presentation/build-generated-validation-envelope
- validator: presentation/generated-semantic-validator
- accepted: presentation/retain-generated-validation
- speech: presentation/generated-manifestation-speech
- voice: speech/synthesize(maximum-output-bytes = {maximum_output_bytes})
- convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
- artifact: presentation/spoken-artifact
- shown: presentation/artifact-acknowledged-show
- no-input: presentation/no-interaction
- face >> request.presentation
- request.request >> language.request
- request.request >> envelope.request
- language.result >> envelope.candidate
- language.result >> accepted.candidate
- envelope.envelope >> validator.envelope
- validator.assessment >> accepted.assessment
- accepted.manifestation >> speech.manifestation
- accepted.manifestation >> shown.manifestation
- speech.speech >> voice.text
- voice.audio >> convert.audio
- convert.converted >> artifact.audio
- artifact.receipt >> shown.artifact
- shown.show >> show
- no-input.interaction >> interaction
-}}
-"#
-    );
+    let source = graph::source(plot_name, maximum_output_bytes, streaming);
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .map_err(|error| format!("check spoken Mask: {error:?}"))?;
     let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)
@@ -233,7 +235,11 @@ fn execute_mask(
     let grant_id = format!("grant/{execution_id}");
     let mut authority = vec![host.spoken_mask_artifact_authority_grant(&grant_id)?];
     if real_speech {
-        authority.push(host.speech_synthesis_authority_grant()?);
+        authority.push(if streaming {
+            host.streaming_speech_authority_grant()?
+        } else {
+            host.speech_synthesis_authority_grant()?
+        });
     }
     let plan = plan_expanded_authoring_with_options(
         &authoring,
