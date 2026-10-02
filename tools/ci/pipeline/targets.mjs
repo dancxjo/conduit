@@ -12,7 +12,7 @@ export const TARGETS = Object.freeze([
   lane('hosted-windows', 'hosted', 'windows-2025', 'executable'),
   lane('hosted-macos', 'hosted', 'macos-15', 'executable'),
   ...['x86_64', 'aarch64', 'ia32', 'riscv64', 'loongarch64'].map(arch =>
-    lane(`conduitos-${arch}`, 'conduitos', 'ubuntu-24.04', 'emulator')),
+    lane(`conduitos-${arch}`, 'conduitos', arch === 'loongarch64' ? 'ubuntu-26.04' : 'ubuntu-24.04', 'emulator')),
   ...['c3', 's3', 'wroom'].map(chip => lane(`esp32-${chip}`, 'esp32', 'ubuntu-24.04', 'build')),
   ...['avr', 'raspberry-pi', 'orange-pi', 'rp2040'].map(id => lane(id, id, 'ubuntu-24.04', 'build')),
 ]);

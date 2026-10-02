@@ -105,6 +105,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: target-${{ matrix.id }}
+          prefix-key: conduit-compiler-v1
+          cache-targets: false
+          cache-directories: |
+            target/debug
+            target/release
+            target/*-unknown-*
           cache-on-failure: false
       - name: Acquire target tools
         env:

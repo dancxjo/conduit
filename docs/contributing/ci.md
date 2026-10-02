@@ -31,6 +31,8 @@ live in `tools/ci/pipeline/plan.mjs`.
 
 Every selected target owns setup, build, proof, packaging, and one final
 artifact upload on its runner. Targets never depend on an unrelated target.
+Target caches retain only Cargo compiler directories and dependencies; staged
+products, proof outputs, and receipts always start fresh.
 Once the target matrix starts, a failure does not cancel siblings. Code tests
 have no retries. Acquisition may have one bounded infrastructure retry.
 Browser acceptance keeps pinned Chromium, one worker, and zero retries.
@@ -53,6 +55,9 @@ Build proof for firmware and boards without CI hardware remains **build proof
 only**. Executable smoke, browser execution, and ConduitOS emulator boot are
 separate classes. None is physical or human acceptance. Browser coverage names
 its actual executed specs; cross-device enactment remains separate work.
+LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
+emulators before boot because their large-page translation can corrupt the
+bootloader's module handoff.
 
 ## Publication
 
