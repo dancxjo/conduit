@@ -1,6 +1,7 @@
 use conduit_ai::*;
 use conduit_core::{semantic_digest, Quantity, QuantityUnit};
 use conduit_data::*;
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) -> TensorValue {
     let payload = values
@@ -9,17 +10,15 @@ fn tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) -> T
         .collect::<Vec<_>>();
     TensorValue {
         element: TensorElement::F32,
-        dimensions,
-        axes: roles
-            .into_iter()
-            .map(|role| TensorAxis {
-                role,
-                identity: None,
-                unit: Some(QuantityUnit::One),
-            })
-            .collect(),
+        dimensions: BoundedSequence::try_from_iter(dimensions).unwrap(),
+        axes: BoundedSequence::try_from_iter(roles.into_iter().map(|role| TensorAxis {
+            role,
+            identity: None,
+            unit: Some(QuantityUnit::One),
+        }))
+        .unwrap(),
         content_digest: tensor_content_digest(&payload),
-        backing: TensorBacking::Inline(payload),
+        backing: TensorBacking::Inline(BoundedBytes::new(&payload).unwrap()),
     }
 }
 

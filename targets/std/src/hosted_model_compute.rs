@@ -5,6 +5,7 @@ use conduit_ai::{
     ModelComputeSession,
 };
 use conduit_data::{tensor_content_digest, TensorBacking, TensorElement, TensorValue};
+use conduit_form::rust_binding::BoundedBytes;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelComputeInvocation {
@@ -134,12 +135,15 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
             Ok(value) => value,
             Err(error) => return ModelComputeAdapterTerminal::Refused(error),
         };
-        if invocation.input.element != TensorElement::F32 || invocation.input.dimensions != [2] {
+        if invocation.input.element != TensorElement::F32
+            || invocation.input.dimensions.as_slice() != [2]
+        {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
         }
         let TensorBacking::Inline(bytes) = &invocation.input.backing else {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedFormat);
         };
+        let bytes = bytes.as_slice();
         let values = [
             f32::from_le_bytes(bytes[0..4].try_into().unwrap()),
             f32::from_le_bytes(bytes[4..8].try_into().unwrap()),
@@ -157,10 +161,12 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
             .collect::<Vec<_>>();
         let output = TensorValue {
             element: TensorElement::F32,
-            dimensions: vec![2],
+            dimensions: invocation.input.dimensions.clone(),
             axes: invocation.input.axes.clone(),
             content_digest: tensor_content_digest(&output_bytes),
-            backing: TensorBacking::Inline(output_bytes),
+            backing: TensorBacking::Inline(
+                BoundedBytes::new(&output_bytes).expect("two f32 values fit the tensor bound"),
+            ),
         };
         let runtime = self.session.runtime().clone();
         let _ = self.session.finish();

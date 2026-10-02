@@ -2,8 +2,11 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
-use crate::{tensor::*, TensorAxisRole, TensorElement, TensorRefusal};
+use crate::{
+    tensor::*, TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorRefusal, TensorValue,
+};
 
 impl TensorValue {
     pub fn encode(&self) -> Result<Vec<u8>, TensorRefusal> {
@@ -23,8 +26,8 @@ impl TensorValue {
         match &self.backing {
             TensorBacking::Inline(payload) => {
                 output.push(0);
-                output.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-                output.extend_from_slice(payload);
+                output.extend_from_slice(&(payload.as_slice().len() as u32).to_le_bytes());
+                output.extend_from_slice(payload.as_slice());
             }
             TensorBacking::Resource(reference) => {
                 output.push(1);
@@ -48,15 +51,24 @@ impl TensorValue {
         if rank == 0 || rank > MAXIMUM_TENSOR_RANK {
             return Err(TensorRefusal::RankOutOfBounds);
         }
-        let dimensions = (0..rank)
-            .map(|_| cursor.u64())
-            .collect::<Result<Vec<_>, _>>()?;
-        let axes = (0..rank)
-            .map(|_| decode_axis(&mut cursor))
-            .collect::<Result<Vec<_>, _>>()?;
+        let dimensions = BoundedSequence::try_from_iter(
+            (0..rank)
+                .map(|_| cursor.u64())
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .map_err(|_| TensorRefusal::RankOutOfBounds)?;
+        let axes = BoundedSequence::try_from_iter(
+            (0..rank)
+                .map(|_| decode_axis(&mut cursor))
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .map_err(|_| TensorRefusal::RankOutOfBounds)?;
         let content_digest = cursor.digest()?;
         let backing = match cursor.u8()? {
-            0 => TensorBacking::Inline(cursor.bytes_u32()?.to_vec()),
+            0 => TensorBacking::Inline(
+                BoundedBytes::new(cursor.bytes_u32()?)
+                    .ok_or(TensorRefusal::InlinePayloadTooLarge)?,
+            ),
             1 => TensorBacking::Resource(
                 BoundedResourceRef::decode(cursor.bytes_u16()?)
                     .map_err(|_| TensorRefusal::InvalidResource)?,

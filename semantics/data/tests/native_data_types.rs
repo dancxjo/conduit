@@ -7,9 +7,10 @@ use conduit_data::{
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
     MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
     QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison, SignalContinuity,
-    SignalStart, SignalWindow, TensorAxisRole, TensorElement,
+    SignalStart, SignalWindow, TensorAxis, TensorAxisRole, TensorBacking, TensorElement,
+    TensorSummary, TensorValue,
 };
-use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 
 fn assert_round_trip<T>(value: T)
@@ -336,6 +337,33 @@ fn tensor_axis_roles_keep_bounded_other_meaning_in_the_native_type() {
         let structured = role.clone().into_structured().unwrap();
         assert_eq!(TensorAxisRole::from_structured(structured).unwrap(), role);
     }
+}
+
+#[test]
+fn tensor_family_round_trips_native_shape_axes_units_and_backing() {
+    let axes = BoundedSequence::try_from_iter([TensorAxis {
+        role: TensorAxisRole::Time,
+        identity: Some("medieval-clock".into()),
+        unit: Some(QuantityUnit::Moment),
+    }])
+    .unwrap();
+    let dimensions = BoundedSequence::try_from_iter([2]).unwrap();
+    let tensor = TensorValue {
+        element: TensorElement::U8,
+        dimensions: dimensions.clone(),
+        axes: axes.clone(),
+        content_digest: [7; 32],
+        backing: TensorBacking::Inline(BoundedBytes::new(&[10, 20]).unwrap()),
+    };
+    assert_owned_round_trip(tensor);
+    assert_owned_round_trip(TensorSummary {
+        element: TensorElement::U8,
+        dimensions,
+        axes,
+        elements: 2,
+        bytes: 2,
+        resource_identity: None,
+    });
 }
 
 #[test]

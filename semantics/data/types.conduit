@@ -139,6 +139,35 @@ type TensorAxisRole =
         identity: Text <= 64B not in [""]
     }
 
+type TensorAxis = {
+    role: TensorAxisRole
+    identity: Text <= 64B not in [""]?
+    unit: QuantityUnit?
+}
+
+type TensorBacking =
+    inline Bytes <= 65536B
+    | resource ResourceRef
+
+type TensorValue = {
+    element: TensorElement
+    dimensions: sequence U64 in 1..=8
+    axes: sequence TensorAxis in 1..=8
+    content-digest: collection U8 = 32
+    backing: TensorBacking
+}
+
+type TensorResourceIdentity = collection U8 = 32
+
+type TensorSummary = {
+    element: TensorElement
+    dimensions: sequence U64 in 1..=8
+    axes: sequence TensorAxis in 1..=8
+    elements: U64 in 1..=18446744073709551615
+    bytes: U64 in 1..=1125899906842624
+    resource-identity: TensorResourceIdentity?
+}
+
 type ClockRelationQuality =
     exact
     | estimated {

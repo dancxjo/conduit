@@ -90,8 +90,8 @@ impl ScientificObservation {
 
     pub fn shape(&self) -> &[u64] {
         match &self.value {
-            ObservationValue::Tensor(value) => &value.dimensions,
-            ObservationValue::SampledSignal(value) => &value.samples.dimensions,
+            ObservationValue::Tensor(value) => value.dimensions.as_slice(),
+            ObservationValue::SampledSignal(value) => value.samples.dimensions.as_slice(),
         }
     }
 }
@@ -111,11 +111,11 @@ impl MissingDataMask {
         if self.mask.element != TensorElement::U8 {
             return Err(ScientificObservationRefusal::InvalidMask);
         }
-        if self.mask.dimensions != observation.shape() {
+        if self.mask.dimensions.as_slice() != observation.shape() {
             return Err(ScientificObservationRefusal::MaskShapeMismatch);
         }
         if let crate::TensorBacking::Inline(values) = &self.mask.backing {
-            if values.iter().any(|value| *value > 3) {
+            if values.as_slice().iter().any(|value| *value > 3) {
                 return Err(ScientificObservationRefusal::InvalidMask);
             }
         }

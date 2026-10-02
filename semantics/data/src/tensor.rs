@@ -1,9 +1,10 @@
 //! Provider-neutral, exact, bounded n-dimensional numeric information.
 
-use alloc::{string::String, vec::Vec};
-use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
+use conduit_core::semantic_digest;
 
-use crate::{TensorAxisRole, TensorElement, TensorRefusal};
+use crate::{
+    TensorBacking, TensorElement, TensorRefusal, TensorResourceIdentity, TensorSummary, TensorValue,
+};
 
 pub const TENSOR_INFO_ID: &str = "data/tensor@1";
 pub const TENSOR_ENCODING_VERSION: u8 = 1;
@@ -40,40 +41,6 @@ impl TensorElement {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TensorAxis {
-    pub role: TensorAxisRole,
-    /// Optional finite domain name, such as `tongue-sensor` or `latent-feature`.
-    pub identity: Option<String>,
-    pub unit: Option<QuantityUnit>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TensorBacking {
-    Inline(Vec<u8>),
-    Resource(BoundedResourceRef),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TensorValue {
-    pub element: TensorElement,
-    pub dimensions: Vec<u64>,
-    pub axes: Vec<TensorAxis>,
-    /// Identity of the exact canonical element bytes, independent of carrier.
-    pub content_digest: [u8; 32],
-    pub backing: TensorBacking,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TensorSummary {
-    pub element: TensorElement,
-    pub dimensions: Vec<u64>,
-    pub axes: Vec<TensorAxis>,
-    pub elements: u64,
-    pub bytes: u64,
-    pub resource_identity: Option<[u8; 32]>,
-}
-
 impl TensorValue {
     pub fn validate(&self) -> Result<(), TensorRefusal> {
         let bytes = self.byte_count()?;
@@ -85,13 +52,13 @@ impl TensorValue {
         }
         match &self.backing {
             TensorBacking::Inline(payload) => {
-                if payload.len() > MAXIMUM_INLINE_TENSOR_BYTES {
+                if payload.as_slice().len() > MAXIMUM_INLINE_TENSOR_BYTES {
                     return Err(TensorRefusal::InlinePayloadTooLarge);
                 }
-                if u64::try_from(payload.len()).ok() != Some(bytes) {
+                if u64::try_from(payload.as_slice().len()).ok() != Some(bytes) {
                     return Err(TensorRefusal::PayloadLengthMismatch);
                 }
-                if tensor_content_digest(payload) != self.content_digest {
+                if tensor_content_digest(payload.as_slice()) != self.content_digest {
                     return Err(TensorRefusal::ContentIdentityMismatch);
                 }
             }
@@ -167,7 +134,10 @@ impl TensorValue {
             bytes: self.byte_count()?,
             resource_identity: match &self.backing {
                 TensorBacking::Inline(_) => None,
-                TensorBacking::Resource(reference) => Some(reference.identity.digest()),
+                TensorBacking::Resource(reference) => Some(
+                    TensorResourceIdentity::new(reference.identity.digest())
+                        .expect("a resource identity is exactly 32 bytes"),
+                ),
             },
         })
     }

@@ -1,11 +1,12 @@
 //! Lossless semantic mapping from compact PCM blocks to generic sampled signals.
 
-use alloc::{format, string::ToString, vec};
+use alloc::{format, string::ToString};
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
 use crate::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, SoundInfoError};
 
@@ -36,8 +37,9 @@ pub fn pcm_as_sampled_signal(
         },
         samples: TensorValue {
             element,
-            dimensions: vec![u64::from(header.frame_count()), channels],
-            axes: vec![
+            dimensions: BoundedSequence::try_from_iter([u64::from(header.frame_count()), channels])
+                .map_err(|_| SoundInfoError::OutOfRange("pcm-dimensions"))?,
+            axes: BoundedSequence::try_from_iter([
                 TensorAxis {
                     role: TensorAxisRole::Time,
                     identity: Some("pcm-frame".to_string()),
@@ -54,9 +56,13 @@ pub fn pcm_as_sampled_signal(
                     ),
                     unit: Some(QuantityUnit::One),
                 },
-            ],
+            ])
+            .map_err(|_| SoundInfoError::OutOfRange("pcm-axes"))?,
             content_digest: tensor_content_digest(payload),
-            backing: TensorBacking::Inline(payload.to_vec()),
+            backing: TensorBacking::Inline(
+                BoundedBytes::new(payload)
+                    .ok_or(SoundInfoError::OutOfRange("pcm-inline-payload"))?,
+            ),
         },
     })
 }
@@ -121,6 +127,6 @@ pub fn sampled_signal_as_pcm(
         *start_frame.index(),
         discontinuity,
     )?;
-    header.validate_payload(payload)?;
-    Ok((header, payload))
+    header.validate_payload(payload.as_slice())?;
+    Ok((header, payload.as_slice()))
 }

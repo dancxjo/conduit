@@ -7,6 +7,7 @@ use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
 };
+use conduit_form::rust_binding::{BoundedBytes, BoundedSequence};
 
 fn constraint() -> ModelValueConstraint {
     ModelValueConstraint::SampledSignal(ModelTensorConstraint {
@@ -139,8 +140,8 @@ fn signal(byte: u8) -> SampledSignal {
         continuity: SignalContinuity::Continuous,
         samples: TensorValue {
             element: TensorElement::F32,
-            dimensions: vec![3, 2],
-            axes: vec![
+            dimensions: BoundedSequence::try_from_iter([3, 2]).unwrap(),
+            axes: BoundedSequence::try_from_iter([
                 TensorAxis {
                     role: TensorAxisRole::Time,
                     identity: Some("frame".into()),
@@ -151,9 +152,10 @@ fn signal(byte: u8) -> SampledSignal {
                     identity: Some("observation".into()),
                     unit: None,
                 },
-            ],
+            ])
+            .unwrap(),
             content_digest: tensor_content_digest(&bytes),
-            backing: TensorBacking::Inline(bytes),
+            backing: TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap()),
         },
     }
 }
