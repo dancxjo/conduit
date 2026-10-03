@@ -128,6 +128,7 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
                 gear_port_id: endpoint.port.port_id.clone(),
             });
     let mut gears = fragment.gears;
+    super::construction::validate(&gears, &document.native_types)?;
     let mut connections = fragment.connections;
     let mut shared_pools = fragment.shared_pools;
     let mut provenance = fragment.provenance;

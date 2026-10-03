@@ -11,6 +11,7 @@ macro_rules! installed_step_dispatch {
         impl<const PORTS: usize> StepBack<PORTS> for InstalledBack {
             fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
                 match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::TypedState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::DurableState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
@@ -31,6 +32,7 @@ macro_rules! installed_step_dispatch {
 
             fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
                 match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::TypedState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::DurableState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
@@ -51,6 +53,7 @@ macro_rules! installed_step_dispatch {
 
             fn step_committed(&mut self) {
                 match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::TypedState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::DurableState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
@@ -73,6 +76,7 @@ macro_rules! installed_step_dispatch {
                 input_bytes: &StepInputBytes<'_, PORTS>,
             ) -> StepOutcome {
                 match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::TypedState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::DurableState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
@@ -89,8 +93,28 @@ macro_rules! installed_step_dispatch {
                 }
             }
 
+            fn prepared_output(&self, port: conduit_kernel::PortId) -> Option<&[u8]> {
+                match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::TypedState(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::DurableState(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::FlowCollect(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::FlowJoinByKey(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    $(
+                        $(#[$attribute])*
+                        Self::$variant(operation) => StepBack::<PORTS>::prepared_output(operation, port),
+                    )+
+                    Self::Inactive => None,
+                }
+            }
+
             fn accepts_input_while_host_call_pending(&self) -> bool {
                 match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::TypedState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::DurableState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
@@ -115,6 +139,7 @@ macro_rules! installed_step_dispatch {
                 value: conduit_kernel::ValueRef,
             ) -> bool {
                 match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::TypedState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::DurableState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
@@ -133,6 +158,7 @@ macro_rules! installed_step_dispatch {
 
             fn cancel(&mut self) {
                 match self {
+                    Self::NativeSpeech(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::TypedState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::DurableState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),

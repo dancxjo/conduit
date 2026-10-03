@@ -1,0 +1,281 @@
+# Segment contracts adapted from Tongues/Speaking b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9.
+# Meaning is native Conduit. Collection bounds belong to this compact profile;
+# they are admission limits, not a claim that human language has finite inventories.
+
+type PhoneId = Text <= 64B not in [""]
+type PhonemeId = Text <= 64B not in [""]
+type SpeechInventoryId = Text <= 64B not in [""]
+type SpeechLanguageId = Text <= 32B not in [""]
+type SpeechFeatureId = Text <= 64B not in [""]
+type SpeechConfidence = F32 finite in 0.0..=1.0
+type SpeechAcousticCueId = Text <= 64B not in [""]
+
+type SpeechGradient<T> = {
+    value: T
+    confidence: SpeechConfidence
+}
+
+type SpeechSpec<T> =
+    known T
+    | unknown
+    | unspecified
+    | not_applicable
+    | variable sequence T in 1..=4
+    | gradient SpeechGradient<T>
+
+type SpeechSegmentStatus =
+    core
+    | marginal
+    | borrowed
+    | allophonic
+    | archiphonemic
+    | reconstructed
+    | experimental
+
+type SpeechSymbolAlias = {
+    system: Text <= 32B not in [""]
+    symbol: Text <= 64B not in [""]
+}
+
+type SpeechFeatureValue =
+    boolean Boolean
+    | category Text <= 64B not in [""]
+    | number F64
+    | vector sequence F32 in 1..=8
+    | text Text <= 128B
+
+type SpeechFeature = {
+    identity: SpeechFeatureId
+    specification: SpeechSpec<SpeechFeatureValue>
+}
+
+type SpeechFeatureBundle = sequence SpeechFeature <= 16
+
+type SpeechStress =
+    primary
+    | secondary
+    | unstressed
+    | reduced
+
+type SpeechWordPosition =
+    initial
+    | medial
+    | final
+    | isolated
+
+type SpeechSyllablePosition =
+    onset
+    | nucleus
+    | coda
+
+type SpeechBoundaryKind =
+    phone
+    | syllable
+    | morpheme
+    | word
+    | phrase
+    | breath_group
+    | turn
+
+type SpeechProsodicContext =
+    phrase_initial
+    | phrase_medial
+    | phrase_final
+    | turn_initial
+    | turn_final
+    | emphasized
+    | deemphasized
+    | fast_speech
+    | careful_speech
+
+type SpeechSegmentMatcher =
+    phone PhoneId
+    | phoneme PhonemeId
+    | features SpeechFeatureBundle
+    | boundary SpeechBoundaryKind
+    | any
+
+type SpeechEnvironment = {
+    before: sequence SpeechSegmentMatcher <= 4
+    after: sequence SpeechSegmentMatcher <= 4
+    word_position: SpeechSpec<SpeechWordPosition>
+    syllable_position: SpeechSpec<SpeechSyllablePosition>
+    stress_context: StressSpecification
+    prosodic_context: SpeechSpec<SpeechProsodicContext>
+}
+
+type SpeechEvidenceSource =
+    manual
+    | manual_override
+    | user_markup
+    | committed_acoustics
+    | lexicon
+    | grammar
+    | morphology
+    | prosody
+    | punctuation
+    | imported_data
+    | learned_prediction
+    | rule
+    | acoustic_model
+    | forced_alignment
+    | g2p
+    | asr
+    | tts_plan
+    | memory
+    | inference
+    | unknown
+
+type SpeechEvidenceProvenance = {
+    source: SpeechEvidenceSource
+    method: Text <= 64B not in [""]
+    version: Text <= 64B?
+}
+
+# Shared exact half-open synthesis/observation timebase. A synthesized interval
+# is planned timing, never an inferred acoustic boundary.
+type SpeechFrameSpan = {
+    timebase: Text <= 64B not in [""]
+    sample_rate_hz: U32 in 1..=192000
+    start_frame: U64
+    end_frame: U64
+    where .start_frame <= .end_frame
+}
+
+# Preserve upstream floating-second observations without assuming a sample rate.
+# Ordering of second spans is checked during preparation; the current pure
+# expression profile does not compare F64. Frames and seconds never alias.
+type SpeechTimeSpan = {
+    start_s: F64 finite
+    end_s: F64 finite
+}
+
+type SpeechSegmentSpan =
+    seconds SpeechTimeSpan
+    | frames SpeechFrameSpan
+
+type SpeechPhone = {
+    identity: PhoneId
+    ipa: Text <= 64B not in [""]
+    features: SpeechFeatureBundle
+    aliases: sequence SpeechSymbolAlias <= 4
+    status: SpeechSegmentStatus
+}
+
+type SpeechPhoneme = {
+    identity: PhonemeId
+    notation: Text <= 64B not in [""]
+    features: SpeechFeatureBundle
+    default_phone: PhoneId?
+    possible_phones: sequence PhoneId <= 8
+    allophones: sequence SpeechPhonemeAllophone <= 8
+    aliases: sequence SpeechSymbolAlias <= 4
+    status: SpeechSegmentStatus
+}
+
+type SpeechAcousticObservation = {
+    cue_identity: SpeechAcousticCueId
+    span: SpeechSegmentSpan?
+    value: SpeechSpec<SpeechFeatureValue>
+    confidence: SpeechConfidence
+}
+
+type SpeechPhoneToken = {
+    phone: PhoneSpecification
+    span: SpeechSegmentSpan?
+    features: SpeechFeatureBundle
+    acoustic_evidence: sequence SpeechAcousticObservation <= 8
+    confidence: SpeechConfidence
+    provenance: SpeechEvidenceProvenance
+}
+
+type SpeechPhonemeToken = {
+    phoneme: PhonemeSpecification
+    span: SpeechSegmentSpan?
+    features: SpeechFeatureBundle
+    realized_as: sequence SpeechPhoneToken <= 4
+    confidence: SpeechConfidence
+    provenance: SpeechEvidenceProvenance
+}
+
+# Membership is scoped by both language and inventory. A symbol string is not
+# an inventory membership claim or a selected voice realization.
+type SpeechInventory = {
+    identity: SpeechInventoryId
+    language: SpeechLanguageId
+    phones: sequence SpeechPhone <= 64
+    phonemes: sequence SpeechPhoneme <= 64
+}
+
+
+type SpeechRuleStatus =
+    productive
+    | lexicalized
+    | optional
+    | style_dependent
+    | experimental
+
+type SpeechFeatureCondition = {
+    identity: SpeechFeatureId
+    value: SpeechFeatureValue
+}
+
+type SpeechRuleCondition =
+    previous_matches SpeechSegmentMatcher
+    | next_matches SpeechSegmentMatcher
+    | previous_has_feature SpeechFeatureCondition
+    | next_has_feature SpeechFeatureCondition
+    | previous_stress SpeechStress
+    | previous_stress_in sequence SpeechStress in 1..=4
+    | next_stress SpeechStress
+    | next_stress_in sequence SpeechStress in 1..=4
+    | current_word_has_syntactic_link SpeechSyntacticLinkKind
+    | previous_word_has_syntactic_link SpeechSyntacticLinkKind
+    | next_word_has_syntactic_link SpeechSyntacticLinkKind
+    | not_careful_style
+
+type SpeechPhonemeAllophone = {
+    phone: PhoneId
+    environment: SpeechEnvironment
+    conditions: sequence SpeechRuleCondition <= 8
+    confidence: SpeechConfidence
+    status: SpeechRuleStatus
+    source_rule_identity: Text <= 64B?
+}
+
+type SpeechAllophoneRule = {
+    identity: Text <= 64B not in [""]
+    phoneme: PhonemeSpecification
+    input_features: SpeechFeatureBundle
+    environment: SpeechEnvironment
+    conditions: sequence SpeechRuleCondition <= 8
+    phone: PhoneSpecification
+    output_features: SpeechFeatureBundle
+    confidence: SpeechConfidence
+    status: SpeechRuleStatus
+}
+
+
+type SpeechSyntacticLinkKind =
+    subject
+    | object
+    | complement
+    | infinitival_marker
+    | modifier
+    | determiner
+    | auxiliary
+    | preposition
+    | coordination
+    | contrast_pair
+    | noun_compound
+    | vocative
+    | apposition
+    | parenthetical
+
+type PhoneSpecification = SpeechSpec<PhoneId>
+
+type PhonemeSpecification = SpeechSpec<PhonemeId>
+
+type StressSpecification = SpeechSpec<SpeechStress>
+
+type FeatureSpecification = SpeechSpec<SpeechFeatureValue>

@@ -575,6 +575,7 @@ dependencies = [
  "conduit-protected-line",
  "conduit-semantic-catalog",
  "conduit-signal",
+ "conduit-speech",
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-text",
@@ -1372,6 +1373,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-speech"
+version = "0.1.0"
+dependencies = [
+ "conduit-audio",
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-ssd1306"
 version = "0.1.0"
 
@@ -1414,6 +1427,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
+ "conduit-speech",
  "conduit-std-offers",
  "conduit-synth",
  "conduit-text",

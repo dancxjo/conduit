@@ -1,0 +1,28 @@
+[package]
+name = "conduit-speech"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+default = []
+kernel = ["dep:conduit-core", "dep:conduit-plot", "dep:conduit-audio", "dep:conduit-kernel"]
+semantic-bindings = ["dep:conduit-core", "dep:conduit-plot"]
+
+[dependencies]
+conduit-core = { path = "../../architecture/core", optional = true }
+conduit-plot = { path = "../../architecture/plot", optional = true }
+
+conduit-audio = { path = "../audio", optional = true }
+conduit-kernel = { path = "../../architecture/kernel", optional = true }
+
+[build-dependencies]
+conduit-plot = { path = "../../architecture/plot" }
+conduit-core = { path = "../../architecture/core" }
+
+[dev-dependencies]
+conduit-plot = { path = "../../architecture/plot" }
+conduit-core = { path = "../../architecture/core" }
+conduit-kernel = { path = "../../architecture/kernel", features = ["step-test-support", "alloc"] }
+conduit-planner = { path = "../../architecture/planner" }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
