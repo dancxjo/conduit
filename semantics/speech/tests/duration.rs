@@ -77,7 +77,7 @@ fn preparation_refuses_bounds_and_overflow_without_changing_inputs() {
 #[test]
 fn native_span_law_refuses_an_inconsistent_frame_count() {
     let duration = SpeechExactDuration::new(8000, 960).unwrap();
-    let span = duration_spans(&[duration.clone()], 8000)
+    let span = duration_spans(core::slice::from_ref(&duration), 8000)
         .unwrap()
         .pop()
         .unwrap();
