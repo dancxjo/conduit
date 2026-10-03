@@ -1,6 +1,7 @@
 //! Foreground owner of one installed Linux Host's retained Body.
 mod controller;
 mod image;
+mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
 use serde::Deserialize;
@@ -30,6 +31,10 @@ enum Request {
     AdmitInvited {
         expected_host_id: String,
         request: Box<conduit_body::PortableSpawnAdmissionRequest>,
+    },
+    AdmitNativeObservation {
+        expected_host_id: String,
+        observation: Box<native_observation::NativeSerialSpawnObservation>,
     },
     Plan,
     Run {
@@ -92,7 +97,10 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                 .map_err(|e| format!("invalid owner request: {e}"))
                 .and_then(|request| {
                     if length as u64 > MAXIMUM_CONTROL_REQUEST
-                        && !matches!(request, Request::AdmitInvited { .. })
+                        && !matches!(
+                            request,
+                            Request::AdmitInvited { .. } | Request::AdmitNativeObservation { .. }
+                        )
                     {
                         return Err("owner control request exceeds 4096 bytes".into());
                     }
@@ -120,6 +128,14 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                         } => {
                             let receipt =
                                 owner.admit_invited(&root, *request, &expected_host_id)?;
+                            emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
+                        }
+                        Request::AdmitNativeObservation {
+                            expected_host_id,
+                            observation,
+                        } => {
+                            let request = observation.into_request(&expected_host_id)?;
+                            let receipt = owner.admit_invited(&root, request, &expected_host_id)?;
                             emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
                         Request::Plan => owner.plan(&checked)?,
