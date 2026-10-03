@@ -5,6 +5,10 @@ use conduit_body::{
     SpawnInvitationSecret, ROUTED_INVITATION_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_presentation::{
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, PresentationRole,
+    OWNER_FACE_REQUEST_SCHEMA,
+};
 use conduit_std_host::{StdHost, StdHostConfig};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -174,6 +178,61 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
         _ => panic!("unexpected admission response"),
     };
     receipt.validate_against(&request).unwrap();
+    let face_request = OwnerFaceSnapshotRequest {
+        schema: OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: receipt.credential.credential_id.as_str().into(),
+        body_id: receipt.credential.body_id.clone(),
+        part_id: receipt.credential.part_id.clone(),
+        host_id: receipt.credential.host_id.clone(),
+        boot_id: receipt.credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    let face = match super::super::handle(
+        Request::BodyFace {
+            protocol: PROTOCOL,
+            token: token.to_vec(),
+            request: face_request.clone(),
+        },
+        &token,
+        &mut runtime,
+    ) {
+        Response::BodyFace { response, .. } => match *response {
+            OwnerFaceSnapshotResponse::Snapshot {
+                presentation,
+                interactions_admitted: false,
+                ..
+            } => *presentation,
+            other => panic!("unexpected Face response: {other:?}"),
+        },
+        _ => panic!("unexpected Face control response"),
+    };
+    face.validate().unwrap();
+    assert_eq!(
+        face.basis.body_id.as_ref(),
+        Some(&receipt.credential.body_id)
+    );
+    assert!(face
+        .subjects
+        .iter()
+        .any(|subject| subject.role == PresentationRole::Plot));
+    let unchanged = runtime
+        .owned_body_face(&OwnerFaceSnapshotRequest {
+            last_seen_revision: Some(face.revision),
+            last_seen_identity: Some(face.identity.clone()),
+            ..face_request.clone()
+        })
+        .unwrap();
+    assert!(matches!(
+        unchanged,
+        OwnerFaceSnapshotResponse::Unchanged { .. }
+    ));
+    let mut wrong_boot = face_request;
+    wrong_boot.boot_id = BootId::from("boot/stale");
+    assert!(matches!(
+        runtime.owned_body_face(&wrong_boot),
+        Err(code) if code == "owner-face-credential-not-admitted"
+    ));
     assert_eq!(
         runtime.owned_body_truth().unwrap()["biography"]["membership"]["parts"]
             .as_array()
