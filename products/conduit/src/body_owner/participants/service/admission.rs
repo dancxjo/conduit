@@ -69,6 +69,7 @@ impl Owner {
                     let mut candidates =
                         CandidateInventory::new(manager.body_id.clone()).map_err(debug)?;
                     let candidate = candidates.observe(observation.clone()).map_err(debug)?;
+                    let observed_candidates = candidates.clone();
                     let challenge = manager
                         .begin_ambient(
                             &mut candidates,
@@ -81,12 +82,14 @@ impl Owner {
                         )
                         .map_err(debug)?;
                     window.state = WindowState::Pending(Pending {
-                        admission_id: challenge.admission_id.clone(),
                         binding: binding.clone(),
                         observation,
-                        kind: PendingKind::Ambient(candidates),
+                        kind: PendingKind::Ambient {
+                            challenge: challenge.clone(),
+                            observed_candidates,
+                            verifying_key: offered,
+                        },
                     });
-                    self.admissions = Some(manager);
                     Ok(Out::Challenge {
                         protocol: PROTOCOL,
                         challenge,
@@ -134,12 +137,13 @@ impl Owner {
                         encoded_bytes,
                     };
                     window.state = WindowState::Pending(Pending {
-                        admission_id: challenge.admission_id.clone(),
                         binding: binding.clone(),
                         observation,
-                        kind: PendingKind::Returning(advertisement),
+                        kind: PendingKind::Returning {
+                            challenge: challenge.clone(),
+                            advertisement,
+                        },
                     });
-                    self.admissions = Some(manager);
                     Ok(Out::ReturnChallenge {
                         protocol: PROTOCOL,
                         challenge,
@@ -167,15 +171,18 @@ impl Owner {
             let WindowState::Pending(pending) = &window.state else {
                 return Err("browser admission window has no pending challenge".into());
             };
-            let mut manager = self
-                .admissions
-                .clone()
-                .ok_or("browser admission manager absent")?;
+            let mut manager = self.admissions.clone().unwrap_or(
+                AdmissionManager::new(self.session.evidence().body_id.clone()).map_err(debug)?,
+            );
             let mut session = self.session.clone();
             let authority = self.host.advertisement();
             let credential = match (&pending.kind, frame) {
                 (
-                    PendingKind::Ambient(candidates),
+                    PendingKind::Ambient {
+                        challenge,
+                        observed_candidates,
+                        verifying_key,
+                    },
                     In::AmbientProof {
                         protocol: PROTOCOL,
                         admission_id,
@@ -185,7 +192,7 @@ impl Owner {
                         nonce,
                         signature,
                     },
-                ) if admission_id == pending.admission_id => {
+                ) if admission_id == challenge.admission_id => {
                     let proof = AmbientAdmissionProof {
                         admission_id,
                         body_id,
@@ -196,7 +203,21 @@ impl Owner {
                             .try_into()
                             .map_err(|_| "invalid proof signature")?,
                     };
-                    let mut candidates = candidates.clone();
+                    let mut candidates = observed_candidates.clone();
+                    let recreated = manager
+                        .begin_ambient(
+                            &mut candidates,
+                            &challenge.candidate_id,
+                            *verifying_key,
+                            challenge.nonce,
+                            challenge.issued_at_millis,
+                            challenge.expires_at_millis,
+                            signal(&pending.binding, "requested"),
+                        )
+                        .map_err(debug)?;
+                    if recreated != *challenge {
+                        return Err("browser challenge changed before proof completion".into());
+                    }
                     session
                         .admit_ambient_host(
                             &mut manager,
@@ -209,7 +230,10 @@ impl Owner {
                         .map_err(debug)?
                 }
                 (
-                    PendingKind::Returning(advertisement),
+                    PendingKind::Returning {
+                        challenge,
+                        advertisement,
+                    },
                     In::ReturnProof {
                         protocol: PROTOCOL,
                         admission_id,
@@ -220,7 +244,7 @@ impl Owner {
                         nonce,
                         signature,
                     },
-                ) if admission_id == pending.admission_id => {
+                ) if admission_id == challenge.admission_id => {
                     let proof = PartReturnProof {
                         admission_id,
                         body_id,
@@ -232,6 +256,21 @@ impl Owner {
                             .try_into()
                             .map_err(|_| "invalid return signature")?,
                     };
+                    let recreated = manager
+                        .begin_return(
+                            &session.evidence().membership,
+                            &challenge.part_id,
+                            advertisement,
+                            challenge.nonce,
+                            challenge.issued_at_millis,
+                            challenge.expires_at_millis,
+                        )
+                        .map_err(debug)?;
+                    if recreated != *challenge {
+                        return Err(
+                            "browser return challenge changed before proof completion".into()
+                        );
+                    }
                     session
                         .admit_returning_host(
                             &mut manager,
