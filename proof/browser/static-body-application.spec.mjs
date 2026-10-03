@@ -113,7 +113,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     await expect(graph).toHaveAttribute("data-checked-plot-id", originalExample.selectedPlot);
     await expect(highlighting).toHaveText(editedSource, { useInnerText: false });
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
-    await expect.poll(async () => (await current(page)).selectedPlot).not.toBe(originalExample.selectedPlot);
+    // Applying the edit returns to the selected Plot. Its visible checker
+    // result settles before the runtime snapshot; Patchbay is reopened below.
+    await expect(page.locator("[data-check]")).toHaveText("Checked clock-demo.");
     example = await ready(page);
     expect(example.bodyId).toBe(originalExample.bodyId);
     expect(example.selectedPlot).not.toBe(originalExample.selectedPlot);
