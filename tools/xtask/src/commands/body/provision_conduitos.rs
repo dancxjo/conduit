@@ -13,6 +13,9 @@ use conduit_body_make::{
     seal_reviewed_prebuilt_body_spore_with_content_digest, SelectedPrebuiltContent, SporeBinding,
 };
 use conduit_host_make::HostImage;
+use conduitos::spore_provision::{
+    decode as decode_native_media, validate_image_binding, MAGIC, REGION_BYTES,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -21,8 +24,6 @@ use crate::{cli::GlobalOpts, commands::host::host_target};
 use super::load;
 
 const TARGET: &str = "conduitos/x86_64/pc";
-const MAGIC: &[u8] = b"CONDUIT_SPORE_MEDIA@1\0";
-const REGION_BYTES: usize = 4096;
 const HEADER_BYTES: usize = 32;
 const MAXIMUM_ISO_BYTES: u64 = 80 * 1024 * 1024;
 const MAXIMUM_INVITATION_BYTES: u64 = 64 * 1024;
@@ -130,6 +131,11 @@ pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn std::erro
     invitation.secret.fill(0);
     let mut region = encode_region(&encoded)?;
     encoded.fill(0);
+    let guest_provision = decode_native_media(&region)
+        .map_err(|error| format!("guest media decoder refused provision: {error:?}"))?
+        .ok_or("guest media decoder returned a blank provision")?;
+    validate_image_binding(&guest_provision, TARGET, &build.profile_id, &build.build_id)
+        .map_err(|error| format!("guest image binding refused provision: {error:?}"))?;
     let offset = locate_blank_region(&image_bytes)?;
     image_bytes[offset..offset + REGION_BYTES].copy_from_slice(&region);
     region.fill(0);
