@@ -75,21 +75,23 @@ fn fixture(
     omit_chapter: bool,
     repeat_action: bool,
 ) -> Fixture {
-    fixture_with_png(
+    fixture_with_media(
         mixed_run,
         stale_transcript,
         omit_chapter,
         repeat_action,
         false,
+        false,
     )
 }
 
-fn fixture_with_png(
+fn fixture_with_media(
     mixed_run: bool,
     stale_transcript: bool,
     omit_chapter: bool,
     repeat_action: bool,
     invalid_png: bool,
+    silent_wav: bool,
 ) -> Fixture {
     let root = std::env::temp_dir().join(format!(
         "conduit-one-body-render-test-{}-{}",
@@ -151,7 +153,10 @@ fn fixture_with_png(
                     b"synthetic terminal fixture".to_vec(),
                 ),
                 "direct" | "llm-assisted" => {
-                    let bytes = Vec::from(&b"RIFF\x28\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x80\x3e\0\0\0\x7d\0\0\x02\0\x10\0data\x04\0\0\0\0\0\0\0"[..]);
+                    let mut bytes = Vec::from(&b"RIFF\x28\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x80\x3e\0\0\0\x7d\0\0\x02\0\x10\0data\x04\0\0\0\x01\0\0\0"[..]);
+                    if silent_wav {
+                        bytes[44] = 0;
+                    }
                     (EvidenceKind::Audio, "audio/wav", bytes)
                 }
                 _ => (
@@ -317,7 +322,16 @@ fn rejects_tampered_media_hash() {
 
 #[test]
 fn rejects_nondecodable_png_even_with_matching_digest() {
-    let fixture = fixture_with_png(false, false, false, false, true);
+    let fixture = fixture_with_media(false, false, false, false, true, false);
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("is not a supported real capture"));
+    assert!(!fixture.output.exists());
+}
+
+#[test]
+fn rejects_silent_wav_even_with_matching_digest() {
+    let fixture = fixture_with_media(false, false, false, false, false, true);
     assert!(run(&fixture)
         .unwrap_err()
         .contains("is not a supported real capture"));
