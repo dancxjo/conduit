@@ -129,9 +129,14 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                 continue;
             }
             let (text, paint) = match &action.availability {
-                PresentationActionAvailability::Available => {
-                    (action.name.clone(), GraphicsPaintRole::Accent)
-                }
+                PresentationActionAvailability::Available => (
+                    if action.name == subject.name {
+                        action.name.clone()
+                    } else {
+                        format!("{} · {}", action.name, subject.name)
+                    },
+                    GraphicsPaintRole::Accent,
+                ),
                 PresentationActionAvailability::Unavailable { explanation, .. }
                 | PresentationActionAvailability::Refused { explanation, .. } => (
                     format!("{} — {}", action.name, explanation),
@@ -150,7 +155,8 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
             for (argument_index, argument) in action.arguments.iter().enumerate() {
                 primary.push(Item {
                     text: format!(
-                        "{} · {}",
+                        "{} · {} · {}",
+                        subject.name,
                         argument.value_name,
                         if argument.contract.value_kind.as_str() == "value/bool" {
                             "0 false · 1 true · Enter applies"
