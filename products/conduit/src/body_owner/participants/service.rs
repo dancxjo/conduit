@@ -3,10 +3,10 @@
 mod admission;
 use super::{admission::remaining, debug, nonce, now, signal, Owner, PROTOCOL};
 use conduit_body::{
-    disclose_host_offer, AdmissionId, AdmissionManager, AmbientAdmissionProof,
+    disclose_host_offer, AdmissionChallenge, AdmissionManager, AmbientAdmissionProof,
     BodyBiographyEvidence, BodyId, BodyState, CandidateInventory, CandidateObservation,
     DiscoveryProofId, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
-    OfferDisclosureStage, PartReturnProof, RemoteProofClass,
+    OfferDisclosureStage, PartReturnChallenge, PartReturnProof, RemoteProofClass,
 };
 use conduit_core::{HostAdvertisement, HostId, LinkBindingId};
 use conduit_std_host::browser_admission::{
@@ -72,15 +72,21 @@ enum WindowState {
 }
 
 struct Pending {
-    admission_id: AdmissionId,
     binding: LinkBindingId,
     observation: CandidateObservation,
     kind: PendingKind,
 }
 
 enum PendingKind {
-    Ambient(CandidateInventory),
-    Returning(HostAdvertisement),
+    Ambient {
+        challenge: AdmissionChallenge,
+        observed_candidates: CandidateInventory,
+        verifying_key: [u8; 32],
+    },
+    Returning {
+        challenge: PartReturnChallenge,
+        advertisement: HostAdvertisement,
+    },
 }
 
 impl BrowserWindow {
@@ -166,23 +172,7 @@ impl Owner {
             if window.id != window_id {
                 return Err("browser admission window identity differs".into());
             }
-            if let WindowState::Pending(pending) = &mut window.state {
-                let manager = self
-                    .admissions
-                    .as_mut()
-                    .ok_or("browser admission manager absent")?;
-                match &mut pending.kind {
-                    PendingKind::Ambient(candidates) => manager
-                        .disconnect_ambient(
-                            candidates,
-                            &pending.admission_id,
-                            signal(&pending.binding, "lost"),
-                        )
-                        .map_err(debug)?,
-                    PendingKind::Returning(_) => manager
-                        .disconnect_return(&pending.admission_id)
-                        .map_err(debug)?,
-                }
+            if matches!(window.state, WindowState::Pending(_)) {
                 window.state = WindowState::Ready;
             }
             Ok(())
@@ -213,7 +203,7 @@ impl Owner {
             let WindowState::Active(active) = &window.state else {
                 return Err("browser admission window has no active carrier".into());
             };
-            if active != *credential {
+            if active != credential {
                 return Err("browser leave credential differs from active carrier".into());
             }
             let current = self
