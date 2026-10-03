@@ -184,6 +184,7 @@ pub(super) fn execute_supplied(
             "proof_class":"freestanding-emulator",
             "source_commit":source, "image_sha256":image_sha256,
             "profile_id":identity.profile_id, "build_id":identity.build_id,
+            "image_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["image_id"],
             "host_id":identity.host_id, "boot_id":identity.boot_id,
             "body_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["body_id"],
             "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",

@@ -91,7 +91,6 @@ mod timing_profile;
 mod usb_proof;
 mod usb_run;
 mod virtio_net_proof;
-mod workspace_proof;
 mod x86_64_product_boot;
 mod xhci_proof;
 

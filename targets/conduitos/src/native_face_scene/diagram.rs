@@ -15,14 +15,15 @@ fn columns(width: u16) -> usize {
     if width >= 520 { 2 } else { 1 }
 }
 
-fn rows(height: u16) -> usize {
-    if height >= 680 {
+fn rows(height: u16, gears: usize, columns: usize) -> usize {
+    let available = if height >= 680 {
         3
     } else if height >= 440 {
         2
     } else {
         1
-    }
+    };
+    available.min(gears.div_ceil(columns).max(1))
 }
 
 pub(super) fn pages(face: &Presentation, width: u16, height: u16) -> usize {
@@ -31,7 +32,10 @@ pub(super) fn pages(face: &Presentation, width: u16, height: u16) -> usize {
         .iter()
         .filter(|subject| subject.role == PresentationRole::Gear)
         .count();
-    gears.div_ceil(columns(width) * rows(height)).max(1)
+    let columns = columns(width);
+    gears
+        .div_ceil(columns * rows(height, gears, columns))
+        .max(1)
 }
 
 pub(super) fn exists(face: &Presentation) -> bool {
@@ -47,7 +51,12 @@ pub(super) fn append(
     page: usize,
 ) -> Result<(), FaceSceneError> {
     let columns = columns(screen.width);
-    let rows = rows(screen.height);
+    let gear_count = face
+        .subjects
+        .iter()
+        .filter(|subject| subject.role == PresentationRole::Gear)
+        .count();
+    let rows = rows(screen.height, gear_count, columns);
     let capacity = columns * rows;
     let width = (screen.width - SPACE_XL * 2 - GAP * (columns as u16 - 1)) / columns as u16;
     let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
@@ -98,8 +107,8 @@ pub(super) fn append(
         } else {
             (from.x, to.x + to.width as i16 - 1)
         };
-        let start_y = from.y + 59 + source_row as i16 * PORT_ROW as i16;
-        let end_y = to.y + 59 + sink_row as i16 * PORT_ROW as i16;
+        let start_y = from.y + 80 + source_row as i16 * PORT_ROW as i16;
+        let end_y = to.y + 80 + sink_row as i16 * PORT_ROW as i16;
         let middle = if from.x == to.x {
             from.x + from.width as i16 + GAP as i16 / 2
         } else {
@@ -122,6 +131,7 @@ pub(super) fn append(
     }
     for (index, gear) in gears.into_iter().enumerate() {
         let bounds = card(index);
+        let (title, origin) = gear_labels(&gear.name);
         push(
             scene,
             GraphicsCommand::rect(
@@ -142,10 +152,27 @@ pub(super) fn append(
                 },
                 screen,
                 GraphicsPaintRole::Foreground,
-                &preview(&readable(&gear.name), 42),
+                &preview(&readable(title), 30),
             )
             .and_then(|command| command.with_text_role(GraphicsTextRole::Heading)),
         )?;
+        if !origin.is_empty() {
+            push(
+                scene,
+                GraphicsCommand::text(
+                    LayoutRect {
+                        x: bounds.x + 12,
+                        y: bounds.y + 37,
+                        width: bounds.width - 24,
+                        height: 22,
+                    },
+                    screen,
+                    GraphicsPaintRole::Muted,
+                    &preview(&readable(origin), 40),
+                )
+                .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
+            )?;
+        }
         let ports = ports(face, gear).collect::<Vec<_>>();
         let shown = visible_ports(height).min(ports.len());
         for (row, port) in ports.iter().take(shown).enumerate() {
@@ -155,7 +182,7 @@ pub(super) fn append(
             } else {
                 GraphicsPaintRole::Muted
             };
-            let y = bounds.y + 49 + row as i16 * PORT_ROW as i16;
+            let y = bounds.y + 70 + row as i16 * PORT_ROW as i16;
             push(
                 scene,
                 GraphicsCommand::text(
@@ -195,7 +222,7 @@ pub(super) fn append(
 }
 
 fn visible_ports(height: u16) -> usize {
-    usize::from(height.saturating_sub(56) / PORT_ROW).min(4)
+    usize::from(height.saturating_sub(78) / PORT_ROW).min(4)
 }
 
 fn ports<'a>(
@@ -278,6 +305,17 @@ fn preview(value: &str, limit: usize) -> alloc::string::String {
     alloc::format!("{}...", &value[..end])
 }
 
+fn gear_labels(value: &str) -> (&str, &str) {
+    let semantic = value.split_once(" Gear").map_or(value, |(name, _)| name);
+    semantic
+        .rsplit_once('/')
+        .map_or((value, ""), |(origin, local)| (local, origin))
+}
+
 fn readable(value: &str) -> alloc::string::String {
-    value.replace(['-', '_'], " ").replace('/', " · ")
+    let plain = value.replace(['-', '_'], " ").replace('/', " · ");
+    let mut chars = plain.chars();
+    chars.next().map_or(plain.clone(), |first| {
+        alloc::format!("{}{}", first.to_uppercase(), chars.as_str())
+    })
 }
