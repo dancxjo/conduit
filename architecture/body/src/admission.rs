@@ -19,8 +19,9 @@ use continuity::{ContinuityKeyRecord, PendingReturn};
 pub use continuity::{PartReturnChallenge, PartReturnProof};
 pub use documents::{
     AdmissionDocumentRefusal, PortableAdmissionReceipt, PortableInvitation,
-    PortableSpawnAdmissionRequest, INVITATION_SCHEMA, ROUTED_INVITATION_SCHEMA,
-    SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
+    PortableSpawnAdmissionRequest, RoutedAdmissionRequest, RoutedAdmissionResponse,
+    INVITATION_SCHEMA, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
+    ROUTED_INVITATION_SCHEMA, SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
 use invitation::InvitationRecord;
 pub use invitation::{

@@ -7,7 +7,10 @@ use super::invitation::{
 };
 use super::membership::complete_body_join_document;
 use super::{bounded_read, current_time_millis, MAXIMUM_BODY_ADMISSION_BYTES};
-use conduit_body::{RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily};
+use conduit_body::{
+    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
+    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
+};
 use conduit_std_host::secure_websocket::{
     SecureWebSocketClientLine, SecureWebSocketError, SecureWebSocketListener,
 };
@@ -17,30 +20,7 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::Path;
 use std::time::Duration;
 
-const ROUTE_REQUEST_SCHEMA: &str = "conduit.body/routed-admission-request@1";
-const ROUTE_RESPONSE_SCHEMA: &str = "conduit.body/routed-admission-response@1";
 const MAXIMUM_ROUTE_FRAME_BYTES: usize = 512 * 1024;
-
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RoutedAdmissionRequest {
-    schema: String,
-    invitation_id: String,
-    request: PortableSpawnAdmissionRequest,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "outcome", rename_all = "kebab-case", deny_unknown_fields)]
-enum RoutedAdmissionResponse {
-    Admitted {
-        schema: String,
-        receipt: Box<PortableAdmissionReceipt>,
-    },
-    Refused {
-        schema: String,
-        code: String,
-    },
-}
 
 pub(crate) fn serve_body_invitation_route(
     state_dir: &Path,
@@ -106,11 +86,13 @@ pub(crate) fn serve_body_invitation_route(
         .map_err(|error| format!("Body owner unreachable before invitation expiry: {error:?}"))?;
     let request: RoutedAdmissionRequest = receive(&mut line)?;
     let expected_invitation = invitation.claim.invitation_id.as_str();
-    if request.schema != ROUTE_REQUEST_SCHEMA || request.invitation_id != expected_invitation {
+    if request.schema != ROUTED_ADMISSION_REQUEST_SCHEMA
+        || request.invitation_id != expected_invitation
+    {
         send(
             &mut line,
             &RoutedAdmissionResponse::Refused {
-                schema: ROUTE_RESPONSE_SCHEMA.into(),
+                schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
                 code: "wrong-invitation".into(),
             },
         )?;
@@ -120,7 +102,7 @@ pub(crate) fn serve_body_invitation_route(
         Ok(receipt) => send(
             &mut line,
             &RoutedAdmissionResponse::Admitted {
-                schema: ROUTE_RESPONSE_SCHEMA.into(),
+                schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
                 receipt: Box::new(receipt),
             },
         ),
@@ -128,7 +110,7 @@ pub(crate) fn serve_body_invitation_route(
             send(
                 &mut line,
                 &RoutedAdmissionResponse::Refused {
-                    schema: ROUTE_RESPONSE_SCHEMA.into(),
+                    schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
                     code: admission_refusal_code(&error).into(),
                 },
             )?;
@@ -218,18 +200,20 @@ fn attempt_candidate(
     send(
         &mut line,
         &RoutedAdmissionRequest {
-            schema: ROUTE_REQUEST_SCHEMA.into(),
+            schema: ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
             invitation_id: request.invitation_id.as_str().into(),
             request: request.clone(),
         },
     )?;
     match receive::<RoutedAdmissionResponse>(&mut line)? {
         RoutedAdmissionResponse::Admitted { schema, receipt }
-            if schema == ROUTE_RESPONSE_SCHEMA =>
+            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
         {
             Ok(*receipt)
         }
-        RoutedAdmissionResponse::Refused { schema, code } if schema == ROUTE_RESPONSE_SCHEMA => {
+        RoutedAdmissionResponse::Refused { schema, code }
+            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
+        {
             Err(format!("admission-refused:{code}"))
         }
         _ => Err("owner-response-schema".into()),

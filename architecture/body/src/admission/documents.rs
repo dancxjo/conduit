@@ -6,7 +6,7 @@
 //! `AdmissionManager::complete_spawn` verifies and consumes invitation authority,
 //! and a received receipt is meaningful only from the authenticated Body owner.
 
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::HostAdvertisement;
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +20,8 @@ pub const INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@1";
 pub const ROUTED_INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@2";
 pub const SPAWN_ADMISSION_REQUEST_SCHEMA: &str = "conduit.body/spawn-admission-request@1";
 pub const SPAWN_ADMISSION_RECEIPT_SCHEMA: &str = "conduit.body/spawn-admission-receipt@1";
+pub const ROUTED_ADMISSION_REQUEST_SCHEMA: &str = "conduit.body/routed-admission-request@1";
+pub const ROUTED_ADMISSION_RESPONSE_SCHEMA: &str = "conduit.body/routed-admission-response@1";
 
 /// Admission capability for exact target provisioning. Never log this document
 /// or derive `Debug`: its serialized secret intentionally authorizes one proof.
@@ -58,6 +60,30 @@ pub struct PortableAdmissionReceipt {
     pub current_offers_available: bool,
     pub plan_created: bool,
     pub play_created: bool,
+}
+
+/// One existing signed request carried over an authenticated owner route.
+/// The route authenticates the owner separately; this envelope grants nothing.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RoutedAdmissionRequest {
+    pub schema: String,
+    pub invitation_id: String,
+    pub request: PortableSpawnAdmissionRequest,
+}
+
+/// Exact owner outcome over that same route. A refusal is never membership.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(tag = "outcome", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum RoutedAdmissionResponse {
+    Admitted {
+        schema: String,
+        receipt: Box<PortableAdmissionReceipt>,
+    },
+    Refused {
+        schema: String,
+        code: String,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
