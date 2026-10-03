@@ -2,10 +2,11 @@ use super::*;
 use crate::{BirthPlotChoice, BirthPresentation};
 use alloc::{format, string::String, vec};
 use conduit_body::ResidentPlot;
-use conduit_core::PlotIdentity;
+use conduit_core::{PlotIdentity, kind_id};
 use conduit_presentation::{
-    ApplicationEventKind, FaceInteractionArgument, ManifestationLifecycle, UTF8_TEXT_VALUE_KIND,
-    plan_face_utterances,
+    ApplicationEventKind, FaceInteractionArgument, FaceReadingCommand, FaceReadingCursor,
+    FaceReadingRefusal, FaceUtteranceProvenance, ManifestationLifecycle,
+    PresentationRelationshipKind, PresentationRole, UTF8_TEXT_VALUE_KIND, plan_face_utterances,
 };
 #[path = "fixtures.rs"]
 mod fixtures;
@@ -343,6 +344,75 @@ fn deterministic_aural_projection_preserves_all_fields_choices_values_and_errors
     let face = draft.face(&basis()).unwrap();
     assert!(face.basis.body_id.is_none());
     assert!(face.basis.plan_id.is_some());
+}
+
+#[test]
+fn birth_face_groups_are_semantic_and_changed_draft_stales_old_focus() {
+    let mut draft = draft();
+    let face = draft.face(&basis()).unwrap();
+    let main = face
+        .subjects
+        .iter()
+        .find(|subject| subject.role == PresentationRole::Semantic(kind_id("document/main")))
+        .unwrap();
+    let article = face
+        .subjects
+        .iter()
+        .find(|subject| subject.role == PresentationRole::Semantic(kind_id("document/article")))
+        .unwrap();
+    let navigation = face
+        .subjects
+        .iter()
+        .find(|subject| subject.role == PresentationRole::Semantic(kind_id("document/navigation")))
+        .unwrap();
+    assert!(face.relationships.iter().any(|relationship| {
+        relationship.source == main.identity
+            && relationship.target == article.identity
+            && relationship.kind == PresentationRelationshipKind::Contains
+    }));
+    assert!(face.relationships.iter().any(|relationship| {
+        relationship.source == main.identity
+            && relationship.target == navigation.identity
+            && relationship.kind == PresentationRelationshipKind::Contains
+    }));
+    assert_eq!(
+        face.actions
+            .iter()
+            .find(|action| action.identity == "creche.birth")
+            .unwrap()
+            .target,
+        navigation.identity
+    );
+
+    let mut reader = FaceReadingCursor::new(&face).unwrap();
+    reader
+        .command(
+            &face,
+            FaceReadingCommand::FocusSubject(article.identity.clone()),
+        )
+        .unwrap();
+    assert_eq!(
+        apply(
+            &mut draft,
+            "creche.name",
+            Some((UTF8_TEXT_VALUE_KIND, b"Ada"))
+        ),
+        Ok(BirthActionOutcome::Changed)
+    );
+    let changed = draft.face(&basis()).unwrap();
+    assert_ne!(face.identity, changed.identity);
+    assert_ne!(face.revision, changed.revision);
+    assert_eq!(
+        reader.command(&changed, FaceReadingCommand::Repeat),
+        Err(FaceReadingRefusal::StaleFace)
+    );
+    let refresh = reader.refresh(&changed).unwrap();
+    assert!(refresh.retained_focus);
+    assert!(refresh.interrupted);
+    assert_eq!(
+        reader.focused_clause().provenance,
+        FaceUtteranceProvenance::subject(article.identity.clone()).unwrap()
+    );
 }
 
 #[test]

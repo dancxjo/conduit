@@ -24,13 +24,41 @@ pub(super) fn project(
             _ => None,
         })
         .ok_or(BirthFaceRefusal::UnsupportedMechanism)?;
+    let main = format!("{root}/main");
+    let article = format!("{root}/article");
+    let navigation = format!("{root}/navigation");
     let mut projection = Projection {
         root: root.clone(),
-        subjects: vec![PresentationSubject {
-            identity: root.clone(),
-            role: PresentationRole::Host,
-            name: heading,
-        }],
+        main: main.clone(),
+        article: article.clone(),
+        navigation: navigation.clone(),
+        subjects: vec![
+            PresentationSubject {
+                identity: root.clone(),
+                role: PresentationRole::Host,
+                name: heading.clone(),
+            },
+            PresentationSubject {
+                identity: main.clone(),
+                role: PresentationRole::Semantic(kind_id("document/main")),
+                name: heading,
+            },
+            PresentationSubject {
+                identity: article.clone(),
+                role: PresentationRole::Semantic(kind_id("document/article")),
+                name: "Body name and starting Plots".into(),
+            },
+            PresentationSubject {
+                identity: navigation.clone(),
+                role: PresentationRole::Semantic(kind_id("document/navigation")),
+                name: "Birth actions".into(),
+            },
+        ],
+        relationships: vec![
+            contains(&root, &main),
+            contains(&main, &article),
+            contains(&main, &navigation),
+        ],
         text: vec![],
         actions: vec![],
         events: vec![],
@@ -58,7 +86,7 @@ pub(super) fn project(
             sign_ids: vec![],
         },
         projection.subjects,
-        vec![],
+        projection.relationships,
         vec![
             PresentationProperty {
                 subject: root.clone(),
@@ -83,10 +111,21 @@ pub(super) fn project(
 }
 struct Projection {
     root: String,
+    main: String,
+    article: String,
+    navigation: String,
     subjects: Vec<PresentationSubject>,
+    relationships: Vec<PresentationRelationship>,
     text: Vec<PresentationText>,
     actions: Vec<PresentationAction>,
     events: Events,
+}
+fn contains(source: &str, target: &str) -> PresentationRelationship {
+    PresentationRelationship {
+        source: source.into(),
+        target: target.into(),
+        kind: PresentationRelationshipKind::Contains,
+    }
 }
 impl Projection {
     fn words(&mut self, subject: &str, text: String) {
@@ -132,13 +171,14 @@ impl Projection {
         let subject = format!("{}/{}", self.root, node.key);
         match &node.mechanism {
             PresentationMechanism::Shell => {}
-            PresentationMechanism::Heading { text } => self.words(&self.root.clone(), text.clone()),
+            PresentationMechanism::Heading { text } => self.words(&self.main.clone(), text.clone()),
             PresentationMechanism::FormField(field) => {
                 self.subjects.push(PresentationSubject {
                     identity: subject.clone(),
                     role: PresentationRole::TextEntry,
                     name: field.label.clone(),
                 });
+                self.relationships.push(contains(&self.article, &subject));
                 self.words(&subject, field.help.clone());
                 self.words(
                     &subject,
@@ -202,6 +242,7 @@ impl Projection {
                     role: PresentationRole::Collection,
                     name: label.clone(),
                 });
+                self.relationships.push(contains(&self.article, &subject));
                 for (index, option) in options.iter().enumerate() {
                     let id = format!("{subject}/{index}");
                     self.subjects.push(PresentationSubject {
@@ -209,6 +250,7 @@ impl Projection {
                         role: PresentationRole::Plot,
                         name: option.label.clone(),
                     });
+                    self.relationships.push(contains(&subject, &id));
                     self.words(
                         &id,
                         if option.selected {
@@ -227,7 +269,7 @@ impl Projection {
                 }
             }
             PresentationMechanism::Action(action) => {
-                self.action(&self.root.clone(), action, vec![])
+                self.action(&self.navigation.clone(), action, vec![])
             }
             PresentationMechanism::Status { title, detail, .. } => {
                 self.subjects.push(PresentationSubject {
@@ -235,6 +277,7 @@ impl Projection {
                     role: PresentationRole::Status,
                     name: title.clone(),
                 });
+                self.relationships.push(contains(&self.article, &subject));
                 self.words(&subject, detail.clone());
             }
             _ => return Err(BirthFaceRefusal::UnsupportedMechanism),

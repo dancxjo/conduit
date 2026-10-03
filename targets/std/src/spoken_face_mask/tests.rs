@@ -5,9 +5,9 @@ mod common;
 
 use conduit_core::kind_id;
 use conduit_presentation::{
-    FaceActionArgument, PresentationAction, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
+    FaceActionArgument, ManifestationLifecycle, PresentationAction, PresentationDisclosureLevel,
+    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
+    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
 };
 
 fn face_with_action() -> (Presentation, MaskShow) {

@@ -9,8 +9,7 @@ use std::collections::BTreeMap;
 
 use conduit_presentation::{
     FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal, FaceReadingCommand,
-    FaceReadingCursor, FaceReadingRefusal, FaceUtteranceClause, FaceUtterancePlan,
-    FaceUtterancePlanError, FaceUtteranceProvenance, ManifestationLifecycle, MaskShow,
+    FaceReadingCursor, FaceUtteranceClause, FaceUtterancePlan, FaceUtteranceProvenance, MaskShow,
     Presentation, PresentationActionAvailability, PresentationPropertyValue,
     PresentationRelationshipKind, PresentationRole, UTF8_TEXT_VALUE_KIND,
 };
@@ -23,81 +22,11 @@ mod batch;
 pub use batch::*;
 mod voice;
 use voice::voice_clauses;
+mod reader_contract;
+use reader_contract::{check_show, reading_refusal, Reading};
+pub use reader_contract::{ReaderCommand, ReaderResult, SpokenFaceRefusal, SpokenTextReadout};
 #[cfg(test)]
 mod tests;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ReaderCommand {
-    Help,
-    ReadAll,
-    Next,
-    Previous,
-    Repeat,
-    NextSubject,
-    PreviousSubject,
-    NextRole(PresentationRole),
-    PreviousRole(PresentationRole),
-    FocusSubject(String),
-    /// Move to an action offered by this exact Face without invoking it.
-    FocusAction(String),
-    Stop,
-    /// Set one complete typed value on the action currently in focus.
-    Edit {
-        argument: String,
-        value: Vec<u8>,
-    },
-    Activate,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SpokenFaceRefusal {
-    InvalidFace(FaceUtterancePlanError),
-    StaleFace,
-    StaleShow,
-    UnavailableShow,
-    EmptyFace,
-    NoActionInFocus,
-    UnknownSubject,
-    UnknownAction,
-    UnknownArgument,
-    UnsupportedValueKind,
-    InvalidValue,
-    VoiceBound,
-    SpeechPressure,
-    SpeechReceipt,
-    Interaction(FaceInteractionRefusal),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReaderResult {
-    pub interaction: Option<FaceInteraction>,
-    pub reading: bool,
-    pub focused_clause: usize,
-    pub cancel_stream_identity: Option<String>,
-    pub interrupted: Option<SpokenTurnReceipt>,
-}
-
-/// A deterministic text readout for an attached screen reader or terminal.
-/// No synthesis, audio output, or spoken Show completion is implied.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SpokenTextReadout {
-    pub face_id: String,
-    pub face_revision: u64,
-    pub show_id: String,
-    pub clauses: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-enum Reading {
-    Clauses {
-        current: Option<usize>,
-        offset: usize,
-    },
-    Message {
-        text: String,
-        offset: usize,
-    },
-}
 
 /// One bounded speech turn at a time. Only one segment may be in flight, so
 /// producer pressure cannot turn an unacknowledged clip into a completed Show.
@@ -246,8 +175,8 @@ impl SpokenFaceSession {
         let mut interaction = None;
         let mut cancel_stream_identity = None;
         match command {
-            ReaderCommand::Help => self.begin_message("Use next and previous to move through this view. Read all presents every item. Focus an offered action by its exact ID, or repeat the focused item. Edit a named value, then activate its action. Stop interrupts reading.".into()),
-            ReaderCommand::ReadAll | ReaderCommand::Next | ReaderCommand::Previous | ReaderCommand::Repeat | ReaderCommand::NextSubject | ReaderCommand::PreviousSubject | ReaderCommand::NextRole(_) | ReaderCommand::PreviousRole(_) | ReaderCommand::FocusSubject(_) | ReaderCommand::FocusAction(_) => {
+            ReaderCommand::Help => self.begin_message("Read all presents the entire current view. Use next, previous, or repeat for one item. Move by subject, action, or exact role such as main, article, or navigation. Focus a named subject or offered action by its exact ID. Edit a named value, then activate its action. Stop interrupts reading.".into()),
+            ReaderCommand::ReadAll | ReaderCommand::Next | ReaderCommand::Previous | ReaderCommand::Repeat | ReaderCommand::NextSubject | ReaderCommand::PreviousSubject | ReaderCommand::NextAction | ReaderCommand::PreviousAction | ReaderCommand::NextRole(_) | ReaderCommand::PreviousRole(_) | ReaderCommand::FocusSubject(_) | ReaderCommand::FocusAction(_) => {
                 let reading_command = match command {
                     ReaderCommand::ReadAll => FaceReadingCommand::ReadAll,
                     ReaderCommand::Next => FaceReadingCommand::Next,
@@ -255,14 +184,27 @@ impl SpokenFaceSession {
                     ReaderCommand::Repeat => FaceReadingCommand::Repeat,
                     ReaderCommand::NextSubject => FaceReadingCommand::NextSubject,
                     ReaderCommand::PreviousSubject => FaceReadingCommand::PreviousSubject,
+                    ReaderCommand::NextAction => FaceReadingCommand::NextAction,
+                    ReaderCommand::PreviousAction => FaceReadingCommand::PreviousAction,
                     ReaderCommand::NextRole(role) => FaceReadingCommand::NextRole(role),
                     ReaderCommand::PreviousRole(role) => FaceReadingCommand::PreviousRole(role),
                     ReaderCommand::FocusSubject(identity) => FaceReadingCommand::FocusSubject(identity),
                     ReaderCommand::FocusAction(identity) => FaceReadingCommand::FocusAction(identity),
                     _ => unreachable!(),
                 };
-                self.cursor.command(&self.face, reading_command).map_err(reading_refusal)?;
-                self.begin_cursor_clauses();
+                let moving_backward = matches!(reading_command,
+                    FaceReadingCommand::Previous | FaceReadingCommand::PreviousSubject |
+                    FaceReadingCommand::PreviousAction | FaceReadingCommand::PreviousRole(_));
+                let outcome = self.cursor.command(&self.face, reading_command).map_err(reading_refusal)?;
+                if outcome.at_boundary {
+                    self.begin_message(if moving_backward {
+                        "No previous matching item. Focus unchanged.".into()
+                    } else {
+                        "No next matching item. Focus unchanged.".into()
+                    });
+                } else {
+                    self.begin_cursor_clauses();
+                }
             }
             ReaderCommand::Stop => {
                 self.reading = None;
@@ -550,25 +492,6 @@ impl SpokenFaceSession {
     }
 }
 
-fn reading_refusal(refusal: FaceReadingRefusal) -> SpokenFaceRefusal {
-    match refusal {
-        FaceReadingRefusal::InvalidFace(error) => SpokenFaceRefusal::InvalidFace(error),
-        FaceReadingRefusal::EmptyFace => SpokenFaceRefusal::EmptyFace,
-        FaceReadingRefusal::StaleFace => SpokenFaceRefusal::StaleFace,
-        FaceReadingRefusal::UnknownAction => SpokenFaceRefusal::UnknownAction,
-        FaceReadingRefusal::UnknownSubject => SpokenFaceRefusal::UnknownSubject,
-    }
-}
-
 fn sha256_hex(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
-fn check_show(face: &Presentation, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
-    show.validate(face)
-        .map_err(|_| SpokenFaceRefusal::StaleShow)?;
-    if show.show.lifecycle != ManifestationLifecycle::Available {
-        return Err(SpokenFaceRefusal::UnavailableShow);
-    }
-    Ok(())
 }
