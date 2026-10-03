@@ -13,6 +13,7 @@ use crate::{
 use conduit_birth_plot::{BirthActionOutcome, BirthFaceBasis};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_human::KeyEvent;
+use conduit_presentation::Presentation;
 
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
@@ -92,6 +93,63 @@ impl FaceArrival {
             .joining_face(&self.basis)
             .map_err(|error| error.as_str())?;
         self.present(face, display)
+    }
+
+    pub(super) fn present_owner_face(
+        &mut self,
+        face: Presentation,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
+        let face_id: alloc::string::String = face.identity.as_str().into();
+        let revision = face.revision;
+        let observation = self.next_observation;
+        let play = self.next_play;
+        self.next_observation = observation
+            .checked_add(1)
+            .ok_or("owner-face-observation-bound")?;
+        self.next_play = play.checked_add(1).ok_or("owner-face-play-bound")?;
+        let receipt = self
+            .mask
+            .present_read_only(face, observation, play, display)
+            .map_err(|error| error.as_str())?;
+        let show = self.mask.show().ok_or("owner-face-show-absent")?;
+        let evidence = serde_json::to_vec(&serde_json::json!({
+            "schema": "conduit.conduitos/native-owner-face@1",
+            "status": "shown",
+            "face_id": face_id,
+            "face_revision": revision,
+            "show_id": show.show_id.as_str(),
+            "show_acknowledged": true,
+            "interactions_admitted": false,
+            "continuing_owner_route": false,
+        }))
+        .map_err(|_| "owner-face-evidence-encoding-invalid")?;
+        if evidence.len() > 1_024 {
+            return Err("owner-face-evidence-bound-exceeded");
+        }
+        arch::early_write(b"CONDUIT_NATIVE_OWNER_FACE ");
+        arch::early_write(&evidence);
+        arch::early_write(b"\n");
+        Ok(receipt)
+    }
+
+    /// A one-shot snapshot permits only Mask-local reading after scanout.
+    /// It has no admitted path for a semantic action to reach the owner.
+    pub(super) fn accept_guest_key(
+        &mut self,
+        event: KeyEvent,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        let sequence = self.next_interaction;
+        self.next_interaction = sequence.checked_add(1).ok_or("owner-face-input-bound")?;
+        match self
+            .mask
+            .key(event, sequence, display)
+            .map_err(|error| error.as_str())?
+        {
+            NativeFaceMaskInput::Unchanged | NativeFaceMaskInput::Redrawn(_) => Ok(()),
+            NativeFaceMaskInput::Submitted { .. } => Err("owner-face-action-route-unadmitted"),
+        }
     }
 
     fn present_current(
