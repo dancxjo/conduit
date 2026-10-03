@@ -158,7 +158,9 @@ impl LocalOwnerMaskRouteSeal {
     }
 
     fn bind_identity(&self) -> Result<PlanId, LocalOwnerMaskRouteError> {
-        let bytes = postcard::to_allocvec(&(
+        // CapabilityOffer is a named-field contract with flattened fields and
+        // deliberately refuses positional serializers such as postcard.
+        let bytes = serde_json::to_vec(&(
             "conduit.presentation/local-owner-mask-route@1",
             &self.body_id,
             self.workload_revision,
