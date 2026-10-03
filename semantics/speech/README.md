@@ -315,7 +315,8 @@ This needs the `thumbv6m-none-eabi` toolchain target, GNU `size`
 and the pinned Rust `llvm-tools` component for section/entry inspection. The renderer probe includes constants and a 128-frame static output buffer.
 The text probe additionally retains 64 typed events in fixed storage and includes
 normalization, dictionary/rules and text traversal. Both exclude planner, kernel,
-boot, device drivers and rich preparation metadata. The probes render directly
+boot, device drivers and rich preparation metadata. They exercise default
+timing/pitch/intensity rather than explicit control tapes. The probes render directly
 into caller-owned static PCM storage, observing each produced sample with a
 volatile read and a small checksum; they avoid a second stack output buffer.
 The proof retains each `_start` disassembly and reports its register-save and
@@ -326,8 +327,8 @@ sites from embedded data. It does not sum entries into a call-chain bound:
 computed targets, body stack adjustments and call-chain liveness are unverified.
 Its machine-readable `full_stack_status` remains `unproven`, and unsupported
 entry shapes retain an explicit gap instead of a numeric reservation. The current
-renderer has four identified computed-control sites, and text plus synthesis has
-46; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
+default-profile renderer has five identified computed-control sites, and text plus synthesis has
+47; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
 This is an entry-stack lower bound: callee frames, later body stack changes,
 boot and interrupts are excluded. It cannot establish total stack or device fit.
 A link is not device playback or proof of real-time performance. WAV generation
