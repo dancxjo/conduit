@@ -109,9 +109,19 @@ impl RenderCursor {
                         target,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
+                    let connected = speech_connected_target(SpeechConnectedInput {
+                        target,
+                        frame: self.event_frame,
+                        previous: neighbor(events, self.event_index.checked_sub(1), target, true)?,
+                        next: neighbor(events, self.event_index.checked_add(1), target, false)?,
+                    })
+                    .ok_or(RenderRefusal::Arithmetic)?;
+                    let target = connected.target;
                     let period =
                         speech_pitch_period(value.stress).ok_or(RenderRefusal::Arithmetic)?;
                     let frame = speech_frame(SpeechFrameInput {
+                        attack: connected.attack,
+                        release: connected.release,
                         target,
                         period,
                         frame: self.event_frame,
@@ -169,4 +179,46 @@ impl VoiceEvent {
             Self::boundary(_) => None,
         }
     }
+}
+
+// Exact adjacent-tape projection only. The plots decide transition eligibility,
+// weights and envelopes; a pause is never skipped to find a different neighbor.
+fn neighbor(
+    events: &[VoiceEvent],
+    index: Option<usize>,
+    neutral: SpeechAcousticTarget,
+    end: bool,
+) -> Result<SpeechNeighborModel, RenderRefusal> {
+    let Some(event) = index.and_then(|index| events.get(index)) else {
+        return Ok(SpeechNeighborModel {
+            relation: SpeechNeighborRelation::sequence_edge,
+            model: neutral,
+        });
+    };
+    if let VoiceEvent::boundary(boundary) = event {
+        let relation = match boundary {
+            VoiceBoundary::word => SpeechNeighborRelation::word_boundary,
+            VoiceBoundary::phrase => SpeechNeighborRelation::phrase_boundary,
+            VoiceBoundary::turn => SpeechNeighborRelation::turn_boundary,
+        };
+        return Ok(SpeechNeighborModel {
+            relation,
+            model: neutral,
+        });
+    }
+    let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
+    let phone = speech_realize(value)
+        .ok_or(RenderRefusal::Arithmetic)?
+        .phone;
+    let target = speech_voice_target(phone).ok_or(RenderRefusal::Arithmetic)?;
+    let model = speech_phone_frame_target(SpeechTrajectoryInput {
+        phone,
+        target,
+        frame: if end { target.frames - 1 } else { 0 },
+    })
+    .ok_or(RenderRefusal::Arithmetic)?;
+    Ok(SpeechNeighborModel {
+        relation: SpeechNeighborRelation::segment,
+        model,
+    })
 }

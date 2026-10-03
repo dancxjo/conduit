@@ -56,3 +56,6 @@ mod pronunciation_parity;
 
 #[cfg(test)]
 mod trajectory_parity;
+
+#[cfg(test)]
+mod connection_parity;

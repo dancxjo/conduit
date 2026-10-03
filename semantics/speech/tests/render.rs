@@ -2,8 +2,22 @@ use conduit_speech::{
     EnglishPhoneme as P, EnglishPosition as W, EnglishStress as S, RealizationInput, RenderRefusal,
     Renderer, VoiceEvent,
 };
-fn events() -> [VoiceEvent; 9] {
-    [P::h, P::eh, P::l, P::p, P::ay, P::t, P::ow, P::k, P::oy].map(|phoneme| {
+fn events() -> [VoiceEvent; 12] {
+    [
+        P::h,
+        P::eh,
+        P::l,
+        P::p,
+        P::ay,
+        P::m,
+        P::n,
+        P::r,
+        P::t,
+        P::ow,
+        P::k,
+        P::oy,
+    ]
+    .map(|phoneme| {
         VoiceEvent::segment(RealizationInput {
             phoneme,
             position: W::medial,

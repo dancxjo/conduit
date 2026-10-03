@@ -167,6 +167,8 @@ fn plain_stops_have_silent_closure_and_audible_finite_release() {
                 i64::from(frame >= base.closure && frame < base.closure + 96)
             );
             let result = speech_frame(SpeechFrameInput {
+                attack: true,
+                release: true,
                 target,
                 frame,
                 period: 61,
@@ -209,6 +211,8 @@ fn stop_place_and_voicing_have_distinct_bounded_realizations() {
         assert_ne!(released_samples(plain), released_samples(aspirated));
         assert_eq!(
             speech_envelope(EnvelopeInput {
+                attack: true,
+                release: true,
                 frame: base.closure,
                 total: base.frames,
                 closure: base.closure
@@ -217,6 +221,8 @@ fn stop_place_and_voicing_have_distinct_bounded_realizations() {
         );
         assert_eq!(
             speech_envelope(EnvelopeInput {
+                attack: true,
+                release: true,
                 frame: base.frames - 1,
                 total: base.frames,
                 closure: base.closure
@@ -238,6 +244,8 @@ fn released_samples(phone: EnglishPhone) -> Vec<i64> {
         })
         .unwrap();
         let result = speech_frame(SpeechFrameInput {
+            attack: true,
+            release: true,
             target,
             frame,
             period: 61,

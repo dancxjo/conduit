@@ -75,7 +75,15 @@ this profile does not reproduce its full controls or published parameter tables.
 Caller-owned traversal admits at most 256 events,
 30 seconds, and 128 frames per advance. A candidate copy can be discarded under
 output pressure before committing progress. This is synthesis Back conformance,
-not an additional scheduler or execution kernel. The checked `speech/frame`
+not an additional scheduler or execution kernel. `connection.conduit` blends adjacent continuous voiced models over at most
+128 frames at each side of a join, using an exact shared spectral midpoint.
+It removes the intervening envelope fades for those joins. The current phone's
+excitation class, duration and identity remain unchanged; a sequence edge and
+word/phrase/turn boundaries remain distinct and block the join. The adjacent
+models come only from the retained event tape; the traversal never skips a
+boundary to find a different neighbor. Consonant-vowel loci, separate aspiration
+and broader coarticulation remain unfinished. These are modeled transitions,
+not measured acoustic alignment. The checked `speech/frame`
 plot composes excitation, three resonator transitions and output mixing through
 exact authored cords. Initial history and
 boundary silence also come from checked plots. Rust traversal handles bounded
@@ -140,6 +148,6 @@ writes hosted artifacts and does not access an audio device.
 
 Remaining work includes artifact-reference validation and explicit rich-to-
 compact segment admission, broader text/number normalization and pronunciation,
-richer transitions and vowel-dependent stop spectra,
+consonant-vowel transitions and vowel-dependent stop spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.

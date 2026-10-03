@@ -224,6 +224,8 @@ plot speech/drive (
 ) = (.sample * .gain)
 
 type EnvelopeInput = {
+    attack: Boolean
+    release: Boolean
     frame: I64
     total: I64
     closure: I64
@@ -231,7 +233,7 @@ type EnvelopeInput = {
 plot speech/envelope (
     >> value: EnvelopeInput
     result: I64 >>
-) = (.frame < .closure ? 0 : .closure > 0 ? (.total - .frame < 64 ? (.total - .frame) * 4 : 256) : .frame - .closure < 64 ? (.frame - .closure) * 4 : .total - .frame < 64 ? (.total - .frame) * 4 : 256)
+) = (.frame < .closure ? 0 : .closure > 0 ? (.release && .total - .frame < 64 ? (.total - .frame) * 4 : 256) : .attack && .frame - .closure < 64 ? (.frame - .closure) * 4 : .release && .total - .frame < 64 ? (.total - .frame) * 4 : 256)
 
 # A boundary is not a phone and an absence is not silence.
 type VoiceBoundary =
@@ -278,6 +280,8 @@ type SpeechFrameState = {
     third2: I64
 }
 type SpeechFrameInput = {
+    attack: Boolean
+    release: Boolean
     target: SpeechAcousticTarget
     period: I64
     frame: I64
@@ -300,7 +304,7 @@ type SpeechFrameResult = {
 plot speech/frame-excite (
     >> value: SpeechFrameInput
     result: SpeechFrameWorking >>
-) = ({input: ., phase: .state.phase + 1 >= .period ? 0 : .state.phase + 1, noise: ((.state.noise * 25173 + 13849) % 65536), excitation: ((.state.phase < .period / 4 ? 1600 - .state.phase * 6400 / .period : -500 + .state.phase * 500 / .period) * .target.voiced + (((.state.noise * 25173 + 13849) % 65536) % 4096 - 2048) * .target.frication), first: 0, second: 0, third: 0, envelope: (.frame < .target.closure ? 0 : .target.closure > 0 ? (.target.frames - .frame < 64 ? (.target.frames - .frame) * 4 : 256) : .frame - .target.closure < 64 ? (.frame - .target.closure) * 4 : .target.frames - .frame < 64 ? (.target.frames - .frame) * 4 : 256)})
+) = ({input: ., phase: .state.phase + 1 >= .period ? 0 : .state.phase + 1, noise: ((.state.noise * 25173 + 13849) % 65536), excitation: ((.state.phase < .period / 4 ? 1600 - .state.phase * 6400 / .period : -500 + .state.phase * 500 / .period) * .target.voiced + (((.state.noise * 25173 + 13849) % 65536) % 4096 - 2048) * .target.frication), first: 0, second: 0, third: 0, envelope: (.frame < .target.closure ? 0 : .target.closure > 0 ? (.release && .target.frames - .frame < 64 ? (.target.frames - .frame) * 4 : 256) : .attack && .frame - .target.closure < 64 ? (.frame - .target.closure) * 4 : .release && .target.frames - .frame < 64 ? (.target.frames - .frame) * 4 : 256)})
 plot speech/frame-first (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>

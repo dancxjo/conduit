@@ -81,6 +81,22 @@ fn input(ty: &StructuredInfoType, value: SpeechFrameInput) -> Vec<u8> {
         ty,
         &[
             (
+                "attack",
+                StructuredInfoValue::leaf(
+                    field_type(ty, "attack").clone(),
+                    vec![u8::from(value.attack)],
+                )
+                .unwrap(),
+            ),
+            (
+                "release",
+                StructuredInfoValue::leaf(
+                    field_type(ty, "release").clone(),
+                    vec![u8::from(value.release)],
+                )
+                .unwrap(),
+            ),
+            (
                 "target",
                 integers(field_type(ty, "target"), &target_fields(value.target)),
             ),
@@ -161,42 +177,54 @@ fn composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges() {
             target.frames - 1,
         ] {
             for period in [61, 67] {
-                let value = SpeechFrameInput {
-                    target,
-                    frame,
-                    period,
-                    state: SpeechFrameState {
-                        phase: frame % period,
-                        noise: (frame * 25173) % 65536,
-                        first1: 32767,
-                        first2: -32767,
-                        second1: -32000,
-                        second2: 32000,
-                        third1: 12345,
-                        third2: -12345,
-                    },
+                let modes: &[(bool, bool)] = if matches!(phone, EnglishPhone::eh | EnglishPhone::p)
+                {
+                    &[(true, true), (false, true), (true, false), (false, false)]
+                } else {
+                    &[(true, true)]
                 };
-                let input = input(input_type, value);
-                let mut values: Vec<Vec<u8>> = vec![];
-                for (source, program) in &programs {
-                    let argument = if *source == usize::MAX {
-                        &input
-                    } else {
-                        &values[*source]
+                for &(attack, release) in modes {
+                    let value = SpeechFrameInput {
+                        attack,
+                        release,
+                        target,
+                        frame,
+                        period,
+                        state: SpeechFrameState {
+                            phase: frame % period,
+                            noise: (frame * 25173) % 65536,
+                            first1: 32767,
+                            first2: -32767,
+                            second1: -32000,
+                            second2: 32000,
+                            third1: 12345,
+                            third2: -12345,
+                        },
                     };
-                    values.push(program.evaluate(argument).unwrap());
-                }
-                assert_eq!(
+                    let input = input(input_type, value);
+                    let mut values: Vec<Vec<u8>> = vec![];
+                    for (source, program) in &programs {
+                        let argument = if *source == usize::MAX {
+                            &input
+                        } else {
+                            &values[*source]
+                        };
+                        values.push(program.evaluate(argument).unwrap());
+                    }
+                    assert_eq!(
                     values[result_index],
                     result(output_type, speech_frame(value).unwrap()),
-                    "{phone:?}, frame {frame}, period {period}"
+                    "{phone:?}, frame {frame}, period {period}, attack {attack}, release {release}"
                 );
+                }
             }
         }
     }
     let target = speech_voice_target(EnglishPhone::iy).unwrap();
     for (noise, period) in [(i64::MAX, 61), (1, 0)] {
         let value = SpeechFrameInput {
+            attack: true,
+            release: true,
             target,
             period,
             frame: 0,
@@ -272,6 +300,8 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
                 .unwrap();
             }
             let envelope = speech_envelope(EnvelopeInput {
+                attack: true,
+                release: true,
                 frame,
                 total: target.frames,
                 closure: target.closure,
@@ -304,6 +334,8 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
                 .unwrap(),
             };
             let actual = speech_frame(SpeechFrameInput {
+                attack: true,
+                release: true,
                 target,
                 frame,
                 period: 61,
