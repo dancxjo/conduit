@@ -67,7 +67,7 @@ frication after release. The self-authored reduced-bandwidth stop models
 separate low/mid/high release energy, with a rapid release attack and the shared
 trailing fade. Plain voiceless stops release 128 frames before their end;
 voiced stops release earlier and retain a voiced tail. Aspirated stops retain
-a longer noise tail. These are profile defaults: vowel-dependent place spectra,
+a longer noise tail. These are profile defaults: vowel-dependent burst spectra,
 voicebars during closure and separate aspiration filtering remain unfinished.
 The closure/release/voicing separation and rapid plosive onset are informed by
 [Klatt's cascade/parallel synthesizer paper](https://sail.usc.edu/~lgoldste/Ling582/Week%2012/klatt1980.pdf);
@@ -81,9 +81,19 @@ It removes the intervening envelope fades for those joins. The current phone's
 excitation class, duration and identity remain unchanged; a sequence edge and
 word/phrase/turn boundaries remain distinct and block the join. The adjacent
 models come only from the retained event tape; the traversal never skips a
-boundary to find a different neighbor. Consonant-vowel loci, separate aspiration
-and broader coarticulation remain unfinished. These are modeled transitions,
-not measured acoustic alignment. `prosody.conduit` adds a bounded within-segment
+boundary to find a different neighbor. `onset.conduit` derives a stop-place
+model from the exact selected preceding phone and moves the following vowel
+from a reduced onset toward its existing temporal target over 160 frames.
+Labial/alveolar endpoints differ; the velar endpoint brings the current vowel's
+F2/F3 coefficients together. These self-authored coefficient-space models keep
+the current phone, duration, excitation and stress, and never cross a boundary.
+Differential proof covers all phones, stop places, window edges and arithmetic
+refusals; finite-window pole checks establish resonator stability. Formant
+transitions as a separate stop-place cue are informed by
+[Story and Bunton's production/perception study](https://pmc.ncbi.nlm.nih.gov/articles/PMC3145491/);
+these defaults do not reproduce its model or measured parameter data.
+Separate aspiration and broader coarticulation remain unfinished. These are
+modeled transitions, not measured acoustic alignment. `prosody.conduit` adds a bounded within-segment
 pitch-period contour for known primary, secondary, unstressed and reduced stress.
 Unknown and unspecified stress retain the neutral period throughout; the contour
 never changes the segment's stress specification. Portable differential checks
@@ -154,6 +164,6 @@ writes hosted artifacts and does not access an audio device.
 
 Remaining work includes artifact-reference validation and explicit rich-to-
 compact segment admission, broader text/number normalization and pronunciation,
-consonant-vowel transitions and vowel-dependent stop spectra,
+broader consonant-vowel transitions and vowel-dependent stop-burst spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.

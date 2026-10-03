@@ -1,0 +1,49 @@
+# Acoustic onset context is derived from the selected preceding phone. It is
+# neither a new phone occurrence nor a measured articulatory feature.
+type SpeechStopPlace =
+    not_stop
+    | labial
+    | alveolar
+    | velar
+plot speech/stop-place (
+    >> phone: EnglishPhone
+    result: SpeechStopPlace >>
+) = ((. is p || (. is b || . is p_aspirated)) ? SpeechStopPlace.labial : (. is t || (. is d || . is t_aspirated)) ? SpeechStopPlace.alveolar : (. is k || (. is g || . is k_aspirated)) ? SpeechStopPlace.velar : SpeechStopPlace.not_stop)
+
+type SpeechVowelOnsetInput = {
+    phone: EnglishPhone
+    target: SpeechAcousticTarget
+    frame: I64
+    previous_place: SpeechStopPlace
+    relation: SpeechNeighborRelation
+}
+# Self-authored reduced onset models: F1 begins at 200 Hz; labial/alveolar F2
+# endpoints use 800/1800 Hz at the existing 100 Hz bandwidth. The velar model
+# brings F2/F3 coefficients together relative to the current vowel. Linear
+# coefficient interpolation is approximate; it is not frequency-exact motion.
+# Restore the current temporal target within 160 frames (20 ms at 8 kHz).
+type SpeechVowelOnsetWorking = {
+    target: SpeechAcousticTarget
+    endpoint: SpeechAcousticTarget
+    weight: I64
+}
+plot speech/vowel-onset-prepare (
+    >> value: SpeechVowelOnsetInput
+    result: SpeechVowelOnsetWorking >>
+) = (.relation is segment && (!(.previous_place is not_stop) && (.frame < 160 && ((((.phone is iy || .phone is ih) || (.phone is ey || .phone is eh)) || ((.phone is ae || .phone is aa) || (.phone is ao || .phone is ow))) || (((.phone is uh || .phone is uw) || (.phone is ah || .phone is ax)) || ((.phone is er || .phone is ay) || (.phone is aw || .phone is oy)))))) ? {target: .target, endpoint: {f1: 200, f2: .previous_place is labial ? 800 : .previous_place is alveolar ? 1800 : (.target.f2 + .target.f3) / 2, f3: .previous_place is velar ? (.target.f2 + .target.f3) / 2 : .target.f3, b1: 31487, b2: .previous_place is labial ? 25489 : .previous_place is alveolar ? 4929 : (.target.b2 + .target.b3) / 2, b3: .previous_place is velar ? (.target.b2 + .target.b3) / 2 : .target.b3, c1: .target.c1, c2: .previous_place is velar ? (.target.c2 + .target.c3) / 2 : .target.c2, c3: .previous_place is velar ? (.target.c2 + .target.c3) / 2 : .target.c3, gain1: .target.gain1, gain2: .target.gain2, gain3: .target.gain3, voiced: .target.voiced, frication: .target.frication, frames: .target.frames, closure: .target.closure}, weight: 256 - .frame * 256 / 160} : {target: .target, endpoint: .target, weight: 0})
+# Keep unchanged coefficients and gains directly; do not interpolate equal
+# endpoints or duplicate the connected-model envelope policy.
+plot speech/vowel-onset-blend (
+    >> value: SpeechVowelOnsetWorking
+    result: SpeechAcousticTarget >>
+) = (.weight == 0 ? .target : {f1: (.target.f1 * (256 - .weight) + .endpoint.f1 * .weight) / 256, f2: (.target.f2 * (256 - .weight) + .endpoint.f2 * .weight) / 256, f3: (.target.f3 * (256 - .weight) + .endpoint.f3 * .weight) / 256, b1: (.target.b1 * (256 - .weight) + .endpoint.b1 * .weight) / 256, b2: (.target.b2 * (256 - .weight) + .endpoint.b2 * .weight) / 256, b3: (.target.b3 * (256 - .weight) + .endpoint.b3 * .weight) / 256, c1: .target.c1, c2: (.target.c2 * (256 - .weight) + .endpoint.c2 * .weight) / 256, c3: (.target.c3 * (256 - .weight) + .endpoint.c3 * .weight) / 256, gain1: .target.gain1, gain2: .target.gain2, gain3: .target.gain3, voiced: .target.voiced, frication: .target.frication, frames: .target.frames, closure: .target.closure})
+plot speech/vowel-onset (
+    >> value: SpeechVowelOnsetInput
+    result: SpeechAcousticTarget >>
+) {
+    prepare: speech/vowel-onset-prepare
+    blend: speech/vowel-onset-blend
+    value >> prepare.value
+    prepare.result >> blend.value
+    blend.result >> result
+}.

@@ -109,14 +109,25 @@ impl RenderCursor {
                         target,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
+                    let (previous, previous_place) =
+                        neighbor(events, self.event_index.checked_sub(1), target, true)?;
+                    let (next, _) =
+                        neighbor(events, self.event_index.checked_add(1), target, false)?;
                     let connected = speech_connected_target(SpeechConnectedInput {
                         target,
                         frame: self.event_frame,
-                        previous: neighbor(events, self.event_index.checked_sub(1), target, true)?,
-                        next: neighbor(events, self.event_index.checked_add(1), target, false)?,
+                        previous,
+                        next,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
-                    let target = connected.target;
+                    let target = speech_vowel_onset(SpeechVowelOnsetInput {
+                        phone,
+                        target: connected.target,
+                        frame: self.event_frame,
+                        previous_place,
+                        relation: previous.relation,
+                    })
+                    .ok_or(RenderRefusal::Arithmetic)?;
                     let period =
                         speech_pitch_period(value.stress).ok_or(RenderRefusal::Arithmetic)?;
                     let period = speech_pitch_contour(SpeechPitchInput {
@@ -195,12 +206,15 @@ fn neighbor(
     index: Option<usize>,
     neutral: SpeechAcousticTarget,
     end: bool,
-) -> Result<SpeechNeighborModel, RenderRefusal> {
+) -> Result<(SpeechNeighborModel, SpeechStopPlace), RenderRefusal> {
     let Some(event) = index.and_then(|index| events.get(index)) else {
-        return Ok(SpeechNeighborModel {
-            relation: SpeechNeighborRelation::sequence_edge,
-            model: neutral,
-        });
+        return Ok((
+            SpeechNeighborModel {
+                relation: SpeechNeighborRelation::sequence_edge,
+                model: neutral,
+            },
+            SpeechStopPlace::not_stop,
+        ));
     };
     if let VoiceEvent::boundary(boundary) = event {
         let relation = match boundary {
@@ -208,10 +222,13 @@ fn neighbor(
             VoiceBoundary::phrase => SpeechNeighborRelation::phrase_boundary,
             VoiceBoundary::turn => SpeechNeighborRelation::turn_boundary,
         };
-        return Ok(SpeechNeighborModel {
-            relation,
-            model: neutral,
-        });
+        return Ok((
+            SpeechNeighborModel {
+                relation,
+                model: neutral,
+            },
+            SpeechStopPlace::not_stop,
+        ));
     }
     let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
     let phone = speech_realize(value)
@@ -224,8 +241,11 @@ fn neighbor(
         frame: if end { target.frames - 1 } else { 0 },
     })
     .ok_or(RenderRefusal::Arithmetic)?;
-    Ok(SpeechNeighborModel {
-        relation: SpeechNeighborRelation::segment,
-        model,
-    })
+    Ok((
+        SpeechNeighborModel {
+            relation: SpeechNeighborRelation::segment,
+            model,
+        },
+        speech_stop_place(phone).ok_or(RenderRefusal::Arithmetic)?,
+    ))
 }

@@ -62,3 +62,6 @@ mod connection_parity;
 
 #[cfg(test)]
 mod prosody_parity;
+
+#[cfg(test)]
+mod onset_parity;
