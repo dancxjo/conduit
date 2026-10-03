@@ -303,16 +303,13 @@ fn release_file_name(file: &ReleaseFile) -> Result<&std::ffi::OsStr, String> {
 
 fn run(state_dir: &Path) -> Result<(), String> {
     let _ownership = owner_lock::acquire(state_dir)?;
+    let _body_ownership = owner_lock::body(state_dir)?;
+    owner::recover_retained_state(state_dir)?;
     let owns_body = read_installation(&state_dir.join("installation.json"))?
         .body_state
         .is_some();
     // Routed admission enters through authenticated local control while the
     // service owns this lock. No second process may edit its Body biography.
-    let _body_ownership = if owns_body {
-        Some(owner_lock::body(state_dir)?)
-    } else {
-        None
-    };
     let (status, mut truth) = prepare_runtime(state_dir)?;
     let runtime = state_dir.join("runtime.json");
     if owns_body {

@@ -4,31 +4,47 @@
 //! playback evidence. Every application edit still crosses the ordinary Mask
 //! interaction Fore and the current BirthDraft's revision check.
 
-use std::io::{BufRead, Write};
+#[cfg(test)]
+use std::io::BufRead;
+use std::io::Write;
+#[cfg(test)]
 use std::sync::Arc;
 
+#[cfg(test)]
 use conduit_birth_plot::{BirthActionOutcome, HostOwnedBirthFaceBasis};
+#[cfg(test)]
 use conduit_patchbay_workbench::{PatchbayModel, ZeroBodyFrontDoor};
 use conduit_presentation::Presentation;
-use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
+#[cfg(test)]
+use conduit_std_host::spoken_face_mask::ReaderCommand;
+use conduit_std_host::spoken_face_mask::SpokenFaceSession;
+#[cfg(test)]
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
+#[cfg(test)]
 use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
+#[cfg(test)]
 use conduit_std_host::StdHost;
+#[cfg(test)]
 use patchbay_hosted::HostedPatchbayAdapter;
 
 mod audio;
 use audio::BirthSpeechOutput;
 mod input;
+mod installed;
 #[cfg(test)]
 use input::MAX_SCREEN_FREE_COMMAND_BYTES;
+#[cfg(test)]
 use input::{parse_command, read_command_line, SCREEN_FREE_COMMANDS};
+pub(crate) use installed::run_installed;
 
+#[cfg(test)]
 pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(), String> {
     run_with_output(input, output, None)
 }
 
 /// The installed speech Host is supplied by an explicit, separately admitted
 /// caller. The public text entrance has no voice/output selection yet.
+#[cfg(test)]
 fn run_with_output(
     input: &mut impl BufRead,
     output: &mut impl Write,
@@ -40,7 +56,7 @@ fn run_with_output(
         Arc::new(HostedPatchbayAdapter),
         PatchbayModel::from_advertisement(advertisement.clone()),
     )?;
-    let encounter_id = random_uuid()?;
+    let encounter_id = crate::birth_identity::fresh_uuid()?;
     let basis = HostOwnedBirthFaceBasis {
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
@@ -152,6 +168,7 @@ fn run_with_output(
     }
 }
 
+#[cfg(test)]
 fn present(
     draft: &conduit_birth_plot::BirthDraft,
     basis: &HostOwnedBirthFaceBasis,
@@ -175,6 +192,7 @@ fn present(
     Ok((face, show))
 }
 
+#[cfg(test)]
 fn read(
     reader: &mut SpokenFaceSession,
     face: &conduit_presentation::Presentation,
@@ -228,23 +246,6 @@ fn emit_readout(
         }
     }
     Ok(())
-}
-
-fn random_uuid() -> Result<String, String> {
-    let mut bytes = [0_u8; 16];
-    getrandom::fill(&mut bytes).map_err(|error| format!("Birth encounter identity: {error}"))?;
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    Ok(format!(
-        "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}",
-        u32::from_be_bytes(bytes[0..4].try_into().unwrap()),
-        u16::from_be_bytes(bytes[4..6].try_into().unwrap()),
-        u16::from_be_bytes(bytes[6..8].try_into().unwrap()),
-        u16::from_be_bytes(bytes[8..10].try_into().unwrap()),
-        u64::from_be_bytes([
-            0, 0, bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
-        ])
-    ))
 }
 
 fn debug_error(error: impl std::fmt::Debug) -> String {
@@ -337,7 +338,7 @@ mod tests {
         let basis = HostOwnedBirthFaceBasis {
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
-            encounter_id: random_uuid().unwrap(),
+            encounter_id: crate::birth_identity::fresh_uuid().unwrap(),
         };
         let draft = door.creche_draft(basis.encounter_id.clone()).unwrap();
         let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
@@ -369,7 +370,7 @@ mod tests {
         .unwrap();
         let directory = std::env::temp_dir().join(format!(
             "conduit-zero-body-spoken-{}",
-            random_uuid().unwrap()
+            crate::birth_identity::fresh_uuid().unwrap()
         ));
         std::fs::create_dir(&directory).unwrap();
         let mut speech = BirthSpeechOutput::new(provider, &directory).unwrap();
