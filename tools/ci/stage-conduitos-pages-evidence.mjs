@@ -59,6 +59,13 @@ for (const [index, expected] of STEPS.entries()) {
     throw new Error(`ConduitOS screenshot ${expected.name} differs from its capture`);
   }
 }
+const serial = await readFile(path.join(evidenceRoot, '..', 'journey-serial.log'));
+if (serial.length < 64 || serial.length > 2 * 1024 * 1024
+  || typeof proof.boot_id !== 'string' || typeof proof.body_id !== 'string'
+  || !serial.includes('CONDUIT_PRODUCT_JOURNEY')
+  || !serial.includes(proof.boot_id) || !serial.includes(proof.body_id)) {
+  throw new Error('ConduitOS journey serial transcript does not match the captured Body and Boot');
+}
 
 const styles = await readFile('targets/browser/host/assets/conduit.css', 'utf8')
   + '\n' + await readFile('site/chrome.css', 'utf8');
@@ -67,8 +74,8 @@ const current = path.join(siteRoot, 'journeys/current/conduitos/x86_64');
 const retained = path.join(siteRoot, `journeys/commits/${commit}/conduitos/x86_64`);
 for (const root of [current, retained]) {
   await mkdir(root, { recursive: true });
-  // The earlier console proof remains available even though this journey now
-  // leads with real captured screens.
+  // Preserve a prior console manifest when one exists. The transcript linked
+  // from this page belongs to the same QMP session as these screens.
   try {
     const previous = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
     if (previous.schema !== 'conduit.conduitos/visual-journey@1') {
@@ -79,6 +86,7 @@ for (const root of [current, retained]) {
   }
   await cp(path.join(evidenceRoot, 'manifest.json'), path.join(root, 'manifest.json'), { force: true });
   await cp(path.join(evidenceRoot, '..', 'journey-proof.json'), path.join(root, 'journey-proof.json'), { force: true });
+  await writeFile(path.join(root, 'console.txt'), serial);
   for (const entry of STEPS) {
     await cp(path.join(evidenceRoot, `${entry.name}.png`), path.join(root, `${entry.name}.png`), { force: true });
   }
@@ -96,13 +104,14 @@ const publication = JSON.parse(await readFile(publicationPath, 'utf8'));
 if (publication.sourceCommit !== commit) throw new Error('Website source differs from the ConduitOS journey');
 publication.conduitos = {
   sourceCommit: commit, proofClass: 'freestanding-emulator',
-  imageSha256: proof.image_sha256, path: 'journeys/current/conduitos/x86_64/',
+  imageSha256: proof.image_sha256, serialSha256: digest(serial),
+  path: 'journeys/current/conduitos/x86_64/',
 };
 await writeFile(publicationPath, JSON.stringify(publication, null, 2) + '\n');
 
 async function writeJourney(root, home, title) {
   const steps = STEPS.map((entry, index) => `<li class="journey-step" id="${entry.name}"><h2>${escape(entry.title)}</h2><p><strong>You do:</strong> ${escape(entry.action)}. ${escape(entry.happened)}</p><p>${escape(entry.seeing)}</p><figure><a href="${entry.name}.png"><img src="${entry.name}.png" alt="${escape(entry.seeing)}" loading="${index === 0 ? 'eager' : 'lazy'}"></a><figcaption>Captured from the same QMP guest after this action.</figcaption></figure><p><strong>What changed:</strong> ${escape(entry.proves)}</p></li>`).join('');
-  const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Conduit</title><style>${styles}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation}<main class="site-content"><p><a href="${home}">All journeys</a> · <a href="/conduit/workspace/">Open Conduit</a> · <a href="/conduit/handbook/">Handbook</a></p><p class="eyebrow">Freestanding x86 QEMU · ten screenshots</p><h1>A Body, its Patchbay, and its Face</h1><p class="lede">Arrive at Crèche, birth a Body, start its work, inspect the live planned graph, and stop it. Each screen was captured from one keyboard-driven guest session.</p><p class="recording-note">Emulator evidence from source <code>${commit}</code>. It does not establish physical hardware operation or human enactment.</p><ol class="journey-steps">${steps}</ol><h2>Reproduce and inspect</h2><p><code>cargo xtask make conduitos journey-proof</code></p><p><a href="manifest.json">Screenshot provenance</a> · <a href="journey-proof.json">Journey receipt</a> · <a href="console.txt">Retained console</a></p></main></body></html>`;
+  const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Conduit</title><style>${styles}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation}<main class="site-content"><p><a href="${home}">All journeys</a> · <a href="/conduit/workspace/">Open Conduit</a> · <a href="/conduit/handbook/">Handbook</a></p><p class="eyebrow">Freestanding x86 QEMU · ten screenshots</p><h1>A Body, its Patchbay, and its Face</h1><p class="lede">Arrive at Crèche, birth a Body, start its work, inspect the live planned graph, and stop it. Each screen was captured from one keyboard-driven guest session.</p><p class="recording-note">Emulator evidence from source <code>${commit}</code>. It does not establish physical hardware operation or human enactment.</p><ol class="journey-steps">${steps}</ol><h2>Reproduce and inspect</h2><p><code>cargo xtask make conduitos journey-proof</code></p><p><a href="manifest.json">Screenshot provenance</a> · <a href="journey-proof.json">Journey receipt</a> · <a href="console.txt">Journey serial transcript</a></p></main></body></html>`;
   await writeFile(path.join(root, 'index.html'), body);
 }
 

@@ -14,6 +14,7 @@ const names = [
 const commit = '1'.repeat(40);
 const image = 'a'.repeat(64);
 const boot = 'b'.repeat(64);
+const body = 'c'.repeat(64);
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('Pages composition publishes only the exact ten-step QMP journey', () => {
@@ -28,13 +29,18 @@ test('Pages composition publishes only the exact ten-step QMP journey', () => {
     assert.match(page, /What changed:/);
     assert.match(page, /Main navigation/);
     assert.match(page, /cargo xtask make conduitos journey-proof/);
+    assert.match(page, /Journey serial transcript/);
     assert.doesNotMatch(page, /Tour chapter/);
     const site = readFileSync(path.join(fixture.site, 'site-publication.json'), 'utf8');
     assert.equal(JSON.parse(site).conduitos.sourceCommit, commit);
+    assert.equal(JSON.parse(site).conduitos.serialSha256,
+      digest(readFileSync(path.join(root, 'console.txt'))));
     assert.match(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
       /Follow the ConduitOS journey/);
     assert.deepEqual(readFileSync(path.join(root, 'patchbay-diagram.png')),
       readFileSync(path.join(fixture.evidence, 'patchbay-diagram.png')));
+    assert.deepEqual(readFileSync(path.join(root, 'console.txt')),
+      readFileSync(path.join(fixture.evidence, '../journey-serial.log')));
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
@@ -47,6 +53,21 @@ test('Pages composition refuses a changed screenshot before writing pages', () =
     const result = publish(fixture);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /differs from its capture/);
+    assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
+      '<!-- conduit-conduitos-journey-card@1 -->');
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('Pages composition refuses a transcript from another Body before writing pages', () => {
+  const fixture = makeFixture();
+  try {
+    writeFileSync(path.join(fixture.evidence, '../journey-serial.log'),
+      `CONDUIT_PRODUCT_JOURNEY {"boot_id":"${boot}","body_id":"other"}\n`);
+    const result = publish(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /serial transcript does not match/);
     assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
       '<!-- conduit-conduitos-journey-card@1 -->');
   } finally {
@@ -83,8 +104,10 @@ function makeFixture() {
   writeFileSync(path.join(root, 'evidence/journey-proof.json'), JSON.stringify({
     schema: 'conduit.conduitos/face-journey-proof@1', source_commit: commit,
     proof_class: 'freestanding-emulator', image_sha256: image,
-    screenshots: 'journey-frames/manifest.json', boot_id: boot,
+    screenshots: 'journey-frames/manifest.json', boot_id: boot, body_id: body,
   }));
+  writeFileSync(path.join(root, 'evidence/journey-serial.log'),
+    `CONDUIT_PRODUCT_JOURNEY {"boot_id":"${boot}","body_id":"${body}"}\n`);
   return { root, evidence, site };
 }
 
