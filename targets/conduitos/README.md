@@ -28,6 +28,43 @@ the second boots that artifact in QEMU. The build needs the Rust toolchain,
 The builder acquires pinned boot dependencies. An interactive boot is useful
 for exploration; the proof commands below validate specific behaviors.
 
+### Boot a provisioned owner route
+
+For the shared-Body journey, issue a routed, short-lived invitation from the
+running Linux Body owner and create a private ISO with the supported
+[`provision-conduitos` entrance](../../docs/contributing/native-spore-provision.md).
+The owner must expose an authenticated TLS/WebSocket listener whose certificate
+matches the routed candidate's pinned leaf. Keep the owner alive, then boot the
+**same provisioned ISO** through the normal graphical product:
+
+```sh
+cargo xtask make conduitos live-owner-boot \
+  --spore /absolute/path/to/private-spore.iso \
+  --candidate-id 'candidate/from-owner-invitation' \
+  --owner-forward 172.17.0.1:19000
+```
+
+`--owner-forward` names an explicit private, non-loopback IPv4 owner listener
+reachable from QEMU's user network; replace the example address with the
+address on your machine. It is not a discovered or authorized owner. The
+command validates the exact ISO's image digest,
+invitation, selected candidate, expiry, and certificate pin before launching.
+For a screenshot of that same running attempt, add
+`--qmp-socket /absolute/private-directory/monitor.sock`. The parent directory
+must already exist with mode 0700, and the socket path must be unused. The
+optional QMP channel permits a local capture client; it does not prove
+membership or start a second guest.
+The selected candidate must be the first authenticated TLS route in the
+invitation, matching the current product boot's bounded attempt order.
+It forwards only the candidate's numeric `wss://10.0.2.x:port/conduit` route
+through VirtIO-net to that listener. The guest must still authenticate the
+owner and validate its admission receipt. Use `--dry-run` to inspect the QEMU
+invocation after the same preflight; neither a launch nor a dry run proves
+membership. A real admission additionally needs a guest-supported calibrated
+monotonic deadline clock. If none is available, the guest reports
+`owner-route-deadline-clock-unavailable` instead of attempting an unbounded
+exchange. Do not infer join success from a visible window or a forwarded port.
+
 ## First arrival on x86_64
 
 The graphical image opens the Crèche before a body exists. Edit the suggested

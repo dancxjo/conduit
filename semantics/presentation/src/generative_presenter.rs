@@ -318,6 +318,8 @@ mod tests {
                 intent: "conduit.intent/inspect@1".into(),
                 target: "body/current".into(),
             }],
+            raw_provider_output: None,
+            wording_proposal: None,
         };
         candidate.candidate_identity = candidate.digest();
         candidate

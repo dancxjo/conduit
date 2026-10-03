@@ -3,6 +3,9 @@ use super::*;
 
 impl FrontDoor {
     pub fn presentation(&self) -> Result<Presentation, Error> {
+        if let Some(joining) = &self.joining {
+            return joining.presentation(self, None);
+        }
         if let Some(arrival) = &self.arrival {
             return arrival.presentation(self);
         }

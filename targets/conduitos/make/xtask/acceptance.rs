@@ -8,9 +8,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
+use conduit_body::{
+    RendezvousLineFamily, SpawnInvitationClaim, SpawnInvitationSecret, SpawnRendezvousDescriptor,
+};
 use conduit_body_make::{SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
 use conduit_core::HostAdvertisement;
+use conduitos::spore_provision::{validate_route_certificates, RouteCertificate};
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -25,7 +28,7 @@ const MAKE_PACKAGE: &str = "conduitos-image@1";
 const DEPLOYMENT_ADAPTER: &str = "conduit-host-conduitos/boot-x86_64@1";
 const MAGIC: &[u8] = b"CONDUIT_SPORE_MEDIA@1\0";
 const HEADER_BYTES: usize = 32;
-const TRAILER_BYTES: usize = 4096;
+const TRAILER_BYTES: usize = conduitos::spore_provision::REGION_BYTES;
 const MINIMUM_IMAGE_BYTES: usize = 512;
 const MAXIMUM_ARTIFACT_BYTES: usize = 80 * 1024 * 1024;
 const MAXIMUM_RENDEZVOUS_CANDIDATES: usize = 4;
@@ -49,6 +52,10 @@ struct InvitationProvision {
     secret: Vec<u8>,
     #[serde(default)]
     rendezvous_candidates: Vec<RendezvousCandidate>,
+    #[serde(default)]
+    rendezvous: Option<SpawnRendezvousDescriptor>,
+    #[serde(default)]
+    route_certificates: Vec<RouteCertificate>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,6 +124,75 @@ struct AdmittedSpore {
     artifact_bytes: usize,
 }
 
+/// An already-validated, exact route in a private self-joining product ISO.
+/// The owner address used by QEMU is a separate host-local forwarding input.
+pub(super) struct OwnerBootRoute {
+    pub candidate_id: String,
+    pub reachability: String,
+    pub artifact_sha256: String,
+}
+
+pub(super) fn owner_boot_route(
+    path: &Path,
+    candidate_id: &str,
+) -> Result<OwnerBootRoute, ConduitosError> {
+    let admitted = admit(path)?;
+    let route = admitted
+        .provision
+        .invitation_provision
+        .rendezvous
+        .as_ref()
+        .ok_or_else(|| {
+            ConduitosError::refusal("owner-boot-route-missing", "spore has no routed invitation")
+        })?;
+    let candidate = route
+        .candidates
+        .iter()
+        .find(|candidate| candidate.candidate_id == candidate_id)
+        .ok_or_else(|| {
+            ConduitosError::refusal(
+                "owner-boot-candidate-missing",
+                "candidate ID is absent from the provisioned route",
+            )
+        })?;
+    if candidate.line_family != RendezvousLineFamily::AuthenticatedTlsStream {
+        return Err(ConduitosError::refusal(
+            "owner-boot-line-unsupported",
+            "normal x86 QEMU owner boot requires an authenticated TLS stream candidate",
+        ));
+    }
+    if route
+        .candidates
+        .iter()
+        .find(|candidate| candidate.line_family == RendezvousLineFamily::AuthenticatedTlsStream)
+        .is_none_or(|first| first.candidate_id != candidate_id)
+    {
+        return Err(ConduitosError::refusal(
+            "owner-boot-candidate-order",
+            "normal product boot currently attempts the first authenticated TLS candidate; select that exact candidate",
+        ));
+    }
+    let now_millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| {
+            ConduitosError::refusal("owner-boot-clock-unavailable", error.to_string())
+        })?
+        .as_millis();
+    if now_millis >= u128::from(candidate.expires_at_millis)
+        || now_millis >= u128::from(admitted.provision.invitation_provision.expires_at_millis)
+    {
+        return Err(ConduitosError::refusal(
+            "owner-boot-invitation-expired",
+            "the selected candidate or invitation has expired; issue and provision a fresh spore",
+        ));
+    }
+    Ok(OwnerBootRoute {
+        candidate_id: candidate.candidate_id.clone(),
+        reachability: candidate.reachability.clone(),
+        artifact_sha256: admitted.artifact_sha256,
+    })
+}
+
 pub(super) fn execute(path: &Path, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let admitted = admit(path)?;
     let journey = boot_and_observe(path)?;
@@ -183,6 +259,9 @@ pub(super) fn execute(path: &Path, opts: &GlobalOpts) -> Result<(), ConduitosErr
 
 fn boot_and_observe(path: &Path) -> Result<journey_proof::JourneyIdentity, ConduitosError> {
     let paths = Paths::new(ConduitosArch::X86_64)?;
+    fs::create_dir_all(&paths.target).map_err(|error| {
+        ConduitosError::refusal("creche-spore-proof-output-unavailable", error.to_string())
+    })?;
     let serial_path = paths.target.join("creche-spore-boot-serial.log");
     let _ = fs::remove_file(&serial_path);
     let serial = format!("file:{}", serial_path.to_string_lossy());
@@ -546,6 +625,38 @@ fn validate_provision(
             "spore rendezvous candidates exceeded their finite identity or authority bounds",
         ));
     }
+    if provision
+        .invitation_provision
+        .rendezvous
+        .as_ref()
+        .is_some_and(|rendezvous| {
+            !provision
+                .invitation_provision
+                .rendezvous_candidates
+                .is_empty()
+                || rendezvous.body_id != spore.body_id
+                || rendezvous.invitation_id.as_str() != invitation_id.as_str()
+                || rendezvous.validate(0).is_err()
+                || rendezvous.candidates.iter().any(|candidate| {
+                    candidate.expires_at_millis > provision.invitation_provision.expires_at_millis
+                })
+        })
+    {
+        return Err(ConduitosError::refusal(
+            "creche-spore-rendezvous-invalid",
+            "canonical route lost invitation identity or transport authentication binding",
+        ));
+    }
+    validate_route_certificates(
+        provision.invitation_provision.rendezvous.as_ref(),
+        &provision.invitation_provision.route_certificates,
+    )
+    .map_err(|_| {
+        ConduitosError::refusal(
+            "creche-spore-rendezvous-invalid",
+            "route certificate lost its exact candidate authentication binding",
+        )
+    })?;
     if spore.target != TARGET
         || serde_json::to_value(&spore.output).ok().as_ref()
             != Some(&serde_json::Value::String("disk-image".into()))
@@ -730,5 +841,57 @@ mod tests {
             "creche-spore-provision-padding-invalid"
         );
         fs::remove_file(root).unwrap();
+    }
+
+    #[test]
+    fn canonical_route_keeps_exact_transport_binding_at_acceptance() {
+        let certificate = conduitos::virtio_tls_fixture::PINNED_CERTIFICATE_DER;
+        let binding: [u8; 32] = Sha256::digest(certificate).into();
+        let artifact = fixture();
+        let offset = artifact.len() - TRAILER_BYTES;
+        let length =
+            u32::from_le_bytes(artifact[offset + 28..offset + 32].try_into().unwrap()) as usize;
+        let mut value: serde_json::Value = serde_json::from_slice(
+            &artifact[offset + HEADER_BYTES..offset + HEADER_BYTES + length],
+        )
+        .unwrap();
+        value["invitation_provision"]["rendezvous_candidates"] = serde_json::json!([]);
+        value["invitation_provision"]["rendezvous"] = serde_json::json!({
+            "protocol":1,
+            "body_id":"body:fixture",
+            "invitation_id":"invitation:fixture",
+            "candidates":[{
+                "candidate_id":"candidate/tls",
+                "line_family":"authenticated-tls-stream",
+                "reachability":"wss://owner.example:443/conduit",
+                "authentication":{
+                    "server_identity":"owner/example",
+                    "transport_binding_sha256":binding
+                },
+                "expires_at_millis":1_800_000_000_000_u64,
+                "maximum_attempts":2,
+                "attempt_timeout_millis":2_000
+            }]
+        });
+        value["invitation_provision"]["route_certificates"] = serde_json::json!([{
+            "candidate_id":"candidate/tls", "certificate_der":certificate,
+        }]);
+        assert!(serde_json::to_vec(&value).unwrap().len() <= TRAILER_BYTES - HEADER_BYTES);
+        let routed: NativeMediaProvision = serde_json::from_value(value.clone()).unwrap();
+        assert!(validate_provision(&routed, routed.image_bytes).is_ok());
+        assert_eq!(
+            routed.invitation_provision.rendezvous.unwrap().candidates[0]
+                .authentication
+                .transport_binding_sha256,
+            binding
+        );
+        value["invitation_provision"]["rendezvous"]["invitation_id"] = "invitation:other".into();
+        let relabeled: NativeMediaProvision = serde_json::from_value(value).unwrap();
+        assert_eq!(
+            validate_provision(&relabeled, relabeled.image_bytes)
+                .unwrap_err()
+                .reason,
+            "creche-spore-rendezvous-invalid"
+        );
     }
 }

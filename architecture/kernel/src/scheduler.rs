@@ -1,6 +1,8 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
+mod host_call_back;
 mod host_input_ownership;
+pub use host_call_back::HostCallBack;
 
 use crate::{
     debug_observation::{

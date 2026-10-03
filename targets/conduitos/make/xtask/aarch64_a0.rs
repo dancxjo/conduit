@@ -95,7 +95,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             status.to_string(),
         ));
     }
-    let built = paths.root.join(format!("target/{TARGET}/release/{BINARY}"));
+    let built = paths.built_binary(TARGET, BINARY);
     fs::copy(&built, &paths.kernel)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     let bytes = fs::read(&paths.kernel)

@@ -7,7 +7,7 @@ pub mod arch;
 pub mod boot;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod bounded_host_calls;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 pub(crate) mod bounded_websocket;
 pub mod composition;
 pub mod cooperative_timer_lane;
@@ -51,6 +51,7 @@ pub mod keyboard_text_play;
 mod keyboard_text_play_tests;
 pub mod local_rescue;
 pub mod machine;
+pub mod machine_membrane;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -62,6 +63,8 @@ pub mod machine;
     feature = "hosted-tools"
 ))]
 pub mod make;
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+pub mod native_boot_join;
 mod native_components;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
@@ -70,6 +73,10 @@ pub mod native_face_mask;
 #[cfg(feature = "native-compositor")]
 pub mod native_face_scene;
 pub mod native_face_snapshot;
+pub mod native_guest_face;
+pub mod native_network_bounds;
+#[cfg(feature = "native-owner-network")]
+pub mod native_owner_admission;
 pub mod native_workset;
 pub mod observatory;
 pub mod offer;
@@ -108,31 +115,32 @@ pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
 pub mod protected_line_support;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
 pub mod protected_wire_session;
 pub mod protection_domain;
 pub mod rendezvous_descriptor;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 pub mod secure_rendezvous_support;
+pub mod usb_base;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_session;
 #[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
 pub mod virtio_net_proof;
-#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod virtio_tcp;
-#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(crate) mod virtio_tcp_stream;
-#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod virtio_tls;
 #[cfg(all(
     target_arch = "x86_64",
     any(feature = "virtio-net-proof", feature = "hosted-tools")
 ))]
 pub mod virtio_tls_fixture;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 mod wss_candidate_support;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
@@ -221,14 +229,9 @@ pub mod product_usb_line;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
 pub mod sign_format;
-#[cfg(any(
-    test,
-    target_arch = "x86_64",
-    feature = "ia32-product",
-    feature = "aarch64-product",
-    feature = "riscv64-product",
-    feature = "loongarch64-product"
-))]
+// Pending join facts are shared with the portable front door on every arch;
+// only the boot-specific serial emission is target-gated inside the module.
+pub mod native_guest_part;
 pub mod spore_join;
 pub mod spore_provision;
 #[cfg(any(test, target_arch = "x86_64"))]

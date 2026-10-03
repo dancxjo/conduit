@@ -1,0 +1,24 @@
+# Generic request construction, without a mapping, address or resource binding.
+# U128 is the exact primitive register-call ABI; the host validates all bounds.
+
+type MachineRegisterWrite = {
+    offset: U32
+    value: U32
+}
+
+plot machine-register-read-request (
+    offset: U32 >> request: U128
+) = value/u128(.)
+
+plot machine-register-write-request (
+    command: MachineRegisterWrite >> request: U128
+) = (value/u128(.offset) + value/u128(.value) * 4294967296 + 18446744073709551616)
+
+# The selected host supplies the scoped register Kind. There is no authored
+# machine/provider/address selection here.
+plot machine-register-call (
+    requests: U128...| >> values: U32...|
+) {
+    access: machine/memory/mmio/register32
+    requests >> access >> values
+}

@@ -251,10 +251,7 @@ pub(super) fn build_variant(
             status.to_string(),
         ));
     }
-    let built = paths.root.join(format!(
-        "target/{}/release/{binary}",
-        loongarch64_a0::TARGET
-    ));
+    let built = paths.built_binary(loongarch64_a0::TARGET, binary);
     fs::copy(built, &paths.kernel)
         .map_err(|e| refusal("build-output-unavailable", e.to_string()))?;
     let record = BuildRecord {

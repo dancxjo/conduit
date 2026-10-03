@@ -1,0 +1,18 @@
+# Class-neutral finite transaction data. Possession comes from the selected
+# base, never from a setup word, endpoint number or packet contents.
+type UsbControlRequest = {
+    setup: U64
+    output: sequence U8 <= 256
+}
+
+type UsbControlResult =
+    completed {
+        transferred: U16
+        short: Boolean
+        input: sequence U8 <= 256
+    }
+    | stalled
+    | provider-lost
+    | unsupported
+
+# Cancellation is kernel control and terminal truth, not a successful result.

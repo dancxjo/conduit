@@ -91,16 +91,48 @@ impl SpokenFaceSession {
     /// is pressure-bound until its actual output effect reaches a terminal
     /// outcome; later view content waits for the next Play.
     pub fn next_batch(&mut self) -> Result<Option<SpokenBatch>, SpokenFaceRefusal> {
+        self.next_batch_with_limits(
+            conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS,
+            MAXIMUM_SPEAKABLE_SEGMENT_BYTES,
+        )
+    }
+
+    /// A selected Back may require shorter text segments as well as fewer
+    /// segments per closing Flow. The limits only shape demand; actual PCM
+    /// admission remains the Host effect's terminal responsibility.
+    pub fn next_batch_with_limits(
+        &mut self,
+        maximum_segments: usize,
+        maximum_text_bytes: usize,
+    ) -> Result<Option<SpokenBatch>, SpokenFaceRefusal> {
+        if maximum_segments == 0 || maximum_segments > conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS {
+            return Err(SpokenFaceRefusal::InvalidValue);
+        }
+        if !(4..=MAXIMUM_SPEAKABLE_SEGMENT_BYTES).contains(&maximum_text_bytes) {
+            return Err(SpokenFaceRefusal::InvalidValue);
+        }
         if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
-        let mut segments = Vec::with_capacity(conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS);
-        while segments.len() < conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS {
-            let Some(segment) = self.next_segment()? else {
+        let mut segments = Vec::with_capacity(maximum_segments);
+        while segments.len() < maximum_segments {
+            let Some(segment) = self.next_segment_up_to(maximum_text_bytes)? else {
                 break;
             };
             self.pending = None;
             segments.push(segment);
+        }
+        if segments.len() == maximum_segments
+            && self.reading.is_some()
+            && maximum_segments < conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS
+        {
+            // A separate Play must receive a separately closed Flow. The
+            // reader's semantic place is retained for the next batch.
+            if let Some(last) = segments.last_mut() {
+                last.segment.reason = SpeechCommitReason::FinalFlush;
+            }
+            self.batch += 1;
+            self.sequence = 0;
         }
         let Some(first) = segments.first() else {
             return Ok(None);

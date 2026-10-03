@@ -36,21 +36,8 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
-      - name: Resolve acquisition cache
-        id: tools
-        run: cargo xtask ci pipeline acquisition-key preflight
-      - uses: actions/cache/restore@v6.1.0
-        id: tools-cache
-        with:
-          path: ${{ steps.tools.outputs.paths }}
-          key: ${{ steps.tools.outputs.key }}
       - name: Install CI validation tools
         run: cargo xtask ci pipeline setup-ci
-      - uses: actions/cache/save@v6.1.0
-        if: steps.tools-cache.outputs.cache-hit != 'true'
-        with:
-          path: ${{ steps.tools.outputs.paths }}
-          key: ${{ steps.tools.outputs.key }}
       - name: Scan changed targets
         id: scan
         env:
@@ -94,21 +81,8 @@ jobs:
         with:
           key: unit-${{ matrix.shard }}
           cache-on-failure: false
-      - name: Resolve acquisition cache
-        id: tools
-        run: cargo xtask ci pipeline acquisition-key unit
-      - uses: actions/cache/restore@v6.1.0
-        id: tools-cache
-        with:
-          path: ${{ steps.tools.outputs.paths }}
-          key: ${{ steps.tools.outputs.key }}
       - name: Install native test prerequisites
         run: cargo xtask ci pipeline setup-unit
-      - uses: actions/cache/save@v6.1.0
-        if: steps.tools-cache.outputs.cache-hit != 'true'
-        with:
-          path: ${{ steps.tools.outputs.paths }}
-          key: ${{ steps.tools.outputs.key }}
       - name: Prove portable meaning
         env:
           SHARD: ${{ matrix.shard }}

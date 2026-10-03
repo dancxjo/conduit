@@ -302,7 +302,11 @@ pub(crate) enum HostServiceCommand {
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
     /// Enter the birth encounter for a Host that does not yet belong to a Body.
-    Birth,
+    Birth {
+        /// Use a terminal and nonvisual command input for the zero-Body Crèche.
+        #[arg(long)]
+        screen_free: bool,
+    },
     /// Own a retained Body on an installed Linux Host in the foreground.
     ///
     /// Run the installed product executable with its service stopped. Standard
@@ -348,6 +352,24 @@ pub(crate) enum BodyCommand {
         /// Explicitly authorize exposing this one-invitation admission route.
         #[arg(long, action = clap::ArgAction::SetTrue)]
         authorize_route: bool,
+    },
+    /// Open one short-lived local window for this browser Host to join the installed owner.
+    BrowserWindow {
+        /// Installed Host state whose running service owns the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Exact Host ID shown by the browser's "Join an owned Body" view.
+        #[arg(long)]
+        expected_host_id: String,
+        /// JSON byte array copied from the browser for first admission; omit on return.
+        #[arg(long)]
+        new_host_verifying_key: Option<String>,
+        /// Finite admission and presence window, at most one minute.
+        #[arg(long, default_value_t = 60_000, value_parser = clap::value_parser!(u64).range(1000..=60_000))]
+        maximum_millis: u64,
+        /// Explicitly authorize the local loopback browser admission window.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_window: bool,
     },
     /// Join the Body named by one routed portable invitation.
     Join {
@@ -408,6 +430,26 @@ mod public_surface_tests {
             .expect("bare product entrance parses")
             .command
             .is_none());
+    }
+
+    #[test]
+    fn screen_free_birth_is_an_explicit_product_entrance() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "body", "birth", "--screen-free"])
+                .expect("screen-free Birth parses")
+                .command,
+            Some(Command::Body {
+                command: Some(BodyCommand::Birth { screen_free: true })
+            })
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "body", "birth"])
+                .expect("browser Birth remains default")
+                .command,
+            Some(Command::Body {
+                command: Some(BodyCommand::Birth { screen_free: false })
+            })
+        ));
     }
 
     #[test]

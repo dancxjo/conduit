@@ -9,14 +9,17 @@ use rand_core::{CryptoRng, RngCore, SeedableRng};
 use smoltcp::iface::SocketStorage;
 
 use crate::{
-    arch::VirtioNetReady,
+    arch::{CandidateDeadline, VirtioNetReady},
     bounded_websocket::{BinaryWebSocketIo, BoundedWebSocket, WebSocketError},
     virtio_tcp::{VirtioTcpEndpoint, VirtioTcpError},
-    virtio_tcp_stream::VirtioTcpStream,
+    virtio_tcp_stream::{VirtioTcpConnectOptions, VirtioTcpStream},
 };
 
 pub const TCP_BUFFER_BYTES: usize = 4096;
-pub const TLS_RECORD_BUFFER_BYTES: usize = 4096;
+// A peer may send one full TLS record even when our ClientHello asks for
+// smaller fragments. Reserve the library's maximum encrypted record bound.
+pub const TLS_RECEIVE_BUFFER_BYTES: usize = 16_640;
+pub const TLS_TRANSMIT_BUFFER_BYTES: usize = 4096;
 const MAXIMUM_CERTIFICATE_BYTES: usize = 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -132,6 +135,33 @@ pub(crate) fn with_websocket<T, E>(
     maximum_polls: u32,
     operation: impl FnOnce(&mut dyn BinaryWebSocketIo) -> Result<T, E>,
 ) -> Result<(T, u32), VirtioWebSocketRunError<E>> {
+    with_websocket_deadline(
+        device,
+        tcp_seed,
+        tls_seed,
+        websocket_seed,
+        endpoint,
+        server_name,
+        pinned_certificate_der,
+        maximum_polls,
+        None,
+        operation,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_websocket_deadline<T, E>(
+    device: VirtioNetReady,
+    tcp_seed: u64,
+    tls_seed: [u8; 32],
+    websocket_seed: [u8; 32],
+    endpoint: VirtioTcpEndpoint,
+    server_name: &str,
+    pinned_certificate_der: &[u8],
+    maximum_polls: u32,
+    deadline: Option<CandidateDeadline>,
+    operation: impl FnOnce(&mut dyn BinaryWebSocketIo) -> Result<T, E>,
+) -> Result<(T, u32), VirtioWebSocketRunError<E>> {
     if server_name.is_empty()
         || pinned_certificate_der.is_empty()
         || pinned_certificate_der.len() > MAXIMUM_CERTIFICATE_BYTES
@@ -145,16 +175,19 @@ pub(crate) fn with_websocket<T, E>(
     let mut socket_storage = [SocketStorage::EMPTY];
     let stream = VirtioTcpStream::connect(
         device,
-        tcp_seed,
-        endpoint,
-        maximum_polls,
+        VirtioTcpConnectOptions {
+            random_seed: tcp_seed,
+            endpoint,
+            maximum_polls,
+            deadline,
+        },
         &mut tcp_receive,
         &mut tcp_transmit,
         &mut socket_storage,
     )
     .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Tcp(error)))?;
-    let mut tls_receive = [0; TLS_RECORD_BUFFER_BYTES];
-    let mut tls_transmit = [0; TLS_RECORD_BUFFER_BYTES];
+    let mut tls_receive = [0; TLS_RECEIVE_BUFFER_BYTES];
+    let mut tls_transmit = [0; TLS_TRANSMIT_BUFFER_BYTES];
     let config = TlsConfig::new()
         .with_server_name(server_name)
         .with_max_fragment_length(MaxFragmentLength::Bits11);
@@ -184,6 +217,11 @@ pub(crate) fn with_websocket<T, E>(
         Ok(value) => value,
         Err(error) => return Err(VirtioWebSocketRunError::Operation(error)),
     };
+    if deadline.is_some_and(|deadline| deadline.elapsed_millis().is_none()) {
+        return Err(VirtioWebSocketRunError::Transport(VirtioTlsError::Tcp(
+            VirtioTcpError::Timeout,
+        )));
+    }
     websocket_close
         .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::WebSocket(error)))?;
     let tcp_polls = tcp_close.map_err(VirtioWebSocketRunError::Transport)?;

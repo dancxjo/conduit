@@ -1,8 +1,12 @@
 //! Foreground owner of one installed Linux Host's retained Body.
 mod controller;
 mod image;
+mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
+#[cfg(unix)]
+pub(crate) use controller::run_service_window;
+pub(crate) use controller::{BrowserAdmittedSnapshot, BrowserWindowAuthorization, Owner};
 use serde::Deserialize;
 use std::{
     io::{BufRead, Read, Write},
@@ -14,6 +18,17 @@ const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 
 pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
     state::recover(root)
+}
+pub(crate) fn resume_service(
+    host: conduit_std_host::StdHost,
+    root: &Path,
+) -> Result<Owner, String> {
+    state::recover(root)?;
+    let retained = state::load(root)?.ok_or("installed Host has no retained Body")?;
+    let mut owner = Owner::resume(host, retained)?;
+    owner.restore_execution(root)?;
+    owner.persist(root)?;
+    Ok(owner)
 }
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
@@ -30,6 +45,10 @@ enum Request {
     AdmitInvited {
         expected_host_id: String,
         request: Box<conduit_body::PortableSpawnAdmissionRequest>,
+    },
+    AdmitNativeObservation {
+        expected_host_id: String,
+        observation: Box<native_observation::NativeSerialSpawnObservation>,
     },
     Plan,
     Run {
@@ -92,14 +111,17 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                 .map_err(|e| format!("invalid owner request: {e}"))
                 .and_then(|request| {
                     if length as u64 > MAXIMUM_CONTROL_REQUEST
-                        && !matches!(request, Request::AdmitInvited { .. })
+                        && !matches!(
+                            request,
+                            Request::AdmitInvited { .. } | Request::AdmitNativeObservation { .. }
+                        )
                     {
                         return Err("owner control request exceeds 4096 bytes".into());
                     }
                     match request {
                         Request::Inspect => {}
                         Request::Invite { ttl_seconds } => {
-                            let invitation = owner.issue_invitation(&root, ttl_seconds)?;
+                            let invitation = owner.issue_invitation(&root, ttl_seconds, None)?;
                             emit(&serde_json::to_value(invitation).map_err(|e| e.to_string())?)?;
                         }
                         Request::AdmitBrowser {
@@ -120,6 +142,14 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                         } => {
                             let receipt =
                                 owner.admit_invited(&root, *request, &expected_host_id)?;
+                            emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
+                        }
+                        Request::AdmitNativeObservation {
+                            expected_host_id,
+                            observation,
+                        } => {
+                            let request = observation.into_request(&expected_host_id)?;
+                            let receipt = owner.admit_invited(&root, request, &expected_host_id)?;
                             emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
                         Request::Plan => owner.plan(&checked)?,

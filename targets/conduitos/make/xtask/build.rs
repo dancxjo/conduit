@@ -341,12 +341,7 @@ fn execute_with_features(
             status.to_string(),
         ));
     }
-    let built = paths
-        .root
-        .join("target")
-        .join(target)
-        .join("release")
-        .join(binary);
+    let built = paths.built_binary(target, binary);
     fs::copy(&built, &paths.kernel)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     assert_elf(arch, &paths)?;

@@ -9,8 +9,12 @@ use conduit_body::{
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
 use conduit_core::{bind_sign, BaseImplementationId};
+use conduit_presentation::{Face, FaceContext, FaceFocus, OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
+#[cfg(unix)]
+pub(crate) use participants::run_service_window;
+pub(crate) use participants::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
 use std::{
     collections::BTreeMap,
     io::Write,
@@ -18,15 +22,16 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub(super) struct Owner {
-    host: StdHost,
+pub(crate) struct Owner {
+    pub(crate) host: StdHost,
     session: BodyLifecycleSession,
-    resident: ResidentPlot,
+    resident: Option<ResidentPlot>,
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
+    pending_browser: Option<participants::BrowserWindow>,
 }
 impl Owner {
-    pub(super) fn open(
+    pub(crate) fn open(
         host: StdHost,
         resident: ResidentPlot,
         retained: Option<BodyBiographyEvidence>,
@@ -101,12 +106,29 @@ impl Owner {
         Ok(Self {
             host,
             session,
+            resident: Some(resident),
+            last_execution: None,
+            admissions: None,
+            pending_browser: None,
+        })
+    }
+    /// Reattach a retained owner to the one fresh installed Host Boot.
+    pub(super) fn resume(host: StdHost, retained: BodyBiographyEvidence) -> Result<Self, String> {
+        let advertised = host.advertisement();
+        let session =
+            BodyLifecycleSession::resume_here(retained, &advertised.host_id, &advertised.boot_id)
+                .map_err(debug)?;
+        let resident = session.evidence().body.workset.plots().first().cloned();
+        Ok(Self {
+            host,
+            session,
             resident,
             last_execution: None,
             admissions: None,
+            pending_browser: None,
         })
     }
-    pub(super) fn persist(&mut self, root: &Path) -> Result<(), String> {
+    pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
         if !self.session.pending_archives().is_empty() {
             return Err(
                 "owner biography archive capacity requires an admitted archive store".into(),
@@ -124,13 +146,59 @@ impl Owner {
         self.admissions = state::admissions(root, &self.session.evidence().body_id)?;
         Ok(())
     }
-    pub(super) fn truth(&self) -> serde_json::Value {
+    pub(crate) fn truth(&self) -> serde_json::Value {
         serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution})
+    }
+    /// Project one canonical Face from the current retained owner session.
+    /// Credential matching and current incarnation are checked here, even
+    /// though the routed caller has already authenticated the same Line.
+    pub(crate) fn face_snapshot(
+        &self,
+        request: &OwnerFaceSnapshotRequest,
+    ) -> Result<Presentation, String> {
+        let admitted = self.admissions.as_ref().is_some_and(|manager| {
+            manager.receipts.iter().any(|receipt| {
+                request.has_exact_basis()
+                    && request.credential_id == receipt.credential.credential_id.as_str()
+                    && request.body_id == receipt.credential.body_id
+                    && request.part_id == receipt.credential.part_id
+                    && request.host_id == receipt.credential.host_id
+                    && request.boot_id == receipt.credential.boot_id
+            })
+        });
+        if !admitted {
+            return Err("owner-face-credential-not-admitted".into());
+        }
+        let present = self.session.evidence().membership.parts.iter().any(|part| {
+            part.part_id == request.part_id
+                && part.current.as_ref().is_some_and(|current| {
+                    current.host_id == request.host_id && current.boot_id == request.boot_id
+                })
+        });
+        if !present || self.session.evidence().body_id != request.body_id {
+            return Err("owner-face-current-part-unavailable".into());
+        }
+        let face = Face::project(
+            &self.session.evidence().body,
+            self.session
+                .realization()
+                .map(|realization| &realization.wake),
+            self.session.evidence().last_sequence(),
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
+        face.presentation
+            .validate()
+            .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
+        Ok(face.presentation)
     }
     pub(super) fn plan(
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
+        let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
         let hosts = [self.host.advertisement().clone()];
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
@@ -154,7 +222,7 @@ impl Owner {
         self.session
             .propose(
                 vec![BodyPlotPlan {
-                    plot: self.resident.clone(),
+                    plot: resident.clone(),
                     plan,
                 }],
                 &hosts[0].host_id,

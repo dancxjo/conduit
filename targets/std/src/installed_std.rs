@@ -22,6 +22,7 @@ pub(super) mod contract;
 mod count_backs;
 mod deadline_host;
 mod distance_frequency_back;
+mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
@@ -301,6 +302,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     {
         return Err("fragment exceeds the installed std kernel profile".to_string());
     }
+    let planned_inputs = lowered
+        .fore_ports
+        .iter()
+        .filter(|port| port.direction == conduit_core::PortDirection::Input)
+        .collect::<Vec<_>>();
+    let supplied_inputs = external_fore
+        .as_ref()
+        .map_or(&[][..], |binding| binding.inputs);
+    let mut fore_inputs = external_fore_feeder::PreparedForeInputs::prepare(
+        &planned_inputs,
+        supplied_inputs,
+        external_fore.as_ref().is_some_and(|run| run.sequential),
+    )?;
 
     let mut value_items = 0_u16;
     let mut value_bytes = 0_u32;
@@ -400,19 +414,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let value_allocation_before = values.allocation_capacities();
 
     let kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
-    let remote_sign_items = lowered.fore_ports.iter().try_fold(0_u16, |total, fore| {
-        let events = match fore.direction {
-            conduit_core::PortDirection::Input => fore.item_capacity.checked_add(1),
-            conduit_core::PortDirection::Output => fore
-                .item_capacity
-                .checked_mul(3)
-                .and_then(|count| count.checked_add(1)),
-        }
-        .ok_or_else(|| "external Fore lifecycle Sign capacity overflow".to_string())?;
-        total
-            .checked_add(events)
-            .ok_or_else(|| "external Fore lifecycle Sign capacity overflow".to_string())
-    })?;
+    let external_input_items = fore_inputs.input_items();
+    let remote_sign_items =
+        external_fore_feeder::remote_sign_items(&lowered.fore_ports, external_input_items)?;
     sign_items = sign_items
         .checked_add(remote_sign_items)
         .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
@@ -444,74 +448,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .fore_ports
             .iter()
             .filter(|port| port.direction == conduit_core::PortDirection::Output)
-            .count(),
+            .count()
+            .saturating_mul(usize::from(external_input_items)),
     );
-    let planned_inputs = lowered
-        .fore_ports
-        .iter()
-        .filter(|port| port.direction == conduit_core::PortDirection::Input)
-        .collect::<Vec<_>>();
-    let supplied_inputs = external_fore
-        .as_ref()
-        .map_or(&[][..], |binding| binding.inputs);
-    let planned_input_keys = planned_inputs
-        .iter()
-        .map(|port| (&port.front_port_id, port.track))
-        .collect::<std::collections::BTreeSet<_>>();
-    let supplied_input_keys = supplied_inputs
-        .iter()
-        .map(|input| (&input.front_port_id, input.track))
-        .collect::<std::collections::BTreeSet<_>>();
-    if supplied_inputs.len() != planned_input_keys.len()
-        || supplied_input_keys != planned_input_keys
-    {
-        return Err("external Fore input set does not match the sealed Plan".into());
-    }
-    for (front_port_id, track) in planned_input_keys {
-        let supplied = supplied_inputs
-            .iter()
-            .find(|input| input.front_port_id == *front_port_id && input.track == track)
-            .ok_or_else(|| {
-                format!(
-                    "external Fore input '{}' is missing",
-                    front_port_id.as_str()
-                )
-            })?;
-        let branches = planned_inputs
-            .iter()
-            .copied()
-            .filter(|planned| planned.front_port_id == *front_port_id && planned.track == track)
-            .collect::<Vec<_>>();
-        if branches
-            .iter()
-            .any(|planned| planned.validate_value(&supplied.bytes).is_err())
-        {
-            return Err(format!(
-                "external Fore input '{}' violates its sealed value contract",
-                front_port_id.as_str()
-            ));
-        }
-        let targets = branches
-            .iter()
-            .map(|planned| (planned.endpoint, planned.cord))
-            .collect::<Vec<_>>();
-        match scheduler
-            .admit_remote_input_fanout(&targets, 0, &supplied.bytes)
-            .map_err(|error| format!("admit external Fore input: {error:?}"))?
-        {
-            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 } => {}
-            outcome => {
-                return Err(format!(
-                    "external Fore input was not admitted exactly: {outcome:?}"
-                ))
-            }
-        }
-        for planned in branches {
-            scheduler
-                .close_remote_input(planned.endpoint, planned.cord)
-                .map_err(|error| format!("close external Fore input: {error:?}"))?;
-        }
-    }
+    fore_inputs.start(&mut scheduler)?;
     if lowered
         .fore_ports
         .iter()
@@ -858,6 +798,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 deadlines.clear();
                 accepted_stop = Some(request_id);
             }
+        }
+        if accepted_stop.is_none() {
+            fore_inputs.feed_next(&mut scheduler)?;
         }
         while let Some(cancellation) = scheduler.next_host_cancellation() {
             let cancelled_operation = lowered

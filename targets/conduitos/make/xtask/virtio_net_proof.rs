@@ -19,7 +19,7 @@ use rustls::{
 use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
 
 const PREFIX: &str = "CONDUIT_VIRTIO_NET_SIGN ";
-const REQUEST: &[u8] = b"CONDUIT TCP PING\n";
+const REQUEST: &[u8] = &[b'Q'; 6144];
 const RESPONSE: &[u8] = b"CONDUIT TCP PONG\n";
 const PRIVATE_KEY_DER: &[u8] = &[
     0x30, 0x81, 0x87, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
@@ -122,6 +122,9 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         thread::sleep(Duration::from_millis(10));
     };
     let transcript = fs::read_to_string(&serial_path).unwrap_or_default();
+    let server_result = server.join().map_err(|_| {
+        ConduitosError::refusal("virtio-tcp-server-panicked", "server thread panicked")
+    })?;
     if status.code() != Some(33) {
         let stderr = child
             .wait_with_output()
@@ -129,15 +132,10 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             .unwrap_or_default();
         return Err(ConduitosError::refusal(
             "virtio-net-proof-guest-failed",
-            format!("{status}; {stderr}; {transcript}"),
+            format!("{status}; server={server_result:?}; {stderr}; {transcript}"),
         ));
     }
-    server
-        .join()
-        .map_err(|_| {
-            ConduitosError::refusal("virtio-tcp-server-panicked", "server thread panicked")
-        })?
-        .map_err(|reason| ConduitosError::refusal("virtio-tcp-server-failed", reason))?;
+    server_result.map_err(|reason| ConduitosError::refusal("virtio-tcp-server-failed", reason))?;
     let signs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix(PREFIX))
@@ -258,32 +256,50 @@ fn serve_once(listener: TcpListener) -> Result<(), String> {
         .map_err(|error| error.to_string())?;
     tls.flush().map_err(|error| error.to_string())?;
 
-    let mut frame = [0; 4096];
+    let mut frame = [0; conduitos::native_network_bounds::WEBSOCKET_FRAME_BYTES];
     let mut frame_bytes = 0;
     let mut request = [0; REQUEST.len()];
+    let mut request_bytes = 0;
     loop {
-        let count = tls
-            .read(&mut frame[frame_bytes..])
-            .map_err(|error| error.to_string())?;
-        if count == 0 || frame_bytes + count == frame.len() {
-            return Err("bounded WebSocket request frame was incomplete".into());
-        }
-        frame_bytes += count;
-        match websocket.read(&frame[..frame_bytes], &mut request) {
+        match websocket.read(&frame[..frame_bytes], &mut request[request_bytes..]) {
             Ok(result) => {
                 if result.message_type != WebSocketReceiveMessageType::Binary
-                    || !result.end_of_message
-                    || result.len_from != frame_bytes
-                    || result.len_to != REQUEST.len()
-                    || request != REQUEST
+                    || result.len_from > frame_bytes
+                    || result.len_from == 0 && result.len_to == 0
                 {
                     return Err("unexpected WebSocket request frame".into());
                 }
-                break;
+                request_bytes = request_bytes
+                    .checked_add(result.len_to)
+                    .ok_or("WebSocket request length overflow")?;
+                frame.copy_within(result.len_from..frame_bytes, 0);
+                frame_bytes -= result.len_from;
+                if result.end_of_message {
+                    if request_bytes != REQUEST.len() || request != REQUEST {
+                        return Err("unexpected WebSocket request contents".into());
+                    }
+                    break;
+                }
+                if request_bytes == request.len() {
+                    return Err("WebSocket request exceeded its exact bound".into());
+                }
+                if frame_bytes != 0 {
+                    continue;
+                }
             }
             Err(embedded_websocket::Error::ReadFrameIncomplete) => {}
             Err(error) => return Err(error.to_string()),
         }
+        if frame_bytes == frame.len() {
+            return Err("bounded WebSocket request frame was incomplete".into());
+        }
+        let count = tls
+            .read(&mut frame[frame_bytes..])
+            .map_err(|error| error.to_string())?;
+        if count == 0 {
+            return Err("bounded WebSocket request frame was incomplete".into());
+        }
+        frame_bytes += count;
     }
     let frame_bytes = websocket
         .write(WebSocketSendMessageType::Binary, true, RESPONSE, &mut frame)

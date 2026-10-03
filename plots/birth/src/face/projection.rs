@@ -1,5 +1,5 @@
 //! Lossless readable projection of the current Birth widget vocabulary.
-use super::{BirthFaceBasis, BirthFaceRefusal};
+use super::{BirthFaceRefusal, FaceBasis};
 use crate::{BirthDraft, BirthPresentation};
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{CheckedValueContract, ValueConstraint, kind_id};
@@ -8,12 +8,12 @@ use conduit_presentation::*;
 type Events = Vec<(String, ApplicationEventKind)>;
 pub(super) fn project(
     draft: &BirthDraft,
-    basis: &BirthFaceBasis,
+    basis: FaceBasis<'_>,
 ) -> Result<(Presentation, Events), BirthFaceRefusal> {
-    if basis.encounter_id.is_empty() || basis.encounter_id.len() > 128 {
+    if basis.encounter_id().is_empty() || basis.encounter_id().len() > 128 {
         return Err(BirthFaceRefusal::InvalidProjection);
     }
-    let root = format!("birth/{}", basis.encounter_id);
+    let root = format!("birth/{}", basis.encounter_id());
     let view = draft.presentation().map_err(BirthFaceRefusal::View)?;
     let heading = view
         .root
@@ -36,15 +36,24 @@ pub(super) fn project(
         events: vec![],
     };
     projection.node(&view.root)?;
+    let (source_document_id, checked_plot_id, expanded_plot_id, plan_id) = match &basis {
+        FaceBasis::Planned(b) => (
+            Some(b.producer_plot.source_document_id.clone()),
+            Some(b.producer_plot.checked_plot_id.clone()),
+            Some(b.producer_plot.expanded_plot_id.clone()),
+            Some(b.producer_plan_id.clone()),
+        ),
+        FaceBasis::HostOwned(_) => (None, None, None, None),
+    };
     let face = Presentation::new_with_semantics(
         u64::from(draft.revision()),
         PresentationBasis {
             body_id: None,
             wake_id: None,
-            source_document_id: Some(basis.producer_plot.source_document_id.clone()),
-            checked_plot_id: Some(basis.producer_plot.checked_plot_id.clone()),
-            expanded_plot_id: Some(basis.producer_plot.expanded_plot_id.clone()),
-            plan_id: Some(basis.producer_plan_id.clone()),
+            source_document_id,
+            checked_plot_id,
+            expanded_plot_id,
+            plan_id,
             active_play_id: None,
             sign_ids: vec![],
         },
@@ -54,12 +63,12 @@ pub(super) fn project(
             PresentationProperty {
                 subject: root.clone(),
                 name: "host-id".into(),
-                value: PresentationPropertyValue::Identity(basis.host_id.as_str().into()),
+                value: PresentationPropertyValue::Identity(basis.host_id().as_str().into()),
             },
             PresentationProperty {
                 subject: root.clone(),
                 name: "boot-id".into(),
-                value: PresentationPropertyValue::Identity(basis.boot_id.as_str().into()),
+                value: PresentationPropertyValue::Identity(basis.boot_id().as_str().into()),
             },
         ],
         projection.text,

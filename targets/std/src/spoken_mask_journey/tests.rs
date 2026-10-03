@@ -94,6 +94,8 @@ pub(super) fn retained(presentation: Presentation) -> GeneratedManifestationCand
                 subject: request.semantic_data.presentation.text[0].subject.clone(),
             },
         ],
+        raw_provider_output: None,
+        wording_proposal: None,
     };
     manifestation.candidate_identity = manifestation.digest();
     manifestation

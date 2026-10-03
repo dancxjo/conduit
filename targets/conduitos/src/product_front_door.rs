@@ -3,6 +3,7 @@
 mod arrival;
 mod face_arrival;
 mod face_workspace;
+mod guest_join;
 mod input_actions;
 mod tutorial;
 mod workspace_view_sign;
@@ -57,7 +58,12 @@ pub fn run(
     usb_line_device: Option<&UsbDevice>,
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
+    pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
+    let (pending_join, owner_receipt, owner_face) = match pending_join {
+        Some(join) => (Some(join.pending), join.receipt, join.face),
+        None => (None, None, None),
+    };
     let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
         .map_err(|_| "product-base-provider-invalid")?;
     effect_bases
@@ -97,6 +103,7 @@ pub fn run(
     surface_issuer_key.fill(0);
     // The embedded defaults are Crèche inventory, not ProductJourney state.
     let plot = keyboard_text_plan::checked_plot_identity().map_err(|error| error.as_str())?;
+    let provisioned_guest = pending_join.is_some();
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -110,9 +117,23 @@ pub fn run(
             + u64::from(offer.keyboard.is_some())
             + u64::from(offer.pointer.is_some())
             + u64::from(offer.pc_speaker.is_some()),
-        true,
+        !provisioned_guest,
     );
-    arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
+    let owner_face = if let Some(pending) = pending_join {
+        guest_join::enter(
+            &mut front_door,
+            journey.projection(),
+            pending,
+            owner_receipt,
+            owner_face,
+            &host_id,
+            &boot_id,
+            generation,
+        )?
+    } else {
+        arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
+        None
+    };
     let mut face_arrival = FaceArrival::prepare(
         host_id.clone(),
         boot_id.clone(),
@@ -139,10 +160,24 @@ pub fn run(
         make.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
-    let receipt = face_arrival.present_first(&front_door, display)?;
+    let owner_face_presented = owner_face.is_some();
+    let receipt = if let Some(owner_face) = owner_face {
+        face_arrival.present_owner_face(owner_face.into_presentation(), display)?
+    } else if provisioned_guest {
+        face_arrival.present_pending_join(&front_door, display)?
+    } else {
+        face_arrival.present_first(&front_door, display)?
+    };
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
-    arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\nCONDUIT_CRECHE_CHECKPOINT ready\n");
+    arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
+    if provisioned_guest {
+        if front_door.joining_pending() {
+            arch::early_write(b"CONDUIT_JOIN_CHECKPOINT awaiting-owner-receipt\n");
+        }
+    } else {
+        arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT ready\n");
+    }
     let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
     let mut serial = arch::Serial::new();
@@ -152,6 +187,18 @@ pub fn run(
         let mut line_requested = false;
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
+            if provisioned_guest {
+                match input {
+                    ProductInputEvent::LocalRescue(local) => {
+                        rescue_guest::observe(identities, rescue_matcher, local, true);
+                    }
+                    ProductInputEvent::Key(event) if owner_face_presented => {
+                        face_arrival.accept_guest_key(event, display)?;
+                    }
+                    _ => {}
+                }
+                return Ok(ProductInputControl::Continue);
+            }
             let event = match input {
                 ProductInputEvent::Service => {
                     if let Some(receipt) = workspace_updates.service_with_face(

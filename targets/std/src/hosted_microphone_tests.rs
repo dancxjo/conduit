@@ -70,12 +70,16 @@ fn malformed_rows_and_invalid_limits_fail_closed() {
         }),
         Err(MicrophoneFailure::InvalidLimits)
     );
-    let _process = microphone_process();
-    let (root, executable) = fixture(
-        "#!/bin/sh\nif [ \"$1\" = -l ]; then exit 0; fi\n",
-        "no-endpoint",
-    );
-    let discovery = AlsaMicrophoneDiscovery::inspect(&executable).unwrap();
+    // This assertion is about the empty-inventory selection boundary. Other
+    // tests exercise the real provider process; keep this branch independent
+    // of process-slot pressure in the parallel host unit lane.
+    let (root, executable) = fixture("#!/bin/sh\nexit 0\n", "no-endpoint");
+    let executable = executable.canonicalize().unwrap();
+    let discovery = AlsaMicrophoneDiscovery {
+        executable_sha256: digest_file(&executable).unwrap(),
+        executable,
+        observations: parse_arecord_list("", Path::new("/missing")).unwrap(),
+    };
     let absent = AlsaMicrophoneObservation {
         card_index: 0,
         card_id: "absent".into(),

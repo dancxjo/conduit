@@ -51,6 +51,32 @@ same checked resident source; it does not import a proof biography as birth.
 The state directory must already be an installed Host and must not belong to a
 different joined Body.
 
+## Continue as a live installed service
+
+After `body own` closes, the installed executable can run
+`host service run --state-dir /absolute/path/to/host-state`. It resumes the retained Body on the
+service's **fresh Boot**, persists that transition, and holds exclusive Host and
+Body ownership for its lifetime.
+`body status --state-dir /absolute/path/to/host-state --json` then asks the authenticated local service
+for its current Body session rather than inferring a live Boot from
+`runtime.json`. A stale marker alone cannot issue a live invitation.
+
+While the service runs, `body invite` with `--route-bind`, `--route-url`,
+`--route-tls-cert`, `--route-tls-key`, `--authorize-route`, and `--state-dir`
+uses that service's single-use invitation authority. The matching `body join`
+on another installed, running Host sends a signed request over the pinned TLS
+route and retains the returned canonical receipt. The owner commits admission
+to its current in-memory session and recoverable biography before sending the
+receipt. A separate foreground `body own` or disk admission writer is refused
+while the service owns the locks.
+
+This is **membership admission**, not continuing remote reachability. The
+one-shot route closes after its receipt; the service currently reports remote
+carrier availability as `unobserved`. Its retained membership snapshot must
+not be read as a live lease, shared workload, or current remote Face. The
+service's Body control currently exposes inspect and invitation/admission only;
+plan/run and semantic terminal interaction still require a later integration.
+
 ## Internal control and retained truth
 
 The foreground entrance currently accepts bounded JSON lines on standard input.
@@ -73,7 +99,21 @@ operation accepts at most 512 KiB because it carries one portable signed
 `conduit.body/spawn-admission-request@1` document and an exact authorized
 `expected_host_id`. It emits the canonical admission receipt only after the
 single-use invitation and new membership biography have been retained together.
-This operation does not establish or authenticate a carrier; its caller must
+`admit-native-observation` accepts the JSON value emitted after
+`CONDUIT_SPORE_JOIN ` by a provisioned ConduitOS guest in QEMU, plus the
+independently authorized `expected_host_id`:
+
+```json
+{"operation":"admit-native-observation","expected_host_id":"<authorized HostId>","observation":{ "<exact ConduitOS serial observation>": "…" }}
+```
+
+Pass the complete observation object in place of the illustrative inner object;
+the serial prefix is not JSON. The owner checks the observation contract and
+Host/Boot correlation, then consumes the same single-use invitation through
+the portable request boundary. This request also has the 512 KiB limit. The
+operation never infers authorization from a serial line or silently admits a
+Host merely because a request was printed.
+Neither admission operation establishes or authenticates a carrier; its caller must
 authorize the exact Host separately. A native guest must receive and validate
 the receipt over its admitted return route before it may regard itself as joined.
 Runs are synchronous and accept deadlines
@@ -101,12 +141,14 @@ membership mutations while the owner is running.
   can currently plan but is refused before Play. That refusal has a regression
   test; this slice does not claim complete local effect support.
 - The owner can admit a browser participant during a bounded lulled window and
-  consume a preissued portable native invitation request. The ConduitOS product
-  does not yet complete that request-and-receipt exchange over a live duplex
-  Line. Shared presentation, remote execution, and a terminal Mask are not
-  implemented by this entrance. Invitation issue remains outside the running
-  owner; the owner now restores the same retained single-use authority after
-  reopening.
+  consume either a preissued portable native request or the exact signed
+  observation emitted by a real QEMU guest. The ConduitOS product does not yet
+  complete that request-and-receipt exchange over a live duplex Line. Shared
+  presentation, remote execution, and a terminal Mask are not implemented by
+  this entrance. The owner restores the same retained single-use invitation
+  authority after reopening. The installed service route can now perform the
+  same canonical admission for a live requester, but it does not maintain a
+  presence lease after the one-shot route closes.
 - The retained workset is fixed to the checked source at birth. This entrance
   does not yet provide source replacement or resident-workset editing.
 - Biography compaction requires an admitted archive store. This slice has none

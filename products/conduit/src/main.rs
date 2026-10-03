@@ -18,6 +18,7 @@ mod release_obtain;
 #[path = "rendezvous_relay.rs"]
 mod rendezvous_relay;
 mod report_artifact;
+mod screen_free_birth;
 mod source_expansion;
 mod std_websocket_line;
 #[cfg(test)]
@@ -291,6 +292,36 @@ fn main() {
         },
         Some(cli::Command::Body {
             command:
+                Some(cli::BodyCommand::BrowserWindow {
+                    state_dir,
+                    expected_host_id,
+                    new_host_verifying_key,
+                    maximum_millis,
+                    authorize_window,
+                }),
+        }) => {
+            if !authorize_window {
+                Err("browser admission window requires --authorize-window".into())
+            } else {
+                let key = new_host_verifying_key
+                    .as_deref()
+                    .map(|text| {
+                        serde_json::from_str::<[u8; 32]>(text)
+                            .map_err(|error| format!("browser verifying key must be a 32-byte JSON array: {error}"))
+                    })
+                    .transpose();
+                key.and_then(|key| {
+                    durable_host_control::start_browser_window(
+                        &state_dir,
+                        &expected_host_id,
+                        key,
+                        maximum_millis,
+                    )
+                })
+            }
+        }
+        Some(cli::Command::Body {
+            command:
                 Some(cli::BodyCommand::Join {
                     invitation,
                     state_dir,
@@ -324,7 +355,13 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(command),
         }) => match command {
-            cli::BodyCommand::Birth => enter_birth(),
+            cli::BodyCommand::Birth { screen_free } => {
+                if screen_free {
+                    screen_free_birth::run(&mut io::stdin().lock(), &mut io::stdout().lock())
+                } else {
+                    enter_birth()
+                }
+            }
             cli::BodyCommand::Own { source, state_dir, name } => durable_host::run_body_owner(&source, &state_dir, &name),
             _ => unreachable!("durable Body operations are dispatched above"),
         },

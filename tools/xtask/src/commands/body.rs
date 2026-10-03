@@ -15,6 +15,8 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 mod browser_admission;
+#[cfg(unix)]
+mod provision_conduitos;
 mod scaffold;
 #[path = "body/static.rs"]
 mod static_application;
@@ -33,6 +35,9 @@ enum BodyCommand {
     Static(static_application::StaticArgs),
     /// Prove bounded admission, carrier loss and fresh-Boot return with a real browser SDK.
     ProveBrowserAdmission(browser_admission::ProofArgs),
+    #[cfg(unix)]
+    /// Bind one verified ConduitOS ISO to a checked Body and owner invitation.
+    ProvisionConduitos(provision_conduitos::Args),
     /// Create one checked canonical Body description from repository Host recipes.
     New {
         /// Body name; prompted for in an interactive terminal when omitted.
@@ -101,6 +106,8 @@ pub fn run(args: BodyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
     match args.command {
         BodyCommand::Static(args) => static_application::run(args, opts),
         BodyCommand::ProveBrowserAdmission(args) => browser_admission::run(args, opts),
+        #[cfg(unix)]
+        BodyCommand::ProvisionConduitos(args) => provision_conduitos::run(args, opts),
         BodyCommand::New {
             name,
             template,

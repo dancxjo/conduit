@@ -17,6 +17,10 @@ if (template.schema !== 'conduit.browser/application-package-template@1'
   || !template.application_id || !template.state_compatibility?.identity
   || !Number.isSafeInteger(template.state_compatibility.version) || template.state_compatibility.version < 1
   || !Array.isArray(template.resources)) throw new Error('Invalid existing application package template');
+if (template.loopback_owner_window !== undefined &&
+  (template.loopback_owner_window !== true || template.application_id !== 'conduit.application/handbook')) {
+  throw new Error('Only the reviewed Handbook may request a loopback Body owner window');
+}
 for (const role of ['application-module', 'birth-specification']) {
   if (template.resources.filter(resource => resource.role === role).length !== 1) throw new Error(`Required application resource: ${role}`);
 }
@@ -77,6 +81,19 @@ try {
     await copyFile(source, file);
   }
   if (!paths.has('index.html')) throw new Error('Application template must include its index.html shell');
+  // The Handbook shell must have the same navigation before its runtime starts.
+  // Use the already copied and package-hashed site resource as the sole source.
+  if (template.application_id === 'conduit.application/handbook') {
+    const marker = '<!-- conduit-site-navigation -->';
+    const shellPath = path.join(staging, 'index.html');
+    const shell = await readFile(shellPath, 'utf8');
+    const resource = template.resources.find(resource => resource.role === 'site-navigation');
+    if (!resource || shell.split(marker).length !== 2) throw new Error('Handbook shell needs one shared navigation marker and resource');
+    const navigation = (await readFile(path.join(staging, resource.path), 'utf8'))
+      .replace('data-section="handbook"', 'data-section="handbook" aria-current="page"');
+    if (!navigation.includes('aria-current="page"')) throw new Error('Handbook navigation has no active section');
+    await writeFile(shellPath, shell.replace(marker, navigation));
+  }
   // Only application/documentary documents exist here. Add policy before hashing
   // their manifests and before copying immutable reviewed SDK/release payloads.
   async function secureDocuments(directory) {
@@ -90,7 +107,9 @@ try {
         // Its containing document owns policy; a fragment has no document head.
         if (resource?.kind === 'content' && resource.path !== 'index.html'
           && !/<(?:!doctype|html|head|body)\b/i.test(html)) continue;
-        const secured = applyStaticApplicationCsp(html);
+        const secured = applyStaticApplicationCsp(html, {
+          loopbackOwnerWindow: template.loopback_owner_window === true && resource?.path === 'index.html',
+        });
         if (Buffer.byteLength(secured) > 16 * 1024 * 1024) throw new Error('Static HTML exceeds its finite file bound');
         await writeFile(file, secured);
       }

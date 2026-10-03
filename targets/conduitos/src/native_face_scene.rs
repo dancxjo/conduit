@@ -38,6 +38,7 @@ pub enum FaceSceneError {
     UnsupportedInput,
     InputBound,
     IncompleteInput,
+    InputUnavailable,
 }
 
 /// An index into this immutable Face, never a global or application action code.
@@ -89,10 +90,20 @@ pub struct NativeFaceScene {
     showing_details: bool,
     showing_diagram: bool,
     input: input::InputState,
+    interaction_admitted: bool,
 }
 
 impl NativeFaceScene {
     pub fn prepare(face: Presentation, width: u16, height: u16) -> Result<Self, FaceSceneError> {
+        Self::prepare_with_input(face, width, height, true)
+    }
+
+    pub fn prepare_with_input(
+        face: Presentation,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+    ) -> Result<Self, FaceSceneError> {
         face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
         if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
             return Err(FaceSceneError::InvalidExtent);
@@ -103,7 +114,7 @@ impl NativeFaceScene {
             width,
             height,
         };
-        let (primary, details) = document::prepare(&face)?;
+        let (primary, details) = document::prepare(&face, interaction_admitted)?;
         Ok(Self {
             primary: layout::admit(primary, screen)?,
             details: layout::admit(details, screen)?,
@@ -114,6 +125,7 @@ impl NativeFaceScene {
             showing_details: false,
             showing_diagram: false,
             input: input::InputState::default(),
+            interaction_admitted,
         })
     }
 
@@ -254,6 +266,9 @@ impl NativeFaceScene {
         arguments: Vec<FaceInteractionArgument>,
         sequence: u64,
     ) -> Result<FaceInteraction, FaceSceneError> {
+        if !self.interaction_admitted {
+            return Err(FaceSceneError::InputUnavailable);
+        }
         let (action, _) = self.resolve(presentation_id, revision, control)?;
         FaceInteraction::new(
             &self.face,
@@ -277,7 +292,13 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
-        let heading = if self.showing_diagram {
+        let heading = if !self.interaction_admitted && self.showing_diagram {
+            "OWNER FACE / PATCHBAY"
+        } else if !self.interaction_admitted && self.showing_details {
+            "OWNER FACE / DETAILS"
+        } else if !self.interaction_admitted {
+            "OWNER FACE / SNAPSHOT"
+        } else if self.showing_diagram {
             "PATCHBAY"
         } else if self.showing_details {
             "DETAILS"
@@ -338,11 +359,12 @@ impl NativeFaceScene {
             .iter()
             .filter(|row| !self.showing_diagram && row.page == self.page)
         {
-            let available = row.control.is_some_and(|control| {
-                self.face.actions[control.action]
-                    .availability
-                    .is_available()
-            });
+            let available = self.interaction_admitted
+                && row.control.is_some_and(|control| {
+                    self.face.actions[control.action]
+                        .availability
+                        .is_available()
+                });
             let outline = if available && row.control == self.focus {
                 GraphicsPaintRole::Focus
             } else {
@@ -376,7 +398,11 @@ impl NativeFaceScene {
             }
         }
         let footer = self.input.preview(self.focus).unwrap_or_else(|| {
-            if self.showing_diagram {
+            if !self.interaction_admitted && self.has_diagram() {
+                "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
+            } else if !self.interaction_admitted {
+                "Read only · PgUp/PgDn pages · F2 facts".into()
+            } else if self.showing_diagram {
                 "Visible links only · F2 all facts · F3 return".into()
             } else if self.showing_details {
                 "PgUp/PgDn pages · Tab next · F2 return".into()
@@ -422,6 +448,9 @@ impl NativeFaceScene {
     }
 
     fn eligible(&self, row: &layout::Row) -> Option<(FaceControl, usize)> {
+        if !self.interaction_admitted {
+            return None;
+        }
         let control = row.control?;
         self.face.actions[control.action]
             .availability

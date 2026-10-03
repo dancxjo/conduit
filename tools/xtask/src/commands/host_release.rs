@@ -1,4 +1,8 @@
-use std::{fs, path::Path, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use clap::ValueEnum;
 use serde::Serialize;
@@ -8,7 +12,10 @@ use sha2::{Digest, Sha256};
 mod browser;
 
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
+// Browser consumers retain their 32 MiB file limit. Installed native Hosts
+// accept 64 MiB release files, so sealing must admit the same finite range.
 const MAXIMUM_FILE_BYTES: u64 = 32 * 1024 * 1024;
+const MAXIMUM_NATIVE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub(crate) enum ReleasePlatform {
@@ -91,12 +98,14 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
         "compile browser Host release",
     )?;
     fs::create_dir_all(output)?;
-    let browser_files = [
-        (
-            "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
-            "runtime.wasm",
-            "application/wasm",
+    copy(
+        cargo_release_artifact(
+            Some("wasm32-unknown-unknown"),
+            "conduit_browser_runtime.wasm",
         ),
+        &output.join("runtime.wasm"),
+    )?;
+    let browser_files = [
         (
             "targets/browser/host/assets/index.html",
             "index.html",
@@ -156,7 +165,8 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
     for (source, name, _) in browser_files {
         copy(source, &output.join(name))?;
     }
-    let manifest_files = browser_files.map(|(_, name, media)| (name, media));
+    let mut manifest_files = vec![("runtime.wasm", "application/wasm")];
+    manifest_files.extend(browser_files.map(|(_, name, media)| (name, media)));
     browser::seal(
         output,
         "browser-page.json",
@@ -189,7 +199,7 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
     )?;
     fs::create_dir_all(output)?;
     copy(
-        "target/release/conduit",
+        cargo_release_artifact(None, "conduit"),
         &output.join("conduit-linux-x86_64"),
     )?;
     copy(
@@ -214,7 +224,7 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
         "compile Raspberry Pi OS aarch64 release",
     )?;
     copy(
-        "target/aarch64-unknown-linux-gnu/release/conduit",
+        cargo_release_artifact(Some("aarch64-unknown-linux-gnu"), "conduit"),
         &output.join("conduit-linux-aarch64"),
     )?;
     seal(
@@ -284,7 +294,7 @@ fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
     )?;
     fs::create_dir_all(output)?;
     copy(
-        "target/release/conduit.exe",
+        cargo_release_artifact(None, "conduit.exe"),
         &output.join("conduit-windows-x86_64.exe"),
     )?;
     seal(
@@ -310,7 +320,7 @@ fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
     )?;
     fs::create_dir_all(output)?;
     copy(
-        "target/release/conduit",
+        cargo_release_artifact(None, "conduit"),
         &output.join("conduit-macos-aarch64"),
     )?;
     copy(
@@ -352,7 +362,8 @@ fn seal(
     for (name, media_type) in files {
         let path = root.join(name);
         let metadata = fs::metadata(&path)?;
-        if !metadata.is_file() || metadata.len() == 0 || metadata.len() > MAXIMUM_FILE_BYTES {
+        if !metadata.is_file() || metadata.len() == 0 || metadata.len() > MAXIMUM_NATIVE_FILE_BYTES
+        {
             return Err(format!(
                 "release file {} violates its finite byte bound",
                 path.display()
@@ -391,6 +402,17 @@ fn copy(source: impl AsRef<Path>, destination: &Path) -> Result<(), Box<dyn std:
     Ok(())
 }
 
+fn cargo_release_artifact(target: Option<&str>, binary: &str) -> PathBuf {
+    // The Cargo child inherits this variable and the same working directory.
+    let mut artifact = std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("target"));
+    if let Some(target) = target {
+        artifact.push(target);
+    }
+    artifact.join("release").join(binary)
+}
+
 fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     Ok(format!("sha256:{:x}", Sha256::digest(fs::read(path)?)))
 }
@@ -413,5 +435,58 @@ fn require_success(command: &mut Command, label: &str) -> Result<(), Box<dyn std
         Ok(())
     } else {
         Err(format!("{label} failed with {status}").into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_release_seal_accepts_installer_sized_product_and_refuses_larger_file() {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-native-release-bound-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let product = root.join("conduit-linux-x86_64");
+        let file = fs::File::create(&product).unwrap();
+        file.set_len(MAXIMUM_FILE_BYTES + 1).unwrap();
+        drop(file);
+        let seal_product = |manifest_name| {
+            seal(
+                &root,
+                manifest_name,
+                "std/x86_64/computer",
+                "hosted-native@1",
+                "native-bundle",
+                "test/build",
+                "test/launch",
+                "test-source",
+                &[(
+                    "conduit-linux-x86_64",
+                    "application/vnd.conduit.host+executable",
+                )],
+            )
+        };
+        seal_product("release.json").unwrap();
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(root.join("release.json")).unwrap()).unwrap();
+        assert_eq!(manifest["files"][0]["bytes"], MAXIMUM_FILE_BYTES + 1);
+
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&product)
+            .unwrap()
+            .set_len(MAXIMUM_NATIVE_FILE_BYTES + 1)
+            .unwrap();
+        let refusal = seal_product("oversized.json").unwrap_err();
+        assert!(refusal.to_string().contains("finite byte bound"));
+        assert!(!root.join("oversized.json").exists());
+        fs::remove_dir_all(root).unwrap();
     }
 }

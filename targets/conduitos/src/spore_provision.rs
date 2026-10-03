@@ -1,14 +1,19 @@
 //! Bounded validation of the body invitation embedded in native ConduitOS media.
 
 use alloc::{string::String, vec::Vec};
-use serde::{Deserialize, Deserializer};
+use conduit_body::{RendezvousLineFamily, SpawnRendezvousDescriptor};
+use serde::{Deserialize, Deserializer, Serialize};
+use sha2::{Digest, Sha256};
 
 pub const MAGIC: &[u8] = b"CONDUIT_SPORE_MEDIA@1\0";
-pub const REGION_BYTES: usize = 4096;
+// Four admitted TLS routes may each carry a bounded 1024-byte DER leaf. The
+// provision also binds the exact Body, image, and invitation identities.
+pub const REGION_BYTES: usize = 32 * 1024;
 const HEADER_BYTES: usize = 32;
 const MAX_ID_BYTES: usize = 192;
 const MAX_RENDEZVOUS_CANDIDATES: usize = 4;
 const MAX_RENDEZVOUS_TEXT_BYTES: usize = 512;
+pub const MAX_ROUTE_CERTIFICATE_BYTES: usize = 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -55,6 +60,17 @@ pub struct InvitationProvision {
     pub secret: Vec<u8>,
     #[serde(default)]
     pub rendezvous_candidates: Vec<RendezvousCandidate>,
+    #[serde(default)]
+    pub rendezvous: Option<SpawnRendezvousDescriptor>,
+    #[serde(default)]
+    pub route_certificates: Vec<RouteCertificate>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RouteCertificate {
+    pub candidate_id: String,
+    pub certificate_der: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -97,6 +113,7 @@ pub enum ProvisionError {
     WrongBinding,
     InvalidIdentity,
     InvalidSecret,
+    InvalidRendezvous,
     WrongImageBinding,
 }
 
@@ -111,6 +128,7 @@ impl ProvisionError {
             Self::WrongBinding => "spore-binding-invalid",
             Self::InvalidIdentity => "spore-identity-invalid",
             Self::InvalidSecret => "spore-secret-invalid",
+            Self::InvalidRendezvous => "spore-rendezvous-invalid",
             Self::WrongImageBinding => "spore-image-binding-invalid",
         }
     }
@@ -129,6 +147,56 @@ pub fn validate_image_binding(
         || provision.spore.output != "disk-image"
     {
         return Err(ProvisionError::WrongImageBinding);
+    }
+    Ok(())
+}
+
+/// A route's hash must bind the exact leaf certificate the guest will pin.
+/// Unsupported Line families carry no certificate and cannot be promoted to TLS.
+pub fn validate_route_certificates(
+    rendezvous: Option<&SpawnRendezvousDescriptor>,
+    certificates: &[RouteCertificate],
+) -> Result<(), ProvisionError> {
+    let Some(rendezvous) = rendezvous else {
+        return if certificates.is_empty() {
+            Ok(())
+        } else {
+            Err(ProvisionError::InvalidRendezvous)
+        };
+    };
+    if certificates.len() > rendezvous.candidates.len() {
+        return Err(ProvisionError::InvalidRendezvous);
+    }
+    for (index, certificate) in certificates.iter().enumerate() {
+        if certificate.certificate_der.is_empty()
+            || certificate.certificate_der.len() > MAX_ROUTE_CERTIFICATE_BYTES
+            || certificates[..index]
+                .iter()
+                .any(|prior| prior.candidate_id == certificate.candidate_id)
+        {
+            return Err(ProvisionError::InvalidRendezvous);
+        }
+        let Some(candidate) = rendezvous
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == certificate.candidate_id)
+        else {
+            return Err(ProvisionError::InvalidRendezvous);
+        };
+        let digest: [u8; 32] = Sha256::digest(&certificate.certificate_der).into();
+        if candidate.line_family != RendezvousLineFamily::AuthenticatedTlsStream
+            || candidate.authentication.transport_binding_sha256 != digest
+        {
+            return Err(ProvisionError::InvalidRendezvous);
+        }
+    }
+    if rendezvous.candidates.iter().any(|candidate| {
+        candidate.line_family == RendezvousLineFamily::AuthenticatedTlsStream
+            && !certificates
+                .iter()
+                .any(|certificate| certificate.candidate_id == candidate.candidate_id)
+    }) {
+        return Err(ProvisionError::InvalidRendezvous);
     }
     Ok(())
 }
@@ -222,7 +290,29 @@ fn validate(provision: &NativeMediaProvision) -> Result<(), ProvisionError> {
     {
         return Err(ProvisionError::InvalidIdentity);
     }
-    Ok(())
+    if provision
+        .invitation_provision
+        .rendezvous
+        .as_ref()
+        .is_some_and(|rendezvous| {
+            !provision
+                .invitation_provision
+                .rendezvous_candidates
+                .is_empty()
+                || rendezvous.body_id != provision.spore.body_id
+                || rendezvous.invitation_id.as_str() != invitation_id.as_str()
+                || rendezvous.validate(0).is_err()
+                || rendezvous.candidates.iter().any(|candidate| {
+                    candidate.expires_at_millis > provision.invitation_provision.expires_at_millis
+                })
+        })
+    {
+        return Err(ProvisionError::InvalidRendezvous);
+    }
+    validate_route_certificates(
+        provision.invitation_provision.rendezvous.as_ref(),
+        &provision.invitation_provision.route_certificates,
+    )
 }
 
 fn valid_rendezvous_candidate(
@@ -306,6 +396,89 @@ mod tests {
         let mut weak = fixture();
         weak["invitation_provision"]["secret"] = serde_json::json!(vec![0; 32]);
         assert_eq!(decode(&region(weak)), Err(ProvisionError::InvalidSecret));
+    }
+
+    #[test]
+    fn canonical_route_retains_authentication_and_rejects_relabeling() {
+        let certificate = vec![42; 128];
+        let binding: [u8; 32] = Sha256::digest(&certificate).into();
+        let mut routed = fixture();
+        routed["invitation_provision"]["rendezvous_candidates"] = serde_json::json!([]);
+        routed["invitation_provision"]["rendezvous"] = serde_json::json!({
+            "protocol":1,
+            "body_id":"body/one",
+            "invitation_id":"invitation/one",
+            "candidates":[{
+                "candidate_id":"candidate/tls",
+                "line_family":"authenticated-tls-stream",
+                "reachability":"wss://owner.example:443/conduit",
+                "authentication":{
+                    "server_identity":"owner/example",
+                    "transport_binding_sha256":binding
+                },
+                "expires_at_millis":1_800_000_000_000_u64,
+                "maximum_attempts":2,
+                "attempt_timeout_millis":2_000
+            }]
+        });
+        routed["invitation_provision"]["route_certificates"] = serde_json::json!([{
+            "candidate_id":"candidate/tls", "certificate_der":certificate,
+        }]);
+        let decoded = decode(&region(routed.clone())).unwrap().unwrap();
+        assert_eq!(
+            decoded.invitation_provision.rendezvous.unwrap().candidates[0]
+                .authentication
+                .transport_binding_sha256,
+            binding
+        );
+        let mut missing = routed.clone();
+        missing["invitation_provision"]["route_certificates"] = serde_json::json!([]);
+        assert_eq!(
+            decode(&region(missing)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        let mut unbound = fixture();
+        unbound["invitation_provision"]["route_certificates"] =
+            routed["invitation_provision"]["route_certificates"].clone();
+        assert_eq!(
+            decode(&region(unbound)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        let mut duplicate = routed.clone();
+        duplicate["invitation_provision"]["route_certificates"] = serde_json::json!([
+            routed["invitation_provision"]["route_certificates"][0],
+            routed["invitation_provision"]["route_certificates"][0],
+        ]);
+        assert_eq!(
+            decode(&region(duplicate)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        let mut mismatched_certificate = routed.clone();
+        mismatched_certificate["invitation_provision"]["route_certificates"][0]["certificate_der"]
+            [0] = 43.into();
+        assert_eq!(
+            decode(&region(mismatched_certificate)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        let mut relabeled = routed.clone();
+        relabeled["invitation_provision"]["rendezvous"]["body_id"] = "body/two".into();
+        assert_eq!(
+            decode(&region(relabeled)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        let mut weakened = routed.clone();
+        weakened["invitation_provision"]["rendezvous"]["candidates"][0]["authentication"]["transport_binding_sha256"] =
+            serde_json::json!(vec![0; 32]);
+        assert_eq!(
+            decode(&region(weakened)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        routed["invitation_provision"]["rendezvous_candidates"] =
+            fixture()["invitation_provision"]["rendezvous_candidates"].clone();
+        assert_eq!(
+            decode(&region(routed)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
     }
 
     #[test]

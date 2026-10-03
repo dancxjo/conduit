@@ -1,13 +1,19 @@
 //! Finite authenticated owner route for one portable Body invitation.
 
 use super::invitation::{
-    admit_body_request_document, issue_body_invitation_document, prepare_body_join,
-    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
+    prepare_body_join, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
     ROUTED_INVITATION_SCHEMA,
 };
 use super::membership::complete_body_join_document;
 use super::{bounded_read, current_time_millis, MAXIMUM_BODY_ADMISSION_BYTES};
-use conduit_body::{RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily};
+use conduit_body::{
+    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
+    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
+};
+use conduit_presentation::{
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
+    OWNER_FACE_RESPONSE_SCHEMA,
+};
 use conduit_std_host::secure_websocket::{
     SecureWebSocketClientLine, SecureWebSocketError, SecureWebSocketListener,
 };
@@ -17,30 +23,7 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::Path;
 use std::time::Duration;
 
-const ROUTE_REQUEST_SCHEMA: &str = "conduit.body/routed-admission-request@1";
-const ROUTE_RESPONSE_SCHEMA: &str = "conduit.body/routed-admission-response@1";
 const MAXIMUM_ROUTE_FRAME_BYTES: usize = 512 * 1024;
-
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RoutedAdmissionRequest {
-    schema: String,
-    invitation_id: String,
-    request: PortableSpawnAdmissionRequest,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "outcome", rename_all = "kebab-case", deny_unknown_fields)]
-enum RoutedAdmissionResponse {
-    Admitted {
-        schema: String,
-        receipt: Box<PortableAdmissionReceipt>,
-    },
-    Refused {
-        schema: String,
-        code: String,
-    },
-}
 
 pub(crate) fn serve_body_invitation_route(
     state_dir: &Path,
@@ -77,7 +60,7 @@ pub(crate) fn serve_body_invitation_route(
     let expires_at_millis = now_millis
         .checked_add(ttl_seconds.saturating_mul(1_000))
         .ok_or("Body admission route expiry overflow")?;
-    let invitation = issue_body_invitation_document(
+    let invitation = crate::durable_host_control::issue_owned_invitation(
         state_dir,
         ttl_seconds,
         Some(vec![RendezvousCandidate {
@@ -106,35 +89,98 @@ pub(crate) fn serve_body_invitation_route(
         .map_err(|error| format!("Body owner unreachable before invitation expiry: {error:?}"))?;
     let request: RoutedAdmissionRequest = receive(&mut line)?;
     let expected_invitation = invitation.claim.invitation_id.as_str();
-    if request.schema != ROUTE_REQUEST_SCHEMA || request.invitation_id != expected_invitation {
+    if request.schema != ROUTED_ADMISSION_REQUEST_SCHEMA
+        || request.invitation_id != expected_invitation
+    {
         send(
             &mut line,
             &RoutedAdmissionResponse::Refused {
-                schema: ROUTE_RESPONSE_SCHEMA.into(),
+                schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
                 code: "wrong-invitation".into(),
             },
         )?;
         return Err("routed admission request named another invitation".into());
     }
-    match admit_body_request_document(request.request, state_dir, true) {
-        Ok(receipt) => send(
-            &mut line,
-            &RoutedAdmissionResponse::Admitted {
-                schema: ROUTE_RESPONSE_SCHEMA.into(),
-                receipt: Box::new(receipt),
-            },
-        ),
+    match crate::durable_host_control::admit_owned_request(state_dir, request.request) {
+        Ok(receipt) => {
+            send(
+                &mut line,
+                &RoutedAdmissionResponse::Admitted {
+                    schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+                    receipt: Box::new(receipt.clone()),
+                },
+            )?;
+            serve_optional_face_snapshot(&mut line, state_dir, &receipt)
+        }
         Err(error) => {
             send(
                 &mut line,
                 &RoutedAdmissionResponse::Refused {
-                    schema: ROUTE_RESPONSE_SCHEMA.into(),
+                    schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
                     code: admission_refusal_code(&error).into(),
                 },
             )?;
             Err(error)
         }
     }
+}
+
+/// Older guests may close after admission. A capable guest requests one Face
+/// on the same pinned carrier; the spent invitation is never a reconnect key.
+fn serve_optional_face_snapshot(
+    line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
+    state_dir: &Path,
+    receipt: &PortableAdmissionReceipt,
+) -> Result<(), String> {
+    use std::io::ErrorKind;
+    line.set_read_timeout(Some(Duration::from_secs(15)))
+        .map_err(|error| format!("set owner Face deadline: {error:?}"))?;
+    let mut bytes = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
+    let length = match line.receive_binary(&mut bytes) {
+        Ok(length) => length,
+        Err(SecureWebSocketError::Disconnected)
+        | Err(SecureWebSocketError::Transport(
+            ErrorKind::TimedOut
+            | ErrorKind::WouldBlock
+            | ErrorKind::UnexpectedEof
+            | ErrorKind::ConnectionReset,
+        )) => {
+            return Ok(());
+        }
+        Err(error) => return Err(format!("receive owner Face request: {error:?}")),
+    };
+    let request: OwnerFaceSnapshotRequest = serde_json::from_slice(&bytes[..length])
+        .map_err(|error| format!("decode owner Face request: {error}"))?;
+    let credential = &receipt.credential;
+    if !request.has_exact_basis()
+        || request.credential_id != credential.credential_id.as_str()
+        || request.body_id != credential.body_id
+        || request.part_id != credential.part_id
+        || request.host_id != credential.host_id
+        || request.boot_id != credential.boot_id
+    {
+        send(
+            line,
+            &OwnerFaceSnapshotResponse::Refused {
+                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                code: "face-credential-mismatch".into(),
+            },
+        )?;
+        return Err("owner Face request differs from the admitted guest".into());
+    }
+    let response =
+        crate::durable_host_control::face_snapshot(state_dir, request).unwrap_or_else(|error| {
+            OwnerFaceSnapshotResponse::Refused {
+                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                code: if error == "face-frame-pressure" {
+                    "face-frame-pressure"
+                } else {
+                    "face-unavailable"
+                }
+                .into(),
+            }
+        });
+    send(line, &response)
 }
 
 pub(crate) fn join_body_over_route(
@@ -218,18 +264,20 @@ fn attempt_candidate(
     send(
         &mut line,
         &RoutedAdmissionRequest {
-            schema: ROUTE_REQUEST_SCHEMA.into(),
+            schema: ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
             invitation_id: request.invitation_id.as_str().into(),
             request: request.clone(),
         },
     )?;
     match receive::<RoutedAdmissionResponse>(&mut line)? {
         RoutedAdmissionResponse::Admitted { schema, receipt }
-            if schema == ROUTE_RESPONSE_SCHEMA =>
+            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
         {
             Ok(*receipt)
         }
-        RoutedAdmissionResponse::Refused { schema, code } if schema == ROUTE_RESPONSE_SCHEMA => {
+        RoutedAdmissionResponse::Refused { schema, code }
+            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
+        {
             Err(format!("admission-refused:{code}"))
         }
         _ => Err("owner-response-schema".into()),

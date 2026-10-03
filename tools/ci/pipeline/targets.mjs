@@ -1,6 +1,6 @@
 import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { cargo, command, copyFile, digest, xtask } from './targets/common.mjs';
+import { cargo, cargoArtifact, command, copyFile, digest, xtask } from './targets/common.mjs';
 import { setup } from './targets/setup.mjs';
 import { browser } from './targets/browser.mjs';
 import { embedded } from './targets/embedded.mjs';
@@ -45,7 +45,7 @@ function hosted(id, directory) {
   cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit');
   const name = process.platform === 'win32' ? 'conduit.exe' : 'conduit';
   const binary = path.join(directory, name);
-  copyFile(path.join('target/release', name), binary);
+  copyFile(cargoArtifact('release', name), binary);
   const before = digest(binary);
   const report = path.join(directory, 'hello-report.json');
   const result = command(binary, ['run', 'plots/hello/main.conduit', '--await-terminal', '--report', report,

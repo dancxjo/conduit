@@ -33,6 +33,8 @@ pub enum ReaderCommand {
     Next,
     Previous,
     Repeat,
+    /// Move to an action offered by this exact Face without invoking it.
+    FocusAction(String),
     Stop,
     /// Set one complete typed value on the action currently in focus.
     Edit {
@@ -50,6 +52,7 @@ pub enum SpokenFaceRefusal {
     UnavailableShow,
     EmptyFace,
     NoActionInFocus,
+    UnknownAction,
     UnknownArgument,
     UnsupportedValueKind,
     InvalidValue,
@@ -66,6 +69,16 @@ pub struct ReaderResult {
     pub focused_clause: usize,
     pub cancel_stream_identity: Option<String>,
     pub interrupted: Option<SpokenTurnReceipt>,
+}
+
+/// A deterministic text readout for an attached screen reader or terminal.
+/// No synthesis, audio output, or spoken Show completion is implied.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpokenTextReadout {
+    pub face_id: String,
+    pub face_revision: u64,
+    pub show_id: String,
+    pub clauses: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -148,6 +161,37 @@ impl SpokenFaceSession {
         self.plan.clauses.len()
     }
 
+    /// Consume the pending reading as text. This is a distinct output path
+    /// from `next_segment`: it never acknowledges synthesis or playback.
+    pub fn take_text_readout(&mut self) -> Result<Option<SpokenTextReadout>, SpokenFaceRefusal> {
+        if self.pending.is_some() || self.pending_batch.is_some() {
+            return Err(SpokenFaceRefusal::SpeechPressure);
+        }
+        let Some(reading) = self.reading.take() else {
+            return Ok(None);
+        };
+        let clauses = match reading {
+            Reading::Clauses { next, end, offset } => self.voiced[next..end]
+                .iter()
+                .enumerate()
+                .map(|(index, clause)| {
+                    if index == 0 {
+                        clause[offset..].to_owned()
+                    } else {
+                        clause.clone()
+                    }
+                })
+                .collect(),
+            Reading::Message { text, offset } => vec![text[offset..].to_owned()],
+        };
+        Ok(Some(SpokenTextReadout {
+            face_id: self.face.identity.as_str().into(),
+            face_revision: self.face.revision,
+            show_id: self.show.show_id.as_str().into(),
+            clauses,
+        }))
+    }
+
     /// Replace the exact Face/Show after the producer has accepted a change.
     /// The old local focus survives only if its provenance still exists.
     pub fn refresh(&mut self, face: Presentation, show: MaskShow) -> Result<(), SpokenFaceRefusal> {
@@ -200,7 +244,7 @@ impl SpokenFaceSession {
         let mut interaction = None;
         let mut cancel_stream_identity = None;
         match command {
-            ReaderCommand::Help => self.begin_message("Use next and previous to move through this view. Read all speaks every item. Repeat speaks the focused item. Edit a named value, then activate its action. Stop interrupts reading.".into()),
+            ReaderCommand::Help => self.begin_message("Use next and previous to move through this view. Read all presents every item. Focus an offered action by its exact ID, or repeat the focused item. Edit a named value, then activate its action. Stop interrupts reading.".into()),
             ReaderCommand::ReadAll => self.begin_clauses(0, self.plan.clauses.len()),
             ReaderCommand::Next => {
                 self.focus = (self.focus + 1).min(self.plan.clauses.len() - 1);
@@ -211,6 +255,12 @@ impl SpokenFaceSession {
                 self.begin_clauses(self.focus, self.focus + 1);
             }
             ReaderCommand::Repeat => self.begin_clauses(self.focus, self.focus + 1),
+            ReaderCommand::FocusAction(identity) => {
+                self.focus = self.plan.clauses.iter().position(|clause| {
+                    matches!(&clause.provenance, FaceUtteranceProvenance::Action(action) if action.identity() == &identity)
+                }).ok_or(SpokenFaceRefusal::UnknownAction)?;
+                self.begin_clauses(self.focus, self.focus + 1);
+            }
             ReaderCommand::Stop => {
                 self.reading = None;
                 cancel_stream_identity = self
@@ -271,6 +321,19 @@ impl SpokenFaceSession {
     /// audio outcome before another one is offered. Read-all needs no giant
     /// assembled speech string or whole-view PCM allocation.
     pub fn next_segment(&mut self) -> Result<Option<SpokenSegment>, SpokenFaceRefusal> {
+        self.next_segment_up_to(MAXIMUM_SPEAKABLE_SEGMENT_BYTES)
+    }
+
+    /// Use a smaller UTF-8 text budget when the selected speech Back has a
+    /// tighter, provider-dependent audio-time budget. The default remains the
+    /// portable maximum; neither limit predicts actual PCM duration.
+    pub fn next_segment_up_to(
+        &mut self,
+        maximum_text_bytes: usize,
+    ) -> Result<Option<SpokenSegment>, SpokenFaceRefusal> {
+        if !(4..=MAXIMUM_SPEAKABLE_SEGMENT_BYTES).contains(&maximum_text_bytes) {
+            return Err(SpokenFaceRefusal::InvalidValue);
+        }
         if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
@@ -294,7 +357,7 @@ impl SpokenFaceSession {
             Reading::Message { text, offset } => (&*text, None, None, offset),
         };
         let remaining = &text[*offset..];
-        let cut = split_at_char_boundary(remaining, MAXIMUM_SPEAKABLE_SEGMENT_BYTES);
+        let cut = split_at_char_boundary(remaining, maximum_text_bytes);
         let part = remaining[..cut].to_string();
         *offset += cut;
         let finished_piece = *offset == text.len();

@@ -12,7 +12,7 @@ const PRODUCTS = Object.freeze({
   "conduitos/loongarch64/virt": Object.freeze({ architecture: "loongarch64", machine: "virt", output: "conduitos-loongarch64-virt.iso", manifest: "conduitos-loongarch64-virt-release.json", builder: "conduit-host-conduitos/build-loongarch64@1", deployment: "conduit-host-conduitos/boot-loongarch64@1" }),
 });
 const SPORE_MAGIC = Buffer.from("CONDUIT_SPORE_MEDIA@1\0", "utf8");
-const SPORE_REGION_BYTES = 4096;
+const SPORE_REGION_BYTES = 32 * 1024;
 
 export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
   await mkdir(output, { recursive: true });
