@@ -9,6 +9,7 @@ mod discovery;
 #[cfg(test)]
 mod fake;
 mod proof;
+mod staged;
 #[cfg(test)]
 pub(crate) use fake::FakePlaybackBehavior;
 
@@ -28,6 +29,16 @@ pub const CHANNELS: u8 = 2;
 pub const PERIOD_FRAMES: u16 = conduit_semantic_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAMES;
 pub const BUFFER_FRAMES: u16 = conduit_semantic_catalog::AUDIO_PLAY_ALSA_BUFFER_FRAMES;
 pub const SOURCE_CLOCK_ID: u64 = 1;
+pub const SPOKEN_QUEUE_FRAMES: u32 = 96_000;
+pub const SPOKEN_START_FRAMES: u32 = 60_000;
+pub const SPOKEN_QUEUE_BYTES: u32 = conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
+    * conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS as u32;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PlaybackDeliveryMode {
+    Direct,
+    BoundedSpeech,
+}
 
 /// Exact PCM profile of the reviewed direct ALSA hardware adapter. Device
 /// presence, identity, and authority remain fresh observation facts.
@@ -64,6 +75,7 @@ pub struct HostedPlaybackSelection {
     pub observation: AlsaPlaybackObservation,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
+    delivery_mode: PlaybackDeliveryMode,
     #[cfg(test)]
     fake_behavior: Option<fake::FakePlaybackBehavior>,
 }
@@ -78,9 +90,17 @@ impl HostedPlaybackSelection {
             observation,
             boot_id,
             offer_generation,
+            delivery_mode: PlaybackDeliveryMode::Direct,
             #[cfg(test)]
             fake_behavior: None,
         }
+    }
+
+    /// A selected two-second PCM queue with a finite 1.25-second startup lead.
+    /// The queue is prepared before Play; full queues apply Host Call pressure.
+    pub fn with_bounded_speech_queue(mut self) -> Self {
+        self.delivery_mode = PlaybackDeliveryMode::BoundedSpeech;
+        self
     }
 
     pub fn pool_id(&self) -> ResourcePoolId {
@@ -133,10 +153,21 @@ impl HostedPlaybackSelection {
                 AUDIO_PLAYBACK_RESOURCE_CHARACTERISTIC,
                 self.pool_id().as_str(),
             ),
-            label(AUDIO_BACKEND_CHARACTERISTIC, "alsa-aplay-direct-hw@1"),
+            label(
+                AUDIO_BACKEND_CHARACTERISTIC,
+                match self.delivery_mode {
+                    PlaybackDeliveryMode::Direct => "alsa-aplay-direct-hw@1",
+                    PlaybackDeliveryMode::BoundedSpeech => "alsa-aplay-bounded-speech@1",
+                },
+            ),
             label(
                 AUDIO_STARTUP_POLICY_CHARACTERISTIC,
-                "start-on-first-committed-frame",
+                match self.delivery_mode {
+                    PlaybackDeliveryMode::Direct => "start-on-first-committed-frame",
+                    PlaybackDeliveryMode::BoundedSpeech => {
+                        "start-after-60000-queued-frames-or-input-close"
+                    }
+                },
             ),
             label(
                 AUDIO_DRAIN_POLICY_CHARACTERISTIC,
@@ -146,7 +177,13 @@ impl HostedPlaybackSelection {
                 AUDIO_TIMING_CLASS_CHARACTERISTIC,
                 "hosted-best-effort-measured",
             ),
-            count(AUDIO_CONTROLLED_STAGING_BYTES_CHARACTERISTIC, 0),
+            count(
+                AUDIO_CONTROLLED_STAGING_BYTES_CHARACTERISTIC,
+                match self.delivery_mode {
+                    PlaybackDeliveryMode::Direct => 0,
+                    PlaybackDeliveryMode::BoundedSpeech => u64::from(SPOKEN_QUEUE_BYTES),
+                },
+            ),
         ]);
         characteristics.sort();
         RealizationAdvertisement {
@@ -169,6 +206,7 @@ impl HostedPlaybackSelection {
             observation,
             boot_id,
             offer_generation,
+            delivery_mode: PlaybackDeliveryMode::Direct,
             fake_behavior: Some(behavior),
         }
     }
@@ -200,10 +238,18 @@ pub(crate) enum PlaybackSession {
     Alsa(AlsaAplaySession),
     #[cfg(test)]
     Fake(fake::FakePlaybackSession),
+    Staged(staged::StagedPlaybackSession),
 }
 
 impl PlaybackSession {
-    pub(crate) fn resolved(selection: HostedPlaybackSelection) -> Self {
+    pub(crate) fn resolved(selection: HostedPlaybackSelection) -> Result<Self, String> {
+        if selection.delivery_mode == PlaybackDeliveryMode::BoundedSpeech {
+            return staged::StagedPlaybackSession::prepare(selection).map(Self::Staged);
+        }
+        Ok(Self::resolved_direct(selection))
+    }
+
+    fn resolved_direct(selection: HostedPlaybackSelection) -> Self {
         #[cfg(test)]
         if let Some(behavior) = selection.fake_behavior {
             return Self::Fake(fake::FakePlaybackSession::new(selection, behavior));
@@ -216,6 +262,7 @@ impl PlaybackSession {
             Self::Alsa(session) => session.write_frame(encoded),
             #[cfg(test)]
             Self::Fake(session) => session.write_frame(encoded),
+            Self::Staged(session) => session.write_frame(encoded),
         }
     }
 
@@ -224,6 +271,7 @@ impl PlaybackSession {
             Self::Alsa(session) => session.drain(),
             #[cfg(test)]
             Self::Fake(session) => session.drain(),
+            Self::Staged(session) => session.drain(),
         }
     }
 
@@ -232,6 +280,7 @@ impl PlaybackSession {
             Self::Alsa(session) => session.stop(),
             #[cfg(test)]
             Self::Fake(session) => session.stop(),
+            Self::Staged(session) => session.stop(),
         }
     }
 
@@ -240,6 +289,7 @@ impl PlaybackSession {
             Self::Alsa(session) => session.lifecycle(),
             #[cfg(test)]
             Self::Fake(session) => session.lifecycle(),
+            Self::Staged(session) => session.lifecycle(),
         }
     }
 
@@ -248,6 +298,7 @@ impl PlaybackSession {
             Self::Alsa(session) => session.report(),
             #[cfg(test)]
             Self::Fake(session) => session.report(),
+            Self::Staged(session) => session.report(),
         }
     }
 }

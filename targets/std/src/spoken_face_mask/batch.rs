@@ -79,9 +79,23 @@ pub struct SpokenBatchAudioReceipt {
     pub pcm_blocks: u16,
 }
 
+/// A drained selected speaker Play. This carries no WAV identity or claim of
+/// observed hearing; its PCM count is the sink's committed frame count.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpokenBatchPlaybackReceipt {
+    pub stream_identity: String,
+    pub source_show_id: String,
+    pub source_segments_sha256: String,
+    pub speech_plan_id: String,
+    pub speech_play_id: String,
+    pub provider_sha256: String,
+    pub playback: crate::hosted_audio::PlaybackReport,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpokenBatchDelivery {
     Completed(SpokenBatchAudioReceipt),
+    Played(SpokenBatchPlaybackReceipt),
     Cancelled,
     Failed(String),
 }
@@ -188,6 +202,55 @@ impl SpokenFaceSession {
                 self.correlation.update(receipt.speech_play_id.as_bytes());
                 self.correlation.update(receipt.wav_sha256.as_bytes());
                 self.correlation.update(receipt.pcm_bytes.to_le_bytes());
+                if self.reading.is_none() {
+                    let outcome = if self.cancel_requested {
+                        SpokenTurnOutcome::Cancelled
+                    } else {
+                        SpokenTurnOutcome::Completed
+                    };
+                    return Ok(Some(self.finish_turn(outcome)));
+                }
+                Ok(None)
+            }
+            SpokenBatchDelivery::Played(receipt) => {
+                let pcm_bytes = receipt.playback.metrics.frames_committed.checked_mul(4);
+                if receipt.stream_identity != batch.stream_identity
+                    || receipt.source_show_id != batch.source_show_id
+                    || receipt.source_segments_sha256 != batch.source_segments_sha256
+                    || receipt.speech_plan_id.is_empty()
+                    || receipt.speech_play_id.is_empty()
+                    || !sha256_hex(&receipt.provider_sha256)
+                    || receipt.playback.backend.is_empty()
+                    || receipt.playback.resource_pool_id.is_empty()
+                    || receipt.playback.lifecycle
+                        != crate::hosted_audio::PlaybackLifecycle::StoppedClosed
+                    || receipt.playback.metrics.blocks_committed == 0
+                    || receipt.playback.metrics.frames_committed == 0
+                    || receipt.playback.metrics.underruns != 0
+                    || pcm_bytes.is_none_or(|bytes| bytes > 5_760_000)
+                    || self
+                        .provider_sha256
+                        .as_ref()
+                        .is_some_and(|provider| provider != &receipt.provider_sha256)
+                {
+                    self.pending_batch = Some(batch);
+                    return Err(SpokenFaceRefusal::SpeechReceipt);
+                }
+                self.provider_sha256 = Some(receipt.provider_sha256.clone());
+                self.completed_segments += batch.segments.len() as u32;
+                self.produced_pcm_bytes += pcm_bytes.expect("validated playback frame count");
+                self.correlation.update(b"speaker-playback\0");
+                self.correlation
+                    .update(batch.source_segments_sha256.as_bytes());
+                self.correlation.update(receipt.speech_plan_id.as_bytes());
+                self.correlation.update(receipt.speech_play_id.as_bytes());
+                self.correlation.update(receipt.playback.backend.as_bytes());
+                self.correlation
+                    .update(receipt.playback.resource_pool_id.as_bytes());
+                self.correlation
+                    .update(receipt.playback.metrics.blocks_committed.to_le_bytes());
+                self.correlation
+                    .update(receipt.playback.metrics.frames_committed.to_le_bytes());
                 if self.reading.is_none() {
                     let outcome = if self.cancel_requested {
                         SpokenTurnOutcome::Cancelled
