@@ -97,7 +97,6 @@ impl NativeFaceMask {
             &host_id,
             &boot_id,
             1,
-            surface_id,
             Some(&provider.entry),
         )
         .map_err(|_| NativeFaceMaskError::Plan)?;
@@ -366,7 +365,7 @@ impl NativeFaceMask {
                 interaction,
                 next_focus,
             } => self
-                .submit(interaction)
+                .submit(*interaction)
                 .map(|correlation| NativeFaceMaskInput::Submitted {
                     correlation,
                     next_focus,

@@ -38,7 +38,6 @@ fn fixture_scanout(sequence: u64) -> (PreparedNativeMaskPlay, NativeCompositor) 
         &HostId::from("host/native-mask"),
         &"boot/native-mask".into(),
         1,
-        "surface/native-mask",
         None,
     )
     .unwrap();

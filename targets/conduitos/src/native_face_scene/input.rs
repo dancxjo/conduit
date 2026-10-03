@@ -1,6 +1,6 @@
 //! Mask-local replacement buffers. No current value is inferred from Face prose.
 use super::*;
-use alloc::{string::String, vec};
+use alloc::{boxed::Box, string::String, vec};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
 use conduit_presentation::{ManifestationLifecycle, UTF8_TEXT_VALUE_KIND};
 
@@ -16,7 +16,7 @@ pub enum FaceSceneInput {
     Unchanged,
     Changed,
     Submitted {
-        interaction: FaceInteraction,
+        interaction: Box<FaceInteraction>,
         next_focus: Option<FaceFocusRequest>,
     },
 }
@@ -299,7 +299,7 @@ impl NativeFaceScene {
         // receive a fresh acknowledged Show before any further inward action.
         self.input.submitted = true;
         Ok(FaceSceneInput::Submitted {
-            interaction,
+            interaction: Box::new(interaction),
             next_focus,
         })
     }

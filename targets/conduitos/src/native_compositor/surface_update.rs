@@ -1,6 +1,13 @@
 //! Exact retained raster staging, separately from successful scanout.
 use super::*;
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum RasterMode {
+    Available,
+    Pending,
+    Repaint,
+}
+
 impl NativeCompositor {
     pub fn update_surface(
         &mut self,
@@ -24,8 +31,7 @@ impl NativeCompositor {
             surface_id,
             display_base_id,
             scene,
-            true,
-            false,
+            RasterMode::Available,
         )
     }
     /// Stage a still-pending ordinary Mask renderer, without granting input ownership.
@@ -49,8 +55,7 @@ impl NativeCompositor {
             &show.show.target_subject,
             display_base_id,
             scene,
-            false,
-            false,
+            RasterMode::Pending,
         )
     }
     /// Repaint Mask-local focus, pagination, or uncommitted input under the
@@ -75,8 +80,7 @@ impl NativeCompositor {
             &show.show.target_subject,
             display_base_id,
             scene,
-            false,
-            true,
+            RasterMode::Repaint,
         )
     }
     fn raster_surface(
@@ -86,8 +90,7 @@ impl NativeCompositor {
         surface_id: &str,
         display_base_id: &HostBaseId,
         scene: &GraphicsScene,
-        input_ready: bool,
-        same_revision: bool,
+        mode: RasterMode,
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
         let surface = self
             .surfaces
@@ -101,10 +104,10 @@ impl NativeCompositor {
             {
                 return Err(NativeCompositorError::SurfaceAlreadyBound);
             }
-            if (same_revision
+            if (mode == RasterMode::Repaint
                 && (presentation.revision != binding.last_revision
                     || manifestation.manifestation_id != binding.manifestation_id))
-                || (!same_revision && presentation.revision <= binding.last_revision)
+                || (mode != RasterMode::Repaint && presentation.revision <= binding.last_revision)
             {
                 return Err(NativeCompositorError::StaleSurfaceRevision);
             }
@@ -128,7 +131,7 @@ impl NativeCompositor {
             front_subject: manifestation.front_subject.clone(),
             last_revision: presentation.revision,
         });
-        surface.input_ready = input_ready;
+        surface.input_ready = mode == RasterMode::Available;
         surface.receipt = Some(CompositionReceipt {
             presentation_id: presentation.identity.clone(),
             manifestation_id: manifestation.manifestation_id.clone(),

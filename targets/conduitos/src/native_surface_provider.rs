@@ -8,5 +8,6 @@ use conduit_core::BaseProviderEntry;
 #[derive(Clone)]
 pub struct NativeSurfaceProvider {
     pub entry: BaseProviderEntry,
+    #[allow(dead_code)] // Reserved for the resource-bound renderer Host Call.
     pub(crate) issuer_key: [u8; 32],
 }
