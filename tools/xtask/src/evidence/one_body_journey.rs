@@ -20,6 +20,7 @@ const CHAPTERS: [&str; 8] = [
     "birth", "join", "start", "see", "hear", "loss", "return", "lull",
 ];
 const MAX_TEXT: usize = 2048;
+const MAX_JOURNEY_OUTPUT_BYTES: u64 = 128 * 1024 * 1024;
 
 pub struct OneBodyJourneyRequest {
     pub evidence_root: PathBuf,
@@ -155,6 +156,15 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
         proof_id: "journey-one-body-five-masks".into(),
         suite_id: "journey-gallery".into(),
     })?;
+    if evidence
+        .outputs
+        .iter()
+        .map(|output| output.bytes)
+        .sum::<u64>()
+        > MAX_JOURNEY_OUTPUT_BYTES
+    {
+        return Err("journey evidence exceeds the 128 MiB publication bundle limit".into());
+    }
     let root = request
         .evidence_root
         .canonicalize()
@@ -175,9 +185,10 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
     {
         return Err("journey schema, source, run, Body, or chapter count does not match".into());
     }
-    if evidence.outputs.iter().any(|output| {
-        !output.required || output.provenance.scenario_id != journey.run_id
-    })
+    if evidence
+        .outputs
+        .iter()
+        .any(|output| !output.required || output.provenance.scenario_id != journey.run_id)
     {
         return Err("journey evidence includes an optional or foreign-run output".into());
     }
