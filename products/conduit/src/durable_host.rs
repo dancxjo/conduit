@@ -14,7 +14,7 @@ use std::{
 };
 
 #[path = "body_owner/mod.rs"]
-mod owner;
+pub(crate) mod owner;
 pub(crate) use owner::run as run_body_owner;
 #[path = "body_owner/lock.rs"]
 mod owner_lock;
@@ -149,6 +149,7 @@ pub(crate) fn install_without_start(
 }
 
 fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
+    let _host_ownership = owner_lock::acquire(state_dir)?;
     let _body_ownership = owner_lock::body(state_dir)?;
     let evidence_bytes = bounded_read(evidence_path, 2 * 1024 * 1024)?;
     let evidence: conduit_body::BodyBiographyEvidence = serde_json::from_slice(&evidence_bytes)
@@ -302,13 +303,32 @@ fn release_file_name(file: &ReleaseFile) -> Result<&std::ffi::OsStr, String> {
 
 fn run(state_dir: &Path) -> Result<(), String> {
     let _ownership = owner_lock::acquire(state_dir)?;
-    let (status, truth) = prepare_runtime(state_dir)?;
+    let owns_body = read_installation(&state_dir.join("installation.json"))?
+        .body_state
+        .is_some();
+    // Routed admission enters through authenticated local control while the
+    // service owns this lock. No second process may edit its Body biography.
+    let _body_ownership = if owns_body {
+        Some(owner_lock::body(state_dir)?)
+    } else {
+        None
+    };
+    let (status, mut truth) = prepare_runtime(state_dir)?;
+    let runtime = state_dir.join("runtime.json");
+    if owns_body {
+        truth = match truth.with_owned_body(state_dir) {
+            Ok(truth) => truth,
+            Err(error) => {
+                let _ = fs::remove_file(&runtime);
+                return Err(error);
+            }
+        };
+    }
     println!(
         "durable host {} boot {} is running",
         status.host_id, status.boot_id
     );
     let outcome = crate::durable_host_control::serve(state_dir, truth);
-    let runtime = state_dir.join("runtime.json");
     match fs::remove_file(&runtime) {
         Ok(()) => outcome,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => outcome,
@@ -411,6 +431,32 @@ pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
     if let Some(binding) = &installation.joined_body_state {
         return membership::status(state_dir, &installation, binding, json);
     }
+    let runtime = observe_current_runtime(state_dir, &installation)?;
+    if runtime.is_some() {
+        let truth = crate::durable_host_control::inspect_owned_body(state_dir)?;
+        if json {
+            println!("{}", truth);
+        } else {
+            println!(
+                "Body {}",
+                truth["biography"]["body_id"].as_str().unwrap_or("unknown")
+            );
+            println!(
+                "current Host {} Boot {}",
+                truth["host"]["host_id"].as_str().unwrap_or("unknown"),
+                truth["host"]["boot_id"].as_str().unwrap_or("unknown")
+            );
+            println!("state {}", truth["biography"]["body"]["state"]);
+            println!(
+                "members {}",
+                truth["biography"]["membership"]["parts"]
+                    .as_array()
+                    .map_or(0, Vec::len)
+            );
+            println!("remote carrier availability unobserved");
+        }
+        return Ok(());
+    }
     let binding = installation
         .body_state
         .as_ref()
@@ -425,7 +471,6 @@ pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
     if biography.body_id.as_str() != binding.body_id {
         return Err("retained body biography belongs to another body".into());
     }
-    let runtime = observe_current_runtime(state_dir, &installation)?;
     let present_parts = biography
         .membership
         .parts
@@ -446,8 +491,8 @@ pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
                 "presence": if runtime.is_some() { "current" } else { "installed-offline" },
                 "member_count": biography.membership.parts.len(),
                 "present_member_count": present_parts,
-                "plan_created": false,
-                "play_created": false,
+                "present_member_count_basis": "retained-membership-snapshot",
+                "remote_carrier_availability": "unobserved",
             })
         );
     } else {
@@ -464,7 +509,7 @@ pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
             ),
         }
         println!(
-            "members {} ({} currently present)",
+            "members {} ({} last recorded present; remote carrier availability unobserved)",
             biography.membership.parts.len(),
             present_parts
         );
@@ -1294,7 +1339,7 @@ mod tests {
     }
 
     #[test]
-    fn installed_body_admits_signed_request_and_retains_current_offers_without_plan() {
+    fn admission_document_transaction_retains_current_offers_without_plan() {
         let (owner_manifest, owner_state) = fixture();
         let mut owner_installation = install(&owner_manifest, &owner_state).unwrap();
         start_runtime(&owner_state).unwrap();
@@ -1358,10 +1403,11 @@ mod tests {
             .unwrap(),
         )
         .unwrap();
-        let request_path = owner_body_dir.join("request.json");
-        write_json_atomic(&request_path, &pending.request).unwrap();
-
-        admit_body_request(&request_path, &owner_state, true).unwrap();
+        // This exercises the recoverable document transaction directly. The
+        // public entrance requires a live authenticated service when a runtime
+        // marker exists; the fixture's marker alone is not a running owner.
+        invitation::admit_body_request_document(pending.request.clone(), &owner_state, true)
+            .unwrap();
 
         let admitted: conduit_body::BodyBiographyEvidence =
             serde_json::from_slice(&bounded_read(&biography_path, 2 * 1024 * 1024).unwrap())
@@ -1418,7 +1464,9 @@ mod tests {
         assert_eq!(joined.body_id, body.body_id.as_str());
         assert_eq!(joined.part_id, member.part_id.as_str());
         assert!(!joining_state.join("body/pending-join.json").exists());
-        let replay = admit_body_request(&request_path, &owner_state, true).unwrap_err();
+        let replay = invitation::admit_body_request_document(pending.request, &owner_state, true)
+            .err()
+            .expect("single-use invitation must refuse replay");
         assert!(replay.contains("Replay"), "{replay}");
 
         fs::remove_dir_all(owner_state.parent().unwrap()).unwrap();

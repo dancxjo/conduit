@@ -18,15 +18,15 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub(super) struct Owner {
-    host: StdHost,
+pub(crate) struct Owner {
+    pub(crate) host: StdHost,
     session: BodyLifecycleSession,
-    resident: ResidentPlot,
+    resident: Option<ResidentPlot>,
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
 }
 impl Owner {
-    pub(super) fn open(
+    pub(crate) fn open(
         host: StdHost,
         resident: ResidentPlot,
         retained: Option<BodyBiographyEvidence>,
@@ -101,12 +101,27 @@ impl Owner {
         Ok(Self {
             host,
             session,
+            resident: Some(resident),
+            last_execution: None,
+            admissions: None,
+        })
+    }
+    /// Reattach a retained owner to the one fresh installed Host Boot.
+    pub(super) fn resume(host: StdHost, retained: BodyBiographyEvidence) -> Result<Self, String> {
+        let advertised = host.advertisement();
+        let session =
+            BodyLifecycleSession::resume_here(retained, &advertised.host_id, &advertised.boot_id)
+                .map_err(debug)?;
+        let resident = session.evidence().body.workset.plots().first().cloned();
+        Ok(Self {
+            host,
+            session,
             resident,
             last_execution: None,
             admissions: None,
         })
     }
-    pub(super) fn persist(&mut self, root: &Path) -> Result<(), String> {
+    pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
         if !self.session.pending_archives().is_empty() {
             return Err(
                 "owner biography archive capacity requires an admitted archive store".into(),
@@ -124,13 +139,14 @@ impl Owner {
         self.admissions = state::admissions(root, &self.session.evidence().body_id)?;
         Ok(())
     }
-    pub(super) fn truth(&self) -> serde_json::Value {
+    pub(crate) fn truth(&self) -> serde_json::Value {
         serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution})
     }
     pub(super) fn plan(
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
+        let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
         let hosts = [self.host.advertisement().clone()];
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
@@ -154,7 +170,7 @@ impl Owner {
         self.session
             .propose(
                 vec![BodyPlotPlan {
-                    plot: self.resident.clone(),
+                    plot: resident.clone(),
                     plan,
                 }],
                 &hosts[0].host_id,

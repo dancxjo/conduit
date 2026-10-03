@@ -2149,6 +2149,7 @@ dependencies = [
  "der 0.8.2",
  "digest 0.10.7",
  "ecdsa",
+ "ed25519-dalek",
  "embedded-io 0.7.1",
  "embedded-io-async",
  "generic-array",

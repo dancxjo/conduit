@@ -1,6 +1,7 @@
 //! Authenticated local control plane into the durable installed host owner.
 
 use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
+use conduit_body::{PortableSpawnAdmissionRequest, RendezvousCandidate};
 use conduit_core::{
     ActivePlayIdentity, HostAdvertisement, PlacementId, Plan, PoolMemberSessionDirection,
     PoolRealizationEnvelope, PoolRealizationObservation, PoolSelectionEvidence, SignId,
@@ -23,6 +24,11 @@ use std::{
 const PROTOCOL: u16 = 1;
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
+#[path = "durable_host_control/body.rs"]
+mod body;
+use body::HostSource;
+pub(crate) use body::{admit_owned_request, inspect_owned_body, issue_owned_invitation};
+
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
     pub(crate) target_id: String,
@@ -33,7 +39,7 @@ pub(crate) struct DurableHostTruth {
 pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
-    host: StdHost,
+    host: HostSource,
     remote_fragment: Option<AdmittedRemoteFragment>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
@@ -42,14 +48,17 @@ pub(crate) struct DurableHostRuntime {
 
 impl DurableHostRuntime {
     pub(crate) fn into_owner_host(self) -> StdHost {
-        self.host
+        match self.host {
+            HostSource::Bare(host) => *host,
+            HostSource::Body { .. } => unreachable!("foreground owner cannot take a service Body"),
+        }
     }
 
     pub(crate) fn new(target_id: String, image_content_digest: String, host: StdHost) -> Self {
         Self {
             target_id,
             image_content_digest,
-            host,
+            host: HostSource::Bare(Box::new(host)),
             remote_fragment: None,
             pool_member: None,
             cancellation_signal: None,
@@ -862,6 +871,21 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyInspect {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    BodyInvite {
+        protocol: u16,
+        token: Vec<u8>,
+        ttl_seconds: u64,
+        candidates: Option<Vec<RendezvousCandidate>>,
+    },
+    BodyAdmit {
+        protocol: u16,
+        token: Vec<u8>,
+        request: Box<PortableSpawnAdmissionRequest>,
+    },
     Join {
         protocol: u16,
         token: Vec<u8>,
@@ -917,6 +941,18 @@ enum Response {
         target_id: String,
         image_content_digest: String,
         advertisement: HostAdvertisement,
+    },
+    BodyTruth {
+        protocol: u16,
+        truth: serde_json::Value,
+    },
+    BodyInvitation {
+        protocol: u16,
+        invitation: Box<conduit_body::PortableInvitation>,
+    },
+    BodyAdmitted {
+        protocol: u16,
+        receipt: Box<conduit_body::PortableAdmissionReceipt>,
     },
     Join {
         protocol: u16,
@@ -1402,6 +1438,9 @@ pub(crate) fn join(
 fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRuntime) -> Response {
     let offered = match &mut request {
         Request::Status { token, .. }
+        | Request::BodyInspect { token, .. }
+        | Request::BodyInvite { token, .. }
+        | Request::BodyAdmit { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
         | Request::ObserveLocalModelPool { token, .. }
@@ -1423,6 +1462,34 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             image_content_digest: truth.image_content_digest.clone(),
             advertisement: truth.advertisement.clone(),
         },
+        Request::BodyInspect { protocol, .. } if protocol == PROTOCOL => runtime
+            .owned_body_truth()
+            .map(|truth| Response::BodyTruth {
+                protocol: PROTOCOL,
+                truth,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyInvite {
+            protocol,
+            ttl_seconds,
+            candidates,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .issue_owned_invitation(ttl_seconds, candidates)
+            .map(|invitation| Response::BodyInvitation {
+                protocol: PROTOCOL,
+                invitation: Box::new(invitation),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyAdmit {
+            protocol, request, ..
+        } if protocol == PROTOCOL => runtime
+            .admit_owned_request(*request)
+            .map(|receipt| Response::BodyAdmitted {
+                protocol: PROTOCOL,
+                receipt: Box::new(receipt),
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::Join {
             protocol,
             expected_boot_id,
