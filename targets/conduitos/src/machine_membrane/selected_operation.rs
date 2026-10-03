@@ -83,6 +83,7 @@ pub(crate) fn bind_selected_operation(
         || gear.kind_contract_revision != expected.kind_contract_revision
         || gear.inputs != expected.inputs
         || gear.outputs != expected.outputs
+        || gear.semantic_contract != expected.semantic_contract()
         || !gear.configuration.is_empty()
         || gear.host_id != claim.host_id
         || gear.boot_id != claim.boot_id
