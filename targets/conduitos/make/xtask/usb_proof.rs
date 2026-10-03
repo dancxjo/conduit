@@ -11,7 +11,7 @@ use super::{
     run, usb_run, ConduitosArch, ConduitosError,
 };
 
-const NEGATIVE_CASES: [&str; 12] = [
+const NEGATIVE_CASES: [&str; 13] = [
     "device-absent",
     "port-reset-timeout-or-failure",
     "malformed-descriptor-chain",
@@ -24,6 +24,7 @@ const NEGATIVE_CASES: [&str; 12] = [
     "unsupported-topology",
     "device-vanished",
     "stale-device-instance",
+    "malformed-transfer-completion-residual",
 ];
 
 #[derive(Serialize)]

@@ -1,6 +1,26 @@
 use super::*;
 use crate::arch::x86_64::xhci::{Event, XhciError};
 
+#[test]
+fn completion_lengths_preserve_short_and_reject_out_of_envelope_residuals() {
+    for requested in [0, 1, 8, 256, u16::MAX] {
+        assert_eq!(transferred_bytes(requested, 0), Ok(usize::from(requested)));
+        assert_eq!(transferred_bytes(requested, u32::from(requested)), Ok(0));
+        if requested > 0 {
+            assert_eq!(
+                transferred_bytes(requested, 1),
+                Ok(usize::from(requested - 1))
+            );
+        }
+        for residual in [u32::from(requested) + 1, 65536, 0x00ff_ffff, u32::MAX] {
+            assert_eq!(
+                transferred_bytes(requested, residual),
+                Err(UsbError::MalformedCompletion)
+            );
+        }
+    }
+}
+
 fn blank_device() -> UsbDevice {
     device_from_descriptor(
         1,

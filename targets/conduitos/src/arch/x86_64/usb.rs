@@ -29,7 +29,7 @@ use descriptor::{
 pub use dma::USB_DEVICE_DMA_SLOTS;
 use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
-use transfer::validate_transfer_event;
+use transfer::{transferred_bytes, validate_transfer_event};
 pub const MAX_CONTROL_TRANSFERS: u8 = 5;
 pub const MAX_OUTSTANDING_CONTROL_TRANSFERS: u8 = 1;
 pub const MAX_ENUMERATION_RETRIES: u8 = 0;
@@ -429,6 +429,9 @@ fn control(
         length,
         input,
     } = request;
+    if usize::from(length) > MAX_CONFIGURATION_BYTES {
+        return Err(UsbError::TransferEnvelope);
+    }
     let count = if length == 0 { 2 } else { 3 };
     if ring.enqueue + count >= TRANSFER_TRBS {
         return Err(UsbError::TransferRingFull);
@@ -477,7 +480,7 @@ fn control(
     if controller.port_status(ring.root_port) & 1 == 0 {
         return Err(UsbError::DeviceVanished);
     }
-    Ok(usize::from(length.saturating_sub(event.residual as u16)))
+    transferred_bytes(length, event.residual)
 }
 
 fn put_transfer(dma: *mut UsbDma, index: usize, trb: [u32; 4]) {

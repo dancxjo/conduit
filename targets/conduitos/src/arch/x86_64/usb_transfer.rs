@@ -3,6 +3,16 @@
 use super::UsbError;
 use crate::arch::x86_64::xhci::Event;
 
+/// Controller residuals are 24-bit counts, not narrowed request lengths.
+/// A residual outside the submitted envelope is malformed hardware truth;
+/// saturating subtraction would falsely report a successful short transfer.
+pub(super) fn transferred_bytes(requested: u16, residual: u32) -> Result<usize, UsbError> {
+    u32::from(requested)
+        .checked_sub(residual)
+        .map(|bytes| bytes as usize)
+        .ok_or(UsbError::MalformedCompletion)
+}
+
 pub(super) fn validate_transfer_event(
     event: Event,
     slot: u8,
