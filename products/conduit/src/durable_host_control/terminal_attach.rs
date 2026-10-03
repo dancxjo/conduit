@@ -2,20 +2,25 @@
 //! The connection is retained by the actual StdHost, not by a second Host.
 
 use super::{body::HostSource, constant_time_equal, DurableHostRuntime, PROTOCOL};
-use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow};
+use conduit_core::PlanId;
+use conduit_presentation::{FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow};
+use conduit_std_host::{
+    terminal_face_mask::TerminalMaskExecution, terminal_mask_execution::HostedTerminalMaskExecution,
+};
 use std::{os::unix::net::UnixStream, path::Path};
 
 #[path = "terminal_attach/client.rs"]
 mod client;
 #[path = "terminal_attach/wire.rs"]
 mod wire;
-pub(crate) use client::attach_and_show;
+pub(crate) use client::{attach_and_show, AttachedTerminalSession};
 pub(super) use wire::MAGIC;
 use wire::{AttachReply, AttachRequest};
 
 pub(super) struct AttachedTerminalRoute {
     pub seal: LocalOwnerMaskRouteSeal,
     pub show: MaskShow,
+    pub execution: HostedTerminalMaskExecution,
 }
 
 /// The ordinary control listener has already consumed the discriminating byte.
@@ -48,15 +53,16 @@ pub(super) fn serve(
         let (face, seal) = owner.seal_attached_terminal_route()?;
         wire::write_reply(stream, &AttachReply::Attached { protocol: PROTOCOL })?;
         attached_reply_sent = true;
-        let show = owner
+        let (show, execution) = owner
             .host
             .current_mut()
-            .present_attached_terminal_face(&face)?;
+            .present_attached_terminal_face_with_interaction(&face)?;
         owner.validate_attached_terminal_route(&seal, &show)?;
         let advertisement = owner.host.advertisement().clone();
         runtime.terminal_route = Some(AttachedTerminalRoute {
             seal: seal.clone(),
             show: show.clone(),
+            execution,
         });
         wire::write_reply(
             stream,
@@ -86,6 +92,44 @@ pub(super) fn serve(
         }
     }
     Ok(())
+}
+
+impl DurableHostRuntime {
+    /// Only the installed owner can consume the retained Mask's typed return.
+    /// Taking the route first makes every attempted submission single-use;
+    /// failure or a changed Face retires the provider on the next service step.
+    pub(super) fn attached_terminal_interaction(
+        &mut self,
+        route_plan_id: &PlanId,
+        show: &MaskShow,
+        interaction: FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        let mut route = self
+            .terminal_route
+            .take()
+            .ok_or("no current attached terminal route")?;
+        let HostSource::Body {
+            owner,
+            root,
+            running: None,
+        } = &mut self.host
+        else {
+            return Err("attached terminal action requires a lulled Body".into());
+        };
+        if &route.seal.route_plan_id != route_plan_id || &route.show != show {
+            return Err("attached terminal route or Show differs".into());
+        }
+        owner.validate_attached_terminal_route(&route.seal, show)?;
+        route
+            .execution
+            .validate_current_host(owner.host.advertisement())
+            .map_err(|error| format!("attached terminal Host changed: {error:?}"))?;
+        let correlated = route
+            .execution
+            .interact(interaction)
+            .map_err(|error| format!("attached terminal Mask return refused: {error:?}"))?;
+        owner.apply_clock_interval_interaction(root, show, &correlated.interaction)
+    }
 }
 
 fn attach(

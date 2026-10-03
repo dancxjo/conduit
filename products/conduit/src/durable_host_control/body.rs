@@ -555,6 +555,34 @@ pub(crate) fn submit_local_face_interaction(
 }
 
 #[cfg(unix)]
+pub(crate) fn submit_attached_terminal_interaction(
+    state_dir: &Path,
+    route_plan_id: conduit_core::PlanId,
+    show: MaskShow,
+    interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    match call(
+        state_dir,
+        Request::BodyAttachedTerminalInteraction {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            route_plan_id,
+            show: Box::new(show),
+            interaction,
+        },
+    )? {
+        Response::BodyInteraction {
+            protocol: PROTOCOL,
+            result,
+        } => Ok(*result),
+        Response::Refused { code, .. } => {
+            Err(format!("Body owner refused terminal action: {code}"))
+        }
+        _ => Err("Body owner returned the wrong terminal action response".into()),
+    }
+}
+
+#[cfg(unix)]
 #[allow(dead_code)] // Native return consumes this exact expiry-bearing entrance after its route lands.
 pub(crate) fn submit_local_face_interaction_until(
     state_dir: &Path,
