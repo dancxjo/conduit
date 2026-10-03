@@ -14,9 +14,11 @@ const MAXIMUM_TOTAL_BLOCKS: usize =
     conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS as usize;
 const MAXIMUM_BLOCK_BYTES: usize =
     conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES as usize;
+pub(super) const SPOKEN_QUEUE_STORAGE_BYTES: u32 =
+    (SPOKEN_QUEUE_BLOCKS * std::mem::size_of::<Block>()) as u32;
 const _: () = {
     assert!(MAXIMUM_TOTAL_BLOCKS > SPOKEN_QUEUE_BLOCKS);
-    assert!(SPOKEN_QUEUE_BYTES as usize == SPOKEN_QUEUE_BLOCKS * MAXIMUM_BLOCK_BYTES);
+    assert!(SPOKEN_QUEUE_BYTES as usize == SPOKEN_QUEUE_BLOCKS * std::mem::size_of::<Block>());
 };
 
 struct Block {

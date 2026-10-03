@@ -33,8 +33,7 @@ pub const SPOKEN_QUEUE_FRAMES: u32 = 96_000;
 pub const SPOKEN_START_FRAMES: u32 = 60_000;
 /// In-flight storage remains finite and independent of total Play work.
 pub const SPOKEN_QUEUE_BLOCKS: usize = 3_072;
-pub const SPOKEN_QUEUE_BYTES: u32 =
-    conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES * SPOKEN_QUEUE_BLOCKS as u32;
+pub const SPOKEN_QUEUE_BYTES: u32 = staged::SPOKEN_QUEUE_STORAGE_BYTES;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PlaybackDeliveryMode {
