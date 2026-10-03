@@ -79,8 +79,6 @@ pub(super) fn declare(
             scenario_id: run_id.into(),
             presentation_id: Some(face.presentation.identity.as_str().into()),
             presentation_revision: Some(face.presentation.revision.to_string()),
-            host_id: Some(face.advertisement.host_id.as_str().into()),
-            boot_id: Some(face.advertisement.boot_id.as_str().into()),
             proof_class: proof_class.map(str::to_owned),
             ..EvidenceProvenance::default()
         },
