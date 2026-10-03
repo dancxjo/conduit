@@ -63,29 +63,42 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
     }
     if args.microcontroller {
         let fixture = root.join("proof/fixtures/native-speech-footprint");
-        let status = Command::new("cargo")
-            .args(["rustc", "--locked", "--release", "--manifest-path"])
-            .arg(fixture.join("Cargo.toml"))
-            .args(["--target", "thumbv6m-none-eabi", "--", "-C"])
-            .arg(format!(
-                "link-arg=-T{}",
-                fixture.join("linker.ld").display()
-            ))
-            .current_dir(&root)
-            .status()?;
-        if !status.success() {
-            return Err(format!("Cortex-M0+ link-only probe failed: {status}").into());
-        }
-        let artifact =
-            fixture.join("target/thumbv6m-none-eabi/release/conduit-native-speech-footprint");
-        println!("Cortex-M0+ linked probe: {}", artifact.display());
-        match Command::new("size").arg(&artifact).status() {
+        for binary in [
+            "conduit-native-speech-footprint",
+            "conduit-native-text-footprint",
+        ] {
+            let status = Command::new("cargo")
+                .args([
+                    "rustc",
+                    "--locked",
+                    "--release",
+                    "--bin",
+                    binary,
+                    "--manifest-path",
+                ])
+                .arg(fixture.join("Cargo.toml"))
+                .args(["--target", "thumbv6m-none-eabi", "--", "-C"])
+                .arg(format!(
+                    "link-arg=-T{}",
+                    fixture.join("linker.ld").display()
+                ))
+                .current_dir(&root)
+                .status()?;
+            if !status.success() {
+                return Err(format!("Cortex-M0+ link-only probe failed: {status}").into());
+            }
+            let artifact = fixture
+                .join("target/thumbv6m-none-eabi/release")
+                .join(binary);
+            println!("Cortex-M0+ linked probe: {}", artifact.display());
+            match Command::new("size").arg(&artifact).status() {
             Ok(status) if status.success() => println!("Section totals only: text includes code/constants; data/bss are static RAM. Stack, full body, device timing and playback remain unmeasured."),
             Ok(status) => return Err(format!("footprint section inspection failed: {status}").into()),
             Err(error) if error.kind()==std::io::ErrorKind::NotFound => return Err("linked probe retained, but GNU size is missing for footprint inspection".into()),
             Err(error) => return Err(error.into()),
         }
+        }
     }
-    println!("Retained native voice WAVs: {}. Conformance and synthesis Back evidence; no device playback or full text-to-speech acceptance.",output.display());
+    println!("Retained native voice WAVs: {}. Conformance and synthesis Back evidence; no device playback or Klatt/eSpeak parity acceptance.",output.display());
     Ok(())
 }

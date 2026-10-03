@@ -234,6 +234,7 @@ type VoiceBoundary =
 
 type VoiceEvent =
     segment RealizationInput
+    | pronounced TextSpeechSegment
     | boundary VoiceBoundary
 
 plot speech/pause (
@@ -349,8 +350,10 @@ type SpeechRenderProfile = {
     maximum_events: U32
     maximum_block_frames: U32
     maximum_utterance_frames: U64
+    maximum_text_bytes: U32
+    maximum_word_bytes: U32
 }
 plot speech/profile (
     >> value: SpeechStart
     result: SpeechRenderProfile >>
-) = ({sample_rate_hz: 8000, maximum_events: 256, maximum_block_frames: 128, maximum_utterance_frames: 240000})
+) = ({sample_rate_hz: 8000, maximum_events: 256, maximum_block_frames: 128, maximum_utterance_frames: 240000, maximum_text_bytes: 512, maximum_word_bytes: 32})

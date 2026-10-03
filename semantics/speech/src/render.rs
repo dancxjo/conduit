@@ -34,14 +34,15 @@ impl<'a> Renderer<'a> {
         let mut total_frames = 0_u64;
         for event in events {
             let frames = match event {
-                VoiceEvent::segment(value) => {
-                    speech_realize(*value)
+                VoiceEvent::boundary(boundary) => {
+                    speech_pause(*boundary).ok_or(RenderRefusal::Arithmetic)?
+                }
+                event => {
+                    let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
+                    speech_realize(value)
                         .and_then(|realization| speech_voice_target(realization.phone))
                         .ok_or(RenderRefusal::Arithmetic)?
                         .frames
-                }
-                VoiceEvent::boundary(boundary) => {
-                    speech_pause(*boundary).ok_or(RenderRefusal::Arithmetic)?
                 }
             };
             total_frames = total_frames
@@ -87,7 +88,8 @@ impl<'a> Renderer<'a> {
                         speech_pause(boundary).ok_or(RenderRefusal::Arithmetic)?,
                     )
                 }
-                VoiceEvent::segment(value) => {
+                event => {
+                    let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
                     let target = speech_realize(value)
                         .and_then(|realization| speech_voice_target(realization.phone))
                         .ok_or(RenderRefusal::Arithmetic)?;
@@ -117,5 +119,16 @@ impl<'a> Renderer<'a> {
             }
         }
         Ok(written)
+    }
+}
+
+impl VoiceEvent {
+    /// Representation projection; pronunciation and realization policy stay in plots.
+    pub fn realization(self) -> Option<RealizationInput> {
+        match self {
+            Self::segment(value) => Some(value),
+            Self::pronounced(value) => Some(value.realization),
+            Self::boundary(_) => None,
+        }
     }
 }

@@ -38,7 +38,12 @@ fn main() {
     println!("cargo:rerun-if-changed={path}");
     println!("cargo:rerun-if-changed=build_support/lower.rs");
     println!("cargo:rerun-if-changed=build_support/graph.rs");
-    let source = fs::read_to_string(path).expect("native speech source");
+    println!("cargo:rerun-if-changed=pronunciation.conduit");
+    let source = format!(
+        "{}\n{}",
+        fs::read_to_string(path).expect("native speech source"),
+        include_str!("pronunciation.conduit")
+    );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked =
@@ -131,7 +136,7 @@ fn main() {
     for plot in &checked.plots {
         let authored =
             expand_canonical_plot_for_authoring(&checked, &plot.name, &ProfileCatalog::new())
-                .expect("speech plot expands");
+                .unwrap_or_else(|error| panic!("speech plot {} expands: {error:?}", plot.name));
         let name = plot.name.replace(['/', '-'], "_");
         let lowered = graph::function(&name, &authored, &types).expect("fixed pure graph lowering");
         if plot.name == "speech/profile" {
