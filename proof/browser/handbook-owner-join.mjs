@@ -34,8 +34,8 @@ const state = path.join(output, 'owner-state');
 const install = spawnSync(binary, ['host', 'service', 'install', path.join(releaseDir, 'release.json'), '--state-dir', state, '--no-start'], { encoding: 'utf8' });
 assert.equal(install.status, 0, install.stderr);
 const installation = JSON.parse(await readFile(path.join(state, 'installation.json')));
-const source = path.join(output, 'hello.conduit');
-await writeFile(source, 'plot hello {\n show: presentation/text\n "Hello." >> show\n}.');
+const source = path.join(output, 'clock.conduit');
+await writeFile(source, await readFile(new URL('../../plots/clock/main.conduit', import.meta.url)));
 const owner = spawn(installation.product_executable, ['body', 'own', source, '--state-dir', state], { stdio: ['pipe', 'pipe', 'pipe'] });
 const records = [], errors = [], waiters = [];
 owner.stderr.on('data', chunk => errors.push(chunk.toString()));
@@ -90,6 +90,26 @@ try {
     `Body ${window.body_id} admitted Part ${admitted.credential.part_id} on this Host and Boot. The Linux owner remains authoritative; no Plan or Play was transferred.`);
   const screenshot = path.join(output, 'browser-admitted.png');
   await page.screenshot({ path: screenshot, fullPage: true });
+  await page.locator('[data-owner-face-document] [data-owner-action]').first().waitFor();
+  const beforeFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(beforeFace.body_id, initial.biography.body_id);
+  const clockAction = beforeFace.actions.find(action => action.intent === 'conduit.intent/change-clock-interval@1');
+  assert.equal(clockAction.availability, 'available');
+  const clockControl = page.locator('[data-owner-action]').filter({ has: page.getByRole('button', { name: 'Change clock interval' }) });
+  await clockControl.getByRole('combobox').selectOption('500');
+  await clockControl.getByRole('button', { name: 'Change clock interval' }).click();
+  await page.waitForFunction(previous => {
+    const face = globalThis.__conduitOwnerParticipation.face();
+    return document.querySelector('[data-owner-action-result]')?.textContent === 'The owner accepted Change clock interval.'
+      && face?.face_revision !== previous && face?.subjects?.some(subject =>
+        subject.text.some(text => text.includes('500 milliseconds')));
+  }, beforeFace.face_revision);
+  const afterFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(afterFace.body_id, beforeFace.body_id);
+  assert.notEqual(afterFace.face_revision, beforeFace.face_revision);
+  assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
+  const changedScreenshot = path.join(output, 'browser-clock-changed.png');
+  await page.screenshot({ path: changedScreenshot, fullPage: true });
   await page.getByRole('button', { name: 'Leave this window' }).click();
   await waitRecord(record => record.schema === 'conduit.body/browser-session-ended@1');
   owner.stdin.write('{"operation":"close"}\n'); owner.stdin.end();
@@ -108,6 +128,10 @@ try {
     bodyId: final.body_id, browserHostId: identity.hostId, browserBootId: identity.bootId,
     browserPartId: admitted.credential.part_id, finalPartCount: final.membership.parts.length,
     screenshot: 'browser-admitted.png', screenshotSha256: digest(await readFile(screenshot)),
+    actionScreenshot: 'browser-clock-changed.png', actionScreenshotSha256: digest(await readFile(changedScreenshot)),
+    actionId: clockAction.identity, priorFaceId: beforeFace.face_id, priorFaceRevision: beforeFace.face_revision,
+    resultingFaceId: afterFace.face_id, resultingFaceRevision: afterFace.face_revision,
+    resultingWorksetIntervalMs: 500,
     ownerWindow: 'loopback', remoteExecution: false, serviceOwned: false,
   }, null, 2)}\n`);
   console.log(`PASS: ${path.join(output, 'report.json')}`);
