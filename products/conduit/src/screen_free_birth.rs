@@ -29,6 +29,7 @@ use patchbay_hosted::HostedPatchbayAdapter;
 
 mod audio;
 use audio::BirthSpeechOutput;
+mod command_input;
 mod input;
 mod installed;
 #[cfg(test)]
@@ -36,6 +37,11 @@ use input::MAX_SCREEN_FREE_COMMAND_BYTES;
 #[cfg(test)]
 use input::{parse_command, read_command_line, SCREEN_FREE_COMMANDS};
 pub(crate) use installed::run_installed;
+pub(crate) use installed::run_installed_spoken;
+mod selected_playback;
+mod selected_readout;
+mod speech_options;
+pub(crate) use speech_options::run as speech_options;
 
 #[cfg(test)]
 pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(), String> {
