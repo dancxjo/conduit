@@ -343,10 +343,14 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             return Err(error.into());
         }
     };
-    if last != first || hash_file(&bin)? != bin_sha256 {
+    if last != first
+        || hash_file(&bin)? != bin_sha256
+        || git(&workspace, &["rev-parse", "HEAD"])? != source_commit
+        || !git(&workspace, &["status", "--porcelain"])?.is_empty()
+    {
         manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
         return Err(
-            "owner executable, Face, or Host/Boot changed during Presenter and spoken Mask Play"
+            "source, owner executable, Face, or Host/Boot changed during Presenter and spoken Mask Play"
                 .into(),
         );
     }
