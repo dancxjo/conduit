@@ -1,12 +1,16 @@
 //! Bounded execution of one ordinary Mask Plot through its plan-sealed Fore.
 
 mod backs;
+#[cfg(any(test, feature = "native-compositor"))]
 mod interaction;
+#[cfg(any(test, feature = "native-compositor"))]
 mod prepared;
 #[cfg(test)]
 mod tests;
 use backs::MaskBack;
+#[cfg(any(test, feature = "native-compositor"))]
 pub use interaction::NativeMaskInteractionSession;
+#[cfg(any(test, feature = "native-compositor"))]
 pub use prepared::PreparedNativeMaskPlay;
 
 use alloc::{string::String, vec::Vec};

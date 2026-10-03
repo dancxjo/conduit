@@ -129,11 +129,17 @@ impl FaceArrival {
                 {
                     BirthActionOutcome::Changed => {
                         self.present_current(door, display)?;
-                        if let Some(next_focus) = next_focus {
-                            self.mask
-                                .focus_named(&next_focus, display)
-                                .map_err(|error| error.as_str())?;
-                        }
+                        let focus = next_focus.unwrap_or_else(|| FaceFocusRequest {
+                            action_id: correlation.interaction.action_id.clone(),
+                            argument_name: correlation
+                                .interaction
+                                .arguments
+                                .first()
+                                .map(|argument| argument.name.clone()),
+                        });
+                        self.mask
+                            .focus_named(&focus, display)
+                            .map_err(|error| error.as_str())?;
                         arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT edited\n");
                         Ok(FaceArrivalInput::Continue)
                     }
