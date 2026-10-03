@@ -2,17 +2,24 @@
 //! ordered PCM Host Calls; this worker only clocks admitted blocks to ALSA.
 use super::{
     HostedPlaybackSelection, PlaybackFailure, PlaybackLifecycle, PlaybackReport, PlaybackSession,
-    PERIOD_FRAMES, SAMPLE_RATE_HZ, SOURCE_CLOCK_ID, SPOKEN_QUEUE_BYTES, SPOKEN_QUEUE_FRAMES,
-    SPOKEN_START_FRAMES,
+    PERIOD_FRAMES, SAMPLE_RATE_HZ, SOURCE_CLOCK_ID, SPOKEN_QUEUE_BLOCKS, SPOKEN_QUEUE_BYTES,
+    SPOKEN_QUEUE_FRAMES, SPOKEN_START_FRAMES,
 };
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use std::collections::VecDeque;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 
-const MAXIMUM_BLOCKS: usize = conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS as usize;
+const MAXIMUM_TOTAL_BLOCKS: usize =
+    conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS as usize;
 const MAXIMUM_BLOCK_BYTES: usize =
     conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES as usize;
+pub(super) const SPOKEN_QUEUE_STORAGE_BYTES: u32 =
+    (SPOKEN_QUEUE_BLOCKS * std::mem::size_of::<Block>()) as u32;
+const _: () = {
+    assert!(MAXIMUM_TOTAL_BLOCKS > SPOKEN_QUEUE_BLOCKS);
+    assert!(SPOKEN_QUEUE_BYTES as usize == SPOKEN_QUEUE_BLOCKS * std::mem::size_of::<Block>());
+};
 
 struct Block {
     bytes: [u8; MAXIMUM_BLOCK_BYTES],
@@ -51,7 +58,7 @@ impl StagedPlaybackSession {
     pub(super) fn prepare(selection: HostedPlaybackSelection) -> Result<Self, String> {
         let mut blocks = VecDeque::new();
         blocks
-            .try_reserve_exact(MAXIMUM_BLOCKS)
+            .try_reserve_exact(SPOKEN_QUEUE_BLOCKS)
             .map_err(|_| "cannot admit bounded spoken playback queue".to_string())?;
         let shared = Arc::new((
             Mutex::new(Queue {
@@ -111,13 +118,13 @@ impl StagedPlaybackSession {
             .ok_or(PlaybackFailure::InvalidPcm)?;
         let next_total = self.total_frames + u64::from(header.frame_count);
         if next_total > 16_384 * u64::from(SAMPLE_RATE_HZ) / 1000
-            || self.blocks_accepted >= MAXIMUM_BLOCKS as u32
+            || self.blocks_accepted >= MAXIMUM_TOTAL_BLOCKS as u32
         {
             return Err(PlaybackFailure::StagingExceeded);
         }
         let (lock, ready) = &*self.shared;
         let mut queue = lock.lock().map_err(|_| PlaybackFailure::WriteFailed)?;
-        while queue.blocks.len() == MAXIMUM_BLOCKS
+        while queue.blocks.len() == SPOKEN_QUEUE_BLOCKS
             || queue.queued_frames + u32::from(header.frame_count) > SPOKEN_QUEUE_FRAMES
         {
             queue.started = true;

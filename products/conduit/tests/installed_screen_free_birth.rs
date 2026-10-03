@@ -223,6 +223,92 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
     fs::remove_dir_all(state).unwrap();
 }
 
+/// Local device evidence only: the receipt proves selected ALSA drain, not
+/// that a person heard the speaker or that another Host has this route.
+#[test]
+#[ignore = "requires explicit ALSA card/device, installed eSpeak NG, and a real speaker"]
+fn selected_installed_birth_speaks_one_current_face_clause() {
+    let card = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_CARD").unwrap();
+    let device = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_DEVICE").unwrap();
+    let options = product(&["body", "speech-options", "--json"]);
+    assert!(options.status.success());
+    let options: Value = serde_json::from_slice(&options.stdout).unwrap();
+    assert_eq!(options["schema"], "conduit.body/local-speech-options@1");
+    assert!(options["speakers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|speaker| {
+            speaker["card_id"] == card
+                && speaker["device"].as_u64() == Some(device.parse::<u64>().unwrap())
+        }));
+    let [provider] = options["providers"].as_array().unwrap().as_slice() else {
+        panic!("local proof requires exactly one verified eSpeak provider");
+    };
+    let state = std::env::temp_dir().join(format!(
+        "conduit-selected-birth-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&state).unwrap();
+    seed_installation(&state);
+    let mut service = start_service(&state);
+    let output = product_with_stdin(
+        &[
+            "body",
+            "birth",
+            "--screen-free",
+            "--state-dir",
+            path(&state),
+            "--speak",
+            "--speaker-card",
+            &card,
+            "--speaker-device",
+            &device,
+            "--speech-executable",
+            provider["executable"].as_str().unwrap(),
+            "--speech-data",
+            provider["data"].as_str().unwrap(),
+            "--speech-engine",
+            provider["engine"].as_str().unwrap(),
+        ],
+        b"stop\nfocus creche.name\n",
+    );
+    assert!(
+        output.status.success(),
+        "selected playback failed: {}\n{}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let receipts = stdout
+        .lines()
+        .filter_map(|line| {
+            line.find('{')
+                .and_then(|start| serde_json::from_str::<Value>(&line[start..]).ok())
+        })
+        .filter(|receipt| receipt["schema"] == "conduit.body/spoken-face-playback@1")
+        .collect::<Vec<_>>();
+    let played = receipts
+        .iter()
+        .find(|receipt| receipt["outcome"] == "Completed")
+        .expect("selected speaker did not complete a Play");
+    assert_eq!(played["speaker_lifecycle"], "StoppedClosed");
+    assert_eq!(played["provider_sha256"], provider["provider_sha256"]);
+    assert!(
+        played["speaker_blocks_committed"].as_u64().unwrap() > 3_072,
+        "selected speech must drain a real multi-block utterance beyond the old 3.48s cap"
+    );
+    assert!(played["speaker_frames_committed"].as_u64().unwrap() > 0);
+    eprintln!("selected installed spoken playback receipt: {played}");
+    assert!(stdout.contains("conduit.body/spoken-face-turn@1"));
+    stop_service(&mut service);
+    fs::remove_dir_all(state).unwrap();
+}
+
 fn seed_installation(state: &Path) {
     let executable = state.join("installed-conduit");
     fs::write(&executable, b"reviewed installed product image").unwrap();

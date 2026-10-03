@@ -11,38 +11,88 @@ use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecuti
 use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 
 use super::{
+    command_input::{CommandInput, DirectInput, InputEvent, SpokenInput},
     debug_error,
-    input::{parse_command, read_command_line, SCREEN_FREE_COMMANDS},
+    input::{parse_command, SCREEN_FREE_COMMANDS},
+    selected_playback::SelectedPlayback,
+    selected_readout::{emit_readout, OutputPhase},
 };
-use crate::durable_host_control::{self, BirthTransition};
+use crate::{
+    cli::BirthSpeechOptions,
+    durable_host_control::{self, BirthTransition},
+};
 
 pub(crate) fn run_installed(
     state_dir: &Path,
     input: &mut impl BufRead,
     output: &mut impl Write,
 ) -> Result<(), String> {
+    run_with_input(state_dir, &mut DirectInput(input), output, None)
+}
+
+pub(crate) fn run_installed_spoken(
+    state_dir: &Path,
+    options: &BirthSpeechOptions,
+    output: &mut impl Write,
+) -> Result<(), String> {
+    let mut input = SpokenInput::from_stdin()?;
+    run_with_input(state_dir, &mut input, output, Some(options))
+}
+
+fn run_with_input(
+    state_dir: &Path,
+    input: &mut impl CommandInput,
+    output: &mut impl Write,
+    speech_options: Option<&BirthSpeechOptions>,
+) -> Result<(), String> {
     let (mut face, advertisement) = durable_host_control::birth_face(state_dir)?;
+    let playback = speech_options
+        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .transpose()?;
     let mut execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
     let mut show = present(&face, &mut execution, output)?;
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
-    writeln!(output, "Installed Host screen-free Birth. Text readout; no speech audio has been produced. {SCREEN_FREE_COMMANDS}")
-        .map_err(|error| error.to_string())?;
+    writeln!(
+        output,
+        "Installed Host screen-free Birth. {} {SCREEN_FREE_COMMANDS}",
+        if playback.is_some() {
+            "Selected speaker playback; receipts follow each drained Play."
+        } else {
+            "Text readout; no speech audio has been produced."
+        }
+    )
+    .map_err(|error| error.to_string())?;
     let mut sequence = 1_u64;
-    read_all(&mut reader, &face, &show, sequence, output)?;
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, sequence)
+        .map_err(debug_error)?;
+    emit_readout(
+        state_dir,
+        input,
+        playback.as_ref(),
+        &mut reader,
+        &face,
+        &show,
+        &advertisement,
+        &mut sequence,
+        OutputPhase::Birth,
+        output,
+    )?;
 
     loop {
         write!(output, "birth> ").map_err(|error| error.to_string())?;
         output.flush().map_err(|error| error.to_string())?;
-        let line = match read_command_line(input).map_err(|error| error.to_string())? {
-            Ok(Some(line)) => line,
-            Ok(None) => {
+        let line = match input.next() {
+            InputEvent::Line(line) => line,
+            InputEvent::Eof => {
                 execution.close_without_input().map_err(debug_error)?;
                 return Ok(());
             }
-            Err(message) => {
+            InputEvent::Refused(message) => {
                 writeln!(output, "Refused input: {message}").map_err(|error| error.to_string())?;
                 continue;
             }
+            InputEvent::Io(error) => return Err(error),
         };
         if line == "quit" {
             execution.close_without_input().map_err(debug_error)?;
@@ -64,7 +114,18 @@ pub(crate) fn run_installed(
                 continue;
             }
         };
-        super::emit_readout(&mut reader, &face, &show, None, output)?;
+        emit_readout(
+            state_dir,
+            input,
+            playback.as_ref(),
+            &mut reader,
+            &face,
+            &show,
+            &advertisement,
+            &mut sequence,
+            OutputPhase::Birth,
+            output,
+        )?;
         let Some(interaction) = result.interaction else {
             continue;
         };
@@ -92,7 +153,18 @@ pub(crate) fn run_installed(
                 reader
                     .refresh(face.clone(), show.clone())
                     .map_err(debug_error)?;
-                super::emit_readout(&mut reader, &face, &show, None, output)?;
+                emit_readout(
+                    state_dir,
+                    input,
+                    playback.as_ref(),
+                    &mut reader,
+                    &face,
+                    &show,
+                    &advertisement,
+                    &mut sequence,
+                    OutputPhase::Birth,
+                    output,
+                )?;
                 continue;
             }
         };
@@ -105,7 +177,18 @@ pub(crate) fn run_installed(
                 reader
                     .refresh(face.clone(), show.clone())
                     .map_err(debug_error)?;
-                super::emit_readout(&mut reader, &face, &show, None, output)?;
+                emit_readout(
+                    state_dir,
+                    input,
+                    playback.as_ref(),
+                    &mut reader,
+                    &face,
+                    &show,
+                    &advertisement,
+                    &mut sequence,
+                    OutputPhase::Birth,
+                    output,
+                )?;
             }
             BirthTransition::Born {
                 body_id,
@@ -120,7 +203,7 @@ pub(crate) fn run_installed(
                     body_id.as_str()
                 )
                 .map_err(|error| error.to_string())?;
-                return run_body(state_dir, body_id, presentation, input, output);
+                return run_body(state_dir, body_id, presentation, input, playback, output);
             }
         }
     }
@@ -130,7 +213,8 @@ fn run_body(
     state_dir: &Path,
     body_id: conduit_body::BodyId,
     mut face: Presentation,
-    input: &mut impl BufRead,
+    input: &mut impl CommandInput,
+    playback: Option<SelectedPlayback>,
     output: &mut impl Write,
 ) -> Result<(), String> {
     let (current, mut advertisement) = durable_host_control::local_face_snapshot(state_dir)?;
@@ -148,20 +232,35 @@ fn run_body(
     )
     .map_err(|error| error.to_string())?;
     let mut sequence = 1_u64;
-    read_all(&mut reader, &face, &show, sequence, output)?;
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, sequence)
+        .map_err(debug_error)?;
+    emit_readout(
+        state_dir,
+        input,
+        playback.as_ref(),
+        &mut reader,
+        &face,
+        &show,
+        &advertisement,
+        &mut sequence,
+        OutputPhase::Body,
+        output,
+    )?;
     loop {
         write!(output, "body> ").map_err(|error| error.to_string())?;
         output.flush().map_err(|error| error.to_string())?;
-        let line = match read_command_line(input).map_err(|error| error.to_string())? {
-            Ok(Some(line)) => line,
-            Ok(None) => {
+        let line = match input.next() {
+            InputEvent::Line(line) => line,
+            InputEvent::Eof => {
                 execution.close_without_input().map_err(debug_error)?;
                 return Ok(());
             }
-            Err(message) => {
+            InputEvent::Refused(message) => {
                 writeln!(output, "Refused input: {message}").map_err(|error| error.to_string())?;
                 continue;
             }
+            InputEvent::Io(error) => return Err(error),
         };
         if line == "quit" {
             execution.close_without_input().map_err(debug_error)?;
@@ -185,7 +284,18 @@ fn run_body(
                 .map_err(debug_error)?;
             writeln!(output, "Owner Face changed to revision {}.", face.revision)
                 .map_err(|error| error.to_string())?;
-            super::emit_readout(&mut reader, &face, &show, None, output)?;
+            emit_readout(
+                state_dir,
+                input,
+                playback.as_ref(),
+                &mut reader,
+                &face,
+                &show,
+                &advertisement,
+                &mut sequence,
+                OutputPhase::Body,
+                output,
+            )?;
         }
         if line == "refresh" {
             writeln!(output, "Owner Face revision {} is current.", face.revision)
@@ -208,7 +318,18 @@ fn run_body(
                 continue;
             }
         };
-        super::emit_readout(&mut reader, &face, &show, None, output)?;
+        emit_readout(
+            state_dir,
+            input,
+            playback.as_ref(),
+            &mut reader,
+            &face,
+            &show,
+            &advertisement,
+            &mut sequence,
+            OutputPhase::Body,
+            output,
+        )?;
         if let Some(interaction) = result.interaction {
             let correlated = execution.interact(interaction).map_err(debug_error)?;
             match durable_host_control::submit_local_face_interaction(
@@ -232,7 +353,18 @@ fn run_body(
             reader
                 .refresh(face.clone(), show.clone())
                 .map_err(debug_error)?;
-            super::emit_readout(&mut reader, &face, &show, None, output)?;
+            emit_readout(
+                state_dir,
+                input,
+                playback.as_ref(),
+                &mut reader,
+                &face,
+                &show,
+                &advertisement,
+                &mut sequence,
+                OutputPhase::Body,
+                output,
+            )?;
         }
     }
 }
@@ -248,17 +380,4 @@ fn present(
     mask.show()
         .cloned()
         .ok_or_else(|| "terminal did not acknowledge a Show".into())
-}
-
-fn read_all(
-    reader: &mut SpokenFaceSession,
-    face: &Presentation,
-    show: &MaskShow,
-    sequence: u64,
-    output: &mut impl Write,
-) -> Result<(), String> {
-    reader
-        .command(face, show, ReaderCommand::ReadAll, sequence)
-        .map_err(debug_error)?;
-    super::emit_readout(reader, face, show, None, output)
 }

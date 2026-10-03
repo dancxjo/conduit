@@ -149,6 +149,28 @@ fn selected_fake_playback(
     (config, selection, authorization)
 }
 
+#[test]
+fn selected_playback_block_admission_covers_its_declared_duration() {
+    let blocks = 16_384_u64;
+    let millis = 16_384_u64;
+    let source_frames_per_block = u64::from(conduit_std_offers::SPEECH_FRAMES_PER_BLOCK);
+    let required = (millis * 22_050).div_ceil(source_frames_per_block * 1_000)
+        + u64::try_from(conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS).unwrap();
+    assert!(
+        3_072 < required,
+        "the former admission was shorter than its duration"
+    );
+    assert!(blocks >= required);
+    assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_BLOCKS));
+    assert_eq!(
+        SPOKEN_PLAYBACK_PLOT
+            .matches("maximum-blocks = 16384, maximum-audio-millis = 16384")
+            .count(),
+        2,
+        "converter and speaker must admit the full declared duration"
+    );
+}
+
 fn deterministic_playback(
     behavior: FakePlaybackBehavior,
     control: &crate::RunControl,
