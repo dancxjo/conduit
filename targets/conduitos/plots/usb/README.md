@@ -60,6 +60,15 @@ input seam does not install a USB Host Call, grant endpoint possession or prove
 asynchronous cancellation, reusable rings, class execution or native OUT-data
 device compatibility. Those require the remaining stack work below.
 
+Native control completion retains a short Data Stage residue until the final
+Status Stage succeeds; status success cannot replace the actual data count.
+Duplicate stages, foreign slot/endpoint identities and malformed counts remain
+distinct refusals. The legacy descriptor read overrequests 64 octets and still
+requires exactly 18 returned descriptor octets. The x86_64 emulator proof now
+requires an observed short transfer, followed by successful status and device
+configuration. This demonstrates native stage handling, not plotted enumeration
+or cancellation/quiescence proof.
+
 ## Check the groundwork
 
 ```sh
