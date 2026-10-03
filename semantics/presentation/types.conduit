@@ -352,6 +352,9 @@ type FaceUtteranceClauseKind =
     | text
     | action
     | action_argument
+    | disclosure
+    | temporal_reference
+    | temporal_fact
 
 type FaceUtteranceProvenance =
     subject {
@@ -374,6 +377,15 @@ type FaceUtteranceProvenance =
         argument_name: Text <= 256B not in [""]
     }
     | property {
+        index: U32
+    }
+    | disclosure {
+        index: U32
+    }
+    | temporal_reference {
+        index: U32
+    }
+    | temporal_fact {
         index: U32
     }
 
