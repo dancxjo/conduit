@@ -200,3 +200,47 @@ fn duration_refusal_is_transactional_and_distinct_from_shape_and_storage() {
     ));
     assert_eq!(storage, [77; 2]);
 }
+
+#[test]
+fn timed_intake_preserves_an_explicit_phone_and_its_neighbor_model() {
+    use conduit_speech::{
+        realize, EnglishPhone, EnglishPhoneme, EnglishPosition, EnglishStress, RealizationInput,
+        Renderer, VoiceEvent,
+    };
+    let input = RealizationInput {
+        phoneme: EnglishPhoneme::t,
+        position: EnglishPosition::initial,
+        stress: EnglishStress::primary,
+    };
+    let mut selected = realize(input).unwrap();
+    selected.phone = EnglishPhone::t;
+    let events = [VoiceEvent::selected(selected), event()];
+    let durations = [
+        SpeechExactDuration::new(8000, 320).unwrap(),
+        SpeechExactDuration::new(8000, 640).unwrap(),
+    ];
+    let mut storage = [0; 2];
+    let prepared = prepare_duration_render(&events, &durations, &mut storage).unwrap();
+    let actual = render(prepared.renderer(), 63);
+    let plain = [
+        VoiceEvent::segment(RealizationInput {
+            position: EnglishPosition::medial,
+            ..input
+        }),
+        events[1],
+    ];
+    assert_eq!(
+        actual,
+        render(Renderer::prepare_timed(&plain, &[320, 640]).unwrap(), 128)
+    );
+    let inferred = [VoiceEvent::segment(input), events[1]];
+    assert_ne!(
+        actual,
+        render(
+            Renderer::prepare_timed(&inferred, &[320, 640]).unwrap(),
+            128
+        )
+    );
+    assert_eq!(events[0], VoiceEvent::selected(selected));
+    assert_eq!(prepared.spans()[0].duration(), &durations[0]);
+}

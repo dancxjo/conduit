@@ -44,7 +44,8 @@ and reconstructs the law-checked native result.
 This is the first shared-intent prerequisite for
 [#4898](https://github.com/dancxjo/conduit/issues/4898) and
 [#4907](https://github.com/dancxjo/conduit/issues/4907). The current compact
-renderer still consumes its existing event tape; rich-to-compact realization,
+renderer consumes its existing event tape with optional exact-duration projection;
+full rich-to-compact segment realization,
 linguistic analysis, commitment and FARGAN execution remain unfinished. The
 new intent does not claim that artifact references have been resolved, that
 uncertain values have been committed, or that both voices already consume it.

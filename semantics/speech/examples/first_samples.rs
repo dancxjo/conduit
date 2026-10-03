@@ -10,6 +10,7 @@ mod duration_samples;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output = std::env::args().nth(1).ok_or("output directory required")?;
     fs::create_dir_all(&output)?;
+    println!("checked speech source: {}", conduit_speech::SOURCE_ID);
     for (name, phones) in [
         (
             "hello-world",
