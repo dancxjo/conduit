@@ -149,7 +149,9 @@ impl<'a> VirtioTcpStream<'a> {
         Err(VirtioTcpError::Timeout)
     }
 
-    pub(crate) fn close_tcp(mut self) -> Result<u32, VirtioTcpError> {
+    /// Return the same admitted VirtIO-net device after the TCP session
+    /// retires. The hardware is initialized only once per Boot.
+    pub(crate) fn close_tcp_with_device(mut self) -> Result<(VirtioNetReady, u32), VirtioTcpError> {
         self.sockets.get_mut::<tcp::Socket>(self.handle).close();
         for _ in 0..self.maximum_polls {
             self.poll()?;
@@ -159,7 +161,7 @@ impl<'a> VirtioTcpStream<'a> {
                 tcp::State::Closed | tcp::State::FinWait2 | tcp::State::TimeWait
             ) {
                 socket.abort();
-                return Ok(self.polls);
+                return Ok((self.adapter.into_ready(), self.polls));
             }
         }
         Err(VirtioTcpError::Timeout)

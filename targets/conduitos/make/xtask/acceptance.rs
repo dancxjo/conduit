@@ -130,6 +130,8 @@ pub(super) struct OwnerBootRoute {
     pub candidate_id: String,
     pub reachability: String,
     pub artifact_sha256: String,
+    pub build_id: String,
+    pub source_identity: String,
 }
 
 pub(super) fn owner_boot_route(
@@ -190,6 +192,8 @@ pub(super) fn owner_boot_route(
         candidate_id: candidate.candidate_id.clone(),
         reachability: candidate.reachability.clone(),
         artifact_sha256: admitted.artifact_sha256,
+        build_id: admitted.provision.spore.build_id,
+        source_identity: admitted.provision.spore.source_identity,
     })
 }
 

@@ -13,7 +13,7 @@ use crate::{
 use conduit_birth_plot::{BirthActionOutcome, BirthFaceBasis};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_human::KeyEvent;
-use conduit_presentation::Presentation;
+use conduit_presentation::{FaceInteraction, MaskShow, Presentation};
 
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
@@ -21,6 +21,7 @@ pub(super) struct FaceArrival {
     next_observation: u64,
     next_play: u64,
     next_interaction: u64,
+    owner_face: Option<Presentation>,
 }
 
 pub(super) enum FaceArrivalInput {
@@ -60,6 +61,7 @@ impl FaceArrival {
             next_observation: 1,
             next_play: 1,
             next_interaction: 1,
+            owner_face: None,
         })
     }
 
@@ -98,6 +100,7 @@ impl FaceArrival {
     pub(super) fn present_owner_face(
         &mut self,
         face: Presentation,
+        interactions_admitted: bool,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         let face_id: alloc::string::String = face.identity.as_str().into();
@@ -108,10 +111,14 @@ impl FaceArrival {
             .checked_add(1)
             .ok_or("owner-face-observation-bound")?;
         self.next_play = play.checked_add(1).ok_or("owner-face-play-bound")?;
-        let receipt = self
-            .mask
-            .present_read_only(face, observation, play, display)
-            .map_err(|error| error.as_str())?;
+        self.owner_face = Some(face.clone());
+        let receipt = if interactions_admitted {
+            self.mask.present(face, observation, play, display)
+        } else {
+            self.mask
+                .present_read_only(face, observation, play, display)
+        }
+        .map_err(|error| error.as_str())?;
         let show = self.mask.show().ok_or("owner-face-show-absent")?;
         let evidence = serde_json::to_vec(&serde_json::json!({
             "schema": "conduit.conduitos/native-owner-face@1",
@@ -120,8 +127,8 @@ impl FaceArrival {
             "face_revision": revision,
             "show_id": show.show_id.as_str(),
             "show_acknowledged": true,
-            "interactions_admitted": false,
-            "continuing_owner_route": false,
+            "interactions_admitted": interactions_admitted,
+            "continuing_owner_route": interactions_admitted,
         }))
         .map_err(|_| "owner-face-evidence-encoding-invalid")?;
         if evidence.len() > 1_024 {
@@ -133,13 +140,14 @@ impl FaceArrival {
         Ok(receipt)
     }
 
-    /// A one-shot snapshot permits only Mask-local reading after scanout.
-    /// It has no admitted path for a semantic action to reach the owner.
+    /// Mask-local reading stays local. A submitted occurrence leaves through
+    /// the typed interaction Fore and must be checked by the installed owner.
     pub(super) fn accept_guest_key(
         &mut self,
         event: KeyEvent,
         display: &mut impl PixelTarget,
-    ) -> Result<(), &'static str> {
+    ) -> Result<Option<(MaskShow, FaceInteraction)>, &'static str> {
+        let show = self.mask.show().cloned().ok_or("owner-face-show-absent")?;
         let sequence = self.next_interaction;
         self.next_interaction = sequence.checked_add(1).ok_or("owner-face-input-bound")?;
         match self
@@ -147,9 +155,59 @@ impl FaceArrival {
             .key(event, sequence, display)
             .map_err(|error| error.as_str())?
         {
-            NativeFaceMaskInput::Unchanged | NativeFaceMaskInput::Redrawn(_) => Ok(()),
-            NativeFaceMaskInput::Submitted { .. } => Err("owner-face-action-route-unadmitted"),
+            NativeFaceMaskInput::Unchanged | NativeFaceMaskInput::Redrawn(_) => Ok(None),
+            NativeFaceMaskInput::Submitted { correlation, .. } => {
+                Ok(Some((show, correlation.interaction)))
+            }
         }
+    }
+
+    pub(super) fn retire_owner_route(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        let face = self.owner_face.clone().ok_or("owner-face-absent")?;
+        self.present_owner_face(face, false, display)?;
+        Ok(())
+    }
+
+    pub(super) fn show_owner_result(
+        &mut self,
+        accepted: bool,
+        refreshed: bool,
+        code: &str,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        let code = if code.len() <= 75 && code.bytes().all(|byte| (32..=126).contains(&byte)) {
+            code
+        } else {
+            "interaction-refused"
+        };
+        let message = if code == "control-outcome-unknown" {
+            "Owner outcome unknown; check current Face".into()
+        } else if accepted && refreshed {
+            "Owner accepted: current Face refreshed".into()
+        } else if accepted {
+            "Owner accepted; Face unavailable".into()
+        } else {
+            alloc::format!("Owner refused: {code}")
+        };
+        self.mask
+            .show_local_notice(&message, display)
+            .map_err(|error| error.as_str())?;
+        Ok(())
+    }
+
+    pub(super) fn show_local_refusal(
+        &mut self,
+        code: &str,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        let message = alloc::format!("Input refused: {code}");
+        self.mask
+            .show_local_notice(&message, display)
+            .map_err(|error| error.as_str())?;
+        Ok(())
     }
 
     fn present_current(

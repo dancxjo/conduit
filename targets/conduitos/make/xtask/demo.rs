@@ -99,7 +99,11 @@ pub(crate) fn boot_visible_image_with_network(
     Ok(())
 }
 
-fn qemu_args<'a>(iso: &'a str, netdev: Option<&'a str>, qmp: Option<&'a str>) -> Vec<&'a str> {
+pub(super) fn qemu_args<'a>(
+    iso: &'a str,
+    netdev: Option<&'a str>,
+    qmp: Option<&'a str>,
+) -> Vec<&'a str> {
     let mut args = vec![
         "-M",
         "q35",

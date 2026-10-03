@@ -7,7 +7,7 @@
 use alloc::string::{String, ToString};
 use conduit_birth_plot::BirthFaceBasis;
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
-use conduit_human::KeyEvent;
+use conduit_human::{KeyEvent, KeyTransition};
 use conduit_presentation::{
     FaceInteraction, MaskInteractionCorrelation, MaskShow, Presentation, PresentationRole,
 };
@@ -153,6 +153,19 @@ impl NativeFaceMask {
 
     pub fn scene(&self) -> Option<&NativeFaceScene> {
         self.scene.as_ref()
+    }
+
+    pub fn show_local_notice(
+        &mut self,
+        notice: &str,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, NativeFaceMaskError> {
+        self.scene
+            .as_mut()
+            .ok_or(NativeFaceMaskError::Face)?
+            .set_local_notice(notice)
+            .map_err(NativeFaceMaskError::Scene)?;
+        self.repaint(display)
     }
 
     /// Restore a Mask-local focus request only after the semantic owner has
@@ -352,12 +365,15 @@ impl NativeFaceMask {
             return Err(NativeFaceMaskError::Face);
         }
         let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
-        let result = self
-            .scene
-            .as_mut()
-            .ok_or(NativeFaceMaskError::Face)?
+        let scene = self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?;
+        let cleared_notice =
+            event.transition() == KeyTransition::Pressed && scene.clear_local_notice();
+        let result = scene
             .key(event, &show, sequence)
             .map_err(NativeFaceMaskError::Scene)?;
+        if cleared_notice && matches!(result, FaceSceneInput::Unchanged) {
+            return self.repaint(display).map(NativeFaceMaskInput::Redrawn);
+        }
         self.accept_scene_input(result, display)
     }
 
