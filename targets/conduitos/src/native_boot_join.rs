@@ -13,7 +13,8 @@ use crate::{
     arch,
     cryptographic_entropy::CryptographicEntropyBase,
     identity::BootIdentities,
-    native_owner_admission::{self, OwnerRouteSeeds},
+    native_guest_face::NativeGuestFace,
+    native_owner_admission::{self, NativeOwnerFaceExchangeRefusal, OwnerRouteSeeds},
     spore_join::{OwnerExchange, PendingNativeJoin},
     virtio_tcp::VirtioTcpEndpoint,
     wss_candidate_support::literal_ipv4_locator,
@@ -25,6 +26,9 @@ pub struct BootJoinOutcome {
     pub pending: PendingNativeJoin,
     /// An exact owner decision; a later product transition must install it.
     pub receipt: Option<PortableAdmissionReceipt>,
+    /// A bounded owner Face request follows the verified receipt on the same
+    /// authenticated Line. Its refusal never revokes the admitted Part.
+    pub face: Option<Result<NativeGuestFace, NativeOwnerFaceExchangeRefusal>>,
 }
 
 pub fn attempt(
@@ -36,27 +40,32 @@ pub fn attempt(
         return BootJoinOutcome {
             pending,
             receipt: None,
+            face: None,
         };
     };
     let result = request
         .as_ref()
         .ok_or("owner-admission-request-missing")
         .and_then(|request| exchange(route, &pending.route_certificates, request, identities));
-    let receipt = match result {
-        Ok(receipt) => {
+    let (receipt, face) = match result {
+        Ok(exchange) => {
             pending.owner_exchange = OwnerExchange::ReceiptVerified;
             arch::early_write(b"CONDUIT_NATIVE_OWNER_ADMISSION {\"schema\":\"conduit.conduitos/native-owner-admission@1\",\"status\":\"receipt-verified\",\"membership_installed\":false,\"plan_created\":false,\"play_created\":false}\n");
-            Some(receipt)
+            (Some(exchange.receipt), Some(exchange.face))
         }
         Err(reason) => {
             pending.owner_exchange = OwnerExchange::Refused(reason);
             arch::early_write(b"CONDUIT_NATIVE_OWNER_ADMISSION {\"schema\":\"conduit.conduitos/native-owner-admission@1\",\"status\":\"refused\",\"reason\":\"");
             arch::early_write(reason.as_bytes());
             arch::early_write(b"\",\"membership_installed\":false,\"plan_created\":false,\"play_created\":false}\n");
-            None
+            (None, None)
         }
     };
-    BootJoinOutcome { pending, receipt }
+    BootJoinOutcome {
+        pending,
+        receipt,
+        face,
+    }
 }
 
 fn exchange(
@@ -64,7 +73,7 @@ fn exchange(
     certificates: &[crate::spore_provision::RouteCertificate],
     request: &RoutedAdmissionRequest,
     identities: BootIdentities,
-) -> Result<PortableAdmissionReceipt, &'static str> {
+) -> Result<native_owner_admission::NativeOwnerAdmissionExchange, &'static str> {
     let candidate = route
         .candidates
         .iter()
