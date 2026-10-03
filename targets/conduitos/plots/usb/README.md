@@ -49,6 +49,17 @@ The trusted native mapping owner must enforce those invariants independently.
 USB class plots consume class-neutral bounded transfers; they must not be given
 arbitrary controller-register programming authority.
 
+`src/usb_base/control_request` validates an immutable eight-octet setup word
+and a borrowed bounded OUT payload on every architecture. It preserves class
+opcodes and request parameters without probe policy. Direction/length checks
+reject extra IN payload and mismatched OUT payload. The native x86_64 control
+module consumes this same input and independently enforces its actual DMA
+buffer size; a broader request bound cannot broaden that storage. Legacy
+enumeration still constructs its requests in Rust, as migration debt. This raw
+input seam does not install a USB Host Call, grant endpoint possession or prove
+asynchronous cancellation, reusable rings, class execution or native OUT-data
+device compatibility. Those require the remaining stack work below.
+
 ## Check the groundwork
 
 ```sh
