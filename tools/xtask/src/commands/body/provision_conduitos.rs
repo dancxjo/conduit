@@ -2,19 +2,20 @@
 
 use std::{
     fs::{self, File, OpenOptions},
-    io::Write,
+    io::{Cursor, Write},
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use clap::Args as ClapArgs;
-use conduit_body::PortableInvitation;
+use conduit_body::{PortableInvitation, RendezvousLineFamily, SpawnRendezvousDescriptor};
 use conduit_body_make::{
     seal_reviewed_prebuilt_body_spore_with_content_digest, SelectedPrebuiltContent, SporeBinding,
 };
 use conduit_host_make::HostImage;
 use conduitos::spore_provision::{
-    decode as decode_native_media, validate_image_binding, MAGIC, REGION_BYTES,
+    decode as decode_native_media, validate_image_binding, validate_route_certificates,
+    RouteCertificate, MAGIC, MAX_ROUTE_CERTIFICATE_BYTES, REGION_BYTES,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -41,6 +42,9 @@ pub(super) struct Args {
     /// Fresh JSON invitation issued by the running Body owner.
     #[arg(long)]
     invitation: PathBuf,
+    /// Repeat for each distinct TLS leaf certificate named by the owner route.
+    #[arg(long = "route-tls-cert")]
+    route_tls_certs: Vec<PathBuf>,
     /// New, private provisioned ISO; an existing path is refused.
     #[arg(long)]
     output: PathBuf,
@@ -109,6 +113,8 @@ pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn std::erro
     {
         return Err("checked Body spore differs from the owner's exact invitation".into());
     }
+    let route_certificates =
+        certificates_for_route(invitation.rendezvous.as_ref(), &args.route_tls_certs)?;
     let provision = serde_json::json!({
         "schema": "conduit.spore/native-media-provision@1",
         "image_bytes": image_bytes.len(),
@@ -120,6 +126,7 @@ pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn std::erro
             "secret": invitation.secret,
             "rendezvous_candidates": [],
             "rendezvous": invitation.rendezvous.as_ref(),
+            "route_certificates": route_certificates,
         }
     });
     let mut encoded = serde_json::to_vec(&provision)?;
@@ -163,6 +170,66 @@ pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn std::erro
         println!("membership: pending owner admission");
     }
     Ok(())
+}
+
+fn certificates_for_route(
+    rendezvous: Option<&SpawnRendezvousDescriptor>,
+    paths: &[PathBuf],
+) -> Result<Vec<RouteCertificate>, Box<dyn std::error::Error>> {
+    if rendezvous.is_none() && !paths.is_empty() {
+        return Err("unrouted invitation cannot use an owner route certificate".into());
+    }
+    if paths.len() > conduit_body::MAX_RENDEZVOUS_CANDIDATES {
+        return Err("owner route certificate count exceeds the finite candidate bound".into());
+    }
+    let mut supplied = Vec::new();
+    for path in paths {
+        let bytes = read_regular(path, 8 * 1024)?;
+        let mut reader = Cursor::new(bytes);
+        let certificates = rustls_pemfile::certs(&mut reader).collect::<Result<Vec<_>, _>>()?;
+        let leaf = certificates
+            .first()
+            .ok_or("owner route certificate PEM contains no certificate")?;
+        let der = leaf.as_ref().to_vec();
+        if der.is_empty() || der.len() > MAX_ROUTE_CERTIFICATE_BYTES {
+            return Err("owner route leaf certificate exceeds the native TLS bound".into());
+        }
+        let digest: [u8; 32] = Sha256::digest(&der).into();
+        if supplied.iter().any(|(prior, _)| *prior == digest) {
+            return Err("duplicate owner route leaf certificate".into());
+        }
+        supplied.push((digest, der));
+    }
+    let mut selected = Vec::new();
+    if let Some(rendezvous) = rendezvous {
+        for candidate in &rendezvous.candidates {
+            if candidate.line_family == RendezvousLineFamily::AuthenticatedTlsStream {
+                let (_, der) = supplied
+                    .iter()
+                    .find(|(digest, _)| {
+                        *digest == candidate.authentication.transport_binding_sha256
+                    })
+                    .ok_or("owner route TLS certificate does not match its invitation binding")?;
+                selected.push(RouteCertificate {
+                    candidate_id: candidate.candidate_id.clone(),
+                    certificate_der: der.clone(),
+                });
+            }
+        }
+    }
+    if supplied.iter().any(|(digest, _)| {
+        !rendezvous.is_some_and(|route| {
+            route.candidates.iter().any(|candidate| {
+                candidate.line_family == RendezvousLineFamily::AuthenticatedTlsStream
+                    && candidate.authentication.transport_binding_sha256 == *digest
+            })
+        })
+    }) {
+        return Err("owner route certificate was not named by the invitation".into());
+    }
+    validate_route_certificates(rendezvous, &selected)
+        .map_err(|_| "owner route certificate lost its exact candidate binding")?;
+    Ok(selected)
 }
 
 fn read_regular(path: &Path, maximum: u64) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
@@ -247,8 +314,14 @@ fn sha256(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        blank_region, encode_region, locate_blank_region, write_private_new, REGION_BYTES,
+        blank_region, certificates_for_route, encode_region, locate_blank_region,
+        write_private_new, REGION_BYTES,
     };
+    use conduit_body::{
+        RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily,
+        SpawnRendezvousDescriptor, RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+    };
+    use sha2::{Digest, Sha256};
 
     #[test]
     fn refuses_missing_and_ambiguous_native_media_regions() {
@@ -295,6 +368,54 @@ mod tests {
             );
         }
         std::fs::remove_file(output).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
+    fn route_certificate_is_selected_only_by_its_exact_owner_binding() {
+        let der = [0x30, 0x03, 0x02, 0x01, 0x01];
+        let binding: [u8; 32] = Sha256::digest(der).into();
+        let route = SpawnRendezvousDescriptor {
+            protocol: RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+            body_id: "body/one".into(),
+            invitation_id: "invitation/one".into(),
+            candidates: vec![RendezvousCandidate {
+                candidate_id: "candidate/owner".into(),
+                line_family: RendezvousLineFamily::AuthenticatedTlsStream,
+                reachability: "wss://owner.example:443/conduit".into(),
+                authentication: RendezvousAuthentication {
+                    server_identity: "owner.example".into(),
+                    transport_binding_sha256: binding,
+                },
+                expires_at_millis: 1_800_000_000_000,
+                maximum_attempts: 1,
+                attempt_timeout_millis: 2_000,
+            }],
+        };
+        let root = std::env::temp_dir().join(format!(
+            "conduit-route-cert-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let path = root.join("owner.pem");
+        std::fs::write(
+            &path,
+            b"-----BEGIN CERTIFICATE-----\nMAMCAQE=\n-----END CERTIFICATE-----\n",
+        )
+        .unwrap();
+        let selected = certificates_for_route(Some(&route), std::slice::from_ref(&path)).unwrap();
+        assert_eq!(selected[0].candidate_id, "candidate/owner");
+        assert_eq!(selected[0].certificate_der, der);
+        assert!(certificates_for_route(Some(&route), &[]).is_err());
+        assert!(certificates_for_route(None, std::slice::from_ref(&path)).is_err());
+        let mut wrong = route;
+        wrong.candidates[0].authentication.transport_binding_sha256 = [7; 32];
+        assert!(certificates_for_route(Some(&wrong), std::slice::from_ref(&path)).is_err());
+        std::fs::remove_file(path).unwrap();
         std::fs::remove_dir(root).unwrap();
     }
 }

@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret, SpawnRendezvousDescriptor};
 use serde::Serialize;
 
-use crate::spore_provision::NativeMediaProvision;
+use crate::spore_provision::{NativeMediaProvision, RouteCertificate};
 
 pub const JOIN_SCHEMA: &str = "conduit.conduitos/serial-spawn-observation@1";
 pub const MAXIMUM_JOIN_BYTES: usize = 32 * 1024;
@@ -18,6 +18,8 @@ pub struct PendingNativeJoin {
     pub invitation_id: String,
     /// Public, bounded owner reachability. This is not admission authority.
     pub rendezvous: Option<SpawnRendezvousDescriptor>,
+    /// Exact public TLS leaves checked against the candidate bindings.
+    pub route_certificates: Vec<RouteCertificate>,
 }
 
 impl PendingNativeJoin {
@@ -27,6 +29,7 @@ impl PendingNativeJoin {
             body_id: provision.spore.body_id.clone(),
             invitation_id: provision.invitation_provision.invitation_id.clone(),
             rendezvous: provision.invitation_provision.rendezvous.clone(),
+            route_certificates: provision.invitation_provision.route_certificates.clone(),
         }
     }
 }
@@ -160,6 +163,7 @@ mod tests {
     use alloc::format;
     use alloc::vec;
     use conduit_core::{BootId, HostId};
+    use sha2::{Digest, Sha256};
 
     fn provision() -> NativeMediaProvision {
         serde_json::from_value(provision_value()).unwrap()
@@ -200,6 +204,8 @@ mod tests {
 
     #[test]
     fn pending_join_retains_public_route_but_no_invitation_secret() {
+        let certificate = vec![42; 128];
+        let binding: [u8; 32] = Sha256::digest(&certificate).into();
         let mut value = provision_value();
         value["invitation_provision"]["rendezvous"] = serde_json::json!({
             "protocol": 1,
@@ -211,17 +217,27 @@ mod tests {
                 "reachability": "wss://owner.example:443/conduit",
                 "authentication": {
                     "server_identity": "owner.example",
-                    "transport_binding_sha256": vec![7; 32]
+                    "transport_binding_sha256": binding
                 },
                 "expires_at_millis": 1_800_000_000_000_u64,
                 "maximum_attempts": 1,
                 "attempt_timeout_millis": 2_000
             }]
         });
+        value["invitation_provision"]["route_certificates"] = serde_json::json!([{
+            "candidate_id":"candidate/owner", "certificate_der":certificate,
+        }]);
         let provision: NativeMediaProvision = serde_json::from_value(value).unwrap();
+        crate::spore_provision::validate_route_certificates(
+            provision.invitation_provision.rendezvous.as_ref(),
+            &provision.invitation_provision.route_certificates,
+        )
+        .unwrap();
         let pending = PendingNativeJoin::from_provision(&provision);
         assert_eq!(pending.body_id, "body/one");
         assert_eq!(pending.rendezvous.as_ref().unwrap().candidates.len(), 1);
+        assert_eq!(pending.route_certificates.len(), 1);
+        assert_eq!(pending.route_certificates[0].certificate_der, vec![42; 128]);
         assert!(!format!("{pending:?}").contains(&format!("{:?}", [13_u8; 32])));
     }
 }

@@ -11,6 +11,7 @@ use std::{
 use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret, SpawnRendezvousDescriptor};
 use conduit_body_make::{SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
 use conduit_core::HostAdvertisement;
+use conduitos::spore_provision::{validate_route_certificates, RouteCertificate};
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -51,6 +52,8 @@ struct InvitationProvision {
     rendezvous_candidates: Vec<RendezvousCandidate>,
     #[serde(default)]
     rendezvous: Option<SpawnRendezvousDescriptor>,
+    #[serde(default)]
+    route_certificates: Vec<RouteCertificate>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -573,6 +576,16 @@ fn validate_provision(
             "canonical route lost invitation identity or transport authentication binding",
         ));
     }
+    validate_route_certificates(
+        provision.invitation_provision.rendezvous.as_ref(),
+        &provision.invitation_provision.route_certificates,
+    )
+    .map_err(|_| {
+        ConduitosError::refusal(
+            "creche-spore-rendezvous-invalid",
+            "route certificate lost its exact candidate authentication binding",
+        )
+    })?;
     if spore.target != TARGET
         || serde_json::to_value(&spore.output).ok().as_ref()
             != Some(&serde_json::Value::String("disk-image".into()))
@@ -761,6 +774,8 @@ mod tests {
 
     #[test]
     fn canonical_route_keeps_exact_transport_binding_at_acceptance() {
+        let certificate = conduitos::virtio_tls_fixture::PINNED_CERTIFICATE_DER;
+        let binding: [u8; 32] = Sha256::digest(certificate).into();
         let artifact = fixture();
         let offset = artifact.len() - TRAILER_BYTES;
         let length =
@@ -780,20 +795,24 @@ mod tests {
                 "reachability":"wss://owner.example:443/conduit",
                 "authentication":{
                     "server_identity":"owner/example",
-                    "transport_binding_sha256":vec![7;32]
+                    "transport_binding_sha256":binding
                 },
                 "expires_at_millis":1_800_000_000_000_u64,
                 "maximum_attempts":2,
                 "attempt_timeout_millis":2_000
             }]
         });
+        value["invitation_provision"]["route_certificates"] = serde_json::json!([{
+            "candidate_id":"candidate/tls", "certificate_der":certificate,
+        }]);
+        assert!(serde_json::to_vec(&value).unwrap().len() <= TRAILER_BYTES - HEADER_BYTES);
         let routed: NativeMediaProvision = serde_json::from_value(value.clone()).unwrap();
         assert!(validate_provision(&routed, routed.image_bytes).is_ok());
         assert_eq!(
             routed.invitation_provision.rendezvous.unwrap().candidates[0]
                 .authentication
                 .transport_binding_sha256,
-            [7; 32]
+            binding
         );
         value["invitation_provision"]["rendezvous"]["invitation_id"] = "invitation:other".into();
         let relabeled: NativeMediaProvision = serde_json::from_value(value).unwrap();
