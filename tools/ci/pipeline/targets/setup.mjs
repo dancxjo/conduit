@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { acquire, apt, command, digest, xtask } from './common.mjs';
@@ -23,15 +23,38 @@ export function targetPackages(target) {
   return packages;
 }
 
-// espup can leave its named toolchain partially installed after a download failure.
-// A plain second install then fails on files from the first attempt. The name is
-// dedicated to this pipeline, so use espup's own uninstall before one retry.
-export function acquireXtensa(espup, args, { run = command, verify = activateXtensa } = {}) {
+const XTENSA_NAME = 'esp-conduit-1.91.1';
+const xtensaRoot = rustupHome => path.join(rustupHome, 'toolchains', XTENSA_NAME);
+
+// espup's uninstall also removes shared ~/.espup content. Remove only the
+// pipeline's named toolchain and its own clang link before a bounded retry.
+export function cleanXtensa({ rustupHome = process.env.RUSTUP_HOME || path.join(homedir(), '.rustup'),
+  home = homedir(), run = command } = {}) {
+  const root = xtensaRoot(path.resolve(rustupHome));
+  const link = path.join(home, '.espup', 'esp-clang');
+  const linkInfo = lstatSync(link, { throwIfNoEntry: false });
+  if (linkInfo) {
+    if (!linkInfo.isSymbolicLink()) throw new Error(`Refusing non-symlink Xtensa clang path: ${link}`);
+    const target = path.resolve(path.dirname(link), readlinkSync(link));
+    if (target !== root && !target.startsWith(`${root}${path.sep}`)) {
+      throw new Error(`Refusing foreign Xtensa clang link: ${link}`);
+    }
+  }
+  run('rustup', ['toolchain', 'uninstall', XTENSA_NAME], {
+    env: { ...process.env, RUSTUP_HOME: path.resolve(rustupHome) },
+  });
+  if (linkInfo) unlinkSync(link);
+}
+
+// espup can leave a partial installation after either an explicit failure or
+// an internally retried download that exits successfully without required tools.
+export function acquireXtensa(espup, args, { run = command, verify = activateXtensa,
+  clean = cleanXtensa } = {}) {
   const install = () => { run(espup, args); verify(); };
   try { install(); }
   catch (error) {
     console.warn(`Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: ${error.message}`);
-    run(espup, ['uninstall', '--name', 'esp-conduit-1.91.1']);
+    clean();
     install();
   }
 }
@@ -65,7 +88,7 @@ export function setup(target) {
       let warm = false;
       try { warm = JSON.stringify(JSON.parse(readFileSync(receipt, 'utf8'))) === JSON.stringify(identity); if (warm) activateXtensa(); } catch { warm = false; }
       if (!warm) {
-        acquireXtensa(espup, ['install', '--name', 'esp-conduit-1.91.1', '--toolchain-version', identity.rust,
+        acquireXtensa(espup, ['install', '--name', XTENSA_NAME, '--toolchain-version', identity.rust,
           '--crosstool-toolchain-version', identity.gcc, '--targets', selected,
           '--export-file', path.resolve('target/pipeline-esp-export.sh')]);
         mkdirSync(path.dirname(receipt), { recursive: true });
@@ -94,7 +117,7 @@ export function setup(target) {
 }
 
 export function activateXtensa() {
-  const root = path.join(process.env.RUSTUP_HOME || path.join(homedir(), '.rustup'), 'toolchains/esp-conduit-1.91.1');
+  const root = xtensaRoot(process.env.RUSTUP_HOME || path.join(homedir(), '.rustup'));
   const gcc = path.join(root, 'xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin');
   const clang = path.join(root, 'xtensa-esp32-elf-clang/esp-20.1.1_20250829/esp-clang/lib');
   if (!existsSync(path.join(gcc, 'xtensa-esp32-elf-gcc')) || !existsSync(clang)) {
