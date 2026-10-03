@@ -56,17 +56,10 @@ pub(super) fn complete_body_join_document(
         return Err("pending Body join has an unsupported schema".into());
     }
     let request = &pending.request;
-    if receipt.schema != "conduit.body/spawn-admission-receipt@1"
-        || !receipt.membership_admitted
-        || receipt.plan_created
-        || receipt.play_created
-        || receipt.current_offers_available != !request.host_advertisement.capabilities.is_empty()
-        || receipt.host_advertisement != request.host_advertisement
-        || receipt.credential.body_id != request.body_id
-        || receipt.credential.host_id != request.host_advertisement.host_id
-        || receipt.credential.boot_id != request.host_advertisement.boot_id
-        || receipt.credential.host_id.as_str() != installation.host_id
-    {
+    receipt
+        .validate_against(request)
+        .map_err(|error| error.to_string())?;
+    if receipt.credential.host_id.as_str() != installation.host_id {
         return Err(
             "Body admission receipt lost its exact pending join identity or claims effects".into(),
         );
