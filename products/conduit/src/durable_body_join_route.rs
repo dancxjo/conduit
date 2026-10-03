@@ -1,8 +1,7 @@
 //! Finite authenticated owner route for one portable Body invitation.
 
 use super::invitation::{
-    admit_body_request_document, issue_body_invitation_document, prepare_body_join,
-    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
+    prepare_body_join, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
     ROUTED_INVITATION_SCHEMA,
 };
 use super::membership::complete_body_join_document;
@@ -57,7 +56,7 @@ pub(crate) fn serve_body_invitation_route(
     let expires_at_millis = now_millis
         .checked_add(ttl_seconds.saturating_mul(1_000))
         .ok_or("Body admission route expiry overflow")?;
-    let invitation = issue_body_invitation_document(
+    let invitation = crate::durable_host_control::issue_owned_invitation(
         state_dir,
         ttl_seconds,
         Some(vec![RendezvousCandidate {
@@ -98,7 +97,7 @@ pub(crate) fn serve_body_invitation_route(
         )?;
         return Err("routed admission request named another invitation".into());
     }
-    match admit_body_request_document(request.request, state_dir, true) {
+    match crate::durable_host_control::admit_owned_request(state_dir, request.request) {
         Ok(receipt) => send(
             &mut line,
             &RoutedAdmissionResponse::Admitted {
