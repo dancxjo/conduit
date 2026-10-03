@@ -60,6 +60,12 @@ input seam does not install a USB Host Call, grant endpoint possession or prove
 asynchronous cancellation, reusable rings, class execution or native OUT-data
 device compatibility. Those require the remaining stack work below.
 
+`src/usb_base/control_payload` decodes the core's canonical U8 collections into
+256 bytes of native-owned storage without allocation. It uses borrowed core
+access rather than a USB-specific serializer; element identity, full canonical
+validity, destination capacity and transfer geometry are independent checks.
+This payload bridge does not yet define or install the complete typed USB Kind.
+
 Native control completion retains a short Data Stage residue until the final
 Status Stage succeeds; status success cannot replace the actual data count.
 Duplicate stages, foreign slot/endpoint identities and malformed counts remain
