@@ -8,6 +8,7 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
+use conduit_presentation::{OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse};
 use conduit_std_host::{
     hosted_local_model::LocalModelAdapterTerminal, pool_member_sessions::PoolMemberSessions,
     AdmittedLocalModelPoolMember, AdmittedRemoteFragment, StdHost,
@@ -27,7 +28,9 @@ const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 #[path = "durable_host_control/body.rs"]
 mod body;
 use body::HostSource;
-pub(crate) use body::{admit_owned_request, inspect_owned_body, issue_owned_invitation};
+pub(crate) use body::{
+    admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
@@ -886,6 +889,11 @@ enum Request {
         token: Vec<u8>,
         request: Box<PortableSpawnAdmissionRequest>,
     },
+    BodyFace {
+        protocol: u16,
+        token: Vec<u8>,
+        request: OwnerFaceSnapshotRequest,
+    },
     Join {
         protocol: u16,
         token: Vec<u8>,
@@ -953,6 +961,10 @@ enum Response {
     BodyAdmitted {
         protocol: u16,
         receipt: Box<conduit_body::PortableAdmissionReceipt>,
+    },
+    BodyFace {
+        protocol: u16,
+        response: Box<OwnerFaceSnapshotResponse>,
     },
     Join {
         protocol: u16,
@@ -1441,6 +1453,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
+        | Request::BodyFace { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
         | Request::ObserveLocalModelPool { token, .. }
@@ -1488,6 +1501,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|receipt| Response::BodyAdmitted {
                 protocol: PROTOCOL,
                 receipt: Box::new(receipt),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyFace {
+            protocol, request, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_face(&request)
+            .map(|response| Response::BodyFace {
+                protocol: PROTOCOL,
+                response: Box::new(response),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::Join {
