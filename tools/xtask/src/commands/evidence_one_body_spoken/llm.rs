@@ -150,6 +150,7 @@ pub(super) fn run(
         "candidate_id": candidate.candidate_identity,
         "provider_id": candidate.provider_identity,
         "model_id": candidate.model_identity,
+        "model_content_identity": model_proof.model_content_identity,
         "original_model_output_sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
         "accepted": accepted,
         "accepted_wording_sha256": accepted.then(|| format!("{:x}", Sha256::digest(spoken.as_bytes()))),
@@ -251,11 +252,7 @@ pub(super) fn run(
         Some(&model_proof.proof_class),
     )?;
     check_current(context, manifest)?;
-    retain_json(
-        manifest,
-        "speech-receipt",
-        "speech-receipt.json",
-        &json!({
+    let mut speech_receipt = json!({
         "schema": "conduit.journey/one-body-spoken-chapter@1",
         "chapter_id": "hear",
         "speech_mode": "llm-assisted",
@@ -274,8 +271,6 @@ pub(super) fn run(
             "model_boot_id": model_proof.boot_id,
             "mask_host_id": mask.execution.shown.show.show.host_id,
             "mask_boot_id": mask.execution.shown.show.show.boot_id,
-            "local_spoken_mask_show_observed": true,
-            "owner_sealed_spoken_mask_route_observed": false,
             "body_id": body_id.as_str(),
             "face_id": first.presentation.identity,
             "face_revision": first.presentation.revision,
@@ -297,7 +292,24 @@ pub(super) fn run(
             "wav_artifact": mask.artifact,
             "playback_observed": false,
             "human_hearing_observed": false,
-        }),
+    });
+    let fields = speech_receipt
+        .as_object_mut()
+        .ok_or("speech receipt was not a JSON object")?;
+    fields.insert("local_spoken_mask_show_observed".into(), json!(true));
+    fields.insert(
+        "owner_sealed_spoken_mask_route_observed".into(),
+        json!(false),
+    );
+    fields.insert(
+        "model_content_identity".into(),
+        json!(model_proof.model_content_identity),
+    );
+    retain_json(
+        manifest,
+        "speech-receipt",
+        "speech-receipt.json",
+        &speech_receipt,
         run_id,
         first,
         Some(&model_proof.proof_class),
