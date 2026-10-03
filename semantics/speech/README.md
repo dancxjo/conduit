@@ -37,7 +37,7 @@ The optional `semantic-bindings` feature generates ordinary rich native Rust
 bindings for preparation and inspection. It uses allocation and is separate
 from the small renderer. The default rendering crate has no runtime dependencies
 and uses no allocator. A narrow build-time lowering compiles eligible checked
-portable expression trees from `plots/native-speech/voice.conduit` into integer
+portable expression trees from `voice.conduit` into integer
 Rust functions. Unsupported operations refuse the build. The generic prepared expression Back
 currently refuses variant construction; this pack uses its separately tested
 compiled Back, and does not claim generic kernel coverage for those programs. No Rust phoneme table,

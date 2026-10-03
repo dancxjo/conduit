@@ -52,6 +52,32 @@ fn validate_node(
         if native.is_some_and(|ty| !ty.invariants.is_empty() || !ty.value_contracts.is_empty())
             || (is_native && native.is_none())
         {
+            if matches!(node.operation, Op::Literal(_)) {
+                if let Some(native) = native {
+                    // A closed constant can establish its own laws before Play.
+                    // It must not disable the existing proof of input arithmetic.
+                    let constant = PortableExpressionProgram {
+                        input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                            conduit_core::UNIT_INFO_ID,
+                        ))
+                        .map_err(|_| refusal())?,
+                        output_type: node.value_type.clone(),
+                        root: node.clone(),
+                    };
+                    let bytes = constant.evaluate(&[]).map_err(|_| refusal())?;
+                    let value = conduit_core::StructuredInfoValue::from_canonical_bytes(&bytes)
+                        .map_err(|_| refusal())?;
+                    crate::rust_binding::validate_native_contracts(&value, &native.value_contracts)
+                        .and_then(|()| {
+                            crate::rust_binding::validate_native_invariants(
+                                &value,
+                                &native.invariants,
+                            )
+                        })
+                        .map_err(|_| refusal())?;
+                    return Ok(());
+                }
+            }
             return Err(refusal());
         }
     }
