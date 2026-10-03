@@ -14,7 +14,7 @@ const MAX_FIRMWARE_CMDLINE_BYTES: usize = 32;
 const MAX_MODULES: usize = 16;
 const MAX_MODULE_COMMAND_BYTES: usize = 64;
 const MODULE_ENTRY_BYTES: usize = 16;
-const SPORE_MODULE_BYTES: usize = 4096;
+const SPORE_MODULE_BYTES: usize = crate::spore_provision::REGION_BYTES;
 const SPORE_MODULE_COMMAND: &[u8] = b"conduit.spore/native-media-provision@1";
 
 /// Reads the bounded firmware fact passed by the pinned Limine Multiboot 1

@@ -267,7 +267,12 @@ fn locate_blank_region(bytes: &[u8]) -> Result<usize, Box<dyn std::error::Error>
 
 fn encode_region(encoded: &[u8]) -> Result<[u8; REGION_BYTES], Box<dyn std::error::Error>> {
     if encoded.is_empty() || encoded.len() > REGION_BYTES - HEADER_BYTES {
-        return Err("native spore provision exceeds the finite media region".into());
+        return Err(format!(
+            "native spore provision uses {} bytes; finite media region permits at most {}",
+            encoded.len(),
+            REGION_BYTES - HEADER_BYTES
+        )
+        .into());
     }
     let mut region = blank_region();
     region[24..28].copy_from_slice(&1_u32.to_le_bytes());
@@ -315,7 +320,7 @@ fn sha256(bytes: &[u8]) -> String {
 mod tests {
     use super::{
         blank_region, certificates_for_route, encode_region, locate_blank_region,
-        write_private_new, REGION_BYTES,
+        write_private_new, HEADER_BYTES, REGION_BYTES,
     };
     use conduit_body::{
         RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily,
@@ -341,7 +346,18 @@ mod tests {
         let region = encode_region(br#"{"schema":"example"}"#).unwrap();
         image[512..512 + REGION_BYTES].copy_from_slice(&region);
         assert!(locate_blank_region(&image).is_err());
-        assert!(encode_region(&vec![0; REGION_BYTES]).is_err());
+        // A normal valid routed invitation was measured at 4,151 bytes with
+        // an ordinary Ed25519 TLS leaf; it must fit without certificate tricks.
+        assert!(encode_region(&vec![0; 4_151]).is_ok());
+        assert_eq!(
+            encode_region(&vec![0; REGION_BYTES])
+                .unwrap_err()
+                .to_string(),
+            format!(
+                "native spore provision uses {REGION_BYTES} bytes; finite media region permits at most {}",
+                REGION_BYTES - HEADER_BYTES
+            )
+        );
     }
 
     #[test]

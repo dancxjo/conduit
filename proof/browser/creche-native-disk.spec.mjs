@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import {
   bindBodyProvisionedMedia,
+  CONDUITOS_MEDIA_PROVISION_BYTES,
   NATIVE_MEDIA_PROVISION_BYTES,
   readBodyProvisionedMedia,
 } from "../../targets/browser/workspace/creche-native-disk.mjs";
@@ -31,12 +32,12 @@ test("two Bodies produce distinct native disk images with recoverable provisioni
 });
 
 test("ConduitOS provisioning replaces one reviewed in-image spore region", async () => {
-  const image = new Uint8Array(8192).fill(0x5a);
+  const image = new Uint8Array(64 * 1024).fill(0x5a);
   const offset = 2048;
-  image.fill(0xff, offset, offset + NATIVE_MEDIA_PROVISION_BYTES);
+  image.fill(0xff, offset, offset + CONDUITOS_MEDIA_PROVISION_BYTES);
   image.set(new TextEncoder().encode("CONDUIT_SPORE_MEDIA@1\0"), offset);
-  new DataView(image.buffer, offset, NATIVE_MEDIA_PROVISION_BYTES).setUint32(24, 0, true);
-  new DataView(image.buffer, offset, NATIVE_MEDIA_PROVISION_BYTES).setUint32(28, 0, true);
+  new DataView(image.buffer, offset, CONDUITOS_MEDIA_PROVISION_BYTES).setUint32(24, 0, true);
+  new DataView(image.buffer, offset, CONDUITOS_MEDIA_PROVISION_BYTES).setUint32(28, 0, true);
   const native = await bindBodyProvisionedMedia({
     prepared: prepared("one"),
     imageBytes: image,
@@ -46,14 +47,16 @@ test("ConduitOS provisioning replaces one reviewed in-image spore region", async
     provisionRegion: {
       schema: "conduit.conduitos/spore-region@1",
       offset,
-      bytes: NATIVE_MEDIA_PROVISION_BYTES,
+      bytes: CONDUITOS_MEDIA_PROVISION_BYTES,
       encoding: "conduit.spore/native-media-provision@1",
     },
   });
   expect(native.bytes.byteLength).toBe(image.byteLength);
   expect(native.provision_embedded).toBe(true);
+  expect(native.provision_bytes).toBe(CONDUITOS_MEDIA_PROVISION_BYTES);
   const recovered = readBodyProvisionedMedia(native.bytes);
   expect(recovered.provision_embedded).toBe(true);
+  expect(recovered.provision_bytes).toBe(CONDUITOS_MEDIA_PROVISION_BYTES);
   expect(recovered.provision.spore.body_id).toBe("body:one");
   expect(Array.from(recovered.image)).toEqual(Array.from(image));
 });
