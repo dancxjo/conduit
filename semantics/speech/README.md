@@ -167,6 +167,13 @@ derivation, stress and duration remain exact. `voiced-frication.wav` compares
 f/v, th/dh, s/z and sh/zh before aa. Independent source-isolation and decoded-pole
 laws accompany portable frame parity; listening-quality improvement is unverified.
 
+The raw modulo turbulence is scaled by one quarter before filtering, so its
+mean-square excitation energy is below that of the glottal source throughout
+the admitted pitch range. The authored mixer applies a fixed output gain of
+16 before its explicit limiter. This balances the previously overpowering noise
+and raises the quiet PCM level; it is a profile setting, not WAV normalization
+or a loudness measurement. Listening-quality acceptance remains open.
+
 The discrete flow difference sums to zero over each fixed-period cycle and
 retains the closure impulse before its zero closed interval. Both the scalar
 source query and the frame graph share the same authored normalization, flow

@@ -157,10 +157,11 @@ type MixInput = {
     third: I32
     envelope: I32
 }
+# Fixed profile output level; the final limiter remains explicit.
 plot speech/mix (
     >> value: MixInput
     result: I32 >>
-) = ((.first + .second / 2 + .third / 4) * .envelope / 256)
+) = ((.first + .second / 2 + .third / 4) * 16 * .envelope / 256)
 
 # Phoneme identity is never a Phone identity. This is the selected English
 # realization policy, not an acoustic observation or inventory universal.
@@ -376,7 +377,7 @@ plot speech/frame-third (
 plot speech/frame-result (
     >> value: SpeechFrameWorking
     result: SpeechFrameResult >>
-) = ({state: {voicing: .voicing, phase: .phase, noise: .noise, first1: .first, first2: .input.state.first1, second1: .second, second2: .input.state.second1, third1: .third, third2: .input.state.third1}, sample: ((.first + .second / 2 + .third / 4) * .envelope / 256) < -32767 ? -32767 : ((.first + .second / 2 + .third / 4) * .envelope / 256) > 32767 ? 32767 : ((.first + .second / 2 + .third / 4) * .envelope / 256)})
+) = ({state: {voicing: .voicing, phase: .phase, noise: .noise, first1: .first, first2: .input.state.first1, second1: .second, second2: .input.state.second1, third1: .third, third2: .input.state.third1}, sample: ((.first + .second / 2 + .third / 4) * 16 * .envelope / 256) < -32767 ? -32767 : ((.first + .second / 2 + .third / 4) * 16 * .envelope / 256) > 32767 ? 32767 : ((.first + .second / 2 + .third / 4) * 16 * .envelope / 256)})
 
 plot speech/frame (
     >> value: SpeechFrameInput

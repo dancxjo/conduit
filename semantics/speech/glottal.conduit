@@ -3,6 +3,8 @@
 # Open phase is floor(3*period/4); flow is q*q*(256-q)/256 for Q8 phase q.
 # Difference of consecutive flow values folds a discrete radiation operator
 # into the source. Each fixed-period cycle telescopes to zero, including closure.
+# Turbulence is one quarter of the raw modulo noise, balancing its energy
+# against the glottal flow difference before the authored resonators.
 # No waveform table, new retained state, transcendental or allocation is needed.
 type SpeechSourceOnlyContext =
     source_only
@@ -46,7 +48,7 @@ plot speech/source-mix (
     output: type
     >> value: item
     result: output >>
-) = ({input: .input, voicing: (.current - .previous) * .input.source.voiced, sample: (.current - .previous) * .input.source.voiced + (.input.source.noise % 4096 - 2048) * .input.source.frication})
+) = ({input: .input, voicing: (.current - .previous) * .input.source.voiced, sample: (.current - .previous) * .input.source.voiced + ((.input.source.noise % 4096 - 2048) / 4) * .input.source.frication})
 plot speech/excitation (
     >> value: ExcitationInput
     result: I32 >>
