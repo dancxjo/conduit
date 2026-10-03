@@ -8,11 +8,10 @@
 use std::collections::BTreeMap;
 
 use conduit_presentation::{
-    plan_face_utterances, FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal,
-    FaceUtteranceClause, FaceUtterancePlan, FaceUtterancePlanError, FaceUtteranceProvenance,
-    ManifestationLifecycle, MaskShow, Presentation, PresentationActionAvailability,
-    PresentationPropertyValue, PresentationRelationshipKind, PresentationRole,
-    UTF8_TEXT_VALUE_KIND,
+    FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal, FaceReadingCommand,
+    FaceReadingCursor, FaceUtteranceClause, FaceUtterancePlan, FaceUtteranceProvenance, MaskShow,
+    Presentation, PresentationActionAvailability, PresentationPropertyValue,
+    PresentationRelationshipKind, PresentationRole, UTF8_TEXT_VALUE_KIND,
 };
 use conduit_tongues::{SpeakableSegment, SpeechCommitReason, MAXIMUM_SPEAKABLE_SEGMENT_BYTES};
 use sha2::{Digest, Sha256};
@@ -23,85 +22,19 @@ mod batch;
 pub use batch::*;
 mod voice;
 use voice::voice_clauses;
+mod reader_contract;
+use reader_contract::{check_show, reading_refusal, Reading};
+pub use reader_contract::{ReaderCommand, ReaderResult, SpokenFaceRefusal, SpokenTextReadout};
 #[cfg(test)]
 mod tests;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ReaderCommand {
-    Help,
-    ReadAll,
-    Next,
-    Previous,
-    Repeat,
-    /// Move to an action offered by this exact Face without invoking it.
-    FocusAction(String),
-    Stop,
-    /// Set one complete typed value on the action currently in focus.
-    Edit {
-        argument: String,
-        value: Vec<u8>,
-    },
-    Activate,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SpokenFaceRefusal {
-    InvalidFace(FaceUtterancePlanError),
-    StaleFace,
-    StaleShow,
-    UnavailableShow,
-    EmptyFace,
-    NoActionInFocus,
-    UnknownAction,
-    UnknownArgument,
-    UnsupportedValueKind,
-    InvalidValue,
-    VoiceBound,
-    SpeechPressure,
-    SpeechReceipt,
-    Interaction(FaceInteractionRefusal),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReaderResult {
-    pub interaction: Option<FaceInteraction>,
-    pub reading: bool,
-    pub focused_clause: usize,
-    pub cancel_stream_identity: Option<String>,
-    pub interrupted: Option<SpokenTurnReceipt>,
-}
-
-/// A deterministic text readout for an attached screen reader or terminal.
-/// No synthesis, audio output, or spoken Show completion is implied.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SpokenTextReadout {
-    pub face_id: String,
-    pub face_revision: u64,
-    pub show_id: String,
-    pub clauses: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-enum Reading {
-    Clauses {
-        next: usize,
-        end: usize,
-        offset: usize,
-    },
-    Message {
-        text: String,
-        offset: usize,
-    },
-}
 
 /// One bounded speech turn at a time. Only one segment may be in flight, so
 /// producer pressure cannot turn an unacknowledged clip into a completed Show.
 pub struct SpokenFaceSession {
     face: Presentation,
     show: MaskShow,
-    plan: FaceUtterancePlan,
+    cursor: FaceReadingCursor,
     voiced: Vec<String>,
-    focus: usize,
     drafts: BTreeMap<(String, String), Vec<u8>>,
     reading: Option<Reading>,
     pending: Option<SpokenSegment>,
@@ -119,17 +52,13 @@ pub struct SpokenFaceSession {
 impl SpokenFaceSession {
     pub fn new(face: Presentation, show: MaskShow) -> Result<Self, SpokenFaceRefusal> {
         check_show(&face, &show)?;
-        let plan = plan_face_utterances(&face).map_err(SpokenFaceRefusal::InvalidFace)?;
-        if plan.clauses.is_empty() {
-            return Err(SpokenFaceRefusal::EmptyFace);
-        }
-        let voiced = voice_clauses(&face, &plan)?;
+        let cursor = FaceReadingCursor::new(&face).map_err(reading_refusal)?;
+        let voiced = voice_clauses(&face, cursor.plan())?;
         Ok(Self {
             face,
             show,
-            plan,
+            cursor,
             voiced,
-            focus: 0,
             drafts: BTreeMap::new(),
             reading: None,
             pending: None,
@@ -152,13 +81,17 @@ impl SpokenFaceSession {
         &self.show
     }
     pub fn focused_clause(&self) -> &FaceUtteranceClause {
-        &self.plan.clauses[self.focus]
+        self.cursor.focused_clause()
     }
     pub fn focused_index(&self) -> usize {
-        self.focus
+        self.cursor.focused_index()
     }
     pub fn clause_count(&self) -> usize {
-        self.plan.clauses.len()
+        self.cursor.clause_count()
+    }
+    #[cfg(test)]
+    fn plan(&self) -> &FaceUtterancePlan {
+        self.cursor.plan()
     }
 
     /// Consume the pending reading as text. This is a distinct output path
@@ -171,17 +104,21 @@ impl SpokenFaceSession {
             return Ok(None);
         };
         let clauses = match reading {
-            Reading::Clauses { next, end, offset } => self.voiced[next..end]
-                .iter()
-                .enumerate()
-                .map(|(index, clause)| {
-                    if index == 0 {
-                        clause[offset..].to_owned()
-                    } else {
-                        clause.clone()
-                    }
-                })
-                .collect(),
+            Reading::Clauses { current, offset } => {
+                let mut clauses = Vec::new();
+                if let Some(index) = current {
+                    clauses.push(self.voiced[index][offset..].to_owned());
+                }
+                while self
+                    .cursor
+                    .next_read_clause(&self.face)
+                    .map_err(reading_refusal)?
+                    .is_some()
+                {
+                    clauses.push(self.voiced[self.cursor.focused_index()].clone());
+                }
+                clauses
+            }
             Reading::Message { text, offset } => vec![text[offset..].to_owned()],
         };
         Ok(Some(SpokenTextReadout {
@@ -199,23 +136,17 @@ impl SpokenFaceSession {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
         check_show(&face, &show)?;
-        let plan = plan_face_utterances(&face).map_err(SpokenFaceRefusal::InvalidFace)?;
-        if plan.clauses.is_empty() {
-            return Err(SpokenFaceRefusal::EmptyFace);
-        }
-        let voiced = voice_clauses(&face, &plan)?;
-        let old = self.plan.clauses[self.focus].provenance.clone();
-        self.focus = plan
-            .clauses
-            .iter()
-            .position(|clause| clause.provenance == old)
-            .unwrap_or(0);
+        let next = FaceReadingCursor::new(&face).map_err(reading_refusal)?;
+        let voiced = voice_clauses(&face, next.plan())?;
+        self.cursor.replace(next);
         self.face = face;
         self.show = show;
-        self.plan = plan;
         self.voiced = voiced;
         self.drafts.clear();
-        self.begin_clauses(self.focus, self.focus + 1);
+        self.cursor
+            .command(&self.face, FaceReadingCommand::Repeat)
+            .map_err(reading_refusal)?;
+        self.begin_cursor_clauses();
         Ok(())
     }
 
@@ -244,25 +175,40 @@ impl SpokenFaceSession {
         let mut interaction = None;
         let mut cancel_stream_identity = None;
         match command {
-            ReaderCommand::Help => self.begin_message("Use next and previous to move through this view. Read all presents every item. Focus an offered action by its exact ID, or repeat the focused item. Edit a named value, then activate its action. Stop interrupts reading.".into()),
-            ReaderCommand::ReadAll => self.begin_clauses(0, self.plan.clauses.len()),
-            ReaderCommand::Next => {
-                self.focus = (self.focus + 1).min(self.plan.clauses.len() - 1);
-                self.begin_clauses(self.focus, self.focus + 1);
-            }
-            ReaderCommand::Previous => {
-                self.focus = self.focus.saturating_sub(1);
-                self.begin_clauses(self.focus, self.focus + 1);
-            }
-            ReaderCommand::Repeat => self.begin_clauses(self.focus, self.focus + 1),
-            ReaderCommand::FocusAction(identity) => {
-                self.focus = self.plan.clauses.iter().position(|clause| {
-                    matches!(&clause.provenance, FaceUtteranceProvenance::Action(action) if action.identity() == &identity)
-                }).ok_or(SpokenFaceRefusal::UnknownAction)?;
-                self.begin_clauses(self.focus, self.focus + 1);
+            ReaderCommand::Help => self.begin_message("Read all presents the entire current view. Use next, previous, or repeat for one item. Move by subject, action, or exact role such as main, article, or navigation. Focus a named subject or offered action by its exact ID. Edit a named value, then activate its action. Stop interrupts reading.".into()),
+            ReaderCommand::ReadAll | ReaderCommand::Next | ReaderCommand::Previous | ReaderCommand::Repeat | ReaderCommand::NextSubject | ReaderCommand::PreviousSubject | ReaderCommand::NextAction | ReaderCommand::PreviousAction | ReaderCommand::NextRole(_) | ReaderCommand::PreviousRole(_) | ReaderCommand::FocusSubject(_) | ReaderCommand::FocusAction(_) => {
+                let reading_command = match command {
+                    ReaderCommand::ReadAll => FaceReadingCommand::ReadAll,
+                    ReaderCommand::Next => FaceReadingCommand::Next,
+                    ReaderCommand::Previous => FaceReadingCommand::Previous,
+                    ReaderCommand::Repeat => FaceReadingCommand::Repeat,
+                    ReaderCommand::NextSubject => FaceReadingCommand::NextSubject,
+                    ReaderCommand::PreviousSubject => FaceReadingCommand::PreviousSubject,
+                    ReaderCommand::NextAction => FaceReadingCommand::NextAction,
+                    ReaderCommand::PreviousAction => FaceReadingCommand::PreviousAction,
+                    ReaderCommand::NextRole(role) => FaceReadingCommand::NextRole(role),
+                    ReaderCommand::PreviousRole(role) => FaceReadingCommand::PreviousRole(role),
+                    ReaderCommand::FocusSubject(identity) => FaceReadingCommand::FocusSubject(identity),
+                    ReaderCommand::FocusAction(identity) => FaceReadingCommand::FocusAction(identity),
+                    _ => unreachable!(),
+                };
+                let moving_backward = matches!(reading_command,
+                    FaceReadingCommand::Previous | FaceReadingCommand::PreviousSubject |
+                    FaceReadingCommand::PreviousAction | FaceReadingCommand::PreviousRole(_));
+                let outcome = self.cursor.command(&self.face, reading_command).map_err(reading_refusal)?;
+                if outcome.at_boundary {
+                    self.begin_message(if moving_backward {
+                        "No previous matching item. Focus unchanged.".into()
+                    } else {
+                        "No next matching item. Focus unchanged.".into()
+                    });
+                } else {
+                    self.begin_cursor_clauses();
+                }
             }
             ReaderCommand::Stop => {
                 self.reading = None;
+                self.cursor.command(&self.face, FaceReadingCommand::Stop).map_err(reading_refusal)?;
                 cancel_stream_identity = self
                     .pending
                     .as_ref()
@@ -311,7 +257,7 @@ impl SpokenFaceSession {
         Ok(ReaderResult {
             interaction,
             reading: self.reading.is_some(),
-            focused_clause: self.focus,
+            focused_clause: self.cursor.focused_index(),
             cancel_stream_identity,
             interrupted,
         })
@@ -337,19 +283,31 @@ impl SpokenFaceSession {
         if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
+        if matches!(self.reading, Some(Reading::Clauses { current: None, .. })) {
+            if self
+                .cursor
+                .next_read_clause(&self.face)
+                .map_err(reading_refusal)?
+                .is_some()
+            {
+                if let Some(Reading::Clauses { current, .. }) = &mut self.reading {
+                    *current = Some(self.cursor.focused_index());
+                }
+            } else {
+                self.reading = None;
+                return Ok(None);
+            }
+        }
         let Some(reading) = &mut self.reading else {
             return Ok(None);
         };
         let (text, clause_index, provenance, offset) = match reading {
-            Reading::Clauses { next, end, offset } => {
-                if *next == *end {
-                    self.reading = None;
-                    return Ok(None);
-                }
-                let clause = &self.plan.clauses[*next];
+            Reading::Clauses { current, offset } => {
+                let index = current.expect("clause was obtained from the current Face cursor");
+                let clause = &self.cursor.plan().clauses[index];
                 (
-                    &self.voiced[*next],
-                    Some(*next),
+                    &self.voiced[index],
+                    Some(index),
                     Some(clause.provenance.clone()),
                     offset,
                 )
@@ -362,10 +320,10 @@ impl SpokenFaceSession {
         *offset += cut;
         let finished_piece = *offset == text.len();
         match reading {
-            Reading::Clauses { next, end, offset } if finished_piece => {
-                *next += 1;
+            Reading::Clauses { current, offset } if finished_piece => {
+                *current = None;
                 *offset = 0;
-                if *next == *end {
+                if !self.cursor.has_pending() {
                     self.reading = None;
                 }
             }
@@ -480,7 +438,7 @@ impl SpokenFaceSession {
         check_show(face, show)
     }
     fn focused_action(&self) -> Option<&conduit_presentation::PresentationAction> {
-        let id = match &self.plan.clauses[self.focus].provenance {
+        let id = match &self.cursor.focused_clause().provenance {
             FaceUtteranceProvenance::Action(value) => value.identity(),
             FaceUtteranceProvenance::ActionArgument(value) => value.action_identity(),
             _ => return None,
@@ -490,15 +448,17 @@ impl SpokenFaceSession {
             .iter()
             .find(|action| action.identity == *id)
     }
-    fn begin_clauses(&mut self, start: usize, end: usize) {
+    fn begin_cursor_clauses(&mut self) {
         self.begin_turn();
         self.reading = Some(Reading::Clauses {
-            next: start,
-            end,
+            current: None,
             offset: 0,
         });
     }
     fn begin_message(&mut self, text: String) {
+        self.cursor
+            .command(&self.face, FaceReadingCommand::Stop)
+            .expect("stopping a Face reading is always valid");
         self.begin_turn();
         self.reading = Some(Reading::Message { text, offset: 0 });
     }
@@ -516,6 +476,9 @@ impl SpokenFaceSession {
         self.cancel_requested = false;
     }
     fn finish_turn(&mut self, outcome: SpokenTurnOutcome) -> SpokenTurnReceipt {
+        self.cursor
+            .command(&self.face, FaceReadingCommand::Stop)
+            .expect("stopping a Face reading is always valid");
         SpokenTurnReceipt {
             face_id: self.face.identity.as_str().into(),
             face_revision: self.face.revision,
@@ -531,13 +494,4 @@ impl SpokenFaceSession {
 
 fn sha256_hex(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
-fn check_show(face: &Presentation, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
-    show.validate(face)
-        .map_err(|_| SpokenFaceRefusal::StaleShow)?;
-    if show.show.lifecycle != ManifestationLifecycle::Available {
-        return Err(SpokenFaceRefusal::UnavailableShow);
-    }
-    Ok(())
 }

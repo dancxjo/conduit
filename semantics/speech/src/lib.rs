@@ -30,6 +30,8 @@ pub use render::{
 
 #[cfg(any(feature = "semantic-bindings", feature = "kernel"))]
 extern crate alloc;
+#[cfg(feature = "semantic-bindings")]
+pub mod admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 /// Preparation/inspection bindings. The compact rendering Back does not carry
