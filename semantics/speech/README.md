@@ -168,11 +168,17 @@ cargo xtask prove journey native-speech
 ```
 
 Add `--microcontroller` to link both standalone Cortex-M0+ footprint probes.
-This needs the `thumbv6m-none-eabi` toolchain target and GNU `size`
-for section inspection. The renderer probe includes constants and a 128-frame static output buffer.
+This needs the `thumbv6m-none-eabi` toolchain target, GNU `size`
+and the pinned Rust `llvm-tools` component for section/entry inspection. The renderer probe includes constants and a 128-frame static output buffer.
 The text probe additionally retains 64 typed events in fixed storage and includes
 normalization, dictionary/rules and text traversal. Both exclude planner, kernel,
-boot, device drivers, rich preparation metadata and stack proof.
+boot, device drivers and rich preparation metadata. The probes render directly
+into caller-owned static PCM storage, observing each produced sample with a
+volatile read and a small checksum; they avoid a second stack output buffer.
+The proof retains each `_start` disassembly and reports its register-save and
+fixed stack-subtraction bytes. Unsupported prologue shapes refuse inspection.
+This is an entry-stack lower bound: callee frames, later body stack changes,
+boot and interrupts are excluded. It cannot establish total stack or device fit.
 A link is not device playback or proof of real-time performance. WAV generation
 writes hosted artifacts and does not access an audio device.
 

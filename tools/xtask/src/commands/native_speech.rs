@@ -4,6 +4,8 @@ use crate::{
     workspace::workspace_root,
 };
 use std::process::Command;
+#[path = "native_speech_stack.rs"]
+mod stack;
 pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let output = if args.output.is_absolute() {
@@ -108,11 +110,12 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
                 .join(binary);
             println!("Cortex-M0+ linked probe: {}", artifact.display());
             match Command::new("size").arg(&artifact).status() {
-            Ok(status) if status.success() => println!("Section totals only: text includes code/constants; data/bss are static RAM. Stack, full body, device timing and playback remain unmeasured."),
+            Ok(status) if status.success() => println!("Section totals only: text includes code/constants; data/bss are static RAM. Full call-chain stack, body, device timing and playback remain unmeasured."),
             Ok(status) => return Err(format!("footprint section inspection failed: {status}").into()),
             Err(error) if error.kind()==std::io::ErrorKind::NotFound => return Err("linked probe retained, but GNU size is missing for footprint inspection".into()),
             Err(error) => return Err(error.into()),
         }
+            stack::inspect(&root, &artifact, &output, binary)?;
         }
     }
     println!("Retained native voice WAVs: {}. Conformance and synthesis Back evidence; no device playback or Klatt/eSpeak parity acceptance.",output.display());
