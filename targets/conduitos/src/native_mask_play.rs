@@ -16,9 +16,9 @@ pub use prepared::PreparedNativeMaskPlay;
 use alloc::{string::String, vec::Vec};
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler};
 use conduit_kernel::{FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedValueStore};
-use conduit_plan_lowering::lowering::{
-    FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment, lower_plan_fragment,
-};
+#[cfg(any(test, feature = "native-compositor"))]
+use conduit_plan_lowering::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 use conduit_presentation::{PlannedMaskPlot, Presentation};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -100,6 +100,7 @@ struct ShowValue<'a> {
 
 /// An unacknowledged renderer cannot produce a Show. Call `PreparedNativeMaskPlay`
 /// and complete it with compositor-owned scanout evidence instead.
+#[cfg(test)]
 pub fn run(
     _planned: &PlannedMaskPlot,
     _presentation: &Presentation,

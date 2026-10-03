@@ -36,7 +36,7 @@ pub struct NativeMaskEvidence {
     pub body_id: String,
     pub wake_id: String,
     pub actions: Vec<&'static str>,
-    pub mask_actions: Vec<crate::native_mask_journey::NativeMaskJourneyObservation>,
+    pub mask_actions: Vec<serde_json::Value>,
     pub wardrobe_revision: u64,
     pub worn_mask_plots: Vec<conduit_core::PlotIdentity>,
     pub preference: Vec<conduit_core::PlotIdentity>,
@@ -82,7 +82,6 @@ pub(super) struct MaskControl {
 #[derive(Clone)]
 pub(super) struct MaskStage {
     pub(super) planned_mask: PlannedMaskPlot,
-    pub(super) target: String,
 }
 
 impl MaskControl {
@@ -99,7 +98,6 @@ impl MaskControl {
             &host_id,
             &boot_id,
             1,
-            "conduitos/native-patchbay",
             surface_provider.as_ref().map(|provider| &provider.entry),
         )?;
         Ok(Self {
@@ -126,7 +124,6 @@ impl MaskControl {
                 &self.host_id,
                 &self.boot_id,
                 self.sequence,
-                "conduitos/native-patchbay-restored",
                 self.surface_provider
                     .as_ref()
                     .map(|provider| &provider.entry),
@@ -143,7 +140,6 @@ impl MaskControl {
                 &self.host_id,
                 &self.boot_id,
                 self.sequence,
-                "conduitos/test-speech",
                 None,
             )?);
             self.sequence = self.sequence.checked_add(1).ok_or(())?;
@@ -234,7 +230,6 @@ impl MaskControl {
                 &self.host_id,
                 &self.boot_id,
                 self.sequence,
-                "conduitos/native-patchbay-unselected",
                 self.surface_provider
                     .as_ref()
                     .map(|provider| &provider.entry),
@@ -366,7 +361,6 @@ pub(super) fn prepare_stage(
     host_id: &HostId,
     boot_id: &conduit_core::BootId,
     generation: u64,
-    target: &str,
     surface_provider: Option<&conduit_core::BaseProviderEntry>,
 ) -> Result<MaskStage, ()> {
     let mut startup = StartupCatalog::new();
@@ -471,7 +465,6 @@ pub(super) fn prepare_stage(
     .map_err(|_| ())?;
     Ok(MaskStage {
         planned_mask: PlannedMaskPlot::admit(&mask, &plan).map_err(|_| ())?,
-        target: target.into(),
     })
 }
 

@@ -351,6 +351,7 @@ impl PreparedNativeMaskPlay {
     }
 
     /// Complete a render-only use by explicitly closing its interaction Fore.
+    #[cfg(test)]
     pub fn complete(
         self,
         ack: &ScanoutAcknowledgement<'_>,
@@ -358,6 +359,7 @@ impl PreparedNativeMaskPlay {
         self.complete_render(ack)?.close_without_input()
     }
 
+    #[cfg(test)]
     pub fn cancel(mut self) -> Result<(), NativeMaskPlayError> {
         self.scheduler
             .cancel()
@@ -366,6 +368,7 @@ impl PreparedNativeMaskPlay {
         Ok(())
     }
 
+    #[cfg(test)]
     pub fn fail(mut self) -> NativeMaskPlayError {
         match self.scheduler.cancel() {
             Ok(()) => {
