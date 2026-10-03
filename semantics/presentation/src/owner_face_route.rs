@@ -13,9 +13,9 @@ use crate::{Presentation, PresentationContentId};
 
 pub const OWNER_FACE_REQUEST_SCHEMA: &str = "conduit.presentation/owner-face-request@1";
 pub const OWNER_FACE_RESPONSE_SCHEMA: &str = "conduit.presentation/owner-face-response@1";
-/// The reviewed native binary WebSocket profile is 8,192 bytes including its
-/// maximum 14-byte frame overhead. A larger Face must be refused explicitly.
-pub const MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES: usize = 8_178;
+/// Finite v1 owner-Face response profile. A Host route unable to carry this
+/// whole response is ineligible; a larger Face is refused without truncation.
+pub const MAX_OWNER_FACE_RESPONSE_BYTES: usize = 8_178;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
