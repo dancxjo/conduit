@@ -273,12 +273,24 @@ mod tests {
                 assert_eq!(pair[0], "-p", "{} package flag for {}", step.id, pair[1]);
             }
             if package_end < options.len() {
-                assert_eq!(
-                    &options[package_end..],
-                    ["--features", "conduit-tongues/speech"],
-                    "{} trailing options",
-                    step.id
-                );
+                let ["--features", features] = &options[package_end..] else {
+                    panic!("{} has unsupported trailing options", step.id);
+                };
+                for feature in features.split(',') {
+                    let (package, feature) = feature
+                        .split_once('/')
+                        .expect("feature names its owning package");
+                    assert!(!feature.is_empty());
+                    assert!(
+                        packages
+                            .as_chunks::<2>()
+                            .0
+                            .iter()
+                            .any(|pair| pair[1] == package),
+                        "{} enables a feature outside its package shard",
+                        step.id
+                    );
+                }
             }
         }
     }

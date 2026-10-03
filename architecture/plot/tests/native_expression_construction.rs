@@ -108,3 +108,12 @@ fn imported_shape_without_law_metadata_cannot_authorize_construction() {
             .contains("law validator")
     );
 }
+
+#[test]
+fn refined_constants_keep_existing_arithmetic_proof_and_refuse_invalid_values() {
+    let source="type AlmostU32 = U32 where . < 4_294_967_295\nplot choose (\n >> value: AlmostU32\n result: U32 >>\n) = (. + 1)\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace(". + 1", ". + 4_294_967_295"))
+        .unwrap_err()
+        .contains("law validator"));
+}

@@ -64,7 +64,7 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
     if args.microcontroller {
         let fixture = root.join("proof/fixtures/native-speech-footprint");
         let status = Command::new("cargo")
-            .args(["rustc", "--release", "--manifest-path"])
+            .args(["rustc", "--locked", "--release", "--manifest-path"])
             .arg(fixture.join("Cargo.toml"))
             .args(["--target", "thumbv6m-none-eabi", "--", "-C"])
             .arg(format!(

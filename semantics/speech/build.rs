@@ -32,7 +32,7 @@ fn main() {
         bindings.source,
     )
     .unwrap();
-    let path = "../../plots/native-speech/voice.conduit";
+    let path = "voice.conduit";
     println!("cargo:rerun-if-changed={path}");
     println!("cargo:rerun-if-changed=build_support/lower.rs");
     let source = fs::read_to_string(path).expect("native speech source");
