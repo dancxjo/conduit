@@ -185,6 +185,21 @@ impl AdmissionManager {
         Ok(challenge)
     }
 
+    /// Cancel one unfinished return challenge after its carrier closes. The
+    /// admitted Part and its retained continuity key are unaffected.
+    pub fn disconnect_return(
+        &mut self,
+        admission_id: &AdmissionId,
+    ) -> Result<(), AdmissionRefusal> {
+        let index = self
+            .pending_returns
+            .iter()
+            .position(|pending| &pending.challenge.admission_id == admission_id)
+            .ok_or(AdmissionRefusal::UnknownAdmission)?;
+        self.pending_returns.remove(index);
+        Ok(())
+    }
+
     pub fn complete_return(
         &mut self,
         membership: &mut BodyMembership,
@@ -285,5 +300,42 @@ impl AdmissionManager {
         self.retain_receipt(challenge.admission_id.clone(), credential.clone())?;
         *membership = next;
         Ok(credential)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloc::{format, vec};
+
+    #[test]
+    fn disconnect_return_fences_only_the_named_pending_challenge() {
+        let body_id = BodyId::bound("body/test".into());
+        let mut manager = AdmissionManager::new(body_id.clone()).unwrap();
+        let make_pending = |name: &str| PendingReturn {
+            challenge: PartReturnChallenge {
+                admission_id: AdmissionId::bound(name.into()),
+                body_id: body_id.clone(),
+                part_id: PartId::bound(format!("part/{name}")),
+                host_id: HostId::from(format!("host/{name}")),
+                boot_id: BootId::from(format!("boot/{name}")),
+                offer_generation: OfferGeneration(0),
+                nonce: [1; 32],
+                issued_at_millis: 0,
+                expires_at_millis: 1000,
+            },
+            attempts: 0,
+        };
+        manager.pending_returns.push(make_pending("first"));
+        manager.pending_returns.push(make_pending("second"));
+        let retained = manager.pending_returns[1].clone();
+        assert_eq!(
+            manager.disconnect_return(&AdmissionId::bound("unknown".into())),
+            Err(AdmissionRefusal::UnknownAdmission)
+        );
+        manager
+            .disconnect_return(&AdmissionId::bound("first".into()))
+            .unwrap();
+        assert_eq!(manager.pending_returns, vec![retained]);
     }
 }
