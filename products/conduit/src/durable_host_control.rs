@@ -43,7 +43,7 @@ pub(crate) use body::start_browser_window;
 use body::HostSource;
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
-    local_face_snapshot, submit_local_face_interaction,
+    local_face_snapshot, submit_browser_face_interaction, submit_local_face_interaction,
 };
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
 
@@ -956,6 +956,13 @@ enum Request {
         show: Box<MaskShow>,
         interaction: FaceInteraction,
     },
+    BodyBrowserInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1595,6 +1602,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyInteraction { token, .. }
+        | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
@@ -1755,6 +1763,19 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => runtime
             .owned_body_local_interaction(&show, &interaction)
+            .map(|result| Response::BodyInteraction {
+                protocol: PROTOCOL,
+                result: Box::new(result),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserInteraction {
+            protocol,
+            request,
+            show,
+            interaction,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_browser_interaction(&request, &show, &interaction)
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),

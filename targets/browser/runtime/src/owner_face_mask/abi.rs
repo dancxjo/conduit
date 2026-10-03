@@ -72,7 +72,7 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             schema,
             presentation,
             interactions_admitted,
-        } if schema == OWNER_FACE_RESPONSE_SCHEMA && !interactions_admitted => {
+        } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
             if CURRENT.with(|current| {
                 current.borrow().as_ref().is_some_and(|mask| {
                     mask.show.show.lifecycle == ManifestationLifecycle::Prepared
@@ -87,7 +87,9 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             }) else {
                 return -8;
             };
-            let Ok(mask) = OwnerBrowserMask::prepare(basis, *presentation, sequence) else {
+            let Ok(mask) =
+                OwnerBrowserMask::prepare(basis, *presentation, sequence, interactions_admitted)
+            else {
                 return -5;
             };
             let result = write_output(&mask.view());
@@ -147,6 +149,33 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
         }
         _ => -2,
     }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_owner_face_interact(length: usize) -> i32 {
+    OUTPUT.with(|output| output.borrow_mut().clear());
+    if length == 0 || length > INPUT_CAPACITY {
+        return -1;
+    }
+    let proposed = INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let value = serde_json::from_slice::<ProposedInteraction>(&input[..length]);
+        input[..length].fill(0);
+        value
+    });
+    let Ok(proposed) = proposed else {
+        return -2;
+    };
+    CURRENT.with(|current| {
+        let mut current = current.borrow_mut();
+        let Some(mask) = current.as_mut() else {
+            return -6;
+        };
+        match mask.interact(proposed) {
+            Ok(emission) => write_output(&emission),
+            Err(_) => -5,
+        }
+    })
 }
 
 #[no_mangle]

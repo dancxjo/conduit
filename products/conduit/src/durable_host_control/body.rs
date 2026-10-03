@@ -273,6 +273,37 @@ impl DurableHostRuntime {
         owner.apply_clock_interval_interaction(root, show, interaction)
     }
 
+    pub(super) fn owned_body_browser_interaction(
+        &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        let HostSource::Body {
+            owner,
+            root,
+            running,
+        } = &mut self.host
+        else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        if running.is_some() {
+            return Err("clock-play-must-lull".into());
+        }
+        // The credential is checked against the retained admission and the
+        // current Part before a browser Show can exercise an owner action.
+        let face = owner.face_snapshot(request)?;
+        if show.show.host_id != request.host_id
+            || show.show.boot_id != request.boot_id
+            || show.show.body_id.as_ref() != Some(&request.body_id)
+            || show.presentation_id != face.identity
+            || show.presentation_revision != face.revision
+        {
+            return Err("browser-show-basis-mismatch".into());
+        }
+        owner.apply_clock_interval_interaction(root, show, interaction)
+    }
+
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -317,6 +348,7 @@ pub(super) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyInteraction { token, .. }
+        | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. } => token.fill(0),
         _ => unreachable!("Body control client only sends Body requests"),
@@ -517,6 +549,32 @@ pub(crate) fn submit_local_face_interaction(
         } => Ok(*result),
         Response::Refused { code, .. } => Err(format!("Body owner refused interaction: {code}")),
         _ => Err("Body owner returned the wrong interaction response".into()),
+    }
+}
+
+#[cfg(unix)]
+pub(crate) fn submit_browser_face_interaction(
+    state_dir: &Path,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+    interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    match call(
+        state_dir,
+        Request::BodyBrowserInteraction {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            request,
+            show: Box::new(show),
+            interaction,
+        },
+    )? {
+        Response::BodyInteraction {
+            protocol: PROTOCOL,
+            result,
+        } => Ok(*result),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong browser interaction response".into()),
     }
 }
 

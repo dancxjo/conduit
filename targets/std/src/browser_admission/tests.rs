@@ -174,6 +174,21 @@ fn owner_face_frames_require_one_exact_credential_basis_and_bounded_response() {
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
         response
     );
+    let accepted = BrowserAdmissionEgress::FaceInteractionResponse {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        accepted: true,
+        code: String::new(),
+    };
+    assert!(encode_browser_admission_frame(&accepted, &mut output).is_ok());
+    let malformed = BrowserAdmissionEgress::FaceInteractionResponse {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        accepted: true,
+        code: "stale-face-or-show".into(),
+    };
+    assert_eq!(
+        encode_browser_admission_frame(&malformed, &mut output),
+        Err(BrowserAdmissionFrameError::InvalidFaceSnapshot)
+    );
 }
 
 #[test]

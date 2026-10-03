@@ -216,8 +216,8 @@ export class BrowserBodyParticipation {
     }
     if (view?.schema !== "conduit.browser/owner-face-mask@1" ||
         view.body_id !== credential.body_id || !["prepared", "available"].includes(view.show_state) ||
-        view.interactions_admitted !== false) {
-      throw new Error("owner Face Mask did not prepare one exact read-only Show");
+        typeof view.interactions_admitted !== "boolean") {
+      throw new Error("owner Face Mask did not prepare one exact Show");
     }
     return view;
   }
@@ -232,10 +232,28 @@ export class BrowserBodyParticipation {
     });
     if (shown?.show_id !== view.show_id || shown?.face_id !== view.face_id ||
         shown?.face_revision !== view.face_revision || shown?.show_state !== "available" ||
-        shown?.interactions_admitted !== false) {
+        shown?.interactions_admitted !== view.interactions_admitted) {
       throw new Error("browser Mask acknowledged another owner Face Show");
     }
     return shown;
+  }
+  /** Emit one typed Mask interaction on this still-live owner window. */
+  submitOwnerFaceInteraction({ view, actionId, target, intervalMs, sequence = 1 }) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential ||
+        view?.body_id !== credential.body_id || view?.show_state !== "available" ||
+        view?.interactions_admitted !== true) {
+      throw new Error("current browser Show and owner presence are required for interaction");
+    }
+    if (typeof intervalMs !== "string" || intervalMs.length < 1 || intervalMs.length > 4 ||
+        !Number.isSafeInteger(sequence) || sequence < 1) {
+      throw new Error("choose one reviewed clock interval");
+    }
+    const submission = this.#state.host.bridge.ownerFaceInteract({
+      show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
+      action_id: actionId, target, interval_ms: intervalMs, sequence,
+    });
+    return this.#state.membership.submitFaceInteraction(submission);
   }
   signalWebRtc(options) { return this.#state.membership.signalWebRtc(options); }
   requestWebRtcGrant(index, generation = 0) { return this.#state.membership.requestWebRtcGrant(index, generation); }
