@@ -27,3 +27,11 @@ test('existing tighter policy survives and headless fragments refuse packaging',
   assert(applyStaticApplicationCsp(`<html><head>${existing}</head></html>`).includes(existing));
   assert.throws(() => applyStaticApplicationCsp('<svg/>'), /explicit head/);
 });
+
+test('explicit owner window widens only its document to bounded loopback WebSockets', () => {
+  const source = '<html><head></head><body></body></html>';
+  const secured = applyStaticApplicationCsp(source, { loopbackOwnerWindow: true });
+  assert.match(secured, /connect-src 'self' ws:\/\/127\.0\.0\.1:\*/);
+  assert.doesNotMatch(applyStaticApplicationCsp(source), /ws:\/\/127\.0\.0\.1/);
+  assert.doesNotMatch(secured, /connect-src[^;]*wss:\/\//);
+});

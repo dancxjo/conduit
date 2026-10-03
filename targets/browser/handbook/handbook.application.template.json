@@ -1,6 +1,7 @@
 {
   "schema": "conduit.browser/application-package-template@1",
   "application_id": "conduit.application/handbook",
+  "loopback_owner_window": true,
   "state_compatibility": {
     "identity": "conduit.application/handbook-state",
     "version": 1
@@ -21,7 +22,14 @@
       "role": "application-module",
       "kind": "module",
       "path": "application.mjs",
-      "maximum_bytes": 131072
+      "maximum_bytes": 131072,
+      "dependencies": [{"role":"owner-participation","specifier":"./owner-participation.mjs"}]
+    },
+    {
+      "role": "owner-participation",
+      "kind": "module",
+      "path": "owner-participation.mjs",
+      "maximum_bytes": 16384
     },
     {
       "role": "birth-specification",
