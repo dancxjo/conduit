@@ -12,18 +12,22 @@ const CSS: &str = r#"
 .journey .lede{font-size:1.2rem;max-width:64ch}
 .journey .chapter-links{display:flex;flex-wrap:wrap;gap:.65rem;margin:2rem 0;padding:0;list-style:none}
 .journey .chapter-links a,.journey .next-link{display:inline-block;padding:.55rem .8rem;border:1px solid var(--conduit-structure-secondary);border-radius:.35rem}
-.journey article{border:1px solid var(--conduit-structure-secondary);border-radius:.5rem;background:var(--conduit-surface);padding:clamp(1rem,3vw,2rem);margin:2rem 0}
+.journey .chapter-run{border-left:2px solid var(--conduit-structure-secondary);margin:2.5rem 0 2.5rem 1.1rem;padding-left:2.5rem}
+.journey article{position:relative;border:1px solid var(--conduit-structure-secondary);border-top:3px solid var(--conduit-structure-primary);border-radius:.5rem;background:var(--conduit-surface);padding:clamp(1rem,3vw,2rem);margin:2.5rem 0;box-shadow:0 1rem 2.5rem rgb(0 0 0 / .12)}
+.journey .rail-number{position:absolute;left:-3.6rem;top:1.1rem;display:grid;place-items:center;width:2.15rem;height:2.15rem;border:2px solid var(--conduit-structure-primary);border-radius:50%;background:var(--conduit-background);color:var(--conduit-text-primary);font-family:var(--conduit-font-mono,monospace);font-size:.8rem;font-weight:700}
 .journey .step{font-weight:700;color:var(--conduit-emphasis)}
 .journey .story{display:grid;grid-template-columns:minmax(9rem,12rem) minmax(0,1fr);gap:.5rem 1.25rem;max-width:65rem}
 .journey .story dt{font-weight:700}.journey .story dd{margin:0}
 .journey .media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,26rem),1fr));gap:1.25rem;margin:1.5rem 0}
-.journey figure{margin:0}.journey img{max-width:100%;height:auto;border:1px solid var(--conduit-structure-secondary)}
-.journey figcaption{margin:.4rem 0;color:var(--conduit-text-secondary)}
+.journey figure{margin:0;min-width:0;border:1px solid var(--conduit-structure-secondary);border-radius:.4rem;overflow:hidden;background:var(--conduit-background)}
+.journey figure>a{display:block;padding:.5rem}.journey img{display:block;width:100%;max-height:42rem;object-fit:contain;border:1px solid var(--conduit-structure-secondary)}
+.journey figcaption{padding:.8rem 1rem;color:var(--conduit-text-secondary)}
+.journey .audio-card{padding:1rem}.journey .audio-card figcaption{padding:0 0 .8rem}.journey .audio-card strong{display:block;color:var(--conduit-text-primary);font-size:1.1rem}.journey .audio-card p{margin:.7rem 0 0}
 .journey audio{width:100%}.journey pre{max-height:20rem;overflow:auto;white-space:pre-wrap;word-break:break-word;padding:1rem;border:1px solid var(--conduit-structure-secondary)}
 .journey details{margin-top:1.25rem;padding:1rem;border:1px solid var(--conduit-structure-secondary);border-radius:.35rem}.journey summary{cursor:pointer;font-weight:700}
 .journey .boundary{border-left:3px solid var(--conduit-emphasis);padding-left:1rem;max-width:68ch}
 .journey code{overflow-wrap:anywhere}
-@media(max-width:650px){.journey .story{grid-template-columns:1fr}.journey .story dd{margin-bottom:.75rem}}
+@media(max-width:650px){.journey .chapter-run{padding-left:1.4rem;margin-left:.6rem}.journey .rail-number{left:-2.55rem;width:1.85rem;height:1.85rem}.journey .story{grid-template-columns:1fr}.journey .story dd{margin-bottom:.75rem}}
 "#;
 
 pub(super) fn write(
@@ -112,8 +116,8 @@ fn document(
             ));
             match item.output.kind {
                 EvidenceKind::Screenshot => media.push_str(&format!(
-                    "<figure><img src=\"{}\" alt=\"{}\" loading=\"lazy\"><figcaption>{}</figcaption></figure>",
-                    escape(&href), escape(item.alt), escape(item.alt))),
+                    "<figure><a href=\"{}\" aria-label=\"Open full-size capture: {}\"><img src=\"{}\" alt=\"{}\" loading=\"lazy\"></a><figcaption>{}</figcaption></figure>",
+                    escape(&href), escape(item.alt), escape(&href), escape(item.alt), escape(item.alt))),
                 EvidenceKind::ConsoleTranscript => {
                     let text = fs::read_to_string(source.join(&item.output.path))
                         .map_err(|error| format!("read terminal capture: {error}"))?;
@@ -128,8 +132,9 @@ fn document(
                     let transcript = item.transcript.ok_or("validated audio lost transcript")?;
                     let transcript_href = safe_asset_path(&transcript.path)?;
                     let mode = item.mode.ok_or("validated audio lost speech mode")?;
-                    media.push_str(&format!("<figure><figcaption>{}</figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download produced speech</a></audio><p><strong>Words in produced audio ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
-                        escape(item.alt), escape(&href), escape(&href), escape(mode),
+                    let label = if mode == "direct" { "Direct mechanical reading" } else { "Finite model-assisted wording" };
+                    media.push_str(&format!("<figure class=\"audio-card\"><figcaption><strong>{}</strong>{}</figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download produced speech</a></audio><p><strong>Words in produced audio ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
+                        label, escape(item.alt), escape(&href), escape(&href), escape(mode),
                         escape(item.transcript_text.as_deref().unwrap_or("")), escape(&transcript_href)));
                     if let Some(validation) = item.validation {
                         evidence_links.push_str(&format!("<li><a href=\"{}\">Original model output and validation receipt</a></li>",
@@ -155,12 +160,12 @@ fn document(
         } else {
             "<a class=\"next-link\" href=\"/conduit/journeys/\">Explore other journeys</a>".into()
         };
-        content.push_str(&format!("<article id=\"{}\" aria-labelledby=\"title-{}\"><p class=\"step\">Chapter {} of 8</p><h2 id=\"title-{}\">{}</h2><dl class=\"story\"><dt>You want to</dt><dd>{}</dd><dt>Do this</dt><dd>{}</dd><dt>What changes</dt><dd>{}</dd><dt>Why it matters</dt><dd>{}</dd><dt>Try next</dt><dd>{}</dd></dl><div class=\"media-grid\">{media}</div><details><summary>Evidence and limits</summary><p><a href=\"{}\">Chapter action receipt</a></p><ul>{evidence_links}</ul><h3>What this does not establish</h3><ul>{limitations}</ul></details><p>{next}</p></article>",
-            escape(&chapter.story.id), escape(&chapter.story.id), step, escape(&chapter.story.id), escape(&chapter.story.title),
+        content.push_str(&format!("<article id=\"{}\" aria-labelledby=\"title-{}\"><span class=\"rail-number\" aria-hidden=\"true\">{:02}</span><p class=\"step\">Chapter {} of 8</p><h2 id=\"title-{}\">{}</h2><dl class=\"story\"><dt>You want to</dt><dd>{}</dd><dt>Do this</dt><dd>{}</dd><dt>What changes</dt><dd>{}</dd><dt>Why it matters</dt><dd>{}</dd><dt>Try next</dt><dd>{}</dd></dl><div class=\"media-grid\">{media}</div><details><summary>Evidence and limits</summary><p><a href=\"{}\">Chapter action receipt</a></p><ul>{evidence_links}</ul><h3>What this does not establish</h3><ul>{limitations}</ul></details><p>{next}</p></article>",
+            escape(&chapter.story.id), escape(&chapter.story.id), step, step, escape(&chapter.story.id), escape(&chapter.story.title),
             escape(&chapter.story.intention), escape(&chapter.story.action), escape(&chapter.story.result),
             escape(&chapter.story.why), escape(&chapter.story.next), escape(&receipt)));
     }
-    Ok(format!("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>One Body, five ways to meet it — Conduit</title><style>{}\n{CSS}</style></head><body data-application-theme=\"conduit.presentation/phosphor@1\">{}<main class=\"journey\"><header><p class=\"step\">A real user journey · eight chapters</p><h1>One Body, five ways to meet it</h1><p class=\"lede\">Start a clock, move between browser, ConduitOS and terminal, hear its current state, then see what happens when a place or provider disappears. Every capture below belongs to one recorded run.</p><p class=\"boundary\">The captured run proves only the actions and effects named in its receipts. QEMU is emulator evidence; audio production and playback are separate from attended human listening.</p></header><nav aria-label=\"Journey chapters\"><ol class=\"chapter-links\">{links}</ol></nav>{content}<details><summary>Source and complete evidence inventory</summary><p>Source commit: <code>{}</code></p><p>Run: <code>{}</code> · Body: <code>{}</code></p><p><a href=\"{}\">Journey document</a> · <a href=\"manifest.json\">Digest-bound evidence manifest</a></p></details></main></body></html>",
+    Ok(format!("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>One Body, five ways to meet it — Conduit</title><style>{}\n{CSS}</style></head><body data-application-theme=\"conduit.presentation/phosphor@1\">{}<main class=\"journey\"><header><p class=\"step\">A real user journey · eight chapters</p><h1>One Body, five ways to meet it</h1><p class=\"lede\">Start a clock, move between browser, ConduitOS and terminal, hear its current state, then see what happens when a place or provider disappears. Every capture below belongs to one recorded run.</p><p class=\"boundary\">The captured run proves only the actions and effects named in its receipts. QEMU is emulator evidence; audio production and playback are separate from attended human listening.</p></header><nav aria-label=\"Journey chapters\"><ol class=\"chapter-links\">{links}</ol></nav><div class=\"chapter-run\">{content}</div><details><summary>Source and complete evidence inventory</summary><p>Source commit: <code>{}</code></p><p>Run: <code>{}</code> · Body: <code>{}</code></p><p><a href=\"{}\">Journey document</a> · <a href=\"manifest.json\">Digest-bound evidence manifest</a></p></details></main></body></html>",
         crate::site::styles(), crate::site::navigation("journeys"), escape(&evidence.commit),
         escape(&journey.run_id), escape(&journey.body_id),
         escape(&safe_asset_path(&evidence.outputs.iter().find(|output| output.id == "journey").ok_or("missing journey document")?.path)?)))

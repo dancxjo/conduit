@@ -274,6 +274,10 @@ fn renders_only_complete_correlated_synthetic_fixture() {
     let page = fs::read_to_string(fixture.output.join("index.html")).unwrap();
     assert!(page.contains("Chapter 8 of 8"));
     assert!(page.contains("Words in produced audio (llm-assisted)"));
+    assert!(page.contains("class=\"chapter-run\""));
+    assert!(page.contains("Open full-size capture"));
+    assert!(page.contains("Direct mechanical reading"));
+    assert!(page.contains("Finite model-assisted wording"));
     assert!(page.contains("aria-label=\"Main navigation\""));
     assert!(run(&fixture).unwrap_err().contains("already exists"));
 }
