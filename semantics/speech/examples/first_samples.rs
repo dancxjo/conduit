@@ -40,31 +40,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
             .collect();
         events.push(VoiceEvent::boundary(VoiceBoundary::turn));
-        let mut renderer = Renderer::prepare(&events).map_err(|error| format!("{error:?}"))?;
-        let bytes = u32::try_from(renderer.total_frames() * 2)?;
-        let mut file = fs::File::create(format!("{output}/{name}.wav"))?;
-        file.write_all(b"RIFF")?;
-        file.write_all(&(bytes + 36).to_le_bytes())?;
-        file.write_all(b"WAVEfmt ")?;
-        file.write_all(&16u32.to_le_bytes())?;
-        file.write_all(&1u16.to_le_bytes())?;
-        file.write_all(&1u16.to_le_bytes())?;
-        file.write_all(&SAMPLE_RATE_HZ.to_le_bytes())?;
-        file.write_all(&(SAMPLE_RATE_HZ * 2).to_le_bytes())?;
-        file.write_all(&2u16.to_le_bytes())?;
-        file.write_all(&16u16.to_le_bytes())?;
-        file.write_all(b"data")?;
-        file.write_all(&bytes.to_le_bytes())?;
-        let mut block = [0_i16; 128];
-        while !renderer.is_complete() {
-            let count = renderer
-                .render(&mut block)
-                .map_err(|error| format!("{error:?}"))?;
-            for sample in &block[..count] {
-                file.write_all(&sample.to_le_bytes())?;
-            }
-        }
+        write_wav(&output, name, &events)?;
         println!("{output}/{name}.wav");
+    }
+    for (name, text) in [
+        ("text-hello-world", "Hello, world!"),
+        (
+            "text-native-speech",
+            "This is a native speech synthesizer. Please listen.",
+        ),
+        ("text-spelling-rules", "The quick fox can chat and sing."),
+    ] {
+        let mut storage =
+            [VoiceEvent::boundary(VoiceBoundary::word); conduit_speech::MAXIMUM_EVENTS];
+        let prepared =
+            conduit_speech::pronounce(text, &mut storage).map_err(|error| format!("{error:?}"))?;
+        write_wav(&output, name, prepared.events())?;
+        println!("{output}/{name}.wav: {text}");
+    }
+    Ok(())
+}
+
+fn write_wav(
+    output: &str,
+    name: &str,
+    events: &[VoiceEvent],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut renderer = Renderer::prepare(events).map_err(|error| format!("{error:?}"))?;
+    let bytes = u32::try_from(renderer.total_frames() * 2)?;
+    let mut file = fs::File::create(format!("{output}/{name}.wav"))?;
+    file.write_all(b"RIFF")?;
+    file.write_all(&(bytes + 36).to_le_bytes())?;
+    file.write_all(b"WAVEfmt ")?;
+    file.write_all(&16u32.to_le_bytes())?;
+    file.write_all(&1u16.to_le_bytes())?;
+    file.write_all(&1u16.to_le_bytes())?;
+    file.write_all(&SAMPLE_RATE_HZ.to_le_bytes())?;
+    file.write_all(&(SAMPLE_RATE_HZ * 2).to_le_bytes())?;
+    file.write_all(&2u16.to_le_bytes())?;
+    file.write_all(&16u16.to_le_bytes())?;
+    file.write_all(b"data")?;
+    file.write_all(&bytes.to_le_bytes())?;
+    let mut block = [0_i16; 128];
+    while !renderer.is_complete() {
+        let count = renderer
+            .render(&mut block)
+            .map_err(|error| format!("{error:?}"))?;
+        for sample in &block[..count] {
+            file.write_all(&sample.to_le_bytes())?;
+        }
     }
     Ok(())
 }

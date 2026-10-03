@@ -21,6 +21,15 @@ own this compact English voice's realization choices and fixed-point equations.
   locale differ. These are structures for i18n, not a translation engine or
   locale formatter.
 
+`pronunciation.conduit` owns this first English orthography profile's case
+normalization, classification, small self-authored dictionary, ordered spelling
+rules, word position and punctuation decisions. `pronounce` prepares ordinary
+text into caller-owned storage, retaining its exact borrowed source and scalar
+ranges. Dictionary choices differ from spelling guesses; unspecified stress
+stays unspecified. Dictionary phonemes reference the whole source word; spelling
+phonemes reference the consumed cluster. These are pronunciation correspondences,
+not measured acoustic alignments or universal dictionary correctness claims.
+
 The source is adapted from Tongues/Speaking revision
 `b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9`. Collection/text limits are this
 profile's admission bounds. Values exceeding them refuse; they must not be
@@ -62,22 +71,33 @@ full-duration state/sample history against the original checked scalar
 composition. Sample rate and admission limits come from the checked literal
 `speech/profile` plot, without a second Rust copy of that policy.
 
-Generate the early phoneme-authored WAVs and run focused conformance:
+The text profile admits at most 512 UTF-8 bytes and 32 bytes per word, within
+the same 256-event and 30-second rendering bounds. It handles ASCII English
+letters, apostrophes, whitespace and the punctuation declared in the checked
+classification plot. Digits and non-ASCII characters explicitly refuse with a
+scalar offset/codepoint. Preparation preflights event count and caller storage;
+refusal leaves storage unchanged. Its fixed dictionary chooses profile defaults;
+spelling guesses do not resolve all English irregularities, homographs or stress.
+Artifact identity and rich-to-compact admission remain separate work.
+
+Generate phoneme-authored and ordinary-text WAVs and run focused conformance:
 
 ```sh
 cargo xtask prove journey native-speech
 ```
 
-Add `--microcontroller` to link the standalone Cortex-M0+ footprint probe.
+Add `--microcontroller` to link both standalone Cortex-M0+ footprint probes.
 This needs the `thumbv6m-none-eabi` toolchain target and GNU `size`
-for section inspection. The probe includes the
-renderer, constants, and a 128-frame static output buffer; it excludes planner,
-kernel, boot, device driver, rich metadata, and the eventual pronunciation layer.
+for section inspection. The renderer probe includes constants and a 128-frame static output buffer.
+The text probe additionally retains 64 typed events in fixed storage and includes
+normalization, dictionary/rules and text traversal. Both exclude planner, kernel,
+boot, device drivers, rich preparation metadata and stack proof.
 A link is not device playback or proof of real-time performance. WAV generation
 writes hosted artifacts and does not access an audio device.
 
 Remaining work includes artifact-reference validation and explicit rich-to-
-compact segment admission, arbitrary-text pronunciation, transitions/diphthongs,
+compact segment admission, broader text/number normalization and pronunciation,
+transitions/diphthongs,
 coarticulation and additional Klatt controls, an exact planned kernel Back with
 pressure/cancellation signs, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.

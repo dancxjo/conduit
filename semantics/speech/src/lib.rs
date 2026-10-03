@@ -12,11 +12,16 @@
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/voice.rs"));
 }
+mod pronounce;
 mod render;
 pub use generated::speech_realize as realize;
 pub use generated::{
-    EnglishDerivation, EnglishPhone, EnglishPhoneme, EnglishPosition, EnglishStress,
-    RealizationInput, RealizationResult, VoiceBoundary, VoiceEvent, SOURCE_ID,
+    EnglishDerivation, EnglishPhone, EnglishPhoneme, EnglishPosition, EnglishPronunciationOrigin,
+    EnglishStress, RealizationInput, RealizationResult, TextSpeechSegment, VoiceBoundary,
+    VoiceEvent, SOURCE_ID,
+};
+pub use pronounce::{
+    pronounce, PronouncedText, TextRefusal, MAXIMUM_TEXT_BYTES, MAXIMUM_WORD_BYTES,
 };
 pub use render::{
     RenderRefusal, Renderer, MAXIMUM_BLOCK_FRAMES, MAXIMUM_EVENTS, MAXIMUM_UTTERANCE_FRAMES,
@@ -43,3 +48,6 @@ mod realization_parity;
 
 #[cfg(test)]
 mod frame_parity;
+
+#[cfg(test)]
+mod pronunciation_parity;

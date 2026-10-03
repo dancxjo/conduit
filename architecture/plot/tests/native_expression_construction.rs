@@ -117,3 +117,43 @@ fn refined_constants_keep_existing_arithmetic_proof_and_refuse_invalid_values() 
         .unwrap_err()
         .contains("law validator"));
 }
+
+#[test]
+fn nominal_text_constants_preserve_identity_and_prove_their_bounds() {
+    let source = "type Word = Text <= 4B\nplot choose (\n >> value: Word\n result: Boolean >>\n) = (. == \"one\")\n";
+    let program = compile(source).unwrap();
+    let conduit_core::StructuredInfoTypeShape::Nominal { representation, .. } =
+        program.input_type.shape()
+    else {
+        panic!("Word")
+    };
+    let value = StructuredInfoValue::nominal(
+        program.input_type.clone(),
+        StructuredInfoValue::leaf(representation.clone(), b"one".to_vec()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        program.evaluate(&value.canonical_bytes().unwrap()).unwrap(),
+        vec![1]
+    );
+    assert!(compile(&source.replace("\"one\"", "\"hello\""))
+        .unwrap_err()
+        .contains("law validator"));
+    assert!(compile("type Word = Text <= 4B\ntype Other = Text <= 4B\nplot choose (\n >> value: Other\n result: Word >>\n) = (.)\n").is_err());
+}
+
+#[test]
+fn variant_record_payload_keeps_its_native_schema_identity() {
+    let program = compile("type Payload = {\n value: I64\n}\ntype Choice =\n known Payload\n | missing\nplot choose (\n >> value: I64\n result: Choice >>\n) = (Choice.known({value: .}))\n").unwrap();
+    let output =
+        StructuredInfoValue::from_canonical_bytes(&program.evaluate(&7_i64.to_le_bytes()).unwrap())
+            .unwrap();
+    let StructuredInfoValueShape::Variant { payload, .. } = output.shape() else {
+        panic!("variant")
+    };
+    let conduit_core::StructuredInfoTypeShape::Record { schema, .. } = payload.value_type().shape()
+    else {
+        panic!("payload")
+    };
+    assert!(schema.as_str().starts_with("type/Payload@"));
+}

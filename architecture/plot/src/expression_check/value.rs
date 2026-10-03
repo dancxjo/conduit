@@ -52,6 +52,13 @@ pub(super) fn atomic(
         return expected_or_exact(boolean(), expected, span);
     }
     if crate::text_value::parse_quoted_text(text).is_some() {
+        // A contextual native text literal retains its exact nominal identity.
+        // Expansion validates the closed constant's bounds and laws before Play.
+        if let Some(expected) = expected {
+            if expected.value_kind().and_then(|kind| context.structured_types.get(kind)).is_some_and(|ty| matches!(ty.shape(), StructuredInfoTypeShape::Nominal { representation, .. } if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::TEXT_INFO_ID))) {
+                return Ok(expected.clone());
+            }
+        }
         return expected_or_exact(
             CheckedExpressionType::semantic("value/text"),
             expected,
@@ -199,7 +206,17 @@ pub(super) fn variant(
     let Some(case) = cases.iter().find(|case| case.tag() == case_name) else {
         return refuse(span, "variant type has no such case");
     };
-    let payload_type = CheckedExpressionType::from_structured(case.payload_type());
+    let payload_kind = case
+        .payload_type()
+        .profile()
+        .expect("checked payload profile")
+        .value_kind()
+        .clone();
+    let payload_type = if context.structured_types.get(&payload_kind) == Some(case.payload_type()) {
+        CheckedExpressionType::Semantic(payload_kind)
+    } else {
+        CheckedExpressionType::from_structured(case.payload_type())
+    };
     let actual = infer(payload, Some(&payload_type), context, node_types)?;
     require(
         actual,
