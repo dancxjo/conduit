@@ -16,10 +16,12 @@ use sha2::{Digest, Sha256};
 
 mod documentation;
 mod gallery;
+mod one_body_journey;
 mod verification;
 
 pub use documentation::{verify_documentation_references, DocumentationReferenceRequest};
 pub use gallery::{publish_gallery, refresh_gallery, GalleryRequest};
+pub use one_body_journey::{render_one_body_journey, OneBodyJourneyRequest};
 pub use verification::{
     verify, ExpectedEvidenceResult, VerificationRequest, VerifiedEvidence, VerifiedOutput,
 };
