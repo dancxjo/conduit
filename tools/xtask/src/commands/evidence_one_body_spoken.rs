@@ -1,7 +1,10 @@
 //! One live installed Body Face through finite Presenter and ordinary spoken Mask.
 //! This is one producer chapter, not a complete journey or a publication route.
 
-use crate::evidence::{EvidenceKind, EvidenceManifest, EvidenceResult};
+use crate::evidence::{
+    verify, EvidenceKind, EvidenceManifest, EvidenceResult, ExpectedEvidenceResult,
+    VerificationRequest,
+};
 use clap::Args as ClapArgs;
 use conduit_presentation::{
     GeneratedContentRole, GeneratedManifestationDisposition, GenerativePresenterBounds,
@@ -195,13 +198,17 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         .raw_provider_output
         .as_ref()
         .ok_or("finite Presenter omitted original provider output")?;
-    retain(
+    retain_json(
         &mut manifest,
         "original-model-output",
-        "original-model-output.txt",
-        EvidenceKind::ConsoleTranscript,
-        "text/plain; charset=utf-8",
-        raw.as_bytes(),
+        "original-model-output.json",
+        &json!({
+            "schema": "conduit.journey/provider-output@1",
+            "request_id": request.request_identity,
+            "candidate_id": candidate.candidate_identity,
+            "output": raw,
+            "sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
+        }),
         &run_id,
         &first,
         Some(&model_proof.proof_class),
@@ -391,6 +398,17 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceResult::DiagnosticIncomplete
     };
     manifest.finish(result)?;
+    verify(&VerificationRequest {
+        root: manifest.root().to_path_buf(),
+        commit: source_commit,
+        result: if result == EvidenceResult::Complete {
+            ExpectedEvidenceResult::Complete
+        } else {
+            ExpectedEvidenceResult::DiagnosticIncomplete
+        },
+        proof_id: PROOF_ID.into(),
+        suite_id: SUITE_ID.into(),
+    })?;
     println!("one current Body Face produced finite Presenter wording and an acknowledged spoken WAV ({}) at {}", model_proof.proof_class, manifest.root().display());
     Ok(())
 }

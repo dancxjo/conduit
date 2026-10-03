@@ -289,8 +289,13 @@ fn rejects_optional_capture_in_complete_manifest() {
     let path = fixture.root.join("manifest.json");
     let mut manifest: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     let outputs = manifest["outputs"].as_array_mut().unwrap();
-    outputs.iter_mut().find(|output| output["id"] == "media-join-0").unwrap()["required"] = json!(false);
+    outputs
+        .iter_mut()
+        .find(|output| output["id"] == "media-join-0")
+        .unwrap()["required"] = json!(false);
     fs::write(path, serde_json::to_vec(&manifest).unwrap()).unwrap();
-    assert!(run(&fixture).unwrap_err().contains("optional or foreign-run"));
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("optional or foreign-run"));
     assert!(!fixture.output.exists());
 }
