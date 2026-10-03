@@ -15,11 +15,11 @@ use sha2::{Digest, Sha256};
 
 use super::retention::{declare, retain, retain_json};
 
-// Each Play remains below the stream Back's 30-second PCM admission. Twelve
-// batches plus common receipts fit the evidence manifest's 64-output bound.
-const MAX_BATCHES: usize = 12;
-const SEGMENTS_PER_BATCH: usize = 8;
-const TEXT_BYTES_PER_SEGMENT: usize = 256;
+// Each Play must remain below the stream Back's 30-second PCM admission.
+// Four outputs per batch plus five common receipts fit the 64-output bound.
+const MAX_BATCHES: usize = 14;
+const SEGMENTS_PER_BATCH: usize = 2;
+const TEXT_BYTES_PER_SEGMENT: usize = 96;
 
 pub(super) fn run(
     context: &LiveContext<'_>,
@@ -98,13 +98,24 @@ pub(super) fn run(
     {
         if batch_count == MAX_BATCHES {
             manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
-            return Err("full Face reading exceeded twelve admitted speech batches".into());
+            return Err("full Face reading exceeded fourteen admitted speech batches".into());
         }
         batch_count += 1;
         let stem = format!("direct-batch-{batch_count}");
         let wav_path = manifest.root().join(format!("{stem}.wav"));
+        let input_bytes = batch
+            .segments
+            .iter()
+            .map(|item| item.segment.text.len())
+            .sum::<usize>();
         let output = execute_real_spoken_batch(face, &show, &batch, speech.clone(), &wav_path)
-            .map_err(|error| format!("real streamed speech Play failed: {error:?}"))?;
+            .map_err(|error| {
+                let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
+                format!(
+                    "real streamed speech Play failed for batch {batch_count} ({} segments, {input_bytes} text bytes): {error:?}",
+                    batch.segments.len()
+                )
+            })?;
         if output.receipt.wav_sha256 != super::hash_file(&wav_path)?
             || output.receipt.wav_bytes != std::fs::metadata(&wav_path)?.len()
         {
