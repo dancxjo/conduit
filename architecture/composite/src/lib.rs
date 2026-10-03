@@ -1,5 +1,16 @@
 //! Kernel-backed execution for exact composite definitions.
 
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+
+mod prelude {
+    pub use alloc::boxed::Box;
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec::Vec;
+}
+
 mod boundary;
 mod bounded_activation;
 mod bounded_fold_activation;

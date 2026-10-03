@@ -1,4 +1,5 @@
 //! Bounded child execution and exact composite boundary transport.
+use crate::prelude::*;
 mod preparation;
 use crate::BoxedKernelBack;
 use conduit_core::{PortDirection, PortId as SemanticPortId, ValuePayload};
@@ -20,12 +21,12 @@ pub enum ChildTerminalError {
     BufferContractMismatch,
     Scheduler(SchedulerError),
 }
+use alloc::collections::BTreeMap;
 use conduit_kernel::{
     CanonicalValue, CordId, HostedSignLog, HostedValueStore, KernelEvent, NodeId, RemoteEndpointId,
     RemoteTerminalDisposition, ValueStorage,
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-use std::collections::BTreeMap;
 
 pub(crate) const MAX_NODES: usize = 16;
 pub(crate) const MAX_CORDS: usize = 32;

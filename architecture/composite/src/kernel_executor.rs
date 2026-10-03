@@ -1,9 +1,11 @@
+use crate::prelude::*;
 mod host_dispatch;
 #[cfg(test)]
 use host_dispatch::{dispatch_matches, outstanding_host_call_index};
 mod preparation;
 use crate::child::{BoundaryEndpoint, ChildKernel, ChildTerminalError, ChildTransportError};
 use crate::{KernelCompositeDefinition, KernelOperationRegistry};
+use alloc::collections::BTreeMap;
 use conduit_core::{
     ActivePlayId, AuthorityBinding, ConnectionId, HostCallRequirement, HostId, Plan, PortDirection,
     PortId, PreparationHostIdentity, ResourceBinding, ValuePayload,
@@ -14,7 +16,6 @@ use conduit_kernel::{HostCallId, HostCallOutcome, KernelEvent, NodeId, RemoteEnd
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 #[cfg(test)]
 use preparation::host_call_obligation_identity;
-use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositePreparation {
@@ -63,7 +64,7 @@ impl core::fmt::Display for KernelCompositeError {
     }
 }
 
-impl std::error::Error for KernelCompositeError {}
+impl core::error::Error for KernelCompositeError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct FaceRoute {

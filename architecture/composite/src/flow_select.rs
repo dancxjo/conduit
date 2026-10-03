@@ -1,3 +1,4 @@
+use crate::prelude::*;
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
     AdmittedKernelCompositeHostRequest, BoundedActivationAdmission, BoundedActivationError,

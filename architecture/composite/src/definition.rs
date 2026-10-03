@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use conduit_core::{
     verify_plan, verify_prepared_plan, ArtifactId, BootId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, FailureReason, HostId, HostProfileId, ImplementationId, OfferGeneration,
@@ -19,7 +20,7 @@ impl core::fmt::Display for KernelCompositeDefinitionError {
     }
 }
 
-impl std::error::Error for KernelCompositeDefinitionError {}
+impl core::error::Error for KernelCompositeDefinitionError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositeBoundary {

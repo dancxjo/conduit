@@ -1,4 +1,5 @@
 //! Bounded activation lifecycle and terminal propagation.
+use crate::prelude::*;
 mod contract;
 mod preparation;
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
@@ -6,12 +7,12 @@ use crate::{
     AdmittedKernelCompositeHostRequest, KernelCompositeError, KernelCompositeHost,
     KernelCompositeHostRequest, KernelCompositeStatus, KernelCompositeTerminal,
 };
+use alloc::collections::BTreeMap;
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{KindId, PlannedActivation, PortId, ValuePayload};
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{HostCallOutcome, KernelEvent};
 pub use contract::BoundedActivationContract;
-use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundedActivationError {
