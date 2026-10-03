@@ -3,6 +3,7 @@
 mod arrival;
 mod face_arrival;
 mod face_workspace;
+mod guest_join;
 mod input_actions;
 mod tutorial;
 mod workspace_view_sign;
@@ -59,10 +60,7 @@ pub fn run(
     rescue_matcher: &mut LocalRescueMatcher,
     pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
-    // A verified receipt remains local to this product service. There is no
-    // guest-side Part installation transition yet, so it must not enter Face
-    // truth or enable application actions merely by being present.
-    let (pending_join, _owner_receipt) = match pending_join {
+    let (pending_join, owner_receipt) = match pending_join {
         Some(join) => (Some(join.pending), join.receipt),
         None => (None, None),
     };
@@ -105,7 +103,7 @@ pub fn run(
     surface_issuer_key.fill(0);
     // The embedded defaults are Crèche inventory, not ProductJourney state.
     let plot = keyboard_text_plan::checked_plot_identity().map_err(|error| error.as_str())?;
-    let joining_pending = pending_join.is_some();
+    let provisioned_guest = pending_join.is_some();
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -119,15 +117,18 @@ pub fn run(
             + u64::from(offer.keyboard.is_some())
             + u64::from(offer.pointer.is_some())
             + u64::from(offer.pc_speaker.is_some()),
-        !joining_pending,
+        !provisioned_guest,
     );
     if let Some(pending) = pending_join {
-        front_door
-            .observe_journey(journey.projection())
-            .map_err(|error| error.as_str())?;
-        front_door
-            .await_join(pending)
-            .map_err(|error| error.as_str())?;
+        guest_join::enter(
+            &mut front_door,
+            journey.projection(),
+            pending,
+            owner_receipt,
+            &host_id,
+            &boot_id,
+            generation,
+        )?;
     } else {
         arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
     }
@@ -157,7 +158,7 @@ pub fn run(
         make.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
-    let receipt = if joining_pending {
+    let receipt = if provisioned_guest {
         face_arrival.present_pending_join(&front_door, display)?
     } else {
         face_arrival.present_first(&front_door, display)?
@@ -165,8 +166,10 @@ pub fn run(
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
-    if joining_pending {
-        arch::early_write(b"CONDUIT_JOIN_CHECKPOINT awaiting-owner-receipt\n");
+    if provisioned_guest {
+        if front_door.joining_pending() {
+            arch::early_write(b"CONDUIT_JOIN_CHECKPOINT awaiting-owner-receipt\n");
+        }
     } else {
         arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT ready\n");
     }
@@ -179,7 +182,7 @@ pub fn run(
         let mut line_requested = false;
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
-            if joining_pending {
+            if provisioned_guest {
                 if let ProductInputEvent::LocalRescue(local) = input {
                     rescue_guest::observe(identities, rescue_matcher, local, true);
                 }
