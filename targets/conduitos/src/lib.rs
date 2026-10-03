@@ -71,6 +71,7 @@ pub mod native_face_mask;
 #[cfg(feature = "native-compositor")]
 pub mod native_face_scene;
 pub mod native_face_snapshot;
+pub mod native_network_bounds;
 pub mod native_workset;
 pub mod observatory;
 pub mod offer;
