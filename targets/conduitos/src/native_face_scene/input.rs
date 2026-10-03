@@ -180,6 +180,12 @@ impl NativeFaceScene {
                 _ => {}
             }
         }
+        // Modifier reports have no text payload. They must remain harmless
+        // even while an argument-free action owns focus.
+        if (224..=231).contains(&event.usage()) {
+            self.input.keymap.apply(event);
+            return Ok(FaceSceneInput::Unchanged);
+        }
         let Some(control) = self.focus else {
             return Ok(FaceSceneInput::Unchanged);
         };

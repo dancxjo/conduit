@@ -76,6 +76,24 @@ fn press(usage: u8) -> KeyEvent {
     KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::NONE).unwrap()
 }
 
+#[test]
+fn modifier_press_on_argument_free_action_does_not_submit_or_refuse() {
+    let original = face(2);
+    let show = fixture::show(&original);
+    let mut scene = NativeFaceScene::prepare(original, 640, 480).unwrap();
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: "finish".into(),
+            argument_name: None,
+        })
+        .unwrap();
+    let shift = KeyEvent::new(225, KeyTransition::Pressed, KeyModifiers::LEFT_SHIFT).unwrap();
+    assert!(matches!(
+        scene.key(shift, &show, 1),
+        Ok(FaceSceneInput::Unchanged)
+    ));
+}
+
 fn focus_input(scene: &mut NativeFaceScene) {
     scene
         .focus_named(&FaceFocusRequest {
